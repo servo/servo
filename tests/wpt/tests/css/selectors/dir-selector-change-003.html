@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Selectors Level 4 Test: Check for correctly updating :dir matching on dir attribute change from rtl to auto</title>
+    <link rel="author" title="Miyoung Shin" href="mailto:myid.shin@igalia.com">
+    <link rel="help" href="http://www.w3.org/TR/selectors4/#dir-pseudo">
+    <link rel="match" href="dir-selector-change-003-ref.html">
+    <style>
+        #x:dir(ltr) + span { background-color: lime }
+    </style>
+</head>
+<body>
+    <div id="outer" dir="rtl">
+        <div>
+            <div id="x"></div>
+            <span>The background color should be lime</span>
+        </div>
+    </div>
+    <script>
+        outer.offsetTop;
+        outer.setAttribute("dir", "auto");
+    </script>
+</body>
+</html>

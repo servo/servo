@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>
+View transitions: Resizing viewport before animating rejects the ready promise.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+function pollForResize(win) {
+  const initial_width = win.innerWidth;
+  return new Promise(resolve => {
+    const interval_id = win.setInterval(() => {
+      if (win.innerWidth != initial_width) {
+        win.clearInterval(interval_id);
+        resolve();
+      }
+    }, 100);
+  });
+}
+
+promise_test(async t => {
+  assert_implements(
+      document.startViewTransition, 'Missing document.startViewTransition');
+
+  let popup_win;
+
+  // Open a popup window that we'll use to start a transition
+  await test_driver.bless('Open a popup in a new window', () => {
+      popup_win = window.open('about:blank', 'popup', 'width=300,height=300');
+  });
+
+  if (popup_win.document.visibilityState == "hidden") {
+    await new Promise((resolve) => {
+      popup_win.document.addEventListener("visibilitychange", resolve, { once: true });
+    });
+  }
+
+  // Resize the window while the update callback is running (i.e. before
+  // capturing the new state).
+  let transition = popup_win.document.startViewTransition(async () => {
+    // resizeTo is asynchonous so we want to wait until it takes effect
+    // before proceeding to capture the new state. Needs to poll for a
+    // changed size since rAFs are currently blocked (and thus, so is
+    // `resize` event).
+    const popup_resize = pollForResize(popup_win);
+    popup_win.resizeTo(popup_win.innerWidth/2, popup_win.innerHeight/2);
+    await popup_resize;
+  });
+
+  // Since the window was resized before capturing the new state, the
+  // transition must be skipped and the ready promise rejected.
+
+  let did_finish = false;
+  transition.finished.then(() => { did_finish = true; });
+
+  await promise_rejects_dom(t, 'InvalidStateError', popup_win.DOMException,
+      transition.ready, 'Resize must must reject `ready`.');
+
+  assert_true(did_finish, 'Transition must be skipped.');
+});
+</script>

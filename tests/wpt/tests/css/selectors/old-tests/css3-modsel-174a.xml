@@ -1,0 +1,19 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Attribute selectors with multiple attributes</title>
+  <style type="text/css"><![CDATA[
+ tests, tests * { display: block; color: red; }
+ testA[*|attribute="pass"] { color: green; }
+ testB[*|attribute="pass"] { color: green; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+  <tests xmlns="http://css.example.net/" xmlns:test="http://css.example.net/">
+   <testA attribute="pass" test:attribute="fail">This should be green.</testA>
+   <testB attribute="fail" test:attribute="pass">This should be green.</testB>
+  </tests>
+</body>
+</html>

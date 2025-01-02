@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Access-Control-Request-Headers values should be lowercase</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async_test(function(test) {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN + "/xhr/resources/access-control-preflight-request-header-lowercase.py");
+
+      xhr.setRequestHeader("X-Test", "foobar");
+
+      xhr.onerror = test.unreached_func("Error occurred.");
+
+      xhr.onload = test.step_func_done(function() {
+        assert_equals(xhr.status, 200);
+        assert_equals(xhr.responseText, "PASS");
+      });
+
+      xhr.send();
+    }, "Request with uppercase header set");
+    </script>
+  </body>
+</html>

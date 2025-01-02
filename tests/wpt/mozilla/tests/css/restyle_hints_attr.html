@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<link rel="match" href="restyle_hints_attr_ref.html">
+<link rel="stylesheet" href="restyle_hints_attr.css">
+<body>
+  <div id="d1">
+    <div id="d2">
+      <div>some text</div>
+    </div>
+  </div>
+  <div id="d3" foo="keine" bar="ahnung"></div>
+  <div id="d4"></div>
+  <div></div>
+  <script>
+    window.dummy = 0;
+    var $ = document.getElementById.bind(document);
+    function syncRestyle() { window.dummy += document.body.lastElementChild.offsetTop; }
+    $('d1').setAttribute("foo", "kokosnuss");
+    syncRestyle();
+    $('d1').setAttribute("bar", "butter");
+    syncRestyle();
+    $('d4').setAttribute("foo", true);
+    syncRestyle();
+    $('d4').setAttribute("bar", true);
+    syncRestyle();
+    $('d2').setAttribute("baz", "lecker");
+    syncRestyle();
+    $('d1').setAttribute("bar", "fett butter");
+    syncRestyle();
+    $('d3').removeAttribute("bar");
+    syncRestyle();
+  </script>
+</body>
+</html>

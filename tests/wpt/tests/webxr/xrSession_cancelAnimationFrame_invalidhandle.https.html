@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+    let immersiveTestName = "XRSession cancelAnimationFrame does not have unexpected "
+      + "behavior when given invalid handles on immersive testSession";
+    let nonImmersiveTestName = "XRSession cancelAnimationFrame does not have unexpected "
+      + "behavior when given invalid handles on non-immersive testSession";
+
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    let testFunction = (testSession) => new Promise((resolve) => {
+      let counter = 0;
+
+      function onFrame(time, vrFrame) {
+        if(counter <= 10) {
+          testSession.requestAnimationFrame(onFrame);
+        } else {
+          resolve();
+        }
+        counter++;
+      }
+
+      let handle = testSession.requestAnimationFrame(onFrame);
+      testSession.cancelAnimationFrame(0);
+      testSession.cancelAnimationFrame(-1);
+      testSession.cancelAnimationFrame(handle + 1);
+      testSession.cancelAnimationFrame(handle - 1);
+      testSession.cancelAnimationFrame(0.5);
+      testSession.cancelAnimationFrame(null);
+    });
+
+    xr_session_promise_test(
+      immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+    xr_session_promise_test(
+      nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline');
+
+  </script>
+</body>

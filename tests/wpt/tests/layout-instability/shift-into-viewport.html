@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift into viewport</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; }
+#j { position: absolute; width: 600px; height: 200px; top: 100%; background: blue; }
+
+</style>
+<div id='j'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Move div partially into viewport.
+  document.querySelector("#j").style.top =
+      document.documentElement.clientHeight - 200 + "px";
+
+  // The element moves from outside the viewport to within the viewport, which
+  // should generate a shift.
+  // (width 600) * (height 0 + move 200)
+  const expectedScore = computeExpectedScore(600 * 200, 200);
+
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, "Shift into viewport.");
+
+</script>
+

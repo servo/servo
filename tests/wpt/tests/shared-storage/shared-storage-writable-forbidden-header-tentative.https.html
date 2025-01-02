@@ -1,0 +1,49 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    'use strict';
+    const rawSetHeader = 'set;key=hello;value=world';
+    const setHeader = encodeURIComponent(rawSetHeader);
+    const sameOriginUrl =
+          `/shared-storage/resources/shared-storage-write.py?write=${setHeader}`;
+    const sameOrigin = generateURL(sameOriginUrl, []).origin;
+
+    promise_test(async t => {
+      const request = new Request(sameOriginUrl,
+                                  {
+                                    headers: {
+                                      'Sec-Shared-Storage-Writable': '?1'
+                                    }
+                                  });
+      assert_equals(request.mode, 'cors');
+      let response = await fetch(request);
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader,
+                    "NO_SHARED_STORAGE_WRITABLE_HEADER");
+      await verifyKeyNotFoundForOrigin('hello', sameOrigin);
+    }, 'The \'Sec-Shared-Storage-Writable\' header cannot successfully be '
+       + 'added directly via a JS fetch request with mode cors.');
+
+    promise_test(async t => {
+      const request = new Request(sameOriginUrl,
+                                  {
+                                    headers: {
+                                      'Sec-Shared-Storage-Writable': '?1'
+                                    },
+                                    mode: 'no-cors'
+                                  });
+      assert_equals(request.mode, 'no-cors');
+      let response = await fetch(request);
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader,
+                    "NO_SHARED_STORAGE_WRITABLE_HEADER");
+      await verifyKeyNotFoundForOrigin('hello', sameOrigin);
+    }, 'The \'Sec-Shared-Storage-Writable\' header cannot successfully be '
+       + 'added directly via a JS fetch request with mode no-cors.');
+  </script>
+</body>

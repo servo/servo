@@ -1,0 +1,27 @@
+parameters:
+  checkoutCommit: ''
+  affectedRange: 'HEAD^1'
+  artifactName: ''
+
+steps:
+- template: checkout.yml
+- ${{ if ne(parameters.checkoutCommit, '') }}:
+  - script: |
+      set -eux -o pipefail
+      git checkout ${{ parameters.checkoutCommit }}
+    displayName: 'Checkout ${{ parameters.checkoutCommit }}'
+- template: install_certs.yml
+- template: color_profile.yml
+- template: install_safari.yml
+- template: update_hosts.yml
+- template: update_manifest.yml
+- script: |
+    set -eux -o pipefail
+      export SYSTEM_VERSION_COMPAT=0
+    ./wpt run --yes --no-pause --no-fail-on-unexpected --no-restart-on-unexpected --affected ${{ parameters.affectedRange }} --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report.json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot.txt --channel preview --kill-safari safari
+  displayName: 'Run tests'
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish results'
+  inputs:
+    artifactName: '${{ parameters.artifactName }}'
+  condition: succeededOrFailed()

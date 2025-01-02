@@ -1,0 +1,12 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno33",
+  "type": "Annotation",
+  "body": "http://example.org/note1",
+  "target": {
+    "source": "http://example.org/page1",
+    "state": {
+      "id": "http://example.org/state1"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: DOM Parsing and Serialization (https://w3c.github.io/DOM-Parsing/)
+
+[Exposed=Window]
+interface XMLSerializer {
+  constructor();
+  DOMString serializeToString(Node root);
+};

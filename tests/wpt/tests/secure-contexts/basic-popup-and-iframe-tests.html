@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test Window.isSecureContext for HTTP creator</title>
+    <meta name="help" href="https://w3c.github.io/webappsec-secure-contexts/#monkey-patching-global-object">
+    <meta name="author" title="Jonathan Watt" href="https://jwatt.org/">
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="server-locations.sub.js"></script>
+    <script>
+
+// This file is the equivasent of the https version, but rather than
+// having a copy of its script file we figure out the URI of the script on the
+// https server and load it here.
+let script = document.createElement("script");
+script.setAttribute("src", https_dir + "basic-popup-and-iframe-tests.https.js");
+document.head.appendChild(script);
+
+    </script>
+  </head>
+  <body onload="begin();">
+  </body>
+</html>
+

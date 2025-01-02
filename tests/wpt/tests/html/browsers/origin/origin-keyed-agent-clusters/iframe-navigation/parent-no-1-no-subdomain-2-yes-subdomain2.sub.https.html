@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is site-keyed, navigate a frame from a subdomain site-keyed to a second-subdomain origin-keyed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  navigateIframe,
+  setBothDocumentDomains,
+  testSameAgentCluster,
+  testDifferentAgentClusters,
+  testGetter
+} from "../resources/helpers.mjs";
+
+let frame1;
+promise_setup(async () => {
+  frame1 = await insertIframe("{{hosts[][www]}}");
+});
+
+// Nobody requested origin-keying yet.
+
+testSameAgentCluster([self, 0], "Before: parent to child");
+testGetter(self, false, "before parent");
+testGetter(0, false, "before child");
+
+promise_test(async () => {
+  await navigateIframe(frame1, "{{hosts[][www1]}}", "?1");
+  await setBothDocumentDomains(frames[0]);
+}, "Navigation");
+
+// Because we're going to a different subdomain (and thus different origin), the
+// origin-keying request is respected.
+
+testDifferentAgentClusters([self, 0], "After: parent to child");
+testGetter(self, false, "after parent");
+testGetter(0, true, "after child");
+</script>

@@ -1,0 +1,25 @@
+<svg id="svg-root"
+  width="200" height="200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>'filters applied to masked elements</title>
+    <html:link rel="help" href="https://www.w3.org/TR/css-masking-1"/>
+    <html:link rel="match" href="reference/mask-green-square-001-ref.svg" />
+  </g>
+  <defs>
+    <filter id="filter" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="0.001"/>
+    </filter>
+
+    <mask id="maskFill" maskContentUnits="userSpaceOnUse">
+      <rect width="100%" height="100%" fill="white"/>
+      <rect x="49" y="49" width="2" height="2" stroke-width="100" fill="none" stroke="black" filter="url(#filter)"/>
+    </mask>
+  </defs>
+
+  <g transform="translate(50, 50)">
+    <rect width="100" height="100" fill="green" />
+    <rect width="100" height="100" mask="url(#maskFill)" fill="red"/>
+  </g>
+</svg>

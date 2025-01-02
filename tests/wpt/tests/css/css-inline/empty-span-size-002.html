@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#invisible-line-boxes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1931466">
+<link rel="match" href="empty-span-size-002-ref.html">
+<style>
+.container, .has-height {
+  border: 1px solid;
+}
+
+.inline {
+  outline: 1px solid;
+}
+</style>
+<!-- Empty inline element in empty line has a height of zero. -->
+<div class="container"><ruby class="inline"></ruby></div><br>
+<!-- ... But not if the line has a meaningful height. -->
+<div class="container"><ruby class="inline"></ruby><ruby class="has-height"></ruby><ruby class="inline"></ruby></div><br>

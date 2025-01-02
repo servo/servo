@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents and SVG elements</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-svg">
+<link rel="match" href="display-contents-svg-elements-ref.html">
+<p>You should see the word PASS below.</p>
+<div style="font: 16px monospace">
+  <svg>
+    <defs><text x="20" y="20" id="S">S</text></defs>
+    <text y="40" style="display:contents">FAIL</text>
+    <svg style="display:contents;opacity:0">
+      <text x="0" y="20">P</text>
+    </svg>
+    <g style="display:contents;opacity:0">
+      <text x="10" y="20"><tspan dx="2000" style="display:contents;opacity:0">A</tspan></text>
+    </g>
+    <use xlink:href="#S" style="display:contents;opacity:0"></use>
+    <text x="30" y="20">S</text>
+  </svg>
+  <svg style="display:contents"><text y="40">FAIL</text></svg>
+</div>

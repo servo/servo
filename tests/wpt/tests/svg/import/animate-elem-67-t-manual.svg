@@ -1,0 +1,176 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-67-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This tests performs basic tests on restart attribute.
+      </p>
+      <p>
+        Each row in the test shows different rectangles subject to &lt;set&gt;
+        animations with different configurations with regards to the restart
+        attribute. For each row, the animation should be active
+        during the first 5 seconds of the animations where the red rectangle
+        should show in the right column. At five seconds into the animation,
+        all the rectangles should move to their left position.
+      </p>
+      <p>
+        On the first row, the &lt;set&gt; animation has a begin attribute set to
+        '0s;1s' and a dur attribute set to 4s. This should result in a first
+        interval of (0s &lt;= t &lt; 4s) which should be superceeded, at 1s, by a new interval
+        of (1s &lt;= t &lt; 5s) because the default restart behavior is 'always'.
+        Consequently, the rectangle should be in the right position during the
+        (0s &lt;= t &lt; 5s) interval and move to the left position at 5s.
+      </p>
+      <p>
+        On the second row, the &lt;set&gt; animation has a begin attribute set to
+        '0s;1s', a dur attribute set to 4s and a restart attribute set to always.
+        The behavior should be the same as for the first row.
+      </p>
+      <p>
+        On the third row, the first (left most) rectangle's &lt;set&gt; animation
+        has a begin attribute set to '0s;1s', a dur set to 5s and a restart attribute
+        set to whenNotActive. Because of the rules for computing intervals, the
+        animation's interval is (0s &lt;= t &lt; 5s) and is not superseded by a (1s &lt;= t &lt; 6s) interval
+        because of the restart value.
+
+        The second (right most) red rectangle's &lt;set&gt; animation has a begin
+        attribute set to '0s;2.5s' and a dur attribute set to 2.5s. This results in
+        a first interval (0s &lt;= t &lt; 2.5s) which is followed by a (2.5s &lt;= t &lt; 5s) interval. Consequently,
+        the rectangle stays on its right position for the first five seconds before it definitively
+        moves to the left position.
+      </p>
+      <p>
+        On the fourth row, the &lt;set&gt; animation has a begin attribute set to
+        '0s;5s' and a dur attribute set to 5s. This results in a first interval of (0s &lt;= t &lt; 5s).
+        Because the restart attribute is set to 'never', the following possible interval,
+        (5s &lt;= t &lt; 10s) does not apply and the animation is only active for the first 5 seconds.
+      </p>
+      <p>
+        The fifth row shows a simple animated red rectangle which lasts for 5 seconds. It shows
+        a reference of how the other animations should behave visually: all red rectangles should
+        have the same horizontal position as the one on the reference row, at any time during the
+        animation.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test and observe it for at least six seconds. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if for the first five seconds after the document loads,
+      the red squares in each row (two in the third row, and one each in the
+      remaining rows) are in the right column, and after the five seconds,
+      they all move to the left column.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-67-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">restart</text>
+
+    <g transform="translate(130, 80)">
+
+      <g transform="translate(120,45)" text-anchor="end" font-size="14">
+        <text>no restart (defaults to always)</text>
+        <text y="25">restart="always"</text>
+        <text y="50">restart="whenNotActive"</text>
+        <text y="75">restart="never"</text>
+        <text y="100">reference</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(180, 25)" text-anchor="middle" font-size="14">
+        <text>&gt; 5s</text>
+        <text x="80">0s-5s</text>
+      </g>
+
+      <g transform="translate(180,40)" stroke="black">
+        <defs>
+          <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
+        </defs>
+
+        <g id="setOne">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="firstSet" attributeName="x" to="74" begin="0s;1s" dur="4s"/>
+          </rect>
+
+        </g>
+
+        <g id="setTwo" transform="translate(0, 25)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" begin="0s;1s" dur="4s" restart="always"/>
+          </rect>
+
+        </g>
+
+        <g id="setThree" transform="translate(0, 50)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" begin="0s;1s" dur="5s" restart="whenNotActive"/>
+          </rect>
+
+          <g transform="translate(20,0)">
+            <use xlink:href="#shadow" x="0"/>
+            <use xlink:href="#shadow" x="80"/>
+
+            <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+              <set attributeName="x" to="74" begin="0s;2.5s" dur="2.5s" restart="whenNotActive"/>
+            </rect>
+          </g>
+        </g>
+
+        <g id="setFour" transform="translate(0, 75)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" begin="0s;5s" dur="5s" restart="never"/>
+          </rect>
+        </g>
+
+        <g id="reference" transform="translate(0, 100)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" dur="5s"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

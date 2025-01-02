@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointerrawupdate</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h2>pointerrawupdate</h2>
+        <h4>Test Description: This test checks that pointerrawupdate is not dispatched on non-SecureContext. </h4>
+        <p>Move your mouse within the black box.</p>
+        <p>Press left button down and then press middle button while holding down left button. Then release the buttons</p>
+        <div id="target0"></div>
+        <script>
+            var test_pointerrawupdate = async_test("pointerrawupdate event not received");
+            var actions_promise;
+
+            var pointerrawupdateReceived = false;
+            var pointerdownReceived = false;
+            var pointerrawupdateFromButtonChangeReceived = false;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                on_event(target0, "pointerrawupdate", function (event) {
+                    pointerrawupdateReceived = true;
+                    if (pointerdownReceived && event.button != -1)
+                      pointerrawupdateFromButtonChangeReceived = true;
+                });
+                on_event(target0, "pointermove", function (event) {
+                    test_pointerrawupdate.step(function() {
+                        assert_false(pointerrawupdateReceived,
+                                    "Pointerrawupdate event should not have been received before pointermove.");
+                        }, "Pointerrawupdate event should have been received before pointermove.");
+                });
+                on_event(target0, "pointerdown", function (event) {
+                    pointerdownReceived = true;
+                });
+                on_event(target0, "pointerup", function (event) {
+                    test_pointerrawupdate.step(function() {
+                        assert_false(pointerrawupdateFromButtonChangeReceived,
+                                    "Pointerrawupdate event should not have been received from chorded button changes.");
+                        }, "Pointerrawupdate event should have been received from chorded button changes.");
+
+                    test_pointerrawupdate.step(function() {
+                        assert_false("onpointerrawupdate" in window,
+                                    "Window should not have event handler onpointerrawupdate");
+                        assert_false("onpointerrawupdate" in window.document,
+                                    "Document should not have event handler onpointerrawupdate");
+                        assert_false("onpointerrawupdate" in window.document.documentElement,
+                                     "Element should not have event handler onpointerrawupdate");
+                        }, "onpointerrawupdate should be exposed only in SecureContext");
+
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerrawupdate.done();
+                    });
+                });
+                var actions = new test_driver.Actions();
+                actions_promise = actions.pointerMove(0, 0, {origin: target0, button: actions.ButtonType.LEFT})
+                    .pointerDown({button: actions.ButtonType.LEFT})
+                    .pointerDown({button: actions.ButtonType.MIDDLE})
+                    .pointerUp({button: actions.ButtonType.MIDDLE})
+                    .pointerUp({button: actions.ButtonType.LEFT})
+                    .send();
+            }
+
+        </script>
+        <div id="complete-notice">
+        </div>
+    </body>
+</html>

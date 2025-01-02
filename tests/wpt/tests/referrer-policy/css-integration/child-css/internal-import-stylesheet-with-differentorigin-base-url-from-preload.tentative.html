@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>CSS integration - child CSS fetch from inline stylesheet</title>
+<link rel="help" href="https://crbug.com/1158645" />
+
+<head>
+  <meta name="referrer" content="origin">
+</head>
+
+<body>
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+  <!-- Common global functions for referrer-policy tests. -->
+  <script src="/common/security-features/resources/common.sub.js"></script>
+
+  <script>
+    promise_test(function (css_test) {
+        let id = token();
+        let url_prefix = location.protocol + "//www." + location.hostname +
+          ":" + location.port;
+        let css_url = url_prefix +
+          "/common/security-features/subresource/stylesheet.py?id=" + id +
+          "&type=stylesheet-only";
+        let check_url = url_prefix +
+          "/common/security-features/subresource/stylesheet.py" +
+          "?id=" + id + "&report-headers";
+
+        const frame = document.createElement('iframe');
+        const contents = `
+              <base href="http://other-site.example" />
+              <style type=text/css>
+                @import url('${css_url}');
+              </style>`;
+        frame.srcdoc = contents;
+        document.body.appendChild(frame);
+        return timeoutPromise(css_test, 1000)
+          .then(() => requestViaXhr(check_url))
+          .then(function (message) {
+            assert_own_property(message, "headers");
+            assert_own_property(message, "referrer");
+            assert_equals(message.referrer, location.origin + "/");
+          });
+      }, "A child stylesheet from inline style should use the document's" +
+      " URL, not the document's base URL, as its referrer, even when the " +
+      "HTML parser preloads the stylesheet.");
+  </script>

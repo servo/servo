@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<style>
+  .fakecolumn {
+      width: 100px;
+      height: 100px;
+  }
+  .relpos {
+      position: relative;
+      width: 30px;
+      top: 50px;
+      left: 50px;
+  }
+  .transform {
+      transform: rotate(45deg);
+      height: 100%;
+  }
+  .abspos {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: green;
+  }
+</style>
+<p>Below there should be six rotated green rectangles (not all with the same
+  size).</p>
+<div style="display:flex;">
+  <div class="fakecolumn">
+    <div class="relpos" style="margin-top:50px;">
+      <div class="transform" style="height:0;">
+        <div class="abspos" style="height:50px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fakecolumn">
+    <div class="relpos">
+      <div class="transform" style="height:0;">
+        <div class="abspos" style="height:100px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fakecolumn">
+    <div class="relpos" style="margin-top:50px;">
+      <div class="transform" style="height:50px;">
+        <div class="abspos" style="top:-50px; height:100px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fakecolumn">
+    <div class="relpos">
+      <div class="transform" style="height:100px;">
+        <div class="abspos"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fakecolumn">
+    <div class="relpos">
+      <div class="transform" style="height:0;">
+        <div class="abspos" style="height:100px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fakecolumn">
+    <div class="relpos">
+      <div class="transform" style="height:0;">
+        <div class="abspos" style="height:50px;"></div>
+      </div>
+    </div>
+  </div>
+</div>

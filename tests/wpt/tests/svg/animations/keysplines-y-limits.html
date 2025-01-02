@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>'keySplines' with y-values outside of the 0 to 1 range</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect x="10" width="10" height="10" fill="blue">
+    <animate attributeName="x" values="0; 250" dur="5s"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="20" fill="blue">
+    <animate attributeName="x" values="0; 250" dur="5s"
+             keyTimes="0; 1" keySplines="0 -1 1 1" calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="30" fill="blue">
+    <animate attributeName="x" values="0; 250" dur="5s"
+             keyTimes="0; 1" keySplines="0 2 1 1" calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="10" fill="blue">
+    <animate attributeName="x" values="0; 250" dur="5s"
+             keyTimes="0; 1" keySplines="0 0 1 -1" calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="40" fill="blue">
+    <animate attributeName="x" values="0; 250" dur="5s"
+             keyTimes="0; 1" keySplines="0 0 1 2" calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="50" fill="blue">
+     <animateMotion values="0,50; 250,50" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="0 -10 1 1"
+                    calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="60" fill="blue">
+     <animateMotion values="0,60; 250,60" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="0 10 1 1"
+                    calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="70" fill="blue">
+     <animateMotion values="0,70; 250,70" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="0 0 1 -10"
+                    calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="80" fill="blue">
+     <animateMotion values="0,80; 250,80" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="0 0 1 10"
+                    calcMode="spline"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    let svg = document.querySelector('svg');
+    svg.pauseAnimations();
+    svg.setCurrentTime(2.5);
+    window.onload = t.step_func(() => {
+      requestAnimationFrame(t.step_func_done(() => {
+        let rects = document.getElementsByTagName('rect');
+        assert_equals(rects[0].getBBox().x, 125, 'animations applied');
+        assert_equals(rects[1].getBBox().x, 10, 'first control point y less than zero');
+        assert_equals(rects[2].getBBox().x, 10, 'first control point y greater than one');
+        assert_equals(rects[3].getBBox().x, 10, 'second control point y less than zero');
+        assert_equals(rects[4].getBBox().x, 10, 'second control point y greater than one');
+        assert_equals(rects[5].getBBox().x, 10, 'first control point y less than zero');
+        assert_equals(rects[6].getBBox().x, 10, 'first control point y greater than one');
+        assert_equals(rects[7].getBBox().x, 10, 'second control point y less than zero');
+        assert_equals(rects[8].getBBox().x, 10, 'second control point y greater than one');
+      }));
+    });
+  });
+</script>
+

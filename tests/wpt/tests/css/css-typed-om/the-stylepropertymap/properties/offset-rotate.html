@@ -1,0 +1,26 @@
+<meta charset="utf-8">
+<title>'offset-rotate' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runPropertyTests('offset-rotate', [
+  { syntax: 'auto' },
+  { syntax: 'reverse' },
+  { syntax: '<angle>' },
+]);
+
+runUnsupportedPropertyTests('offset-rotate', [
+  'auto 90deg',
+  'reverse -90deg',
+]);
+
+</script>

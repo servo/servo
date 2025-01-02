@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS table model: empty-cells: NBSPs</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/empty-cells/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#empty-cells" />
+  <style type="text/css">
+   table { background: red; border-spacing: 0; }
+   td { empty-cells: hide; background: green; color: white; }
+  </style>
+ </head>
+ <body>
+  <p>There should be a green block below.</p>
+  <table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td></tr></table>
+ </body>
+</html>

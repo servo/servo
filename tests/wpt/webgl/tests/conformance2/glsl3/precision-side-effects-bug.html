@@ -1,0 +1,127 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verify precision side effects (Adreno driver bug)</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="vshader-simple" type="x-shader/x-vertex">#version 300 es
+in vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1.0);
+}
+</script>
+<script id="fshader-int" type="x-shader/x-fragment">#version 300 es
+out highp vec4 myFragColor;
+void main() {
+    highp int t;
+    t = 0 | (int(t == t) * 0x8000);
+
+    if (t == 0x8000)
+        myFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        myFragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="fshader-ivec2" type="x-shader/x-fragment">#version 300 es
+out highp vec4 myFragColor;
+void main() {
+    highp ivec2 t;
+    t = 0 | (ivec2(t == t) * 0x8000);
+
+    if (t == ivec2(0x8000))
+        myFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        myFragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="fshader-ivec3" type="x-shader/x-fragment">#version 300 es
+out highp vec4 myFragColor;
+void main() {
+    highp ivec3 t;
+    t = 0 | (ivec3(t == t) * 0x8000);
+
+    if (t == ivec3(0x8000))
+        myFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        myFragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="fshader-ivec4" type="x-shader/x-fragment">#version 300 es
+out highp vec4 myFragColor;
+void main() {
+    highp ivec4 t;
+    t = 0 | (ivec4(t == t) * 0x8000);
+
+    if (t == ivec4(0x8000))
+        myFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        myFragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Verify precision side effects");
+debug("");
+debug("When this test is run on Adreno (no repros on other vendors so far):");
+debug(" - the result of the expression 0 | (int(e0 == e0) * 0x8000) somehow returns -32768 instead of 32768 despite the variable using highp precision;");
+debug(" - splitting the expression along | fixes the issue (could also be observed with other operators).");
+debug('For additional reference see this <a href="https://github.com/KhronosGroup/WebGL/pull/3192">pull request</a> and <a href="http://crbug.com/1155942">Chromium bug</a>');
+debug("");
+var wtu = WebGLTestUtils;
+function test() {
+    var gl = wtu.create3DContext("canvas", undefined, 2);
+    if (!gl) {
+        testFailed("context does not exist");
+        return;
+    }
+    wtu.setupUnitQuad(gl);
+
+    var testCases = [
+        { vshader: "vshader-simple", fshader: "fshader-int", desc: "fragment shader int" },
+        { vshader: "vshader-simple", fshader: "fshader-ivec2", desc: "fragment shader ivec2" },
+        { vshader: "vshader-simple", fshader: "fshader-ivec3", desc: "fragment shader ivec3" },
+        { vshader: "vshader-simple", fshader: "fshader-ivec4", desc: "fragment shader ivec4" },
+    ];
+
+    for (var idx = 0; idx < testCases.length; ++idx) {
+        var test = testCases[idx];
+
+        debug("");
+        var program = wtu.setupProgram(gl, [test.vshader, test.fshader], ["aPosition"]);
+        if (!program) {
+            testFailed("Fail to set up program");
+        } else {
+            debug("Testing " + test.desc);
+            wtu.drawUnitQuad(gl);
+            wtu.checkCanvas(gl, [255, 0, 0, 255]);
+            gl.deleteProgram(program);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from testing");
+        }
+    }
+};
+
+test();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!doctype html>
+<title>HTML root list-item crash during direction-propagation from body</title>
+<link rel="help" href="https://crbug.com/1294531">
+<style>
+  html {
+    display: list-item;
+    direction: rtl;
+  }
+  body {
+    direction: ltr;
+  }
+  div {
+    display:table-column-group;
+    column-count: 1;
+  }
+</style>
+<p>Pass if no crash.</p>
+<div></div>

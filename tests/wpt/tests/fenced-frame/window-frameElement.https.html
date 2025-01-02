@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test window.parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const frame_element_key = token();
+
+  attachFencedFrame(generateURL("resources/window-frameElement-inner.html",
+      [frame_element_key]));
+  const fenced_frame_result = await nextValueFromServer(frame_element_key);
+  assert_equals(fenced_frame_result, "PASS");
+}, "window.frameElement null for same-origin fenced frames");
+</script>
+
+</body>

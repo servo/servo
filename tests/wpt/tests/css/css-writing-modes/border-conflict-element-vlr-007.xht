@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: Border conflict resolution - adjacent cells with same border styles in a 'vertical-lr' table with 'direction: ltr' (complex)</title>
+
+  <!--
+  Original (and horizontal-tb) test is
+  http://test.csswg.org/suites/css2.1/nightly-unstable/html4/border-conflict-element-001a.htm
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#logical-directions" title="6.2 Flow-relative Directions" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" title="17.6.2.1 Border conflict resolution" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table
+    {
+      border-collapse: collapse;
+      direction: ltr;
+      writing-mode: vertical-lr;
+    }
+
+  td
+    {
+      border-style: solid solid solid solid;
+      border-width: 20px 20px 20px 20px;
+      padding: 0px;
+    }
+
+  td#one
+    {
+    border-color: green green green green;
+    }
+
+  td#two
+    {
+      border-color: red green green green;
+    }
+
+  td#three
+    {
+      border-color: red green green green;
+    }
+
+  td#four
+    {
+      border-color: red green green green;
+    }
+
+
+
+  td#five
+    {
+      border-color: green green green red;
+    }
+
+  td#six
+    {
+      border-color: red green green red;
+    }
+
+  td#seven
+    {
+      border-color: red green green red;
+    }
+
+  td#eight
+    {
+      border-color: red green green red;
+    }
+
+
+
+  td#nine
+    {
+      border-color: green green green red;
+    }
+
+  td#ten
+    {
+      border-color: red green green red;
+    }
+
+  td#eleven
+    {
+      border-color: red green green red;
+    }
+
+  td#twelve
+    {
+      border-color: red green green red;
+    }
+
+
+
+  td#thirteen
+    {
+      border-color: green green green red;
+    }
+
+  td#fourteen
+    {
+      border-color: red green green red;
+    }
+
+  td#fifteen
+    {
+      border-color: red green green red;
+    }
+
+  td#sixteen
+    {
+      border-color: red green green red;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <table>
+
+      <tr>
+          <td id="one"></td> <td id="two"></td> <td id="three"></td> <td id="four"></td>
+      </tr>
+
+      <tr>
+          <td id="five"></td> <td id="six"></td> <td id="seven"></td> <td id="eight"></td>
+      </tr>
+
+      <tr>
+          <td id="nine"></td> <td id="ten"></td> <td id="eleven"></td> <td id="twelve"></td>
+      </tr>
+
+      <tr>
+          <td id="thirteen"></td> <td id="fourteen"></td> <td id="fifteen"></td> <td id="sixteen"></td>
+      </tr>
+
+  </table>
+
+ </body>
+</html>

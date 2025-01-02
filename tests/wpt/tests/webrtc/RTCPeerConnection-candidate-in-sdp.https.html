@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  let resolveIceCandidatePromise = null;
+  const iceCandidatePromise = new Promise(r => resolveIceCandidatePromise = r);
+  pc.onicecandidate = e => {
+    resolveIceCandidatePromise(pc.localDescription.sdp);
+    pc.onicecandidate = null;
+  }
+  pc.addTransceiver("audio");
+  await pc.setLocalDescription(await pc.createOffer());
+  assert_false(pc.localDescription.sdp.includes("a=candidate:"),
+               "localDescription is missing candidate before onicecandidate");
+  // The localDescription at the time of the onicecandidate event.
+  const localDescriptionSdp = await iceCandidatePromise;
+  assert_true(localDescriptionSdp.includes("a=candidate:"),
+               "localDescription contains candidate after onicecandidate");
+}, 'localDescription contains candidates');
+</script>

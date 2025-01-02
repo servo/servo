@@ -1,0 +1,6 @@
+include COPYING
+include MANIFEST.in
+include README
+recursive-include example *.py
+recursive-include pywebsocket3 *.py
+recursive-include test *.py

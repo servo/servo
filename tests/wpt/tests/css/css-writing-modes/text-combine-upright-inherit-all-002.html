@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Writing Modes Test: text-combine-upright :all</title>
+    <link rel="author" title="Shinsuke Matsuki" href="mailto:shinsuke.matsuki@access-company.com">
+    <link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright">
+    <link rel="match" href="reference/text-combine-upright-inherit-all-002.html">
+    <meta name="assert" content="This test checks text-combine-upright:all inherits through the containment hierarchy and interrupted (by a box boundary) text runs">
+    <style>
+    #container {
+        font-size:50px;
+    }
+    .vrl {
+        writing-mode:vertical-rl;
+    }
+    .tcy {
+        text-combine-upright:all;
+    }
+    </style>
+</head>
+<body>
+    <p>Test passes if the <b>line breaks</b> before <q>56</q>, and all digits are in<b>upright</b> in <b>horizontal</b> flow.
+    <div id=container>
+        <div class="vrl tcy">
+            <table>
+                <tr>
+                    <td>
+                        <div style="display: inline-table">
+                            <div style="display: inline-block">
+                                <div>12<span>56</span></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

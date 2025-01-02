@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: computed transform for elements with transform-style:flat ancestors is correct (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+body {
+  perspective: 1000px;
+}
+.box {
+  background: lightblue;
+  width: 100px;
+  height: 100px;
+  transform: rotateY(60deg);
+}
+.outer {
+  width: 100px;
+  height: 100px;
+  transform: rotateY(60deg);
+  perspective: 1000px;
+}
+body { background: lightpink; }
+</style>
+<div class=outer>
+  <div class=outer>
+    <div class=box></div>
+  </div>
+</div>
+</html>

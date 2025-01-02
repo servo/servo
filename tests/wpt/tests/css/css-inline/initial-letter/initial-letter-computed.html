@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Tests parsing of the initial-letter property</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#sizing-drop-initials">
+<meta name="assert" content="initial-letter supports the full grammar 'normal | <number [1,∞]> <integer [1,∞]> | <number [1,∞]> && [ drop | raise ]?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+<div id="scratch"></div>
+
+<script>
+test_computed_value('initial-letter', 'normal');
+test_computed_value('initial-letter', '1.23');
+test_computed_value('initial-letter', '1.23 456');
+test_computed_value('initial-letter', '1.23 calc(45.6)', '1.23 46');
+test_computed_value('initial-letter', '1.23 drop');
+test_computed_value('initial-letter', '1.23 raise');
+test_computed_value('initial-letter', 'drop 1.23', '1.23 drop');
+test_computed_value('initial-letter', 'raise 1.23', '1.23 raise');
+</script>

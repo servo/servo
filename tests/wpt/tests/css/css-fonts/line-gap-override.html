@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-metrics-override-desc">
+<link rel="match" href="line-gap-override-ref.html">
+<title>Tests the line-gap-override descriptor of @font-face</title>
+<style>
+@font-face {
+  font-family: Ahem;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  line-gap-override: 100%;
+}
+
+.target {
+  font: 20px Ahem;
+  color: green;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+</style>
+
+<div class="target">
+  X<br>
+  X
+</div>

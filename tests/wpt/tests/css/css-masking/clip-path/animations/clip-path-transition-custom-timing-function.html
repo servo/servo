@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-custom-timing-function-ref.html">
+<meta name="fuzzy" content="maxDifference=0-4; totalPixels=0-628">
+<style>
+  .green {
+    background-color: green;
+    width: 200px;
+    height: 200px;
+
+    clip-path: inset(45%);
+    transition-property: clip-path;
+    transition-duration: 10000000s;
+    transition-timing-function: cubic-bezier(0, 9, 1, 9);
+    transition-delay: -5220715s;
+  }
+
+</style>
+<script src="/common/reftest-wait.js"></script>
+
+<body>
+  <div class="green" id="target"></div>
+
+  <script>
+    function update() {
+      document.getElementById('target').style.clipPath = "inset(40%)";
+      requestAnimationFrame(() => {
+        takeScreenshot();
+      });
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(update);
+    });
+  </script>
+</body>
+
+</html>

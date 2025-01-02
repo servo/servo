@@ -1,0 +1,2 @@
+Permissions-Policy: ch-device-memory=(self)
+Accept-CH: Sec-CH-Device-Memory

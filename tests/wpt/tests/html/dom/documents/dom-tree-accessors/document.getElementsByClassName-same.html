@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Calling getElementsByClassName with the same argument</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-getelementsbyclassname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<div class="abcd"></div>
+</div>
+<script>
+test(function() {
+  var list1 = document.getElementsByClassName("abcd");
+  var list2 = document.getElementsByClassName("abcd");
+  assert_true(list1 === list2 || list1 !== list2);
+}, "The user agent may return the same object as the object returned by the earlier call.");
+</script>

@@ -1,0 +1,104 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="Microsoft" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: struct-use-12-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#UseElement">
+      <p>
+        Tests that recursive 'use' instances do not block rendering.
+      </p>
+      <p>
+        Various scenarios that directly and indirectly create circular references via the 'use' tag. A 'g' element is used when
+        structural elements are necessary. None of the 'use' scenarios render anything. 'useLongCycle' tests a chain of recursive
+        'use' instances that eventually cycles back to the first element. In 'useNested' 'use' elements are nested, with the child
+        referring to the parent. In 'useNestedGroup' a 'use' instance references a parent 'g' element. In 'useIndirectNestedGroup'
+        a 'use' instance indirectly references its own parent 'g'. In 'useMultipleIndirectNestedGroup', two 'use' instances
+        reference their parent 'g' elements, and additional 'use' instances refer to these self-referencing 'use' elements. A green
+        'rect' is used to verify that rendering was processed up to that point.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if there is green visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-use-12-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <use xlink:href="#useShortCycle2" x="20" y="20" id="useShortCycle1" />
+    <use xlink:href="#useShortCycle1" x="20" y="20" id="useShortCycle2" />
+    <use xlink:href="#useLongCycle40" x="20" y="20" id="useLongCycle1" />
+    <use xlink:href="#useLongCycle1" x="20" y="20" id="useLongCycle2" />
+    <use xlink:href="#useLongCycle2" x="20" y="20" id="useLongCycle3" />
+    <use xlink:href="#useLongCycle3" x="20" y="20" id="useLongCycle4" />
+    <use xlink:href="#useLongCycle4" x="20" y="20" id="useLongCycle5" />
+    <use xlink:href="#useLongCycle5" x="20" y="20" id="useLongCycle6" />
+    <use xlink:href="#useLongCycle6" x="20" y="20" id="useLongCycle7" />
+    <use xlink:href="#useLongCycle7" x="20" y="20" id="useLongCycle8" />
+    <use xlink:href="#useLongCycle8" x="20" y="20" id="useLongCycle9" />
+    <use xlink:href="#useLongCycle9" x="20" y="20" id="useLongCycle10" />
+    <use xlink:href="#useLongCycle10" x="20" y="20" id="useLongCycle11" />
+    <use xlink:href="#useLongCycle1" x="20" y="20" id="useLongCycle12" />
+    <use id="useNested1" xlink:href="#useNested2">
+        <use id="useNested2" xlink:href="#useNested1" />
+    </use>
+    <g id="useNestedGroup1" xlink:href="#useNestedGroup2">
+        <use id="useNestedGroup2" xlink:href="#useNestedGroup1" />
+        </g>
+    <g id="useIndirectNestedGroup1">
+        <use xlink:href="#useIndirectNestedGroupElem2" id="useIndirectNestedGroupElem1" />
+    </g>
+    <use xlink:href="#useIndirectNestedGroup1" id="useIndirectNestedGroupElem2" />
+    <g id="useMultipleIndirectNestedGroup1">
+        <g id="useMultipleIndirectNestedGroup2">
+            <use xlink:href="#useMultipleIndirectNestedGroupElement2" id="useMultipleIndirectNestedGroupElement1" />
+        </g>
+        <use xlink:href="#useMultipleIndirectNestedGroupElement3" id="useMultipleIndirectNestedGroupElement4" />
+    </g>
+    <use xlink:href="#useMultipleIndirectNestedGroup1" id="useMultipleIndirectNestedGroupElement2" />
+    <use xlink:href="#useMultipleIndirectNestedGroup2" id="useMultipleIndirectNestedGroupElement3" />
+    <use xlink:href="#useMultipleIndirectNestedGroupElement1" id="useMultipleIndirectNestedGroupElement4" />
+    <use xlink:href="#useMultipleIndirectNestedGroupElement2" />
+    <use xlink:href="#useMultipleIndirectNestedGroupElement3" />
+
+    <!-- if we get here, the above circular usr references did not block rendering -->
+    <rect width="96" height="96" fill="green" />
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+  -->
+</svg>

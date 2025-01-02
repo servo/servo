@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content=":focus should not match a shadow host if the focused element is a slotted content">
+<link rel="help" href="https://html.spec.whatwg.org/#element-has-the-focus">
+<link rel="help=" href="https://bugs.webkit.org/show_bug.cgi?id=202432">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="host"><div id="target" tabindex="0"></div></div>
+<style>
+#host { background: green; width: 100px; height: 100px; }
+#host:focus #target { background: red; width: 100px; height: 100px; }
+#target { outline: none; }
+</style>
+<script>
+
+const shadowRoot = host.attachShadow({mode: 'closed'});
+shadowRoot.innerHTML = '<slot></slot>';
+target.focus();
+
+</script>
+</body>
+</html>

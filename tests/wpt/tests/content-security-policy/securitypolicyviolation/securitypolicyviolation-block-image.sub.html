@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/content-security-policy/support/testharness-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+<body>
+<script>
+  async_test(t => {
+    waitUntilEvent(window, "securitypolicyviolation")
+      .then(t.step_func_done(e => {
+        assert_equals(e.documentURI, document.location.toString());
+        assert_equals(e.referrer, document.referrer);
+        assert_equals(e.blockedURI, "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.png");
+        assert_equals(e.violatedDirective, "img-src");
+        assert_equals(e.effectiveDirective, "img-src");
+        assert_equals(e.originalPolicy, "img-src \'none\'");
+        assert_equals(e.disposition, "enforce");
+        assert_equals(new URL(e.sourceFile).pathname, "/content-security-policy/securitypolicyviolation/securitypolicyviolation-block-image.sub.html");
+        assert_equals(e.lineNumber, 25);
+        assert_equals(e.columnNumber, 5);
+        assert_equals(e.statusCode, 200);
+      }));
+
+    var i = document.createElement("img");
+    i.src = "/content-security-policy/support/fail.png";
+  }, "Non-redirected same-origin URLs are not stripped.");
+</script>
+

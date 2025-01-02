@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+          "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.0"
+     viewBox="0 0 1000 250" preserveAspectRatio="xMinYMin meet"
+     xmlns="http://www.w3.org/2000/svg">
+  <!-- This rectangle goes from (0,0) to (1500,1000) in user space.
+       Because of the viewBox attribute above,
+       the rectangle will end up filling the entire area
+       reserved for the SVG content. -->
+  <rect x="0" y="0" width="1000" height="250"
+        fill="lime" stroke="green" stroke-width="12"  />
+  <!-- A large, red triangle -->
+  <path fill="green"  d="M 500,50 L 150,200 L 850,200 z"/>
+</svg>

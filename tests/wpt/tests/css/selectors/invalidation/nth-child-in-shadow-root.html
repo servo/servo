@@ -1,0 +1,29 @@
+<!doctype html>
+<title>CSS Selectors Invalidation: :nth-child(An+B) within shadow root</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#nth-child-pseudo">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1480746">
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<link rel="match" href="nth-child-in-shadow-root-ref.html">
+<div id="host">
+    <template shadowrootmode="open">
+        <div id="firstChild">Should be red</div>
+        <style>
+        :nth-child(odd) {
+            color: green;
+        }
+        :nth-child(even) {
+            color: red;
+        }
+        </style>
+    </template>
+</div>
+<script>
+host.offsetTop;
+let div = document.createElement("div");
+div.appendChild(document.createTextNode("Should be green"));
+requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+        host.shadowRoot.insertBefore(div, host.shadowRoot.firstElementChild);
+        takeScreenshot();
+    }));
+</script>

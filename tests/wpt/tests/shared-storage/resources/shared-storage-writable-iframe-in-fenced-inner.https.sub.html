@@ -1,0 +1,29 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script>
+
+async function init() {
+  const sameOrigin = new URL("", location.href).origin;
+  const [outerKey] = parseKeylist();
+  let {expectedKey, expectedValue} = parseExpectedKeyAndValueData();
+
+  await navigateSharedStorageIframe({
+    hasSharedStorageWritableAttribute: true,
+    rawWriteHeader: `set;key=${expectedKey};value=${expectedValue}`,
+    isSameOrigin: true,
+    expectSharedStorageWritableHeader: true,
+  });
+
+  await verifyKeyValueForOrigin(expectedKey, expectedValue, sameOrigin);
+  await deleteKeyForOrigin(expectedKey, sameOrigin);
+  await writeValueToServer(outerKey, "writable_iframe_in_fenced_inner_loaded");
+}
+
+init();
+  </script>
+</body>

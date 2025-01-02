@@ -1,0 +1,44 @@
+{
+  "name": "Mismatching the specifier map schema",
+  "importMapBaseURL": "https://base.example/",
+  "tests": {
+    "should ignore entries where the address is not a string": {
+      "importMap": {
+        "imports": {
+          "null": null,
+          "boolean": true,
+          "number": 1,
+          "object": {},
+          "array": [],
+          "array2": [
+            "https://example.com/"
+          ],
+          "string": "https://example.com/"
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {
+          "null": null,
+          "boolean": null,
+          "number": null,
+          "object": null,
+          "array": null,
+          "array2": null,
+          "string": "https://example.com/"
+        },
+        "scopes": {}
+      }
+    },
+    "should ignore entries where the specifier key is an empty string": {
+      "importMap": {
+        "imports": {
+          "": "https://example.com/"
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {}
+      }
+    }
+  }
+}

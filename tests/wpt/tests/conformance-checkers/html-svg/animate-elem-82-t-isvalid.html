@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>animate-elem-82-t-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: animate-elem-82-t-manual.svg</h1>
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: animate-elem-82-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="25" font-size="16">&lt;animateTransform&gt;</text>
+    <defs>
+      <g id="ref" stroke="rgb(192,192,192)" fill="none">
+        <circle stroke-width="2" r="40"/>
+        <line x1="-45" x2="45"/>
+        <line y1="-45" y2="45"/>
+      </g>
+    </defs>
+    <g transform="translate(0,0)" font-size="14">
+      <g transform="translate(60,90)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="45" to="90" dur="3s" additive="replace" fill="freeze"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(45)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(67.5)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(90)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="60" text-anchor="middle">same rotation</text>
+        <text y="75" text-anchor="middle">center</text>
+      </g>
+
+      <g transform="translate(180,90)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="45,0,0" to="90,-15,-15" dur="3s" additive="replace" fill="freeze"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(45,0,0)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(67.5,-7.5,-7.5)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(90,-15,-15)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="60" text-anchor="middle">different rotation</text>
+        <text y="75" text-anchor="middle">centers</text>
+      </g>
+
+      <g transform="translate(300,90)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="translate" values="-40,40;-20,20;40,-40" dur="3s" calcMode="paced" additive="replace" fill="freeze"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="translate(-40,40)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="translate(0,0)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="translate(40,-40)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="75" text-anchor="middle">paced translation</text>
+      </g>
+
+      <g transform="translate(415,90)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="translate" values="-40,40;-20,-20;40,-40" dur="3s" calcMode="linear" additive="replace" fill="freeze"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="translate(-40,40)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="translate(-20,-20)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="translate(40,-40)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="75" text-anchor="middle">linear translation</text>
+
+      </g>
+      
+      <g transform="translate(60,220)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="none" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" values="1,2;3,2;1,1" dur="3s" calcMode="paced" fill="freeze"/>
+        </rect>
+
+        <rect x="-15" y="-30" width="30" height="60" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-45" y="-30" width="90" height="60" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="60" text-anchor="middle">paced scale</text>
+      </g>
+
+      <g transform="translate(180,220)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="none" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="scale" values="1,2;3,2;1,1" dur="3s" calcMode="linear" fill="freeze"/>
+        </rect>
+
+        <rect x="-15" y="-30" width="30" height="60" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-45" y="-30" width="90" height="60" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="scale(1,1)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="60" text-anchor="middle">linear scale</text>
+      </g>
+
+      <g transform="translate(275,220)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0,0,0;45,-15,-20;180,30,50" dur="3s" calcMode="paced" additive="replace" fill="freeze"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(0,0,0)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(90,0,5)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(180,30,50)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="75" text-anchor="middle">paced rotation</text>
+      </g>
+
+      <g transform="translate(395,220)">
+        <rect x="-15" y="-15" width="30" height="30" stroke="gray" stroke-width="4" fill="rgb(230,230,230)">
+          <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0,0,0;45,-15,-20;180,30,50" dur="3s" calcMode="linear" additive="replace" fill="freeze"/>
+        </rect>
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(0,0,0)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="0s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(45,-15,-20)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="1.5s" dur="0.2s"/>
+        </rect>
+
+        <rect x="-15" y="-15" width="30" height="30" transform="rotate(180,30,50)" stroke="rgb(255,180,0)" stroke-width="1" fill="none">
+          <set attributeName="stroke-width" to="4" begin="3s" dur="0.2s"/>
+        </rect>
+
+        <text y="75" text-anchor="middle">linear rotation</text>
+      </g>
+
+
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const value = 1.23456789;
+  const orientationData = generateOrientationData(value, value, value, false);
+  await helper.setData(orientationData);
+
+  const event = await new Promise(resolve => {
+    window.addEventListener('deviceorientation', t.step_func(ev => {
+      resolve(ev);
+    }, { once: true }));
+  });
+
+  assertValueIsCoarsened(event.alpha);
+  assertValueIsCoarsened(event.beta);
+  assertValueIsCoarsened(event.gamma);
+}, 'Tests that deviceorientation values are correctly rounded.');
+</script>

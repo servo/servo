@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- In this reference case, we have blocks in place of the testcase's
+     flex containers. The testcase's collapsed flex items are entirely
+     absent here (and the remaining content is sized using exact pixel
+     values).
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      background: yellow;
+      border: 1px dotted black;
+      float: left;
+      margin: 5px;
+    }
+    .flexContainer > * {
+      /* All flex items have 20px base size */
+      width: 20px;
+    }
+    .collapse {
+      flex-basis: 0;
+      height: 20px;
+    }
+    .flexible {
+      flex: 1 auto;
+    }
+    .heightTall {
+      height: 40px;
+      background: purple;
+    }
+    .heightAuto {
+      background: teal;
+    }
+    .heightShort {
+      height: 10px;
+      background: pink;
+    }
+  </style>
+</head>
+<body>
+  <!-- FIRST ROW: -->
+  <!-- Just one (collapsed) flex item, which ends up establishing
+       the container's size (even though it's collapsed): -->
+  <div class="flexContainer">
+    <div class="heightTall collapse"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  <!-- SECOND ROW: -->
+  <!-- One collapsed flex item, one short flex item.
+       (Container ends up with collapsed item's height) -->
+  <div class="flexContainer">
+    <div class="heightTall collapse"></div>
+    <div class="heightShort"></div>
+  </div>
+  <!-- (same, but with items in opposite order) -->
+  <div class="flexContainer">
+    <div class="heightShort"></div>
+    <div class="heightTall collapse"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  <!-- THIRD ROW: -->
+  <!-- One collapsed flex item, one stretched flex item.
+       (Container and stretched item end up with collapsed item's height) -->
+  <div class="flexContainer">
+    <div class="heightTall collapse"></div>
+    <div class="heightAuto"></div>
+  </div>
+  <!-- (again, with items in opposite order) -->
+  <div class="flexContainer">
+    <div class="heightAuto"></div>
+    <div class="heightTall collapse"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  <!-- FOURTH ROW: -->
+  <!-- One collapsed flex item, one other flex item; both are flexible.
+       (The non-collapsed one should take all of the available width.) -->
+  <div class="flexContainer">
+    <div class="heightAuto collapse"></div>
+    <div class="heightTall flexible"></div>
+  </div>
+  <!-- (again, with items in opposite order) -->
+  <div class="flexContainer">
+    <div class="heightTall flexible"></div>
+    <div class="heightAuto collapse"></div>
+  </div>
+
+</body>
+</html>

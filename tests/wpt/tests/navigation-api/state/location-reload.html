@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<meta name="variant" content="?method=navigate">
+<meta name="variant" content="?method=updateCurrentEntry">
+
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    updateStateBasedOnTestVariant(i.contentWindow, { data : "value" });
+    assert_equals(i.contentWindow.navigation.entries().length, 1);
+    assert_equals(i.contentWindow.navigation.currentEntry.getState().data, "value");
+
+    i.contentWindow.location.reload();
+    i.onload = t.step_func_done(() => {
+      assert_equals(i.contentWindow.navigation.entries().length, 1);
+      assert_equals(i.contentWindow.navigation.currentEntry.getState().data, "value");
+    });
+  });
+}, "entry.getState() after location.reload()");
+</script>

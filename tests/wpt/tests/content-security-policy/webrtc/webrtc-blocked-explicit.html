@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="webrtc 'block';">
+    <title>webrtc blocked with an explicit webrtc blocked policy</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="webrtc.js"></script>
+</head>
+
+<body>
+    <script>
+        expectBlock();
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

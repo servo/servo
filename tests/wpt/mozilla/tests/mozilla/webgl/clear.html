@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGLRenderingContext.clear testing (issue #20623)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl");
+    // Valid values
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.clear(gl.STENCIL_BUFFER_BIT);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.clear(gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    // Invalid value
+    gl.clear(42);
+    assert_equals(gl.INVALID_VALUE, gl.getError());
+});
+</script>

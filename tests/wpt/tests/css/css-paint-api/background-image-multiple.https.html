@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="background-image-multiple-ref.html">
+<style>
+    #output {
+        width: 100px;
+        height: 100px;
+        background-image: paint(n0), paint(n1), paint(n2);
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+var colors = ['red', 'green', 'blue'];
+
+for (let i = 0; i < 3; i++) {
+    registerPaint('n' + i, class {
+        paint(ctx, geom) {
+            ctx.fillStyle = colors[i];
+            ctx.fillRect(i * 20, i * 20, 40, 40);
+        }
+    });
+}
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

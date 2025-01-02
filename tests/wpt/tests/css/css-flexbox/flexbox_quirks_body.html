@@ -1,0 +1,20 @@
+<!doctype quirks><!-- Intentional quirks mode -->
+<title>CSS Test: Flex body in quirks mode</title>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#main-sizing" title="9.3 Main Size Determination">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-body-element-fills-the-html-element-quirk" title="The body element fills the html element quirk">
+<link rel="match" href="./reference/flexbox_quirks_body-ref.html">
+<style>
+html {
+  margin:3px 6px 9px 12px;
+  padding: 0px;
+  background-color: green;
+}
+body {
+  display: flex;
+  margin: 7px 11px 14px 23px;
+  padding: 0px;
+  background-color: yellow;
+}
+</style>
+Flex body in quirks mode should fill viewport except for margins.

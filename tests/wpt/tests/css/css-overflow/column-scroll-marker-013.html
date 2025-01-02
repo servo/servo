@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>multicol ::column::scroll-marker, add columns, keep target-current</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#active-scroll-marker">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+  #container {
+    overflow: hidden;
+    columns: 1;
+    column-fill: auto;
+    gap: 0;
+    width: 100px;
+    height: 100px;
+    scroll-marker-group: before;
+  }
+  #container::scroll-marker-group {
+    position: relative;
+    left: -200px;
+    display: flex;
+    height: 100px;
+  }
+  #container::column::scroll-marker {
+    width: 100px;
+    height: 100px;
+    flex: none;
+    content: "";
+  }
+  #container::column::scroll-marker:target-current {
+    background: green;
+  }
+</style>
+<div style="position:absolute; width:100px; height:100px; background:red;"></div>
+<div id="container">
+  <div style="height:400px;"></div>
+</div>
+<script>
+  container.scrollTo(200, 0);
+  requestAnimationFrame(()=> {
+    requestAnimationFrame(()=> {
+      document.documentElement.classList.remove("reftest-wait");
+      container.style.height = "150px";
+    });
+  });
+</script>

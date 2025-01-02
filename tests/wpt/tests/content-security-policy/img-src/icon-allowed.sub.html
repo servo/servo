@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="img-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <p>Use callbacks to show that favicons are loaded as allowed by CSP when link tags are dynamically added to the page.</p>
+  <script>
+    var t = async_test("Test that image loads");
+    window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have triggered any violation events"));
+
+    function createLink(rel, src) {
+        var link = document.createElement('link');
+        link.rel = rel;
+        link.href = src;
+        link.onload = t.done();
+        link.onerror = t.unreached_func('The image should have loaded');
+        document.body.appendChild(link);
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+        createLink('icon', '../support/pass.png');
+    });
+
+  </script>
+</body>
+</html>

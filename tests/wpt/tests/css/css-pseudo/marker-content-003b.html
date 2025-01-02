@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property and display:inline-grid</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="match" href="marker-content-003-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<style>
+li::marker {
+  content: "X";
+  display: inline-grid;
+  grid-template-columns: auto 10px;
+}
+li { background: grey; }
+span { font-size: 32pt; }
+</style>
+</head>
+<body>
+<ol><li></li><li>B</li><li><span>C</span></li></ol>
+</body>
+</html>

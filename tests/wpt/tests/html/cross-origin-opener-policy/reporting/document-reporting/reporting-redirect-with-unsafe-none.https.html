@@ -1,0 +1,130 @@
+<title>
+  Tests the redirect interaction with COOP unsafe-none.
+</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script>
+
+const same_origin = {
+  host: get_host_info().HTTPS_ORIGIN,
+  name: "Same origin"
+};
+const cross_origin = {
+  host: get_host_info().HTTPS_REMOTE_ORIGIN,
+  name: "Cross origin"
+};
+
+// Repeated call receive() to fetch all reports received within 1 second.
+async function fetchReportsByID(uuid){
+  let timeStart = new Date().getTime();
+  const reports = [];
+  while(new Date().getTime() - timeStart < 1000) {
+    // Promise.race is used to timeout since receive() has no timeout mechanism.
+    reports.push(...await Promise.race([
+      receive(uuid).then(JSON.parse),
+      new Promise(resolve => step_timeout(resolve, 1000, []))
+    ]));
+  }
+  return reports;
+}
+
+function fetchReportByType(reports, type){
+  return reports.filter((report)=> (report.body.type === type));
+}
+
+  // Tests the redirect interaction with COOP unsafe-none and reporting:
+  // 1 - open the opener document on origin same_origin with COOP
+  // unsafe-none.
+  // 2 - opener opens popup with document on origin popup_origin, with COOP
+  // same-origin, Reporting-Endpoints header and a redirect header
+  // (HTTP 302, location).
+  // 3 - redirection to a document with origin same-origin and COOP
+  // unsafe-none.
+  //
+  // Navigation 2) should generate a report sent to B's reporter(navigation-to).
+  // Navigation 3) should generate a report sent to B's reporter(navigation-from).
+  //
+  // A opens B, B redirects to C.
+  //
+  // Document  Origin        COOP
+  // --------  ------------  ------------------------
+  // A         same-origin   unsafe-none
+  // B         popup-origin  same-origin
+  // C         same-origin   unsafe-none
+function redirect_test(popup_origin) {
+  promise_test(async t => {
+    // The test window.
+    const this_window_token = token();
+
+    // The "opener" window. This has COOP unsafe-none and no reporter.
+    const opener_token = token();
+    const opener_url = same_origin.host + executor_path +
+      `&uuid=${opener_token}`;
+
+    // The "openee" window.
+    // The initial document have COOP, reporter and is on popup_origin, it
+    // redirects to a same-origin (with the opener) document with no COOP.
+    const openee_token = token();
+    const openee_report_token = reportToken();
+    const openee_reporting = reportingEndpointsHeaders(openee_report_token);
+    const openee_redirect_url = same_origin.host + executor_path +
+      `&uuid=${openee_token}`;
+    const redirect_header = '|status(302)' +
+      `|header(Location,${encodeURIComponent(
+        openee_redirect_url)})`;
+    const openee_url = (popup_origin.host + executor_path
+      + openee_reporting.header + openee_reporting.coopSameOriginHeader
+      + redirect_header + `&uuid=${openee_token}`)
+      .replace(/,/g, "\\,")
+      .replace(/\\\\,/g, "\\\\\\,")
+      .replace(/\(/g, "%28")
+      .replace(/\)/g, "%29");
+    // 1. Create the opener window.
+    let opener_window_proxy = window.open(opener_url);
+    t.add_cleanup(() => send(opener_token, "window.close()"));
+
+    // 2. The opener opens its openee.
+    send(opener_token, `
+      openee = window.open(\`${openee_url}\`);
+    `);
+    t.add_cleanup(() => send(openee_token, "window.close()"));
+
+    // 3. Check the opener status on the openee.
+    send(openee_token, `
+      send("${this_window_token}", opener !== null);
+    `);
+    assert_equals(await receive(this_window_token), "false", "opener");
+
+    // 4. Check the openee status on the opener.
+    send(opener_token, `
+      send("${this_window_token}", openee.closed);
+    `);
+    assert_equals(await receive(this_window_token), "true", "openee.closed");
+
+    // 5. Check a report sent to B's reporting endpoint when A opens B.
+    const reports = await fetchReportsByID(openee_report_token);
+    const navigationToReport = fetchReportByType(
+      reports, "navigation-to-response");
+    assert_equals(navigationToReport.length, 1);
+    assert_equals(navigationToReport[0].type, "coop");
+    assert_equals(navigationToReport[0].body.disposition, "enforce");
+    assert_equals(navigationToReport[0].body.effectivePolicy, "same-origin");
+    // 6. Check a report sent to B's reporting endpoint when B redirects to C.
+    const navigationFromReport = fetchReportByType(
+      reports, "navigation-from-response");
+    assert_equals(navigationFromReport.length, 1);
+    assert_equals(navigationFromReport[0].type, "coop");
+    assert_equals(navigationFromReport[0].body.disposition, "enforce");
+    assert_equals(navigationFromReport[0].body.effectivePolicy, "same-origin");
+  }, `${popup_origin.name} openee redirected to same-origin with unsafe-none`);
+}
+
+redirect_test(same_origin);
+redirect_test(cross_origin);
+</script>

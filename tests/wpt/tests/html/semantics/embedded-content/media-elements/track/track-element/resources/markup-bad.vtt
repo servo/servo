@@ -1,0 +1,22 @@
+WEBVTT
+Cue text has invalid markup of <b>, <i>, <u>, <rt> and <ruby>.  Has a bad effect on the remainder of the cue.
+
+1
+00:00:00.000 --> 00:00:15.000 align:start position:20%
+The following bear starts bold but end is broken:
+<b>Bear</ b> is Coming!!!!!
+
+00:00:15.500 --> 00:00:30.500 align:start position:20%
+The following bear is not in italics but the markup is removed:
+< i>Bear</i> is Coming!!!!!
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+The following bear is not underlined and markup is removed:
+I said < u >Bear</u> is coming!!!!
+
+3
+00:01:01.000 --> 00:01:30.000 align:start position:20%
+The following bear is not ruby annotated and markup is removed:
+I said <ru by>Bear<rt>bear with me</rt></ruby> is coming!!!!
+

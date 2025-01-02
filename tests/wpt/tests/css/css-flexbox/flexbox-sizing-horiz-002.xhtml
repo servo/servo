@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This testcase checks how "min-height" and "max-height" affect the sizing
+     of horizontal flex containers that have no explicit "height" property.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing sizing of an auto-sized horizontal flex container with min-height and max-height constraints</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm"/>
+    <link rel="match" href="flexbox-sizing-horiz-002-ref.xhtml"/>
+    <style>
+      div { width: 200px; }
+      div.flexbox {
+        border: 1px dashed blue;
+        background: lightgreen;
+        font-size: 10px;
+        display: flex;
+        margin-bottom: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- auto-height horizontal flexbox should shrinkwrap its contents. -->
+    <div class="flexbox">
+      <div>text</div>
+    </div>
+
+    <!-- Adding a small min-size shouldn't affect that. -->
+    <div class="flexbox" style="min-height: 2px">
+      <div>text</div>
+    </div>
+
+    <!-- ...nor should a large max-size. -->
+    <div class="flexbox" style="max-height: 300px">
+      <div>text</div>
+    </div>
+
+    <!-- OK. Now, if we set a minimum size that's larger than the shrinkwrap
+         size, we should jump up to that size.-->
+    <div class="flexbox" style="min-height: 30px">
+      <div>text</div>
+    </div>
+
+    <!-- If we set a maximum size that's smaller than the shrinkwrap size,
+         we should max out at that size.-->
+    <div class="flexbox" style="max-height: 6px">
+      <div>text</div>
+    </div>
+
+    <!-- But if we add a min-size, it beats the max-size. -->
+    <div class="flexbox" style="min-height: 30px; max-height: 5px">
+      <div>text</div>
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Placing the root element</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-11-06 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/root/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#Computing_heights_and_margins" />
+  <link rel="match" href="root-box-001-ref.xht" />
+
+  <style type="text/css">
+   html { margin: 1em; border: 1em solid red; padding: 0; background: green; }
+   body { margin: 0; border: 0; padding: 0; background: red; }
+   p { margin: -1em; border: 0; padding: 1em; background: white; }
+  </style>
+ </head>
+ <body>
+  <p>This text should be in a white box surrounded by green that extends
+     to all edges of the viewport.</p>
+ </body>
+</html>

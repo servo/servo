@@ -1,0 +1,83 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div style="height: 1000px; width: 1000px;"></div>
+<div id="frag"></div>
+<script>
+let i = 0;
+async function urlDidChangeImmediately(listener, expected) {
+  navigation.addEventListener("navigate", listener, { once: true });
+  let expected_hash = "#" + ++i;
+  assert_not_equals(location.hash, expected_hash);
+  let finished = navigation.navigate(expected_hash).finished;
+  assert_equals(location.hash === expected_hash, expected);
+  await finished;
+  assert_equals(location.hash, expected_hash);
+}
+
+async function testUrlDidChangeImmediately(listener) {
+  await urlDidChangeImmediately(listener, true);
+}
+
+async function testUrlDidNotChangeImmediately(listener) {
+  await urlDidChangeImmediately(listener, false);
+}
+
+promise_test(async t => {
+  await testUrlDidNotChangeImmediately(e => {
+    e.intercept({ commit: "after-transition" });
+    e.intercept({ commit: "after-transition" });
+  });
+}, "after-transition + after-transition");
+
+promise_test(async t => {
+  await testUrlDidNotChangeImmediately(e => {
+    e.intercept({ commit: "after-transition" });
+    e.intercept();
+  });
+}, "after-transition + (not provided)");
+
+promise_test(async t => {
+  await testUrlDidChangeImmediately(e => {
+    e.intercept({ commit: "after-transition" });
+    e.intercept({ commit: "immediate" });
+  });
+}, "after-transition + immediate");
+
+promise_test(async t => {
+  await testUrlDidNotChangeImmediately(e => {
+    e.intercept({ commit: "immediate" });
+    e.intercept({ commit: "after-transition" });
+  });
+}, "immediate + after-transition");
+
+promise_test(async t => {
+  await testUrlDidChangeImmediately(e => {
+    e.intercept({ commit: "immediate" });
+    e.intercept();
+  });
+}, "immediate + (not provided)");
+
+promise_test(async t => {
+  await testUrlDidChangeImmediately(e => {
+    e.intercept({ commit: "immediate" });
+    e.intercept({ commit: "immediate" });
+  });
+}, "immediate + immediate");
+
+promise_test(async t => {
+  await testUrlDidNotChangeImmediately(e => {
+    e.intercept();
+    e.intercept({ commit: "after-transition" });
+  });
+}, "(not provided) + after-transition");
+
+promise_test(async t => {
+  await testUrlDidChangeImmediately(e => {
+    e.intercept();
+    e.intercept({ commit: "immediate" });
+  });
+}, "(not provided) + immediate");
+</script>
+</body>

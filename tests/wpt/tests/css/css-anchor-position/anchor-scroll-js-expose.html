@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>Tests that anchored element's actual rendered location is property exposed via JS APIs under scrolling</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+#scroller {
+  margin-left: 100px;
+  margin-top: 100px;
+  width: 400px;
+  height: 400px;
+  overflow: scroll;
+}
+#anchor-container {
+  width: 2000px;
+  height: 1000px;
+}
+#anchor {
+  margin: 400px;
+  margin-left: 1400px;
+  width: 100px;
+  height: 100px;
+  background-color: yellow;
+  anchor-name: --anchor;
+}
+#anchored {
+  position: absolute;
+  left: anchor(left);
+  bottom: anchor(top);
+  width: 100px;
+  height: 100px;
+  position-anchor: --anchor;
+  background-color: green;
+}
+</style>
+
+<div id="container">
+  <div id="scroller">
+    <div id="anchor"></div>
+  </div>
+  <div id="anchored">Text</div>
+</div>
+
+<script>
+promise_setup(async () => {
+  // Move both the anchor and the anchored elements into the visible area of the
+  // scroller. This also runs layout to setup an empty scroll snapshot.
+  scroller.scrollTop = 300;
+  scroller.scrollLeft = 1300;
+
+  // Ensure up-to-date scroll snapshot.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+});
+
+promise_test(async () => {
+  let rect = anchored.getBoundingClientRect();
+  assert_equals(rect.x, 200);
+  assert_equals(rect.y, 100);
+}, 'Element.getBoundingClientRect() returns the actual rendered location');
+
+promise_test(async () => {
+  let range = document.createRange();
+  let text = anchored.firstChild;
+  range.setStart(text, 0);
+  range.setEnd(text, text.length);
+  let rect = range.getBoundingClientRect();
+  assert_equals(rect.x, 200);
+  assert_equals(rect.y, 100);
+}, 'Range.getBoundingClientRect() returns the actual rendered location');
+
+promise_test(async () => {
+  assert_equals(anchored.offsetLeft, 200);
+  assert_equals(anchored.offsetTop, 100);
+}, 'Element.offset* return adjusted offsets');
+
+promise_test(() => new Promise(resolve => {
+  let observer = new IntersectionObserver(entryList => {
+    if (entryList.some(entry => entry.isIntersecting))
+      resolve();
+  });
+  observer.observe(anchored);
+}), 'IntersectionObserver should fire when anchored element is moved into visible area');
+</script>

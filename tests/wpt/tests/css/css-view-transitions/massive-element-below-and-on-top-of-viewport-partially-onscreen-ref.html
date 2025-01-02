@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>View transitions: massive element below viewport partially onscreen (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+.target {
+  position: fixed;
+  inset-block-start: -90px;
+  inline-size: 100px;
+  block-size: 40000px;
+  view-transition-name: target;
+}
+
+.top {
+  inline-size: 100%;
+  block-size: 100px;
+  background: lightblue;
+}
+
+.middle {
+  inline-size: 100%;
+  block-size: 39800px;
+  background: green;
+}
+
+.bottom {
+  inline-size: 100%;
+  block-size: 100px;
+  background: blue;
+}
+</style>
+<body>
+<div class="target">
+  <div class="top">This text is at the top of the box</div>
+  <div class="middle">This text is in the middle of the box</div>
+  <div id="scrollblue" class="bottom">This text is at the bottom of the box</div>
+</div>
+</body>

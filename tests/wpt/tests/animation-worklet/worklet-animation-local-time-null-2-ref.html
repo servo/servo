@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Setting localTime to null means effect does not apply (reftest)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<style>
+.box {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: inline-block;
+}
+
+#control {
+  background-color: red;
+  transform: translateY(100px);
+}
+</style>
+
+<div>
+<div class="box" id="target1"></div>
+<div class="box" id="target2"></div>
+<div class="box" id="target3"></div>
+<div class="box" id="target4"></div>
+<div class="box" id="control"></div>
+</div>
+
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: contracted image bounded by display size.</title>
+<style type="text/css">
+  #image_id {
+    width: 50px;
+    height: 50px;
+  }
+</style>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<script>
+  async_test(function (t) {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const beforeLoad = performance.now();
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const url = window.location.origin + '/images/black-rectangle.png';
+        // black-rectangle.png is 100 x 50. It occupies 50 x 50 so size will be bounded by the displayed size.
+        const size = 50 * 50;
+        checkImage(entry, url, 'image_id', size, beforeLoad);
+      })
+    );
+    observer.observe({type: 'largest-contentful-paint', buffered: true});
+  }, 'Largest Contentful Paint: |size| attribute is bounded by display size.');
+</script>
+<img src='/images/black-rectangle.png' id='image_id'/>
+</body>

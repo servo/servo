@@ -1,0 +1,241 @@
+<!doctype html>
+<title>testharness.js - task scheduling</title>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+<script>
+var sameTask = null;
+var sameMicrotask = null;
+var expectedError = new Error('This error is expected');
+
+promise_test(function() {
+  return Promise.resolve()
+    .then(function() {
+        sameMirotask = true;
+        Promise.resolve().then(() => sameMicrotask = false);
+      });
+}, 'promise test without cleanup #1');
+
+promise_test(function() {
+  assert_false(sameMicrotask);
+
+  return Promise.resolve();
+}, 'sub-test with 0 cleanup functions executes in distinct microtask from a passing sub-test');
+
+promise_test(function() {
+  return Promise.resolve()
+    .then(function() {
+        sameMirotask = true;
+        Promise.resolve().then(() => sameMicrotask = false);
+        throw expectedError;
+      });
+}, 'failing promise test without cleanup #1');
+
+promise_test(function() {
+  assert_false(sameMicrotask);
+
+  return Promise.resolve();
+}, 'sub-test with 0 cleanup functions executes in distinct microtask from a failing sub-test');
+
+promise_test(function(t) {
+  t.add_cleanup(function() {});
+
+  return Promise.resolve()
+    .then(function() {
+        sameMirotask = true;
+        Promise.resolve().then(() => sameMicrotask = false);
+      });
+}, 'promise test with cleanup #1');
+
+promise_test(function() {
+  assert_false(sameMicrotask);
+
+  return Promise.resolve();
+}, 'sub-test with some cleanup functions executes in distinct microtask from a passing sub-test');
+
+promise_test(function(t) {
+  t.add_cleanup(function() {});
+
+  return Promise.resolve()
+    .then(function() {
+        sameMirotask = true;
+        Promise.resolve().then(() => sameMicrotask = false);
+        throw expectedError;
+      });
+}, 'failing promise test with cleanup #1');
+
+promise_test(function() {
+  assert_false(sameMicrotask);
+
+  return Promise.resolve();
+}, 'sub-test with some cleanup functions executes in distinct microtask from a failing sub-test');
+
+promise_test(function(t) {
+  return Promise.resolve()
+    .then(function() {
+        sameTask = true;
+        t.step_timeout(() => sameTask = false, 0);
+      });
+}, 'promise test without cleanup #2');
+
+promise_test(function() {
+  assert_true(sameTask);
+
+  return Promise.resolve();
+}, 'sub-test with 0 cleanup functions executes in the same task as a passing sub-test');
+
+promise_test(function(t) {
+  return Promise.resolve()
+    .then(function() {
+        sameTask = true;
+        t.step_timeout(() => sameTask = false, 0);
+        throw expectedError;
+      });
+}, 'failing promise test without cleanup #2');
+
+promise_test(function() {
+  assert_true(sameTask);
+
+  return Promise.resolve();
+}, 'sub-test with 0 cleanup functions executes in the same task as a failing sub-test');
+
+promise_test(function(t) {
+  t.add_cleanup(function() {});
+
+  return Promise.resolve()
+    .then(function() {
+        sameTask = true;
+        t.step_timeout(() => sameTask = false, 0);
+      });
+}, 'promise test with cleanup #2');
+
+promise_test(function() {
+  assert_true(sameTask);
+
+  return Promise.resolve();
+}, 'sub-test with some cleanup functions executes in the same task as a passing sub-test');
+
+promise_test(function(t) {
+  t.add_cleanup(function() {});
+
+  return Promise.resolve()
+    .then(function() {
+        sameTask = true;
+        t.step_timeout(() => sameTask = false, 0);
+        throw expectedError;
+      });
+}, 'failing promise test with cleanup #2');
+
+promise_test(function() {
+  assert_true(sameTask);
+
+  return Promise.resolve();
+}, 'sub-test with some cleanup functions executes in the same task as a failing sub-test');
+</script>
+
+<script type="text/json" id="expected">
+{
+    "summarized_status": {
+        "message": null,
+        "status_string": "OK"
+    },
+    "summarized_tests": [
+        {
+            "message": "promise_test: Unhandled rejection with value: object \"Error: This error is expected\"",
+            "name": "failing promise test with cleanup #1",
+            "properties": {},
+            "status_string": "FAIL"
+        },
+        {
+            "message": "promise_test: Unhandled rejection with value: object \"Error: This error is expected\"",
+            "name": "failing promise test with cleanup #2",
+            "properties": {},
+            "status_string": "FAIL"
+        },
+        {
+            "message": "promise_test: Unhandled rejection with value: object \"Error: This error is expected\"",
+            "name": "failing promise test without cleanup #1",
+            "properties": {},
+            "status_string": "FAIL"
+        },
+        {
+            "message": "promise_test: Unhandled rejection with value: object \"Error: This error is expected\"",
+            "name": "failing promise test without cleanup #2",
+            "properties": {},
+            "status_string": "FAIL"
+        },
+        {
+            "message": null,
+            "name": "promise test with cleanup #1",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "promise test with cleanup #2",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "promise test without cleanup #1",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "promise test without cleanup #2",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with 0 cleanup functions executes in distinct microtask from a failing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with 0 cleanup functions executes in distinct microtask from a passing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with 0 cleanup functions executes in the same task as a failing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with 0 cleanup functions executes in the same task as a passing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with some cleanup functions executes in distinct microtask from a failing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with some cleanup functions executes in distinct microtask from a passing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with some cleanup functions executes in the same task as a failing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        },
+        {
+            "message": null,
+            "name": "sub-test with some cleanup functions executes in the same task as a passing sub-test",
+            "properties": {},
+            "status_string": "PASS"
+        }
+    ],
+    "type": "complete"
+}
+</script>

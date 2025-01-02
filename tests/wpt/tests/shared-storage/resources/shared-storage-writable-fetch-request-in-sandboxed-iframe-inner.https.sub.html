@@ -1,0 +1,54 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+
+async function init() {
+  // Make fetch request that sets (expectedKey, expectedValue) to shared storage
+  // via response header.
+  let {expectedKey, expectedValue} = parseExpectedKeyAndValueData();
+  const rawWriteHeader = `set;key=${expectedKey};value=${expectedValue}`;
+  const writeHeader = encodeURIComponent(rawWriteHeader);
+  const fetchUrl =
+    `/shared-storage/resources/shared-storage-write-notify-parent.py` +
+    `?write=${writeHeader}`;
+  let frame = document.createElement('iframe');
+  let parentOrOpener = window.opener || window.parent;
+  fetch(fetchUrl, {sharedStorageWritable: true})
+    .then(response => response.text())
+    .then(htmlContent => {
+        frame.srcdoc = htmlContent;
+
+        const promise = new Promise((resolve, reject) => {
+          window.addEventListener('message', async function handler(evt) {
+            if (evt.source === frame.contentWindow &&
+                evt.data.sharedStorageWritableHeader) {
+              assert_equals(evt.data.sharedStorageWritableHeader, '?1');
+                parentOrOpener.postMessage({
+                    sharedStorageFetchStatus: "success",
+                    sharedStorageWritableHeader:
+                      evt.data.sharedStorageWritableHeader},
+                                         "*");
+              document.body.removeChild(frame);
+              window.removeEventListener('message', handler);
+              resolve();
+            }
+          });
+          window.addEventListener('error', () => {
+            reject(new Error('Fetch or navigation error'));
+          });
+        });
+
+      // Navigate and wait for notification.
+      document.body.appendChild(frame);
+      return promise;
+    })
+    .catch(error => {
+      parentOrOpener.postMessage({sharedStorageFetchStatus: error}, "*");
+    });
+}
+
+init();
+  </script>
+</body>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Test window.parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const window_parent_key = token();
+  const window_parent_ack_key = token();
+
+  attachFencedFrame(generateURL("resources/window-parent-inner.html",
+      [window_parent_key, window_parent_ack_key]));
+
+  // Get the result for the top-level fenced frame.
+  const fenced_frame_result = await nextValueFromServer(window_parent_key);
+  assert_equals(fenced_frame_result, "pass: fenced frame", "The top-level " +
+                                     "fenced frame has the right value for " +
+                                     "`window.parent`");
+
+  // Write an ACK, so that the fenced frame knows it can send message over the
+  // `window_parent_key` channel again.
+  writeValueToServer(window_parent_ack_key, "ACK");
+
+  // Get the result for the iframe inside the fenced frame.
+  const iframe_in_fenced_frame_result = await nextValueFromServer(window_parent_key);
+  assert_equals(iframe_in_fenced_frame_result, "pass: fenced frame > iframe",
+                "The iframe inside the top-level fenced frame has the right " +
+                "value for `window.parent`");
+
+  writeValueToServer(window_parent_ack_key, "ACK");
+
+  // Get the result for the nested fenced frame.
+  const nested_fenced_frame_result = await nextValueFromServer(window_parent_key);
+  assert_equals(nested_fenced_frame_result, "pass: fenced frame > fenced frame",
+                "The nested fenced frame inside the top-level fenced frame " +
+                "has the right value for `window.parent`");
+}, "window.parent");
+</script>
+
+</body>

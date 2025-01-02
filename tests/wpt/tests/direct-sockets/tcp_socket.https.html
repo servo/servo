@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const kPacket = "I'm a netcat. Meow-meow!"
+
+  const serverSocket = new TCPServerSocket("127.0.0.1");
+  const { localPort } = await serverSocket.opened;
+
+  const clientSocket = new TCPSocket("127.0.0.1", localPort);
+  const acceptedSocket = await (async () => {
+    const { readable } = await serverSocket.opened;
+    const reader = readable.getReader();
+    const { value: acceptedSocket, done } = await reader.read();
+    assert_false(done);
+    reader.releaseLock();
+    return acceptedSocket;
+  })();
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const readPacket = async socket => {
+    const { readable } = await socket.opened;
+    const reader = readable.getReader();
+    let result = "";
+    while (result.length < kPacket.length) {
+      const { value, done } = await reader.read();
+      assert_false(done);
+      result += decoder.decode(value);
+    }
+    assert_equals(result, kPacket);
+    reader.releaseLock();
+  };
+
+  const sendPacket = async socket => {
+    const { writable } = await socket.opened;
+    const writer = writable.getWriter();
+    await writer.ready;
+    await writer.write(encoder.encode(kPacket));
+    writer.releaseLock();
+  };
+
+  const acceptedSocketEcho = (async () => {
+    await readPacket(acceptedSocket);
+    await sendPacket(acceptedSocket);
+  })();
+
+  const clientSocketSend = (async () => {
+    await sendPacket(clientSocket);
+  })();
+
+  const clientSocketReceive = (async () => {
+    await readPacket(clientSocket);
+  })();
+
+  await clientSocketReceive;
+
+  await clientSocket.close();
+  await acceptedSocket.close();
+  await serverSocket.close();
+
+}, 'TCPSocket exchanges packets with TCPServerSocket');
+</script>

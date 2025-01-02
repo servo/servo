@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (image repeat)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+		<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-repeat" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Background with (image repeat) sets the background to the image specified, tiling it to cover the full width, but not height." />
+        <style type="text/css">
+            div
+            {
+                background: url("support/cat.png") repeat-x;
+                border: 1px solid black;
+                height: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below has a cat image repeated across the screen, but not down the screen (there is not a cat on top of a cat).</p>
+        <div></div>
+    </body>
+</html>

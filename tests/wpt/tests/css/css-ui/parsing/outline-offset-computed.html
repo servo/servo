@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS UI Level 3: getComputedStyle().outlineOffset</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#outline-offset">
+<meta name="assert" content="outline-offset computed value is absolute length.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+<div id="target"></div>
+<script>
+test_computed_value("outline-offset", "2.5px");
+test_computed_value("outline-offset", "10px");
+test_computed_value("outline-offset", "0.5em", "20px");
+test_computed_value("outline-offset", "calc(10px + 0.5em)", "30px");
+test_computed_value("outline-offset", "calc(10px - 0.5em)", "-10px");
+</script>
+</body>
+</html>

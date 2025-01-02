@@ -1,0 +1,167 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Setting the current time of an animation</title>
+<link rel="help"
+  href="https://drafts.csswg.org/web-animations-1/#setting-the-current-time-of-an-animation">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../../testcommon.js'></script>
+<body>
+<div id='log'></div>
+<script>
+'use strict';
+
+test(t => {
+  const anim = new Animation();
+  assert_equals(anim.playState, 'idle');
+  assert_equals(anim.currentTime, null);
+
+  // This should not throw because the currentTime is already null.
+  anim.currentTime = null;
+}, 'Setting the current time of a pending animation to unresolved does not'
+   + ' throw a TypeError');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+
+  assert_greater_than_equal(anim.currentTime, 0);
+  assert_throws_js(TypeError, () => {
+    anim.currentTime = null;
+  });
+}, 'Setting the current time of a playing animation to unresolved throws a'
+   + ' TypeError');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+  anim.pause();
+
+  assert_greater_than_equal(anim.currentTime, 0);
+  assert_throws_js(TypeError, () => {
+    anim.currentTime = null;
+  });
+}, 'Setting the current time of a paused animation to unresolved throws a'
+   + ' TypeError');
+
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  assert_throws_js(TypeError, () => {
+    animation.currentTime = CSSNumericValue.parse("30%");
+  });
+  assert_throws_js(TypeError, () => {
+    animation.currentTime = CSSNumericValue.parse("30deg");
+  });
+
+  animation.currentTime = 2000;
+  assert_equals(animation.currentTime, 2000, "Set current time using double");
+
+  animation.currentTime = CSSNumericValue.parse("3000");
+  assert_equals(animation.currentTime, 3000, "Set current time using " +
+    "CSSNumericValue number value");
+
+  animation.currentTime = CSSNumericValue.parse("4000ms");
+  assert_equals(animation.currentTime, 4000, "Set current time using " +
+    "CSSNumericValue milliseconds value");
+
+  animation.currentTime = CSSNumericValue.parse("50s");
+  assert_equals(animation.currentTime, 50000, "Set current time using " +
+    "CSSNumericValue seconds value");
+}, 'Validate different value types that can be used to set current time');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+  anim.pause();
+
+  // We should be pause-pending now
+  assert_true(anim.pending);
+  assert_equals(anim.playState, 'paused');
+
+  // Apply a pending playback rate
+  anim.updatePlaybackRate(2);
+  assert_equals(anim.playbackRate, 1);
+
+  // Setting the current time should apply the pending playback rate
+  anim.currentTime = 50 * MS_PER_SEC;
+  assert_equals(anim.playbackRate, 2);
+  assert_false(anim.pending);
+
+  // Sanity check that the current time is preserved
+  assert_time_equals_literal(anim.currentTime, 50 * MS_PER_SEC);
+}, 'Setting the current time of a pausing animation applies a pending playback'
+   + ' rate');
+
+
+// The following tests verify that currentTime can be set outside of the normal
+// bounds of an animation.
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+
+  anim.currentTime = 200 * MS_PER_SEC;
+  assert_equals(anim.playState, 'finished');
+  assert_time_equals_literal(anim.currentTime, 200 * MS_PER_SEC);
+}, 'Setting the current time after the end with a positive playback rate');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+
+  anim.currentTime = -100 * MS_PER_SEC;
+  assert_equals(anim.playState, 'running');
+  assert_time_equals_literal(anim.currentTime, -100 * MS_PER_SEC);
+
+  await waitForAnimationFrames(2);
+  assert_greater_than(anim.currentTime, -100 * MS_PER_SEC);
+}, 'Setting a negative current time with a positive playback rate');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  anim.updatePlaybackRate(-1);
+  await anim.ready;
+
+  anim.currentTime = 200 * MS_PER_SEC;
+  assert_equals(anim.playState, 'running');
+  assert_time_equals_literal(anim.currentTime, 200 * MS_PER_SEC);
+
+  await waitForAnimationFrames(2);
+  assert_less_than(anim.currentTime, 200 * MS_PER_SEC);
+}, 'Setting the current time after the end with a negative playback rate');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  anim.updatePlaybackRate(-1);
+  await anim.ready;
+
+  anim.currentTime = -100 * MS_PER_SEC;
+  assert_equals(anim.playState, 'finished');
+  assert_time_equals_literal(anim.currentTime, -100 * MS_PER_SEC);
+}, 'Setting a negative current time with a negative playback rate');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  anim.updatePlaybackRate(0);
+  await anim.ready;
+
+  // An animation with a playback rate of zero is never in the finished state
+  // even if currentTime is outside the normal range of [0, effect end].
+  anim.currentTime = 200 * MS_PER_SEC;
+  assert_equals(anim.playState, 'running');
+  assert_time_equals_literal(anim.currentTime, 200 * MS_PER_SEC);
+  await waitForAnimationFrames(2);
+  assert_time_equals_literal(anim.currentTime, 200 * MS_PER_SEC);
+
+  anim.currentTime = -200 * MS_PER_SEC;
+  assert_equals(anim.playState, 'running');
+  assert_time_equals_literal(anim.currentTime, -200 * MS_PER_SEC);
+  await waitForAnimationFrames(2);
+  assert_time_equals_literal(anim.currentTime, -200 * MS_PER_SEC);
+
+}, 'Setting the current time on an animation with a zero playback rate');
+
+</script>
+</body>

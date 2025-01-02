@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <style>
+    .spacer {
+      width: 500px;
+      height: 500px;
+      border: solid 1px green;
+    }
+
+    .scroller {
+      width: 100px;
+      height: 100px;
+      border: solid 1px black;
+      overflow: scroll;
+      writing-mode: vertical-lr;
+    }
+  </style>
+  <div id="lengthscroller" class="scroller" style="scroll-start: 100px">
+    <div class="spacer"></div>
+  </div>
+  <div id="percentscroller" class="scroller" style="scroll-start: 25%">
+    <div class="spacer"></div>
+  </div>
+  <div id="calcscroller" class="scroller" style="scroll-start: calc(50px)">
+    <div class="spacer"></div>
+  </div>
+  <div id="startscroller" class="scroller" style="scroll-start: start">
+    <div class="spacer"></div>
+  </div>
+  <div id="centerscroller" class="scroller" style="scroll-start: center">
+    <div class="spacer"></div>
+  </div>
+  <div id="endscroller" class="scroller" style="scroll-start: end">
+    <div class="spacer"></div>
+  </div>
+  <div id="topscroller" class="scroller" style="scroll-start: 100px top">
+    <div class="spacer"></div>
+  </div>
+  <div id="bottomscroller" class="scroller" style="scroll-start: 100px bottom">
+    <div class="spacer"></div>
+  </div>
+  <div id="leftscroller" class="scroller" style="scroll-start: left 100px">
+    <div class="spacer"></div>
+  </div>
+  <div id="rightscroller" class="scroller" style="scroll-start: right 100px">
+    <div class="spacer"></div>
+  </div>
+  <div id="clampedscroller" class="scroller" style="scroll-start: 1000px 1000px">
+    <div class="spacer"></div>
+  </div>
+  <script>
+    promise_test(async (t) => {
+      let length_scroller = document.getElementById("lengthscroller");
+      assert_equals(length_scroller.scrollLeft, 100,
+        "scroll-start: <length> sets initial scroll position");
+
+      let percent_scroller = document.getElementById("percentscroller");
+      const percent_scroll_left = 0.25 * (percent_scroller.scrollWidth -
+        percent_scroller.clientWidth);
+      assert_approx_equals(percent_scroller.scrollLeft, percent_scroll_left, 1,
+        "scroll-start: <percent> sets initial scroll position");
+
+      let calc_scroller = document.getElementById("calcscroller");
+      assert_equals(calc_scroller.scrollLeft, 50,
+        "scroll-start: <calc> sets initial scroll position");
+
+      let start_scroller = document.getElementById("startscroller");
+      assert_equals(start_scroller.scrollLeft, 0,
+        "scroll-start: start sets initial scroll position");
+
+      let center_scroller = document.getElementById("centerscroller");
+      const center_scroll_top = 0.5 * (center_scroller.scrollHeight -
+        center_scroller.clientHeight);
+      assert_approx_equals(center_scroller.scrollLeft, center_scroll_top, 1,
+        "scroll-start: center sets initial scroll position");
+
+      let end_scroller = document.getElementById("endscroller");
+      const end_scroll_top = end_scroller.scrollWidth -
+        end_scroller.clientWidth;
+      assert_equals(end_scroller.scrollLeft, end_scroll_top,
+        "scroll-start:  end sets initial scroll position");
+
+      let top_scroller = document.getElementById("topscroller");
+      assert_equals(top_scroller.scrollLeft, 100,
+        "scroll-start: top sets initial scroll position");
+      assert_equals(top_scroller.scrollTop, 0,
+        "scroll-start: top sets initial scroll position");
+
+      let bottom_scroller = document.getElementById("bottomscroller");
+      const bottom_scroll_top = bottom_scroller.scrollHeight -
+        bottom_scroller.clientHeight;
+      assert_equals(bottom_scroller.scrollLeft, 100,
+        "scroll-start: bottom sets initial scroll position");
+      assert_equals(bottom_scroller.scrollTop, bottom_scroll_top,
+        "scroll-start: top sets initial scroll position");
+
+      let left_scroller = document.getElementById("leftscroller");
+      assert_equals(left_scroller.scrollTop, 100,
+        "scroll-start: left sets initial scroll position");
+      assert_equals(left_scroller.scrollLeft, 0,
+        "scroll-start: left sets initial scroll position");
+
+      let right_scroller = document.getElementById("rightscroller");
+      const right_scroll_top = right_scroller.scrollWidth -
+        right_scroller.clientWidth;
+      assert_equals(right_scroller.scrollTop, 100,
+        "scroll-start: right sets initial scroll position");
+      assert_equals(right_scroller.scrollLeft, right_scroll_top,
+        "scroll-start: right sets initial scroll position");
+
+      let clamped_scroller = document.getElementById("clampedscroller");
+      const clamped_scroll_top = clamped_scroller.scrollWidth -
+        clamped_scroller.clientWidth;
+      const clamped_scroll_left = clamped_scroller.scrollHeight -
+        clamped_scroller.clientHeight;
+      assert_equals(clamped_scroller.scrollTop, clamped_scroll_top,
+        "scroll-start is clamped to max vertical scroll offset");
+      assert_equals(clamped_scroller.scrollLeft, clamped_scroll_left,
+        "scroll-start is clamped to max horizontal scroll offset");
+    }, "scroll-start sets initial scroll offset correctly in vertical " +
+    "writing modes");
+  </script>
+</body>

@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Screen-sharing Simulcast Tests</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  // Test getDisplayMedia with simulcast
+  await test_driver.bless('getDisplayMedia');
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: {width: 640, height: 480}
+  });
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const rids = [0, 1];
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  return negotiateSimulcastAndWaitForVideo(t, stream, rids, pc1, pc2);
+}, 'Basic simulcast setup with two spatial layers');
+</script>

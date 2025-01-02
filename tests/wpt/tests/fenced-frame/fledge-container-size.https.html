@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>Test container size in FLEDGE fenced frames.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+async function checkSyntaxError(requested_width, requested_height) {
+  try {
+    const frame = await attachFencedFrameContext({
+        generator_api: "fledge", resolve_to_config: true, ad_with_size: true,
+        requested_size: [requested_width, requested_height]});
+  } catch(e) {
+    assert_equals(e.name, 'TypeError');
+    return;
+  }
+  assert_unreached('Missing expected type error');
+}
+
+async function checkSuccess() {
+  const assert_outer_dimensions =
+    (frame, label, expected_width, expected_height) => {
+    assert_equals(frame.element.width, expected_width,
+        label + ' outer attribute width');
+    assert_equals(frame.element.height, expected_height,
+        label + ' outer attribute height');
+    assert_equals(getComputedStyle(frame.element).width, expected_width,
+        label + ' outer computed width');
+    assert_equals(getComputedStyle(frame.element).height, expected_height,
+        label + ' outer computed height');
+  }
+
+  const assert_inner_dimensions =
+    (label, expected_width, expected_height) => {
+    assert_equals(getComputedStyle(document.documentElement).width, expected_width+'px',
+        label + ' inner computed width');
+    assert_equals(window.innerWidth, expected_width,
+        label + ' inner width');
+    assert_equals(window.innerHeight, expected_height,
+        label + ' inner height');
+  }
+
+  // `ad_with_size` is hardcoded to use '100px' by '50px'.
+  const content_width = 100;
+  const content_height = 50;
+
+  // Create a FLEDGE FF with a constant content size and given container size.
+  const requested_width_1 = '299px';
+  const requested_height_1 = '72px';
+  const frame = await attachFencedFrameContext({
+      generator_api: 'fledge', resolve_to_config: true, ad_with_size: true,
+      requested_size: [requested_width_1, requested_height_1]});
+
+  // The outer size should reflect the container size, and the inner size should reflect the content size.
+  await frame.execute(assert_inner_dimensions, ['First config', content_width, content_height]);
+  assert_outer_dimensions(frame, 'First config', requested_width_1, requested_height_1);
+
+  // Modify the container size manually.
+  const modified_width = '121px';
+  const modified_height = '444px';
+  frame.element.width = modified_width;
+  frame.element.height = modified_height;
+
+  // The outer size should reflect the new size, and the inner size should be unchanged.
+  await frame.execute(assert_inner_dimensions, ['Modified container size', content_width, content_height]);
+  assert_outer_dimensions(frame, 'Modified container size', modified_width, modified_height);
+
+  // Navigate to a new FLEDGE FF config with a different container size.
+  const requested_width_2 = '321px';
+  const requested_height_2 = '49px';
+  const replaced_frame = await replaceFrameContext(frame, {
+      generator_api: 'fledge', resolve_to_config: true, ad_with_size: true,
+      requested_size: [requested_width_2, requested_height_2]});
+
+  // The outer size should reflect the new size, and the inner size should be unchanged.
+  await replaced_frame.execute(assert_inner_dimensions, ['Second config', content_width, content_height]);
+  assert_outer_dimensions(replaced_frame, 'Second config', requested_width_2, requested_height_2);
+
+  // Navigate to a new FLEDGE FF config with no container size.
+  const replaced_frame_2 = await replaceFrameContext(frame, {
+      generator_api: 'fledge', resolve_to_config: true, ad_with_size: true});
+
+  // The dimensions should be unchanged.
+  await replaced_frame_2.execute(assert_inner_dimensions, ['Third config', content_width, content_height]);
+  assert_outer_dimensions(replaced_frame_2, 'Third config', requested_width_2, requested_height_2);
+}
+
+// Type error cases.
+promise_test(async () => { return checkSyntaxError('-299px', '72px'); }, '-299px x 72px');
+promise_test(async () => { return checkSyntaxError('299px', '-72px'); }, '299px x -72px');
+promise_test(async () => { return checkSyntaxError('0px', '0px'); }, '0px x 0px');
+promise_test(async () => { return checkSyntaxError('299px', '72ab'); }, '299px x 72ab');
+promise_test(async () => { return checkSyntaxError('299bc', '72px'); }, '299bc x 72px');
+
+// Success cases.
+promise_test(async () => { return checkSuccess(); }, 'FLEDGE successful container size');
+
+</script>
+</body>

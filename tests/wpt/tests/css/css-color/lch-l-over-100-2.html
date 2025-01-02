@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Verify lightness in LCH is always clamped to a value between 0% to 100%</title>
+<link rel="help" href="https://drafts.csswg.org/css-color/#cie-lab">
+<link rel="match" href="lch-l-over-100-ref.html">
+<meta name="assert" content="lch() with lightness graeter than 100%">
+<style>
+    .square { border: 1px solid black; width: 200px; height: 200px}
+    .ref { background-color: lch(100% 150 20); height: 100px}
+    /* l = 150% should clamp back to 100% */
+    .test { background-color: lch(150% 150 20); height: 100px}
+</style>
+
+<body>
+    <p>Test passes if you see a square border with a single color inside.</p>
+    <div class="square">
+        <div class="ref"></div>
+        <div class="test"></div>
+    </div>
+</body>

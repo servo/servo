@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: @page grammar: white space not required around pseudo</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/grammar.html#grammar" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#syntax-page-selector" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="White space before and after a pseudo-page selector is not required." />
+  <style type="text/css">
+    @page {
+      margin: 10%;    /* This makes the header big enough to hold the file name when printed on 4x6 in media. */
+    }
+    @page:right{
+      margin-left: 50%;
+    }
+    @page:left{
+      margin-right: 50%;
+    }
+    html {
+      page-break-before: right;
+    }
+    p {
+      padding: 0.5em;
+      border: solid blue;
+      page-break-after: always;
+    }
+   </style>
+ </head>
+ <body>
+  <p>This test produces two pages of output on paged media.  This box must be entirely on the right half of the page.
+  </p>
+  <p>This box must be on a new page and entirely on the left half of the page.
+  </p>
+ </body>
+</html>

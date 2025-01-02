@@ -1,0 +1,14 @@
+
+/*
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+*/
+
+
+attribute int i;  // attributes cannot be int or bool
+
+void main()
+{
+    gl_Position = vec4(1);
+}

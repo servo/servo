@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Testing all the values of the "flex-flow" shorthand property, with 4 flex items in each container</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-flow-property">
+  <link rel="match" href="flexbox-flex-flow-001-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      height: 60px;
+      width: 60px;
+      font: 10px sans-serif;
+      background: yellow;
+      float: left;
+      border: 1px solid black;
+    }
+    .flexContainer > * {
+      border: 1px dotted gray;
+      width: 28px;
+      height: 28px;
+      /* Explicitly set min-width & min-height to 0, to prevent their "auto"
+         value from influencing the sizes of our flex items (particularly for
+         the single-line chunks of this testcase, whose items may be shrunk a
+         little below the numerals' intrinsic sizes): */
+      min-width:  0;
+      min-height: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- single-line (flex-wrap unspecified): -->
+  <div class="flexContainer" style="flex-flow: row">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: row-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  <!-- now using "wrap", after flex-direction: -->
+  <div class="flexContainer" style="flex-flow: row wrap">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: row-reverse wrap">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column wrap">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column-reverse wrap">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  <!-- now using "wrap", before flex-direction: -->
+  <div class="flexContainer" style="flex-flow: wrap row">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: wrap row-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: wrap column">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: wrap column-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  <!-- now using "wrap-reverse", after flex-direction: -->
+  <div class="flexContainer" style="flex-flow: row wrap-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: row-reverse wrap-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column wrap-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column-reverse wrap-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  <!-- now using "wrap-reverse", before flex-direction: -->
+  <div class="flexContainer" style="flex-flow: wrap-reverse row">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: wrap-reverse row-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: wrap-reverse column">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: wrap-reverse column-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+
+  <div style="clear:both"></div>
+
+  <!-- now just specifying flex-wrap (no flex-direction) -->
+  <div class="flexContainer" style="flex-flow: wrap">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+  <div class="flexContainer" style="flex-flow: wrap-reverse">
+    <div>1</div><div>2</div><div>3</div><div>4</div>
+  </div>
+
+</body>
+</html>

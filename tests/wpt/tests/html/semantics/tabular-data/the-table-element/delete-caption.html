@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>deleteCaption()</title>
+  <link rel="author" title="Ben Boyle" href="mailto:benjamins.boyle@gmail.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-deletecaption" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <table id="one-caption">
+    <caption>Fixture table caption</caption>
+  </table>
+
+  <table id="two-captions">
+    <caption>Fixture table caption</caption>
+    <caption>A second caption element</caption>
+  </table>
+
+  <table id="zero-captions"></table>
+
+  <table id="descendent-caption">
+    <tr>
+      <td>
+        <table>
+          <caption>Nested caption</caption>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <script>
+  // The deleteCaption() method must remove the first caption element child of the table element, if any.
+  // https://html.spec.whatwgorg/multipage/tables.html#dom-table-deletecaption
+  test(function() {
+    var table = document.getElementById('one-caption');
+
+    table.deleteCaption();
+    assert_equals(table.getElementsByTagName('caption').length, 0, 'caption was removed');
+
+  }, 'deleteCaption() delete only caption on table');
+
+  test(function() {
+    var table = document.getElementById('one-caption');
+    var result;
+
+    result = table.deleteCaption();
+    // does .deleteCaption() have a return value?
+    assert_equals(result, undefined, '.deleteCaption() returns undefined');
+  }, 'deleteCaption() returns undefined');
+
+  test(function() {
+    var table = document.getElementById('two-captions');
+
+    table.deleteCaption();
+    assert_equals(table.getElementsByTagName('caption').length, 1, '1 caption (of 2) was removed');
+    assert_equals(table.getElementsByTagName('caption')[0].textContent, 'A second caption element', 'The first caption was removed');
+
+    // removing the only caption
+    table.deleteCaption();
+    assert_equals(table.getElementsByTagName('caption').length, 0, 'last caption was removed');
+  }, 'deleteCaption()');
+
+  test(function() {
+    var table = document.getElementById('zero-captions');
+    // removing a caption when none exists
+    table.deleteCaption();
+
+    assert_equals(table.getElementsByTagName('caption').length, 0, 'no exceptions using .deleteCaption() on a table without any captions');
+
+  }, 'deleteCaption() does not throw any exceptions when called on a table without a caption');
+
+  test(function() {
+    var table = document.getElementById( 'descendent-caption' );
+    table.deleteCaption();
+
+    assert_equals(table.getElementsByTagName('caption').length, 1, 'descendent caption was not deleted');
+  }, 'deleteCaption() does not delete captions in descendent tables');
+
+  test(function() {
+    var table = document.getElementById('zero-captions');
+    var caption;
+
+    caption = document.createElementNS('http://www.w3.org/2000/svg', 'caption');
+    table.insertBefore(caption, table.firstChild);
+    assert_equals(table.getElementsByTagName('caption').length, 1, 'SVG:caption is created');
+
+    table.deleteCaption();
+    assert_equals(table.getElementsByTagName('caption').length, 1, 'SVG:caption is not deleted');
+
+  }, 'deleteCaption() handles captions from different namespaces');
+</script>
+</body>
+</html>

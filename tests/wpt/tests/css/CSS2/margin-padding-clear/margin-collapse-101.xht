@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: in flow</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-15 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-101-ref.xht" />
+
+  <style type="text/css">
+   table { border-spacing: 0; font-size: 50px; border: solid 3px; }
+   td { background: orange; padding: 0; }
+   div { margin: 1em 0; }
+   .a { background: yellow; }
+   .b { background: lime; }
+   .c { background: aqua; }
+   .d { background: blue; }
+   .red { background: red; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a stack of multi-colored horizontal bars with no red.</p>
+  <table>
+   <tr>
+    <td class="test">
+     <div class="d">
+      <div class="red"><div class="red"><div class="a">A</div></div><div class="red"></div></div>
+      <div class="red"></div>
+      <div class="red"><div class="red"></div></div>
+      <div class="red"><div class="b"><div class="red"></div>B</div></div>
+      <div class="c">C</div>
+     </div>
+    </td>
+    <td class="control">
+     <div class="d">
+      <div class="a">A</div>
+      <div class="b">B</div>
+      <div class="c">C</div>
+     </div>
+    </td>
+   </tr>
+  </table>
+
+</body>
+</html>

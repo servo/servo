@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:absolute; width:100px; text-box-trim:trim-both; font:20px/80px Ahem; color:green; background:red;">
+  <div style="float:left; width:20px; height:20px; margin-top:30px; background:green;"></div>
+  xxxx<br>
+  xxxx<br>
+  <div style="float:right; width:20px; height:20px; margin-top:-20px; background:green;"></div>
+</div>
+<div style="position:absolute; margin-top:20px; width:100px; height:60px; background:green;"></div>

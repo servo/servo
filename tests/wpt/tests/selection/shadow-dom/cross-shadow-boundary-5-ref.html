@@ -1,0 +1,13 @@
+<!doctype html>
+OuterText1
+<div>innerText1</div>
+OuterText2
+<div>innerText2</div>
+OuterText3
+<script>
+  getSelection().setBaseAndExtent(
+    document.body.firstChild,
+    3,
+    document.body.childNodes[4],
+  3);
+</script>

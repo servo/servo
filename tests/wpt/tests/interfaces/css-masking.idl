@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Masking Module Level 1 (https://drafts.fxtf.org/css-masking-1/)
+
+[Exposed=Window]
+interface SVGClipPathElement : SVGElement {
+  readonly attribute SVGAnimatedEnumeration clipPathUnits;
+  readonly attribute SVGAnimatedTransformList transform;
+};
+
+[Exposed=Window]
+interface SVGMaskElement : SVGElement {
+  readonly attribute SVGAnimatedEnumeration maskUnits;
+  readonly attribute SVGAnimatedEnumeration maskContentUnits;
+  readonly attribute SVGAnimatedLength x;
+  readonly attribute SVGAnimatedLength y;
+  readonly attribute SVGAnimatedLength width;
+  readonly attribute SVGAnimatedLength height;
+};

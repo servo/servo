@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Errors thrown in XMLHttpRequest events get to window.onerror</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+setup({ allow_uncaught_exception: true });
+
+promise_test(() => {
+  const error = new Error("oh no!");
+  let resolve;
+
+  window.addEventListener("error", event => {
+    assert_equals(event.error, error);
+    resolve();
+  });
+
+  const xhr = new window.XMLHttpRequest();
+
+  xhr.addEventListener("load", () => {
+    throw error;
+  });
+
+  xhr.open("GET", location.href);
+  xhr.send();
+
+  return new Promise(r => {
+    resolve = r;
+  });
+
+}, "errors thrown in XMLHttpRequest's load event (using addEventListener) goes to window.onerror");
+
+promise_test(() => {
+  const error = new Error("oh no 2!");
+  let resolve;
+
+  window.addEventListener("error", event => {
+    assert_equals(event.error, error);
+    resolve();
+  });
+
+  const xhr = new window.XMLHttpRequest();
+
+  xhr.onload = () => {
+    throw error;
+  };
+
+  xhr.open("GET", location.href);
+  xhr.send();
+
+  return new Promise(r => {
+    resolve = r;
+  });
+
+}, "errors thrown in XMLHttpRequest's load event (using onload) goes to window.onerror");
+</script>

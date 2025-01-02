@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Static position of abspos children in a row flex container, with various margins applied, and "align-items: flex-end" reference</title>
+<style>
+  .container {
+    display: block;
+    padding: 1px 2px;
+    border: 1px solid black;
+    background: yellow;
+    margin-bottom: 5px;
+    margin-right: 10px;
+    float: left; /* For testing in "rows" of containers */
+  }
+  br { clear: both }
+
+  .big > .container {
+    height: 14px;
+    width: 20px;
+  }
+  .small > .container {
+    height: 2px;
+    width: 4px;
+  }
+
+  .container > * {
+    background: teal;
+    height: 6px;
+    width: 8px;
+  }
+</style>
+<div class="big">
+  <!-- Margin just on one side: -->
+  <div class="container"><div style="margin: 8px 0 0 0"></div></div>
+  <div class="container"><div style="margin: 8px 0 0 0"></div></div>
+  <div class="container"><div style="margin: 5px 0 0 0"></div></div>
+  <div class="container"><div style="margin: 8px 0 0 3px"></div></div>
+  <!-- Margin on all sides: -->
+  <div class="container"><div style="margin: 5px 0 0 4px"></div></div>
+  <br>
+
+  <!-- "auto" margin on just one side (should be treated as 0): -->
+  <div class="container"><div style="margin: 8px 0 0 0"></div></div>
+  <div class="container"><div style="margin: 8px 0 0 0"></div></div>
+  <div class="container"><div style="margin: 8px 0 0 0"></div></div>
+  <div class="container"><div style="margin: 8px 0 0 0"></div></div>
+  <!-- "auto" margin on all sides (should be treated as 0): -->
+  <div class="container"><div style="margin: 8px 0 0 0"></div></div>
+  <br>
+</div>
+<div class="small">
+  <!-- Margin just on one side: -->
+  <div class="container"><div style="margin: -4px 0 0 0"></div></div>
+  <div class="container"><div style="margin: -4px 0 0 0"></div></div>
+  <div class="container"><div style="margin: -7px 0 0 0"></div></div>
+  <div class="container"><div style="margin: -4px 0 0 3px"></div></div>
+  <!-- Margin on all sides: -->
+  <div class="container"><div style="margin: -7px 0 0 4px"></div></div>
+  <br>
+
+  <!-- "auto" margin on just one side (should be treated as 0): -->
+  <div class="container"><div style="margin: -4px 0 0 0"></div></div>
+  <div class="container"><div style="margin: -4px 0 0 0"></div></div>
+  <div class="container"><div style="margin: -4px 0 0 0"></div></div>
+  <div class="container"><div style="margin: -4px 0 0 0"></div></div>
+  <!-- "auto" margin on all sides (should be treated as 0): -->
+  <div class="container"><div style="margin: -4px 0 0 0"></div></div>
+  <br>
+</div>

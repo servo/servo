@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/user-scroll-common.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <style>
+    body {
+      margin: 0px;
+    }
+    #space {
+      height: 200vh;
+      width: 200vw;
+    }
+    .scroller {
+        scroll-snap-type: x mandatory;
+        overflow-x: auto;
+        overflow-y: hidden;
+        position: relative;
+        height: 500px;
+        width: 500px;
+      }
+
+      .box {
+        scroll-snap-align: start;
+        height: 100px;
+        width: 100px;
+        position: absolute;
+        top: 200px;
+      }
+
+      #box1 {
+        background-color: red;
+      }
+
+      #box2 {
+        background-color: yellow;
+        left: 200px;
+      }
+
+      #box3 {
+        background-color: blue;
+        left: 400px;
+      }
+  </style>
+</head>
+<body>
+  <div id="scroller" class="scroller">
+    <div id="space"></div>
+    <div id="box1" class="box"><h1>1</h1></div>
+    <div id="box2" class="box"><h1>2</h1></div>
+    <div id="box3" class="box"><h1>3</h1></div>
+  </div>
+  <script>
+    const scroller = document.getElementById("scroller");
+    promise_test(async (t) => {
+      // This tests scrollsnapchanging firing after a layout change in the middle of a
+      // touch scroll. We start a touch scroll far enough that scrollsnapchanging
+      // fires and then, with the pointer still down, we change the layout so
+      // that scrollsnapchanging should fire with a different target.
+      await waitForScrollReset(t, scroller);
+      await waitForCompositorCommit();
+
+      const start_pos_x = Math.round(box2.offsetLeft);
+      // Drag by enough to ensure box2 is the preferred snap target.
+      const drag_amt =  Math.round(box2.offsetLeft / 2) + 50;
+      const end_pos_x = start_pos_x - drag_amt;
+      const pos_y = Math.round(scroller.clientHeight / 2);
+      let evt_promise;
+      let snap_evt;
+
+      const save_scrollsnapchanging_evt = (evt) => { snap_evt = evt; }
+      evt_promise = scroller.addEventListener("scrollsnapchanging",
+                                              save_scrollsnapchanging_evt);
+      // We wait to reach the expected scroll position rather than waiting for a
+      // scrollsnapchanging event to avoid timing out if the scrollsnapchanging event does
+      // not fire.
+      const scroll_promise = new Promise((resolve) => {
+        scroller.addEventListener("scroll", async () => {
+          if (scroller.scrollLeft >= (box2.offsetLeft / 2)) {
+            await waitForAnimationFrames(2);
+            resolve();
+          }
+        });
+      });
+
+      await new test_driver.Actions()
+        .addPointer("TestPointer", "touch")
+        .pointerMove(start_pos_x, pos_y)
+        .pointerDown()
+        .addTick()
+        .pause(200)
+        // Drag closer to box2, which should trigger a scrollsnapchanging event.
+        .pointerMove(start_pos_x - drag_amt, pos_y)
+        .send();
+
+      // assert scrollsnapchanging that should have already happened.
+      await scroll_promise;
+      assertSnapEvent(snap_evt, { block: null, inline: box2 });
+
+      evt_promise = waitForSnapEvent(scroller, "scrollsnapchanging", false);
+      // Change layout while pointer is still down.
+      let box2_prev_left = getComputedStyle(box2).getPropertyValue("left");
+      let box3_prev_left = getComputedStyle(box3).getPropertyValue("left");
+      box2.style.left = box3_prev_left;
+      box3.style.left = box2_prev_left;
+      snap_evt = await evt_promise;
+      assertSnapEvent(snap_evt, { block: null, inline: box3 });
+    }, "scrollsnapchanging fires after layout change");
+  </script>
+</body>
+</html>

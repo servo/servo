@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+    <head>
+        <title>touch-action: basic verification</title>
+        <meta name="assert" content="TA15.20 - The touch-action CSS property determines whether touch input MAY trigger default behavior supplied by the user agent.
+        auto: The user agent MAY determine any permitted touch behaviors, such as panning and zooming manipulations of the viewport, for touches that begin on the element.
+        none: Touches that begin on the element MUST NOT trigger default touch behaviors.
+        pan-x: The user agent MAY consider touches that begin on the element only for the purposes of horizontally scrolling the element's nearest ancestor with horizontally scrollable content.
+        pan-y: The user agent MAY consider touches that begin on the element only for the purposes of vertically scrolling the element's nearest ancestor with vertically scrollable content.
+        manipulation: The user agent MAY consider touches that begin on the element only for the purposes of scrolling and continuous zooming. Any additional behaviors supported by auto are out of scope for this specification.">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <style>
+          /*
+          Give some rules below something to override in order to test
+          that they really are being parsed
+          */
+          .defnone {
+          touch-action: none;
+          }
+        </style>
+    </head>
+    <body onload="run()">
+        <h2>Pointer Events touch-action attribute support</h2>
+        <h4 id="desc">Test Description: Test will automatically check parsing behaviour of various touch-action combinations.</h4>
+        <script type='text/javascript'>
+            var detected_pointertypes = {};
+
+            setup({ explicit_done: true });
+
+            function run() {
+                var tests = document.querySelectorAll('.test');
+                //TA 15.20
+                for (var i = 0; i < tests.length; i++) {
+                    test(function() {
+                      var style = window.getComputedStyle(tests[i]);
+                      assert_equals(tests[i].attributes.expected.value, style.touchAction);
+                    }, tests[i].id);
+                }
+                done();
+            }
+        </script>
+        <h1>touch-action: basic verification</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+        <div class="test" id="default" expected="auto"></div>
+        <div class="test defnone" id="stylesheet-none" expected="none"></div>
+        <div class="test defnone" id="explicit-auto" style="touch-action: auto;" expected="auto"></div>
+        <div class="test" id="explicit-pan-x" style="touch-action: pan-x;" expected="pan-x"></div>
+        <div class="test" id="explicit-pan-left" style="touch-action: pan-left;" expected="pan-left"></div>
+        <div class="test" id="explicit-pan-right" style="touch-action: pan-right;" expected="pan-right"></div>
+        <div class="test" id="explicit-pan-y" style="touch-action: pan-y;" expected="pan-y"></div>
+        <div class="test" id="explicit-pan-up" style="touch-action: pan-up;" expected="pan-up"></div>
+        <div class="test" id="explicit-pan-down" style="touch-action: pan-down;" expected="pan-down"></div>
+        <div class="test" id="explicit-pan-x-pan-y" style="touch-action: pan-x pan-y;" expected="pan-x pan-y"></div>
+        <div class="test" id="explicit-pan-y-pan-x" style="touch-action: pan-y pan-x;" expected="pan-x pan-y"></div>
+        <div class="test" id="explicit-pan-left-pan-up" style="touch-action: pan-left pan-up;" expected="pan-left pan-up"></div>
+        <div class="test" id="explicit-pan-left-pan-down" style="touch-action: pan-left pan-down;" expected="pan-left pan-down"></div>
+        <div class="test" id="explicit-pan-right-pan-up" style="touch-action: pan-right pan-up;" expected="pan-right pan-up"></div>
+        <div class="test" id="explicit-pan-right-pan-down" style="touch-action: pan-right pan-down;" expected="pan-right pan-down"></div>
+        <div class="test" id="explicit-pan-up-pan-left" style="touch-action: pan-up pan-left;" expected="pan-left pan-up"></div>
+        <div class="test" id="explicit-pan-up-pan-right" style="touch-action: pan-up pan-right;" expected="pan-right pan-up"></div>
+        <div class="test" id="explicit-pan-down-pan-left" style="touch-action: pan-down pan-left;" expected="pan-left pan-down"></div>
+        <div class="test" id="explicit-pan-down-pan-right" style="touch-action: pan-down pan-right;" expected="pan-right pan-down"></div>
+        <div class="test" id="explicit-manipulation" style="touch-action: manipulation;" expected="manipulation"></div>
+        <div class="test" id="explicit-none" style="touch-action: none;" expected="none"></div>
+        <div class="test" id="explicit-invalid-1" style="touch-action: bogus;" expected="auto"></div>
+        <div class="test defnone" id="explicit-invalid-2" style="touch-action: auto pan-x;" expected="none"></div>
+        <div class="test" id="explicit-invalid-3" style="touch-action: pan-y none;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-4" style="touch-action: pan-x pan-x;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-5" style="touch-action: manipulation pan-x;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-6" style="touch-action: pan-x pan-left;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-7" style="touch-action: auto pan-left;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-8" style="touch-action: none pan-left;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-9" style="touch-action: pan-x pan-right;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-10" style="touch-action: pan-y pan-up;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-11" style="touch-action: pan-y pan-down;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-12" style="touch-action: pan-left pan-right;" expected="auto"></div>
+        <div class="test" id="explicit-invalid-13" style="touch-action: pan-up pan-down;" expected="auto"></div>
+        <div style="touch-action: none;">
+          <div class="test" id="not-inherited" expected="auto"></div>
+          <div class="test" id="inherit" style="touch-action: inherit;" expected="none"></div>
+        </div>
+        <div class="test defnone" id="initial" style="touch-action: initial;" expected="auto"></div>
+    </body>
+</html>

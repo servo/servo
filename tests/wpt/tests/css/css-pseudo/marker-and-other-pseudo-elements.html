@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: ::marker interaction with ::before, ::after, and ::first-letter pseudo elements</title>
+<link rel="author" title="Daniel Bates" href="mailto:dbates@webkit.org">
+<link rel="match" href="marker-and-other-pseudo-elements-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<meta name="assert" content="Tests ::marker interaction with ::before, ::after, and ::first-letter pseudo elements">
+<style>
+li {
+    color: red;
+    font-size: 20px;
+}
+
+li::before {
+    color: green;
+    content: "PA";
+}
+
+li::after {
+    color: green;
+    content: "SSED if the list marker is green.";
+}
+
+li::marker {
+    color: green;
+}
+
+li::first-letter {
+    color: white;
+    background-color: green;
+}
+</style>
+</head>
+<body>
+<ol>
+    <li></li>
+</ol>
+</body>
+</html>

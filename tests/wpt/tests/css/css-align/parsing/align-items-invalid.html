@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing align-items with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
+<meta name="assert" content="align-items supports only the grammar 'normal | stretch | <baseline-position> | [ <overflow-position>? <self-position> ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("align-items", "auto");
+test_invalid_value("align-items", "baseline last");
+test_invalid_value("align-items", "center baseline");
+test_invalid_value("align-items", "first");
+test_invalid_value("align-items", "flex-start flex-end");
+test_invalid_value("align-items", "last");
+test_invalid_value("align-items", "left");
+test_invalid_value("align-items", "legacy center");
+test_invalid_value("align-items", "legacy left");
+test_invalid_value("align-items", "legacy");
+test_invalid_value("align-items", "normal baseline");
+test_invalid_value("align-items", "right legacy");
+test_invalid_value("align-items", "safe");
+test_invalid_value("align-items", "self-end unsafe");
+test_invalid_value("align-items", "space-around");
+test_invalid_value("align-items", "space-between");
+test_invalid_value("align-items", "space-evenly");
+test_invalid_value("align-items", "start safe");
+test_invalid_value("align-items", "unsafe right");
+test_invalid_value("align-items", "unsafe");
+</script>
+</body>
+</html>

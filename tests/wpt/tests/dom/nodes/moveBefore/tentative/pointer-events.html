@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Pointer capture should not be released when moving</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<section id="old_parent">
+    <div id="item"></div>
+</section>
+<section id="new_parent">
+</section>
+<style>
+    #item {
+        width: 100px;
+        height: 100px;
+        background: green;
+    }
+</style>
+<script>
+    promise_test(async function (t) {
+        const item = document.querySelector("#item");
+        let pointerId = 0;
+        item.addEventListener("pointerdown", e => {
+            pointerId = e.pointerId;
+        });
+        await new test_driver.Actions()
+            .pointerMove(1, 1, {origin: item})
+            .pointerDown()
+            .pointerMove(10, 10, {origin: item})
+            .send();
+
+        item.setPointerCapture(pointerId);
+
+        assert_true(item.hasPointerCapture(pointerId), "Item has pointer capture before move");
+        document.querySelector("#new_parent").moveBefore(item, null);
+        assert_true(item.hasPointerCapture(pointerId), "Item has pointer capture after move");
+        document.querySelector("#old_parent").insertBefore(item, null);
+        assert_false(item.hasPointerCapture(pointerId), "Item lost pointer capture after insert");
+    });
+</script>

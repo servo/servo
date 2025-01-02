@@ -1,0 +1,35 @@
+<html class="test-wait reftest-wait">
+<style>
+#a {
+  float: none;
+}
+#c {
+  transition-delay: 1s;
+}
+* {
+  border-style: solid inset dashed;
+  translate: 0px 0px;
+  perspective: 0em;
+  display: inline;
+  float: left;
+  contain: size layout paint;
+}
+</style>
+<script>
+function func_0() {
+  a.focus()
+  b.cellSpacing = "73px"
+  document.execCommand("indent", false)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.className = "";
+  }));
+}
+document.addEventListener("DOMContentLoaded", () => {
+  window.ontransitionend = func_0
+  document.execCommand("outdent", false)
+})
+</script>
+<details ontoggle="func_0()" open="">
+<summary id="a" contenteditable="true">
+<table id="b">
+<tr id="c">

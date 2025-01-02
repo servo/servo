@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Animation test: Automated test for animation-fill-mode.</title>
+<style>
+  .target {
+    width: 50px;
+    height: 50px;
+    background: red;
+  }
+
+  @keyframes width-animation {
+    from { width: 0px; }
+    to { width: 500px; }
+  }
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body></body>
+
+<script>
+function setAndTriggerAnimationOnElement(fillMode, direction = "normal", iterationCount = "1") {
+  let element = document.createElement("div");
+  element.className = "target";
+
+  element.style.animationDelay = "1s";
+  element.style.animationDirection = direction;
+  element.style.animationDuration = "1s";
+  element.style.animationFillMode = fillMode;
+  element.style.animationIterationCount = iterationCount;
+  element.style.animationName = "width-animation";
+  element.style.animationTimingFunction = "linear";
+
+  document.body.appendChild(element);
+  return element;
+}
+
+function runThroughAnimation(testBinding, element, waitForDelay = true) {
+  // If this is the first iteration, then we should wait for the delay and
+  // verify that the animation has started. Otherwise the animation will start
+  // immediately.
+  if (waitForDelay) {
+      testBinding.advanceClock(1000);
+      assert_equals(getComputedStyle(element).getPropertyValue("width"), "0px");
+  }
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
+
+  // After advancing another 500 milliseconds the animation should finished and
+  // width value will depend on the value of `animation-fill-mode`.
+  testBinding.advanceClock(500);
+}
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = setAndTriggerAnimationOnElement("both");
+
+  // The style should reflect the first and last keyframe of the animation
+  // before and after the animation runs.
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "0px");
+  runThroughAnimation(testBinding, div);
+  testBinding.advanceClock(2000);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "500px");
+}, "animation-fill-mode: both should function correctly");
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = setAndTriggerAnimationOnElement("forwards");
+
+  // The style should reflect the last keyframe of the animation after the animation runs.
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "50px");
+  runThroughAnimation(testBinding, div);
+  testBinding.advanceClock(2000);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "500px");
+}, "animation-fill-mode: forwards should function correctly");
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = setAndTriggerAnimationOnElement("backwards");
+
+  // The style should reflect the first keyframe of the animation before the animation runs.
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "0px");
+  runThroughAnimation(testBinding, div);
+  testBinding.advanceClock(2000);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "50px");
+}, "animation-fill-mode: backwards should function correctly");
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = setAndTriggerAnimationOnElement("both", "reverse");
+
+  // The style should reflect the first keyframe of the animation before the animation runs.
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "500px");
+
+  testBinding.advanceClock(1000);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "500px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "250px");
+
+  testBinding.advanceClock(500);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "0px");
+
+  testBinding.advanceClock(2000);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "0px");
+}, "animation-fill-mode: both on reversed animation");
+
+test(function() {
+  let testBinding = new window.TestBinding();
+  let div = setAndTriggerAnimationOnElement("both", "normal", "3");
+
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "0px");
+  runThroughAnimation(testBinding, div);
+  runThroughAnimation(testBinding, div, false);
+  runThroughAnimation(testBinding, div, false);
+  testBinding.advanceClock(1000);
+  assert_equals(getComputedStyle(div).getPropertyValue("width"), "500px");
+}, "animation-fill-mode: both on animation with multiple iterations");
+
+</script>

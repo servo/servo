@@ -1,0 +1,84 @@
+<!doctype html>
+<title>
+    Cross-Origin-Opener-Policy: opener is lost because the opener navigates.
+</title>
+<!--
+    COOP tests usually assume that the opener is lost because it navigated to a
+    page that triggered a browsing context group swap. It can also happen when
+    the opener navigates instead. This test verifies the behavior.
+-->
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+<script>
+
+const executor_path = "/common/dispatcher/executor.html?pipe=";
+const coop_same_origin_header =
+    '|header(Cross-Origin-Opener-Policy,same-origin)';
+const coop_unsafe_none_header =
+    '|header(Cross-Origin-Opener-Policy,unsafe-none)';
+
+function getExecutorPath(uuid, origin, coop_header) {
+    return origin.origin + executor_path + coop_header  + `&uuid=${uuid}`;
+}
+
+// Note: Because we can not navigate the main page to verify the behavior,
+// we instead create another layer of popup, and navigate the intermediate
+// one. We can verify the opener behavior from this page, and the openee
+// behavior from the second popup.
+promise_test(async t => {
+  // Set up dispatcher communications.
+  const first_popup_token = token();
+  const post_navigate_first_popup_token = token();
+  const second_popup_token = token();
+  const reply_token = token();
+
+  const first_popup_url = getExecutorPath(
+    first_popup_token,
+    SAME_ORIGIN,
+    coop_same_origin_header);
+
+  const post_navigate_first_popup_url = getExecutorPath(
+    post_navigate_first_popup_token,
+    SAME_ORIGIN,
+    coop_unsafe_none_header);
+
+  const second_popup_url = getExecutorPath(
+    second_popup_token,
+    SAME_ORIGIN,
+    coop_same_origin_header);
+
+  // We open the first popup and then ping it, it will respond after loading.
+  const first_popup = window.open(first_popup_url);
+  send(first_popup_token, `send('${reply_token}', 'Popup loaded');`);
+  assert_equals(await receive(reply_token), "Popup loaded");
+
+  // We open the second popup and the ping it, it will respond after loading.
+  send(first_popup_token,
+      `opener.second_popup_url = window.open('${second_popup_url}');`);
+  send(second_popup_token, `send('${reply_token}', 'Popup loaded');`);
+  assert_equals(await receive(reply_token), "Popup loaded");
+
+  // Both popups are now loaded. We navigate the middle one to a page that
+  // does not have COOP, this should trigger a browsing context group swap.
+  send(first_popup_token, `location.href = '${post_navigate_first_popup_url}'`);
+  send(post_navigate_first_popup_token,
+    `send('${reply_token}', 'Popup navigated');`);
+  assert_equals(await receive(reply_token), "Popup navigated");
+
+  // Give some time for things to settle across processes etc. before
+  // proceeding with verifications.
+  await new Promise((resolve, reject) => { t.step_timeout(resolve, 1500); });
+
+  // The reference held by the main page to the first popup should be closed.
+  assert_equals(first_popup.closed, true);
+
+  // The second popup, opened by the first one should have its opener unset.
+  send(second_popup_token, `send('${reply_token}', opener);`);
+  assert_equals(await receive(reply_token), "");
+
+}, "Verify that having the opener navigate instead of the openee also triggers COOP swaps.");
+ </script>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Cross-realm IDBObjectStore methods from detached iframe work as expected</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=resources/support.js></script>
+
+<body>
+<script>
+"use strict";
+const KEY_EXISTING_LOWER = 1000;
+const KEY_EXISTING_UPPER = 1001;
+const KEY_EXISTING_RANGE = IDBKeyRange.bound(KEY_EXISTING_LOWER, KEY_EXISTING_UPPER);
+const KEY_NEWLY_ADDED = 1002;
+
+const VALUE_EXISTING_LOWER = "VALUE_EXISTING_LOWER";
+const VALUE_EXISTING_UPPER = "VALUE_EXISTING_UPPER";
+const VALUE_NEWLY_ADDED = "VALUE_NEWLY_ADDED";
+
+const testCases = [
+    {
+        methodName: "put",
+        arguments: [KEY_NEWLY_ADDED, KEY_EXISTING_LOWER],
+        validateResult: (t, e) => {
+            assert_equals(e.target.result, KEY_EXISTING_LOWER);
+            const rq = e.target.source.getAll();
+            rq.onsuccess = t.step_func_done(e => {
+                assert_array_equals(e.target.result, [KEY_NEWLY_ADDED, VALUE_EXISTING_UPPER]);
+            });
+        },
+    },
+    {
+        methodName: "add",
+        arguments: [VALUE_NEWLY_ADDED, KEY_NEWLY_ADDED],
+        validateResult: (t, e) => {
+            assert_equals(e.target.result, KEY_NEWLY_ADDED);
+            const rq = e.target.source.getAll();
+            rq.onsuccess = t.step_func_done(e => {
+                assert_array_equals(e.target.result, [VALUE_EXISTING_LOWER, VALUE_EXISTING_UPPER, VALUE_NEWLY_ADDED]);
+            });
+        },
+    },
+    {
+        methodName: "delete",
+        arguments: [KEY_EXISTING_LOWER],
+        validateResult: (t, e) => {
+            assert_equals(e.target.result, undefined);
+            const rq = e.target.source.getAllKeys();
+            rq.onsuccess = t.step_func_done(e => {
+                assert_array_equals(e.target.result, [KEY_EXISTING_UPPER]);
+            });
+        },
+    },
+    {
+        methodName: "clear",
+        arguments: [],
+        validateResult: (t, e) => {
+            assert_equals(e.target.result, undefined);
+            const rq = e.target.source.count();
+            rq.onsuccess = t.step_func_done(e => {
+                assert_equals(e.target.result, 0);
+            });
+        },
+    },
+    {
+        methodName: "get",
+        arguments: [KEY_EXISTING_UPPER],
+        validateResult: (t, e) => {
+            assert_equals(e.target.result, VALUE_EXISTING_UPPER);
+            t.done();
+        },
+    },
+    {
+        methodName: "getKey",
+        arguments: [KEY_EXISTING_LOWER],
+        validateResult: (t, e) => {
+            assert_equals(e.target.result, KEY_EXISTING_LOWER);
+            t.done();
+        },
+    },
+    {
+        methodName: "getAll",
+        arguments: [KEY_EXISTING_RANGE],
+        validateResult: (t, e) => {
+            assert_array_equals(e.target.result, [VALUE_EXISTING_LOWER, VALUE_EXISTING_UPPER]);
+            t.done();
+        },
+    },
+    {
+        methodName: "getAllKeys",
+        arguments: [KEY_EXISTING_RANGE],
+        validateResult: (t, e) => {
+            assert_array_equals(e.target.result, [KEY_EXISTING_LOWER, KEY_EXISTING_UPPER]);
+            t.done();
+        },
+    },
+    {
+        methodName: "count",
+        arguments: [],
+        validateResult: (t, e) => {
+            assert_equals(e.target.result, 2);
+            t.done();
+        },
+    },
+    {
+        methodName: "openCursor",
+        arguments: [],
+        validateResult: (t, e) => {
+            const cursor = e.target.result;
+            assert_true(cursor instanceof IDBCursor);
+            assert_equals(cursor.value, VALUE_EXISTING_LOWER);
+            t.done();
+        },
+    },
+    {
+        methodName: "openKeyCursor",
+        arguments: [],
+        validateResult: (t, e) => {
+            const cursor = e.target.result;
+            assert_true(cursor instanceof IDBCursor);
+            assert_equals(cursor.key, KEY_EXISTING_LOWER);
+            t.done();
+        },
+    },
+];
+
+for (const testCase of testCases) {
+    async_test(t => {
+        const iframe = document.createElement("iframe");
+        iframe.onload = t.step_func(() => {
+            const method = iframe.contentWindow.IDBObjectStore.prototype[testCase.methodName];
+            iframe.remove();
+
+            let db;
+            const open_rq = createdb(t);
+            open_rq.onupgradeneeded = t.step_func(e => {
+                db = e.target.result;
+                const objectStore = db.createObjectStore("store");
+                objectStore.add(VALUE_EXISTING_LOWER, KEY_EXISTING_LOWER);
+                objectStore.add(VALUE_EXISTING_UPPER, KEY_EXISTING_UPPER);
+            });
+
+            open_rq.onsuccess = t.step_func(() => {
+                const objectStore = db.transaction("store", "readwrite", {durability: 'relaxed'}).objectStore("store");
+                const rq = method.call(objectStore, ...testCase.arguments);
+                rq.onsuccess = t.step_func(e => {
+                    testCase.validateResult(t, e);
+                });
+            });
+        });
+        document.body.append(iframe);
+    }, `Cross-realm IDBObjectStore::${testCase.methodName}() method from detached <iframe> works as expected`);
+}
+</script>

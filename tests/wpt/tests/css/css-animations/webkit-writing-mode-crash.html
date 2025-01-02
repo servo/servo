@@ -1,0 +1,20 @@
+<!doctype html>
+<html class="test-wait">
+<link rel="help" href="https://crbug.com/1077501">
+<style>
+  @keyframes test {
+    from { -webkit-writing-mode: var(--x) }
+    to { -webkit-writing-mode: var(--y) }
+  }
+  div {
+    animation: test 1s;
+  }
+</style>
+<div id=div></div>
+<script>
+window.onload = () => {
+  div.offsetTop;
+  document.documentElement.classList.remove('test-wait');
+};
+</script>
+</html>

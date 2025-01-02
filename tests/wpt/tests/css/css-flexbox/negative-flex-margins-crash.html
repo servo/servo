@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: Crash caused by negative width in flex box</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#box-model">
+<link rel="issue" href="https://crbug.com/490423">
+<meta name="assert" content="Check that crash doesn't happen in flex box with negative margin.">
+
+<style>
+div {
+  display: flex;
+}
+
+.inner {
+  margin-left: -4em;
+}
+</style>
+<div>
+    <div>
+        <div class="inner">PASS if we don't assert</div>
+    </div>
+</div>

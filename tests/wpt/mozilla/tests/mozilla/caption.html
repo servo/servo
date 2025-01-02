@@ -1,0 +1,27 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<table id="t">
+<caption id="tcaption">old caption</caption>
+</table>
+<script>
+test(function() {
+  var t = document.getElementById("t");
+  var tcaption = document.getElementById("tcaption");
+  assert_equals(t.caption, tcaption);
+  assert_equals(t.caption.innerHTML, "old caption");
+
+  var newCaption = document.createElement("caption");
+  newCaption.innerHTML = "new caption";
+
+  t.caption = newCaption;
+  assert_equals(newCaption.parentNode, t);
+  assert_equals(t.caption, newCaption);
+
+  // Test for https://github.com/servo/servo/issues/3997
+  t.getBoundingClientRect();
+});
+</script>
+</html>

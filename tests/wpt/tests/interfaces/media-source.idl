@@ -1,0 +1,123 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Source Extensions™ (https://w3c.github.io/media-source/)
+
+enum ReadyState {
+  "closed",
+  "open",
+  "ended",
+};
+
+enum EndOfStreamError {
+  "network",
+  "decode",
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface MediaSource : EventTarget {
+    constructor();
+
+    [SameObject, Exposed=DedicatedWorker]
+    readonly  attribute MediaSourceHandle handle;
+    readonly  attribute SourceBufferList sourceBuffers;
+    readonly  attribute SourceBufferList activeSourceBuffers;
+    readonly  attribute ReadyState readyState;
+
+    attribute unrestricted double duration;
+    attribute EventHandler onsourceopen;
+    attribute EventHandler onsourceended;
+    attribute EventHandler onsourceclose;
+
+    static readonly attribute boolean canConstructInDedicatedWorker;
+
+    SourceBuffer addSourceBuffer(DOMString type);
+    undefined removeSourceBuffer(SourceBuffer sourceBuffer);
+    undefined endOfStream(optional EndOfStreamError error);
+    undefined setLiveSeekableRange(double start, double end);
+    undefined clearLiveSeekableRange();
+    static boolean isTypeSupported(DOMString type);
+};
+
+[Transferable, Exposed=(Window,DedicatedWorker)]
+interface MediaSourceHandle {};
+
+enum AppendMode {
+  "segments",
+  "sequence",
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface SourceBuffer : EventTarget {
+  attribute AppendMode mode;
+  readonly  attribute boolean updating;
+  readonly  attribute TimeRanges buffered;
+  attribute double timestampOffset;
+  readonly  attribute AudioTrackList audioTracks;
+  readonly  attribute VideoTrackList videoTracks;
+  readonly  attribute TextTrackList textTracks;
+  attribute double appendWindowStart;
+  attribute unrestricted double appendWindowEnd;
+
+  attribute EventHandler onupdatestart;
+  attribute EventHandler onupdate;
+  attribute EventHandler onupdateend;
+  attribute EventHandler onerror;
+  attribute EventHandler onabort;
+
+  undefined appendBuffer(BufferSource data);
+  undefined abort();
+  undefined changeType(DOMString type);
+  undefined remove(double start, unrestricted double end);
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface SourceBufferList : EventTarget {
+  readonly attribute unsigned long length;
+
+  attribute EventHandler onaddsourcebuffer;
+  attribute EventHandler onremovesourcebuffer;
+
+  getter SourceBuffer (unsigned long index);
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface ManagedMediaSource : MediaSource {
+  constructor();
+  readonly attribute boolean streaming;
+  attribute EventHandler onstartstreaming;
+  attribute EventHandler onendstreaming;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface BufferedChangeEvent : Event {
+  constructor(DOMString type, optional BufferedChangeEventInit eventInitDict = {});
+
+  [SameObject] readonly attribute TimeRanges addedRanges;
+  [SameObject] readonly attribute TimeRanges removedRanges;
+};
+
+dictionary BufferedChangeEventInit : EventInit {
+  TimeRanges addedRanges;
+  TimeRanges removedRanges;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface ManagedSourceBuffer : SourceBuffer {
+  attribute EventHandler onbufferedchange;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+partial interface AudioTrack {
+  readonly attribute SourceBuffer? sourceBuffer;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+partial interface VideoTrack {
+  readonly attribute SourceBuffer? sourceBuffer;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+partial interface TextTrack {
+  readonly attribute SourceBuffer? sourceBuffer;
+};

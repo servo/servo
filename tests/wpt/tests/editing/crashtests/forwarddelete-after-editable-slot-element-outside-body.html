@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const slot = document.createElement("slot");
+  document.documentElement.appendChild(slot);
+  const anchor = document.querySelector("a[contenteditable]");
+  const selection = document.getSelection()
+  getSelection().collapse(anchor, 0);
+  getSelection().setBaseAndExtent(
+    document, 0,
+    document.documentElement, document.documentElement.childNodes.length
+  );
+  const range = selection.getRangeAt(0);
+  document.documentElement.contentEditable = true;
+  document.documentElement.contentEditable = false;
+  range.collapse(false);
+  getSelection().removeAllRanges();
+  getSelection().addRange(range);
+  document.documentElement.contentEditable = true;
+  document.execCommand("forwardDelete");
+});
+</script>
+</head><body>
+<a contenteditable></a>
+</body></html>

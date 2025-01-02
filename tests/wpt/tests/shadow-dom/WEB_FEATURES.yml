@@ -1,0 +1,6 @@
+features:
+- name: shadow-dom
+  files: "**"
+- name: slot-assign
+  files:
+  - imperative-slot-*

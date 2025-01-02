@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Absolutely-positioned element in ruby container</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#formatting-context">
+<link rel="match" href="abs-in-ruby-base-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+  .rel { position: relative; }
+  .abs { position: absolute; left: 0; top: -1em; }
+</style>
+<body style="font: 50px/3 Ahem">
+X<ruby class="rel"><rbc><rb><span class="abs">X</span></rb></rbc></ruby>

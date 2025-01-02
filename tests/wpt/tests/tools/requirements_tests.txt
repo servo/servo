@@ -1,0 +1,6 @@
+httpx[http2]==0.27.2
+json-e==4.7.0
+jsonschema==4.17.3
+pyyaml==6.0.1
+taskcluster==68.0.4
+mozterm==1.0.0

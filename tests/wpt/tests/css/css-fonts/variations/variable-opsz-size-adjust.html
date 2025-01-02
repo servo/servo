@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="Dominik Röttsches" href="drott@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-optical-sizing-def"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-5/#size-adjust-desc"/>
+<meta name="assert" content="Ensures that optical size is adjusted with size-adjust to displayed font size."/>
+<link rel="match" href="variable-opsz-size-adjust-ref.html">
+<meta charset="utf-8">
+<style>
+    @font-face {
+    font-family: variabletest_box;
+    src: url(resources/variabletest_box.ttf);
+    size-adjust: 150%;
+    }
+
+    body {
+    font-family: variabletest_box, sans-serif;
+    }
+
+    div {
+    line-height: 64px;
+    }
+</style>
+<!-- The variabletest_box font file contains a glyph for letter B which moves a
+  horizontal bar up from the middle for opsz > 12 and moves it down for opsz <
+  12 where the opsz axis ranges from 6 to 128. -->
+<div style="font-size:   6px;">B</div>
+<div style="font-size:  12px;">B</div>
+<div style="font-size:  24px;">B</div>
+<div style="font-size:  48px;">B</div>
+<div style="font-size:  64px;">B</div>
+<!-- Explicit value overrides auto. -->
+<div style="font-size:  24px; font-variation-settings: 'opsz' 128;">B</div>
+<div style="font-size:  48px; font-optical-sizing: none;">B</div>
+<script>
+    document.fonts.ready.then(
+        () => { document.documentElement.classList.remove("reftest-wait"); });
+</script>
+</html>

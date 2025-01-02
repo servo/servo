@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Percentage-based @page margins should resolve against the correct dimension</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#page-properties">
+<link rel="match" href="page-margin-006-print-ref.html">
+<style>
+  @page {
+    size: 6in;
+    margin: 13px;
+    margin: inherit;
+  }
+  html {
+    background: yellow;
+    margin: 0.5in;
+  }
+  body {
+    margin: 0;
+    background: cyan;
+  }
+</style>
+There should be a half-inch page margin on every side. The cyan box should be
+inset by yet another half-inch, except at the bottom.
+<div style="break-before:page;">
+  Second page.
+</div>

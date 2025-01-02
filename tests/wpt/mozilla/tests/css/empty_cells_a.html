@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='empty_cells_ref.html'>
+<!-- Tests that `empty-cells` works—in particular, that the definition of emptiness is correct. -->
+<style>
+table {
+    empty-cells: hide;
+}
+section {
+    float: right;
+}
+nav {
+    position: absolute;
+}
+</style>
+</head>
+<body>
+<table border=3>
+    <tr><td>Yo</td><td>Howdy</td><td><section>&nbsp;</section></td><td></td></tr>
+    <tr><td>Later</td><td><nav></nav></td><td>See ya</td><td>Aloha</td></tr>
+    <tr><td></td><td>Sayonara</td><td></td><td><span></span></td></tr>
+</table>
+</body>
+</html>
+

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This testcase checks how "min-width" and "max-width" affect the sizing
+     of horizontal flex containers that have no explicit "width" property.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing sizing of an auto-sized horizontal flex container with min-width and max-width constraints</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm"/>
+    <link rel="match" href="flexbox-sizing-horiz-001-ref.xhtml"/>
+    <style>
+      div { height: 10px; }
+      div.flexbox {
+        border: 1px dashed blue;
+        font-size: 10px;
+        display: flex;
+        margin-bottom: 2px;
+      }
+      div.a {
+        flex: 1 20px;
+        max-width: 60px;
+        background: lightgreen;
+      }
+      div.b {
+        flex: 1 20px;
+        min-width: 40px;
+        max-width: 60px;
+        background: purple;
+      }
+      div.c {
+        flex: 1 40px;
+        min-width: 10px;
+        max-width: 60px;
+        background: orange;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- auto-sized horizontal flexbox should occupy the available width. -->
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- Adding a small min-size shouldn't affect that. -->
+    <div class="flexbox" style="min-width: 10px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- ...but a (large) max-size will limit us to that size, instead of
+         our available size.-->
+    <div class="flexbox" style="max-width: 300px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- If we set a maximum size that's even smaller, it'll limit our
+         size and compress our children. -->
+    <div class="flexbox" style="max-width: 70px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- The max-size may be small enough that our items will overflow. -->
+    <div class="flexbox" style="max-width: 20px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- But if we add a min-size, it beats the max-size. Here, we use a
+         min-size smaller than the sum of the items' base sizes... -->
+    <div class="flexbox" style="min-width: 58px; max-width: 20px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- ...and here we use a min-size larger than the sum of the items'
+         base sizes. -->
+    <div class="flexbox" style="min-width: 140px; max-width: 20px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+  </body>
+</html>

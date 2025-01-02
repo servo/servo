@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: list-style-type</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#list-style-type"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c563-list-type-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: navy; }
+   .one {list-style-type: disc;}
+   .two {list-style-type: circle;}
+   .three {list-style-type: square;}
+   .nine {list-style-type: none; color: red;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#lists" title="12.5 Lists"/>
+ </head>
+ <body>
+  <p>Each bullet should look as described, and there should be no red present.</p>
+  <ul class="one">
+   <li>disc</li>
+   <li>disc</li>
+   <li>disc</li>
+  </ul>
+  <ul class="two">
+   <li>circle</li>
+   <li>circle</li>
+   <li>circle</li>
+  </ul>
+  <ul class="three">
+   <li>square</li>
+   <li>square</li>
+   <li>square</li>
+  </ul>
+  <ul class="nine">
+   <li>&#xA0;</li>
+   <li>&#xA0;</li>
+   <li>&#xA0;</li>
+  </ul>
+ </body>
+</html>

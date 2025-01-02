@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Viewport units in @keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  iframe {
+    width: 200px;
+    height: 100px;
+  }
+</style>
+
+<iframe id=iframe></iframe>
+
+<script>
+
+const doc = iframe.contentDocument;
+const win = iframe.contentWindow;
+
+function test_interpolated_value(from, to, expected) {
+  test((t) => {
+    t.add_cleanup(() => { doc.body.innerHTML = ''; });
+    doc.body.innerHTML = `
+      <style>
+        @keyframes anim {
+          from { height: ${from}; }
+          to { height: ${to}}
+        }
+        div { animation: anim linear 10s -5s paused; }
+      </style>
+      <div></div>
+    `;
+    let div = doc.querySelector('div');
+    assert_equals(win.getComputedStyle(div).height, expected);
+  }, `Interpolation from ${from} to ${to} is ${expected} at 50%`);
+}
+
+// Flush the iframe styles before starting tests to avoid the animation in the
+// iframe starts before the iframe's document gets sized as expected.
+iframe.getBoundingClientRect();
+
+test_interpolated_value('0px', '100vw', '100px');
+test_interpolated_value('0px', '100vi', '100px');
+test_interpolated_value('0px', '100vmax', '100px');
+test_interpolated_value('0px', '100svw', '100px');
+test_interpolated_value('0px', '100svi', '100px');
+test_interpolated_value('0px', '100svmax', '100px');
+test_interpolated_value('0px', '100lvw', '100px');
+test_interpolated_value('0px', '100lvi', '100px');
+test_interpolated_value('0px', '100lvmax', '100px');
+test_interpolated_value('0px', '100dvw', '100px');
+test_interpolated_value('0px', '100dvi', '100px');
+test_interpolated_value('0px', '100dvmax', '100px');
+
+test_interpolated_value('0px', '100vh', '50px');
+test_interpolated_value('0px', '100vb', '50px');
+test_interpolated_value('0px', '100vmin', '50px');
+test_interpolated_value('0px', '100svh', '50px');
+test_interpolated_value('0px', '100svb', '50px');
+test_interpolated_value('0px', '100svmin', '50px');
+test_interpolated_value('0px', '100lvh', '50px');
+test_interpolated_value('0px', '100lvb', '50px');
+test_interpolated_value('0px', '100lvmin', '50px');
+test_interpolated_value('0px', '100dvh', '50px');
+test_interpolated_value('0px', '100dvb', '50px');
+test_interpolated_value('0px', '100dvmin', '50px');
+
+</script>

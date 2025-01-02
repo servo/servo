@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<audio controls id="beat" src="./bear-av1-opus.mp4" loop></audio>
+<script>
+
+// The main test page (restriction-audio-setSinkId.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const params = new URLSearchParams(location.search);
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+
+  const promise = beat.setSinkId(
+      params.get('sinkId') === 'invalid' ? 'fakeId' : '');
+  // The spec, https://wicg.github.io/nav-speculation/prerendering.html#audio-output-patch,
+  // mentions selectAudioOutput() but this test uses setSinkId() function.
+  prerenderEventCollector.start(promise, 'Audio.setSinkId');
+}
+</script>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Fallback to a whitespace-only string should not crash</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="help" href="https://crbug.com/1476811">
+<style>
+  #t1 {--a:var(--b,var(--c,) );}
+</style>
+<div id="t1">Test passes if it does not crash.</div>

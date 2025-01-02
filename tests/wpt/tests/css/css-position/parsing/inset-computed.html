@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module: getComputedStyle() for inset properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#insets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+<script>
+  const values = [
+    // [input, serialized(optional)]
+    ["auto"],
+    ["calc(10px + 0.5em)", "30px"],
+    ["calc(10px - 0.5em)", "-10px"],
+    ["-40%"],
+    ["calc(50% + 60px)"]
+  ];
+  function test_inset_longhand(longhand_property) {
+    for (let value of values) {
+      if (value[1] === undefined)
+        test_computed_value(longhand_property, value[0]);
+      else
+        test_computed_value(longhand_property, value[0], value[1]);
+    }
+  }
+
+  test_inset_longhand("inset-block-start");
+  test_inset_longhand("inset-block-end");
+  test_inset_longhand("inset-inline-start");
+  test_inset_longhand("inset-inline-end");
+</script>
+</body>
+</html>

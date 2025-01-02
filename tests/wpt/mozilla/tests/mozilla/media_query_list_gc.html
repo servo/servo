@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Should not crash on the resize</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var mql = matchMedia("(min-width: 1000px)");
+  mql = null;
+  gc();
+  window.resizeBy(1,1);
+})
+</script>

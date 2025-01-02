@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#rubypos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<p>
+  <ruby id="a1">
+    base
+    <rtc><rt>annotation1</rt></rtc>
+    <rtc><rt>annotation2</rt></rtc>
+    <rtc><rt>annotation3</rt></rtc>
+  </ruby>
+</p>
+
+<script>
+for (const value of ['', 'alternate', 'alternate over', 'over alternate']) {
+  test(() => {
+    const a1 = document.querySelector('#a1');
+    a1.style.rubyPosition = value;
+    const [rt1, rt2, rt3] = a1.querySelectorAll('rt');
+    assert_rt_is_over(rt1, a1);
+    assert_rt_is_under(rt2, a1);
+    assert_rt_is_over(rt3, a1);
+    a1.style.rubyPosition = '';
+  }, `ruby-position "${value}" alternate from over`);
+}
+
+for (const value of ['alternate under', 'under alternate']) {
+  test(() => {
+    const a1 = document.querySelector('#a1');
+    a1.style.rubyPosition = value;
+    const [rt1, rt2, rt3] = a1.querySelectorAll('rt');
+    assert_rt_is_under(rt1, a1);
+    assert_rt_is_over(rt2, a1);
+    assert_rt_is_under(rt3, a1);
+    a1.style.rubyPosition = '';
+  }, `ruby-position "${value}" alternate from under`);
+}
+
+test(() => {
+  const a1 = document.querySelector('#a1');
+  const [rtc1, rtc2] = a1.querySelectorAll('rtc');
+  const [rt1, rt2, rt3] = a1.querySelectorAll('rt');
+
+  rtc1.style.rubyPosition = 'under';
+  assert_rt_is_under(rt1, a1);
+  assert_rt_is_over(rt2, a1);
+  assert_rt_is_under(rt3, a1);
+
+  rtc1.style.rubyPosition = 'over';
+  assert_rt_is_over(rt1, a1);
+  assert_rt_is_under(rt2, a1);
+  assert_rt_is_over(rt3, a1);
+
+  rtc1.style.rubyPosition = 'alternate';
+  rtc2.style.rubyPosition = 'under';
+  assert_rt_is_over(rt1, a1);
+  assert_rt_is_under(rt2, a1);
+  assert_rt_is_over(rt3, a1);
+
+  rtc1.style.rubyPosition = '';
+  rtc2.style.rubyPosition = '';
+}, 'ruby-position alternate from previous ruby text container');
+
+function assert_rt_is_over(rt, ruby) {
+  assert_true(rt.getBoundingClientRect().top < ruby.getBoundingClientRect().top);
+}
+
+function assert_rt_is_under(rt, ruby) {
+  assert_true(rt.getBoundingClientRect().bottom > ruby.getBoundingClientRect().bottom);
+}
+
+</script>
+</body>

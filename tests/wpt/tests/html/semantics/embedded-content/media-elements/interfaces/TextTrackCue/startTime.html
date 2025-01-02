@@ -1,0 +1,39 @@
+<!doctype html>
+<title>TextTrackCue.startTime</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles');
+    document.body.appendChild(video);
+});
+test(function(){
+    var c1 = new VTTCue(-1, 1, 'text1');
+    assert_equals(c1.startTime, -1);
+    c1.startTime = c1.startTime;
+    assert_equals(c1.startTime, -1);
+    assert_throws_js(TypeError, function(){ c1.startTime = NaN; });
+    assert_throws_js(TypeError, function(){ c1.startTime = +Infinity; });
+    assert_throws_js(TypeError, function(){ c1.startTime = -Infinity; });
+}, document.title+', script-created cue');
+
+var t_parsed = async_test(document.title+', parsed cue');
+t_parsed.step(function(){
+    var t = document.createElement('track');
+    t.onload = this.step_func(function(){
+        var c = t.track.cues;
+        assert_equals(c[0].startTime, 0);
+        assert_equals(c[1].startTime, 3600);
+        this.done();
+    });
+    t.onerror = this.step_func(function() {
+      assert_unreached('got error event');
+    });
+    t.src = 'data:text/vtt,'+encodeURIComponent('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\ntest'+
+                                                      '\n\nfoobar\n01:00:00.000 --> 01:00:00.001\ntest');
+    t.track.mode = 'showing';
+    video.appendChild(t);
+});
+</script>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Test for PaymentRequest shippingOption dynamic updating</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/payment-request/#shippingoption-attribute"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/payment-request/#onshippingoptionchange-attribute"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  setup({ explicit_done: true, explicit_timeout: true });
+  const validMethod = Object.freeze({ supportedMethods: "basic-card" });
+  const applePayMethod = {
+    supportedMethods: "https://apple.com/apple-pay",
+    data: {
+      version: 3,
+      merchantIdentifier: "merchant.com.example",
+      countryCode: "US",
+      merchantCapabilities: ["supports3DS"],
+      supportedNetworks: ["visa"],
+    },
+  };
+  const validMethods = Object.freeze([validMethod, applePayMethod]);
+  const validAmount = Object.freeze({ currency: "USD", value: "5.00" });
+  const validTotal = Object.freeze({
+    label: "label",
+    amount: validAmount,
+  });
+  const validDetails = Object.freeze({ total: validTotal });
+
+  const initialValidShippingOption = Object.freeze({
+    id: "default-method",
+    label: "Default shipping method",
+    amount: validAmount,
+    selected: true,
+  });
+
+  const validDynamicShippingOption = Object.freeze({
+    id: "dynamically-added-id",
+    label: "Dynamically added shipping option",
+    amount: validAmount,
+    selected: false,
+  });
+
+  const requestShipping = Object.freeze({
+    requestShipping: true,
+  });
+
+  function testShippingOptionChanged() {
+    promise_test(async (t) => {
+      const detailsWithShippingOptions = {
+        ...validDetails,
+        shippingOptions: [initialValidShippingOption],
+      };
+      const request = new PaymentRequest(
+        validMethods,
+        detailsWithShippingOptions,
+        requestShipping
+      );
+      const shippingAddressChangeListener = new Promise((resolve) => {
+        request.addEventListener(
+          "shippingaddresschange",
+          (ev) => {
+            // resolve(request.shippingOption);
+            ev.updateWith({
+              shippingOptions: [
+                initialValidShippingOption,
+                validDynamicShippingOption,
+              ],
+            });
+            resolve();
+          },
+          { once: true }
+        );
+      });
+      const handlerPromise = new Promise((resolve) => {
+        request.onshippingoptionchange = () => {
+          resolve(request.shippingOption);
+        };
+      });
+      request.show().catch((err) => err);
+
+      const results = await Promise.all([
+        shippingAddressChangeListener,
+        handlerPromise,
+      ]);
+      assert_true(
+        results[1] === "dynamically-added-id",
+        "Expected dynamically-added-id as the shippingOption"
+      );
+      await request.abort();
+    });
+  }
+</script>
+
+<h2>PaymentRequest shippingOption attribute</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the
+  page. Each button (except the 'Done' button) will bring up the Payment Request
+  UI window.
+</p>
+<ol>
+  <li>
+    When the payment sheet is presented, view options for Shipping Method. There
+    should only be one: "Default shipping method"
+  </li>
+  <li>
+    Change your Shipping Address - either update your existing one by changing
+    something (name, address, etc), or select a different Shipping Address, or
+    add a new Shipping Address and select it.
+  </li>
+  <li>
+    Go back to Shipping Method, and there is now an option called "Dynamically
+    added shipping option". Select it
+  </li>
+  <li>
+    Click on the 'Done' button
+  </li>
+</ol>
+<ul>
+  <li>
+    <button onclick="testShippingOptionChanged()">
+      When the address is changed, shipping methods can be updated
+    </button>
+  </li>
+  <li>
+    <button onclick="done()">Done</button>
+  </li>
+</ul>
+<small>
+  If you find a buggy test, please
+  <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a> and
+  tag one of the
+  <a
+    href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml"
+    >suggested reviewers</a
+  >.
+</small>

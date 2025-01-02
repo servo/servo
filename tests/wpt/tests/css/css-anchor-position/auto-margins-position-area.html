@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<style>
+.container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: solid 3px;
+}
+
+.anchor {
+  anchor-name: --a;
+  background: lime;
+  width: 20px;
+  height: 20px;
+  position: relative;
+  left: 20px;
+  top: 30px;
+}
+
+.abspos {
+  background: cornflowerblue;
+  margin: auto;
+  position: absolute;
+  position-area: bottom;
+  position-anchor: --a;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.abspos')">
+<div class="container">
+  <div class="anchor"></div>
+  <div class="abspos" data-offset-x=10 data-offset-y=65>
+    <div style="width: 80px; height: 20px;"></div>
+  </div>
+</div>

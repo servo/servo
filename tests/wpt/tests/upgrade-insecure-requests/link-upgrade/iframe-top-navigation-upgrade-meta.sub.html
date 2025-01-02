@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <title>Upgrade Insecure Requests: top-frame navigation inside iframe (upgrade expected)</title>
+    <script>
+      function iframe_onload() {
+        var iframe = document.getElementsByTagName("iframe")[0];
+        iframe.onload = null;
+
+        // Enable upgrade-insecure-requests dynamically.
+        var meta = document.createElement('meta');
+        meta.httpEquiv = "Content-Security-Policy";
+        meta.content = "upgrade-insecure-requests";
+        document.getElementsByTagName('head')[0].appendChild(meta);
+
+        // This is a bit of a hack. UPGRADE doesn't upgrade the port number,
+        // so we specify this non-existent URL ('http' over port https port). If
+        // UPGRADE doesn't work, it won't load. The expected behavior is that
+        // the url is upgraded and the page loads.
+        iframe.src =
+          "https://{{domains[www]}}:{{ports[https][0]}}/upgrade-insecure-requests/link-upgrade/resources/navigate-top-frame.sub.html?url=http://{{host}}:{{ports[https][0]}}/upgrade-insecure-requests/link-upgrade/resources/post-message-to-opener.sub.html%3Fmessage=iframe-top-navigation-upgrade-meta"
+      }
+    </script>
+  </head>
+  <body>
+    <iframe
+      sandbox = "allow-scripts allow-top-navigation"
+      src = "./resources/dummy.html"
+      onload = "iframe_onload()"
+    ></iframe>
+  </body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Validate that empty spaces are not troubling our expectations.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup="grid flow">
+  <tr>
+    <td id=r1c1 tabindex=-1 rowspan=2 colspan=2>r1c1</td>
+    <td id=r1c3 tabindex=-1>r1c3</td>
+    <td id=r1c4 tabindex=-1 rowspan=3>r1c4</td>
+    <td id=r1c5 tabindex=-1>r1c5</td>
+    <td id=r1c6 tabindex=-1>r1c6</td>
+    <td id=r1c7 tabindex=-1>r1c7</td>
+  </tr>
+  <tr>
+    <!-- r2c1 and r2c2 starts in the previous row and spans to here. -->
+    <td id=r2c3 tabindex=-1>r2c3</td>
+    <!-- Leave the rest of the row empty -->
+  </tr>
+  <tr>
+    <td id=r3c1 tabindex=-1>r3c1</td>
+    <td id=r3c2 tabindex=-1>r3c2</td>
+    <!-- There will be a cell at r3c4, but it starts in row 1. -->
+  </tr>
+  <tr>
+    <td id=r4c1 tabindex=-1 colspan=5>r4c1</td>
+    <td id=r4c6 tabindex=-1>r4c6</td>
+    <!-- No last cell - leave it empty for the test -->
+  </tr>
+</table>
+
+<script>
+  // The following tests are very corner-case.
+  //
+  // We are creating empty spaces that don't have cells through a weird table
+  // structure. The spaces at the following locations don't have cells (assuming
+  // that the first row/column starts at index 1): r2c5, r2c6, r2c7, r3c3,
+  // r3c5, r3c6, r3c7 and r4c7.
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r1c4 = document.getElementById("r1c4");
+    var r1c5 = document.getElementById("r1c5");
+    var r2c3 = document.getElementById("r2c3");
+    var r3c2 = document.getElementById("r3c2");
+    var r4c6 = document.getElementById("r4c6");
+
+    await focusAndKeyPress(r3c2, kArrowRight);
+    assert_equals(document.activeElement, r1c4);
+
+    await focusAndKeyPress(r1c4, kArrowRight);
+    assert_equals(document.activeElement, r1c5);
+
+    await focusAndKeyPress(r4c6, kArrowRight);
+    assert_equals(document.activeElement, r1c1);
+
+    await focusAndKeyPress(r2c3, kArrowRight);
+    assert_equals(document.activeElement, r1c4);
+  }, "A right arrow press should move the focus to the next column, dealing correctly with the empty spaces.");
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r1c4 = document.getElementById("r1c4");
+    var r1c5 = document.getElementById("r1c5");
+    var r1c6 = document.getElementById("r1c6");
+    var r1c7 = document.getElementById("r1c7");
+    var r2c3 = document.getElementById("r2c3");
+    var r4c1 = document.getElementById("r4c1");
+    var r4c6 = document.getElementById("r4c6");
+
+    await focusAndKeyPress(r2c3, kArrowDown);
+    assert_equals(document.activeElement, r4c1);
+
+    await focusAndKeyPress(r1c5, kArrowDown);
+    assert_equals(document.activeElement, r4c1);
+
+    await focusAndKeyPress(r1c6, kArrowDown);
+    assert_equals(document.activeElement, r4c6);
+
+    // Goes to r1c1 because it flows to the first cell of the first column when
+    // on the last cell of the last column.
+    await focusAndKeyPress(r1c7, kArrowDown);
+    assert_equals(document.activeElement, r1c1);
+
+    await focusAndKeyPress(r4c6, kArrowDown);
+    assert_equals(document.activeElement, r1c7);
+
+    await focusAndKeyPress(r1c4, kArrowDown);
+    assert_equals(document.activeElement, r4c1);
+  }, "A down arrow press should move the focus to the right cell on the next row, dealing correctly with empty spaces.");
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r1c3 = document.getElementById("r1c3");
+    var r1c4 = document.getElementById("r1c4");
+    var r3c1 = document.getElementById("r3c1");
+    var r4c1 = document.getElementById("r4c1");
+    var r4c6 = document.getElementById("r4c6");
+
+    await focusAndKeyPress(r1c1, kArrowLeft);
+    assert_equals(document.activeElement, r4c6);
+
+    await focusAndKeyPress(r3c1, kArrowLeft);
+    assert_equals(document.activeElement, r1c4);
+
+    await focusAndKeyPress(r1c4, kArrowLeft);
+    assert_equals(document.activeElement, r1c3);
+
+    await focusAndKeyPress(r4c1, kArrowLeft);
+    assert_equals(document.activeElement, r1c4);
+  }, "A left arrow press should move to the previous column, dealing correctly with the empty spaces.");
+
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+    var r1c6 = document.getElementById("r1c6");
+    var r1c7 = document.getElementById("r1c7");
+    var r3c1 = document.getElementById("r3c1");
+    var r4c1 = document.getElementById("r4c1");
+    var r4c6 = document.getElementById("r4c6");
+
+    await focusAndKeyPress(r1c7, kArrowUp);
+    assert_equals(document.activeElement, r4c6);
+
+    await focusAndKeyPress(r4c6, kArrowUp);
+    assert_equals(document.activeElement, r1c6);
+
+    await focusAndKeyPress(r1c6, kArrowUp);
+    assert_equals(document.activeElement, r4c1);
+
+    await focusAndKeyPress(r4c1, kArrowUp);
+    assert_equals(document.activeElement, r3c1);
+
+    await focusAndKeyPress(r1c1, kArrowUp);
+    assert_equals(document.activeElement, r1c7);
+  }, "An up arrow press should move the focus to the right cell on the previous row, dealing correctly with empty spaces.");
+
+</script>

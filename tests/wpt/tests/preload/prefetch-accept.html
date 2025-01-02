@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Ensures that prefetch works with documents</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/prefetch-helper.js"></script>
+<body>
+<script>
+
+promise_test(async t => {
+    const {href, uid} = await prefetch({
+        file: "prefetch-exec.html",
+        type: "text/html",
+        origin: document.origin});
+    const popup = window.open(href + "&cache_bust=" + token());
+    const remoteContext = new RemoteContext(uid);
+    t.add_cleanup(() => popup.close());
+    await remoteContext.execute_script(() => "OK");
+    const results = await get_prefetch_info(href);
+    assert_equals(results.length, 2);
+    assert_equals(results[0].headers.accept, results[1].headers.accept);
+}, "Document prefetch should send the exact Accept header as navigation")
+
+</script>
+</body>

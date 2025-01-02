@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<head>
+  <meta charset=utf-8>
+  <title>LongTask Timing: long task in rAF</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/utils.js"></script>
+</head>
+<body>
+  <h1>Long Task: requestAnimationFrame</h1>
+  <div id="log"></div>
+  <script>
+    promise_test(async () => {
+      assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+      await new Promise(resolve => {
+        window.addEventListener('load', resolve);
+      });
+
+      let entries = await new Promise(resolve => {
+        new PerformanceObserver(
+          entryList => {
+            const entries = entryList.getEntries().filter(
+              e => e.name == 'self' && e.attribution[0].containerType == 'window');
+            if (entries) {
+              resolve(entries);
+            }
+          }).observe({ entryTypes: ['longtask'] });
+
+        const script = document.createElement('script');
+        script.src = 'resources/raflongtask.js';
+        document.body.appendChild(script);
+      });
+
+      assert_equals(entries.length, 1,
+        'Exactly one entry is expected.');
+      const longtask = entries[0];
+      checkLongTaskEntry(longtask);
+      // Assert the TaskAttributionTiming entry in attribution.
+      assert_equals(longtask.attribution.length, 1,
+        'Exactly one attribution entry is expected');
+      const attribution = longtask.attribution[0];
+      assert_equals(attribution.entryType, 'taskattribution');
+      assert_equals(attribution.name, 'unknown');
+      assert_equals(attribution.duration, 0);
+      assert_equals(attribution.startTime, 0);
+      assert_equals(attribution.containerType, 'window');
+      assert_equals(attribution.containerId, '');
+      assert_equals(attribution.containerName, '');
+      assert_equals(attribution.containerSrc, '');
+    }, 'Performance longtask entries are observable.');
+  </script>
+</body>

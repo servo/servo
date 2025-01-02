@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>H264 scalabilityMode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCRtpParameters-helper.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="/webrtc-svc/svc-helper.js"></script>
+<script>
+  'use strict';
+
+  createScalabilityTest('video/H264', [
+    "L1T1",
+    "L1T2",
+    "L1T3"
+  ]);
+</script>

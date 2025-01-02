@@ -1,0 +1,18 @@
+[flake8]
+ignore =
+    # trailing whitespace; the standard tidy process will enforce no trailing whitespace
+    W291,
+    # linebreak before binary operator; replaced by W504 - linebreak after binary operator
+    W503,
+    # 80 character line length; the standard tidy process will enforce line length
+    E501
+exclude =
+    # temporary local files
+    target
+    __pycache__
+    python/_venv*
+    # upstream
+    third_party
+    python/mach
+    components
+    tests

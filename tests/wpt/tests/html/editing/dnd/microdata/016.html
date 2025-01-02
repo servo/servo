@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - microdata with nested sibling itemref loop</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  body > div *, span {
+    display: none;
+  }
+  body > div + div {
+    background-color: navy;
+    left: 250px;
+  }
+  body > div + div + div {
+    background-color: fuchsia;
+    left: 500px;
+  }
+  p:first-of-type {
+    margin-top: 220px;
+  }
+</style>
+
+<script>
+
+function makeEl(eltype,props,contents) {
+  var elem = document.createElement(eltype);
+  for( var i in props ) {
+    if( props.hasOwnProperty(i) ) {
+      elem.setAttribute(i,props[i]);
+    }
+  }
+  if( contents ) {
+    elem.innerHTML = contents;
+  }
+  return elem;
+}
+
+var orange, fails = [], doneonce = false;
+window.onload = function() {
+  orange = document.getElementsByTagName('div')[0];
+
+  orange.ondragstart = function(e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
+  };
+  orange.nextSibling.ondragenter = orange.nextSibling.ondragleave = orange.nextSibling.ondragover =
+  orange.ondrag = orange.ondragend = function(e) {
+    if( e.type == 'dragover' || e.type == 'dragenter' ) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    if( e.dataTransfer.getData('application/microdata+json') ) {
+      fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
+    }
+  };
+  orange.nextSibling.ondrop = function(e) {
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
+    if( e.type != 'drop' ) { return; }
+    if( doneonce ) { return; }
+    doneonce = true;
+    setTimeout(function () {
+      document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+      fails = [];
+    }, 200 );
+  };
+
+};
+function checkprops(md) {
+  // http://dev.w3.org/html5/md/#extracting-json
+  //"If value is an item, then: If value is in memory, then let value be the string "ERROR"."
+  /*
+Loop detection happens only after the loop has been created, at which point it returns a property value
+of "ERROR" instead of the value which has already been encountered on the stringifying stack.
+Should create the following construct:
+{
+  items:[
+    {
+      properties:{
+        foo:[
+          {
+            properties:{
+              bar:[
+                {
+                  properties:{
+                    foo:[
+                      "ERROR"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        bar:[
+          {
+            properties:{
+              foo:[
+                {
+                  properties:{
+                    bar:[
+                      "ERROR"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+  */
+
+  var i;
+  if( !md ) { return 'no microdata'; }
+  md = JSON.parse(md);
+  if( !md.items ) { return 'no items'; }
+  if( md.items.length != 1 ) { return md.items.length+' items instead of 1'; }
+  if( !md.items[0].properties ) { return 'no items[0].properties'; }
+  if( !md.items[0].properties.foo ) { return 'no items[0].properties.foo'; }
+  if( md.items[0].properties.foo.length != 1 ) { return 'items[0].properties.foo length '+md.items[0].properties.foo.length+' instead of 1'; }
+  if( !md.items[0].properties.foo[0].properties ) { return 'items[1].properties.foo[0].properties <i>'+md.items[0].properties.foo[0].properties+'</i> instead of object'; }
+  if( !md.items[0].properties.foo[0].properties.bar ) { return 'items[1].properties.foo[0].properties.bar <i>'+md.items[0].properties.foo[0].properties.bar+'</i> instead of array'; }
+  if( md.items[0].properties.foo[0].properties.bar.length != 1 ) { return 'items[1].properties.foo[0].properties.bar.length <i>'+md.items[0].properties.foo[0].properties.bar.length+'</i> instead of 1'; }
+  if( !md.items[0].properties.foo[0].properties.bar[0].properties ) { return 'items[1].properties.foo[0].properties.bar[0].properties <i>'+md.properties.foo[0].properties.bar[0].properties+'</i> instead of object'; }
+  if( !md.items[0].properties.foo[0].properties.bar[0].properties.foo ) { return 'items[1].properties.foo[0].properties.bar[0].properties.foo <i>'+md.items[0].properties.foo[0].properties.bar[0].properties.foo+'</i> instead of array'; }
+  if( md.items[0].properties.foo[0].properties.bar[0].properties.foo.length != 1 ) { return 'items[1].properties.foo[0].properties.bar[0].properties.foo.length <i>'+md.items[0].properties.foo[0].properties.bar[0].properties.foo.length+'</i> instead of 1'; }
+  if( md.items[0].properties.foo[0].properties.bar[0].properties.foo[0] != 'ERROR' ) { return 'items[1].properties.foo[0].properties.bar[0].properties.foo.length <i>'+md.items[0].properties.foo[0].properties.bar[0].properties.foo[0]+'</i> instead of <i>ERROR</a>'; }
+
+  if( !md.items[0].properties.bar ) { return 'no items[0].properties.bar'; }
+  if( md.items[0].properties.bar.length != 1 ) { return 'items[0].properties.bar length '+md.items[0].properties.bar.length+' instead of 1'; }
+  if( !md.items[0].properties.bar[0].properties ) { return 'items[1].properties.bar[0].properties <i>'+md.items[0].properties.bar[0].properties+'</i> instead of object'; }
+  if( !md.items[0].properties.bar[0].properties.foo ) { return 'items[1].properties.bar[0].properties.foo <i>'+md.items[0].properties.bar[0].properties.foo+'</i> instead of array'; }
+  if( md.items[0].properties.bar[0].properties.foo.length != 1 ) { return 'items[1].properties.bar[0].properties.foo.length <i>'+md.items[0].properties.bar[0].properties.foo.length+'</i> instead of 1'; }
+  if( !md.items[0].properties.bar[0].properties.foo[0].properties ) { return 'items[1].properties.bar[0].properties.foo[0].properties <i>'+md.properties.bar[0].properties.foo[0].properties+'</i> instead of object'; }
+  if( !md.items[0].properties.bar[0].properties.foo[0].properties.bar ) { return 'items[1].properties.bar[0].properties.foo[0].properties.bar <i>'+md.items[0].properties.bar[0].properties.foo[0].properties.bar+'</i> instead of array'; }
+  if( md.items[0].properties.bar[0].properties.foo[0].properties.bar.length != 1 ) { return 'items[1].properties.bar[0].properties.foo[0].properties.bar.length <i>'+md.items[0].properties.bar[0].properties.foo[0].properties.bar.length+'</i> instead of 1'; }
+  if( md.items[0].properties.bar[0].properties.foo[0].properties.bar[0] != 'ERROR' ) { return 'items[1].properties.bar[0].properties.foo[0].properties.bar.length <i>'+md.items[0].properties.bar[0].properties.foo[0].properties.bar[0]+'</i> instead of <i>ERROR</a>'; }
+  return '';
+}
+
+</script>
+
+<div draggable='true' itemscope><div itemscope itemprop='foo' id='id1' itemref='id2'></div><div itemscope itemprop='bar' id='id2' itemref='id1'></div></div><div></div><div></div>
+
+<p>Use your pointing device to drag the orange box to the pink box, then back to the blue box, and release it.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

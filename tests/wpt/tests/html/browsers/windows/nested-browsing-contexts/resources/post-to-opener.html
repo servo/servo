@@ -1,0 +1,7 @@
+<script>
+  if (window.opener) {
+    window.opener.postMessage({
+      "parent_isTop": (window.parent === window)
+    }, "*");
+  }
+</script>

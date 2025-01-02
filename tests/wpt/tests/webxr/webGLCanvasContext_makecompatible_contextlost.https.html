@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+
+    function testContextLost(t, gl) {
+      return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+        .then( (controller) => {
+          return gl.makeXRCompatible();
+        }).then( () => {
+          gl.getExtension('WEBGL_lose_context').loseContext();
+          return promise_rejects_dom(t, 'InvalidStateError', gl.makeXRCompatible());
+        });
+    }
+
+    xr_promise_test(
+      "A lost webgl context should not be able to set xr compatibility",
+      testContextLost, null, 'webgl');
+
+    xr_promise_test(
+      "A lost webgl2 context should not be able to set xr compatibility",
+      testContextLost, null, 'webgl2');
+
+  </script>
+</body>

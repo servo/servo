@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <style>
+    #scroller {
+      height: 100px;
+      width: 100px;
+      scroll-start: 100px 200px;
+      border: solid 1px black;
+      overflow: scroll;
+    }
+
+    .spacer {
+      width: 200vw;
+      height: 200vh;
+      border: solid 1px green;
+    }
+  </style>
+  <div id="scroller">
+    <div class="spacer"></div>
+  </div>
+  <script>
+    promise_test(async (t) => {
+      // This tests that toggling the overflow of a scroller from visible to
+      // scroll doesn't change the scroll position to scroll-start (since
+      // overflow:visible to overflow:scroll doesn't cause the scroller to be laid
+      // out again.)
+      assert_equals(scroller.scrollTop, 100,
+        "scroll-start: <length> sets initial vertical scroll position");
+      assert_equals(scroller.scrollLeft, 200,
+        "scroll-start: <length> sets initial horizontal scroll position");
+
+      // Scroll to somewhere other than scroll-start position.
+      scroller.scrollTop = 200;
+      scroller.scrollLeft = 100;
+      // Allow for an animation frame that might be needed for the update to take
+      // place.
+      await requestAnimationFrame(() => { });
+      assert_equals(scroller.scrollTop, 200,
+        "vertical scroll position is programmatically adjusted");
+      assert_equals(scroller.scrollLeft, 100,
+        "horizontal scroll position is programmatically adjusted");
+
+      scroller.style.overflow = "visible";
+      assert_equals(getComputedStyle(scroller)["overflow"], "visible");
+      scroller.style.overflow = "scroll";
+      assert_equals(getComputedStyle(scroller)["overflow"], "scroll");
+
+      // Verify that the scroll position is not changed.
+      assert_equals(scroller.scrollTop, 200,
+        "scroll-start does not reset vertical scroll position on overflow " +
+        "toggle.");
+        assert_equals(scroller.scrollLeft, 100,
+        "scroll-start does not reset vertical scroll position on overflow " +
+        "toggle.");
+    }, "scroll-start sets scroller position if overflow is not visible");
+  </script>
+</body>

@@ -1,0 +1,160 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerconnection MSID generation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+
+function msidLines(desc) {
+  const sections = SDPUtils.splitSections(desc.sdp);
+  return SDPUtils.matchPrefix(sections[1], 'a=msid:');
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const dc = pc.createDataChannel('foo');
+  const desc = await pc.createOffer();
+  assert_equals(msidLines(desc).length, 0);
+}, 'No media track produces no MSID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTrack(stream1.getTracks()[0]);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], /^a=msid:-/);
+}, 'AddTrack without a stream produces MSID with no stream ID');
+
+// token-char from RFC 4566
+// This is printable characters except whitespace, and ["(),/:;<=>?@[\]]
+const token_char = '\\x21\\x23-\\x27\\x2A-\\x2B\\x2D-\\x2E\\x30-\\x39\\x41-\\x5A\\x5E-\\x7E';
+
+// msid-value from RFC 8830
+const msid_attr = RegExp(`^a=msid:[${token_char}]{1,64}( [${token_char}]{1,64})?$`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTrack(stream1.getTracks()[0], stream1);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], msid_attr);
+}, 'AddTrack with a stream produces MSID with a stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  const stream2 = new MediaStream(stream1.getTracks());
+  pc.addTrack(stream1.getTracks()[0], stream1, stream2);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 2);
+  assert_regexp_match(msid_lines[0], msid_attr);
+  assert_regexp_match(msid_lines[1], msid_attr);
+}, 'AddTrack with two streams produces two MSID lines');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTrack(stream1.getTracks()[0], stream1, stream1);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], msid_attr);
+}, 'AddTrack with the stream twice produces single MSID with a stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTransceiver(stream1.getTracks()[0]);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], /^a=msid:-/);
+}, 'AddTransceiver without a stream produces MSID with no stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTransceiver(stream1.getTracks()[0], {streams: [stream1]});
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], msid_attr);
+}, 'AddTransceiver with a stream produces MSID with a stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  const stream2 = new MediaStream(stream1.getTracks());
+  pc.addTransceiver(stream1.getTracks()[0], {streams: [stream1, stream2]});
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 2);
+  assert_regexp_match(msid_lines[0], msid_attr);
+  assert_regexp_match(msid_lines[1], msid_attr);
+}, 'AddTransceiver with two streams produces two MSID lines');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  pc.addTransceiver(stream1.getTracks()[0], {streams: [stream1, stream1]});
+const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], msid_attr);
+}, 'AddTransceiver with the stream twice produces single MSID with a stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  const {sender} = pc.addTransceiver(stream1.getTracks()[0]);
+  sender.setStreams(stream1);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], msid_attr);
+}, 'SetStreams with a stream produces MSID with a stream ID');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  const stream2 = new MediaStream(stream1.getTracks());
+  const {sender} = pc.addTransceiver(stream1.getTracks()[0]);
+  sender.setStreams(stream1, stream2);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 2);
+  assert_regexp_match(msid_lines[0], msid_attr);
+  assert_regexp_match(msid_lines[1], msid_attr);
+}, 'SetStreams with two streams produces two MSID lines');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const stream1 = await getNoiseStream({audio: true});
+  const {sender} = pc.addTransceiver(stream1.getTracks()[0]);
+  sender.setStreams(stream1, stream1);
+  const desc = await pc.createOffer();
+  const msid_lines = msidLines(desc);
+  assert_equals(msid_lines.length, 1);
+  assert_regexp_match(msid_lines[0], msid_attr);
+}, 'SetStreams with the stream twice produces single MSID with a stream ID');
+
+</script>

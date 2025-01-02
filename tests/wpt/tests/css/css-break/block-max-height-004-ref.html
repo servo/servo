@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS Reference: max-height block fragmentation</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <style>
+  .multicol {
+    height: 30px;
+    width: 100px;
+    column-width: 30px;
+    column-fill: auto;
+    border: 2px solid orange;
+  }
+  .block {
+    display: block;
+    background: teal;
+    border: 5px solid black;
+    border-top-width: 0;
+    height: 40px;
+  }
+  .child {
+    display: block;
+    width: 50%;
+    height: 80px;
+  }
+  img.child { background: salmon; }
+  div.child { background: purple; }
+  </style>
+
+  <div class="multicol">
+    <main class="block">
+      <img src="" class="child"><div class="child"></div>
+    </main>
+  </div>
+</html>

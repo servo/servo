@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/">
+<meta name="assert" content="Table cell margins do not contribute to layout overflow.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html {
+  display: table;
+  width: 100%;
+  height: 100%;
+}
+body {
+  display: table-cell;
+  width: 100%;
+}
+</style>
+<body></body>
+<script>
+  test(() => {
+    const scroller = document.scrollingElement;
+
+    // There shouldn't be any layout overflow on the root scrollable element.
+    assert_equals(scroller.clientHeight, scroller.scrollHeight);
+  });
+</script>

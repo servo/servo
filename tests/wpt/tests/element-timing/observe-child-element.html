@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: do NOT observe elements from same-origin iframes</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  async_test((t) => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done((entryList) => {
+        assert_unreached("Should not have received an entry!");
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the iframe during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    // TODO(npm): change observer to use buffered flag.
+    window.onload = () => {
+      // Add iframe with an image of width and height equal to 100.
+      const iframe = document.createElement('iframe');
+      iframe.src = 'resources/iframe-with-square.html';
+      iframe.onload = () => {
+        // After a short delay, assume that the entry was not dispatched to the
+        // parent frame.
+        t.step_timeout(() => {
+          t.done();
+        }, 100);
+      }
+      document.body.appendChild(iframe);
+    };
+  }, 'Element in child iframe is not observed, even if same-origin.');
+</script>
+
+</body>

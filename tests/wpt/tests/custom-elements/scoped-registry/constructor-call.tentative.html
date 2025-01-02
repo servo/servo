@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta name="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<meta name="assert" content="Direct calls of custom element constructor use the global registry only">
+<link rel="help" href="https://wicg.github.io/webcomponents/proposals/Scoped-Custom-Element-Registries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+function attachShadowForTest(t, registry) {
+  const host = document.createElement('div');
+  const shadow = host.attachShadow({mode: 'open', registry});
+  document.body.appendChild(host);
+  t.add_cleanup(() => host.remove());
+  return shadow;
+}
+
+test(t => {
+  class TestElement extends HTMLElement {};
+  let registry = new CustomElementRegistry()
+  registry.define('test-element', TestElement);
+
+  let shadow = attachShadowForTest(t, registry);
+
+  assert_throws_js(TypeError, () => new TestElement);
+}, 'Calling custom element constructor directly without global registration should fail');
+
+test(t => {
+  class TestElement extends HTMLElement {};
+
+  window.customElements.define('global-test-element', TestElement);
+
+  let registry = new CustomElementRegistry()
+  registry.define('shadow-test-element', TestElement);
+  let shadow = attachShadowForTest(t, registry);
+
+  let element = new TestElement;
+  assert_equals(element.localName, 'global-test-element');
+}, 'Calling custom element constructor directly uses global registration only');
+
+</script>
+</body>

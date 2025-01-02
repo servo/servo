@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+    "use strict";
+
+    const relative_path =
+      "/permissions-policy/resources/permissions-policy-geolocation.html";
+    const base_src = "/permissions-policy/resources/redirect-on-load.html#";
+    const same_origin_src = base_src + relative_path;
+    const cross_origin_src = `${base_src}https://{{hosts[alt][]}}:{{ports[https][0]}}${relative_path}`;
+
+    promise_test(async (test) => {
+      await test_feature_availability({
+        feature_description: "Geolocation API",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        is_promise_test: true,
+      });
+    }, 'Permissions-Policy allow="geolocation" allows same-origin redirection');
+
+    promise_test(async (test) => {
+      await test_feature_availability({
+        feature_description: "Geolocation API",
+        test,
+        src: cross_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        is_promise_test: true,
+        feature_name: "geolocation",
+      });
+    }, 'Permissions-Policy allow="geolocation" allows cross-origin redirection');
+  </script>
+</body>

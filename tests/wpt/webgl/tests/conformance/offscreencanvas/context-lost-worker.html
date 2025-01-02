@@ -1,0 +1,44 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script>
+function init()
+{
+  description("Tests behavior under a lost context for OffscreenCanvas in a worker");
+
+  if (!window.OffscreenCanvas) {
+    testPassed("No OffscreenCanvas support");
+    finishTest();
+    return;
+  }
+
+  var worker = new Worker('context-lost-worker.js');
+  worker.postMessage("Start worker");
+  worker.onmessage = function(e) {
+    const fn = e.data.fail ? testFailed : testPassed;
+    fn(e.data.msg);
+    if (e.data.finishTest) {
+      finishTest();
+    }
+    return;
+  }
+}
+
+</script>
+</head>
+<body onload="init()">
+<div id="description"></div>
+<div id="console"></div>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 400px;
+    margin: 0;
+  }
+  @page large {
+    size: 500px 400px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+This page should <em>not</em> have a blue box.
+<div style="page:large;">
+  <div style="float:right; margin-top:300px; width:100px; height:100px; background:blue;"></div>
+  <div style="width:400px;">
+    This page should have a blue box in the bottom right corner.
+  </div>
+  <div style="break-before:page;">
+    <div style="float:right; margin-top:300px; width:100px; height:100px; background:blue;"></div>
+    <div style="width:400px;">
+      This page should have a blue box in the bottom right corner.
+    </div>
+  </div>
+</div>
+This page should <em>not</em> have a blue box.

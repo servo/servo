@@ -1,0 +1,128 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: Largest image is reported.</title>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/largest-contentful-paint-helpers.js"></script>
+  <script src="/common/utils.js"></script>
+  <script>
+    setup({"hide_test_state": true});
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint not implemented");
+    const imageURL = `${window.location.origin}/images/blue.png`;
+
+    async function load_image_and_get_lcp_size(t, imageStyle = {}, containerStyle = {}) {
+      const popup = window.open();
+      t.add_cleanup(() => popup.close());
+      const image = popup.document.createElement('img');
+      image.src = imageURL;
+
+      // We decode the image to get the natural size (though it's a constant)
+      await image.decode();
+      const naturalSize = image.width * image.height;
+      const container = popup.document.createElement('div');
+      container.appendChild(image);
+
+      const applyStyle = (el, style = {}) =>
+        Object.entries(style).forEach(([k, v]) => el.style.setProperty(k, v));
+      applyStyle(image, imageStyle);
+      applyStyle(container, containerStyle);
+      image.id = token();
+      container.id = token();
+
+      const entryReported = new Promise(resolve =>
+        new popup.PerformanceObserver(entryList => {
+          entryList.getEntries().forEach(entry => {
+            if (entry.id === image.id || entry.id === container.id) {
+              resolve(entry.size);
+            }
+          });
+        }).observe({ type: 'largest-contentful-paint', buffered: true })
+      );
+
+      popup.document.body.appendChild(container);
+
+      return {
+        lcpSize: await entryReported,
+        naturalSize
+      };
+    }
+
+    /* We set the image to display: none when testing background,
+    so that only the background is reported
+    and not the image itself */
+    const load_background_image_and_get_lcp_size = (t, style) =>
+      load_image_and_get_lcp_size(t, { display: 'none' }, {
+        position: 'absolute',
+        'background-image': `url(${imageURL})`,
+        ...style,
+      });
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t);
+      assert_equals(lcpSize, naturalSize);
+    }, 'Non-scaled image should report the natural size');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t,
+        { width: '50px', height: '50px' });
+      assert_equals(lcpSize, 50 * 50);
+    }, 'A downscaled image (width/height) should report the displayed size');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t,
+        { transform: 'scale(0.5)' });
+      assert_equals(Math.floor(lcpSize), Math.floor(naturalSize / 4));
+    }, 'A downscaled image (using scale) should report the displayed size');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t,
+        { width: '500px', height: '500px' });
+      assert_equals(lcpSize, naturalSize);
+    }, 'An upscaled image (width/height) should report the natural size');
+
+    /* TODO(crbug.com/1484431):
+    Need to dig deeper into this test, to verify the implementation of scale()
+    Currently unable to upscale image*/
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t,
+        { transform: 'scale(1.0)' });
+      assert_equals(Math.floor(lcpSize), Math.floor(naturalSize));
+    }, 'An upscaled image (using scale) should report the natural size');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t,
+        { 'object-size': '300px 300px' });
+      assert_equals(Math.floor(lcpSize), Math.floor(naturalSize));
+    }, 'An upscaled image (using object-size) should report the natural size');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_image_and_get_lcp_size(t,
+        { 'object-position': '-100px 0' });
+      assert_equals(lcpSize, 3498);
+    }, 'Intersecting element with partial-intersecting image to report image intersection');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_background_image_and_get_lcp_size(t,
+        { width: '50px', height: '50px' });
+      assert_equals(lcpSize, 50 * 50);
+    }, 'A background image larger than the container should report the container size');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_background_image_and_get_lcp_size(t,
+        { width: '300px', height: '300px' });
+      assert_equals(lcpSize, naturalSize);
+    }, 'A background image smaller than the container should report the natural size');
+
+    promise_test(async t => {
+      const { naturalSize, lcpSize } = await load_background_image_and_get_lcp_size(t,
+        {
+          width: '300px',
+          height: '300px',
+          'background-size': '10px 10px',
+          'background-repeat': 'no-repeat'
+        });
+      assert_equals(lcpSize, 100);
+    }, 'A scaled-down background image should report the background size');
+  </script>
+</body>

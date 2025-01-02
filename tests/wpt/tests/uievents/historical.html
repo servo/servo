@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Historical UI events features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_false("initWheelEvent" in WheelEvent.prototype,
+               "Should not be supported on the prototype");
+}, "WheelEvent#initWheelEvent");
+test(function() {
+  assert_false("initWebKitWheelEvent" in WheelEvent.prototype,
+               "Should not be supported on the prototype");
+}, "WheelEvent#initWebKitWheelEvent");
+</script>

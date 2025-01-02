@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: long task in cross-origin sibling iframe</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<script>
+  const sibling_url = new URL("resources/subframe-with-longtask.html",
+                              new URL(location.pathname,
+                                      get_host_info().HTTPS_REMOTE_ORIGIN)).href;
+
+  async_test(t => {
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    window.addEventListener('message', t.step_func(e => {
+      assert_equals(e.data['entryType'], 'longtask');
+      assert_equals(e.data['frame-attribution'], 'cross-origin-unreachable');
+      assert_equals(e.data['task-attribution'], 'unknown');
+      assert_equals(e.data['containerType'], 'window');
+      assert_equals(e.data['containerId'], '');
+      assert_equals(e.data['containerName'], '');
+      assert_equals(e.data['containerSrc'], '');
+      t.done();
+    }));
+    const observingFrame = document.createElement('iframe');
+    observingFrame.id = 'observing-iframe-id';
+    observingFrame.name = 'observing-iframe-name';
+    document.body.appendChild(observingFrame);
+    observingFrame.src = 'resources/subframe-observing-longtask.html'
+
+    observingFrame.onload = () => {
+      /* Create a cross-origin iframe that generates a long task. */
+      const longtaskFrame = document.createElement('iframe');
+      longtaskFrame.id = 'longtask-iframe-id';
+      longtaskFrame.name = 'longtask-iframe-name';
+      document.body.appendChild(longtaskFrame);
+      longtaskFrame.src = sibling_url;
+    };
+}, 'Performance longtask entries from cross-origin iframe are observable in its sibling.');
+</script>
+</body>

@@ -1,0 +1,11 @@
+ <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0" xmlns:h="http://www.w3.org/1999/xhtml">
+    <its:param name="taCityParam">dublin</its:param>
+    <its:param name="taCapitalParam">capital</its:param>
+    <its:textAnalysisRule selector="//h:body/h:p/h:*[@id=$taCityParam]"
+      taClassRefPointer="@typeof"
+      taIdentRefPointer="@property"/>
+    <its:textAnalysisRule selector="//h:body/h:p/h:*[@id=$taCapitalParam]"
+      taClassRefPointer="@typeof"
+      taSourcePointer="@property"
+      taIdentPointer="@about"/>
+  </its:rules>

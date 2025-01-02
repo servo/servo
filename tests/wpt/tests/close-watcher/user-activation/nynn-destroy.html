@@ -1,0 +1,33 @@
+<!doctype html>
+<meta name=variant content="?dialog">
+<meta name=variant content="?CloseWatcher">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+const type = location.search.substring(1);
+
+promise_test(async t => {
+  const events = [];
+
+  const watcher1 = createRecordingCloseWatcher(t, events, "watcher1");
+  const watcher2 = await createBlessedRecordingCloseWatcher(t, events, "watcher2", type, watcher1);
+  createRecordingCloseWatcher(t, events, "watcher3");
+  createRecordingCloseWatcher(t, events, "watcher4");
+
+  destroyCloseWatcher(watcher2);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher4 cancel[cancelable=false]", "watcher4 close", "watcher3 cancel[cancelable=false]", "watcher3 close"]);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher4 cancel[cancelable=false]", "watcher4 close", "watcher3 cancel[cancelable=false]", "watcher3 close", "watcher1 cancel[cancelable=false]", "watcher1 close"]);
+}, "Create a close watcher without user activation; create a close watcher with user activation; create two close watchers without user activation; remove the second close watcher");
+</script>

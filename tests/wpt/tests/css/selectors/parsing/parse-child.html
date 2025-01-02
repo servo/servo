@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: Child combinators</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#child-combinators">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('body > p');
+  test_valid_selector('div ol>li p', 'div ol > li p');
+</script>

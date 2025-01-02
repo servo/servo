@@ -1,0 +1,22 @@
+<!doctype html>
+<title>CSS Test: element style is correctly updated for rule with :host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<div id="host"><div id="slotted"></div></div>
+<script>
+test(function() {
+  let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <style>
+      :host ::slotted(div) { width: 100px; height: 100px; background: red; }
+      :host ::slotted(.foo) { background: green; }
+    </style>
+    <slot></slot>
+  `;
+  assert_equals(getComputedStyle(slotted).backgroundColor, "rgb(255, 0, 0)");
+  host.firstElementChild.classList.add('foo');
+  assert_equals(getComputedStyle(slotted).backgroundColor, "rgb(0, 128, 0)");
+});
+</script>

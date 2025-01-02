@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name='flags' content='interact'>
+<style type="text/css">
+    button {
+        color: blue;
+    }
+
+    #target-wrap {
+        position: relative;
+        background-color: lightgrey;
+        width: 400px;
+        height: 150px;
+        border: grey 1px solid;
+    }
+
+    #target-wrap span, #status-log {
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that movementX/Y provided indefinitely even when the mouse cursor would have otherwise hit the edge of a screen.</p>
+    <hr/>
+
+    <h2>Manual Test Steps:</h2>
+    <p>
+        <ol>
+            <li>Click the "lockTarget" button to request a pointer lock.</li>
+            <li>Move the pointer constantly in a diagonal direction (e.g. up and right).</li>
+            <li>Test is done.</li>
+        </ol>
+    </p>
+    <hr/>
+
+    <button onclick="lockTarget();">lockTarget</button>
+
+    <div id="target-wrap">
+        <div id="status-log">Click the "lockTarget" button.</div>
+        <p>screenSize: <span id="screenSize-log">NaN</span></p>
+        <p>movementX_sum: <span id="movementX_sum-log">NaN</span></p>
+        <p>movementY_sum: <span id="movementY_sum-log">NaN</span></p>
+    </div>
+    <hr/>
+
+    <div id="log"></div>
+
+    <script type="text/javascript" >
+        var screenSize_log = document.querySelector('#screenSize-log'),
+            movementX_sum_log = document.querySelector('#movementX_sum-log'),
+            movementY_sum_log = document.querySelector('#movementY_sum-log'),
+            status_log = document.querySelector('#status-log'),
+            target = document.querySelector('#target-wrap');
+        var movementX_sum = 0,
+            movementY_sum = 0;
+        var screenWidth = screen.width,
+            screenHeight = screen.height;
+
+        var enable_logging = false;
+
+        screenSize_log.innerHTML = "width: " + screenWidth + " px, " + "height: " + screenHeight + " px"
+
+        var movementXYIndefiniteTest = async_test("Test that movementX/Y provided indefinitely even when the mouse cursor would have otherwise hit the edge of a screen.");
+
+    document.addEventListener("pointerlockchange", function() {
+        if(document.pointerLockElement) {
+            status_log.innerHTML = "Keep moving...";
+            enable_logging = true;
+        }
+    });
+
+    document.addEventListener("mousemove", function (e) {
+        if(enable_logging) {
+            movementX_sum += Math.abs(e.movementX);
+            movementY_sum += Math.abs(e.movementY);
+
+            movementX_sum_log.innerHTML = movementX_sum + "px";
+            movementY_sum_log.innerHTML = movementY_sum + "px";
+
+            if(movementX_sum > 2 * screen.width && movementY_sum > 2 * screen.height) {
+                movementXYIndefiniteTest.step(function() {
+                    assert_greater_than(movementX_sum, 2 * screenWidth, "Sum of movementX is greater than 2 times of screen width");
+                    assert_greater_than(movementY_sum, 2 * screenHeight, "Sum of movementY is greater than 2 times of screen height");
+                });
+
+                movementXYIndefiniteTest.done();
+
+                status_log.innerHTML = "Test succeeds...";
+
+                enable_logging = false;
+
+                document.exitPointerLock();
+            }
+        }
+        });
+
+    function lockTarget() {
+        target.requestPointerLock();
+    }
+    </script>
+    </body>
+</html>

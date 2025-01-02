@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>remoteDesktopClientOverride</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=helpers.js></script>
+<body></body>
+<script>
+"use strict";
+
+const remoteDesktopClientOverride = {
+  origin: "https://acme.com",
+  sameOriginWithAncestors: false,
+};
+
+virtualAuthenticatorPromiseTest(async t => {
+  let promise = createCredential({
+    options: {
+      publicKey: {
+        extensions: {
+          remoteDesktopClientOverride: remoteDesktopClientOverride,
+        },
+      },
+    },
+  });
+  // Site isn't authorized to use the extension.
+  return promise_rejects_dom(t, "NotAllowedError", promise);
+}, {
+  protocol: "ctap2_1",
+  transport: "usb",
+}, "create() with remoteDesktopClientOverride");
+
+virtualAuthenticatorPromiseTest(async t => {
+  let promise = navigator.credentials.get({publicKey: {
+      challenge: new Uint8Array(),
+        allowCredentials: [{
+          id: (await createCredential()).rawId,
+          type: "public-key",
+        }],
+        extensions: {
+          remoteDesktopClientOverride: remoteDesktopClientOverride,
+      },
+  }});
+  // Site isn't authorized to use the extension.
+  return promise_rejects_dom(t, "NotAllowedError", promise);
+}, {
+  protocol: "ctap2_1",
+  transport: "usb",
+}, "get() with remoteDesktopClientOverride on an unauthorized site");
+</script>

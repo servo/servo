@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<body>
+<script>
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+const SCOPE = './';
+const WORKER_URL = './do-nothing-worker.js';
+
+async function unregisterServiceWorker(scope) {
+  const registration = await navigator.serviceWorker.getRegistration(scope);
+  if (!registration)
+    return;
+  return registration.unregister();
+}
+
+// The main test page (register-service-worker.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  unregisterServiceWorker(SCOPE);
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  const promise = navigator.serviceWorker.register(WORKER_URL, {scope: SCOPE})
+      .then(registration => {
+        prerenderEventCollector.addEvent('service worker registered');
+        return registration.unregister();
+      });
+  prerenderEventCollector.start(promise, 'ServiceWorker.register');
+}
+
+</script>
+</body>

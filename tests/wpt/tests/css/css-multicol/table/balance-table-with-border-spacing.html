@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=534751">
+<div id="multicol" style="columns:2; width:200px; line-height:20px;">
+  <div style="display:table; border-spacing:1px;">
+    <div style="display:table-cell; width:30px;">
+      <br>
+      <br>
+      <br>
+      <br>
+      <br>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    var multicol = document.getElementById("multicol");
+    assert_equals(multicol.offsetHeight, 61);
+  }, "Balanced multicol with table with border spacing");
+</script>

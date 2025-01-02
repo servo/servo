@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Testing normalizing white-space sequence after execCommand("insertlinebreak", false, "foo")</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+"use strict";
+
+setup({explicit_done: true});
+
+function runTests() {
+  // README:
+  // These tests based on the behavior of Chrome 83.  This test does NOT define
+  // nor suggest any standard behavior (actually, some expected results might
+  // look odd), but this test must help you to understand how other browsers
+  // use different logic to normalize white-space sequence.
+
+  document.body.innerHTML = "<div contenteditable></div>";
+  let editor = document.querySelector("div[contenteditable]");
+  editor.focus();
+  let selection = document.getSelection();
+
+  function escape(str) {
+    return typeof(str) === "string" ? str.replace(/\u00A0/ig, "&nbsp;") : "";
+  }
+
+  function generateWhiteSpaces(num, lastIsAlwaysNBSP) {
+    let str = "";
+    for (let i = 0; i < num - 1; i++) {
+      str += i % 2 ? " " : "\u00A0";
+    }
+    str += lastIsAlwaysNBSP || num % 2 ? "\u00A0" : " ";
+    return escape(str);
+  }
+  function getDescriptionForTextNode(textNode) {
+    return selection.focusNode === textNode ?
+      `${escape(textNode.data.slice(0, selection.focusOffset))}[]${escape(textNode.data.slice(selection.focusOffset))}` :
+      escape(textNode);
+  }
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 0);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `<br>a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 1);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a<br>${escape(generateWhiteSpaces(9, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 2);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;<br>${escape(generateWhiteSpaces(8, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 3);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;<br>${escape(generateWhiteSpaces(7, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 4);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;&nbsp;<br>${escape(generateWhiteSpaces(6, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 5);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;&nbsp;&nbsp;<br>${escape(generateWhiteSpaces(5, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 6);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>${escape(generateWhiteSpaces(4, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 7);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>${escape(generateWhiteSpaces(3, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 8);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>${escape(generateWhiteSpaces(2, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 9);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>${escape(generateWhiteSpaces(1, false))}b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  editor.innerHTML = "a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b";
+  selection.collapse(editor.firstChild, 10);
+  test(function () {
+    document.execCommand("insertlinebreak", false, "");
+    assert_equals(editor.innerHTML,
+                  `a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>b`,
+                  "Modified text is wrong");
+  }, `execCommand("insertlinebreak", false, "") at "${getDescriptionForTextNode(editor.firstChild)}"`);
+
+  done();
+}
+
+window.addEventListener("load", runTests, {once: true});
+</script>
+</body>
+</html>

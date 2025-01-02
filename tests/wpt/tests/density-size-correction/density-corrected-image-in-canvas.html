@@ -1,0 +1,119 @@
+<html>
+  <head>
+    <title>Density corrected size: canvas</title>
+    <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+    <meta name="assert" content="Assert that density-corrected size in EXIF is taken into account for images when drawn in canvas">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>You should see green/yellow gradient boxes</p>
+    <script id="shader-fs" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform sampler2D u_image;
+        varying vec2 v_texCoord;
+        uniform float u_frame;
+
+        void main(void) {
+            gl_FragColor = texture2D(u_image, v_texCoord);
+        }
+    </script>
+    <script id="shader-vs" type="x-shader/x-vertex">
+        precision mediump float;
+        attribute vec2 a_vertex;
+        attribute vec2 a_tex;
+        varying vec2 v_texCoord;
+
+        void main(void) {
+            gl_Position = vec4(a_vertex, 0, 1)  ;
+            v_texCoord = a_tex;
+        }
+    </script>
+
+    <script>
+      const dim = 3
+      function drawImage2d(context, image, srcRect) {
+        context.drawImage(image, ...srcRect, 0, 0, dim, dim)
+        return context.getImageData(0, 0, dim, dim)
+      }
+      function drawImage3d(gl, image, srcRect) {
+        const vshader = gl.createShader(gl.VERTEX_SHADER)
+        const fshader = gl.createShader(gl.FRAGMENT_SHADER)
+        gl.shaderSource(vshader, document.querySelector("#shader-vs").textContent)
+        gl.shaderSource(fshader, document.querySelector("#shader-fs").textContent)
+        gl.compileShader(vshader)
+        gl.compileShader(fshader)
+        const program = gl.createProgram()
+        gl.attachShader(program, vshader)
+        gl.attachShader(program, fshader)
+        gl.linkProgram(program)
+        gl.useProgram(program)
+        const a_vertex = gl.getAttribLocation(program, "a_vertex")
+        const a_tex = gl.getAttribLocation(program, "a_tex")
+        const buf_vertex = gl.createBuffer()
+        const buf_tex = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf_tex)
+        const [sx, sy, sw, sh] = [srcRect[0] / image.naturalWidth, srcRect[1] / image.naturalHeight, srcRect[2] / image.naturalWidth, srcRect[3] / image.naturalHeight]
+
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+          sx, sy, sx + sw, sy, sx, sy + sh, sx + sw, sy + sh
+        ]), gl.STATIC_DRAW)
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf_vertex)
+        var vertices = [-1, 1, 1, 1, -1, -1, 1, -1]
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW)
+        var texture = gl.createTexture()
+        gl.bindTexture(gl.TEXTURE_2D, texture)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+        gl.viewport(0, 0, dim, dim)
+        gl.enableVertexAttribArray(a_vertex)
+        gl.enableVertexAttribArray(a_tex)
+        gl.uniform1i(gl.getUniformLocation(program, "u_image"), 0)
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf_tex)
+        gl.vertexAttribPointer(a_tex, 2, gl.FLOAT, false, 0, 0)
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf_vertex)
+        gl.vertexAttribPointer(a_vertex, 2, gl.FLOAT, false, 0, 0)
+        gl.clearColor(1, 1, 1, 1)
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        const pixels = new Uint8ClampedArray(dim * dim * 4)
+        gl.readPixels(0, 0, dim, dim, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+        return {data: pixels, width: dim, height: dim}
+      }
+      function createCanvasWithImage(src, contextType, srcRect) {
+        const canvas = document.createElement('canvas')
+        canvas.width = canvas.height = dim
+        const image = new Image()
+        image.src = src
+        return new Promise(resolve => {
+          image.onload = () => {
+            const context = canvas.getContext(contextType)
+            if (contextType === '2d')
+              resolve(drawImage2d(context, image, srcRect))
+            else
+              resolve(drawImage3d(context, image, srcRect))
+          }
+        })
+      }
+
+      let reference = null;
+      function checkCanvasImage(src, contextType, srcRect) {
+        promise_test(async function() {
+          if (!reference)
+            reference = await createCanvasWithImage('resources/exif-resolution-none.jpg', '2d', [40, 5, 20, 5]);
+          const data = await createCanvasWithImage(src, contextType, srcRect)
+          assert_array_approx_equals(data.data, reference.data, 32)
+        }, `${src}: ${contextType}`);
+      }
+
+      checkCanvasImage("resources/exif-resolution-valid-hires.jpg", '2d', [20, 5, 10, 1])
+      checkCanvasImage("resources/exif-resolution-valid-lores.jpg", '2d', [80, 5, 40, 10])
+      checkCanvasImage("resources/exif-resolution-none.jpg", 'webgl', [40, 5, 20, 5]);
+      checkCanvasImage("resources/exif-resolution-valid-hires.jpg", 'webgl', [20, 5, 10, 1]);
+      checkCanvasImage("resources/exif-resolution-valid-lores.jpg", 'webgl', [80, 5, 40, 1]);
+    </script>
+  </body>
+</html>

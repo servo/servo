@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1498297">
+<style>
+* {
+  margin-top: 100px;
+  padding-left: 100px;
+  position: sticky;
+  bottom: 0px;
+}
+</style>
+<select id="select1" multiple="multiple" style="writing-mode: vertical-rl">
+  <optgroup id="optgroup">text</optgroup>
+</select>
+<select id="select2" >text</select>
+<script>
+document.body.offsetTop;
+select2.add(optgroup);
+document.body.offsetTop;
+select1.length = 1;
+</script>

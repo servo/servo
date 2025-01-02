@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS Test: ::first-letter correctly applies background-image dynamically</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1528451">
+<link rel="match" href="first-letter-background-image-ref.html">
+<style>
+  div::first-letter {
+    color: lime;
+  }
+  div.image::first-letter {
+    /* Lime background */
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==');
+  }
+</style>
+<div>
+  A letter
+</div>
+<script>
+  let div = document.querySelector("div");
+  getComputedStyle(div).color;
+  div.classList.add('image');
+</script>

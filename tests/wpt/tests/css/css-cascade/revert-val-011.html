@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: 'revert' from mutating inline style</title>
+  <link rel="help" href="https://drafts.csswg.org/css-cascade/#default">
+  <link rel="author" href="mailto:sesse@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .outer {
+       left: 1px;
+    }
+  </style>
+</head>
+<body>
+  <p class="outer" id="el">Test passes if the text is black (not red).</p>
+</body>
+<script>
+test(() => {
+  el.offsetTop;
+  assert_equals(getComputedStyle(el).left, "1px", "style is set correctly");
+});
+test(() => {
+  el.offsetTop;
+  el.style.left = "2px";
+  assert_equals(getComputedStyle(el).left, "2px", "style is modified correctly");
+});
+test(() => {
+  el.offsetTop;
+  el.style.left = "revert";
+  assert_equals(getComputedStyle(el).left, "auto", "style is reverted correctly");
+});
+</script>
+</html>

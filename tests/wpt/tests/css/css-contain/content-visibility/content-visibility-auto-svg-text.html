@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<style>
+text {
+  font: 100px/1 Ahem;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div style="content-visibility: auto;">
+<svg>
+  <text fill="green" x="0" y="80">x</text>
+</svg>
+</div>
+</body>
+</html>

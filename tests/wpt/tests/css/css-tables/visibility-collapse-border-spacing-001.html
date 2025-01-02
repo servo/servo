@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table style="width: 100px; border-spacing: 10px; background: red;">
+  <tbody style="outline: solid green 10px;">
+    <tr style="visibility: collapse;">
+      <td style="padding: 0;"></td>
+    </tr>
+    <tr>
+      <td style="padding: 0;"><div style="height: 80px; background: green;"></div></td>
+    </tr>
+  </tbody>
+</table>

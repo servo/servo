@@ -1,0 +1,26 @@
+<html>
+  <style>
+    body {
+        width: 200px;
+        height: 150px;
+        padding: 0px;
+        margin: 0px;
+        background-color: lightgreen
+    }
+  </style>
+  <body></body>
+  <script>
+    function handler(e) {
+        window.top.postMessage({
+            "type": "subframe-event",
+            "eventType": e.type
+        }, "*");
+    }
+
+    ["pointerup", "pointercancel"].forEach(eventType => {
+        document.body.addEventListener(
+            eventType,
+            handler);
+    });
+  </script>
+</html>

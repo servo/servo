@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CharacterData.appendData</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-appenddata">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-characterdata-data">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function testNode(create, type) {
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.appendData("bar")
+    assert_equals(node.data, "testbar")
+  }, type + ".appendData('bar')")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.appendData("")
+    assert_equals(node.data, "test")
+  }, type + ".appendData('')")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+    node.appendData(", append more 資料，測試資料");
+    assert_equals(node.data, "test, append more 資料，測試資料");
+    assert_equals(node.length, 25);
+  }, type + ".appendData(non-ASCII)")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.appendData(null)
+    assert_equals(node.data, "testnull")
+  }, type + ".appendData(null)")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.appendData(undefined)
+    assert_equals(node.data, "testundefined")
+  }, type + ".appendData(undefined)")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.appendData("", "bar")
+    assert_equals(node.data, "test")
+  }, type + ".appendData('', 'bar')")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    assert_throws_js(TypeError, function() { node.appendData() });
+    assert_equals(node.data, "test")
+  }, type + ".appendData()")
+}
+
+testNode(function() { return document.createTextNode("test") }, "Text")
+testNode(function() { return document.createComment("test") }, "Comment")
+</script>

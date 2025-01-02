@@ -1,0 +1,4 @@
+  <its:rules  xmlns:its="http://www.w3.org/2005/11/its"  xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+      <its:param name="allowedcharsParam">name</its:param>
+      <its:allowedCharactersRule allowedCharacters="[a-zA-Z_\-]" selector="//h:p/h:code[@id=$allowedcharsParam]"/>
+    </its:rules>

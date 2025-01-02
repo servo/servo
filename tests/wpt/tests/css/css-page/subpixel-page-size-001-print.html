@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#page-size-prop">
+<link rel="match" href="subpixel-page-size-001-print-ref.html">
+<meta name=reftest-pages content="2">
+<style>
+  body { margin: 0; }
+  @page {
+    size: 400px 123.9px;
+    margin: 0;
+  }
+</style>
+<div style="height:123.9px; background:red;">
+  This page should not be printed.
+</div>
+There should be no red.

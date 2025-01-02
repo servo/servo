@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="match" href="counter-suffix-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles/"/>
+<style>
+  ol, li { margin: 0; padding: 0; line-height: 150%; }
+  #wrapper { width: 10em; }
+  ol { padding: 0 3em; }
+  .dec { list-style-type: decimal; }
+  .heb { list-style-type: hebrew; }
+  .cjk { list-style-type: cjk-decimal; }
+  .kor { list-style-type: korean-hangul-formal; }
+</style>
+<div id="wrapper">
+  <ol class="dec"><li>foo<li>bar</ol>
+  <ol class="heb"><li>foo<li>bar</ol>
+  <ol class="cjk"><li>foo<li>bar</ol>
+  <ol class="kor"><li>foo<li>bar</ol>
+  <ol class="dec" dir="rtl"><li>foo<li>bar</ol>
+  <ol class="heb" dir="rtl"><li>foo<li>bar</ol>
+</div>

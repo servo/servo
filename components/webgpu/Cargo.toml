@@ -1,0 +1,42 @@
+[package]
+name = "webgpu"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "webgpu"
+path = "lib.rs"
+
+[dependencies]
+arrayvec = { workspace = true, features = ["serde"] }
+base = { workspace = true }
+euclid = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+serde = { workspace = true, features = ["serde_derive"] }
+servo_config = { path = "../config" }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
+wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
+wgpu-types = { workspace = true }
+
+# We want the wgpu-core Metal backend on macOS and iOS.
+[target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies.wgpu-core]
+workspace = true
+features = ["metal"]
+
+# We want the wgpu-core Vulkan backend on Linux and Windows.
+[target.'cfg(any(windows, all(unix, not(any(target_os = "macos", target_os = "ios")))))'.dependencies.wgpu-core]
+workspace = true
+features = ["gles", "vulkan"]
+
+# We want the wgpu-core Direct3D backends on Windows.
+[target.'cfg(windows)'.dependencies.wgpu-core]
+workspace = true
+features = ["dx12", "vulkan"]

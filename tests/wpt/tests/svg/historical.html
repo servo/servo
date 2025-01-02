@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<title>Historical SVG features must be removed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var removedInterfaces = [
+  "SVGAltGlyphElement",
+  "SVGAltGlyphDefElement",
+  "SVGAltGlyphItemElement",
+  "SVGAnimatedPathData",
+  "SVGColor",
+  "SVGColorProfileElement",
+  "SVGColorProfileRule",
+  "SVGCursorElement",
+  "SVGDocument",
+  "SVGElementInstanceList",
+  "SVGExternalResourcesRequired",
+  "SVGFontElement",
+  "SVGFontFaceElement",
+  "SVGFontFaceSrcElement",
+  "SVGFontFaceUriElement",
+  "SVGFontFaceFormatElement",
+  "SVGGlyphElement",
+  "SVGGlyphRefElement",
+  "SVGHKernElement",
+  "SVGICCColor",
+  "SVGLangSpace",
+  "SVGLocatable",
+  "SVGMissingGlyphElement",
+  "SVGTransformable",
+  "SVGTRefElement",
+  "SVGPaint",
+  "SVGPathSeg",
+  "SVGStylable",
+  "SVGVKernElement",
+  "SVGViewSpec",
+  "SVGZoomEvent"
+]
+for (var name of removedInterfaces) {
+ test(function() {
+   assert_false(name in window)
+ }, name + " interface must be removed")
+}
+
+var mixinInterfaces = [
+  "GetSVGDocument",
+  "SVGAnimatedPoints",
+  "SVGElementInstance",
+  "SVGFilterPrimitiveStandardAttributes",
+  "SVGFitToViewBox",
+  "SVGTests",
+  "SVGURIReference",
+  "SVGZoomAndPan"
+]
+for (var name of mixinInterfaces) {
+  test(function() {
+    assert_false(name in window)
+  }, name + " mixin interface must not be exposed")
+}
+
+var removedMembers = {
+  "SVGElement": [
+    "getPresentationAttribute",
+    "xmlbase",
+    "xmllang",
+    "xmlspace"
+  ],
+  "SVGAElement": [
+    "text"
+  ],
+  "SVGGraphicsElement": [
+    "farthestViewportElement",
+    "getTransformToElement",
+    "hasExtension",
+    "nearestViewportElement",
+    "requiredFeatures"
+  ],
+  "SVGSVGElement": [
+    "currentView",
+    "pixelUnitToMillimeterX",
+    "pixelUnitToMillimeterY",
+    "screenPixelToMillimeterX",
+    "screenPixelToMillimeterY",
+    "useCurrentView",
+    "viewport"
+  ],
+  "SVGViewElement": [
+    "viewTarget"
+  ]
+}
+for (var name in removedMembers) {
+  for (var member of removedMembers[name]) {
+    test(function() {
+      assert_false(member in window[name].prototype)
+    }, name + ".prototype." + member + " must be removed")
+  }
+}
+
+var movedPathMembers = [
+  "getPointAtLength",
+  "getTotalLength",
+  "pathLength"
+]
+for (var member of movedPathMembers) {
+  test(function() {
+    assert_false(SVGPathElement.prototype.hasOwnProperty(member))
+    assert_true(SVGGeometryElement.prototype.hasOwnProperty(member))
+  }, "SVGPathElement.prototype." + member + " must be moved to SVGGeometryElement.prototype")
+}
+
+var implementedSVGUnitTypes =  [
+  "SVGClipPathElement",
+  "SVGFilterElement",
+  "SVGGradientElement",
+  "SVGMaskElement",
+  "SVGPatternElement"
+]
+for (var name of implementedSVGUnitTypes) {
+ test(function() {
+   assert_true(name in window);
+   var interfaceObject = window[name];
+   assert_false("SVG_UNIT_TYPE_UNKNOWN" in interfaceObject);
+   assert_false("SVG_UNIT_TYPE_USERSPACEONUSE" in interfaceObject);
+   assert_false("SVG_UNIT_TYPE_OBJECTBOUNDINGBOX" in interfaceObject);
+ }, name + " must not implement SVGUnitTypes")
+}
+</script>

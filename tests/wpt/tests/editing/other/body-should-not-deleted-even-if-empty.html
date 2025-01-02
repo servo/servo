@@ -1,0 +1,51 @@
+<html><head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head><body><script>
+"use strict"
+
+document.designMode = "on";
+
+test(() => {
+  document.querySelector("script")?.remove();
+  document.head?.remove();
+  document.body.firstChild?.remove();
+  document.body.appendChild(document.createElement("p"));
+  getSelection().collapse(document.querySelector("p"), 0);
+  document.querySelector("p").firstChild?.remove();
+  document.execCommand("delete");
+  assert_in_array(
+    document.documentElement?.outerHTML.replace(/\n/g, ""),
+    [
+      "<html><body></body></html>",
+      "<html><body><br></body></html>",
+      "<html><body><p></p></body></html>",
+      "<html><body><p><br></p></body></html>"
+    ],
+    "Body element shouldn't be deleted even if it becomes empty"
+  );
+}, "Delete in empty paragraph shouldn't delete parent body and html elements even if they become empty by Backspace");
+
+test(() => {
+  document.querySelector("script")?.remove();
+  document.head?.remove();
+  document.body.firstChild?.remove();
+  document.body.appendChild(document.createElement("p"));
+  getSelection().collapse(document.querySelector("p"), 0);
+  document.querySelector("p").firstChild?.remove();
+  document.execCommand("delete");
+  assert_in_array(
+    document.documentElement?.outerHTML.replace(/\n/g, ""),
+    [
+      "<html><body></body></html>",
+      "<html><body><br></body></html>",
+      "<html><body><p></p></body></html>",
+      "<html><body><p><br></p></body></html>"
+    ],
+    "Body element shouldn't be deleted even if it becomes empty"
+  );
+
+  document.designMode = "off";
+}, "Delete in empty paragraph shouldn't delete parent body and html elements even if they become empty by Delete");
+
+</script></body></html>

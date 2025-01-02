@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: ic unit in height with 'text-orientation: sideways'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#font-relative-lengths">
+  <link rel="match" href="reference/ic-unit-012-ref.html">
+
+  <meta name="assert" content="In this test, the ic unit is the advance width measure of the 水 (CJK water ideograph, U+6C34) glyph.">
+
+  <style>
+  @font-face
+    {
+      font-family: IcTestFullWidth;
+      src: url(resources/IcTestFullWidth.woff2);
+    }
+
+  div
+    {
+      float: left;
+      font-family: IcTestFullWidth;
+      font-size: 80px; /* arbitrary font size */
+      text-orientation: sideways;
+      writing-mode: vertical-rl;
+    }
+
+  div#test-blue
+    {
+      background-color: blue;
+      height: 5ic;
+      width: 1.8em;
+    }
+
+  div#reference-orange
+    {
+      background-color: orange;
+      color: orange;
+      line-height: 1.8; /* arbitrary line-height */
+    }
+  </style>
+
+  <p>Test passes if there is a blue rectangle with the <strong>same height</strong> as an orange rectangle.
+
+  <div id="test-blue"></div>
+
+  <div id="reference-orange">&#27700;&#27700;&#27700;&#27700;&#27700;</div>
+
+  <!--
+
+  水 (CJK water ideograph, U+6C34) glyph == &#27700;
+
+  水 (CJK water ideograph, U+6C34) glyph == &#x6C34;
+
+  -->

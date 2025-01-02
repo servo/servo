@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Test: Positions of trailing collapsible spaces</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container > div {
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+  color: gray;
+  width: 5ch;
+  outline: 2px solid orange;
+  margin-bottom: 6px;
+  position: relative;
+}
+.pre-wrap {
+  white-space: pre-wrap;
+}
+.bg { background: purple; }
+.h { outline: 4px red solid; }
+</style>
+<body>
+  <section class="container">
+    <div>1234<span data-line="0" class="h"> </span>567</div>
+    <div>1234 <span data-line="0" class="h"> </span>567</div>
+    <div>1234567<span data-line="0" class="h"> </span>567</div>
+    <div>1234567 <span data-line="0" class="h"> </span>567</div>
+    <div class="pre-wrap">1234<span data-line="0" class="bg"> </span>567</div>
+  </section>
+<script>
+for (let e of document.querySelectorAll('[data-line]')) {
+  test(() => {
+    let y = e.offsetTop;
+    assert_equals(Math.round(y / 10), parseInt(e.dataset.line));
+  });
+}
+</script>
+</body>

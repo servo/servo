@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP silent mediation tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_two_idps,
+        fedcm_test,
+        fedcm_get_and_select_first_account,
+        fedcm_select_account_promise} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const cred = navigator.credentials.get(request_options_with_two_idps('silent'));
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, "Mediation silent fails if there is no returning account.");
+
+fedcm_test(async t => {
+  // Sign in to the first account.
+  await fedcm_get_and_select_first_account(t, request_options_with_two_idps());
+
+  // Now use mediation:silent and it should work.
+  return navigator.credentials.get(request_options_with_two_idps('silent'));
+}, "Mediation silent succeeds when there is one returning account.");
+
+fedcm_test(async t => {
+  // Sign in to the first account.
+  await fedcm_get_and_select_first_account(t, request_options_with_two_idps());
+
+  // Sign in to the second account as well.
+  let cred = navigator.credentials.get(request_options_with_two_idps());
+  fedcm_select_account_promise(t, 1);
+  await cred;
+
+  // Now use mediation:silent and it should fail.
+  cred = navigator.credentials.get(request_options_with_two_idps('silent'));
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, "Mediation silent fails when there is more than one returning account.");
+</script>

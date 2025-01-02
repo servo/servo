@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta name=fuzzy content="maxDifference=0-20;totalPixels=0-30000">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="author" href="mailto:flackr@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="reference/backdrop-filter-edge-pixels-2-ref.html">
+
+<div class="red_square"></div>
+<div class="filter"></div>
+
+<style>
+div {
+  width: 100px;
+  position: absolute;
+}
+body { overflow: hidden; margin: 0;}
+.red_square {
+  height: 100px;
+  left:30px;
+  top: 20px;
+  background: red;
+  transform: rotate(30deg);
+}
+.filter {
+  height: 200px;
+  background: transparent;
+  backdrop-filter: blur(20px);
+}
+</style>

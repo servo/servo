@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> MouseEvent: mousedown - preventDefault() for text selection </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT1 = "mousedown";
+            var EVENT2 = "mouseup";
+            var TARGET;
+            var DisableSelection = false;
+            var DefaultPrevented = false;
+            var BEFORE = 0;
+            var AFTER = 0;
+
+            function DisableTextSelection()
+            {
+                DisableSelection = true;
+            }
+
+            function TestEvent(evt)
+            {
+                if ((true == DisableSelection) && (EVENT1 == evt.type))
+                {
+                    evt.preventDefault();
+                    DefaultPrevented = true;
+                    BEFORE = evt.clientX;
+                }
+                if ((true == DisableSelection) && (EVENT2 == evt.type))
+                {
+                    AFTER = evt.clientX;
+                }
+            }
+
+            function VerifyResult()
+            {
+                var distance = Math.abs(AFTER - BEFORE);
+
+                if ((true == DefaultPrevented) && (10 < distance) && ("" == window.getSelection()))
+                {
+                    PassTest()
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT1, TestEvent, false);
+                    TARGET.addEventListener(EVENT2, TestEvent, false);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: MouseEvent - Text selection is disabled after cancelling mousedown event.
+        </h4>
+
+        <span id="target" style="border:1px solid green; color:blue">&nbsp; Use mouse to select the whole line here &nbsp;</span>
+
+        <p id="manualsteps">
+            Steps:
+            <ol>
+                <li> Make sure text in the above green box can be selected using mouse
+                <li> Dismiss the selection, if any, by clicking at the green box with mouse
+                <li> Now, click the button: <button onclick="DisableTextSelection()">Disable Selection</button>
+                <li> Drag mouse to select the whole line of the text inside the above green box
+                <li> Click the button: <button id="verify" onclick="VerifyResult()">VerifyResult</button>
+            </ol>
+        </p>
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

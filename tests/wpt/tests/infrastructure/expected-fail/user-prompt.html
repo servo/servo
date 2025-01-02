@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Unhandled user prompt dismisses and notifies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="variant" content="?type=alert">
+<meta name="variant" content="?type=confirm">
+<meta name="variant" content="?type=prompt">
+<meta name="variant" content="?type=alert&wait">
+<meta name="variant" content="?type=confirm&wait">
+<meta name="variant" content="?type=prompt&wait">
+<script>
+  let params = new URL(location).searchParams;
+  setup({ single_test: true });
+  // Waiting exercises the case where a user prompt appears while waiting for
+  // the next testdriver event. The WebDriver-specified behavior is to resolve
+  // with `null` [1, 2], which the WebDriver executor should ignore. The
+  // testdriver event loop will handle the open prompt on its next cycle. For
+  // the default "dismiss and notify" handler, this throws an unexpected alert
+  // open error in the executor.
+  //
+  // [1]: Step 5.3 of https://www.w3.org/TR/webdriver/#execute-async-script
+  // [2]: https://www.w3.org/TR/webdriver/#dfn-execute-a-function-body
+  step_timeout(() => {
+    let type = params.get("type");
+    window[type]("this user prompt should be dismissed");
+    done();
+  }, params.has("wait") ? 1000 : 0);
+</script>

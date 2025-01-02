@@ -1,0 +1,4 @@
+features:
+- name: constraint-validation
+  files:
+  - object-setcustomvalidity.html

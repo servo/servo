@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'vertical-rl' and 'direction: rtl'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#logical-directions" title="6.2 Flow-relative Directions" />
+  <link rel="match" href="direction-vrl-002-ref.xht" />
+
+  <meta content="ahem image" name="flags" />
+  <meta content="This test checks that when a block box has 'direction' set to 'rtl' in a vertical writing-mode, then inlines boxes are aligned from line-right to line-left." name="assert" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div
+    {
+      color: green;
+      font: 100px/1 Ahem; /* computes to 100px/100px */
+      height: 300px;
+      width: 200px;
+    }
+
+  div
+    {
+      background: red url("support/right-bottom-200x300.png");
+      direction: rtl;
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div>B</div>
+
+ </body>
+</html>

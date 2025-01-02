@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Gradient in LCH space</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <meta name="assert" content="Tests that 'increasing' hue renders the expected gradient">
+    <meta name="fuzzy" content="maxDifference=0-18;totalPixels=0-23900">
+    <link rel="match" href="gradient-increasing-hue-lch-ref.html">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        div {
+            width: 200px;
+            height: 100px;
+            margin: 10px;
+        }
+
+        div.a {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 0deg),
+                                              lch(50% 100% 80deg));
+        }
+
+        div.b {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 80deg),
+                                              lch(50% 100% 0deg));
+        }
+
+        div.c {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 0deg),
+                                              lch(50% 100% 270deg));
+        }
+
+        div.d {
+            background-image: linear-gradient(to right in lch increasing hue,
+                                              lch(50% 100% 270deg),
+                                              lch(50% 100% 0deg));
+        }
+    </style>
+</head>
+
+<body>
+    <div class=a></div>
+    <div class=b></div>
+    <div class=c></div>
+    <div class=d></div>
+</body>
+</html>

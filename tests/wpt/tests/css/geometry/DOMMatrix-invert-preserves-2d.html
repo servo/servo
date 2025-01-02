@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Test DOMMatrix.inverse()/invertSelf() keep is2D status</title>
+<link rel="help" href="https://drafts.fxtf.org/geometry-1/#DOMMatrix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function check2D(m) {
+  assert_true(m.is2D);
+  // assert_equals() distinguish 0 and -0, so use '== 0' instead.
+  assert_true(m.m13 == 0);
+  assert_true(m.m14 == 0);
+  assert_true(m.m23 == 0);
+  assert_true(m.m24 == 0);
+  assert_true(m.m31 == 0);
+  assert_true(m.m32 == 0);
+  assert_equals(m.m33, 1);
+  assert_true(m.m34 == 0);
+  assert_true(m.m43 == 0);
+  assert_equals(m.m44, 1);
+}
+
+test(function() {
+  for (var s = 0.1; s < 20; s += 0.1) {
+    m = new DOMMatrix().scale(s, s);
+    check2D(m);
+    check2D(m.inverse());
+    m.invertSelf();
+    check2D(m);
+  }
+}, "scale");
+
+test(function() {
+  for (var r = 0; r < 180; r += 2) {
+    m = new DOMMatrix().rotate(r);
+    check2D(m);
+    check2D(m.inverse());
+    m.invertSelf();
+    check2D(m);
+  }
+}, "rotate");
+</script>

@@ -1,0 +1,18 @@
+<html class="test-wait">
+<head>
+  <title>
+    Test enumerateDevices() calls either side of browsing context discard
+  </title>
+</head>
+<script>
+  const frame = document.createElement('frame');
+  document.documentElement.appendChild(frame);
+  const devices = frame.contentWindow.navigator.mediaDevices;
+  devices.enumerateDevices();
+  frame.remove();
+  devices.enumerateDevices();
+  // Wait long enough to expect the async enumerateDevices() code to complete.
+  navigator.mediaDevices.enumerateDevices().then(
+    () => document.documentElement.removeAttribute("class"));
+</script>
+</html>

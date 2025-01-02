@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, cue position after navigation</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.video {
+    display: inline-block;
+    outline: solid;
+    width: 320px;
+    height: 240px;
+    position: relative;
+    font-size: 50px;
+}
+video {
+    position: absolute;
+    width:320px;
+    height:240px;
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+}
+</style>
+<video>
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+</video>
+<div class="video"><span class="cue"><span>Foo</span></span></div>

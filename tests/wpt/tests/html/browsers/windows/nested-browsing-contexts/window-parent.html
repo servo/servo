@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>window.parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+ test(function() {
+   assert_equals(window, parent)
+ }, '`window.parent` for top-level browsing context');
+
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  iframe.onload  = t.step_func_done(function () {
+    var iWindow = iframe.contentWindow;
+    assert_equals(iWindow.parent, window);
+  });
+  document.body.appendChild(iframe);
+}, '`window.parent` on single nested browsing context');
+
+async_test(t => {
+  var iframe = document.createElement('iframe');
+  var iframe2;
+
+  var testFunc = t.step_func_done(function () {
+    var frameWindow = iframe.contentWindow;
+    var frame2Window = iframe2.contentWindow;
+    assert_equals(frameWindow.parent, window);
+    assert_equals(frame2Window.parent, frameWindow);
+    assert_not_equals(frame2Window.parent, window);
+  });
+
+  var nestFrame = function () {
+    iframe2 = iframe.contentDocument.createElement('iframe');
+    // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1229707
+    iframe2.src = '/common/blank.html';
+    iframe2.addEventListener('load', testFunc);
+    iframe.contentDocument.body.appendChild(iframe2);
+  };
+
+  iframe.addEventListener('load', nestFrame);
+  document.body.appendChild(iframe);
+}, '`window.parent` for multiple nested browsing contexts');
+</script>

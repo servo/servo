@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSSOM StyleRule selectorText property setter</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#dom-cssstylerule-selectortext">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<style type="text/css" id="styleElement">
+  .style0 { background-color: rgb(0, 0, 255) !important; }
+  .style1 { background-color: rgb(255, 0, 255); }
+</style>
+
+<span>
+  <p></p>
+  <div id="container" class="style1" lang="zh-CN" language segment="42 43">
+  </div>
+</span>
+
+<script>
+  var styleSheet = document.getElementById("styleElement").sheet;
+  var rule = styleSheet.cssRules[0];
+
+  var divContainerStyle = getComputedStyle(document.getElementById("container"));
+
+  const originalStyleSelector = ".style0";
+
+  var assertColors = function(selectorMatches) {
+    assert_equals(divContainerStyle.backgroundColor, selectorMatches ? "rgb(0, 0, 255)" : "rgb(255, 0, 255)")
+  };
+
+  test(function() {
+    assert_equals(typeof rule.selectorText, "string");
+    assert_equals(rule.selectorText, originalStyleSelector);
+  }, "CSSStyleRule: Can read selectorText value.");
+
+  [ // Invalid selector values.
+    "",
+    " ",
+    "!!",
+    "123",
+    "-",
+    "$",
+    ":",
+    "::",
+    ":::",
+    "::gibberish",
+    ":gibberish",
+    ".",
+    "#",
+    "[]",
+    "[",
+    "()",
+    "(",
+    "{}",
+    "{",
+  ].forEach(function(selector) {
+    test(function() {
+      assert_equals(rule.selectorText, originalStyleSelector);
+
+      this.add_cleanup(function() { rule.selectorText = originalStyleSelector; });
+
+      rule.selectorText = selector;
+
+      assert_equals(rule.selectorText, originalStyleSelector);
+    }, "CSSStyleRule: Invalid CSS selector: " + selector);
+  });
+
+
+  [ // Valid selector values.
+    {selector: "#container", isMatch: true},
+    {selector: "#container  ", isMatch: true, normalizedSelector: "#container"},
+    {selector: "  #container ", isMatch: true, normalizedSelector: "#container"},
+    {selector: ".style1", isMatch: true},
+    {selector: "div.style1", isMatch: true},
+    {selector: "div:not(#non-existing-id)", isMatch: true},
+    {selector: "div", isMatch: true},
+    {selector: "*", isMatch: true},
+
+    {selector: "#no-match", isMatch: false},
+    {selector: "ÇĞıİ", isMatch: false},
+    {selector: "🤓", isMatch: false},
+
+    {selector: "[language]", isMatch: true},
+    {selector: "[language-no]", isMatch: false},
+    {selector: "[lang=\"zh-CN\"]", isMatch: true},
+    {selector: "[lang=\"ab-CD\"]", isMatch: false},
+    {selector: "[segment~=\"43\"]", isMatch: true},
+    {selector: "[segment~=\"42\"]", isMatch: true},
+    {selector: "[lang|=\"zh\"]", isMatch: true},
+    {selector: "[lang|=\"zh-CN\"]", isMatch: true},
+    {selector: "[lang|=\"ab\"]", isMatch: false},
+    {selector: "[lang|=\"z\"]", isMatch: false},
+    {selector: "[lang^=\"z\"]", isMatch: true},
+    {selector: "[lang^=\"ab\"]", isMatch: false},
+    {selector: "[segment$=\"43\"]", isMatch: true},
+    {selector: "[segment$=\"3\"]", isMatch: true},
+    {selector: "[segment$=\"42\"]", isMatch: false},
+    {selector: "[lang*=\"-\"]", isMatch: true},
+    {selector: "[lang*=\"h-\"]", isMatch: true},
+    {selector: "[lang*=\"ab\"]", isMatch: false},
+
+    {selector: "*|div", isMatch: true, normalizedSelector: "div"},
+    {selector: "|div", isMatch: false},
+    {selector: "*|a", isMatch: false, normalizedSelector: "a"},
+    {selector: "*|*", isMatch: true, normalizedSelector: "*"},
+    {selector: "[*|lang]", isMatch: true, normalizedSelector: "[*|lang]"},
+    {selector: "[|lang]", isMatch: true, normalizedSelector: "[lang]"},
+
+    {selector: ":active", isMatch: false},
+    {selector: ":not(:active)", isMatch: true},
+    {selector: "*:not(:active)", isMatch: true, normalizedSelector: ":not(:active)"},
+    {selector: "div:not(:active)", isMatch: true},
+    {selector: "div:active", isMatch: false},
+
+    {selector: "span div", isMatch: true},
+    {selector: "span  div  ", isMatch: true, normalizedSelector: "span div"},
+    {selector: "span > div", isMatch: true},
+    {selector: "div div", isMatch: false},
+    {selector: "div > div", isMatch: false},
+    {selector: "p + div", isMatch: true},
+    {selector: "span + div", isMatch: false},
+    {selector: "p ~ div", isMatch: true},
+    {selector: "span ~ div", isMatch: false},
+
+    {selector: ":lang(zh-CN)", isMatch: true},
+    {selector: ":lang(zh)", isMatch: true},
+    {selector: ":lang(tr-AZ)", isMatch: false},
+
+    {selector: "::after", isMatch: false, normalizedSelector: "::after"},
+    {selector: ":after", isMatch: false, normalizedSelector: "::after"},
+    {selector: "::before", isMatch: false, normalizedSelector: "::before"},
+    {selector: ":before", isMatch: false, normalizedSelector: "::before"},
+    {selector: "::first-letter", isMatch: false, normalizedSelector: "::first-letter"},
+    {selector: ":first-letter", isMatch: false, normalizedSelector: "::first-letter"},
+    {selector: "::first-line", isMatch: false, normalizedSelector: "::first-line"},
+    {selector: ":first-line", isMatch: false, normalizedSelector: "::first-line"},
+
+    {selector: "div:focus:not([lang=\"zh-CN\"])", isMatch: false},
+    {selector: "div[lang=\"zh-CN\"]:not(:focus)", isMatch: true},
+  ].forEach(function(testCase) {
+    test(function() {
+      // Check if starting with the default value.
+      assert_equals(rule.selectorText, originalStyleSelector);
+
+      this.add_cleanup(function() { rule.selectorText = originalStyleSelector; });
+
+      assertColors(false);
+
+      rule.selectorText = testCase.selector;
+
+      var expectedSelector = testCase.normalizedSelector ? testCase.normalizedSelector : testCase.selector;
+
+      assert_equals(rule.selectorText, expectedSelector);
+
+      assertColors(testCase.isMatch);
+    }, "CSSStyleRule: selectorText value: |" + testCase.selector + "| isMatch: " + testCase.isMatch);
+  });
+</script>

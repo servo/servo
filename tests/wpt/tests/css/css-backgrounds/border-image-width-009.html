@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: border image area - border-image-width with 1, 2 or 4 values with percentage unit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-width">
+  <link rel="match" href="reference/border-image-width-009-ref.html">
+
+  <meta name="flags" content="">
+  <meta content="This test checks that the border image area can still exist even if the border area (or border belt) of an element is inexistent. In this test, the border image fills the content area, the padding area and 25px of the extended-beyond-border-belt area, 25px into the margin area of each of the 4 tested block elements." name="assert">
+
+  <style>
+  div
+    {
+      background-color: red;
+      border: red 100px;
+      /*
+      'border-style' defaults to 'none', in which case computed border-width is 0px. So, here, the border belt (or border area) of each div blocks must be 0px tall and 0px wide for all 4 sides of each of the 4 div block elements.
+      */
+      border-image-source: url("support/9-colored-areas.png");
+      border-image-slice: 5% 10% 15% 20%;
+      /* <number> Percentages are relative to the size of the image: the width of the image for the horizontal offsets, the height for vertical offsets. */
+      border-image-outset: 25px;
+      /* The border-image-outset values specify the amount by which the border image area _ extends beyond the border box_. */
+      height: 20px;
+      margin: 25px 25px 58px 25px;
+      /* 25px == border-image-outset .
+      Not part of the test. We want each square to be fully visible and not to expand outside the viewport on the left side. We also want both top border-image-outset and bottom border-image-outset to be rendered without overlapping by taking into account the margin collapsing. After margin collapsing of vertically-adjacent div blocks, we want inter-square distance to be 8px.
+      */
+      padding: 15px;
+      width: 20px;
+    }
+
+  div#sub-test1
+    {
+      border-image-width: 50%;
+      /*
+      The four values of 'border-image-width' specify offsets
+      that are used to divide the border image area into nine
+      parts. They represent inward distances from the the top,
+      right, bottom, and left sides of the area, respectively.
+      In this sub-test1, the border-image-width divide the border
+      image area into four (4) parts, not nine parts. The center
+      (fill) area is 0px wide by 0px tall.
+      */
+      margin-top: 33px;
+    }
+
+  div#sub-test2
+    {
+      border-image-width: 50% 30%;
+      /*
+      In this sub-test2, the border-image-width divide the border
+      image area into six (6) parts, not nine parts. The center
+      (fill) area is 40px wide by 0px tall.
+      */
+    }
+
+  div#sub-test3
+    {
+      border-image-width: 70% 0% 30% 0%;
+      /*
+      In this test sub-test3, the border-image-width divide the border
+      image area into two (2) parts, not nine parts. The center
+      (fill) area is 100px wide by 0px tall.
+      */
+    }
+
+  div#sub-test4
+    {
+      border-image-width: 0% 70% 0% 30%;
+      /*
+      In this sub-test4, the border-image-width divide the border
+      image area into two (2) parts, not nine parts. The center
+      (fill) area is 0px wide by 100px tall. */
+    }
+  </style>
+
+  <div id="sub-test1"></div>
+
+  <div id="sub-test2"></div>
+
+  <div id="sub-test3"></div>
+
+  <div id="sub-test4"></div>

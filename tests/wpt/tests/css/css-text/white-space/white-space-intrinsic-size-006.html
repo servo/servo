@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: min-content sizing and white-space: pre-wrap</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#propdef-white-space">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-alt-004-ref.html">
+<meta name="assert" content="Preserved spaces unconditionally hang if they might overflow otherwise, hence they do not affect the intrinsic min-content size.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+div {
+    font: 25px/1 Ahem;
+    color: green;
+    background: red;
+
+    width: min-content;
+    white-space: pre-wrap;
+}
+</style>
+
+<p>This test passes if there is a green square and no red.
+
+<div>XX&#x0020;XX</div>

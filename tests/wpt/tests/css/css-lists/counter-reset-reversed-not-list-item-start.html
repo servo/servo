@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: counter-reset reversed(not-list-item) with start value</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="match" href="counter-7-ref.html">
+<style>
+  .reset-reversed { counter-reset: reversed(not-list-item) 7 }
+  .result::before { content: counter(not-list-item) }
+</style>
+<p>You should see the number 7 below.</p>
+<div>
+  <span class="reset-reversed"></span>
+  <span></span>
+  <span class="result"></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+</div>

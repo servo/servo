@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Serializing of palette-mix() function</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#propdef-font-palette">
+<meta name="assert" content="Check serialization of palette-mix() value in computed style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<style>
+:root {
+  font-size: 16px;
+}
+</style>
+<div id="target"></div>
+<script>
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 30%, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 30%, light)`, `light`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 30%, normal)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, --custom-palette 30%, normal)`);
+
+    // Percentage value serialization
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 50%, dark 50%)`, `palette-mix(in oklab, light, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light, dark 50%)`, `palette-mix(in oklab, light, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 50%, dark)`, `palette-mix(in oklab, light, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light, dark)`, `palette-mix(in oklab, light, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 50%, dark 70%)`, `palette-mix(in oklab, light 50%, dark 70%)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 70%, dark 70%)`, `palette-mix(in oklab, light 70%, dark 70%)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light, dark 70%)`, `palette-mix(in oklab, light 30%, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 30%, dark 70%)`, `palette-mix(in oklab, light 30%, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 60%, dark)`, `palette-mix(in oklab, light 60%, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light 10%, dark 40%)`, `palette-mix(in oklab, light 10%, dark 40%)`);
+
+    // With sign() function
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light calc(sign(1rem - 1px) * 10%), dark calc(sign(1rem - 1px) * 40%))`, `palette-mix(in oklab, light 10%, dark 40%)`);
+
+
+    // Color spaces parsing
+    for (const colorSpace of [ "hsl", "hwb", "lch", "oklch", "lab", "oklab", "srgb", "srgb-linear", "xyz", "xyz-d50", "xyz-d65" ]) {
+        const resultColorSpace = colorSpace == "xyz" ? "xyz-d65" : colorSpace;
+        test_computed_value(`font-palette`, `palette-mix(in ${colorSpace}, light 10%, dark)`, `palette-mix(in ${resultColorSpace}, light 10%, dark)`);
+    }
+
+    // Nested palette-mix()
+    test_computed_value(`font-palette`, `palette-mix(in oklab, palette-mix(in srgb, light 30%, normal) 20%, dark)`);
+    test_computed_value(`font-palette`, `palette-mix(in oklab, palette-mix(in srgb, light 30%, normal) 30%, palette-mix(in srgb, --custom-palette 30%, dark))`);
+</script>
+</body>
+</html>

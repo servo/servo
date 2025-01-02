@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+<title>enumerateDevices depends only on capture state, not permission state</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+</head>
+<body>
+
+<script>
+  promise_test(async t => {
+    await setMediaPermission();
+    const stream = await navigator.mediaDevices.getUserMedia({audio : true, video: true});
+    stream.getTracks().forEach(t => t.stop());
+    // the page loaded below hasn't had capture enabled
+    // so enumerateDevices should not list detailed info yet
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("allow", "microphone;camera");
+    iframe.src = "/mediacapture-streams/iframe-enumerate-nogum.html";
+    document.body.appendChild(iframe);
+    const loadWatcher = new EventWatcher(t, iframe, ['load']);
+    await loadWatcher.wait_for('load');
+    const msgWatcher = new EventWatcher(t, window, ['message']);
+    frames[0].postMessage('run', '*')
+    const e = await msgWatcher.wait_for('message');
+    const iframeDevices = e.data.devices;
+    const kinds = iframeDevices.map(({kind}) => kind);
+    assert_equals(kinds.length, new Set(kinds).size, "At most one of a kind prior to capture");
+    for (const device of iframeDevices) {
+      assert_equals(device.deviceId, "", "deviceId pre-capture is empty");
+      assert_equals(device.label, "", "label pre-capture is empty");
+      assert_equals(device.groupId, "", "groupId pre-capture is empty");
+    }
+  });
+</script>

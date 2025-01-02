@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<iframe id="iframe" srcdoc="
+  <script>
+  window.onload = () => {
+    new Notification('foo');
+    if (window.parent.ran) {
+      window.parent.document.documentElement.classList.remove('test-wait');
+    } else {
+      window.parent.ran = true;
+      location.reload();
+    }
+  }
+  </script>
+"></iframe>

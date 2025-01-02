@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-children">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that boxes created by ::before/::after appear as children." />
+
+<style>
+.test {
+  --child-expected: ["1", "2", "3"];
+
+  background: red;
+  width: 100px;
+}
+
+.test::before {
+  visibility: hidden;
+  content: 'before';
+  --child: 1;
+}
+
+.inflow {
+  visibility: hidden;
+  --child: 2;
+}
+
+.test::after {
+  visibility: hidden;
+  content: 'after';
+  --child: 3;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="inflow"></div>
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-worklet.js'});
+</script>

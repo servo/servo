@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/dictionary-helper.js"></script>
+<script src="/webrtc/RTCRtpParameters-helper.js"></script>
+<script>
+'use strict';
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  assert_throws_js(RangeError, () => pc.addTransceiver('video', {
+    sendEncodings: [{
+      maxFramerate: -10
+    }]
+  }));
+}, `addTransceiver() with sendEncoding.maxFramerate field set to less than 0 should reject with RangeError`);
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  let {sender} = pc.addTransceiver('audio', {
+    sendEncodings: [{
+      maxFramerate: -10
+    }]
+  });
+  let encodings = sender.getParameters().encodings;
+  assert_equals(encodings.length, 1);
+  assert_not_own_property(encodings[0], "maxFramerate");
+
+  sender = pc.addTransceiver('audio', {
+    sendEncodings: [{
+      maxFramerate: 10
+    }]
+  }).sender;
+  encodings = sender.getParameters().encodings;
+  assert_equals(encodings.length, 1);
+  assert_not_own_property(encodings[0], "maxFramerate");
+}, `addTransceiver('audio') with sendEncoding.maxFramerate should succeed, but remove the maxFramerate, even if it is invalid`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {sender} = pc.addTransceiver('audio');
+  let params = sender.getParameters();
+  assert_equals(params.encodings.length, 1);
+  params.encodings[0].maxFramerate = 20;
+  await sender.setParameters(params);
+  const {encodings} = sender.getParameters();
+  assert_equals(encodings.length, 1);
+  assert_not_own_property(encodings[0], "maxFramerate");
+}, `setParameters with maxFramerate on an audio sender should succeed, but remove the maxFramerate`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {sender} = pc.addTransceiver('audio');
+  let params = sender.getParameters();
+  assert_equals(params.encodings.length, 1);
+  params.encodings[0].maxFramerate = -1;
+  await sender.setParameters(params);
+  const {encodings} = sender.getParameters();
+  assert_equals(encodings.length, 1);
+  assert_not_own_property(encodings[0], "maxFramerate");
+}, `setParameters with an invalid maxFramerate on an audio sender should succeed, but remove the maxFramerate`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('video');
+  await doOfferAnswerExchange(t, pc);
+
+  const param = sender.getParameters();
+  const encoding = param.encodings[0];
+  assert_not_own_property(encoding, "maxFramerate");
+
+  encoding.maxFramerate = -10;
+  return promise_rejects_js(t, RangeError,
+    sender.setParameters(param));
+}, `setParameters() with encoding.maxFramerate field set to less than 0 should reject with RangeError`);
+
+// It would be great if we could test to see whether maxFramerate is actually
+// honored.
+test_modified_encoding('video', 'maxFramerate', 24, 16,
+  'setParameters() with maxFramerate 24->16 should succeed');
+
+test_modified_encoding('video', 'maxFramerate', undefined, 16,
+  'setParameters() with maxFramerate undefined->16 should succeed');
+
+test_modified_encoding('video', 'maxFramerate', 24, undefined,
+  'setParameters() with maxFramerate 24->undefined should succeed');
+
+test_modified_encoding('video', 'maxFramerate', 0, 16,
+  'setParameters() with maxFramerate 0->16 should succeed');
+
+test_modified_encoding('video', 'maxFramerate', 24, 0,
+  'setParameters() with maxFramerate 24->0 should succeed');
+
+</script>

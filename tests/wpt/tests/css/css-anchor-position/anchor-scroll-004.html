@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests anchor positioned scrolling with relatively positioned inline containers</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/#scroll">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.cb {
+  position: relative;
+  font: 20px/1 Ahem, monospace;
+}
+
+.scroller {
+  display: inline-block;
+  overflow-x: scroll;
+  width: 160px;
+  white-space: nowrap;
+}
+
+.anchor {
+  anchor-name: --a;
+  color: orange;
+}
+
+.target {
+  position: absolute;
+  position-anchor: --a;
+  top: anchor(bottom);
+  left: anchor(left);
+  color: lime;
+}
+</style>
+
+<div>
+  <span class="cb">
+    <span class="scroller" id="scroller1">
+      before
+      <span class="anchor" id="anchor1">anchor</span>
+      after
+    </span>
+    <span class="target" id="target1">target</span>
+  </span>
+
+  <br>
+  <br>
+
+  <span class="cb">
+    <span class="scroller" id="scroller2">
+      before
+      <span class="anchor" id="anchor2">anchor</span>
+      after
+    </span>
+    <span class="target" id="target2">target</span>
+  </span>
+</div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target1.getBoundingClientRect().left, 140);
+  assert_equals(target2.getBoundingClientRect().left, 140);
+}, 'Initial position of the targets');
+
+promise_test(async () => {
+  scroller1.scrollLeft = 20;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target1.getBoundingClientRect().left, 120);
+}, '#target1 should scroll with #anchor1');
+
+promise_test(async () => {
+  scroller2.scrollLeft = 40;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target2.getBoundingClientRect().left, 100);
+}, '#target2 should scroll with #anchor2');
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<title>SVGLength with 'ic' unit</title>
+<link rel="help" href="https://www.w3.org/TR/SVG/types.html#InterfaceSVGLength">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="ic_ref" style="font-family:initial; font-size:20px; width:10ic"></div>
+<svg>
+  <text id="ic_test" x="10ic" style="font-family:initial; font-size:20px"></text>
+</svg>
+<script>
+  let ref_width = ic_ref.getBoundingClientRect().width;
+  let ic_length = ic_test.x.baseVal[0];
+
+  test(() => {
+    assert_equals(ic_length.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+    assert_equals(ic_length.value, ref_width);
+  }, "ic unit in SVGLength");
+
+  test(() => {
+    ic_length.value = ref_width * 2;
+    assert_equals(ic_length.valueInSpecifiedUnits, 20);
+  }, "Convert back to ic from new user unit value");
+</script>

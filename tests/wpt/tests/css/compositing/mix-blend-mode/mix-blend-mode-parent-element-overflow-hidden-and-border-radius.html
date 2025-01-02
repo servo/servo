@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blending between an element having overflow:hidden and border-radius and its child</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Ion Roșca" href="mailto:rosca@adobe.com">
+        <link rel="reviewer" title="Mihai Țică" href="mailto:mitica@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that an element having mix-blend-mode blends with the parent element having overflow:hidden and border-radius">
+        <meta name="fuzzy" content="0-128;0-400">
+        <link rel="match" href="reference/mix-blend-mode-parent-element-overflow-hidden-and-border-radius-ref.html">
+        <style type="text/css">
+            .parent {
+                background: red;
+                width: 140px;
+                height: 140px;
+                position: relative;
+                z-index: 1;
+                overflow: hidden;
+                border-radius: 1em 5em;
+            }
+            .blended {
+                background: yellow;
+                width: 200px;
+                height: 200px;
+                mix-blend-mode: difference;
+            }
+        </style>
+    </head>
+    <body>
+        <p> Test passes if you see a lime square with rounded corners.</p>
+        <div class="parent">
+            <div class="blended"></div>
+        </div>
+    </body>
+</html>

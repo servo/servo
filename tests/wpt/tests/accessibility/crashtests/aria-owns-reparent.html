@@ -1,0 +1,21 @@
+<html class="test-wait">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById('owner').setAttribute('aria-owns','x');
+      document.body.setAttribute('aria-hidden', 'true');
+      document.documentElement.className = '';
+    });
+  });
+});
+</script>
+</head>
+<body>
+<p id='owner'></p>
+
+<div>
+  <fieldset id='x'></fieldset>
+</div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Dragging text to UI widgets via window decoration</title>
+  </head>
+  <body>
+
+    <p>This test assumes that the address bar is positioned below the window's title bar, and above the page. If your browser uses an alternative layout, adjust your testing accordingly to ensure that the testing interacts with the edges of the window decoration.</p>
+    <ol>
+      <li>Select some text on this page.</li>
+      <li>Drag the selection to your browser's title bar.</li>
+      <li>Drag the selection back to your browser's address field. Fail if the mouse cursor shows that the text cannot be dropped.</li>
+      <li>Fail if the cursor and/or input focus caret respond in the wrong position (ie. if the drag operation seems to think the address field is offset from its actual location).</li>
+      <li>Release it. Pass if the selected text appears in the address field.</li>
+      <li>Repeat the test with other UI text inputs.</li>
+    </ol>
+
+  </body>
+</html>

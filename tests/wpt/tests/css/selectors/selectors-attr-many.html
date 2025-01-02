@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Selectors: Many attribute selectors, and one that is only set</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="help" href="https://crbug.com/1345818"/>
+<link rel="match" href="selectors-attr-many-ref.html"/>
+<style>
+[color-me] { color: green; }
+[color-me='blue'] { color: blue; }
+[color-me='blue1'] { color: blue; }
+[color-me='blue2'] { color: blue; }
+[color-me='blue3'] { color: blue; }
+[color-me='blue4'] { color: blue; }
+[color-me='blue5'] { color: blue; }
+[color-me='blue6'] { color: blue; }
+[color-me='blue7'] { color: blue; }
+[color-me='blue8'] { color: blue; }
+[color-me='blue9'] { color: blue; }
+[color-me='orange'] { color: orange; }
+[color-me='orange1'] { color: orange; }
+[color-me='orange2'] { color: orange; }
+[color-me='orange3'] { color: orange; }
+[color-me='orange4'] { color: orange; }
+[color-me='orange5'] { color: orange; }
+[color-me='orange6'] { color: orange; }
+[color-me='orange7'] { color: orange; }
+[color-me='orange8'] { color: orange; }
+[color-me='orange9'] { color: orange; }
+[color-me='green'] { color: green; }
+[color-me='green1'] { color: green; }
+[color-me='green2'] { color: green; }
+[color-me='green3'] { color: green; }
+[color-me='green4'] { color: green; }
+[color-me='green5'] { color: green; }
+[color-me='green6'] { color: green; }
+[color-me='green7'] { color: green; }
+[color-me='green8'] { color: green; }
+[color-me='green9'] { color: green; }
+[color-me='purple'] { color: purple; }
+[color-me='purple1'] { color: purple; }
+[color-me='purple2'] { color: purple; }
+[color-me='purple3'] { color: purple; }
+[color-me='purple4'] { color: purple; }
+[color-me='purple5'] { color: purple; }
+[color-me='purple6'] { color: purple; }
+[color-me='purple7'] { color: purple; }
+[color-me='purple8'] { color: purple; }
+[color-me='purple9'] { color: purple; }
+[color-me='turquoise'] { color: turquoise; }
+[color-me='turquoise1'] { color: turquoise; }
+[color-me='turquoise2'] { color: turquoise; }
+[color-me='turquoise3'] { color: turquoise; }
+[color-me='turquoise4'] { color: turquoise; }
+[color-me='turquoise5'] { color: turquoise; }
+[color-me='turquoise6'] { color: turquoise; }
+[color-me='turquoise7'] { color: turquoise; }
+[color-me='turquoise8'] { color: turquoise; }
+</style>
+<p>This text should be black.</p>
+<p color-me="unknown">This text should be green.</p>
+<p color-me="blue">This text should be blue.</p>

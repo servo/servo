@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events coordinates with fractional values</title>
+        <meta name="viewport" content="width=device-width">
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?touch">
+        <meta name="variant" content="?pen">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <style>
+            #innerFrame {
+                transform: scale(5);
+                width: 60px;
+                height: 60px;
+                margin-left: 120px;
+                margin-top: 120px;
+                border: 0.01px solid black;
+            }
+        </style>
+        <script>
+            "use strict";
+            const input = location.search.substring(1);
+            const eventList = [
+                "pointerdown",
+                "pointerup",
+                "pointermove",
+                "pointerover",
+                "pointerout",
+                "pointerenter",
+                "pointerleave",
+                "click"
+            ];
+            let eventsWithFractions = {};
+            let clickedTargetList = [];
+
+            function resetTestState() {
+                eventsWithFractions = {};
+                clickedTargetList = [];
+            }
+
+            function checkPointerEventCoordinates(event) {
+              if (event.clientX != Math.floor(event.clientX) ||
+                    event.clientY != Math.floor(event.clientY))
+                eventsWithFractions[event.type] = true;
+            }
+
+            function testInputType(inputSource) {
+              const scale = 5;
+              const width = 3;
+              const height = 3;
+              const targetFrame = document.querySelector('#innerFrame');
+              const frameRect = targetFrame.getBoundingClientRect();
+              const frameLeft = frameRect.left;
+              const frameTop = frameRect.top;
+
+              const targets = [{x: 10, y: 10}, {x: 30, y: 50}, {x: 50, y: 30}]
+              const xPositions = []
+              const yPositions = []
+              for (let i = 0; i < targets.length; i++) {
+                xPositions.push((targets[i].x + width / 2.0) * scale + frameLeft);
+                yPositions.push((targets[i].y + height / 2.0) * scale + frameTop);
+              }
+              return sendInputAt(inputSource, xPositions[0], yPositions[0]).then(function() {
+                return sendInputAt(inputSource, xPositions[1], yPositions[1]);
+              }).then(function() {
+                return sendInputAt(inputSource, xPositions[2], yPositions[2]);
+              });
+            }
+
+            function sendInputAt(inputSource, xPosition, yPosition) {
+              if (inputSource == "touch") {
+                return new test_driver.Actions()
+                  .addPointer("touchPointer1", "touch")
+                  .pointerMove(Math.ceil(xPosition), Math.ceil(yPosition))
+                  .pointerDown()
+                  .pointerMove(Math.ceil(xPosition + 1), Math.ceil(yPosition + 1))
+                  .pointerUp()
+                  .send();
+              } else {
+                return new test_driver.Actions()
+                  .pointerMove(Math.ceil(xPosition), Math.ceil(yPosition))
+                  .pointerDown()
+                  .pointerUp()
+                  .send();
+              }
+            }
+
+            function run() {
+                const test_pointerEvent = setup_pointerevent_test("pointerevent events in capturing", [input]);
+                const innerFrame = document.getElementById('innerFrame');
+                const innerDocument = innerFrame.contentDocument;
+                ['s1', 's2', 's3'].forEach(function(id){
+                    const target = innerDocument.getElementById(id);
+                    eventList.forEach(function(eventName) {
+                        on_event(target, eventName, checkPointerEventCoordinates);
+                    });
+
+                    on_event(target, "click", function (event) {
+                      if (!(event.target.id in clickedTargetList)) {
+                          clickedTargetList.push(event.target.id);
+                      }
+                      if (clickedTargetList.length == 3) {
+                          test(function () {
+                            eventList.forEach(function(eventName){
+                                if (eventName == "click") {
+                                    assert_false(eventName in eventsWithFractions,
+                                        eventName + " should not have fractional coordinates");
+                                } else {
+                                    assert_true(eventName in eventsWithFractions,
+                                        eventName + " should have fractional coordinates");
+                                }
+                            });
+                            // At this point, we know that `eventsWithFractions` contains all
+                            // of `eventList` except "click".  The assert below rules out any
+                            // extra entry in `eventsWithFractions`.
+                            assert_equals(Object.keys(eventsWithFractions).length,
+                                  eventList.length - 1,
+                                  "eventsWithFractions list does not have any redundant entry");
+                          }, expectedPointerType);
+                          test_pointerEvent.done();
+                      }
+                    });
+                });
+
+                testInputType(input);
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events coordinates support fractional value</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks pointer events has fractional client coordinates
+            <ol>
+                 <li>Move your pointer over one black square</li>
+                 <li>Press down the pointer (i.e. press left button with mouse or touch the screen with finger or pen).</li>
+                 <li>Release the pointer.</li>
+                 <li>Move to next black square and repreat 2 and 3</li>
+            </ol>
+
+            Test passes if pointer events has fractional coordinates.
+        </h4>
+        <iframe id=innerFrame src="resources/pointerevent_fractional_coordinates-iframe.html"></iframe>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

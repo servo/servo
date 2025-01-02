@@ -1,0 +1,36 @@
+<!doctype html>
+<title>CSS Test: Absolutely positioned children of flex container with CSS align</title>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1386654">
+<link rel="match" href="position-absolute-containing-block-002-ref.html">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<style>
+.parent {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 180px;
+
+  /* Expand the background area to 200px, without touching the content-box,
+     which is what flex absolute children should be aligned relative to. */
+  border-top: 5px solid yellow;
+  padding-top: 15px;
+  border-left: 5px solid yellow;
+  padding-left: 15px;
+
+  background: yellow;
+}
+
+.child {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<div class="parent"><div class="child"></div></div>

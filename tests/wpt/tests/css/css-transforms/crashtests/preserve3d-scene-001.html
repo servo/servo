@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Very large values in matrix3d()</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1224066">
+<meta name="assert" content="This should not crash.">
+<style>
+
+.outer {
+  column-count:16384;
+  -webkit-mask-box-image: url('?') 10% 90% repeat;
+}
+
+.middle {
+  -webkit-transform-style:preserve-3d;
+  display:list-item;
+}
+
+table {
+  height:7.1px;
+  padding-right:4em;
+  transform:matrix3d(0,7.8,+9,+2,-3.6,3.4,6,8.8,9.5,7,7.3,5.3,6.4,3.7,8.3,8);
+  border-left: medium black solid;
+}
+
+tbody {
+  font:icon;
+}
+
+</style>
+
+<div class="outer"><div class="middle"><table>

@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS clip path with zero box size</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="help" href="https://bugzil.la/1785903">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="clip-path-round-zero-size-ref.html">
+<!-- Allow differences of antialised pixels along rounded edges -->
+<meta name="fuzzy" content="maxDifference=0-64;totalPixels=0-100">
+<style>
+#target {
+  margin: 50px;
+  height: 0px;
+  width: 0px;
+  outline: 50px solid lime;
+  clip-path: inset(-20px round 5px);
+}
+</style>
+<div id="target"></div>

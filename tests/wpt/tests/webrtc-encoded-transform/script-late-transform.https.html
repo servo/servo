@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+    </head>
+    <body>
+        <video controls id="video" autoplay></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+        <script src ="routines.js"></script>
+        <script>
+function grabFrameData(x, y, w, h)
+{
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    canvas.getContext('2d').drawImage(video, x, y, w, h, x, y, w, h);
+    return canvas.getContext('2d').getImageData(x, y, w, h).data;
+}
+
+function getCircleImageData()
+{
+    return grabFrameData(450, 100, 150, 100);
+}
+
+async function checkVideoIsUpdated(test, shouldBeUpdated, count, referenceData)
+{
+    if (count === undefined)
+        count = 0;
+    else if (count >= 20)
+        return Promise.reject("checkVideoIsUpdated timed out :" + shouldBeUpdated + " " + count);
+
+    if (referenceData === undefined)
+        referenceData = getCircleImageData();
+
+    await waitFor(test, 200);
+    const newData = getCircleImageData();
+
+    if (shouldBeUpdated === (JSON.stringify(referenceData) !== JSON.stringify(newData)))
+        return;
+
+    await checkVideoIsUpdated(test, shouldBeUpdated, ++count, newData);
+}
+
+promise_test(async (test) => {
+    await setMediaPermission("granted", ["camera"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({video: true});
+    const senderTransform = new SFrameTransform({ compatibilityMode: "H264" });
+    const receiverTransform = new SFrameTransform({ compatibilityMode: "H264" });
+    await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]).then(key => {
+       senderTransform.setEncryptionKey(key);
+       receiverTransform.setEncryptionKey(key);
+    });
+
+    let sender, receiver;
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            pc1 = firstConnection;
+            sender = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            pc2 = secondConnection;
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                // we do not set the receiver transform here;
+                resolve(trackEvent.streams[0]);
+            };
+        }, {
+            observeOffer : (offer) => {
+                const lines = offer.sdp.split('\r\n');
+                const h264Lines = lines.filter(line => line.indexOf("a=fmtp") === 0 && line.indexOf("42e01f") !== -1);
+                const baselineNumber = h264Lines[0].substring(6).split(' ')[0];
+                offer.sdp = lines.filter(line => {
+                    return (line.indexOf('a=fmtp') === -1 && line.indexOf('a=rtcp-fb') === -1 && line.indexOf('a=rtpmap') === -1) || line.indexOf(baselineNumber) !== -1;
+                }).join('\r\n');
+            }
+        });
+        test.step_timeout(() => reject("Test timed out"), 5000);
+    });
+
+    video.srcObject = stream;
+    video.play();
+
+    // We set the receiver transform here so that the decoder probably tried to decode sframe content.
+    test.step_timeout(() => receiver.transform = receiverTransform, 50);
+    await checkVideoIsUpdated(test, true);
+}, "video exchange with late receiver transform");
+        </script>
+    </body>
+</html>

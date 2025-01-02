@@ -1,0 +1,378 @@
+<!doctype html>
+<head>
+<title>Test creation of 'identity' credentials</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/lfedcm-helpers.js"></script>
+<script type="module">
+'use strict';
+
+import {fedcm_select_account_promise} from './support/fedcm-helper.sub.js';
+
+promise_test(async t => {
+  let initData = {
+    id : "wpt-pick-me",
+    token: "token1",
+  };
+
+  let result1 = await navigator.credentials.create({
+    identity : initData,
+  });
+  assert_not_equals(result1, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(result1.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(result1.id, "wpt-pick-me", "The identity matches the argument");
+  assert_equals(result1.token, "token1", "The token matches the argument");
+
+
+  let result2 = new IdentityCredential(initData);
+  assert_not_equals(result2, undefined, "A credential is returned from new.");
+  assert_equals(result2.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(result2.id, "wpt-pick-me", "The identity matches the argument");
+  assert_equals(result2.token, "token1", "The token matches the argument");
+}, "Basic valid credential creation");
+
+
+promise_test(async t => {
+  let initData = {
+    id_missing : "invalid"
+  };
+
+
+  await assert_throws_js(TypeError, () => new IdentityCredential(initData), "Create with missing id field in identity credential constructor throws TypeError.");
+  return promise_rejects_js(t, TypeError, navigator.credentials.create({
+    identity : initData,
+  }), "Create with missing id field in identity credential creation throws TypeError.");
+
+}, "Basic invalid credential creation");
+
+promise_test(async t => {
+  let initData = {
+    id : "wpt-pick-me"
+  };
+
+  let result1 = await navigator.credentials.create({
+    identity : initData,
+  });
+
+  let result2 = await navigator.credentials.store(result1);
+  assert_equals(result2, undefined, "The result of a store should be a promise that resolves to undefined.")
+
+  let result3 = await navigator.credentials.store(result1);
+  assert_equals(result3, undefined, "The result of a duplicate store should be a promise that resolves to undefined.")
+
+  await clearLightweightCredential(window.origin, "wpt-pick-me");
+}, "Basic identity credential store suceeds");
+
+
+promise_test(async t => {
+
+  let promise4 = navigator.credentials.get({identity: {providers: []}});
+  assert_true(promise4 instanceof Promise, "The return value of get must be a promise.");
+  let result4 = await promise4;
+  assert_equals(result4, null, "A credential is not returned from the CredentialContainer when a request with no providers is given");
+
+}, "Collecting from no providers yields a promise with null resolution");
+
+
+promise_test(async t => {
+  let initData = {
+    id : "wpt-pick-me",
+    token : "token1",
+  };
+
+  let result1 = await navigator.credentials.create({
+    identity : initData,
+  });
+  await navigator.credentials.store(result1);
+  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
+  let result2 = await promise2;
+  assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the RP is not on the allowlist.");
+
+  let initDataWithOrigin = {
+    id : "wpt-pick-me",
+    token : "token1",
+    effectiveOrigins : [window.origin],
+  };
+
+  let credential = await navigator.credentials.create({
+    identity : initDataWithOrigin,
+  });
+  await navigator.credentials.store(credential);
+
+  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  let credentialGotten = await getCredentialPromise;
+  fedcm_select_account_promise(t, 0);
+  assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
+  assert_equals(credentialGotten.token, "token1", "The token matches the argument");
+
+  let promise3 = navigator.credentials.get({identity: {providers: []}});
+  assert_true(promise3 instanceof Promise, "The return value of get must be a promise.");
+  let result3 = await promise3;
+  assert_equals(result3, null, "A credential is not returned from the CredentialContainer when no providers are given.");
+
+
+  let promise4 = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  assert_true(promise4 instanceof Promise, "The return value of get must be a promise.");
+  let result4 = await promise4;
+  assert_equals(result4, null, "A credential is not returned from the CredentialContainer when a provider with no credentials is given.");
+
+  await clearLightweightCredential(window.origin, "wpt-pick-me");
+}, "Basic same-origin identity credential collect suceeds");
+
+promise_test(async t => {
+
+  let initDataWithOrigin = {
+    id : "wpt-pick-me",
+    effectiveQueryURL : `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py`,
+  };
+
+  let credential = await navigator.credentials.create({
+    identity : initDataWithOrigin,
+  });
+  await navigator.credentials.store(credential);
+
+  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
+  let result2 = await promise2;
+  assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the effectiveQueryURL is not provided.");
+
+
+  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin, effectiveQueryURL: `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py`}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  fedcm_select_account_promise(t, 0);
+  let credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
+
+  await clearLightweightCredential(window.origin, "wpt-pick-me");
+}, "Basic same-origin identity credential collect with effectiveQueryURL suceeds");
+
+promise_test(async t => {
+  let initDataWithOrigin = {
+    id : "wpt-pick-me",
+    effectiveOrigins : [window.origin],
+  };
+
+  let credential = await navigator.credentials.create({
+    identity : initDataWithOrigin,
+  });
+  await navigator.credentials.store(credential);
+
+  let promise2 = navigator.credentials.get({identity: {providers: [{loginURL: "https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html"}]}});
+  assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
+  let result2 = await promise2;
+  fedcm_select_account_promise(t, 0);
+  assert_not_equals(result2, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(result2.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(result2.id, "wpt-pick-me", "The identity matches the argument");
+
+  await clearLightweightCredential(window.origin, "wpt-pick-me");
+}, "Basic same-origin identity credential collect with origin inferred from loginURL succeeds");
+
+
+promise_test(async t => {
+  let initDataWithOrigin = {
+    id : "wpt-pick-me",
+    effectiveQueryURL : `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/no-cors.py`,
+  };
+
+  let credential = await navigator.credentials.create({
+    identity : initDataWithOrigin,
+  });
+  await navigator.credentials.store(credential);
+
+  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
+  let result2 = await promise2;
+  assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the effectiveQueryURL is not provided.");
+
+
+  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin, effectiveQueryURL: `https://{{hosts[][]}}:{{ports[https][0]}}/fedcm/support/no-cors.py`}]}});
+  let credentialGotten = await getCredentialPromise;
+  fedcm_select_account_promise(t, 0);
+  assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
+
+  await clearLightweightCredential(window.origin, "wpt-pick-me");
+}, "Basic same-origin identity credential collect with effectiveQueryURL and no ACAO works because CORS is not needed");
+
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  credentialGotten = await getCredentialPromise;
+  assert_equals(credentialGotten, null, "A optionless credential is not returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly filtered when there is no effective argument");
+
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/",
+  });
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  credentialGotten = await getCredentialPromise;
+  assert_equals(credentialGotten, null, "An innefective credential is not returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly filtered when the effective origin is not the relying party");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    origin: "https://{{hosts[][]}}:{{ports[https][0]}}/",
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "An effective credential is returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly returned when the effective origin is the relying party");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    url: "no-cors"
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  credentialGotten = await getCredentialPromise;
+  assert_equals(credentialGotten, null, "An innefective credential is not returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly filtered when the endpoint doesn't have CORS");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    url: "cors"
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "An effective credential is returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly returned when the endpoint returns success");
+
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    type: "correct"
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{effectiveType: "correct"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "An effective credential is returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly returned when the type matches");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    type: "correct"
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{effectiveType: "wrong"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_equals(credentialGotten, null, "An effective credential is not returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly filtered when the type does not match");
+
+promise_test(async t => {
+  let initData = {
+    id : "wpt-pick-me",
+  };
+
+  let result1 = await navigator.credentials.create({
+    identity : initData,
+  });
+  await navigator.credentials.store(result1);
+  let promise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  assert_true(promise2 instanceof Promise, "The return value of get must be a promise.");
+  let result2 = await promise2;
+  assert_equals(result2, null, "A credential is not returned from the CredentialContainer when the RP is not on the allowlist.");
+
+  let initDataWithOrigin = {
+    id : "wpt-pick-me",
+    effectiveOrigins : [window.origin],
+  };
+
+  let credential = await navigator.credentials.create({
+    identity : initDataWithOrigin,
+  });
+  await navigator.credentials.store(credential);
+
+  // Collect a credential so we can use silent access
+  let getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  let credentialGotten = await getCredentialPromise;
+  fedcm_select_account_promise(t, 0);
+  assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
+
+
+  // Collect the credential silently.
+  let getCredentialPromise2 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  let credentialGotten2 = await getCredentialPromise2;
+  assert_not_equals(credentialGotten2, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten2.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten2.id, "wpt-pick-me", "The identity matches the argument");
+
+  await navigator.credentials.preventSilentAccess();
+
+  let getCredentialPromise3 = navigator.credentials.get({identity: {providers: [{origin: window.origin}]}});
+  fedcm_select_account_promise(t, 0);
+  let credentialGotten3 = await getCredentialPromise3;
+  assert_not_equals(credentialGotten3, undefined, "A credential is returned from the CredentialContainer.");
+  assert_equals(credentialGotten3.type, "identity", "The credential is an IdentityCredential");
+  assert_equals(credentialGotten3.id, "wpt-pick-me", "The identity matches the argument");
+
+  await clearLightweightCredential(window.origin, "wpt-pick-me");
+  await clearLightweightCredential(window.origin, "other");
+}, "Credentials can be collected silently, but preventSilentAccess is respected");
+
+</script>

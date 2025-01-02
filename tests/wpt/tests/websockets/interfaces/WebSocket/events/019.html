@@ -1,0 +1,31 @@
+<!doctype html>
+<title>WebSockets: removeEventListener</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+var events = ['open', 'message', 'error', 'close'];
+for (var i = 0; i < events.length; ++i) {
+  test(function(t) {
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+    ws.close();
+    var got = [];
+    var event;
+    function addThis(e) {
+      got.push(e.type);
+    }
+    ws.addEventListener(events[i], addThis, false);
+    ws.removeEventListener(events[i], addThis, false);
+    event = document.createEvent('Event');
+    event.initEvent(events[i], false, false);
+    ws.dispatchEvent(event);
+    assert_equals(got.length, 0);
+    if (got.length) {
+      debug('Got: '+got);
+    }
+  })
+};
+</script>

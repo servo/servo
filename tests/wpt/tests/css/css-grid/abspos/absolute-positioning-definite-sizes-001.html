@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Absolute positioning definite sizes</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Items should extend to fill the width of the absolutely positioned grid container.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+  display: grid;
+  grid-template: 50px 1fr / 1fr;
+
+  position: absolute;
+  left: 50px;
+  top: 50px;
+
+  width: 200px;
+  height: 200px;
+
+  border: 7px solid #ccc;
+  font: 10px/1 Ahem;
+}
+
+.row1 {
+  grid-row-start: 1;
+  background-color: yellow;
+}
+
+.row2 {
+  grid-row-start: 2;
+  background-color: cyan;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div id="log"></div>
+
+<div class="grid">
+  <div class="row1" data-expected-height="50"  data-expected-width="200">XXX X</div>
+  <div class="row2" data-expected-height="150" data-expected-width="200">XX XXX XX</div>
+</div>
+
+</body>

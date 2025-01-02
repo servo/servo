@@ -1,0 +1,124 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<meta name="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id="interestee"></div>
+<button id="interestbutton" interesttarget="interestee">Button</button>
+<button id="otherbutton">Other Button</button>
+
+<script>
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    let event = null;
+    interestee.addEventListener("interest", (e) => (event = e), { once: true });
+    interestbutton.focus();
+    assert_true(event instanceof InterestEvent, "event is InterestEvent");
+    assert_equals(event.type, "interest", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, true, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.action, "", "action");
+    assert_equals(event.target, interestee, "target");
+    assert_equals(event.invoker, interestbutton, "invoker");
+  }, "InterestEvent dispatches on button focus");
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    let event = null;
+    interestee.addEventListener("interest", (e) => (event = e), { once: true });
+    await hoverOver(interestbutton);
+    assert_true(event instanceof InterestEvent, "event is InterestEvent");
+    assert_equals(event.type, "interest", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, true, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.action, "", "action");
+    assert_equals(event.target, interestee, "target");
+    assert_equals(event.invoker, interestbutton, "invoker");
+  }, "InterestEvent dispatches on button hover");
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    let event = null;
+    interestee.addEventListener("interest", (e) => (event = e), { once: true });
+    interestbutton.interestAction = "fooBar";
+    interestbutton.focus();
+    assert_true(event instanceof InterestEvent, "event is InterestEvent");
+    assert_equals(event.type, "interest", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, true, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.action, "fooBar", "action");
+    assert_equals(event.target, interestee, "target");
+    assert_equals(event.invoker, interestbutton, "invoker");
+  }, "event action is set to interestAction");
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => otherbutton.focus());
+    let event = null;
+    interestee.addEventListener("interest", (e) => (event = e), { once: true });
+    interestbutton.setAttribute("interestaction", "BaRbAz");
+    interestbutton.focus();
+    assert_true(event instanceof InterestEvent, "event is InterestEvent");
+    assert_equals(event.type, "interest", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, true, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.action, "BaRbAz", "action");
+    assert_equals(event.target, interestee, "target");
+    assert_equals(event.invoker, interestbutton, "invoker");
+  }, "event action is set to interestaction attribute");
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => {
+      interestbutton.removeAttribute('disabled');
+      otherbutton.focus();
+    });
+    let called = false;
+    interestee.addEventListener(
+      "interest",
+      () => {
+        called = true;
+      },
+      { once: true },
+    );
+    interestbutton.setAttribute("disabled", "");
+    interestbutton.focus();
+    assert_false(called, "event was not called");
+  }, "event does not dispatch if invoker is disabled");
+
+  promise_test(async function (t) {
+    svgInterestee = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    t.add_cleanup(() => {
+      interestbutton.interestTargetElement = interestee;
+      svgInterestee.remove();
+      otherbutton.focus();
+    });
+    document.body.append(svgInterestee);
+    let called = false;
+    assert_false(svgInterestee instanceof HTMLElement);
+    assert_true(svgInterestee instanceof Element);
+    let event = null;
+    svgInterestee.addEventListener(
+      "interest",
+      (e) => {
+        event = e;
+        called = true;
+      },
+      { once: true },
+    );
+    interestbutton.interestTargetElement = svgInterestee;
+    interestbutton.focus();
+    assert_true(called, "event was called");
+    assert_equals(event.invoker, interestbutton, "event.invoker is set to right element");
+    assert_equals(event.target, svgInterestee, "event.target is set to right element");
+  }, "event dispatches if interestee is non-HTML Element");
+</script>

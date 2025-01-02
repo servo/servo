@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  background: url("support/square-white.png") 2px 2px;
+  border: blue solid;
+  color: white;
+  margin: 1em;
+  padding: 2em;
+  }
+
+  div
+  {
+  background: green url("support/square-purple.png") repeat-y top left;
+  border: lime solid;
+  padding: 3em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div>This text should in a green box with a green border, on the inside
+left of which there should be a vertical line of purple tiles. The
+box should be surrounded by a blue rectangle drawn on a background of
+white tiles that covers the entire rest of the page.</div>
+
+ </body>
+</html>

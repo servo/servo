@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="style-src 'self' 'sha256-pAKi9r4/WB7fHydbE3F3t8i8602ij2JN8zHJpL2T5BM=' 'sha256-hndjYvzUzy2Ykuad81Cwsl1FOXX/qYs/aDVyUyNZwBw=' 'sha384-bSVm1i3sjPBRM4TwZtYTDjk9JxZMExYHWbFmP1SxDhJH4ue0Wu9OPOkY5hcqRcSt' 'sha512-440MmBLtj9Kp5Bqloogn9BqGDylY8vFsv5/zXL1zH2fJVssCoskRig4gyM+9KqwvCSapSz5CVoUGHQcxv43UQg=='; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>stylehash-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            alert_assert("Fail");
+        });
+
+        var t_alert = async_test('Expecting alerts: ["PASS (1/4): The \'#p1\' element\'s text is green, which means the style was correctly applied.","PASS (2/4): The \'#p2\' element\'s text is green, which means the style was correctly applied.","PASS (3/4): The \'#p3\' element\'s text is green, which means the style was correctly applied.","PASS (4/4): The \'#p4\' element\'s text is green, which means the style was correctly applied."]');
+        var expected_alerts = ["PASS (1/4): The '#p1' element's text is green, which means the style was correctly applied.", "PASS (2/4): The '#p2' element's text is green, which means the style was correctly applied.", "PASS (3/4): The '#p3' element's text is green, which means the style was correctly applied.", "PASS (4/4): The '#p4' element's text is green, which means the style was correctly applied."];
+
+        function alert_assert(msg) {
+            t_alert.step(function() {
+                if (msg.match(/^FAIL/i)) {
+                    assert_unreached(msg);
+                    t_alert.done();
+                }
+                for (var i = 0; i < expected_alerts.length; i++) {
+                    if (expected_alerts[i] == msg) {
+                        assert_equals(expected_alerts[i], msg);
+                        expected_alerts.splice(i, 1);
+                        if (expected_alerts.length == 0) {
+                            t_alert.done();
+                        }
+                        return;
+                    }
+                }
+                assert_unreached('unexpected alert: ' + msg);
+                t_log.done();
+            });
+        }
+
+    </script>
+    <!-- enforcing policy:
+style-src 'sha256-pAKi9r4/WB7fHydbE3F3t8i8602ij2JN8zHJpL2T5BM=' 'sha256-hndjYvzUzy2Ykuad81Cwsl1FOXX/qYs/aDVyUyNZwBw=' 'sha384-bSVm1i3sjPBRM4TwZtYTDjk9JxZMExYHWbFmP1SxDhJH4ue0Wu9OPOkY5hcqRcSt' 'sha512-440MmBLtj9Kp5Bqloogn9BqGDylY8vFsv5/zXL1zH2fJVssCoskRig4gyM+9KqwvCSapSz5CVoUGHQcxv43UQg=='; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+</head>
+
+<body>
+    <p id="p1">This tests the result of a valid style hash. It passes if this text is green, and a &quot;PASS&quot; alert for p1 is fired.</p>
+    <p id="p2">This tests the result of a valid style hash. It passes if this text is green, and a &quot;PASS&quot; alert for p2 is fired.</p>
+    <p id="p3">This tests the result of a valid style hash. It passes if this text is green, and a &quot;PASS&quot; alert for p3 is fired.</p>
+    <p id="p4">This tests the result of a valid style hash. It passes if this text is green, and a &quot;PASS&quot; alert for p4 is fired.</p>
+    <style>p#p1 { color: green; }</style>
+    <style>p#p2 { color: green; }</style>
+    <style>p#p3 { color: green; }</style>
+    <style>p#p4 { color: green; }</style>
+    <script>
+        var color = window.getComputedStyle(document.querySelector('#p1')).color;
+        if (color === "rgb(0, 128, 0)")
+            alert_assert("PASS (1/4): The '#p1' element's text is green, which means the style was correctly applied.");
+        else
+            alert_assert("FAIL (1/4): The '#p1' element's text is " + color + ", which means the style was incorrectly applied.");
+        var color = window.getComputedStyle(document.querySelector('#p2')).color;
+        if (color === "rgb(0, 128, 0)")
+            alert_assert("PASS (2/4): The '#p2' element's text is green, which means the style was correctly applied.");
+        else
+            alert_assert("FAIL (2/4): The '#p2' element's text is " + color + ", which means the style was incorrectly applied.");
+        var color = window.getComputedStyle(document.querySelector('#p3')).color;
+        if (color === "rgb(0, 128, 0)")
+            alert_assert("PASS (3/4): The '#p3' element's text is green, which means the style was correctly applied.");
+        else
+            alert_assert("FAIL (3/4): The '#p3' element's text is " + color + ", which means the style was incorrectly applied.");
+        var color = window.getComputedStyle(document.querySelector('#p4')).color;
+        if (color === "rgb(0, 128, 0)")
+            alert_assert("PASS (4/4): The '#p4' element's text is green, which means the style was correctly applied.");
+        else
+            alert_assert("FAIL (4/4): The '#p4' element's text is " + color + ", which means the style was incorrectly applied.");
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table-layout and 'display: inline-block' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-table-layout" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#width-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Table-layout does not apply to 'display: inline-block' elements." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #test
+            {
+                display: inline-block;
+                table-layout: fixed;
+                width: 10em;
+            }
+            .colgroup
+            {
+                display: table-column-group;
+                width: 5em;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                background: black;
+                display: table-cell;
+                font: 1em Ahem;
+                overflow: hidden;
+                padding: 0;
+            }
+            #reference
+            {
+                background: blue;
+                height: 2em;
+                width: 20em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both bars below are the same width.</p>
+        <div id="test">
+            <div class="colgroup"></div>
+            <div class="colgroup"></div>
+            <div class="tr">
+                <div class="td">XXXXX</div>
+                <div class="td">XXXXX</div>
+            </div>
+            <div class="tr">
+                <div class="td">XXXXXXXXX0</div>
+                <div class="td">XXXXXXXXX0</div>
+            </div>
+        </div>
+        <div id="reference"></div>
+    </body>
+</html>

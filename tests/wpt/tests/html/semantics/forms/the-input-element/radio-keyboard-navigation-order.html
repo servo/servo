@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Radio button group keyboard navigation order</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<form id="inside">
+  <input type="radio" name="inside" id="inside1"/>
+  <input type="radio" name="inside" id="inside2"/>
+  <input type="radio" name="inside" id="inside3"/>
+</form>
+<form id="before"></form>
+<input type="radio" form="before" name="before" id="before1"/>
+<input type="radio" form="before" name="before" id="before2"/>
+<input type="radio" form="before" name="before" id="before3"/>
+<input type="radio" form="after" name="after" id="after1"/>
+<input type="radio" form="after" name="after" id="after2"/>
+<input type="radio" form="after" name="after" id="after3"/>
+<form id="after"></form>
+<input type="radio" name="mix" id="mix1"/>
+<form id="mix"><input type="radio" name="mix" id="mix2"/></form>
+<input type="radio" name="mix" id="mix3"/>
+<input type="radio" name="doc" id="doc1"/>
+<input type="radio" name="doc" id="doc2"/>
+<input type="radio" name="doc" id="doc3"/>
+<script>
+async function pressRight() {
+  return new test_driver.Actions()
+      .keyDown("\uE014")
+      .keyUp("\uE014")
+      .send();
+}
+
+promise_test(async () => {
+  for (const groupName of ["inside", "before", "after", "mix", "doc"]) {
+    const firstInGroup = document.querySelector(`input[name="${groupName}"]`);
+    const newInput = document.createElement("input");
+    newInput.id = groupName + "New";
+    newInput.type = "radio";
+    if (groupName != "doc") {
+      newInput.setAttribute("form", groupName);
+    }
+    newInput.name = groupName;
+    firstInGroup.after(newInput);
+  }
+
+  for (const formId of ["inside", "before", "after", "mix"]) {
+    document.forms[formId].elements[0].focus();
+    for (const radio of document.forms[formId].elements) {
+      assert_equals(radio, document.activeElement, `Navigated to next radio button in form '${formId}'`);
+      await pressRight();
+    }
+  }
+
+  const radios = document.querySelectorAll("input[name='doc']");
+  radios[0].focus();
+  for (const radio of radios) {
+    assert_equals(radio, document.activeElement, `Navigated to next radio button on document`);
+    await pressRight();
+  }
+}, "Radio button keyboard navigation should proceed in tree-order.");
+</script>
+</body>
+</html>

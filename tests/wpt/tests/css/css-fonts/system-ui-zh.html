@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh">
+<title>Tests that system-ui font-family works for Chinese</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#system-ui-def">
+<link rel="help" href="https://www.unicode.org/faq/han_cjk.html#3">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="mismatch" href="system-ui-zh-notref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+@font-face {
+  font-family: mplus;
+  src: url(/fonts/mplus-1p-regular.woff);
+  size-adjust: 50%; /* cause mismatch even if system-ui maps to M+ */
+}
+p {
+  font-family: Ahem, system-ui, mplus, serif;
+  font-size: 4em;
+}
+</style>
+<p>&#x76F4;</p>  <!-- U+76F4 has distinct Japanese vs Chinese shapes, see Unicode FAQ -->

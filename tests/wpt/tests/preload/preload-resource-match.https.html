@@ -1,0 +1,171 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+
+const {HTTPS_REMOTE_ORIGIN} = get_host_info();
+
+function createEchoURL(text, type) {
+    return `/preload/resources/echo-with-cors.py?type=${
+        encodeURIComponent(type)}&content=${
+        encodeURIComponent(text)}&uid=${token()}`
+}
+const urls = {
+    image: createEchoURL('<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2" />', 'image/svg+xml'),
+    font: '/preload/resources/font.ttf?x',
+    text: createEchoURL('hello', 'text/plain'),
+    script: createEchoURL('function dummy() { }', 'application/javascript'),
+    style: createEchoURL('.cls { }', 'text/css'),
+}
+
+const resourceTypes = {
+    image: {url: urls.image, as: 'image'},
+    font: {url: urls.font, as: 'font', config: 'anonymous'},
+    backgroundImage: {url: urls.image, as: 'image', config: 'no-cors'},
+    fetch: {url: urls.text, as: 'fetch'},
+    script: {url: urls.script, as: 'script'},
+    module: {url: urls.script, as: 'script'},
+    style: {url: urls.style, as: 'style'}
+}
+
+const configs = {
+    // The requested URL is from the same origin
+    'same-origin': {crossOrigin: false, attributes: {}},
+
+    // The requested URL is from a remote origin, without CORS
+    'no-cors': {crossOrigin: true, attributes: {}},
+
+    // The requested URL is from a remote origin, with CORS (anonymous)
+    'anonymous': {crossOrigin: true, attributes: {crossOrigin: 'anonymous'}},
+
+    // The requested URL is from a remote origin, with CORS (including credentials)
+    'use-credentials': {crossOrigin: true, attributes: {crossOrigin: 'use-credentials'}},
+}
+
+function preload(attributes, t) {
+    const link = document.createElement('link');
+    link.rel = "preload";
+    Object.entries(attributes).forEach(([key, value]) => {
+        if (value)
+            link[key] = value;
+    });
+
+    document.head.appendChild(link);
+    t.add_cleanup(() => link.remove());
+    return new Promise(resolve => link.addEventListener('load', resolve));
+}
+
+const loaders = {
+    image: (href, attr, t) => {
+        const img = document.createElement('img');
+        Object.entries(attr).forEach(([key, value]) => {
+            img[key] = value;
+        });
+
+        img.src = href
+
+        document.body.appendChild(img);
+        t.add_cleanup(() => img.remove());
+        return new Promise(resolve => {
+            img.addEventListener('load', resolve);
+            img.addEventListener('error', resolve);
+        });
+    },
+    font: async (href, attr, t) => {
+        const style = document.createElement('style');
+        style.innerHTML = `@font-face {
+            font-family: 'MyFont';
+            src: url('${href}');
+        }`;
+
+        document.head.appendChild(style);
+        t.add_cleanup(() => style.remove());
+        const p = document.createElement('p');
+        p.style.fontFamily = 'MyFont';
+        document.body.appendChild(p);
+        t.add_cleanup(() => p.remove());
+        await document.fonts.ready;
+    },
+    shape: (href, attr, t) => {
+        const div = document.createElement('div');
+        div.style.shapeOutside = `url(${href})`;
+        document.body.appendChild(div);
+        t.add_cleanup(() => div.remove());
+    },
+    backgroundImage: (href, attr, t) => {
+        const div = document.createElement('div');
+        div.style.background = `url(${href})`;
+        document.body.appendChild(div);
+        t.add_cleanup(() => div.remove());
+    },
+    fetch: async (href, attr, t) => {
+        const options = {mode: attr.crossOrigin ? 'cors' : 'no-cors',
+             credentials: !attr.crossOrigin || attr.crossOrigin === 'anonymous' ? 'omit' : 'include'}
+
+        const response = await fetch(href, options)
+        await response.text();
+    },
+    script: async (href, attr, t) => {
+        const script = document.createElement('script');
+        t.add_cleanup(() => script.remove());
+        if (attr.crossOrigin)
+            script.setAttribute('crossorigin', attr.crossOrigin);
+        script.src = href;
+        document.body.appendChild(script);
+        await new Promise(resolve => { script.onload = resolve });
+    },
+    module: async (href, attr, t) => {
+        const script = document.createElement('script');
+        script.type = 'module';
+        t.add_cleanup(() => script.remove());
+        if (attr.crossOrigin)
+            script.setAttribute('crossorigin', attr.crossOrigin);
+        script.src = href;
+        document.body.appendChild(script);
+        await new Promise(resolve => { script.onload = resolve });
+    },
+    style: async (href, attr, t) => {
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = href;
+        t.add_cleanup(() => style.remove());
+        if (attr.crossOrigin)
+            style.setAttribute('crossorigin', attr.crossOrigin);
+        document.body.appendChild(style);
+        await new Promise(resolve => style.addEventListener('load', resolve));
+    }
+}
+
+function preload_reuse_test(type, as, url, preloadConfig, resourceConfig) {
+    const expected = (preloadConfig === resourceConfig) ? "reuse" : "discard";
+    const key = token();
+    const href = getAbsoluteURL(`${
+        (configs[resourceConfig].crossOrigin ? HTTPS_REMOTE_ORIGIN : '') + url
+    }&${token()}`)
+    promise_test(async t => {
+        await preload({href, as, ...configs[preloadConfig].attributes}, t);
+        await loaders[as](href, configs[resourceConfig].attributes, t);
+        const expectedEntries = expected === "reuse" ? 1 : 2;
+
+        if (numberOfResourceTimingEntries(href) < expectedEntries)
+            await new Promise(resolve => t.step_timeout(resolve, 300));
+        verifyNumberOfResourceTimingEntries(href, expectedEntries);
+    }, `Loading ${type} (${resourceConfig}) with link (${preloadConfig}) should ${expected} the preloaded response`);
+}
+
+for (const [resourceTypeName, resourceInfo] of Object.entries(resourceTypes)) {
+    const configNames = resourceInfo.config ? [resourceInfo.config, 'same-origin'] : Object.keys(configs)
+    for (const resourceConfigName of configNames) {
+        for (const preloadConfigName in configs) {
+            // Same-origin requests ignore their CORS attributes, so no need to match all of them.
+            if ((resourceConfigName === 'same-origin' && preloadConfigName === 'same-origin') ||
+                (resourceConfigName !== 'same-origin' && preloadConfigName !== 'same-origin'))
+            preload_reuse_test(resourceTypeName, resourceInfo.as, resourceInfo.url, preloadConfigName, resourceConfigName);
+        }
+    }
+
+}
+</script>

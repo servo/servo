@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: content:none on various table boxes</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1699964">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <meta name="flags" content="ahem">
+  <style>
+html,body {
+  color:black; background-color:white; font:10px/1 Ahem; padding:0; margin:0;
+}
+body { margin-left: 3ch; }
+body * {
+  border:3px solid;
+}
+.after::after { content: 'A'; }
+.before::before { content: 'B'; }
+x-table { display:table }
+x-thead { display:table-row-group }
+x-tr { display:table-row }
+x-td { display:table-cell }
+  </style>
+</head>
+<body>
+
+<table><thead><tr><td class="c"></td></tr></thead></table>
+<table><thead><tr class="c"></tr></thead></table>
+<table><thead class="c"></thead></table>
+<table class="c"></thead></table>
+
+<table><thead><tr><td class="c"></td><td>PASS</td></tr></thead></table>
+<table><thead><tr class="c"></tr><tr><td>PASS</td></tr></thead></table>
+<table><thead class="c"></thead><thead><tr><td>PASS</td></tr></thead></table>
+
+<x-table><x-thead><x-tr><x-td class="c"></x-td></x-tr></x-thead></x-table>
+<x-table><x-thead><x-tr class="c"></x-tr></x-thead></x-table>
+<x-table><x-thead class="c"></x-thead></x-table>
+<x-table class="c"></x-table>
+
+<x-table><x-thead><x-tr><x-td class="c"></x-td><x-td>PASS</x-td></x-tr></x-thead></x-table>
+<x-table><x-thead><x-tr class="c"></x-tr><x-tr><x-td>PASS</x-td></x-tr></x-thead></x-table>
+<x-table><x-thead class="c"></x-thead><x-thead><x-tr><x-td>PASS</x-td></x-tr></x-thead></x-table>
+
+</body>
+</html>

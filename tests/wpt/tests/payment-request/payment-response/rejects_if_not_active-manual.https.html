@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://w3c.github.io/payment-request/#retry-method">
+<title>PaymentResponse retry() rejects if doc is not fully active</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://w3c.github.io/payment-request/#dom-paymentresponse-retry">
+<body>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+const validMethod = Object.freeze({
+  supportedMethods: "basic-card",
+});
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const validMethods = Object.freeze([validMethod, applePay]);
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "5.00",
+});
+const validTotal = Object.freeze({
+  label: "Total due",
+  amount: validAmount,
+});
+const validDetails = Object.freeze({
+  total: validTotal,
+});
+
+function getLoadedPaymentResponse(iframe, url) {
+  return new Promise(resolve => {
+    iframe.addEventListener(
+      "load",
+      async () => {
+        const { PaymentRequest } = iframe.contentWindow;
+        const response = await new PaymentRequest(
+          validMethods,
+          validDetails
+        ).show();
+        resolve(response);
+      },
+      { once: true }
+    );
+    iframe.src = url;
+  });
+}
+
+function methodNotFullyActive(button, method, ...args) {
+  const text = button.textContent.trim();
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    iframe.allow = "payment";
+    document.body.appendChild(iframe);
+
+    // We first got to page1.html, grab a PaymentResponse instance.
+    const response = await getLoadedPaymentResponse(
+      iframe,
+      "/payment-request/resources/page1.html"
+    );
+    // We navigate the iframe again, putting response's document into an inactive state.
+    await new Promise(resolve => {
+      iframe.addEventListener("load", resolve);
+      iframe.src = "/payment-request/resources/page2.html";
+    });
+    // Now, response's relevant global object's document is no longer active.
+    // So, promise needs to reject appropriately.
+    const promise = response[methodName](...args);
+    await promise_rejects_dom(
+      t,
+      "AbortError",
+      promise,
+      "Inactive document, so must throw AbortError"
+    );
+    // We are done, so clean up.
+    iframe.remove();
+  }, text);
+}
+
+function methodBecomesNotFullyActive(button, methodName, ...args) {
+  const text = button.textContent.trim();
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    iframe.allow = "payment";
+    document.body.appendChild(iframe);
+
+    // We first got to page1.html, grab a PaymentResponse instance.
+    const response = await getLoadedPaymentResponse(
+      iframe,
+      "/payment-request/resources/page1.html"
+    );
+
+    // we get the promise from page1.html, while it's active!
+    const promise = response[methodName](...args);
+
+    // We navigate the iframe again, putting response's document into an inactive state.
+    await new Promise(resolve => {
+      iframe.addEventListener("load", resolve);
+      iframe.src = "/payment-request/resources/page2.html";
+    });
+
+    // Now, response's relevant global object's document is no longer active.
+    // So, promise needs to reject appropriately.
+    await promise_rejects_dom(
+      t,
+      "AbortError",
+      promise,
+      "Inactive document, so must throw AbortError"
+    );
+    // We are done, so clean up.
+    iframe.remove();
+  }, text);
+}
+</script>
+<section>
+  <p>
+    For each test, when the payment sheet is shown, select a payment method and hit "Pay".
+  </p>
+  <h2>retry() and document active state</h2>
+  <p>Manual Tests for PaymentResponse.retry() - Please run in order!</p>
+  <ol>
+    <li>
+      <button onclick="methodNotFullyActive(this, 'retry', {});">
+        retry()'s retryPromise rejects if document is not fully active.
+      </button>
+    </li>
+    <li>
+      <button onclick="methodBecomesNotFullyActive(this, 'retry', {});">
+        retry()'s retryPromise rejects if the document becomes not fully active.
+      </button>
+    </li>
+  </ol>
+  <h2>complete() and document active state</h2>
+  <p>Manual Tests for PaymentResponse.complete() - Please run in order!</p>
+  <ol>
+    <li>
+      <button onclick="methodNotFullyActive(this, 'complete', 'success');">
+        complete()'s completePromise rejects if document is not fully active.
+      </button>
+    </li>
+    <li>
+      <button onclick="methodBecomesNotFullyActive(this, 'complete', 'success');">
+        complete()'s completePromise rejects if the document becomes not fully active.
+      </button>
+    </li>
+    <li>
+      <button onclick="done();">Done</button>
+    </li>
+  </ol>
+</section>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

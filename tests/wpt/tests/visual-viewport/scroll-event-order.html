@@ -1,0 +1,98 @@
+<!doctype html>
+<title>Visual Viewport Scroll Event Order</title>
+<meta charset=utf-8>
+<link rel="help" href="https://wicg.github.io/visual-viewport/index.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="viewport_support.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    position: absolute;
+    top: 300vh;
+  }
+
+  #scroller1,#scroller2 {
+    width: 200px;
+    height: 200px;
+    overflow: auto;
+  }
+
+  #spacer {
+    width: 80px;
+    height: 1000px;
+    background-image: linear-gradient(45deg, #808080 25%, transparent 25%),
+                          linear-gradient(-45deg, #808080 25%, transparent 25%),
+                          linear-gradient(45deg, transparent 75%, #808080 75%),
+                          linear-gradient(-45deg, transparent 75%, #808080 75%);
+    background-size: 40px 40px;
+    background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+  }
+</style>
+
+<body>
+  <div id="target"></div>
+  <div id="scroller1"><div id="spacer"></div></div>
+  <div id="scroller2"><div id="spacer"></div></div>
+</body>
+
+<script>
+
+async function oneRaf() {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(resolve);
+  });
+}
+
+const scroller1 = document.getElementById('scroller1');
+const scroller2 = document.getElementById('scroller2');
+
+promise_test(async t => {
+    // Pinch-zoom in so that the scrollIntoView call below causes scrolling in
+    // both the layout and visual viewports within the same rAF.
+    await pinchZoomIn();
+    assert_greater_than(window.visualViewport.scale, 1, 'Must have zoomed in');
+
+    await oneRaf();
+
+    const scroll_events = [];
+
+    // Register the scroll handlers on the window, visualViewport, and both
+    // <div> scrollers.
+    {
+      window.onscroll = () => { scroll_events.push('window-attribute'); }
+      window.addEventListener('scroll', () => { scroll_events.push('window-addEventListener'); });
+      window.visualViewport.onscroll = () => { scroll_events.push('visualViewport-attribute'); }
+      window.visualViewport.addEventListener('scroll', () => {
+            scroll_events.push('visualViewport-addEventListener'); });
+      scroller1.addEventListener('scroll',
+          () => { scroll_events.push('scroller1'); });
+      scroller2.addEventListener('scroll',
+          () => { scroll_events.push('scroller2'); });
+    }
+
+    // Cause scrolling in each scroller and scrollIntoView so that the layout
+    // and visual viewports both scroll.
+    scroller1.scrollTop = 200;
+    document.getElementById('target').scrollIntoView();
+    scroller2.scrollTop = 200;
+
+    // Wait a rAF since scroll events are delievered as part of the event loop.
+    await oneRaf();
+
+    // The scroll events must be delivered in the order they were executed,
+    // scroller1 first, then the viewport (window then visualViewport), then
+    // scroller2.
+    assert_equals(scroll_events.toString(),
+                  'scroller1,' +
+                  'window-attribute,window-addEventListener,' +
+                  'visualViewport-attribute,visualViewport-addEventListener,' +
+                  'scroller2');
+}, "Scroll event ordering");
+
+</script>

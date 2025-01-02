@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: font and fallbacks</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-matching-algorithm" />
+  <link rel="match" href="fonts-013-ref.xht" />
+
+  <meta name="flags" content="ahem"/>
+  <style type="text/css">
+   p { color: navy; }
+   .a span.test { font: 4em "Missing Font", "Times New Roman"; }
+   .a span.control { font: 4em "Times New Roman"; }
+   .b span.test { font: 4em "Missing Font", "Arial"; }
+   .b span.control { font: 4em "Arial"; }
+   .c span.test { font: 4em "Missing Font", "Courier New"; }
+   .c span.control { font: 4em "Courier New"; }
+  </style>
+ </head>
+ <body>
+  <div>In each of the three lines below, the two words should look identical.</div>
+  <p class="a">
+   <span class="test">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+   &mdash;
+   <span class="control">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+  </p>
+  <p class="b">
+   <span class="test">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+   &mdash;
+   <span class="control">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+  </p>
+  <p class="c">
+   <span class="test">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+   &mdash;
+   <span class="control">&#x0162;&#x0119;&#x015F;&#x0163;</span>
+  </p>
+ </body>
+</html>

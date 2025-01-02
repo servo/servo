@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<style>
+  p, span { margin: 0; padding: 0; line-height: 150%; }
+  #wrapper { width: 10em; }
+  span {
+    display: inline-block;
+    width: 3em;
+    text-align: end;
+    box-sizing: border-box;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+<div id="wrapper">
+  <p>
+    <span>1.&nbsp;</span>foo<br>
+    <span>2.&nbsp;</span>bar
+  </p>
+  <p>
+    <span>&#x5d0;.&nbsp;</span>foo<br>
+    <span>&#x5d1;.&nbsp;</span>bar
+  </p>
+  <p>
+    <span>&#x4e00;&#x3001;</span>foo<br>
+    <span>&#x4e8c;&#x3001;</span>bar
+  </p>
+  <p>
+    <span>&#xc77c;,&nbsp;</span>foo<br>
+    <span>&#xc774;,&nbsp;</span>bar
+  </p>
+  <p dir="rtl">
+    <span>1.&nbsp;</span>foo<br>
+    <span>2.&nbsp;</span>bar
+  </p>
+  <p dir="rtl">
+    <span>&#x5d0;.&nbsp;</span>foo<br>
+    <span>&#x5d1;.&nbsp;</span>bar
+  </p>
+</div>

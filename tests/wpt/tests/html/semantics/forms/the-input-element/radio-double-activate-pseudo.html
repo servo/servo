@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!-- This behavior is not explicitly specified. -->
+
+<input type=radio id=radioinput>
+
+<script>
+  promise_test(async () => {
+    await test_driver.send_keys(radioinput, ' ');
+    await test_driver.send_keys(radioinput, ' ');
+    assert_equals(document.querySelector(':active'), null,
+      `If the radio doesn't have the :active pseudo selector, nothing else should either.`);
+  }, `<input type=radio> shouldn't have the :active pseudo element after pressing the spacebar twice.`);
+</script>

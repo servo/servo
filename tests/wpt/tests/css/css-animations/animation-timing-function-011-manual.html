@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-timing-function - ::after</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-05-07 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-timing-function">
+<meta name="flags" content="animated">
+<meta name="assert" content="Check that animation-timing-function applies to the ::after pseudo element.">
+<style>
+  div::after {
+    animation-name: sample;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+
+    background-color: blue;
+    content: "Filler Text";
+    display: block;
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+
+  @keyframes sample {
+    from {
+      left: 150px;
+    }
+    to {
+      left: 0px;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there is a filled blue square with 'Filler Text',
+    which moves from right to left with constant speed.
+  </p>
+  <div></div>
+</body>
+

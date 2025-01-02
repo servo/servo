@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-018-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-rules">
+<meta name="assert" content="Checks that the 'content' property of a ::marker doesn't affect white space.">
+<style>
+ol {
+  float: left;
+  width: 100px;
+}
+.inside {
+  list-style-position: inside;
+}
+li:nth-child(1)::marker { content: "1" }
+li:nth-child(2)::marker { content: "1 " }
+li:nth-child(3)::marker { content: "1  " }
+li:nth-child(4)::marker { content: " 1" }
+li:nth-child(5)::marker { content: "  1" }
+li:nth-child(6)::marker { content: "  1  " }
+li:nth-child(7)::marker { content: "1\9 2" }
+li:nth-child(8)::marker { content: "1\a 2" }
+</style>
+<ol class="inside">
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+</ol>
+<ol class="inside">
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+</ol>
+<ol class="outside">
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+  <li>item</li>
+</ol>
+<ol class="outside">
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+  <li> item</li>
+</ol>

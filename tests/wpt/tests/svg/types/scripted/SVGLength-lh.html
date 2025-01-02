@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<title>SVGLength with 'lh' unit</title>
+<link rel="help" href="https://www.w3.org/TR/SVG/types.html#InterfaceSVGLength">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="lh_ref" style="font-family:initial; font-size:20px; width:10lh"></div>
+<svg>
+  <text id="lh_test" x="10lh" style="font-family:initial; font-size:20px"></text>
+</svg>
+<script>
+  let ref_width = lh_ref.getBoundingClientRect().width;
+  let lh_length = lh_test.x.baseVal[0];
+
+  test(() => {
+    assert_equals(lh_length.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+    assert_equals(lh_length.value, ref_width);
+  }, "lh unit in SVGLength");
+
+  test(() => {
+    lh_length.value = ref_width * 2;
+    assert_equals(lh_length.valueInSpecifiedUnits, 20);
+  }, "Convert back to lh from new user unit value");
+</script>

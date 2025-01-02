@@ -1,0 +1,31 @@
+{
+  "name": "Normalization",
+  "importMapBaseURL": "https://base.example/",
+  "tests": {
+    "should normalize empty import maps to have imports and scopes keys": {
+      "importMap": {},
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {}
+      }
+    },
+    "should normalize an import map without imports to have imports": {
+      "importMap": {
+        "scopes": {}
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {}
+      }
+    },
+    "should normalize an import map without scopes to have scopes": {
+      "importMap": {
+        "imports": {}
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Directionality is properly computed for slotted children</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1562425">
+<link rel="match" href="directionality-002-ref.html">
+<style>
+  .slotted {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  .slotted:dir(rtl) {
+    background: green;
+  }
+</style>
+<body dir="rtl">
+<script>
+  let root = document.createElement("div")
+  let slotted = document.createElement("div");
+  slotted.className = "slotted";
+  root.appendChild(slotted);
+  root.attachShadow({ mode: "open" }).appendChild(document.createElement("slot"));
+  document.body.appendChild(root);
+</script>

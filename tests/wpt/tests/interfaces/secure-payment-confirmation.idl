@@ -1,0 +1,56 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Secure Payment Confirmation (https://w3c.github.io/secure-payment-confirmation/)
+
+dictionary SecurePaymentConfirmationRequest {
+    required BufferSource challenge;
+    required USVString rpId;
+    required sequence<BufferSource> credentialIds;
+    required PaymentCredentialInstrument instrument;
+    unsigned long timeout;
+    USVString payeeName;
+    USVString payeeOrigin;
+    AuthenticationExtensionsClientInputs extensions;
+    sequence<USVString> locale;
+    boolean showOptOut;
+};
+
+partial interface PaymentRequest {
+    static Promise<boolean> isSecurePaymentConfirmationAvailable();
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  AuthenticationExtensionsPaymentInputs payment;
+};
+
+dictionary AuthenticationExtensionsPaymentInputs {
+  boolean isPayment;
+
+  // Only used for authentication.
+  USVString rpId;
+  USVString topOrigin;
+  USVString payeeName;
+  USVString payeeOrigin;
+  PaymentCurrencyAmount total;
+  PaymentCredentialInstrument instrument;
+};
+
+dictionary CollectedClientPaymentData : CollectedClientData {
+    required CollectedClientAdditionalPaymentData payment;
+};
+
+dictionary CollectedClientAdditionalPaymentData {
+    required USVString rpId;
+    required USVString topOrigin;
+    USVString payeeName;
+    USVString payeeOrigin;
+    required PaymentCurrencyAmount total;
+    required PaymentCredentialInstrument instrument;
+};
+
+dictionary PaymentCredentialInstrument {
+    required USVString displayName;
+    required USVString icon;
+    boolean iconMustBeShown = true;
+};

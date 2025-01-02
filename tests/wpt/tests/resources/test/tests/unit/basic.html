@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>idlharness basic</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+    "use strict";
+    test(function() {
+        assert_true("IdlArray" in window);
+    }, 'IdlArray constructor should be a global object');
+    test(function() {
+        assert_true(new IdlArray() instanceof IdlArray);
+    }, 'IdlArray constructor should be constructible');
+    test(function() {
+        assert_true("WebIDL2" in window);
+    }, 'WebIDL2 namespace should be a global object');
+    test(function() {
+        assert_equals(typeof WebIDL2.parse, "function");
+    }, 'WebIDL2 namespace should have a parse method');
+    test(function() {
+        try {
+            WebIDL2.parse("I'm a syntax error");
+            throw new Error("Web IDL didn't throw");
+        } catch (e) {
+            assert_equals(e.name, "WebIDLParseError");
+        }
+    }, 'WebIDL2 parse method should bail on incorrect WebIDL');
+    test(function() {
+        assert_equals(typeof WebIDL2.parse("interface Foo {};"), "object");
+    }, 'WebIDL2 parse method should produce an AST for correct WebIDL');
+    test(function () {
+        try {
+            let i = new IdlArray();
+            i.add_untested_idls(`interface C {};`);
+            i.assert_throws('Anything', i => i.test());
+        } catch (e) {
+            assert_true(e instanceof IdlHarnessError);
+        }
+    }, `assert_throws should throw if no IdlHarnessError thrown`);
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(() => {
+  init = {
+    address: "168.3.4.5",
+    port: 4711,
+    url: "turn:turn.example.org",
+    errorCode: 703,
+    errorText: "Test error"
+  };
+  event = new RTCPeerConnectionIceErrorEvent('type', init);
+  assert_equals(event.type, 'type');
+  assert_equals(event.address, '168.3.4.5');
+  assert_equals(event.port, 4711);
+  assert_equals(event.url, "turn:turn.example.org");
+  assert_equals(event.errorCode, 703);
+  assert_equals(event.errorText, "Test error");
+}, 'RTCPeerConnectionIceErrorEvent constructed from init parameters');
+
+</script>
+</html>

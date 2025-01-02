@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Compare Results - Web Platform Test</title>
+    <link rel="stylesheet" href="css/bulma-0.7.5/bulma.min.css" />
+    <link rel="stylesheet" href="css/fontawesome-5.7.2.min.css" />
+    <script src="lib/utils.js"></script>
+    <script src="lib/wave-service.js"></script>
+    <script src="lib/ui.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        font-family: "Noto Sans", sans-serif;
+        overflow-y: auto;
+        overflow-x: hidden;
+        background-color: white;
+        color: #000;
+      }
+
+      .site-logo {
+        max-width: 300px;
+        margin-left: -15px;
+      }
+
+      .content {
+        width: 1000px;
+      }
+
+      .header {
+        display: flex;
+        margin: 50px 0 30px 0;
+      }
+
+      .header :first-child {
+        flex: 1;
+      }
+
+      .session-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      .session-header div {
+        padding: 5px;
+        font-weight: bold;
+      }
+
+      .session-header:hover div {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.onload = () => {
+        let { tokens, reftokens } = utils.parseQuery(location.search);
+        tokens = tokens ? tokens.split(",") : [];
+        const refTokens = reftokens ? reftokens.split(",") : [];
+        if (tokens) {
+          WaveService.readStatus(function(config) {
+            comparisonUi.state.reportsEnabled = config.reportsEnabled;
+            comparisonUi.render();
+          });
+          WaveService.addRecentSessions(tokens);
+          WaveService.addRecentSessions(refTokens);
+          comparisonUi.state.tokens = tokens;
+          comparisonUi.state.refTokens = refTokens;
+          comparisonUi.render();
+          comparisonUi.refreshData();
+        }
+      };
+
+      const comparisonUi = {
+        state: {
+          tokens: [],
+          refTokens: [],
+          sessions: {}
+        },
+        refreshData: () => {
+          const { tokens, refTokens } = comparisonUi.state;
+          const allTokens = tokens.slice();
+          refTokens
+            .filter(token => allTokens.indexOf(token) === -1)
+            .forEach(token => allTokens.push(token));
+
+          WaveService.readMultipleSessions(allTokens, configurations => {
+            const sessions = {};
+            configurations.forEach(
+              details => (sessions[details.token] = details)
+            );
+            comparisonUi.state.sessions = sessions;
+
+            WaveService.readResultComparison(tokens, results => {
+              comparisonUi.state.results = results;
+              comparisonUi.renderApiResults();
+            });
+
+            const sessionsReferenceTokens = [];
+            configurations.forEach(({ referenceTokens }) =>
+              referenceTokens
+                .filter(token => refTokens.indexOf(token) === -1)
+                .filter(token => sessionsReferenceTokens.indexOf(token) === -1)
+                .forEach(token => sessionsReferenceTokens.push(token))
+            );
+
+            sessionsReferenceTokens.forEach(token =>
+              comparisonUi.state.refTokens.push(token)
+            );
+
+            WaveService.readMultipleSessions(
+              sessionsReferenceTokens,
+              configurations => {
+                const { sessions } = comparisonUi.state;
+                configurations.forEach(
+                  details => (sessions[details.token] = details)
+                );
+                comparisonUi.renderDetails();
+              }
+            );
+          });
+        },
+        openResultsOverview() {
+          location.href = WEB_ROOT + "overview.html";
+        },
+        render() {
+          const comparisonView = UI.createElement({
+            className: "content",
+            style: "margin-bottom: 40px;",
+            children: [
+              {
+                className: "header",
+                children: [
+                  {
+                    children: [
+                      {
+                        element: "img",
+                        src: "res/wavelogo_2016.jpg",
+                        className: "site-logo"
+                      }
+                    ]
+                  },
+                  {
+                    className: "button is-dark is-outlined",
+                    onClick: comparisonUi.openResultsOverview,
+                    children: [
+                      {
+                        element: "span",
+                        className: "icon",
+                        children: [
+                          {
+                            element: "i",
+                            className: "fas fa-arrow-left"
+                          }
+                        ]
+                      },
+                      {
+                        text: "Results Overview",
+                        element: "span"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                id: "header",
+                children: [
+                  { className: "title", text: "Comparison" },
+                  { id: "controls" }
+                ]
+              },
+              { id: "details" },
+              { id: "api-results" }
+            ]
+          });
+
+          const root = UI.getRoot();
+          root.innerHTML = "";
+          root.appendChild(comparisonView);
+          comparisonUi.renderDetails();
+          comparisonUi.renderApiResults();
+        },
+        renderDetails() {
+          const detailsView = UI.createElement({
+            style: "margin-bottom: 20px"
+          });
+
+          const { refTokens } = comparisonUi.state;
+          const detailsTable = UI.createElement({
+            element: "table",
+            children: {
+              element: "tbody",
+              children: [
+                {
+                  element: "tr",
+                  id: "reference-sessions"
+                }
+              ]
+            }
+          });
+          detailsView.appendChild(detailsTable);
+
+          const details = UI.getElement("details");
+          details.innerHTML = "";
+          details.appendChild(detailsView);
+          comparisonUi.renderReferenceSessions();
+        },
+        renderReferenceSessions() {
+          const { sessions, refTokens } = comparisonUi.state;
+          if (!refTokens || refTokens.length === 0) return;
+          if (!Object.keys(sessions) || Object.keys(sessions).length === 0)
+            return;
+          const referenceSessions = refTokens.map(token => sessions[token]);
+          const referenceSessionsTarget = UI.getElement("reference-sessions");
+          referenceSessionsTarget.innerHTML = "";
+
+          const referenceSessionsLabel = UI.createElement({
+            element: "td",
+            text: "Reference Sessions:",
+            style: "width: 175px"
+          });
+          referenceSessionsTarget.appendChild(referenceSessionsLabel);
+
+          const referenceSessionsList = UI.createElement({ element: "td" });
+          referenceSessions.forEach(session => {
+            const { token, browser } = session;
+            const referenceSessionItem = UI.createElement({
+              style: "margin-right: 10px",
+              className: "button is-dark is-small is-rounded is-outlined",
+              onClick: () => WaveService.openSession(token),
+              children: [
+                {
+                  element: "span",
+                  className: "icon",
+                  children: {
+                    element: "i",
+                    className: utils.getBrowserIcon(browser.name)
+                  }
+                },
+                {
+                  element: "span",
+                  className: "is-family-monospace",
+                  text: token.split("-").shift()
+                }
+              ]
+            });
+            referenceSessionsList.appendChild(referenceSessionItem);
+          });
+          referenceSessionsTarget.appendChild(referenceSessionsList);
+        },
+        renderApiResults() {
+          const apiResultsView = UI.createElement({
+            style: "margin-bottom: 20px"
+          });
+
+          const heading = UI.createElement({
+            className: "title is-4",
+            text: "Results"
+          });
+          apiResultsView.appendChild(heading);
+
+          const { results, tokens, sessions } = comparisonUi.state;
+
+          if (!results) {
+            const loadingIndicator = UI.createElement({
+              className: "level",
+              children: {
+                element: "span",
+                className: "level-item icon",
+                children: [
+                  {
+                    element: "i",
+                    className: "fas fa-spinner fa-pulse"
+                  },
+                  {
+                    style: "margin-left: 0.4em;",
+                    text: "Loading comparison ..."
+                  }
+                ]
+              }
+            });
+            apiResultsView.appendChild(loadingIndicator);
+
+            const apiResults = UI.getElement("api-results");
+            apiResults.innerHTML = "";
+            apiResults.appendChild(apiResultsView);
+            return;
+          }
+
+          const resultsTable = UI.createElement({
+            element: "table"
+          });
+          apiResultsView.appendChild(resultsTable);
+
+          const getColor = percent => {
+            const tRed = 28;
+            const tGreen = 166;
+            const tBlue = 76;
+            const mRed = 204;
+            const mGreen = 163;
+            const mBlue = 0;
+            const bRed = 255;
+            const bGreen = 56;
+            const bBlue = 96;
+            if (percent > 50) {
+              const red = mRed + ((percent - 50) / 50) * (tRed - mRed);
+              const green = mGreen + ((percent - 50) / 50) * (tGreen - mGreen);
+              const blue = mBlue + ((percent - 50) / 50) * (tBlue - mBlue);
+              return `rgb(${red}, ${green}, ${blue})`;
+            } else {
+              const red = bRed + (percent / 50) * (mRed - bRed);
+              const green = bGreen + (percent / 50) * (mGreen - bGreen);
+              const blue = bBlue + (percent / 50) * (mBlue - bBlue);
+              return `rgb(${red}, ${green}, ${blue})`;
+            }
+          };
+
+          const resultsTableHeader = UI.createElement({
+            element: "thead",
+            children: {
+              element: "tr",
+              children: [
+                {
+                  element: "td",
+                  text: "API",
+                  style: "vertical-align: bottom; width: 200px"
+                }
+              ]
+                .concat(
+                  tokens.map(token => ({
+                    element: "td",
+                    children: {
+                      onClick: () => WaveService.openSession(token),
+                      className: "session-header",
+                      children: [
+                        {
+                          element: "i",
+                          style: "font-size: 1.5em; margin-right: 0.1em",
+                          className: utils.getBrowserIcon(
+                            sessions[token].browser.name
+                          )
+                        },
+                        {
+                          children: [
+                            {
+                              style: "margin: 0; padding: 0;",
+                              className: "is-family-monospace",
+                              text: `${token.split("-").shift()}`
+                            },
+                            {
+                              style: "margin: 0; padding: 0;",
+                              text: `${sessions[token].browser.name} ${
+                                sessions[token].browser.version
+                              }`
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }))
+                )
+                .concat([{ element: "td", style: "width: 80px" }])
+            }
+          });
+          resultsTable.appendChild(resultsTableHeader);
+
+          let apis = [];
+          tokens.forEach(token =>
+            Object.keys(results[token])
+              .filter(api => apis.indexOf(api) === -1)
+              .forEach(api => apis.push(api))
+          );
+          apis = apis.sort((apiA, apiB) =>
+            apiA.toLowerCase() > apiB.toLowerCase() ? 1 : -1
+          );
+
+          const resultsTableBody = UI.createElement({
+            element: "tbody",
+            children: apis.map(api => ({
+              element: "tr",
+              children: [{ element: "td", text: api }]
+                .concat(
+                  tokens.map(token =>
+                    results[token][api]
+                      ? {
+                          element: "td",
+                          style:
+                            "text-align: center; font-weight: bold;" +
+                            `color: ${getColor(
+                              utils.percent(
+                                results[token][api],
+                                results["total"][api]
+                              )
+                            )}`,
+                          text: `${utils.percent(
+                            results[token][api],
+                            results["total"][api]
+                          )}%`
+                        }
+                      : {
+                          element: "td",
+                          text: "Not Tested",
+                          style: "text-align: center;"
+                        }
+                  )
+                )
+                .concat([
+                  comparisonUi.state.reportsEnabled ?
+                  {
+                    element: "td",
+                    children: {
+                      className:
+                        "html-report button is-dark is-outlined is-small",
+                      onclick: () =>
+                        WaveService.readMultiReportUri(
+                          comparisonUi.state.tokens,
+                          api,
+                          function(uri) {
+                            window.open(uri, "_blank");
+                          }
+                        ),
+                      text: "report"
+                    }
+                  } : null
+                ])
+            }))
+          });
+          resultsTable.appendChild(resultsTableBody);
+
+          const apiResults = UI.getElement("api-results");
+          apiResults.innerHTML = "";
+          apiResults.appendChild(apiResultsView);
+        }
+      };
+    </script>
+  </body>
+</html>

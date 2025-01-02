@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>fractions linethickness</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+    <meta name="assert" content="Verifies fraction with 0px bar.">
+    <link rel="mismatch" href="frac-linethickness-003-notref.html">
+  </head>
+  <body>
+    <p>This test passes if you see a fraction without fraction bar.</p>
+    <math>
+      <mfrac linethickness="0px">
+        <mspace width="20px" height="5px" style="background: blue"></mspace>
+        <mspace width="20px" height="5px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+  </body>
+</html>

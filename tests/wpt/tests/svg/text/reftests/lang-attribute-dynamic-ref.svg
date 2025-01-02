@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <text>
+    <tspan x="10" y="100" font-size="90" lang="ja" fill="lime">Quick</tspan>
+    <tspan x="10" y="200" font-size="90">Brown</tspan>
+    <tspan x="10" y="300" font-size="90">Fox</tspan>
+  </text>
+</svg>

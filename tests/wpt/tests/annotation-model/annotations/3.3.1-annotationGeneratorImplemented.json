@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-annotationGeneratorImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "generator key not found. Annotation may have zero or more generators.",
+  "title": "Implements **_generator_ key** which has one or more values, each of which is a **string of format uri** or an **object** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information).",
+  "description": "True when the Annotation implements generator key (Section 3.3.1)",
+  "allOf":
+    [
+    { "$ref": "otherProperties.json#/definitions/generatorPropertyFound"}
+    ]
+}

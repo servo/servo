@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Test that scrolling to a content-visibility: auto subtree restarts animations in it</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/">
+<link rel="match" href="content-visibility-animation-and-scroll-ref.html">
+<meta name="assert" content="animations in content-visibility: auto subtree should restart when scrolled to">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#container {
+  content-visibility: auto;
+  contain-intrinsic-size: 100px 100px;
+}
+@keyframes unfade {
+  from { opacity: 0; transform: none; }
+  to { opacity: 1; transform: translate(100px); }
+}
+#target {
+  background: green;
+  height: 100px;
+  width: 100px;
+}
+.animate {
+  animation: unfade 1s linear 1 alternate;
+  animation-fill-mode: forwards;
+}
+#spacer {
+  height: 300vh;
+}
+</style>
+<body>
+  <div id="spacer"></div>
+  <div id="container"></div>
+</body>
+
+<script>
+function createAnimatingElement(name) {
+  const container = document.getElementById('container');
+  const target = document.createElement('div');
+  container.appendChild(target);
+  target.id = 'target';
+  target.className = name;
+  return target;
+}
+
+function runTest() {
+  const container = document.getElementById('container');
+  const target = createAnimatingElement('animate');
+  container.scrollIntoView(true /* alignToTop */);
+  const listener = (e) => {
+    spacer.style.height = "0px";
+    takeScreenshot();
+  };
+
+  target.addEventListener("animationend", listener);
+}
+window.onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

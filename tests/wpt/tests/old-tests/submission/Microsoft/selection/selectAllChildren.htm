@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Call selectAllChildren() where the parameter is a text node</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="common.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var selection = window.getSelection();
+                var div1 = document.getElementById("div1");
+
+                checkDefaultSelectionAttributes();
+                assert_equals(selection.toString(), "");
+
+                selection.selectAllChildren(div1.firstChild);
+
+                checkSelectionAttributes(div1.firstChild, 0, div1.firstChild, 0, true, 1);
+                assert_equals(selection.toString(), "");
+            }
+        </script>
+    </head>
+    <body onload="test(RunTest);">
+        <div id="div1">Call selectAllChildren() where the parameter is a text node</div>
+    </body>
+</html>

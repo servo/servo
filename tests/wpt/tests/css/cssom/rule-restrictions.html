@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM Should correctly honor property restrictions</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1665816">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#conform-partial">
+<link rel="help" href="https://drafts.csswg.org/css-animations/#keyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @page {
+    margin-top: 10px;
+    transform: scale(1);
+  }
+
+  @keyframes foo {
+    from {
+      margin-top: 10px;
+      animation-name: none;
+    }
+  }
+</style>
+<script>
+test(function() {
+  let rule = document.styleSheets[0].cssRules[0];
+  assert_equals(rule.type, CSSRule.PAGE_RULE, "Should be a page rule");
+  assert_equals(rule.style.length, 1, "Transform doesn't quite apply to pages");
+  assert_equals(rule.style.marginTop, "10px", "Should have a margin-top declaration");
+  rule.style.setProperty("transform", "scale(1)");
+  assert_equals(rule.style.getPropertyValue("transform"), "", "Shouldn't have been able to set the transform property via setProperty");
+  assert_equals(rule.style.length, 1, "Shouldn't have been able to set transform via setProperty");
+  rule.style.cssText = "margin-bottom: 10px; transform: scale(1);";
+  assert_equals(rule.style.length, 1, "Should not have been able to set transform via cssText");
+  assert_equals(rule.style.marginBottom, "10px", "Should have a margin-bottom declaration");
+}, "@page");
+
+test(function() {
+  let rule = document.styleSheets[0].cssRules[1].cssRules[0];
+  assert_equals(rule.type, CSSRule.KEYFRAME_RULE, "Should be a keyframe rule");
+  assert_equals(rule.style.length, 1, "animation-name doesn't apply to keyframes");
+  assert_equals(rule.style.marginTop, "10px", "Should have a margin-top declaration");
+  rule.style.setProperty("animation-name", "none");
+  assert_equals(rule.style.getPropertyValue("animation-name"), "", "Shouldn't have been able to set the animation-nameproperty via setProperty");
+  assert_equals(rule.style.length, 1, "Shouldn't have been able to set animation-name via setProperty");
+  rule.style.cssText = "margin-bottom: 10px; animation-name: none;";
+  assert_equals(rule.style.length, 1, "Should not have been able to set animation-name via cssText");
+  assert_equals(rule.style.marginBottom, "10px", "Should have a margin-bottom declaration");
+
+}, "@keyframe");
+</script>

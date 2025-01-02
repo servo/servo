@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-annotationSingleCreatorImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation SHOULD have a creator key with a single value.",
+  "title": "Implements Annotation-level **_creator_ key** with a **single value** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": " (Section 3.3.1)",
+  "type": "object",
+  "allOf": [
+  { "$ref": "otherProperties.json#/definitions/singleCreatorPropertyFound" }
+  ]
+}

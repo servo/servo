@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/test_utils.sub.js"></script>
+  </head>
+
+  <body>
+    <script>
+      /**
+       * @param Array.<Array.<Datatype>> combination A combination of datatypes.
+       * @param Dict.<string, boolean> report A map between a datatype name and
+       *     whether it is empty.
+       * @return boolean Whether all datatypes are empty if and only if they are
+       *     included in the |combination|.
+       */
+      function verifyDatatypes(combination, report) {
+        TestUtils.DATATYPES.forEach(function(datatype) {
+          if (combination.indexOf(datatype) != -1) {
+            assert_true(
+                report[datatype.name],
+                datatype.name + " should have been cleared.");
+          } else {
+            assert_false(
+                report[datatype.name],
+                datatype.name + " should NOT have been cleared.");
+          }
+        });
+      }
+
+      TestUtils.COMBINATIONS.forEach(function(combination) {
+        var test_name =
+            "Clear datatypes on navigation: " +
+            combination.map(function(e) { return e.name; }).join(", ");
+
+        promise_test(function(test) {
+          return new Promise(function(resolve_test, reject_test) {
+            TestUtils.populateDatatypes()
+                .then(function() {
+                  // Navigate to a resource with a Clear-Site-Data header in
+                  // an iframe, then verify that the correct types have been
+                  // deleted.
+                  return new Promise(function(resolve, reject) {
+                    window.addEventListener("message", resolve);
+                    var iframe = document.createElement("iframe");
+                    iframe.src = TestUtils.getClearSiteDataUrl(combination);
+                    document.body.appendChild(iframe);
+                  }).then(function(messageEvent) {
+                    verifyDatatypes(combination, messageEvent.data);
+                    resolve_test();
+                  });
+                });
+          });
+        }, test_name);
+      });
+    </script>
+  </body>
+</html>

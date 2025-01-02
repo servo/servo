@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: Verify [SameObject] behavior of IDBIndex's objectStore attribute</title>
+<meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-objectstore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+<script>
+
+indexeddb_test(
+  (t, db) => {
+    const store = db.createObjectStore('store');
+    const index = store.createIndex('index', 'keyPath');
+    assert_equals(index.objectStore, index.objectStore,
+                  'Attribute should yield the same object each time');
+
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const store = tx.objectStore('store');
+    const index = store.index('index');
+    assert_equals(index.objectStore, index.objectStore,
+                  'Attribute should yield the same object each time');
+    t.done();
+  },
+  'IDBIndex.objectStore [SameObject]'
+);
+</script>

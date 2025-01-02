@@ -1,0 +1,22 @@
+<meta http-equiv="content-security-policy" content="img-src 'none'; aaa;">
+<title>Parsing: Unknown directive is ignored</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+    img = document.createElement('img');
+    img.src = "../support/fail.png";
+    return Promise.all([
+      new Promise((resolve, reject) => {
+        img.onerror = resolve;
+        img.onload = reject;
+      }),
+      new Promise(resolve => {
+        window.addEventListener('securitypolicyviolation', e => {
+          if (e.blockedURI.endsWith("/support/fail.png"))
+            resolve();
+        });
+      })
+    ]);
+  }, "Even if an unknown directive is specified, img-src is honored.");
+</script>

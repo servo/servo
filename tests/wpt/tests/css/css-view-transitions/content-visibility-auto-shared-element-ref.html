@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: offscreen content</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+body { background: pink }
+.flex {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+.box {
+  width: 100px;
+  height: 500px;
+  contain: paint;
+  background: green;
+  border: 1px solid black;
+  box-sizing: border-box;
+}
+.vis-hidden {
+  visibility: hidden;
+}
+.cv-hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div class=flex>
+ <div class="box vis-hidden">ancestor c-v</div>
+ <div class="box cv-hidden">self c-v</div>
+ <div class="box cv-hidden">descendant c-v</div>
+</div>

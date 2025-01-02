@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+
+function testConstructor(t, gl) {
+  return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+    .then(() => {
+      return navigator.xr.requestSession('inline')
+        .then((session) => {
+          try {
+            let webglLayerIncompatible = new XRWebGLLayer(session, gl);
+          } catch (err) {
+            assert_unreached("Inline XRWebGLLayers should not fail when created with a context that is not XRCompatible");
+          }
+        });
+    })
+    .then(() => {
+      return new Promise((resolve) => {
+        navigator.xr.test.simulateUserActivation(() => {
+          let xrSession = null;
+          navigator.xr.requestSession('immersive-vr')
+          .then((session) => {
+            xrSession = session;
+            t.step_func(() => {
+              try {
+                let webglLayerIncompatible = new XRWebGLLayer(xrSession, gl);
+                assert_unreached("XRWebGLLayer should fail when created with a context that is not XRCompatible")
+              } catch (err) {
+                assert_equals(err.name, "InvalidStateError");
+              }
+            })
+
+            return gl.makeXRCompatible();
+          }).then(() => {
+            try {
+              let webglLayerGood = new XRWebGLLayer(xrSession, gl);
+            } catch (err) {
+              reject("XRWebGLLayer should not fail with valid arguments");
+            }
+
+            let lose_context_ext = gl.getExtension('WEBGL_lose_context');
+
+            gl.canvas.addEventListener('webglcontextlost', (ev) => {
+              ev.preventDefault();
+
+              try {
+                let webglLayerBadContext = new XRWebGLLayer(xrSession, gl);
+                reject("XRWebGLLayer should fail when created with a lost context");
+              } catch (err) {
+                assert_equals(err.name, 'InvalidStateError');
+                t.step_timeout(() => { lose_context_ext.restoreContext(); }, 100);
+              }
+            });
+
+            gl.canvas.addEventListener('webglcontextrestored', (ev) => {
+              resolve(xrSession.end().then(() => {
+                try {
+                  let webglLayerBadSession = new XRWebGLLayer(xrSession, gl);
+                  assert_unreached("XRWebGLLayer should fail when created with an ended session");
+                } catch (err) {
+                  assert_equals(err.name, 'InvalidStateError');
+                }
+              }));
+            });
+
+            lose_context_ext.loseContext();
+          });
+        });
+      });
+    });
+}
+xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate errors using webgl",
+  testConstructor, null, 'webgl');
+
+xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate errors using webgl2",
+  testConstructor, null, 'webgl2');
+
+</script>

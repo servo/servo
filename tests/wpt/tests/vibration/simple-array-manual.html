@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'/>
+    <title>Vibration API: test a simple array parameter to vibrate()</title>
+    <link rel='author' title='Robin Berjon' href='mailto:robin@berjon.com'/>
+    <link rel='help' href='http://www.w3.org/TR/vibration/#methods'/>
+  </head>
+  <body>
+    <h1>Description</h1>
+    <p>
+      After hitting the button below, your device must vibrate continuously for about two seconds, once.
+    </p>
+    <button id='vib'>Vibrate!</button>
+    <div id='log'></div>
+    <script>
+      document.getElementById("vib").onclick = function () {
+        navigator.vibrate([2000]);
+      };
+    </script>
+  </body>
+</html>

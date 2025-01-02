@@ -1,0 +1,6 @@
+features:
+- name: details
+  files: "**"
+- name: scroll-to-text-fragment
+  files:
+  - auto-expand-details-text-fragment.html

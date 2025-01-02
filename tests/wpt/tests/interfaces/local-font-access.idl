@@ -1,0 +1,24 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Local Font Access API (https://wicg.github.io/local-font-access/)
+
+[SecureContext]
+partial interface Window {
+  Promise<sequence<FontData>> queryLocalFonts(optional QueryOptions options = {});
+};
+
+dictionary QueryOptions {
+  sequence<DOMString> postscriptNames;
+};
+
+[Exposed=Window]
+interface FontData {
+  Promise<Blob> blob();
+
+  // Names
+  readonly attribute USVString postscriptName;
+  readonly attribute USVString fullName;
+  readonly attribute USVString family;
+  readonly attribute USVString style;
+};

@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-targCreatorAgentNicknameImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Nickname for Target Creator (Agent) not found. Agents should have exactly one nickname value.",
+  "title": "Implements Target-level creator (Agent) **_nickname_ key** with a **single value** that is a string - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when exactly one nickname for Target Creator (Agent) is implemented (Section 3.3.2)",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/creatorAgentWithSingularNicknameFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithSingularNicknameFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithSingularNicknameFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/creatorAgentWithSingularNicknameFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithSingularNicknameFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithSingularNicknameFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     },
+     "required": [ "target" ]
+}

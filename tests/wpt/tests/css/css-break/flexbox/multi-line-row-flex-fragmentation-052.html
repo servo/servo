@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation: Row expansion and stretching.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  #flex > div {
+    background: green;
+    width: 10px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto; position: relative; background: red;">
+  <div style="position: absolute; top: 50px; width: 10px; height: 50px; background: green;"></div>
+  <div style="position: absolute; top: 50px; left: 40px; width: 20px; height: 50px; background: green;"></div>
+  <div style="position: absolute; left: 70px; width: 10px; height: 50px; background: green;"></div>
+  <div style="position: absolute; top: 70px; left: 60px; width: 10px; height: 30px; background: green;"></div>
+  <div id="flex">
+    <div style="width: 20px; height: 50px;"></div>
+    <div style="margin-top: 40px; height: 60px; contain: size;"></div>
+    <div></div>
+    <div style="width: 20px; height: 90px;"></div>
+    <div style="margin-top: 40px; height: 70px; contain: size;"></div>
+    <div style="margin-top: 100px; height: 50px; contain: size;"></div>
+    <div style="height: 100px; break-before: column;"></div>
+    <div></div>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<title>Moving the fullscreen element should not leave the fullscreen flag</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+
+<div id="fullscreen-element">Fullscreen element</div>
+
+<div id="new-parent"></div>
+
+<script>
+    promise_test(async () => {
+        const fullscreenElement = document.getElementById("fullscreen-element");
+        await trusted_request(fullscreenElement);
+        assert_true(fullscreenElement.matches(":fullscreen"), "Element has fullscreen flag");
+        assert_equals(document.fullscreenElement, fullscreenElement, "Element is fullscreen element");
+        document.getElementById("new-parent").appendChild(fullscreenElement);
+        assert_false(fullscreenElement.matches(":fullscreen"), "Element no longer has fullscreen flag after being moved");
+        assert_false(!!document.fullscreenElement, "There is no more fullscreen element, since fullscreen flag was removed");
+        await fullScreenChange();
+        assert_false(fullscreenElement.matches(":fullscreen"), "Element no longer has fullscreen flag after fullscreen change event");
+        assert_false(!!document.fullscreenElement, "There is no more fullscreen element, since fullscreen flag was removed");
+    });
+</script>
+</html>

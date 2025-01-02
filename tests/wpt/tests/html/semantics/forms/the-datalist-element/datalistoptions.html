@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Datalist element options</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-datalist-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<label>
+  Number:
+  <input list=numbers>
+</label>
+<datalist id=numbers>
+  <label> Select number:
+    <select id=num>
+      <option label="zero" value="0">
+      <option label="one" value="1">
+      <option label="two">2
+      <option label="three" disabled>3
+      <option>
+    </select>
+  </label>
+</datalist>
+<script>
+  test(function(){
+    var datalist = document.getElementById('numbers'),
+        labels = [],
+        values = [];
+    assert_equals(datalist.options.length, 5);
+
+    for (var i = 0, len = datalist.options.length; i < len; i++) {
+      assert_equals(datalist.options[i], datalist.options.item(i));
+      labels.push(datalist.options[i].label);
+      values.push(datalist.options[i].value);
+    }
+    assert_array_equals(labels, ["zero", "one", "two", "three", ""]);
+    assert_array_equals(values, ["0", "1", "2", "3", ""]);
+  }, "options label/value");
+
+  test(function(){
+    assert_false(document.getElementById('num').willValidate);
+  }, "If an element has a datalist element ancestor, it is barred from constraint validation");
+</script>

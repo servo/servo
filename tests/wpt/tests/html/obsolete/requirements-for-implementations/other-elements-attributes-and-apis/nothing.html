@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Methods that must do nothing: clear(), captureEvents(), and releaseEvents()</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  assert_equals(document.clear(), undefined);
+}, "document.clear");
+
+test(function() {
+  assert_equals(document.captureEvents(), undefined);
+}, "document.captureEvents");
+
+test(function() {
+  assert_equals(document.releaseEvents(), undefined);
+}, "document.releaseEvents");
+
+test(function() {
+  assert_equals(window.captureEvents(), undefined);
+}, "window.captureEvents");
+
+test(function() {
+  assert_equals(window.releaseEvents(), undefined);
+}, "window.releaseEvents");
+</script>

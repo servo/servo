@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Dynamic ::before and ::after generation by a custom property reference</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="match" href="before-after-dynamic-custom-property-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#generated-content">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1660804">
+<style>
+.first::before {
+  content: var(--variable-1);
+}
+.second::after {
+  content: var(--variable-2);
+}
+</style>
+<p>Test passes if you see two PASS lines below:</p>
+<div class="first">SS</div>
+<div class="second">PA</div>
+<script>
+document.querySelector(".second").getBoundingClientRect();
+document.documentElement.style.setProperty("--variable-1", "\"PA\"");
+document.documentElement.style.setProperty("--variable-2", "\"SS\"");
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+    <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+    <title>&lt;caption&gt; elements can be relatively positioned</title>
+    <meta name="assert" content="The caption is positioned relatively to the table wrapper">
+    <link rel="help" href="https://drafts.csswg.org/css2/#relative-positioning">
+    <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+    <style>
+        caption {
+            position: relative;
+            background: green;
+            width: 100px;
+            height: 100px;
+            margin-left: 200px;
+            left: -200px;
+        }
+   </style>
+
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div style="width: 100px; background: red;">
+        <table>
+            <caption></caption>
+        </table>
+    </div>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Content Distibution: align-content - inherit value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-content" />
+<meta name="assert" content="Check bad cobinations of specified values."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+    checkInheritValues("alignContent", "align-content", "end");
+}, "Test the value 'inherit' overrides current value ('end')");
+test(function() {
+    checkInheritValues("alignContent", "align-content", "safe start");
+}, "Test the value 'inherit' overrides current value ('safe start')");
+test(function() {
+    checkInheritValues("alignContent", "align-content", "unsafe center");
+}, "Test the value 'inherit' overrides current value ('unsafe center')");
+</script>

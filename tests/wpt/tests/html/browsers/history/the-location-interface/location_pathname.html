@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_pathname</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      var pathname = location.pathname;
+      var url = location.href
+
+      url = url.replace(location.protocol + "//" + location.host, "");
+
+      assert_equals(pathname, url, "pathname");
+
+    }, "location pathname");
+    </script>
+  </body>
+</html>

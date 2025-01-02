@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="style-before-pseudo-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+    margin-left: 3px;
+}
+
+div::before {
+    width: 100px;
+    height: 100px;
+    content: 'foo';
+    color: rgba(0, 0, 0, 0);
+
+    background-image: paint(geometry);
+    margin-left: 2px;
+    --foo:bar;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body style="font: 10px/1 Ahem;">
+<div></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+    static get inputProperties() {
+        return [
+            '--bar',
+            '--foo',
+            'margin-left',
+        ];
+    }
+    paint(ctx, geom, styleMap) {
+        const properties = [...styleMap.keys()].sort();
+        var serializedStrings = [];
+        for (let i = 0; i < properties.length; i++) {
+            const value = styleMap.get(properties[i]);
+            let serialized;
+            if (value)
+                serialized = properties[i].toString() + ': [' + value.constructor.name + '=' + value.toString() + ']';
+            else
+                serialized = properties[i].toString() + ': [null]';
+            serializedStrings.push(serialized);
+        }
+        ctx.fillStyle = 'green';
+        if (serializedStrings[0] != "--bar: [CSSUnparsedValue=]")
+            ctx.fillStyle = 'red';
+        if (serializedStrings[1] != "--foo: [CSSUnparsedValue=bar]")
+            ctx.fillStyle = 'blue';
+        if (serializedStrings[2] != "margin-left: [CSSUnitValue=2px]")
+            ctx.fillStyle = 'yellow';
+        ctx.fillRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

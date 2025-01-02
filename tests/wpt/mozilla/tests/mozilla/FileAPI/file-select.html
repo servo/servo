@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test of selecting a file through input element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body><input id="file-input" type="file"></body>
+
+<script>
+
+async_test(function() {
+  var e = document.getElementById("file-input");
+
+  assert_true(e.selectFiles != undefined, "selectFiles is not defined")
+
+  e.selectFiles(["./tests/wpt/mozilla/tests/mozilla/test.txt"]);
+
+  assert_true(e.files.length > 0, "test.txt is not selected");
+
+  var reader = new FileReader;
+
+  reader.onloadend = this.step_func(function(evt) {
+    assert_equals(evt.target.result, "hello, servo\n");
+
+    this.done();
+  });
+
+  reader.readAsText(e.files[0]);
+
+}, "Select a file");
+</script>

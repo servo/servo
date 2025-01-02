@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale(0.5, 0.5)</title>
+    <link rel="author" title="Clint Talbert" href="mailto:ctalbert@mozilla.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-scale">
+    <meta name="assert" content='This tests that scale(0.5, 0.5) scales down a
+    box by a factor of one-half.'>
+    <link rel="match" href="transform-scale-ref.html">
+    <style>
+      body {
+        margin: 0;
+      }
+
+      div {
+        background: green;
+        width: 100px;
+        height: 100px;
+        transform: scale(0.5, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Gradient interpolation</title>
+  <meta name="fuzzy" content="maxDifference=1-2;totalPixels=0-10000">
+  <link rel="author" title="Mike Bremford" href="mailto:mike@bfo.com">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="assert" content="Tests that interpolation between two out-of-gamut doesn't gamut-map the end-points before interpolation">
+  <link rel="match" href="gradient-eval-006-ref.html">
+  <style>
+   :root {
+       --start: lab(75% 50 86.6);       /* rgb(111.9% 55.94% -11.3%) */
+       --end: lab(75% -50 -86.6);       /* rgb(-76.3% 83.91% 135.5%) */
+       --t: 0.5;
+       --big: 131070000px;
+   }
+   .test {
+       width: 100px;
+       height: 100px;
+       background: linear-gradient(in lab, var(--start) calc(var(--big) * (0 - var(--t))), var(--end) calc(var(--big) * (1 - var(--t))));
+   }
+ </style>
+ </head>
+ <body>
+  <div class="test"></div>
+ </body>
+</html>

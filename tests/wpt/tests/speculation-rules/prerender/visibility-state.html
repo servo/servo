@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>visibilityState must be updated after prerendering</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const prerenderedRC = await addPrerenderRC(referrerRC);
+
+  assert_equals(await prerenderedRC.executeScript(() => document.visibilityState), "hidden");
+
+  await activatePrerenderRC(referrerRC, prerenderedRC);
+
+  assert_equals(await prerenderedRC.executeScript(() => document.visibilityState), "visible");
+});
+</script>

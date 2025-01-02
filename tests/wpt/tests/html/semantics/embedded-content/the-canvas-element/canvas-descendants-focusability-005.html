@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Canvas descendants focusability</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#being-used-as-relevant-canvas-fallback-content">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focusable-area">
+<meta name="assert" content="Checks that descendants of a canvas that represents
+    fallback content are not focusable if not rendered, as usual.">
+<div id="log"></div>
+<!-- Use a sandboxed iframe to disable scripting and make the canvas
+     represent its fallback content instead of embedded content. -->
+<iframe sandbox="allow-same-origin" allow="focus-without-user-activation *"
+    srcdoc='
+    <button data-focusable="true" a></button>
+    <canvas>
+      <button data-focusable="true"></button>
+      <section tabindex="-1" data-focusable="true">
+        <div tabindex="-1" data-focusable="true"></div>
+        <span tabindex="-1" data-focusable="true"></span>
+        <a href="#" data-focusable="true"></a>
+      </section>
+      <button hidden data-focusable="false"></button>
+      <section tabindex="-1" hidden data-focusable="false">
+        <div tabindex="-1" data-focusable="false"></div>
+        <span tabindex="-1" data-focusable="false"></span>
+        <a href="#" data-focusable="false"></a>
+      </section>
+    </canvas>
+    '></iframe>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true });
+setup(async () => {
+  const iframe = document.querySelector("iframe");
+  await new Promise(resolve => {
+    const win = iframe.contentWindow;
+    if (win.location.href === "about:blank" ||
+        win.document.readyState !== "complete") {
+      iframe.addEventListener("load", resolve, {once: true});
+    } else {
+      resolve();
+    }
+  });
+  const doc = iframe.contentDocument;
+  for (let element of doc.querySelectorAll("[data-focusable]")) {
+    let title = element.cloneNode(false).outerHTML.toLowerCase();
+    title = title.slice(0, title.lastIndexOf("<"));
+    test(function() {
+      assert_true(doc.activeElement !== element, "Not initially focused");
+      element.focus();
+      if (JSON.parse(element.dataset.focusable)) {
+        assert_true(doc.activeElement === element, "Should be focused");
+      } else {
+        assert_true(doc.activeElement !== element, "Shouldn't be focused");
+      }
+    }, title);
+  }
+  done();
+});
+</script>

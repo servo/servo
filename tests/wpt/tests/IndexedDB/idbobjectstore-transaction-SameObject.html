@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: Verify [SameObject] behavior of IDBObjectStore's transaction attribute</title>
+<meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbobjectstore-transaction">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+<script>
+
+indexeddb_test(
+  (t, db) => {
+    const store = db.createObjectStore('store');
+    assert_equals(store.transaction, store.transaction,
+                  'Attribute should yield the same object each time');
+
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const store = tx.objectStore('store');
+    assert_equals(store.transaction, store.transaction,
+                  'Attribute should yield the same object each time');
+    t.done();
+  },
+  'IDBObjectStore.transaction [SameObject]'
+);
+</script>

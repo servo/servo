@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-space-transform: space auto-phase</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="match" href="reference/word-space-transform-017-ref.html">
+<meta name="assert" content="word-space-transform: space auto-phrase inserts virtual word boundaries at reasonable points, which can then be expanded into spaces">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+#test {
+  word-space-transfor: space auto-phrase;
+}
+#ref {
+  border-color: blue;
+}
+</style>
+
+<p>Test passes if the black box is identical to the blue one.
+
+<div id=test lang=th>กรุงเทพคือสวยงาม</div>
+<div id=ref lang=th>กรุงเทพ คือ สวยงาม</div>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>IDBDatabase.createObjectStore() and IDBObjectStore.createIndex() - both with empty name</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=resources/support.js></script>
+
+<script>
+    var db
+
+    var open_rq = createdb(async_test())
+    open_rq.onupgradeneeded = function(e) {
+        db = e.target.result
+        var store = db.createObjectStore("")
+
+        for (var i = 0; i < 5; i++)
+            store.add({ idx: "object_" + i }, i)
+
+        store.createIndex("", "idx")
+
+        store.get(4)
+             .onsuccess = this.step_func(function(e) {
+            assert_equals(e.target.result.idx, 'object_4', 'result')
+        })
+        assert_equals(store.indexNames[0], "", "indexNames[0]")
+        assert_equals(store.indexNames.length, 1, "indexNames.length")
+    }
+
+    open_rq.onsuccess = function() {
+        var store = db.transaction("").objectStore("")
+
+        assert_equals(store.indexNames[0], "", "indexNames[0]")
+        assert_equals(store.indexNames.length, 1, "indexNames.length")
+
+        store.index("")
+             .get('object_4')
+             .onsuccess = this.step_func(function(e) {
+            assert_equals(e.target.result.idx, 'object_4', 'result')
+            this.done()
+        })
+    }
+</script>
+
+<div id=log></div>

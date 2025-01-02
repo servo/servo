@@ -1,0 +1,24 @@
+<!doctype html>
+<title>Historical HTMLElement features</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+[
+  // https://github.com/whatwg/html/commit/389ec2620d89e9480ef8847bf016abdfa92427bc
+  "commandType",
+  "commandLabel",
+  "commandIcon",
+  "commandHidden",
+  "commandDisabled",
+  "commandChecked",
+  "commandTriggers",
+  // https://github.com/whatwg/html/pull/2402
+  "dropzone",
+].forEach(function(member) {
+  test(function() {
+    assert_false(member in document.body);
+    assert_false(member in document.createElement('div'));
+  }, 'HTMLElement member must be nuked: ' + member);
+});
+</script>

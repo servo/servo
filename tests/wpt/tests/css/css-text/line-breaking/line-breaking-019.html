@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text — out-of-flow element adjacent to a potential line-break</title>
+<meta name=assert content="The anchor of an out-of-flow should not migrate across a soft line break">
+<!-- NOTE: I'm not sure the spec explicitly addresses this exact point, but it seems like a clear
+           bug in Firefox, hence this test (which passes as expected in Chrome and Safari). -->
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-break-details">
+<link rel=match href="reference/line-breaking-019-ref.html">
+<link rel=author title="Jonathan Kew" href="jkew@mozilla.com">
+<style>
+.outer { float: left; padding: 0 1em; margin: 1em; border: 1px solid silver; }
+
+.outer div { font-family: monospace; line-height: 2; margin: 1em 0; border: 1px dotted silver; }
+
+.test20 div { width: 20ch; }
+.test27 div { width: 27ch; }
+.test30 div { width: 30ch; }
+
+b { color: blue; border-left: 2px solid red; border-right: 2px solid green; }
+
+/* adjust for the width of the target element's border */
+div > .before { margin-left: 2px; }
+div > .after { margin-left: -2px; }
+
+.test::before,
+.test::after,
+.before,
+.after { position: absolute; font-size: 0.5em; }
+
+.test::before { content: "before"; }
+.test::after { content: "after"; }
+
+.before,
+.test::before { color: red; font-weight: normal; }
+.after,
+.test::after { color: green; font-weight: normal; }
+</style>
+
+<div>Test passes if all the examples in each group render the same:</div>
+
+<div class="outer test30">
+  <!-- Using ::before and ::after to insert abs-pos elements with non-empty content: -->
+  <div>
+  Preceding text <b class=test>target element</b> following text.
+  </div>
+  <!-- With explicit spans just inside the target element: -->
+  <div>
+  Preceding text <b><span class=before>before</span>target element<span class=after>after</span></b> following text.
+  </div>
+  <!-- With explicit spans just outside the target element: -->
+  <div>
+  Preceding text <span class=before>before</span><b>target element</b><span class=after>after</span> following text.
+  </div>
+  <!-- With explicit line breaks: -->
+  <div>
+  Preceding text <span class=before>before</span><b>target element</b><span class=after>after</span><br>following text.
+  </div>
+</div>
+
+<div class="outer test27">
+  <div>
+  Preceding text <b class=test>target element</b> following text.
+  </div>
+  <div>
+  Preceding text <b><span class=before>before</span>target element<span class=after>after</span></b> following text.
+  </div>
+  <div>
+  Preceding text <span class=before>before</span><b>target element</b><span class=after>after</span> following text.
+  </div>
+  <div>
+  Preceding text <span class=before>before</span><b>target<br>element</b><span class=after>after</span> following text.
+  </div>
+</div>
+
+<div class="outer test20">
+  <div>
+  Preceding text <b class=test>target element</b> following text.
+  </div>
+  <div>
+  Preceding text <b><span class=before>before</span>target element<span class=after>after</span></b> following text.
+  </div>
+  <div>
+  Preceding text <span class=before>before</span><b>target element</b><span class=after>after</span> following text.
+  </div>
+  <div>
+  Preceding text<br><span class=before>before</span><b>target element</b><span class=after>after</span><br>following text.
+  </div>
+</div>

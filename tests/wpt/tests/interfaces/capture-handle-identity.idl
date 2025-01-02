@@ -1,0 +1,27 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Capture Handle - Bootstrapping Collaboration when Screensharing (https://w3c.github.io/mediacapture-handle/identity/)
+
+dictionary CaptureHandleConfig {
+  boolean exposeOrigin = false;
+  DOMString handle = "";
+  sequence<DOMString> permittedOrigins = [];
+};
+
+partial interface MediaDevices {
+  undefined setCaptureHandleConfig(optional CaptureHandleConfig config = {});
+};
+
+dictionary CaptureHandle {
+  DOMString origin;
+  DOMString handle;
+};
+
+partial interface MediaStreamTrack {
+  CaptureHandle? getCaptureHandle();
+};
+
+partial interface MediaStreamTrack {
+  attribute EventHandler oncapturehandlechange;
+};

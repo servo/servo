@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Test print result of background-image not displayed on screen</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-image">
+<link rel="help" href="https://crbug.com/40262871">
+
+<link rel="match" href="background-image-only-for-print-ref.html">
+
+<style>
+  @media not print {
+    .print-only {
+      display: none;
+    }
+  }
+
+  #target {
+    background-image: url("/images/green.png");
+    height: 50px;
+    width: 100px;
+  }
+</style>
+
+<p>
+  Should print a green rectangle but not display it on screen.
+</p>
+
+<div id="target" class="print-only"></div>

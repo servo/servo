@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API pending getUserInfo() test.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {alt_manifest_origin,
+        alt_request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+async function createIframeWithPermissionPolicyAndWaitForMessage(test, iframeUrl) {
+    const messageWatcher = new EventWatcher(test, window, "message");
+    let iframe = document.createElement("iframe");
+    iframe.src = iframeUrl;
+    iframe.allow = "identity-credentials-get";
+    document.body.appendChild(iframe);
+    let message = null;
+    // Ignore internal "testdriver-complete" messages.
+    do {
+        message = await messageWatcher.wait_for("message");
+    } while (typeof message.data !== "string");
+    return message.data;
+}
+
+fedcm_test(async t => {
+  const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
+  assert_equals(cred.token, "token");
+
+  const iframe_in_idp_scope = `${alt_manifest_origin}/\
+fedcm/support/fedcm/pending-userinfo-iframe.html`;
+  const message = await createIframeWithPermissionPolicyAndWaitForMessage(t, iframe_in_idp_scope);
+  assert_equals(message, "Pass");
+}, 'Test basic User InFo API flow');
+</script>

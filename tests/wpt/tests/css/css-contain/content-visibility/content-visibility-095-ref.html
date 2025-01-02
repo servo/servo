@@ -1,0 +1,24 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: hidden table with positioned children (reference)</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+
+<style>
+#table {
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+  contain: content;
+}
+#positioned {
+  position: absolute;
+}
+</style>
+
+<table id=table>
+  <td>
+    <div id=positioned>Test passes if this text is visible.</div>
+  </td>
+</table>
+

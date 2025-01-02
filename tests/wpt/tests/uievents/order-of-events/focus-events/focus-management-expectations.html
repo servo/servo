@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Focus management event expectations</title>
+  <link rel="author" title="Mu-An Chiou" href="https://muan.co">
+  <link rel="help" href="https://w3c.github.io/uievents/#event-flow-activation">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<body>
+  <button type="button" id="fromEl">Focus management from button</button>
+  <button type="button" id="toEl">To button</button>
+  <button type="button" id="EndTestEl">End test button</button>
+</body>
+
+<script>
+  const from = document.getElementById("fromEl")
+  const to = document.getElementById("toEl")
+  const endTest = document.getElementById("EndTestEl")
+
+  from.addEventListener("keydown", function (event) {
+    if (event.key === " ") to.focus()
+  })
+
+  async_test(function (t) {
+    let buttonFocused = false
+    to.addEventListener("click", t.unreached_func("Button should not be clicked"))
+    to.addEventListener("focus", () => buttonFocused = true)
+    endTest.addEventListener('click', () => {
+      assert_true(buttonFocused, "Button should be focused")
+      t.step_timeout(() => t.done(), 200)
+    })
+
+    // execute test
+    from.focus()
+    new test_driver.Actions().keyDown("\ue00d").keyUp("\ue00d").send().then(() =>
+      new test_driver.click(endTest)
+    )
+  }, "Keydown to focus should not trigger activation")
+</script>
+
+</html>

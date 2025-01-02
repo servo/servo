@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>text-align-last</title>
+<link rel="help" href="https://drafts.csswg.org/css-text/#text-align-last-property">
+<link rel="match" href="text-align-last-simple-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.test {
+    width: 208px;
+    border: 1px solid #000000;
+    font-family: Ahem, monospace;
+    font-size: 1em;
+}
+</style>
+</head>
+<body>
+<div>
+This test checks that text-align-last property works properly.<br/>
+</div>
+<div class="test" style="text-align: start; text-align-last: end">start end</div>
+
+<div class="test" style="text-align: end; text-align-last: start">end start</div>
+
+<div class="test" style="text-align: left; text-align-last: right">left right</div>
+
+<div class="test" style="text-align: right; text-align-last: left">right left</div>
+
+<div class="test" style="text-align: center; text-align-last: left">center left</div>
+
+<div class="test" style="text-align: start; text-align-last: auto">start auto</div>
+
+<div class="test" style="text-align: end; text-align-last: auto">end auto</div>
+
+<div class="test" style="text-align: left; text-align-last: auto">left auto</div>
+
+<div class="test" style="text-align: right; text-align-last: auto">right auto</div>
+
+<div class="test" style="text-align: center; text-align-last: auto">center auto</div>
+
+<div class="test" style="text-align: justify; text-align-last: auto">justify auto</div>
+
+<div class="test" style="text-align: auto; text-align-last: justify">auto justify</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Test that Reporting-Endpoints header endpoint with same name override previous value</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='resources/report-helper.js'></script>
+</head>
+
+<body>
+  <script>
+    promise_test(async t => {
+      return new Promise(resolve => {
+        new ReportingObserver((reports, observer) => resolve(reports),
+          { types: ['document-policy-violation'] }).observe();
+      }).then((reports) => {
+        assert_equals(reports[0].type, 'document-policy-violation');
+      })
+    }, "document policy violation observed");
+  </script>
+  <script>
+    // Attempt a synchronous XHR - this should succeed but cause a report to be sent.
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", document.location.href, false);
+    xhr.send();
+  </script>
+  <script>
+    const base_url = `${location.protocol}//${location.host}`;
+    const endpoint = `${base_url}/reporting/resources/report.py`;
+    const first_group1_id = 'b523d7f5-28f0-4be6-9460-e163ee9b4ab8';
+    const second_group1_id = '03e4474d-768c-42f2-8e17-39aa95b309e3';
+    promise_test(async t => {
+      await wait(3000);
+      // Verify that no reports are sent to old header endpoint.
+      let reports = await pollReports(endpoint, first_group1_id);
+      assert_equals(reports.length, 0);
+      // Verify that reports are sent to the new header endpoint.
+      reports = await pollReports(endpoint, second_group1_id);
+      checkReportExists(reports, 'document-policy-violation', location.href);
+    }, "Only the second reporting endpoint received reports.");
+  </script>
+
+</body>
+
+</html>

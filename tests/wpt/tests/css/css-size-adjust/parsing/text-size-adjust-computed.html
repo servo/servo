@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Mobile Text Size Adjustment: getComputedStyle().text-size-adjust</title>
+<link rel="help" href="https://drafts.csswg.org/css-size-adjust/#propdef-text-size-adjust">
+<meta name="assert" content="text-size-adjust computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("text-size-adjust", 'auto');
+test_computed_value("text-size-adjust", 'none', '100%');
+
+test_computed_value("text-size-adjust", '200%');
+test_computed_value("text-size-adjust", '100%');
+test_computed_value("text-size-adjust", '0%');
+</script>
+</body>
+</html>

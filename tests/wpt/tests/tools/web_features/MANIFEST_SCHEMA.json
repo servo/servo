@@ -1,0 +1,35 @@
+{
+  "$schema":"http://json-schema.org/draft-06/schema#",
+  "$ref":"#/definitions/File",
+  "definitions":{
+    "File":{
+      "type":"object",
+      "additionalProperties":false,
+      "properties":{
+        "version":{
+          "type":"integer",
+          "description":"Schema version of the file.",
+          "enum":[
+            1
+          ]
+        },
+        "data":{
+          "type":"object",
+          "description":"High level container for the data. Object key is the web-features identifier.",
+          "additionalProperties":{
+            "type":"array",
+            "items":{
+              "type":"string",
+              "description":"The url field in tools.manifest.item.URLManifestItem"
+            }
+          }
+        }
+      },
+      "required":[
+        "data",
+        "version"
+      ],
+      "title":"File"
+    }
+  }
+}

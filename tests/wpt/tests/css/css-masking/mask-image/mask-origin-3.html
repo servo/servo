@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-origin: mask positioning area</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-origin">
+    <link rel="match" href="mask-origin-3-ref.html">
+    <meta name="assert" content="Test checks whether setting mask position area works correctly or not.">
+    <style type="text/css">
+      svg {
+        position: absolute;
+        top: 10px;
+        border: 1px solid black;
+      }
+      rect.mask {
+        fill: blue;
+        mask-origin: fill-box;
+        mask-clip: fill-box;
+        mask-repeat: no-repeat;
+        mask-image: url(support/50x50-opaque-blue.svg);
+      }
+
+      rect.view {
+        mask-origin: view-box;
+        mask-clip: view-box;
+      }
+
+      rect.fill {
+        mask-origin: fill-box;
+        mask-clip: stroke-box;
+      }
+
+      rect.stroke {
+        mask-origin: stroke-box;
+        mask-clip: stroke-box;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="200" height="200" viewBox="0 0 100 100" preserveAspectRatio="none" style="left: 10px;">
+      <rect class="view mask" x="25" y="25" width="100" height="100"/>
+    </svg>
+    <svg width="200" height="200" style="left: 240px;">
+      <rect class="fill mask" x="50" y="50" width="80" height="80" stroke="green" stroke-width="20"/>
+    </svg>
+    <svg width="200" height="200" style="left: 10px; top: 220px;">
+      <rect class="stroke mask" x="70" y="50" width="80" height="80" stroke="green" stroke-width="20"/>
+    </svg>
+  </body>
+</html>

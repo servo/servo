@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover light dismiss behavior when scrolled within</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<style>
+  [popover] {
+    /* Position most popovers at the bottom-right, out of the way */
+    inset:auto;
+    bottom:0;
+    right:0;
+  }
+  [popover]::backdrop {
+    /* This should *not* affect anything: */
+    pointer-events: auto;
+  }
+</style>
+
+<div popover id=p>Inside popover
+  <div style="height:2000px;background:lightgreen"></div>
+  Bottom of popover
+</div>
+<button popovertarget=p>Popover</button>
+<style>
+  #p {
+    width: 300px;
+    height: 300px;
+    overflow-y: scroll;
+  }
+</style>
+<script>
+  const popover = document.querySelector('#p');
+  promise_test(async () => {
+    popover.showPopover();
+    assert_equals(popover.scrollTop,0,'popover should start non-scrolled');
+    await new test_driver.Actions()
+       .scroll(0, 0, 0, 50, {origin: popover})
+       .send();
+    await waitForRender();
+    assert_true(popover.matches(':popover-open'),'popover should stay open');
+    assert_equals(popover.scrollTop,50,'popover should be scrolled');
+    popover.hidePopover();
+  },'Scrolling within a popover should not close the popover');
+</script>

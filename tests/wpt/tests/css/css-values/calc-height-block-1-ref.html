@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Reference: Test for height:calc() or min-height:calc() on blocks</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<style type="text/css">
+body { margin: 0 }
+body > div { float: left; width: 1px; background: blue; }
+</style>
+</head>
+<body>
+
+<!-- tests with a fixed-height container -->
+<div style="height: 50px"></div>
+<div style="height: 50px"></div>
+<div style="height: 75px"></div>
+<div style="height: 45px"></div>
+<div style="height: 40px"></div>
+<div style="height: 30px"></div>
+
+<!-- tests with an auto-height container -->
+<div style="height: 50px"></div>
+<div style="height: 10px"></div>
+<div style="height: 10px"></div>
+<div style="height: 10px"></div>
+<div style="height: 10px"></div>
+<div style="height: 10px"></div>
+</body>
+</html>

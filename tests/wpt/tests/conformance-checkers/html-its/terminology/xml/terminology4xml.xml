@@ -1,0 +1,19 @@
+<text>
+ <head>
+  <its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xlink:href="terminology4xmlrules.xml">
+   <its:termRule selector="//p[2]/term" term="yes"
+    termInfoPointer="../gloss"/>
+   <its:termRule selector="//p[3]/term" term="no"/>
+  </its:rules>
+  <keywords><kw>terms</kw>, <kw>rare <kw>words</kw></kw></keywords>
+ </head>
+ <p>We may define <term>discoursal point of view</term>
+as <def>the relationship, expressed through discourse
+structure, between the implied author or some other addresser,
+and the fiction</def>.</p>
+ <p>We may define <term>refulgence</term>
+as <gloss id="refdef">a radiant or resplendent quality or state.</gloss></p>
+ <p>But I'm not sure how <term>quincunx</term> can be defined.</p>
+</text>

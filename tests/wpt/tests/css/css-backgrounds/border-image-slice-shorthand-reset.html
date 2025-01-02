@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image-slice" />
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    border: 1px solid;
+    border-image-slice: 1;
+  }
+  div {
+    /* Should reset border-image-slice */
+    border-image: linear-gradient(black, black);
+  }
+</style>
+<div>This text should not have a border, just corner dots</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("div")).borderImageSlice, "100%");
+  }, "Check that the border-image shorthand resets border-image-slice to its initial value.");
+</script>

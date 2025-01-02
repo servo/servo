@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>font size</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-font-element-text-decoration-color-quirk">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<script>
+
+const modes = ["", "+", "-"];
+const values = ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
+const rels = [
+  ["1", "x-small"],
+  ["2", "small"],
+  ["3", "medium"],
+  ["4", "large"],
+  ["5", "x-large"],
+  ["6", "xx-large"],
+  ["7", "xxx-large"]
+];
+let results = getCSSFontSize(rels);
+
+function cal(n) {
+  //If value is greater than 7, let it be 7
+  //If value is less than 1, let it be 1
+  return n > 7 ? 7 : (n < 1 ? 1 : n);
+}
+
+function getRealInput(mode, value) {
+  switch(mode) {
+    case "+":
+      //If mode is relative-plus, then increment value by 3
+      return cal(3 + parseInt(value));
+    case "-":
+      // If mode is relative-minus, then let value be the result of subtracting value from 3
+      return cal(3 - parseInt(value));
+    default:
+      return cal(parseInt(value));
+  }
+}
+
+function getCSSFontSize(rels) {
+  let results = {};
+  for (let [key, value] of rels) {
+    if (key == "7") {
+      //The 'xxx-large' value is a non-CSS value used here to indicate a font size 50% larger than 'xx-large'.
+      let size = parseInt(results["6"]) * 1.5;
+      results[key] = size.toString();
+      return results;
+    }
+    let elem = document.createElement("span");
+    document.body.appendChild(elem);
+    elem.setAttribute("style", `font-size: ${value}`);
+    let exp_size = window.getComputedStyle(elem, null).getPropertyValue("font-size");
+    results[key] = exp_size.slice(0, -2);
+  }
+  return results;
+}
+
+for (let mode of modes) {
+  for (let value of values) {
+    test(() => {
+      let size = getRealInput(mode, value);
+      let elem = document.createElement("font");
+      elem.setAttribute("size", `${mode}${value}`);
+      document.body.appendChild(elem);
+      let exp_size = window.getComputedStyle(elem, null).getPropertyValue("font-size");
+      assert_equals(exp_size.slice(0, -2), results[size]);
+    }, `font size attribute ${mode}${value} is correct`);
+  }
+}
+
+test(() => {
+  let span_elem = document.createElement("span");
+  document.body.appendChild(span_elem);
+  span_elem.setAttribute("style", "font-size: medium");
+  let span_size = window.getComputedStyle(span_elem, null).getPropertyValue("font-size");
+
+  let font_elem = document.createElement("font");
+  document.body.appendChild(font_elem);
+  let font_size = window.getComputedStyle(font_elem, null).getPropertyValue("font-size");
+  assert_equals(font_size, span_size);
+
+  font_elem.setAttribute("size", "");
+  font_size = window.getComputedStyle(font_elem, null).getPropertyValue("font-size");
+  assert_equals(font_size, span_size);
+
+  font_elem.setAttribute("size", " ");
+  font_size = window.getComputedStyle(font_elem, null).getPropertyValue("font-size");
+  assert_equals(font_size, span_size);
+
+  font_elem.setAttribute("size", " 3");
+  font_size = window.getComputedStyle(font_elem, null).getPropertyValue("font-size");
+  assert_equals(font_size, span_size);
+
+  font_elem.setAttribute("size", "3");
+  font_size = window.getComputedStyle(font_elem, null).getPropertyValue("font-size");
+  assert_equals(font_size, span_size);
+}, "font size default value is 3");
+
+</script>

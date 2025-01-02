@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1433413">
+<link rel="match" href="rounded-clipped-border-ref.html">
+<meta name="fuzzy" content="maxDifference=0-15;totalPixels=0-900">
+
+<style>
+  .container {
+    float: left;
+    margin: 10px;
+    text-align: center;
+    inline-size: fit-content;
+  }
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    gap: 10px;
+    inline-size: 320px;
+    block-size: 120px;
+    border: solid;
+    background: lightgray;
+  }
+  .clipper {
+    block-size: 300px;
+    border-radius: 50px;
+    border: 20px solid blue;
+    overflow: clip;
+    background: red;
+  }
+  .child {
+    block-size: 300px;
+    background: yellow;
+  }
+</style>
+
+<p>In each figure there should be a yellow box with a rounded blue border around
+  it, split into three columns. There should be no red.</p>
+
+<div class="container">
+  horizontal-tb:
+  <div class="multicol">
+    <div class="clipper">
+      <div class="child"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  vertical-rl:
+  <div class="multicol" style="writing-mode:vertical-rl;">
+    <div class="clipper">
+      <div class="child"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  vertical-lr:
+  <div class="multicol" style="writing-mode:vertical-lr;">
+    <div class="clipper">
+      <div class="child"></div>
+    </div>
+  </div>
+</div>

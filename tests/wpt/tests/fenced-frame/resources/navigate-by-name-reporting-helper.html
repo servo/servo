@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Navigate reporting helper</title>
+<!-- This document is used as a helper by `../navigate-by-name.html`. That test
+     attempts to navigate various frames all named `target_frame`, to this
+     document. All of these navigations should fail, due to the frames being
+     unreachable to the initiator (because of the "fence" of the fenced frame).
+     As a result, this document should always load in a new top-level
+     "outermost" pop-up window.
+-->
+
+<script>
+const [navigation_success_key] = parseKeylist();
+
+// We're currently using `window.opener` as a proxy for "did this load in a new
+// outermost popup window?". Note that if we try and test navigations initiated
+// from inside a fenced frame and they open up in a new outermost popup, there
+// will be no opener by default (crbug.com/1250694) so using `window.opener` as
+// a signal will be insufficient. In order to test anchor navigations to this
+// document from within a fenced frame, we'll need a better signal for
+// outermost-ness. We should consider adding a value to `document.loadingMode`
+// for fenced frames:
+// https://wicg.github.io/nav-speculation/prerendering.htmlprerendering.html#browsing-context-loading-mode.
+//
+// Alternatively if we really want to detect if this loaded inside a fenced
+// frame, we could just remove the opt-in headers and then implementations that
+// support fenced frame opt-ins would timeout if they somehow don't honor the
+// fence on named frame navigations, but that's not a very good outcome.
+if (window.opener) {
+  writeValueToServer(navigation_success_key, "PASS");
+} else {
+  writeValueToServer(navigation_success_key, "FAIL");
+}
+</script>

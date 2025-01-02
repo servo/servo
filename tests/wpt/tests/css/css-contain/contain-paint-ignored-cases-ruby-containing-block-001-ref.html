@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang=en>
+  <head>
+    <meta charset=utf-8>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Yusuf Sermet" href="mailto:ysermet@mozilla.com">
+    <style>
+      rb,
+      rbc,
+      rt,
+      rtc {
+        background-color: yellow;
+        font-size: 2em;
+      }
+      rbc {
+        display: ruby-base-container;
+      }
+      .contained {
+        width: 50px;
+        height: 10px;
+        background-color: blue;
+        top: 0;
+        left: 0;
+        position: fixed;
+      }
+      .wrapper {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper"><ruby><rt>&emsp;<div class="contained"></div></rt></ruby></div>
+    <div class="wrapper"><ruby><rtc>&emsp;<div class="contained"></div></rtc></ruby></div>
+    <div class="wrapper"><ruby><rb>&emsp;<div class="contained"></div></rb></ruby></div>
+    <div class="wrapper"><ruby><rbc>&emsp;<div class="contained"></div></rbc></ruby></div>
+  </body>
+</html>

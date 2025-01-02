@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Percentages (border box)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <meta name="assert" content="This is part of a series of tests that check
+    that percentages in 'transform' values are evaluated relative to the
+    transformed element's border box.  This test adds a thicker border plus
+    margin and padding to make any discrepancies more evident.">
+    <link rel="match" href="transform-percent-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-102;totalPixels=0-416">
+    <link rel="mismatch" href="transform-percent-notref.html">
+    <style>
+      div {
+        width: 60px;
+        height: 10px;
+        padding: 10px;
+        border: 10px solid gold;
+        margin: 10px;
+        background: gold;
+        position: absolute;
+        left: 90px;
+        top: 90px;
+        transform: rotate(10deg) translatex(50%) rotate(10deg) translatey(100%)
+                   skewx(10deg) translate(25px, 25px);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

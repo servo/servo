@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  ["", "MaxAge=10", "domain="+document.location.hostname].forEach(extraParams => {
+    // Without 'secure'
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__Secure-",
+      params: "Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__Secure: Non-secure origin: Should not set 'Path=/;" + extraParams + "'"
+    });
+
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__SeCuRe-",
+      params: "Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__SeCuRe: Non-secure origin: Should not set 'Path=/;" + extraParams + "'"
+    });
+
+    // With 'secure'
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__Secure-",
+      params: "Secure; Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__Secure: Non-secure origin: Should not set 'Secure; Path=/;" + extraParams + "'"
+    });
+
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__SeCuRe-",
+      params: "Secure; Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__SeCuRe: Non-secure origin: Should not set 'Secure; Path=/;" + extraParams + "'"
+    });
+  });
+</script>

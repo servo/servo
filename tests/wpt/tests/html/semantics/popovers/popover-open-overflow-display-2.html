@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/popover-utils.js"></script>
+<script>
+async function checkStatus(p) {
+    p.showPopover();
+    await waitForRender();
+    assert_true(p.matches(":popover-open"));
+    p.hidePopover();
+    await waitForRender();
+}
+</script>
+
+<div id=container style="overflow: hidden; position: absolute;">
+    <div popover="auto" id=p1 style="position: absolute; top: 100px;">Absolute popover inside absolute element</div>
+</div>
+<script>
+promise_test(async () => {
+    await checkStatus(document.querySelector("#p1"));
+}, "Absolute popover inside absolute element");
+</script>
+
+<div id=p2 popover="auto" style="overflow: hidden; position: absolute;">
+    <div style="position: absolute; top: 100px;">Absolute element inside absolute popover</div>
+</div>
+<script>
+promise_test(async () => {
+    await checkStatus(document.querySelector("#p2"));
+}, "Absolute element inside absolute popover");
+</script>
+
+<div id=container style="overflow: hidden; position: fixed;">
+  <div popover="auto" id=p3 style="position: fixed; top: 100px;">Fixed popover inside fixed element</div>
+</div>
+<script>
+promise_test(async () => {
+    await checkStatus(document.querySelector("#p3"));
+}, "Fixed popover inside fixed element");
+</script>
+
+<div id=p4 popover="auto" style="overflow: hidden; position: fixed;">
+    <div style="position: fixed; top: 100px;">Fixed element inside fixed popover</div>
+</div>
+<script>
+promise_test(async () => {
+    await checkStatus(document.querySelector("#p4"));
+}, "Fixed element inside fixed popover");
+</script>
+
+<div id=container style="overflow: hidden; position: fixed;">
+  <div popover="auto" id=p5 style="position: absolute; top: 100px;">Absolute popover inside fixed element</div>
+</div>
+<script>
+promise_test(async () => {
+    await checkStatus(document.querySelector("#p5"));
+}, "Absolute popover inside fixed element");
+</script>
+
+<div id=p6 popover="auto" style="overflow: hidden; position: absolute;">
+  <div style="position: fixed; top: 100px;">Fixed element inside absolute popover</div>
+</div>
+<script>
+promise_test(async () => {
+    await checkStatus(document.querySelector("#p6"));
+}, "Fixed element inside absolute popover");
+</script>

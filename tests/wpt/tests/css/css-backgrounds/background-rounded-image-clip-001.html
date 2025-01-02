@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Background Clip Follows Rounded Corner</title>
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-22547">
+<link rel="match" href="reference/background-rounded-image-clip.html">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#corner-clipping">
+<style>
+    html {
+        background-color: green;
+    }
+    #a {
+        top: 20px;
+        left: 20px;
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: black;
+    }
+
+    #b {
+        position: absolute;
+        width: 300px;
+        height: 200px;
+        background-image: linear-gradient(green, green);
+        background-clip: content-box;
+        border-top-left-radius: 90px;
+        border-width: 10px;
+        border-style: solid;
+        border-color: transparent;
+    }
+</style>
+<div id="a"></div>
+<div id="b"></div>

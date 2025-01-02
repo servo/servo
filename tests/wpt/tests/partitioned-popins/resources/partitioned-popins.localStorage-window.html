@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+(async function() {
+  test_driver.set_test_context(window.opener);
+
+  // Step 3 (partitioned-popins/partitioned-popins.localStorage.tentative.sub.https.window.js)
+  window.localStorage.setItem("first-party", (new URLSearchParams(window.location.search)).get("id"));
+  window.opener.postMessage({type: "window-set", message: "Set first-party data"}, "*");
+  window.close();
+})();
+</script>

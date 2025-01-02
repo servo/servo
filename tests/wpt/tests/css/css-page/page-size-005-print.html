@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#at-page-rule">
+<link rel="match" href="page-size-005-print-ref.html">
+<style>
+  @page {
+    size: 320px 200px;
+    margin: 0;
+  }
+  @page :first {
+    size: 500px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="width:50%; height:500px; background:yellow;">
+  first page
+</div>
+<div style="width:50%; height:200px; background:cyan;">
+  second page
+</div>
+<div style="width:50%; height:200px; background:pink;">
+  third page
+</div>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#spanning-columns">
+<meta name="assert" content="Spanners may be not be nested formatting context roots - then the element becomes regular column content">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="width:fit-content; columns:4; column-gap:0; background:green;">
+    <div style="display:flow-root;">
+      <div style="column-span:all;">
+	<div style="width:25px; height:400px;"></div>
+      </div>
+    </div>
+  </div>
+</div>

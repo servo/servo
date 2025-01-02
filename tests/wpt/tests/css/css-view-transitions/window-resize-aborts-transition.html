@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>View transitions: Resizing viewport skips the transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+function waitForAtLeastOneFrame(win) {
+  return new Promise(resolve => {
+    win.requestAnimationFrame(() => {
+      win.requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  });
+}
+
+let popupWin;
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+  return new Promise(async (resolve, reject) => {
+    await waitForAtLeastOneFrame(window);
+
+    // Open a popup window that we'll use to start a transition
+    await test_driver.bless('Open a popup in a new window', () => {
+        popupWin = window.open('about:blank', 'popup', 'width=300,height=300');
+    });
+    let popupDoc = popupWin.document;
+    popupDoc.documentElement.innerHTML = `
+      <style>
+        html {background-color: red;}
+        html.new {background-color: limegreen;}
+
+        /* Set a no-op animation to show the old snapshot indefinitely. */
+        html::view-transition-group(*) {animation-duration: 10s;}
+        html::view-transition-new(*) {animation: unset;opacity: 0;}
+        html::view-transition-old(*) {animation-duration: 10s;opacity: 1;}
+      </style>`;
+
+    if (popupDoc.visibilityState == "hidden") {
+      await new Promise((resolve) => {
+        popupDoc.addEventListener("visibilitychange", resolve, { once: true });
+      });
+    }
+
+    // Start a transition inside the popup.
+    let transition = popupDoc.startViewTransition(() => {
+      popupDoc.documentElement.classList.add('new');
+    });
+
+    let finishResolved = false;
+    transition.finished.then(() => {
+      finishResolved = true;
+    });
+
+    // Wait for the transition to start animating.
+    await transition.ready;
+    await waitForAtLeastOneFrame(popupWin);
+    await waitForAtLeastOneFrame(popupWin);
+
+    // Resize the popup window.
+    popupWin.resizeTo(popupWin.innerWidth/2, popupWin.innerHeight/2);
+
+    await waitForAtLeastOneFrame(popupWin);
+
+    // `finish` should have resolved as resizing the transition after capture
+    // should cause it to skip.
+    assert_true(finishResolved, "Transition must be finished by the window resize");
+    resolve();
+  });
+});
+</script>
+</head>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Get the range from the selection</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var selection = window.getSelection();
+                var p1 = document.getElementById("p1");
+
+                var range = document.createRange();
+                range.selectNode(p1);
+                selection.addRange(range);
+
+                var returnedRange = selection.getRangeAt(0);
+
+                assert_equals(returnedRange.toString(), p1.textContent);
+                assert_equals(returnedRange.startContainer, document.body);
+                assert_equals(returnedRange.startOffset, 1);
+                assert_equals(returnedRange.endContainer, document.body);
+                assert_equals(returnedRange.endOffset, 2);
+            }
+        </script>
+    </head>
+    <body onload="test(RunTest);">
+        <p id="p1">Get the range from the selection</p>
+    </body>
+</html>

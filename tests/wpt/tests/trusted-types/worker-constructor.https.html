@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+const test_url = "support/WorkerGlobalScope-importScripts.https.js"
+const trusted_url = trustedTypes.createPolicy("anythinggoes", {
+  createScriptURL: x => x}).createScriptURL(test_url);
+const default_url = "support/WorkerGlobalScope-importScripts.potato.js"
+
+async function service_worker(url) {
+  if (!('serviceWorker' in navigator)) return Promise.resolve();
+
+  const scope = 'support/some/scope/for/this/test';
+  const reg = await navigator.serviceWorker.getRegistration(scope);
+  if (reg) await reg.unregister();
+  return await navigator.serviceWorker.register(url, {scope});
+}
+
+// Most tests below don't need promises, but the ones related to
+// ServiceWorkers do. Since we can't mix promise and non-promise tests,
+// we'll just run the non-promise tests in the main function and return
+// an empty-resolved promise for those.
+// Since an active default policy will affect all subsequent DOM operations,
+// we're wrapping policy creation in a promise_test. Together, this will
+// force proper serialization of all tests.
+//
+// Generally, we don't actually care what the workers here do, we'll merely
+// check whether creation succeeds.
+
+promise_test(t => {
+  new Worker(trusted_url);
+  return Promise.resolve();
+}, "Create Worker via ScriptTestUrl");
+
+promise_test(t => {
+  new SharedWorker(trusted_url);
+  return Promise.resolve();
+}, "Create SharedWorker via ScriptTestUrl");
+
+promise_test(t => {
+  return service_worker(trusted_url);
+}, "Create ServiceWorker via ScriptTestUrl");
+
+promise_test(t => {
+  assert_throws_js(TypeError, () => new Worker(test_url));
+  return Promise.resolve();
+}, "Block Worker creation via string");
+
+promise_test(t => {
+  assert_throws_js(TypeError, () => new SharedWorker(test_url));
+  return Promise.resolve();
+}, "Block SharedWorker creation via string");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, service_worker(test_url));
+}, "Block ServiceWorker creation via String");
+
+// Tests with default policy.
+promise_test(t => {
+  trustedTypes.createPolicy("default", {
+    createScriptURL: (s, _, sink) => {
+      if (s === "Worker") {
+        assert_equals(sink, 'Worker constructor');
+      } else if (s === "SharedWorker") {
+        assert_equals(sink, 'SharedWorker constructor');
+      } else if (s == "service_worker") {
+        assert_equals(sink, 'ServiceWorkerContainer register');
+      }
+      return s.replace("potato", "https");
+    }});
+  return Promise.resolve();
+}, "Setup default policy.");
+
+promise_test(t => {
+  new Worker(default_url);
+  return Promise.resolve();
+}, "Create Worker via string with default policy.");
+
+promise_test(t => {
+  new SharedWorker(default_url);
+  return Promise.resolve();
+}, "Create SharedWorker via string with default policy.");
+
+promise_test(t => {
+  return service_worker(default_url);
+}, "Create ServiceWorker via string with default policy.");
+
+</script>
+</body>

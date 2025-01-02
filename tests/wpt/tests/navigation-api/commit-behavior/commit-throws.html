@@ -1,0 +1,95 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  navigation.onnavigate = t.step_func(e => {
+    assert_throws_dom("InvalidStateError", () => e.commit());
+  });
+  await navigation.navigate("#").finished;
+}, "commit() before intercept()");
+
+promise_test(async t => {
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept({ handler: t.step_func(() => {
+      assert_throws_dom("InvalidStateError", () => e.commit());
+    }) });
+  });
+  await navigation.navigate("#").finished;
+}, "commit() without commit behavior specified");
+
+promise_test(async t => {
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept({
+      handler: t.step_func(() => {
+        assert_throws_dom("InvalidStateError", () => e.commit());
+      }),
+      commit: "immediate"
+    });
+  });
+  await navigation.navigate("#").finished;
+}, "commit() with { commit: immediate }");
+
+promise_test(async t => {
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept({ commit: "after-transition" });
+    assert_throws_dom("InvalidStateError", () => e.commit());
+  });
+  await navigation.navigate("#").finished;
+}, "commit() during event dispatch");
+
+promise_test(async t => {
+  let navigate_event;
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept({ commit: "after-transition" });
+    navigate_event = e;
+  });
+  await navigation.navigate("#").finished;
+  assert_throws_dom("InvalidStateError", () => navigate_event.commit());
+}, "commit() after finish");
+
+promise_test(async t => {
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept({
+      handler: t.step_func(() => {
+        e.commit();
+        assert_throws_dom("InvalidStateError", () => e.commit());
+      }),
+      commit: "after-transition"
+    });
+  });
+  await navigation.navigate("#").finished;
+}, "commit() twice");
+
+promise_test(async t => {
+  // We need to grab an NavigationDestination to construct the event.
+  navigation.onnavigate = t.step_func(e => {
+    const event = new NavigateEvent("navigate", {
+      destination: e.destination,
+      signal: (new AbortController()).signal
+    });
+
+    assert_throws_dom("SecurityError", () => event.commit());
+  });
+  await navigation.navigate("#").finished;
+}, "commit() on synthetic NavigateEvent");
+
+promise_test(async t => {
+  let i = document.createElement("iframe");
+  i.src = "about:blank";
+  document.body.appendChild(i);
+  i.contentWindow.navigation.onnavigate = t.step_func(e => {
+    e.intercept({
+      handler: t.step_func(() => {
+        let iframe_constructor = i.contentWindow.DOMException;
+        i.remove();
+        assert_throws_dom("InvalidStateError", iframe_constructor, () => e.commit());
+      }),
+      commit: "after-transition"
+    });
+  });
+  i.contentWindow.navigation.navigate("#");
+}, "commit() in detached iframe");
+</script>
+</body>

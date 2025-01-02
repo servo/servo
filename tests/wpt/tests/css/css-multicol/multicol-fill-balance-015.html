@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf">
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/br#deprecated_attributes">
+<p>Test passes if there is a filled green square below.</p>
+<div id="mc" style="columns:4; width:100px; background:green;">
+  <div style="float:left; width:10px; height:400px;"></div>
+  <br clear="all">
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(mc.offsetHeight, 100);
+  });
+</script>

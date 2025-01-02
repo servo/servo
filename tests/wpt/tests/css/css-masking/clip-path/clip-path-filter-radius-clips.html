@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#clipping-paths">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-paint">
+<link rel="match" href="reference/clip-path-filter-radius-clips-ref.html">
+<meta name="assert" content="For crbug.com/1099234, ensure correct clip hierarchy with clip-path, filter and border radius clips">
+<div style="width: 400px; height: 400px; border-radius: 10px; contain: paint">
+  <div style="width: 400px; height: 400px; border-radius: 10px; contain: paint">
+    <div style="width: 100px; height: 10px; will-change: transform; clip-path: circle(50%)"></div>
+    <div style="margin-left: 10px; filter: invert(100%); will-change: filter;
+                width: 100px; height: 100px; background: magenta"></div>
+  </div>
+</div>

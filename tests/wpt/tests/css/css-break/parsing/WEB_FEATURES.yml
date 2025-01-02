@@ -1,0 +1,4 @@
+features:
+- name: box-decoration-break
+  files:
+  - box-decoration-break-*

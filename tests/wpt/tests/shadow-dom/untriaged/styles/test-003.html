@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_06_00_03</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#styles">
+<meta name="assert" content="Styles: Each shadow root has an associated list of zero or more style sheets, named shadow root style sheets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+
+    assert_equals(s.styleSheets.length, 0, 'There should be no style sheets');
+}), 'A_06_00_03_T01');
+
+
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+    var host = d.createElement('div');
+    host.setAttribute('style', 'width:100px');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+
+    assert_equals(s.styleSheets.length, 0, 'There should be no style sheets');
+}), 'A_06_00_03_T02');
+
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+    var host = d.createElement('div');
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+
+    var style = d.createElement('style');
+    style.textContent = 'div {width: 50%;}';
+    s.appendChild(style);
+
+    d.body.appendChild(host);
+    assert_equals(s.styleSheets.length, 1, 'Style sheet is not accessible via styleSheets');
+}), 'A_06_00_03_T03');
+</script>
+</body>
+</html>

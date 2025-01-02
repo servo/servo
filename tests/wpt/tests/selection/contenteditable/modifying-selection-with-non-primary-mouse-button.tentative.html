@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?middle">
+<meta name="variant" content="?secondary">
+<title>Testing default action of `mousedown` of middle button and `mouseup` of middle/secondary button</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+span {
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div contenteditable></div>
+<script>
+"use strict";
+
+const button = location.search.substr(1);
+
+function getButtonType(actions) {
+  return button == "middle" ? actions.ButtonType.MIDDLE : actions.ButtonType.RIGHT;
+}
+
+var editor = document.querySelector("div[contenteditable]");
+var span1, span2, link;
+var selection = getSelection();
+
+function preventDefault(event) {
+  event.preventDefault();
+}
+editor.addEventListener("paste", preventDefault, {capture: true});
+document.addEventListener("contextmenu", preventDefault, {capture: true});
+
+function resetEditor() {
+  editor.innerHTML =
+    '<span id="span1">first span.</span><br><span id="span2">second span.</span><br><a id="link" href="#top">link.</a>';
+  span1 = document.getElementById("span1");
+  span2 = document.getElementById("span2");
+  link = document.getElementById("link");
+}
+
+promise_test(async () => {
+  resetEditor();
+  editor.blur();
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(0, 0)
+    .pointerMove(0, 0, {origin: span1})
+    .pointerDown({button: getButtonType(actions)})
+    .pointerUp({button: getButtonType(actions)})
+    .send();
+
+  assert_equals(document.activeElement, editor,
+    "The clicked editor should get focus");
+  assert_true(selection.isCollapsed,
+    `Selection should be collapsed after ${button} button click`);
+  assert_equals(selection.focusNode, span1.firstChild,
+    `Selection should be collapsed in the first <span> element which was clicked by ${button} button`);
+}, `${button} click should set focus to clicked editable element and collapse selection around the clicked point`);
+
+promise_test(async () => {
+  resetEditor();
+  editor.focus();
+  selection.collapse(span1.firstChild, 2);
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(0, 0)
+    .pointerMove(0, 0, {origin: span2})
+    .pointerDown({button: getButtonType(actions)})
+    .pointerUp({button: getButtonType(actions)})
+    .send();
+
+  assert_equals(document.activeElement, editor,
+    "The clicked editor should keep having focus");
+  assert_true(selection.isCollapsed,
+    `Selection should be collapsed after ${button} button click`);
+  assert_equals(selection.focusNode, span2.firstChild,
+    `Selection should be collapsed in the second <span> element which was clicked by ${button} button`);
+}, `${button} click should move caret in an editable element`);
+
+promise_test(async () => {
+  resetEditor();
+  editor.focus();
+  selection.collapse(span1.firstChild, 2);
+  addEventListener("mousedown", preventDefault);
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(0, 0)
+    .pointerMove(0, 0, {origin: span2})
+    .pointerDown({button: getButtonType(actions)})
+    .pointerUp({button: getButtonType(actions)})
+    .send();
+  removeEventListener("mousedown", preventDefault);
+
+  assert_equals(selection.focusNode, span1.firstChild,
+    "Selection should keep collapsed selection in the first <span> element");
+  assert_equals(selection.focusOffset, 2,
+    "Selection should keep collapsed selection at 2 of the first <span> element");
+}, `${button} click shouldn't move caret in an editable element if the default of mousedown event is prevented`);
+
+promise_test(async () => {
+  resetEditor();
+  editor.focus();
+  selection.collapse(span1.firstChild, 2);
+  addEventListener("pointerdown", preventDefault);
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(0, 0)
+    .pointerMove(0, 0, {origin: span2})
+    .pointerDown({button: getButtonType(actions)})
+    .pointerUp({button: getButtonType(actions)})
+    .send();
+  removeEventListener("pointerdown", preventDefault);
+
+  assert_equals(selection.focusNode, span1.firstChild,
+    "Selection should keep collapsed selection in the first <span> element");
+  assert_equals(selection.focusOffset, 2,
+    "Selection should keep collapsed selection at 2 of the first <span> element");
+}, `${button} click shouldn't move caret in an editable element if the default of pointerdown event is prevented`);
+
+promise_test(async () => {
+  resetEditor();
+  editor.focus();
+  selection.collapse(span1.firstChild, 2);
+  let contextmenuFired = false;
+  function onContextMenu() {
+    contextmenuFired = true;
+  }
+  document.addEventListener("contextmenu", onContextMenu, {capture: true});
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(0, 0)
+    .pointerMove(0, 0, {origin: span2})
+    .keyDown("\uE008")
+    .pointerDown({button: getButtonType(actions)})
+    .pointerUp({button: getButtonType(actions)})
+    .keyUp("\uE008")
+    .send();
+  document.removeEventListener("contextmenu", onContextMenu, {capture: true});
+
+  if (button != "secondary" || contextmenuFired) {
+    assert_equals(selection.anchorNode, span1.firstChild,
+      "Selection#anchorNode should keep in the first <span> element");
+    assert_equals(selection.anchorOffset, 2,
+      "Selection#anchorNode should keep at 2 of the first <span> element");
+    assert_equals(selection.focusNode, span2.firstChild,
+      `Selection#focusNode should be in the second <span> element which was clicked by ${button} button`);
+  } else {
+    // Special case for Firefox.  Firefox users can forcibly open context menu
+    // with pressing shift key.  In this case, users may want the secondary
+    // button click to work as without Shift key press.
+    assert_true(selection.isCollapsed,
+      `Selection should be collapsed after ${button} button click because contextmenu was not opened with Shift key`);
+    assert_equals(selection.focusNode, span2.firstChild,
+      `Selection should be collapsed in the second <span> element which was clicked by ${
+        button
+      } button because contextmenu was not opened with Shift key`);
+  }
+}, `Shift + ${button} click should extend the selection`);
+
+promise_test(async () => {
+  resetEditor();
+  editor.focus();
+  selection.collapse(span1.firstChild, 2);
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(0, 0)
+    .pointerMove(0, 0, {origin: link})
+    .keyDown("\uE008")
+    .pointerDown({button: getButtonType(actions)})
+    .pointerUp({button: getButtonType(actions)})
+    .keyUp("\uE008")
+    .send();
+
+  assert_equals(selection.focusNode, link.firstChild,
+    `Selection#focusNode should be in the <a href> element which was clicked by ${button} button`);
+  assert_true(selection.isCollapsed,
+    "Selection#isCollapsed should be true");
+}, `Shift + ${button} click in a link shouldn't extend the selection`);
+
+promise_test(async () => {
+  resetEditor();
+  editor.focus();
+  selection.collapse(span1.firstChild, 2);
+  editor.addEventListener("pointerdown", () => {
+    assert_true(selection.isCollapsed,
+      "Selection shouldn't be modified before pointerdown event");
+    assert_equals(selection.focusNode, span1.firstChild,
+      "Selection should stay in the first <span> element when pointerdown event is fired (focusNode)");
+    assert_equals(selection.focusOffset, 2,
+      "Selection should stay in the first <span> element when pointerdown event is fired (focusOffset)");
+  }, {once: true});
+  editor.addEventListener("mousedown", () => {
+    assert_true(selection.isCollapsed,
+      "Selection shouldn't be modified before mousedown event");
+    assert_equals(selection.focusNode, span1.firstChild,
+      "Selection should stay in the first <span> element when mousedown event is fired (focusNode)");
+    assert_equals(selection.focusOffset, 2,
+      "Selection should stay in the first <span> element when mousedown event is fired (focusOffset)");
+  }, {once: true});
+  editor.addEventListener("pointerup", () => {
+    assert_true(selection.isCollapsed,
+      "Selection should be collapsed before pointerup event");
+    assert_equals(selection.focusNode, span2.firstChild,
+      `selection should be collapsed in the second <span> element which was clicked by ${button} button before pointerup event`);
+  }, {once: true});
+  let focusOffsetAtMouseUp;
+  editor.addEventListener("mouseup", () => {
+    assert_true(selection.isCollapsed,
+      "Selection should be collapsed before mouseup event");
+    assert_equals(selection.focusNode, span2.firstChild,
+      `Selection should be collapsed in the second <span> element which was clicked by ${button} button before mouseup event`);
+    focusOffsetAtMouseUp = selection.focusOffset;
+  }, {once: true});
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(0, 0)
+    .pointerMove(0, 0, {origin: span2})
+    .pointerDown({button: getButtonType(actions)})
+    .pointerMove(0, 0, {origin: span1})
+    .pointerUp({button: getButtonType(actions)})
+    .send();
+
+  assert_true(selection.isCollapsed,
+    `Selection shouldn't be extended by pointer moves during pressing ${button} button`);
+  assert_equals(selection.focusNode, span2.firstChild,
+    "Selection#focusNode should stay in the second <span> element");
+  assert_equals(selection.focusOffset, focusOffsetAtMouseUp,
+    "Selection#focusOffset should stay in the second <span> element");
+}, `${button} mouse button down should move caret, but its button up shouldn't move caret`);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/8221#discussion_r1049379113">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=outerpopover popover=auto>
+  <button popovertarget=innerpopover disabled>toggle popover</button>
+</div>
+<div id=innerpopover popover=auto>popover</div>
+<script>
+test(() => {
+  outerpopover.showPopover();
+  outerpopover.querySelector('button').click(); // Invoke innerpopover
+  assert_false(innerpopover.matches(':popover-open'),
+    'disabled button shouldn\'t open the target popover');
+  assert_true(outerpopover.matches(':popover-open'));
+  innerpopover.showPopover();
+  assert_true(innerpopover.matches(':popover-open'),
+    'The inner popover should be able to open successfully.');
+  assert_false(outerpopover.matches(':popover-open'),
+    'The outer popover should be closed by opening the inner one.');
+}, 'Disabled popover*target buttons should not affect the popover heirarchy.');
+</script>
+
+<div id=outerpopover2 popover=auto>
+  <button id=togglebutton2 popovertarget=innerpopover2>toggle popover</button>
+</div>
+<div id=innerpopover2 popover=auto>popover</div>
+<script>
+test(() => {
+  outerpopover2.showPopover();
+  outerpopover2.querySelector('button').click(); // Invoke innerpopover
+  assert_true(innerpopover2.matches(':popover-open'),
+    'The inner popover should be able to open successfully.');
+  assert_true(outerpopover2.matches(':popover-open'),
+    'The outer popover should stay open when opening the inner one.');
+
+  togglebutton2.disabled = true;
+  assert_true(innerpopover2.matches(':popover-open'),
+    'Changing disabled states after popovers are open shouldn\'t close anything');
+  assert_true(outerpopover2.matches(':popover-open'),
+  'Changing disabled states after popovers are open shouldn\'t close anything');
+}, 'Disabling popover*target buttons when popovers are open should not cause popovers to be closed.');
+</script>
+
+<div id=outerpopover4 popover=auto>
+  <button id=togglebutton4 popovertarget=innerpopover4>toggle popover</button>
+</div>
+<div id=innerpopover4 popover=auto>popover</div>
+<form id=submitform>form</form>
+<script>
+test(() => {
+  outerpopover4.showPopover();
+  outerpopover4.querySelector('button').click(); // Invoke innerpopover
+  assert_true(innerpopover4.matches(':popover-open'),
+    'The inner popover should be able to open successfully.');
+  assert_true(outerpopover4.matches(':popover-open'),
+    'The outer popover should stay open when opening the inner one.');
+
+  togglebutton4.setAttribute('form', 'submitform');
+  assert_true(innerpopover4.matches(':popover-open'),
+    'The inner popover be should be not closed when invoking buttons cease to be invokers.');
+  assert_true(outerpopover4.matches(':popover-open'),
+    'The outer popover be should be not closed when invoking buttons cease to be invokers.');
+}, 'Setting the form attribute on popover*target buttons when popovers are open should not close them.');
+</script>
+
+<div id=outerpopover5 popover=auto>
+  <input type=button id=togglebutton5 popovertarget=innerpopover5>toggle popover</button>
+</div>
+<div id=innerpopover5 popover=auto>popover</div>
+<script>
+test(() => {
+  outerpopover5.showPopover();
+  outerpopover5.querySelector('input').click(); // Invoke innerpopover
+  assert_true(innerpopover5.matches(':popover-open'),
+    'The inner popover should be able to open successfully.');
+  assert_true(outerpopover5.matches(':popover-open'),
+    'The outer popover should stay open when opening the inner one.');
+
+  togglebutton5.setAttribute('type', 'text');
+  assert_true(innerpopover5.matches(':popover-open'),
+    'The inner popover be should be not closed when invoking buttons cease to be invokers.');
+  assert_true(outerpopover5.matches(':popover-open'),
+    'The outer popover be should be not closed when invoking buttons cease to be invokers.');
+}, 'Changing the input type on a popover*target button when popovers are open should not close anything.');
+</script>
+
+<div id=outerpopover6 popover=auto>
+  <button id=togglebutton6 popovertarget=innerpopover6>toggle popover</button>
+</div>
+<div id=innerpopover6 popover=auto>popover</div>
+<script>
+test(() => {
+  outerpopover6.showPopover();
+  outerpopover6.querySelector('button').click(); // Invoke innerpopover
+  assert_true(innerpopover6.matches(':popover-open'),
+    'The inner popover should be able to open successfully.');
+  assert_true(outerpopover6.matches(':popover-open'),
+    'The outer popover should stay open when opening the inner one.');
+
+  togglebutton6.remove();
+  assert_true(innerpopover6.matches(':popover-open'),
+    'The inner popover be should be not closed when invoking buttons are removed.');
+  assert_true(outerpopover6.matches(':popover-open'),
+    'The outer popover be should be not closed when invoking buttons are removed.');
+}, 'Disconnecting popover*target buttons when popovers are open should not close anything.');
+</script>
+
+<div id=outerpopover7 popover=auto>
+  <button id=togglebutton7 popovertarget=innerpopover7>toggle popover</button>
+</div>
+<div id=innerpopover7 popover=auto>popover</div>
+<script>
+test(() => {
+  outerpopover7.showPopover();
+  outerpopover7.querySelector('button').click(); // Invoke innerpopover
+  assert_true(innerpopover7.matches(':popover-open'),
+    'The inner popover should be able to open successfully.');
+  assert_true(outerpopover7.matches(':popover-open'),
+    'The outer popover should stay open when opening the inner one.');
+
+  togglebutton7.setAttribute('popovertarget', 'otherpopover7');
+  assert_true(innerpopover7.matches(':popover-open'),
+    'The inner popover be should be not closed when invoking buttons are retargeted.');
+    assert_true(outerpopover7.matches(':popover-open'),
+    'The outer popover be should be not closed when invoking buttons are retargeted.');
+}, 'Changing the popovertarget attribute to break the chain should not close anything.');
+</script>
+
+<div id=outerpopover8 popover=auto>
+  <div id=middlepopover8 popover=auto>
+    <div id=innerpopover8 popover=auto>hello</div>
+  </div>
+</div>
+<div id=otherpopover8 popover=auto>other popover</div>
+<button id=togglebutton8 popovertarget=middlepopover8>other button</div>
+<script>
+test(() => {
+  outerpopover8.showPopover();
+  middlepopover8.showPopover();
+  innerpopover8.showPopover();
+  assert_true(innerpopover8.matches(':popover-open'),
+    'The inner popover should be able to open successfully.');
+  assert_true(middlepopover8.matches(':popover-open'),
+    'The middle popover should stay open when opening the inner one.');
+  assert_true(outerpopover8.matches(':popover-open'),
+    'The outer popover should stay open when opening the inner one.');
+
+  togglebutton8.setAttribute('popovertarget', 'otherpopover8');
+  assert_true(innerpopover8.matches(':popover-open'),
+    'The inner popover should remain open.');
+  assert_true(middlepopover8.matches(':popover-open'),
+    'The middle popover should remain open.');
+  assert_true(outerpopover8.matches(':popover-open'),
+    'The outer popover should remain open.');
+}, `Modifying popovertarget on a button which doesn't break the chain shouldn't close any popovers.`);
+</script>

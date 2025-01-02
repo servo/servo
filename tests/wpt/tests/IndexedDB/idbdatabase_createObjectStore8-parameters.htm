@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IDBObjectStoreParameters</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+
+<script>
+    function optionalParameters(desc, params) {
+        var t = async_test(document.title + " - " + desc);
+
+        createdb(t).onupgradeneeded = function(e) {
+            e.target.result.createObjectStore("store", params);
+
+            this.done();
+        };
+    }
+
+
+    optionalParameters("autoInc true",                    {autoIncrement: true});
+    optionalParameters("autoInc true, keyPath null",      {autoIncrement: true,  keyPath: null});
+    optionalParameters("autoInc true, keyPath undefined", {autoIncrement: true,  keyPath: undefined});
+    optionalParameters("autoInc true, keyPath string",    {autoIncrement: true,  keyPath: "a"});
+
+    optionalParameters("autoInc false, keyPath empty",  {autoIncrement: false, keyPath: ""});
+    optionalParameters("autoInc false, keyPath array",  {autoIncrement: false, keyPath: ["h", "j"]});
+    optionalParameters("autoInc false, keyPath string", {autoIncrement: false, keyPath: "abc"});
+
+    optionalParameters("keyPath empty",     {keyPath: ""});
+    optionalParameters("keyPath array",     {keyPath: ["a","b"]});
+    optionalParameters("keyPath string",    {keyPath: "abc"});
+    optionalParameters("keyPath null",      {keyPath: null});
+    optionalParameters("keyPath undefined", {keyPath: undefined});
+
+</script>
+
+<div id="log"></div>

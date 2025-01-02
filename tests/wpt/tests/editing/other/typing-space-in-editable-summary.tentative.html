@@ -1,0 +1,90 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>Tests for pressing space in editable summary element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+</head>
+<body>
+<details contenteditable><summary>HelloWorld</summary>Details</details>
+<details><summary contenteditable>HelloWorld</summary>Details</details>
+<details><summary><div contenteditable>HelloWorld</div></summary>Details</details>
+<script>
+"use strict";
+
+promise_test(async () => {
+  const details = document.querySelector("details[contenteditable]");
+  const summary = details.querySelector("summary");
+  getSelection().collapse(summary.firstChild, "Hello".length);
+  summary.focus();
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(
+    details.innerHTML,
+    "<summary>HelloWorld</summary>Details",
+    "A space shouldn't be inserted into the focused <summary>"
+  );
+  assert_true(details.open, "<details> shouldn't keep collapsed");
+}, "Type space key in editable <summary> should be handled by the <summary> when it's focused");
+
+promise_test(async () => {
+  const details = document.querySelector("details[contenteditable]");
+  details.innerHTML = "<summary>HelloWorld</summary>Details";
+  details.open = false;
+  const summary = details.querySelector("summary");
+  getSelection().collapse(summary.firstChild, "Hello".length);
+  details.focus();
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(
+    details.innerHTML,
+    "<summary>Hello World</summary>Details",
+    "A space should be inserted into the <summary>"
+  );
+  assert_false(details.open, "<details> should keep collapsed");
+}, "Type space key in editable <summary> shouldn't be handled by the <summary> when it's not focused");
+
+promise_test(async () => {
+  const details = document.querySelector("details > summary[contenteditable]").parentNode;
+  const summary = details.querySelector("summary");
+  getSelection().collapse(summary.firstChild, "Hello".length);
+  summary.focus();
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(
+    details.innerHTML,
+    '<summary contenteditable="">HelloWorld</summary>Details',
+    "The content of <details> shouldn't be changed"
+  );
+  assert_true(details.open, "<details> shouldn't keep collapsed");
+}, "Type space key in <summary contenteditable> should be handled by the <summary>");
+
+promise_test(async () => {
+  const details = document.querySelector("summary > div[contenteditable]").parentNode.parentNode;
+  const summary = details.querySelector("summary");
+  const editable = summary.querySelector("div[contenteditable]");
+  editable.focus();
+  getSelection().collapse(editable.firstChild, "Hello".length);
+  await new this.window.test_driver.Actions()
+      .keyDown("\uE00D")
+      .keyUp("\uE00D")
+      .send();
+  assert_equals(
+    details.innerHTML,
+    '<summary><div contenteditable="">Hello World</div></summary>Details',
+    "A space should be inserted"
+  );
+  assert_false(details.open, "<details> should keep collapsed");
+}, "Type space key in editable element in <summary> shouldn't be handled by the <summary>");
+</script>
+</body>
+</html>

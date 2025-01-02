@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align applied to an 'inline-block' with 'overflow' not set to 'visible' and baseline alignment</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-vertical-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'vertical-align' property aligns an 'inline-block' elements' bottom margin edge with the baseline when 'overflow' is not set to 'visible'." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+            }
+            #span1
+            {
+                background: blue;
+                color: blue;
+            }
+            #span2
+            {
+                color: orange;
+                display: inline-block;
+                margin-bottom: 1em;
+                height: 4em;
+                overflow: hidden;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the orange box below is above the blue box.</p>
+        <div>
+            <span id="span1">X<span id="span2">XXXXX XXXXX XXXXX XXXXX XXXXX</span>X</span>
+        </div>
+    </body>
+</html>

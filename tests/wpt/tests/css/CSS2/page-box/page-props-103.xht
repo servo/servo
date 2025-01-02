@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Right and Left Pages (page area equal)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#left-right-first" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The right and left pages of a document may use differing margin styles that yield different page area heights." />
+  <style type="text/css">
+
+    @page :right {
+        margin-bottom: 66%;
+    }
+    @page :left {
+        margin-bottom: 10%;
+    }
+    html, body, div.page {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    div.page {
+        position: relative;
+        page-break-after: always;
+    }
+    p {
+        border-bottom: medium blue solid;
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div class="page">
+     <div>
+     This test produces two pages on paged media.
+     </div>
+     <div>
+     There is a horizontal blue line about one third of the way down the page.
+     </div>
+     <p></p>
+   </div>
+   <div class="page">
+     <div>
+     There is a horizontal blue line near the bottom of the page.
+     </div>
+     <p></p>
+   </div>
+ </body>
+</html>

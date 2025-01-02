@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_05_03_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#retargeting-focus-events">
+<meta name="assert" content="Retargeting focus events:The blur event must be treated in the same way as events with a relatedTarget, where the node that is gaining focus causing the blurring of target acts as the related target">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+//test blur event
+var A_05_03_02_T01 = async_test('A_05_03_02_T01');
+
+
+A_05_03_02_T01.step(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var invoked = false;
+
+    var roots = createTestMediaPlayer(d);
+
+    roots.playerShadowRoot.querySelector('.volume-slider').focus();
+
+    //expected result of what relative target should be see
+    //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
+
+    //For #volume-slider relative target is #volume-slider
+    roots.playerShadowRoot.querySelector('.volume-slider').addEventListener('blur',
+            A_05_03_02_T01.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-slider',
+                        'Wrong target');
+        }), false);
+
+    // move focus out of shadow tree. blur should be fired
+    d.querySelector('#outside-control').focus();
+
+    assert_true(invoked, 'Event listener was not invoked');
+
+    A_05_03_02_T01.done();
+}));
+
+
+//TODO (sgrekhov) add test for the case when related target differs from the
+//node on which event listener is invoked
+</script>
+</body>
+</html>

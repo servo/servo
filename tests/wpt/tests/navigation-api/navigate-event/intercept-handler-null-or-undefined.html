@@ -1,0 +1,21 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  navigation.onnavigate = t.step_func_done(e => {
+    assert_throws_js(TypeError, () => e.intercept({ handler: null }));
+  });
+
+  location.href = "#1";
+  assert_equals(location.hash, "#1");
+}, "event.intercept() should throw if the handler is null");
+
+async_test(t => {
+  navigation.onnavigatesuccess = t.step_func_done(e => {});
+  navigation.onnavigate = e =>  e.intercept({ handler: undefined });
+
+  location.href = "#2";
+  assert_equals(location.hash, "#2");
+}, "event.intercept() should not throw if the handler is explicit undefined");
+</script>

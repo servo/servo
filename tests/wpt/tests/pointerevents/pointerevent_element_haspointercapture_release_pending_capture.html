@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Element.hasPointerCapture test after the pending pointer capture element releases pointer capture</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script>
+            var actions_promise;
+            var detected_pointertypes = {};
+            add_completion_callback(showPointerTypes);
+            var test_pointerEvent = async_test("hasPointerCapture test after the pending pointer capture element releases pointer capture");
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var target1 = document.getElementById("target1");
+
+                on_event(target0, "pointerdown", function (e) {
+                    detected_pointertypes[e.pointerType] = true;
+                    target0.setPointerCapture(e.pointerId);
+                    test_pointerEvent.step(function () {
+                        assert_equals(target0.hasPointerCapture(e.pointerId), true, "After target0.setPointerCapture, target0.hasPointerCapture should return true");
+                    });
+                });
+
+                on_event(target0, "gotpointercapture", function (e) {
+                    test_pointerEvent.step(function () {
+                        assert_equals(target0.hasPointerCapture(e.pointerId), true, "After target0 received gotpointercapture, target0.hasPointerCapture should return true");
+                    });
+                    target1.setPointerCapture(e.pointerId);
+                    test_pointerEvent.step(function () {
+                        assert_equals(target0.hasPointerCapture(e.pointerId), false, "After target1.setPointerCapture, target0.hasPointerCapture should return false");
+                        assert_equals(target1.hasPointerCapture(e.pointerId), true, "After target1.setPointerCapture, target1.hasPointerCapture should return true");
+                    });
+                    target1.releasePointerCapture(e.pointerId);
+                    test_pointerEvent.step(function () {
+                        assert_equals(target0.hasPointerCapture(e.pointerId), false, "After target1.releasePointerCapture, target0.hasPointerCapture should be false");
+                        assert_equals(target1.hasPointerCapture(e.pointerId), false, "After target1.releasePointerCapture, target1.hasPointerCapture should be false");
+                    });
+                });
+
+                on_event(target1, "gotpointercapture", function (e) {
+                    test_pointerEvent.step(function () {
+                        assert_true(false, "target1 should never receive gotpointercapture in this test");
+                    });
+                });
+
+                on_event(target0, "lostpointercapture", function (e) {
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
+                });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(10, 10, {origin: target0})
+                    .pointerDown()
+                    .pointerMove(10, 10, {origin: target1})
+                    .pointerUp()
+                    .send();
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Element.hasPointerCapture test after the pending pointer capture element releases pointer capture</h1>
+        <h4>
+            Test Description: This test checks if Element.hasPointerCapture returns value correctly after the pending pointer capture element releases pointer capture
+            <ol>
+                <li> Press black rectangle and do not release
+                <li> Move your pointer to purple rectangle
+                <li> Release the pointer
+            </ol>
+        </h4>
+        <p>
+        <div id="target0" touch-action:none></div>
+        <div id="target1" touch-action:none></div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

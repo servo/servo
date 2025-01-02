@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Stretching of Arabic operators</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-dictionary">
+    <meta name="assert" content="Verifies stretchy property of the Arabic characters U+1EEF0 and U+1EEF1.">
+    <link rel="match" href="operator-dictionary-arabic-002-ref.html">
+    <link rel="stylesheet" href="./support/operator-dictionary-tests.css"/>
+  </head>
+  <body>
+
+    <p>You should see two rectangles of width 3em and height 1em:</p>
+
+    <p>
+      <math>
+        <munder>
+          <mo>&#x1EEF0;</mo>
+          <mspace width="3em"/>
+        </munder>
+      </math>
+    </p>
+    <p>
+      <math>
+        <munder>
+          <mo>&#x1EEF1;</mo>
+          <mspace width="3em"/>
+        </munder>
+      </math>
+    </p>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script src="/mathml/support/feature-detection-operators.js"></script>
+    <script>
+      MathMLFeatureDetection.ensure_for_match_reftest("has_operator_stretchy");
+    </script>
+  </body>
+</html>

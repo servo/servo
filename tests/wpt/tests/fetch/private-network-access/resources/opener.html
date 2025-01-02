@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Opener</title>
+<body></body>
+<script>
+  window.onmessage = (event) => {
+    window.onmessage = (event) => parent.postMessage(event.data, "*");
+    const { url } = event.data;
+    window.open(url);
+  };
+</script>

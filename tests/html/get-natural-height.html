@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+div {
+    font-size: 4em;
+}
+</style>
+</head>
+<body>
+<img id="test-image" src="longcattop.png">
+<div id="test-output"></div>
+<script>
+var testImage  = document.getElementById('test-image');
+var testOutput = document.getElementById('test-output');
+testImage.onload = function() {
+    testOutput.innerHTML =
+        "width: "  + testImage.naturalWidth + ", " +
+        "height: " + testImage.naturalHeight;
+    alert(testOutput.innerHTML);
+};
+</script>
+</body>
+</html>

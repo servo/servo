@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Makes sure that preloaded resources trigger the onload event</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var scriptLoaded = false;
+    var styleLoaded = false;
+    var imageLoaded = false;
+    var fontLoaded = false;
+    var videoLoaded = false;
+    var audioLoaded = false;
+    var trackLoaded = false;
+    var gibberishLoaded = false;
+    var gibberishErrored = false;
+    var noTypeLoaded = false;
+    var fetchLoaded = false;
+</script>
+<link rel=preload href="resources/dummy.js" as=script onload="scriptLoaded = true;">
+<link rel=preload href="resources/dummy.css" as=style onload="styleLoaded = true;">
+<link rel=preload href="resources/square.png" as=image onload="imageLoaded = true;">
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin onload="fontLoaded = true;">
+<link rel=preload href="resources/white.mp4" as=video onload="videoLoaded = true;">
+<link rel=preload href="resources/sound_5.oga" as=audio onload="audioLoaded = true;">
+<link rel=preload href="resources/foo.vtt" as=track onload="trackLoaded = true;">
+<link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing onload="gibberishLoaded = true;" onerror="gibberishErrored = true;">
+<link rel=preload href="resources/dummy.xml?fetch" as=fetch onload="fetchLoaded = true;">
+<link rel=preload href="resources/dummy.xml" onload="noTypeLoaded = true;">
+<body>
+<script>
+    setup({single_test: true});
+
+    var iterations = 0;
+
+    function check_finished() {
+        if (styleLoaded && scriptLoaded && imageLoaded && fontLoaded && videoLoaded && audioLoaded &&
+            trackLoaded && !gibberishLoaded && !gibberishErrored && fetchLoaded && !noTypeLoaded) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
+            assert_true(styleLoaded, "style triggered load event");
+            assert_true(scriptLoaded, "script triggered load event");
+            assert_true(imageLoaded, "image triggered load event");
+            assert_true(fontLoaded, "font triggered load event");
+            assert_true(videoLoaded, "video triggered load event");
+            assert_true(audioLoaded, "audio triggered load event");
+            assert_true(trackLoaded, "track triggered load event");
+            assert_false(gibberishLoaded, "gibberish as value triggered load event");
+            assert_false(gibberishErrored, "gibberish as value triggered error event");
+            assert_true(fetchLoaded, "fetch as value triggered load event");
+            assert_false(noTypeLoaded, "empty as triggered load event");
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
+        verifyPreloadAndRTSupport();
+        step_timeout(check_finished, 500);
+    });
+</script>
+</body>

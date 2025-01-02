@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500" height="500">
+  <g>
+    <image id="svg-image" x="0" y="0" width="60" height="60" href="60x60-gg-rr.png"></image>
+    <foreignObject x="0" y="60" width="60" height="60">
+     <html xmlns="http://www.w3.org/1999/xhtml">
+      <img id="html-img" alt="" src="60x60-gg-rr.png"/>
+     </html>
+    </foreignObject>
+  </g>
+</svg>

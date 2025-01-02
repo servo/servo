@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference:_CSS Lists: 'counter-set:list-item' trumps LI @value</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+body { margin-left: 10em; }
+  </style>
+</head>
+<body>
+
+<ol><li>a<li value=99>b</ol>
+<ol><li>a<li value=99>b</ol>
+<ol><li>a<li value=4>b</ol>
+<ol><li>a<li value=99>b</ol>
+<ol><li>a<li value=51>b</ol>
+<ol><li>a<li value=88>b</ol>
+
+</body>
+</html>

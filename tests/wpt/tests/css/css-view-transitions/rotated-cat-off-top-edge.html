@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: rotated img element with border radius off the top edge</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="rotated-cat-off-top-edge-ref.html">
+<meta name="fuzzy" content="maxDifference=0-70; totalPixels=0-22000">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+.target {
+  transform: rotate(330deg) translate3d(110px, 10px, 10px);
+  border-radius: 0.375rem;
+  width: 400px;
+  height: 400px;
+}
+::view-transition-group(root) {
+  animation-duration: 500s;
+}
+</style>
+<body>
+<img class="target" src="support/cat.png">
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  let transition = document.startViewTransition();
+  transition.ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

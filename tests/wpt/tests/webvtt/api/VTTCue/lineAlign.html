@@ -1,0 +1,39 @@
+<!doctype html>
+<title>VTTCue.lineAlign</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-linealign">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var video = document.createElement('video');
+    document.body.appendChild(video);
+
+    var cue = new VTTCue(0, 1, 'text');
+    assert_true('lineAlign' in cue, 'lineAlign is not supported');
+    assert_equals(cue.lineAlign, 'start');
+
+    var track = document.createElement('track');
+    var t = track.track;
+    t.addCue(cue);
+
+    assert_equals(cue.lineAlign, 'start');
+
+    video.appendChild(track);
+    assert_equals(cue.lineAlign, 'start');
+
+    t.mode = 'showing';
+    assert_equals(cue.lineAlign, 'start');
+
+    cue.lineAlign = 'center';
+    assert_equals(cue.lineAlign, 'center');
+
+    cue.lineAlign = 'end';
+    assert_equals(cue.lineAlign, 'end');
+
+    ['start\u0000', 'centre', 'middle'].forEach(function(invalid) {
+        cue.lineAlign = invalid;
+        assert_equals(cue.lineAlign, 'end');
+    });
+}, document.title+', script-created cue');
+</script>

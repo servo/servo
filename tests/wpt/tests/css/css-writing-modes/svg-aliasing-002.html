@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVG writing modes values parsed as aliases</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#svg-writing-mode">
+<link rel="match" href="reference/svg-aliasing-002-ref.html"
+<meta name="assert" content="The legacy SVG writing mode values are parsed as simple aliases of the newer ones, and do not have side effects on bidi.">
+<meta name="flags" content="may"> <!-- "may" because the support for these values is optional-->
+
+<p>The test passes if you can see “1 2 3” (without the quotation marks) 3 times below going top-to-bottom.
+If any of them is reversed (going bottom to top), the test fails.</p>
+<svg
+   xmlns="http://www.w3.org/2000/svg"
+   width="300"
+   height="600">
+<g style="direction: ltr">
+  <text x="50" y="50" style="writing-mode: tb; fill: blue;">1 2 3</text>
+</g>
+<g>
+  <text x="125" y="50" style="writing-mode: tb; fill: blue;">1 2 3</text>
+</g>
+<g style="direction: rtl">
+  <text x="200" y="80" style="writing-mode: tb; fill: blue;">3 2 1</text>
+</g>
+</svg>
+

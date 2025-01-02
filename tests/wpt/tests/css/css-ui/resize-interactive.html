@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS resize: interactive behavior</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#resize">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that elements are correctly resized
+  when a user interacts with their resizing mechanism (simulated via WebDriver).">
+
+<style>
+body {
+  margin-bottom: 1000px;
+}
+.test {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+.resize-both {
+  resize: both;
+}
+.resize-horizontal {
+  resize: horizontal;
+}
+.resize-vertical {
+  resize: vertical;
+}
+.resize-block {
+  resize: block;
+}
+.resize-inline {
+  resize: inline;
+}
+.wm-horizontal {
+  writing-mode: horizontal-tb;
+}
+.wm-vertical {
+  writing-mode: vertical-lr;
+}
+.test::before {
+  content: "";
+  display: block;
+  width: 1000px;
+  height: 1000px;
+}
+</style>
+
+<div class="test resize-both wm-horizontal"></div>
+<div class="test resize-both wm-vertical"></div>
+<div class="test resize-horizontal wm-horizontal"></div>
+<div class="test resize-horizontal wm-vertical"></div>
+<div class="test resize-vertical wm-horizontal"></div>
+<div class="test resize-vertical wm-vertical"></div>
+<div class="test resize-block wm-horizontal"></div>
+<div class="test resize-block wm-vertical"></div>
+<div class="test resize-inline wm-horizontal"></div>
+<div class="test resize-inline wm-vertical"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+function hasHorizontalWritingMode(cs) {
+  return cs.writingMode === "horizontal-tb";
+}
+
+function getResolvedResize(cs) {
+  let { resize } = cs;
+  switch (resize) {
+    case "block":
+      return hasHorizontalWritingMode(cs) ? "vertical" : "horizontal";
+    case "inline":
+      return hasHorizontalWritingMode(cs) ? "horizontal" : "vertical";
+    default:
+      return resize;
+  }
+}
+
+for (let target of document.querySelectorAll(".test")) {
+  promise_test(async () => {
+    // Scroll element to the top, to ensure that the pointer stays within the vieport
+    // when resizing the element.
+    target.scrollIntoView();
+
+    await new test_driver.Actions()
+      // Place pointer on the resizing mechanism.
+      .pointerMove(49, 49, {origin: target})
+      .pointerDown()
+      // Resize the element.
+      .pointerMove(149, 149, {origin: target})
+      .pointerUp()
+      .send();
+
+    let resize = getResolvedResize(getComputedStyle(target));
+    if (resize === "horizontal" || resize === "both") {
+      assert_equals(target.offsetWidth, 200, "Width should have grown to 200px");
+    } else {
+      assert_equals(target.offsetWidth, 100, "Width should have stayed as 100px");
+    }
+    if (resize === "vertical" || resize === "both") {
+      assert_equals(target.offsetHeight, 200, "Height should have grown to 200px");
+    } else {
+      assert_equals(target.offsetHeight, 100, "Height should have stayed as 100px");
+    }
+  }, target.className);
+}
+</script>

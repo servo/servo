@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<someDataFile xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+<its:provenanceRecords xml:id="pr1">
+        <its:provenanceRecord
+            toolRef="http://www.provdata.com/tool/#onlinemtex"
+            revPerson="James Joyce"
+            revToolRef="http://www.provdata.com/RevTool/#mycat-v1"
+            revOrg="acme-CAT-v2.3"
+            provRef="http://www.examplelsp.com/excontent987/production/prov/e6354"/>
+		<its:provenanceRecord
+			revPerson="John Smith" 
+			revOrg="Linguaserve I.S. S.A." />
+    </its:provenanceRecords>
+</someDataFile>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test: padding-block-start on a textarea moves the textarea content over, potentially out of the textarea's scrollport</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-textarea-element-2">
+<link rel="match" href="textarea-padding-bstart-moves-content-001-ref.html">
+
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+textarea {
+  font: 10px/1 Ahem;
+
+  /* Zero out the content-box, leaving the padding area as the only
+     place where the contents might get rendered. */
+  block-size: 0;
+  inline-size: 10em;
+
+  padding-block-start: 8em;
+  padding-block-end: 0;
+
+  /* We expect the textarea's content to overflow in the block direction,
+     which makes the textarea blank, aside from any scrollbars that might get
+     created by this overflow.  We use overflow:hidden here to suppress these
+     scrollbars, so that the reference case can just use a trivial empty
+     textarea (without needing to worry about mocking up scrollbars of
+     precisely the right size). */
+  overflow: hidden;
+}
+.rtl { direction: rtl; }
+.vlr { writing-mode: vertical-lr; }
+.vrl { writing-mode: vertical-rl; }
+.slr { writing-mode: sideways-lr; }
+.srl { writing-mode: sideways-rl; }
+</style>
+
+<textarea>X</textarea>
+<textarea class="rtl">X</textarea>
+<br>
+<textarea class="vlr">X</textarea>
+<textarea class="vrl">X</textarea>
+<textarea class="slr">X</textarea>
+<textarea class="srl">X</textarea>
+<br>
+<textarea class="vlr rtl">X</textarea>
+<textarea class="vrl rtl">X</textarea>
+<textarea class="slr rtl">X</textarea>
+<textarea class="srl rtl">X</textarea>

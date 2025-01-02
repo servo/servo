@@ -1,0 +1,6 @@
+HTTP/1.1 200 YAYAYAYA
+foo-TEST: 1
+FOO-test: 2
+__Custom: token
+ALSO-here: Mr. PB
+ewok: lego

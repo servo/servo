@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body > div {
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+  width: 10em;
+}
+.cb {
+  position: relative;
+}
+.columns {
+  column-count: 3;
+  column-fill: auto;
+  column-gap: 1em;
+  column-width: 10em;
+  orphans: 1;
+  widows: 1;
+  width: 32em;
+  height: 50px;
+  background: yellow;
+}
+.anchor1 {
+  anchor-name: --a1;
+  color: red;
+}
+.target {
+  position: absolute;
+  background: lime;
+  opacity: .2;
+}
+.target1-pos {
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  right: anchor(--a1 right);
+  bottom: anchor(--a1 bottom);
+}
+.target1-size {
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  width: anchor-size(--a1 width);
+  height: anchor-size(--a1 height);
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <!-- The inline anchor appear in a single line inline containing block. -->
+  <div class="cb">
+    <div>spacer</div>
+    <div>
+      0
+      <span class="cb">
+        12
+        <span class="anchor1">a1</span>
+        34
+        <span class="target target1-pos"
+              data-offset-x=30 data-offset-y=0
+              data-expected-width=20 data-expected-height=10></span>
+        <span class="target target1-size"
+              data-offset-x=30 data-offset-y=0
+              data-expected-width=20 data-expected-height=10></span>
+      </span>
+      <span class="target target1-pos"
+            data-offset-x=50 data-offset-y=10
+            data-expected-width=20 data-expected-height=10></span>
+      <span class="target target1-size"
+            data-offset-x=50 data-offset-y=10
+            data-expected-width=20 data-expected-height=10></span>
+    </div>
+    <span class="target target1-pos"
+          data-offset-x=50 data-offset-y=10
+          data-expected-width=20 data-expected-height=10></span>
+    <span class="target target1-size"
+          data-offset-x=50 data-offset-y=10
+          data-expected-width=20 data-expected-height=10></span>
+  </div>
+
+  <!-- The inline anchor and inline containing block wrap to two lines. -->
+  <div class="cb">
+    <div>
+      0
+      <span class="cb">
+        12
+        <span class="anchor1">a1 a1 a1</span>
+        345
+        <span class="target target1-pos"
+              data-offset-x=-20 data-offset-y=0
+              data-expected-width=100 data-expected-height=20></span>
+        <span class="target target1-size"
+              data-offset-x=-20 data-offset-y=0
+              data-expected-width=100 data-expected-height=20></span>
+      </span>
+      <span class="target target1-pos"
+            data-offset-x=0 data-offset-y=0
+            data-expected-width=100 data-expected-height=20></span>
+      <span class="target target1-size"
+            data-offset-x=0 data-offset-y=0
+            data-expected-width=100 data-expected-height=20></span>
+    </div>
+    <span class="target target1-pos"
+          data-offset-x=0 data-offset-y=0
+          data-expected-width=100 data-expected-height=20></span>
+    <span class="target target1-size"
+          data-offset-x=0 data-offset-y=0
+          data-expected-width=100 data-expected-height=20></span>
+  </div>
+
+  <!-- The inline anchor and inline containing block have forced line breaks. -->
+  <div class="cb">
+    <div>
+      0
+      <span class="cb">
+        12
+        <span class="anchor1">a1<br>a1</span>
+        345
+        <span class="target target1-pos"
+              data-offset-x=-20 data-offset-y=0
+              data-expected-width=70 data-expected-height=20></span>
+        <span class="target target1-size"
+              data-offset-x=-20 data-offset-y=0
+              data-expected-width=70 data-expected-height=20></span>
+      </span>
+      <span class="target target1-pos"
+            data-offset-x=0 data-offset-y=0
+            data-expected-width=70 data-expected-height=20></span>
+      <span class="target target1-size"
+            data-offset-x=0 data-offset-y=0
+            data-expected-width=70 data-expected-height=20></span>
+    </div>
+    <span class="target target1-pos"
+          data-offset-x=0 data-offset-y=0
+          data-expected-width=70 data-expected-height=20></span>
+    <span class="target target1-size"
+          data-offset-x=0 data-offset-y=0
+          data-expected-width=70 data-expected-height=20></span>
+  </div>
+
+  <!-- The inline anchor and inline containing block wrap to two columns. -->
+  <div class="cb columns">
+    <div class="spacer" style="height: 90px"></div>
+    <div>
+      0
+      <span class="cb">
+        12
+        <span class="anchor1">a1 a1 a1</span>
+        345
+        <span class="target target1-pos"
+              data-offset-x=30 data-offset-y=-40
+              data-expected-width=80 data-expected-height=50></span>
+        <span class="target target1-size"
+              data-offset-x=30 data-offset-y=-40
+              data-expected-width=80 data-expected-height=50></span>
+      </span>
+      <span class="target target1-pos"
+            data-offset-x=160 data-offset-y=0
+            data-expected-width=80 data-expected-height=50></span>
+      <span class="target target1-size"
+            data-offset-x=160 data-offset-y=0
+            data-expected-width=80 data-expected-height=50></span>
+    </div>
+    <span class="target target1-pos"
+          data-offset-x=160 data-offset-y=0
+          data-expected-width=80 data-expected-height=50></span>
+    <span class="target target1-size"
+          data-offset-x=160 data-offset-y=0
+          data-expected-width=80 data-expected-height=50></span>
+  </div>
+</body>

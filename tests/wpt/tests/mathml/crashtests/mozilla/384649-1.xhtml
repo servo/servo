@@ -1,0 +1,31 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<style>
+
+/* use attribute selector instead of the .class shorthand to work around bug 379178 */
+
+*[class="fixed"] { position: fixed; }
+
+math, mtable, mtr { position: inherit; }
+
+</style>
+</head>
+
+<body>
+
+<div class="fixed">
+  <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+    <mtable>
+      <mtr class="fixed">
+        <mtd><mi>x</mi></mtd>
+      </mtr>
+      <mtr>
+        <mtd><mi>y</mi></mtd>
+      </mtr>
+    </mtable>
+  </math>
+</div>
+
+</body>
+
+</html>

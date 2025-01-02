@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>
+  Tests that the margin-bottom is taken into account when fragmenting with expansion.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="column-count: 2; height: 100px; width: 100px; column-gap: 0; column-fill: auto; background: red; position: relative;">
+  <div style="display: flex; flex-wrap: wrap; width: 50px;">
+    <div style="width:50px; margin-bottom: 20px; background: green;">
+      <div style="height: 50px;">
+        <div style="height: 100px;"></div>
+      </div>
+      <div style="height: 60px; break-inside: avoid;"></div>
+    </div>
+    <div style="width: 50px; height: 20px; background: green;"></div> <!-- should still be 20px below after expansion -->
+  </div>
+  <div style="position: absolute; top: 60px; height: 20px; width: 50px; background: green;"></div>
+</div>

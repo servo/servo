@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Block level elements with text and white space</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-1" />
+        <link rel="match" href="white-space-001-ref.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Text within a block element is treated like an anonymous inline element for white space processing model." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #div1, #div2
+            {
+                background: black;
+                display: inline-block;
+                height: 1em;
+                width: 2em;
+            }
+            #div2
+            {
+                margin-left: 1em;
+            }
+       </style>
+    </head>
+    <body>
+        <p>Test passes if there are 2 filled black squares.</p>
+        <div>XX   XX</div>
+        <div id="div1"></div><div id="div2"></div>
+     </body>
+</html>

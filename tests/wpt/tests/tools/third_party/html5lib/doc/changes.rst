@@ -1,0 +1,3 @@
+.. :changelog:
+
+.. include:: ../CHANGES.rst

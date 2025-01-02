@@ -1,0 +1,2164 @@
+- name: 2d.fillStyle.parse.current.basic
+  desc: currentColor is computed from the canvas element
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: #0f0');
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = 'currentColor';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillStyle.parse.current.changed
+  desc: currentColor is computed when the attribute is set, not when it is painted
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: #0f0');
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = 'currentColor';
+    canvas.setAttribute('style', 'color: #f00');
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillStyle.parse.current.removed
+  desc: currentColor is solid black when the canvas element is not in a document
+  canvas_types: ['HtmlCanvas']
+  code: |
+    // Try not to let it undetectably incorrectly pick up opaque-black
+    // from other parts of the document:
+    document.body.parentNode.setAttribute('style', 'color: #f00');
+    document.body.setAttribute('style', 'color: #f00');
+    canvas.setAttribute('style', 'color: #f00');
+
+    var canvas2 = document.createElement('canvas');
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillStyle = 'currentColor';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.drawImage(canvas2, 0, 0);
+
+    document.body.parentNode.removeAttribute('style');
+    document.body.removeAttribute('style');
+
+    @assert pixel 50,25 == 0,0,0,255;
+  expected: |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+
+- name: 2d.fillStyle.invalidstring
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillStyle = 'invalid';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillStyle.invalidtype
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillStyle = null;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillStyle.get.solid
+  code: |
+    ctx.fillStyle = '#fa0';
+    @assert ctx.fillStyle === '#ffaa00';
+
+- name: 2d.fillStyle.get.semitransparent
+  code: |
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    @assert ctx.fillStyle =~ /^rgba\(255, 255, 255, 0\.4\d+\)$/;
+
+- name: 2d.fillStyle.get.halftransparent
+  code: |
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    @assert ctx.fillStyle === 'rgba(255, 255, 255, 0.5)';
+
+- name: 2d.fillStyle.get.transparent
+  code: |
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    @assert ctx.fillStyle === 'rgba(0, 0, 0, 0)';
+
+- name: 2d.fillStyle.default
+  code: |
+    @assert ctx.fillStyle === '#000000';
+
+- name: 2d.fillStyle.toStringFunctionCallback
+  desc: Passing a function in to ctx.fillStyle or ctx.strokeStyle with a toString callback works as specified
+  code: |
+    ctx.fillStyle = { toString: function() { return "#008000"; } };
+    @assert ctx.fillStyle === "#008000";
+    ctx.fillStyle = {};
+    @assert ctx.fillStyle === "#008000";
+    ctx.fillStyle = 800000;
+    @assert ctx.fillStyle === "#008000";
+    @assert throws TypeError ctx.fillStyle = { toString: function() { throw new TypeError; } };
+    ctx.strokeStyle = { toString: function() { return "#008000"; } };
+    @assert ctx.strokeStyle === "#008000";
+    ctx.strokeStyle = {};
+    @assert ctx.strokeStyle === "#008000";
+    ctx.strokeStyle = 800000;
+    @assert ctx.strokeStyle === "#008000";
+    @assert throws TypeError ctx.strokeStyle = { toString: function() { throw new TypeError; } };
+
+- name: 2d.strokeStyle.default
+  code: |
+    @assert ctx.strokeStyle === '#000000';
+
+
+- name: 2d.gradient.object.type
+  desc: window.CanvasGradient exists and has the right properties
+  notes: &bindings Defined in "Web IDL" (draft)
+  code: |
+    {% set root = 'self' if canvas_type == 'Worker' else 'window' %}
+    @assert {{ root }}.CanvasGradient !== undefined;
+    @assert {{ root }}.CanvasGradient.prototype.addColorStop !== undefined;
+
+- name: 2d.gradient.object.return
+  desc: createLinearGradient() and createRadialGradient() returns objects implementing
+    CanvasGradient
+  code: |
+    {% set root = 'self' if canvas_type == 'Worker' else 'window' %}
+    {{ root }}.CanvasGradient.prototype.thisImplementsCanvasGradient = true;
+
+    var g1 = ctx.createLinearGradient(0, 0, 100, 0);
+    @assert g1.addColorStop !== undefined;
+    @assert g1.thisImplementsCanvasGradient === true;
+
+    var g2 = ctx.createRadialGradient(0, 0, 10, 0, 0, 20);
+    @assert g2.addColorStop !== undefined;
+    @assert g2.thisImplementsCanvasGradient === true;
+
+- name: 2d.gradient.interpolate.solid
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.interpolate.color
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(1, '#00f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 191,191,63,255 +/- 3;
+    @assert pixel 50,25 ==~ 127,127,127,255 +/- 3;
+    @assert pixel 75,25 ==~ 63,63,191,255 +/- 3;
+  expected: |
+    size 100 50
+    g = cairo.LinearGradient(0, 0, 100, 0)
+    g.add_color_stop_rgb(0, 1,1,0)
+    g.add_color_stop_rgb(1, 0,0,1)
+    cr.set_source(g)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+
+- name: 2d.gradient.interpolate.alpha
+  code: |
+    ctx.fillStyle = '#ff0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, 'rgba(0,0,255, 0)');
+    g.addColorStop(1, 'rgba(0,0,255, 1)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 191,191,63,255 +/- 3;
+    @assert pixel 50,25 ==~ 127,127,127,255 +/- 3;
+    @assert pixel 75,25 ==~ 63,63,191,255 +/- 3;
+  expected: |
+    size 100 50
+    g = cairo.LinearGradient(0, 0, 100, 0)
+    g.add_color_stop_rgb(0, 1,1,0)
+    g.add_color_stop_rgb(1, 0,0,1)
+    cr.set_source(g)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+
+- name: 2d.gradient.interpolate.coloralpha
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, 'rgba(255,255,0, 0)');
+    g.addColorStop(1, 'rgba(0,0,255, 1)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 190,190,65,65 +/- 3;
+    @assert pixel 50,25 ==~ 126,126,128,128 +/- 3;
+    @assert pixel 75,25 ==~ 62,62,192,192 +/- 3;
+  expected: |
+    size 100 50
+    g = cairo.LinearGradient(0, 0, 100, 0)
+    g.add_color_stop_rgba(0, 1,1,0, 0)
+    g.add_color_stop_rgba(1, 0,0,1, 1)
+    cr.set_source(g)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+
+- name: 2d.gradient.interpolate.outside
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(25, 0, 75, 0);
+    g.addColorStop(0.4, '#0f0');
+    g.addColorStop(0.6, '#0f0');
+
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 20,25 ==~ 0,255,0,255;
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    @assert pixel 80,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.interpolate.zerosize.fill
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.rect(0, 0, 100, 50);
+    ctx.fill();
+    @assert pixel 40,20 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.interpolate.zerosize.stroke
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.strokeStyle = g;
+    ctx.rect(20, 20, 60, 10);
+    ctx.stroke();
+    @assert pixel 19,19 == 0,255,0,255;
+    @assert pixel 20,19 == 0,255,0,255;
+    @assert pixel 21,19 == 0,255,0,255;
+    @assert pixel 19,20 == 0,255,0,255;
+    @assert pixel 20,20 == 0,255,0,255;
+    @assert pixel 21,20 == 0,255,0,255;
+    @assert pixel 19,21 == 0,255,0,255;
+    @assert pixel 20,21 == 0,255,0,255;
+    @assert pixel 21,21 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.interpolate.zerosize.fillRect
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 40,20 == 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.gradient.interpolate.zerosize.strokeRect
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.strokeStyle = g;
+    ctx.strokeRect(20, 20, 60, 10);
+    @assert pixel 19,19 == 0,255,0,255;
+    @assert pixel 20,19 == 0,255,0,255;
+    @assert pixel 21,19 == 0,255,0,255;
+    @assert pixel 19,20 == 0,255,0,255;
+    @assert pixel 20,20 == 0,255,0,255;
+    @assert pixel 21,20 == 0,255,0,255;
+    @assert pixel 19,21 == 0,255,0,255;
+    @assert pixel 20,21 == 0,255,0,255;
+    @assert pixel 21,21 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.interpolate.zerosize.fillText
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.font = '100px sans-serif';
+    ctx.fillText("AA", 0, 50);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.gradient.interpolate.zerosize.strokeText
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.strokeStyle = g;
+    ctx.font = '100px sans-serif';
+    ctx.strokeText("AA", 0, 50);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+
+- name: 2d.gradient.interpolate.vertical
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 0, 50);
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(1, '#00f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,12 ==~ 191,191,63,255 +/- 10;
+    @assert pixel 50,25 ==~ 127,127,127,255 +/- 5;
+    @assert pixel 50,37 ==~ 63,63,191,255 +/- 10;
+  expected: |
+    size 100 50
+    g = cairo.LinearGradient(0, 0, 0, 50)
+    g.add_color_stop_rgb(0, 1,1,0)
+    g.add_color_stop_rgb(1, 0,0,1)
+    cr.set_source(g)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+
+- name: 2d.gradient.interpolate.multiple
+  code: |
+    canvas.width = 200;
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(0.5, '#0ff');
+    g.addColorStop(1, '#f0f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 200, 50);
+    @assert pixel 50,25 ==~ 127,255,127,255 +/- 3;
+    @assert pixel 100,25 ==~ 0,255,255,255 +/- 3;
+    @assert pixel 150,25 ==~ 127,127,255,255 +/- 3;
+  expected: |
+    size 200 50
+    g = cairo.LinearGradient(0, 0, 200, 0)
+    g.add_color_stop_rgb(0.0, 1,1,0)
+    g.add_color_stop_rgb(0.5, 0,1,1)
+    g.add_color_stop_rgb(1.0, 1,0,1)
+    cr.set_source(g)
+    cr.rectangle(0, 0, 200, 50)
+    cr.fill()
+
+- name: 2d.gradient.interpolate.overlap
+  code: |
+    canvas.width = 200;
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(0.25, '#00f');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.25, '#ff0');
+    g.addColorStop(0.5, '#00f');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.75, '#00f');
+    g.addColorStop(0.75, '#f00');
+    g.addColorStop(0.75, '#ff0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.5, '#ff0');
+    g.addColorStop(1, '#00f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 200, 50);
+    @assert pixel 49,25 ==~ 0,0,255,255 +/- 16;
+    @assert pixel 51,25 ==~ 255,255,0,255 +/- 16;
+    @assert pixel 99,25 ==~ 0,0,255,255 +/- 16;
+    @assert pixel 101,25 ==~ 255,255,0,255 +/- 16;
+    @assert pixel 149,25 ==~ 0,0,255,255 +/- 16;
+    @assert pixel 151,25 ==~ 255,255,0,255 +/- 16;
+  expected: |
+    size 200 50
+    g = cairo.LinearGradient(0, 0, 50, 0)
+    g.add_color_stop_rgb(0, 1,1,0)
+    g.add_color_stop_rgb(1, 0,0,1)
+    cr.set_source(g)
+    cr.rectangle(0, 0, 50, 50)
+    cr.fill()
+
+    g = cairo.LinearGradient(50, 0, 100, 0)
+    g.add_color_stop_rgb(0, 1,1,0)
+    g.add_color_stop_rgb(1, 0,0,1)
+    cr.set_source(g)
+    cr.rectangle(50, 0, 50, 50)
+    cr.fill()
+
+    g = cairo.LinearGradient(100, 0, 150, 0)
+    g.add_color_stop_rgb(0, 1,1,0)
+    g.add_color_stop_rgb(1, 0,0,1)
+    cr.set_source(g)
+    cr.rectangle(100, 0, 50, 50)
+    cr.fill()
+
+    g = cairo.LinearGradient(150, 0, 200, 0)
+    g.add_color_stop_rgb(0, 1,1,0)
+    g.add_color_stop_rgb(1, 0,0,1)
+    cr.set_source(g)
+    cr.rectangle(150, 0, 50, 50)
+    cr.fill()
+
+- name: 2d.gradient.interpolate.overlap2
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    var ps = [ 0, 1/10, 1/4, 1/3, 1/2, 3/4, 1 ];
+    for (var p = 0; p < ps.length; ++p)
+    {
+            g.addColorStop(ps[p], '#0f0');
+            for (var i = 0; i < 15; ++i)
+                    g.addColorStop(ps[p], '#f00');
+            g.addColorStop(ps[p], '#0f0');
+    }
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 30,25 == 0,255,0,255;
+    @assert pixel 40,25 == 0,255,0,255;
+    @assert pixel 60,25 == 0,255,0,255;
+    @assert pixel 80,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.empty
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(0, 0, 0, 50);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.object.update
+  code: |
+    var g = ctx.createLinearGradient(-100, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    g.addColorStop(0.1, '#0f0');
+    g.addColorStop(0.9, '#0f0');
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.object.compare
+  code: |
+    var g1 = ctx.createLinearGradient(0, 0, 100, 0);
+    var g2 = ctx.createLinearGradient(0, 0, 100, 0);
+    @assert g1 !== g2;
+    ctx.fillStyle = g1;
+    @assert ctx.fillStyle === g1;
+
+- name: 2d.gradient.object.crosscanvas
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = {{ create_canvas }}.getContext('2d').createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+  expected: green
+  append_variants_to_name: false
+  variants:
+  - HtmlCanvas:
+      canvas_types: ['HtmlCanvas']
+      create_canvas: document.createElement('canvas')
+    OffscreenCanvas:
+      canvas_types: ['OffscreenCanvas', 'Worker']
+      create_canvas: new OffscreenCanvas(100, 50)
+
+- name: 2d.gradient.object.current
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: #f00');
+
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, 'currentColor');
+    g.addColorStop(1, 'currentColor');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,0,0,255;
+  expected: |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+
+- name: 2d.gradient.object.invalidoffset
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    @assert throws INDEX_SIZE_ERR g.addColorStop(-1, '#000');
+    @assert throws INDEX_SIZE_ERR g.addColorStop(2, '#000');
+    @assert throws TypeError g.addColorStop(Infinity, '#000');
+    @assert throws TypeError g.addColorStop(-Infinity, '#000');
+    @assert throws TypeError g.addColorStop(NaN, '#000');
+
+- name: 2d.gradient.object.invalidcolor
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    @assert throws SYNTAX_ERR g.addColorStop(0, "");
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'rgb(NaN%, NaN%, NaN%)');
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'null');
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'undefined');
+    @assert throws SYNTAX_ERR g.addColorStop(0, null);
+    @assert throws SYNTAX_ERR g.addColorStop(0, undefined);
+
+    var g = ctx.createRadialGradient(0, 0, 0, 100, 0, 0);
+    @assert throws SYNTAX_ERR g.addColorStop(0, "");
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'rgb(NaN%, NaN%, NaN%)');
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'null');
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'undefined');
+    @assert throws SYNTAX_ERR g.addColorStop(0, null);
+    @assert throws SYNTAX_ERR g.addColorStop(0, undefined);
+
+
+- name: 2d.gradient.linear.nonfinite
+  desc: createLinearGradient() throws TypeError if arguments are not finite
+  notes: *bindings
+  code: |
+    @nonfinite @assert throws TypeError ctx.createLinearGradient(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+
+- name: 2d.gradient.linear.transform.1
+  desc: Linear gradient coordinates are relative to the coordinate space at the time
+    of filling
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.75, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(-50, 0);
+    ctx.fillRect(50, 0, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.linear.transform.2
+  desc: Linear gradient coordinates are relative to the coordinate space at the time
+    of filling
+  code: |
+    ctx.translate(100, 0);
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.75, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(-150, 0);
+    ctx.fillRect(50, 0, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.linear.transform.3
+  desc: Linear gradient transforms do not experience broken caching effects
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.75, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.translate(-50, 0);
+    ctx.fillRect(50, 0, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.negative
+  desc: createRadialGradient() throws INDEX_SIZE_ERR if either radius is negative
+  code: |
+    @assert throws INDEX_SIZE_ERR ctx.createRadialGradient(0, 0, -0.1, 0, 0, 1);
+    @assert throws INDEX_SIZE_ERR ctx.createRadialGradient(0, 0, 1, 0, 0, -0.1);
+    @assert throws INDEX_SIZE_ERR ctx.createRadialGradient(0, 0, -0.1, 0, 0, -0.1);
+
+- name: 2d.gradient.radial.nonfinite
+  desc: createRadialGradient() throws TypeError if arguments are not finite
+  notes: *bindings
+  code: |
+    @nonfinite @assert throws TypeError ctx.createRadialGradient(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>);
+
+- name: 2d.gradient.radial.inside1
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(50, 25, 100, 50, 25, 200);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.inside2
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(50, 25, 200, 50, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.inside3
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(50, 25, 200, 50, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.993, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.outside1
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(200, 25, 10, 200, 25, 20);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.outside2
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(200, 25, 20, 200, 25, 10);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.outside3
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(200, 25, 20, 200, 25, 10);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.001, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.touch1
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(150, 25, 50, 200, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.gradient.radial.touch2
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(-80, 25, 70, 0, 25, 150);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.01, '#0f0');
+    g.addColorStop(0.99, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.touch3
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(120, -15, 25, 140, -30, 50);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.gradient.radial.equal
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(50, 25, 20, 50, 25, 20);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.gradient.radial.cone.behind
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(120, 25, 10, 211, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.gradient.radial.cone.front
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(311, 25, 10, 210, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.cone.bottom
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(210, 25, 100, 230, 25, 101);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.cone.top
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(230, 25, 100, 100, 25, 101);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.cone.beside
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(0, 100, 40, 100, 100, 50);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+  expected: green
+
+- name: 2d.gradient.radial.cone.cylinder
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(210, 25, 100, 230, 25, 100);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.cone.shape1
+  code: |
+    var tol = 1; // tolerance to avoid antialiasing artifacts
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#f00';
+    ctx.beginPath();
+    ctx.moveTo(30+tol, 40);
+    ctx.lineTo(110, -20+tol);
+    ctx.lineTo(110, 100-tol);
+    ctx.fill();
+
+    var g = ctx.createRadialGradient(30+10*5/2, 40, 10*3/2, 30+10*15/4, 40, 10*9/4);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.cone.shape2
+  code: |
+    var tol = 1; // tolerance to avoid antialiasing artifacts
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var g = ctx.createRadialGradient(30+10*5/2, 40, 10*3/2, 30+10*15/4, 40, 10*9/4);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath();
+    ctx.moveTo(30-tol, 40);
+    ctx.lineTo(110, -20-tol);
+    ctx.lineTo(110, 100+tol);
+    ctx.fill();
+
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 ==~ 0,255,0,255 +/- 1;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.transform.1
+  desc: Radial gradient coordinates are relative to the coordinate space at the time
+    of filling
+  code: |
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 11.2);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.51, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(50, 25);
+    ctx.scale(10, 10);
+    ctx.fillRect(-5, -2.5, 10, 5);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.transform.2
+  desc: Radial gradient coordinates are relative to the coordinate space at the time
+    of filling
+  code: |
+    ctx.translate(100, 0);
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 11.2);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.51, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(-50, 25);
+    ctx.scale(10, 10);
+    ctx.fillRect(-5, -2.5, 10, 5);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.radial.transform.3
+  desc: Radial gradient transforms do not experience broken caching effects
+  code: |
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 11.2);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.51, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.translate(50, 25);
+    ctx.scale(10, 10);
+    ctx.fillRect(-5, -2.5, 10, 5);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.conic.positive.rotation
+  desc: Conic gradient with positive rotation
+  code: |
+    const g = ctx.createConicGradient(3*Math.PI/2, 50, 25);
+    // It's red in the upper right region and green on the lower left region
+    g.addColorStop(0, "#f00");
+    g.addColorStop(0.25, "#0f0");
+    g.addColorStop(0.50, "#0f0");
+    g.addColorStop(0.75, "#f00");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,15 ==~ 255,0,0,255 +/- 3;
+    @assert pixel 75,40 ==~ 0,255,0,255 +/- 3;
+  expected: green
+
+- name: 2d.gradient.conic.negative.rotation
+  desc: Conic gradient with negative rotation
+  code: |
+    const g = ctx.createConicGradient(-Math.PI/2, 50, 25);
+    // It's red in the upper right region and green on the lower left region
+    g.addColorStop(0, "#f00");
+    g.addColorStop(0.25, "#0f0");
+    g.addColorStop(0.50, "#0f0");
+    g.addColorStop(0.75, "#f00");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,15 ==~ 255,0,0,255 +/- 3;
+    @assert pixel 75,40 ==~ 0,255,0,255 +/- 3;
+  expected: green
+
+- name: 2d.gradient.conic.invalid.inputs
+  desc: Conic gradient function with invalid inputs
+  code: |
+    @nonfinite @assert throws TypeError ctx.createConicGradient(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>);
+
+    const g = ctx.createConicGradient(0, 0, 25);
+    @nonfinite @assert throws TypeError g.addColorStop(<Infinity -Infinity NaN>, <'#f00'>);
+    @nonfinite @assert throws SYNTAX_ERR g.addColorStop(<0>, <Infinity -Infinity NaN>);
+
+- name: 2d.pattern.basic.type
+  images:
+  - green.png
+  code: |
+    {% set root = 'self' if canvas_type == 'Worker' else 'window' %}
+    @assert {{ root }}.CanvasPattern !== undefined;
+
+    {{ root }}.CanvasPattern.prototype.thisImplementsCanvasPattern = true;
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    @assert pattern.thisImplementsCanvasPattern;
+  variants: &load-image-variant-definition
+  - HtmlCanvas:
+      append_variants_to_name: false
+      canvas_types: ['HtmlCanvas']
+      load_image: var img = document.getElementById('{{ (images or svgimages)[0] }}');
+    OffscreenCanvas:
+      append_variants_to_name: false
+      canvas_types: ['OffscreenCanvas', 'Worker']
+      test_type: promise
+      load_image: |-
+        var response = await fetch('/images/{{ (images or svgimages)[0] }}')
+        var blob = await response.blob();
+        var img = await createImageBitmap(blob);
+
+- name: 2d.pattern.basic.image
+  images:
+  - green.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.basic.canvas
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ create_canvas2 }}
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: &create-canvas2-variant-definition
+  - HtmlCanvas:
+      append_variants_to_name: false
+      canvas_types: ['HtmlCanvas']
+      create_canvas2: |-
+        var canvas2 = document.createElement('canvas');
+        canvas2.width = 100;
+        canvas2.height = 50;
+    OffscreenCanvas:
+      append_variants_to_name: false
+      canvas_types: ['OffscreenCanvas', 'Worker']
+      create_canvas2: |-
+        var canvas2 = new OffscreenCanvas(100, 50);
+
+- name: 2d.pattern.basic.zerocanvas
+  code: |
+    canvas.width = 0;
+    canvas.height = 10;
+    @assert canvas.width === 0;
+    @assert canvas.height === 10;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(canvas, 'repeat');
+
+    canvas.width = 10;
+    canvas.height = 0;
+    @assert canvas.width === 10;
+    @assert canvas.height === 0;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(canvas, 'repeat');
+
+    canvas.width = 0;
+    canvas.height = 0;
+    @assert canvas.width === 0;
+    @assert canvas.height === 0;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(canvas, 'repeat');
+
+- name: 2d.pattern.basic.nocontext
+  code: |
+    {{ create_canvas2 }}
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *create-canvas2-variant-definition
+
+- name: 2d.pattern.transform.identity
+  code: |
+    {{ create_canvas2 }}
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    pattern.setTransform(new DOMMatrix());
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *create-canvas2-variant-definition
+
+- name: 2d.pattern.transform.infinity
+  code: |
+    {{ create_canvas2 }}
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    pattern.setTransform({a: Infinity});
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *create-canvas2-variant-definition
+
+- name: 2d.pattern.transform.invalid
+  code: |
+    {{ create_canvas2 }}
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    @assert throws TypeError pattern.setTransform({a: 1, m11: 2});
+  variants: *create-canvas2-variant-definition
+
+- name: 2d.pattern.image.undefined
+  notes: *bindings
+  code: |
+    @assert throws TypeError ctx.createPattern(undefined, 'repeat');
+
+- name: 2d.pattern.image.null
+  notes: *bindings
+  code: |
+    @assert throws TypeError ctx.createPattern(null, 'repeat');
+
+- name: 2d.pattern.image.string
+  notes: *bindings
+  code: |
+    @assert throws TypeError ctx.createPattern('../images/red.png', 'repeat');
+
+- name: 2d.pattern.image.incomplete.nosrc
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var img = new Image();
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.incomplete.immediate
+  canvas_types: ['HtmlCanvas']
+  images:
+  - red.png
+  code: |
+    var img = new Image();
+    img.src = '../images/red.png';
+    // This triggers the "update the image data" algorithm.
+    // The image will not go to the "completely available" state
+    // until a fetch task in the networking task source is processed,
+    // so the image must not be fully decodable yet:
+    @assert ctx.createPattern(img, 'repeat') === null; @moz-todo
+
+- name: 2d.pattern.image.incomplete.reload
+  canvas_types: ['HtmlCanvas']
+  images:
+  - yellow.png
+  - red.png
+  code: |
+    var img = document.getElementById('yellow.png');
+    img.src = '../images/red.png';
+    // This triggers the "update the image data" algorithm,
+    // and resets the image to the "unavailable" state.
+    // The image will not go to the "completely available" state
+    // until a fetch task in the networking task source is processed,
+    // so the image must not be fully decodable yet:
+    @assert ctx.createPattern(img, 'repeat') === null; @moz-todo
+
+- name: 2d.pattern.image.incomplete.emptysrc
+  canvas_types: ['HtmlCanvas']
+  images:
+  - red.png
+  mozilla: {throws: !!null ''}
+  code: |
+    var img = document.getElementById('red.png');
+    img.src = "";
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.incomplete.removedsrc
+  canvas_types: ['HtmlCanvas']
+  images:
+  - red.png
+  mozilla: {throws: !!null ''}
+  code: |
+    var img = document.getElementById('red.png');
+    img.removeAttribute('src');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.broken
+  canvas_types: ['HtmlCanvas']
+  images:
+  - broken.png
+  code: |
+    var img = document.getElementById('broken.png');
+    @assert throws INVALID_STATE_ERR ctx.createPattern(img, 'repeat');
+
+- name: 2d.pattern.image.nonexistent
+  canvas_types: ['HtmlCanvas']
+  images:
+  - no-such-image-really.png
+  code: |
+    var img = document.getElementById('no-such-image-really.png');
+    @assert throws INVALID_STATE_ERR ctx.createPattern(img, 'repeat');
+
+- name: 2d.pattern.svgimage.nonexistent
+  canvas_types: ['HtmlCanvas']
+  svgimages:
+  - no-such-image-really.png
+  code: |
+    var img = document.getElementById('no-such-image-really.png');
+    @assert throws INVALID_STATE_ERR ctx.createPattern(img, 'repeat');
+
+- name: 2d.pattern.image.nonexistent-but-loading
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var img = document.createElement("img");
+    img.src = "/images/no-such-image-really.png";
+    @assert ctx.createPattern(img, 'repeat') === null;
+    var img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    img.src = "/images/no-such-image-really.png";
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.nosrc
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var img = document.createElement("img");
+    @assert ctx.createPattern(img, 'repeat') === null;
+    var img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.zerowidth
+  canvas_types: ['HtmlCanvas']
+  images:
+  - red-zerowidth.svg
+  code: |
+    var img = document.getElementById('red-zerowidth.svg');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.image.zeroheight
+  canvas_types: ['HtmlCanvas']
+  images:
+  - red-zeroheight.svg
+  code: |
+    var img = document.getElementById('red-zeroheight.svg');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.svgimage.zerowidth
+  canvas_types: ['HtmlCanvas']
+  svgimages:
+  - red-zerowidth.svg
+  code: |
+    var img = document.getElementById('red-zerowidth.svg');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.svgimage.zeroheight
+  canvas_types: ['HtmlCanvas']
+  svgimages:
+  - red-zeroheight.svg
+  code: |
+    var img = document.getElementById('red-zeroheight.svg');
+    @assert ctx.createPattern(img, 'repeat') === null;
+
+- name: 2d.pattern.repeat.empty
+  images:
+  - green-1x1.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, "");
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 200, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.repeat.null
+  code: |
+    @assert ctx.createPattern(canvas, null) != null;
+
+- name: 2d.pattern.repeat.undefined
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, undefined);
+
+- name: 2d.pattern.repeat.unrecognised
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "invalid");
+
+- name: 2d.pattern.repeat.unrecognisednull
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "null");
+
+- name: 2d.pattern.repeat.case
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "Repeat");
+
+- name: 2d.pattern.repeat.nullsuffix
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(canvas, "repeat\0");
+
+- name: 2d.pattern.modify.image1
+  canvas_types: ['HtmlCanvas']
+  images:
+  - green.png
+  code: |
+    var img = document.getElementById('green.png');
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    deferTest();
+    img.onload = t.step_func_done(function ()
+    {
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, 100, 50);
+
+        @assert pixel 1,1 == 0,255,0,255;
+        @assert pixel 98,1 == 0,255,0,255;
+        @assert pixel 1,48 == 0,255,0,255;
+        @assert pixel 98,48 == 0,255,0,255;
+    });
+    img.src = '/images/red.png';
+  expected: green
+
+- name: 2d.pattern.modify.image2
+  canvas_types: ['HtmlCanvas']
+  images:
+  - green.png
+  code: |
+    var img = document.getElementById('green.png');
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#00f';
+    ctx.fillRect(0, 0, 100, 50);
+    deferTest();
+    img.onload = t.step_func_done(function ()
+    {
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, 100, 50);
+
+        @assert pixel 1,1 == 0,255,0,255;
+        @assert pixel 98,1 == 0,255,0,255;
+        @assert pixel 1,48 == 0,255,0,255;
+        @assert pixel 98,48 == 0,255,0,255;
+    });
+    img.src = '/images/red.png';
+  expected: green
+
+- name: 2d.pattern.modify.canvas1
+  canvas_types: ['HtmlCanvas']
+  code: |
+    {{ create_canvas2 }}
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *create-canvas2-variant-definition
+
+- name: 2d.pattern.modify.canvas2
+  code: |
+    {{ create_canvas2 }}
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *create-canvas2-variant-definition
+
+- name: 2d.pattern.crosscanvas
+  images:
+  - green.png
+  code: |
+    {{ load_image }}
+
+    var pattern = {{ create_canvas }}.getContext('2d').createPattern(img, 'no-repeat');
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+  append_variants_to_name: false
+  variants:
+  - HtmlCanvas:
+      canvas_types: ['HtmlCanvas']
+      load_image: var img = document.getElementById('{{ images[0] }}');
+      create_canvas: document.createElement('canvas')
+    OffscreenCanvas:
+      canvas_types: ['OffscreenCanvas', 'Worker']
+      test_type: promise
+      load_image: |-
+        var response = await fetch('/images/{{ images[0] }}')
+        var blob = await response.blob();
+        var img = await createImageBitmap(blob);
+      create_canvas: new OffscreenCanvas(100, 50)
+
+- name: 2d.pattern.paint.norepeat.basic
+  images:
+  - green.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.norepeat.outside
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, -50, 100, 50);
+    ctx.fillRect(-100, 0, 100, 50);
+    ctx.fillRect(0, 50, 100, 50);
+    ctx.fillRect(100, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.norepeat.coord1
+  images:
+  - green.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(50, 0, 50, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.translate(50, 0);
+    ctx.fillRect(-50, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.norepeat.coord2
+  images:
+  - green.png
+  code: |
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 50, 50);
+
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(50, 0, 50, 50);
+
+    ctx.fillStyle = pattern;
+    ctx.translate(50, 0);
+    ctx.fillRect(-50, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.norepeat.coord3
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.translate(50, 25);
+    ctx.fillRect(-50, -25, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 25);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeat.basic
+  images:
+  - green-16x16.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeat.outside
+  images:
+  - green-16x16.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.translate(50, 25);
+    ctx.fillRect(-50, -25, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeat.coord1
+  images:
+  - rgrg-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.translate(-128, -78);
+    ctx.fillRect(128, 78, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeat.coord2
+  images:
+  - ggrr-256x256.png
+  code: |
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeat.coord3
+  images:
+  - rgrg-256x256.png
+  code: |
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.translate(-128, -78);
+    ctx.fillRect(128, 78, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeatx.basic
+  images:
+  - green-16x16.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 16);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat-x');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeatx.outside
+  images:
+  - red-16x16.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat-x');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 16);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeatx.coord1
+  images:
+  - red-16x16.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat-x');
+    ctx.fillStyle = pattern;
+    ctx.translate(0, 16);
+    ctx.fillRect(0, -16, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 16);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeaty.basic
+  images:
+  - green-16x16.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 16, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat-y');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeaty.outside
+  images:
+  - red-16x16.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat-y');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 16, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.repeaty.coord1
+  images:
+  - red-16x16.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'repeat-y');
+    ctx.fillStyle = pattern;
+    ctx.translate(48, 0);
+    ctx.fillRect(-48, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 16, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.orientation.image
+  desc: Image patterns do not get flipped when painted
+  images:
+  - rrgg-256x256.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ load_image }}
+    var pattern = ctx.createPattern(img, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.save();
+    ctx.translate(0, -103);
+    ctx.fillRect(0, 103, 100, 50);
+    ctx.restore();
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 25);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *load-image-variant-definition
+
+- name: 2d.pattern.paint.orientation.canvas
+  desc: Canvas patterns do not get flipped when painted
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    {{ create_canvas2 }}
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 25);
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 25, 100, 25);
+
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 25);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+  variants: *create-canvas2-variant-definition
+
+- name: 2d.pattern.animated.gif
+  desc: createPattern() of an animated GIF draws the first frame
+  canvas_types: ['HtmlCanvas']
+  images:
+  - anim-gr.gif
+  code: |
+    deferTest();
+    step_timeout(function () {
+        var pattern = ctx.createPattern(document.getElementById('anim-gr.gif'), 'repeat');
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, 50, 50);
+        step_timeout(t.step_func_done(function () {
+            ctx.fillRect(50, 0, 50, 50);
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }), 250);
+    }, 250);
+  expected: green
+
+- name: 2d.fillStyle.CSSRGB
+  desc: CSSRGB works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    ctx.fillStyle = new CSSRGB(1, 0, 1);
+    @assert ctx.fillStyle === '#ff00ff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,0,255,255;
+
+    const color = new CSSRGB(0, CSS.percent(50), 0);
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#008000';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,128,0,255;
+    color.g = 0;
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#000000';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,255;
+
+    color.alpha = 0;
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === 'rgba(0, 0, 0, 0)';
+    ctx.reset();
+    color.alpha = 0.5;
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,128;
+
+    ctx.fillStyle = new CSSHSL(CSS.deg(0), 1, 1).toRGB();
+    @assert ctx.fillStyle === '#ffffff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,255,255,255;
+
+    color.alpha = 1;
+    color.g = 1;
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 100, 50);
+  expected: green
+
+- name: 2d.fillStyle.CSSHSL
+  desc: CSSHSL works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    ctx.fillStyle = new CSSHSL(CSS.deg(180), 0.5, 0.5);
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 64,191,191,255 +/- 3;
+
+    const color = new CSSHSL(CSS.deg(180), 1, 1);
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#ffffff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,255,255,255;
+    color.l = 0.5;
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#00ffff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,255,255;
+
+    ctx.fillStyle = new CSSRGB(1, 0, 1).toHSL();
+    @assert ctx.fillStyle === '#ff00ff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,0,255,255;
+
+    color.h = CSS.deg(120);
+    color.s = 1;
+    color.l = 0.5;
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 100, 50);
+  expected: green
+
+- name: 2d.fillStyle.colormix
+  desc: color-mix works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    ctx.fillStyle = "color-mix(in srgb, red, blue)";
+    @assert ctx.fillStyle === 'color(srgb 0.5 0 0.5)';
+    ctx.fillStyle = "color-mix(in srgb, red, color(srgb 1 0 0))";
+    @assert ctx.fillStyle === 'color(srgb 1 0 0)';
+
+- name: 2d.fillStyle.colormix.currentcolor
+  desc: color-mix works as color input with currentcolor
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: magenta');
+    ctx.fillStyle = "color-mix(in srgb, black, currentcolor)";
+    @assert ctx.fillStyle === 'color(srgb 0.5 0 0.5)';
+    ctx.strokeStyle = "color-mix(in srgb, black, currentcolor)";
+    @assert ctx.strokeStyle === 'color(srgb 0.5 0 0.5)';
+
+- name: 2d.strokeStyle.colormix
+  desc: color-mix works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    ctx.strokeStyle = "color-mix(in srgb, red, blue)";
+    @assert ctx.strokeStyle === 'color(srgb 0.5 0 0.5)';
+    ctx.strokeStyle = "color-mix(in srgb, red, color(srgb 1 0 0))";
+    @assert ctx.strokeStyle === 'color(srgb 1 0 0)';
+
+- name: 2d.gradient.colormix
+  desc: color-mix works as CanvasGradient color input
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, 'color-mix(in srgb, #0f0, #00f)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 212,81,61,255 +/- 3;
+    @assert pixel 50,25 ==~ 167,106,88,255 +/- 3;
+    @assert pixel 75,25 ==~ 113,120,109,255 +/- 3;
+
+- name: 2d.fillStyle.relativecolor
+  desc: Relative color works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    ctx.fillStyle = "rgb(from red g r b)";
+    @assert ctx.fillStyle === 'color(srgb 0 1 0)';
+    ctx.fillStyle = "color(from color(srgb 0.25 0.5 0.75 / 0.5) srgb r g b / alpha)";
+    @assert ctx.fillStyle === 'color(srgb 0.25 0.5 0.75 / 0.5)';
+
+- name: 2d.fillStyle.relativecolor.currentcolor
+  desc: Relative color works as color input with currentcolor
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: magenta');
+    ctx.fillStyle = "rgb(from currentcolor g r b)";
+    @assert ctx.fillStyle === 'color(srgb 0 1 1)';
+    ctx.strokeStyle = "rgb(from currentcolor g r b)";
+    @assert ctx.strokeStyle === 'color(srgb 0 1 1)';
+
+- name: 2d.strokeStyle.relativecolor
+  desc: Relative color works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    ctx.strokeStyle = "rgb(from red g r b)";
+    @assert ctx.strokeStyle === 'color(srgb 0 1 0)';
+    ctx.strokeStyle = "color(from color(srgb 0.25 0.5 0.75 / 0.5) srgb r g b / alpha)";
+    @assert ctx.strokeStyle === 'color(srgb 0.25 0.5 0.75 / 0.5)';
+
+- name: 2d.gradient.relativecolor
+  desc: Relative color works as CanvasGradient color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, 'rgb(from red g r b)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 236,116,0,255 +/- 3;
+    @assert pixel 50,25 ==~ 208,170,0,255 +/- 3;
+    @assert pixel 75,25 ==~ 159,214,0,255 +/- 3;

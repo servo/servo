@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+    "use strict";
+    const same_origin_src =
+      "/permissions-policy/resources/permissions-policy-payment.html";
+    const cross_origin_src =
+      "https://{{hosts[alt][]}}:{{ports[https][0]}}" + same_origin_src;
+
+    test(() => {
+      const supportedInstruments = [{ supportedMethods: "visa" }];
+      const details = {
+        total: {
+          label: "Test",
+          amount: { currency: "USD", value: "5.00" },
+        },
+      };
+      try {
+        new PaymentRequest(supportedInstruments, details);
+      } catch (e) {
+        assert_unreached();
+      }
+    }, `Payment Request API is enabled by default the top-level document.`);
+
+    promise_test((test) => {
+      return test_feature_availability({
+        feature_description: "PaymentRequest()",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        is_promise_test: true,
+      });
+    }, `Payment Request API is enabled by default in same-origin iframes.`);
+
+    promise_test((test) => {
+      return test_feature_availability({
+        feature_description: "PaymentRequest()",
+        test,
+        src: cross_origin_src,
+        expect_feature_available: expect_feature_unavailable_default,
+        is_promise_test: true,
+      });
+    }, `Payment Request API is disabled by default in cross-origin iframes.`);
+  </script>
+</body>

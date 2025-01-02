@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.cb {
+  position: relative;
+  border-bottom: 2px solid gray;
+}
+.not-positioned-cb {
+  transform: translate(0, 0);  /* Make it a containing block. */
+}
+.scroller { overflow: scroll; }
+.borders { border-width: 5px 6px 7px 8px; border-style: solid; }
+.spacer {
+  height: 9px;
+}
+.anchor1 {
+  anchor-name: --a1;
+  margin-right: 50px;
+  width: 31px;
+  height: 31px;
+  background: red;
+}
+.target {
+  position: absolute;
+  left: anchor(--a1 left);
+  right: anchor(--a1 right);
+  top: anchor(--a1 top);
+  bottom: anchor(--a1 bottom);
+  background: lime;
+}
+</style>
+<body>
+  <div class="spacer"></div>
+  <div class="cb scroller" dir="rtl">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target"></div>
+  </div>
+  <div class="cb scroller borders" dir="rtl">
+    <div class="spacer"></div>
+    <div class="anchor1"></div>
+    <div class="target"></div>
+  </div>
+  <div class="cb">
+    <div class="scroller borders" dir="rtl">
+      <div class="spacer"></div>
+      <div class="anchor1"></div>
+    </div>
+    <div class="target"></div>
+  </div>
+  <div class="cb scroller borders" dir="rtl">
+    <div class="not-positioned-cb">
+      <div class="spacer"></div>
+      <div class="anchor1"></div>
+    </div>
+    <div class="target"></div>
+  </div>
+  <div class="cb scroller borders" dir="rtl">
+    <div class="not-positioned-cb scroller borders">
+      <div class="spacer"></div>
+      <div class="anchor1"></div>
+    </div>
+    <div class="target"></div>
+  </div>
+<script>
+function getBoundingClientRectAsArray(element) {
+  const rect = element.getBoundingClientRect();
+  return [rect.left, rect.top, rect.right, rect.bottom];
+}
+
+const anchors = document.getElementsByClassName('anchor1');
+const targets = document.getElementsByClassName('target');
+for (let i = 0; i < targets.length; ++i) {
+  test(() => {
+    const anchor = anchors[i];
+    const target = targets[i];
+    assert_array_equals(getBoundingClientRectAsArray(anchor),
+                        getBoundingClientRectAsArray(target));
+  });
+}
+</script>
+</body>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>font-display should work for preloaded fonts</title>
+<link id="link" href="/fonts/Ahem.ttf?pipe=trickle(d5)" as="font" type="font/ttf" crossorigin>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-display-desc">
+<link rel="match" href="font-display-preload-ref.html">
+<style>
+  @font-face {
+    font-family: 'Auto';
+    src: url('/fonts/Ahem.ttf?pipe=trickle(d5)');
+    font-display: auto;
+  }
+  @font-face {
+    font-family: 'Block';
+    src: url('/fonts/Ahem.ttf?pipe=trickle(d5)');
+    font-display: block;
+  }
+  @font-face {
+    font-family: 'Swap';
+    src: url('/fonts/Ahem.ttf?pipe=trickle(d5)');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Fallback';
+    src: url('/fonts/Ahem.ttf?pipe=trickle(d5)');
+    font-display: fallback;
+  }
+  @font-face {
+    font-family: 'Optional';
+    src: url('/fonts/Ahem.ttf?pipe=trickle(d5)');
+    font-display: optional;
+  }
+</style>
+<div id="container" hidden>
+  <div style="height: 20px; font-family: 'Auto', Arial">Auto</div>
+  <div style="height: 20px; font-family: 'Block', Arial">Block</div>
+  <div style="height: 20px; font-family: 'Swap', Arial">Swap</div>
+  <div style="height: 20px; font-family: 'Fallback', Arial">Fallback</div>
+  <div style="height: 20px; font-family: 'Optional', Arial">Optional</div>
+</div>
+<script>
+    window.onload = () => {
+        document.getElementById('link').rel = 'preload';
+        document.getElementById('container').hidden = false;
+        const timeoutMsec = 200; // Between the short limit and the long limit
+        setTimeout(() => {
+            document.documentElement.classList.remove("reftest-wait");
+        }, timeoutMsec);
+    };
+</script>
+</html>

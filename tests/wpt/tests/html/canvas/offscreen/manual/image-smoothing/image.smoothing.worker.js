@@ -1,0 +1,126 @@
+// spec link: https://html.spec.whatwg.org/#the-offscreen-2d-rendering-context
+
+importScripts("/resources/testharness.js");
+
+function createTestImage() {
+  var image = new OffscreenCanvas(100, 50);
+  var imgctx = image.getContext('2d');
+  imgctx.fillStyle = "#F00";
+  imgctx.fillRect(0, 0, 2, 2);
+  imgctx.fillStyle = "#0F0";
+  imgctx.fillRect(0, 0, 1, 1);
+  return image;
+}
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  assert_true(ctx.imageSmoothingEnabled);
+}, "When the context is created, imageSmoothingEnabled must be set to true.");
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  assert_false(ctx.imageSmoothingEnabled);
+}, "On getting imageSmoothingEnabled, the user agent must return the last value it was set to.");
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  var image = createTestImage();
+  ctx.scale(10, 10);
+  ctx.drawImage(image, 0, 0);
+  var pixels = ctx.getImageData(9, 9, 1, 1).data;
+  assert_not_equals(pixels[0], 0);
+  assert_not_equals(pixels[1], 255);
+}, "Test that image smoothing is actually on by default.");
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  var image = createTestImage();
+  ctx.scale(10, 10);
+  ctx.drawImage(image, 0, 0);
+  var pixels = ctx.getImageData(9, 9, 1, 1).data;
+  assert_not_equals(pixels[0], 0);
+  assert_not_equals(pixels[1], 255);
+}, "Test that image smoothing works when imageSmoothingEnabled is set to true");
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  var image = createTestImage();
+  ctx.imageSmoothingEnabled = false;
+  ctx.scale(10, 10);
+  ctx.drawImage(image, 0, 0);
+  var pixels = ctx.getImageData(9, 9, 1, 1).data;
+  assert_array_equals(pixels, [0, 255, 0, 255]);
+}, "Test that imageSmoothingEnabled = false (nearest-neighbor interpolation) works with drawImage().");
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  var image = createTestImage();
+  ctx.imageSmoothingEnabled = false;
+  ctx.scale(10, 10);
+  ctx.fillStyle = ctx.createPattern(image, 'repeat');
+  ctx.fillRect(0, 0, 10, 10);
+  var pixels = ctx.getImageData(9, 9, 1, 1).data;
+  assert_array_equals(pixels, [0, 255, 0, 255]);
+}, "Test that imageSmoothingEnabled = false (nearest-neighbor interpolation) works with fillRect and createPattern().");
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  var image = createTestImage();
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = ctx.createPattern(image, 'repeat');
+  ctx.scale(10, 10);
+  ctx.rect(0, 0, 10, 10);
+  ctx.fill();
+  var pixels = ctx.getImageData(9, 9, 1, 1).data;
+  assert_array_equals(pixels, [0, 255, 0, 255]);
+}, "Test that imageSmoothingEnabled = false (nearest-neighbor interpolation) works with fill() and createPattern().");
+
+test(function() {
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+  var image = createTestImage();
+  ctx.strokeStyle = ctx.createPattern(image, 'repeat');
+  ctx.lineWidth = 5;
+  ctx.imageSmoothingEnabled = false;
+  ctx.scale(10, 10);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(10, 10);
+  ctx.stroke();
+  var pixels = ctx.getImageData(9, 9, 1, 1).data;
+  assert_array_equals(pixels, [0, 255, 0, 255]);
+}, "Test that imageSmoothingEnabled = false (nearest-neighbor interpolation) works with stroke() and createPattern().");
+
+test(function() {
+  var repaints = 5;
+  var offscreenCanvas = new OffscreenCanvas(100, 50);
+  var ctx = offscreenCanvas.getContext('2d');
+
+  function draw() {
+    ctx.clearRect(0, 0, 10, 10);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    var image = createTestImage();
+    ctx.imageSmoothingEnabled = false;
+    ctx.scale(10, 10);
+    ctx.drawImage(image, 0, 0);
+    var pixels = ctx.getImageData(9, 9, 1, 1).data;
+    assert_array_equals(pixels, [0, 255, 0, 255]);
+  }
+
+  while (repaints > 0) {
+    draw();
+    repaints = repaints - 1;
+  }
+
+}, "Test that imageSmoothingEnabled = false (nearest-neighbor interpolation) still works after repaints.");
+
+done();

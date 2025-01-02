@@ -1,0 +1,19 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED attribute existence selector</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+a|* { color : red ; display : block ; margin-bottom : 1em }
+div.stub *|*:not([test]) { color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+<div class="stub">
+<q xmlns="http://www.example.org/a" test="1">
+  <r>This text should be in green characters</r>
+</q>
+<s xmlns="http://www.example.org/a">This text should be in green characters</s>
+</div>
+</body>
+</html>

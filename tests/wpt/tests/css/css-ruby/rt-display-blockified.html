@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Blockifying 'display: ruby-text' loses ruby-text functionality</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#block-ruby">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+ruby {
+  font-size: 60px;
+  line-height: 1;
+}
+
+rt.abspos {
+  position: absolute;
+  font-size: inherit;
+  line-height: 1;
+}
+
+rt.float {
+  float: left;
+  font-size: inherit;
+  line-height: 1;
+}
+</style>
+
+<p><ruby><span id="base">base1</span> <rt class="abspos">abspos</rt>base2 <rt class="float">float</rt></ruby></p>
+
+<script>
+test(() => {
+  const base = document.querySelector('#base').getBoundingClientRect();
+  const rt = document.querySelector('.abspos').getBoundingClientRect();
+  assert_greater_than_equal(rt.y, base.y);
+}, 'position:absolute should not work as ruby-text');
+
+test(() => {
+  const base = document.querySelector('#base').getBoundingClientRect();
+  const rt = document.querySelector('.float').getBoundingClientRect();
+  assert_greater_than_equal(rt.y, base.y);
+}, 'float:left should not work as ruby-text');
+</script>

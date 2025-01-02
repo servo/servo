@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<meta name="assert" content="Removing elements under hidden subtrees doesn't crash">
+
+<p id="parent"><q><svg><marker display="list-item"><hr><object id="inner">
+<style>
+q {
+  content-visibility: hidden;
+}
+</style>
+<script>
+  onload = () => {
+    document.getElementById("parent").hidden = true;
+    var test = document.getElementById("inner").border;
+    document.getElementById("parent").textContent = undefined;
+
+    requestAnimationFrame(() => document.documentElement.classList.remove('test-wait'));
+  }
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE  html>
+<title>Inserting a track element immediately after video load</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+    var video = document.createElement('video');
+    video.src = getVideoURI('/media/test');
+    video.load();
+    video.appendChild(document.createElement('track'));
+    video.onloadedmetadata = t.step_func_done();
+});
+</script>

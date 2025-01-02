@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transition classes: group selectors should respect classes</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/">
+<link rel="author" href="mailto:nrosenthal@chromium.org">
+<link rel="match" href="pseudo-with-classes-ref.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  background: green;
+  view-transition-name: target;
+  view-transition-class: cls;
+}
+
+::view-transition-group(*) {
+  animation-play-state: paused;
+}
+
+::view-transition-image-pair(target.cls) {
+  transform: translateX(100px);
+}
+
+</style>
+<div id=target></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+window.addEventListener("load", () => {
+  document.startViewTransition().ready.then(requestAnimationFrame(() => takeScreenshot()));
+});
+</script>

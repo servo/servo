@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test that async CORS requests with custom headers are sent with OPTIONS preflight</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="/common/utils.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+async_test((test) => {
+  let xhr = new XMLHttpRequest;
+  const uuid = token();
+
+  xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+      "/xhr/resources/reset-token.py?token=" + uuid, false);
+  xhr.send();
+
+  xhr = new XMLHttpRequest;
+  xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+      "/xhr/resources/no-custom-header-on-preflight.py?token=" + uuid);
+  xhr.setRequestHeader("x-test", "foobar");
+
+  xhr.onerror = test.unreached_func("Unexpected error");
+
+  xhr.onload = test.step_func_done(() => {
+    assert_equals(xhr.responseText, "PASS");
+  });
+
+  xhr.send();
+}, "Preflighted async request with custom header");
+    </script>
+  </body>
+</html>

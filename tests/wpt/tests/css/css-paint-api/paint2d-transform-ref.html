@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="output" width="200" height="200"></canvas>
+<script>
+var canvas = document.getElementById('output');
+var ctx = canvas.getContext('2d');
+
+ctx.fillStyle = 'green';
+ctx.transform(1, 0.5, 0, 1, 20, 20);
+ctx.fillRect(0, 0, 50, 50);
+
+ctx.resetTransform();
+
+ctx.fillStyle = 'blue';
+ctx.translate(150, 60);
+ctx.rotate(60 * Math.PI / 180);
+ctx.scale(1.5, 1);
+ctx.fillRect(0, 0, 50, 50);
+</script>
+</body>
+</html>
+

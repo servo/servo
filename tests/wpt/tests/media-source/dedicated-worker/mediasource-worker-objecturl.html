@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<title>Test MediaSource object and objectUrl creation and load via that url should fail, with MediaSource in dedicated worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
+<script>
+
+async_test(t => {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+
+  let worker = new Worker("mediasource-worker-get-objecturl.js");
+  worker.onmessage = t.step_func(e => {
+    let subject = e.data.subject;
+    assert_true(subject != undefined, "message must have a subject field");
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached("Worker error: " + e.data.info);
+        break;
+      case messageSubject.OBJECT_URL:
+        const url = e.data.info;
+        const video = document.createElement("video");
+        document.body.appendChild(video);
+        video.onerror = t.step_func((target) => {
+          assert_true(video.error != null);
+          assert_equals(video.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
+          t.done();
+        });
+        video.onended = t.unreached_func("video should not have successfully loaded and played to end");
+        video.src = url;
+        break;
+      default:
+        assert_unreached("Unexpected message subject: " + subject);
+    }
+  });
+}, "Test main context load of a DedicatedWorker MediaSource object URL should fail");
+
+if (MediaSource.hasOwnProperty("canConstructInDedicatedWorker") && MediaSource.canConstructInDedicatedWorker === true) {
+  // If implementation claims support for MSE-in-Workers, then fetch and run
+  // some tests directly in another dedicated worker and get their results
+  // merged into those from this page.
+  fetch_tests_from_worker(new Worker("mediasource-worker-objecturl.js"));
+} else {
+  // Otherwise, fetch and run a test that verifies lack of support of
+  // MediaSource construction in another dedicated worker.
+  fetch_tests_from_worker(new Worker("mediasource-worker-must-fail-if-unsupported.js"));
+}
+
+</script>
+</html>

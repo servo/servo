@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<style>
+  body, html {
+    margin: 0;
+    padding; 0;
+    background-color: #bfb;
+  }
+</style>
+<body>
+  <div>Child frame</div>
+</body>
+<script>
+  "use strict";
+  let cancel_mousedown = false;
+
+  window.addEventListener("load", () => {
+      window.addEventListener("message", event => {
+          let data = event.data;
+          if (data.type == "cancel-mousedown")
+              cancel_mousedown = data.param;
+      });
+
+      window.addEventListener("mousedown", e => {
+          let msg = "not-canceled";
+          if (cancel_mousedown) {
+              e.preventDefault();
+              msg = "canceled";
+          }
+          sendMessage(window.top, "mousedown", msg);
+      });
+
+      window.addEventListener("mouseup", e => sendMessage(window.top, "mouseup"));
+
+      sendMessage(parent, "load");
+  });
+</script>

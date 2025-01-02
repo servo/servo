@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<div id="container"></div>
+<script>
+  var container = document.querySelector('#container');
+
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
+
+    var d = document.createElement('div');
+    document.querySelector('#container').appendChild(d);
+    d.outerHTML = html;
+    assert_equals(container.innerText, RESULTS.HTML);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "outerHTML with html assigned via policy (successful HTML transformation).");
+</script>

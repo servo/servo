@@ -1,0 +1,58 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/out-of-bounds-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Test of drawArraysInstancedANGLE and drawElementsInstancedANGLE with out-of-bounds parameters");
+
+var wtu = WebGLTestUtils;
+
+var gl = wtu.create3DContext();
+var ext = wtu.getExtensionWithKnownPrefixes(gl, "ANGLE_instanced_arrays");
+if (!ext) {
+    testPassed("No ANGLE_instanced_arrays support -- this is legal");
+} else {
+    testPassed("Successfully enabled ANGLE_instanced_arrays extension");
+    debug("");
+    debug("Test with 1 instance without instanced attributes");
+    debug("");
+    OutOfBoundsTest.runDrawArraysTest("ext.drawArraysInstancedANGLE(gl.TRIANGLES, $(offset), $(count), 1)", gl, wtu, ext);
+    debug("");
+    OutOfBoundsTest.runDrawElementsTest("ext.drawElementsInstancedANGLE(gl.TRIANGLES, $(count), $(type), $(offset), 1)", gl, wtu, ext);
+    debug("");
+    debug("Test with 2 instances without instanced attributes");
+    debug("");
+    OutOfBoundsTest.runDrawArraysTest("ext.drawArraysInstancedANGLE(gl.TRIANGLES, $(offset), $(count), 2)", gl, wtu, ext);
+    debug("");
+    OutOfBoundsTest.runDrawElementsTest("ext.drawElementsInstancedANGLE(gl.TRIANGLES, $(count), $(type), $(offset), 2)", gl, wtu, ext);
+    debug("");
+    OutOfBoundsTest.runDrawArraysInstancedTest("ext.drawArraysInstancedANGLE(gl.TRIANGLES, $(offset), $(count), $(primcount))", gl, wtu, ext);
+    debug("");
+    OutOfBoundsTest.runDrawElementsInstancedTest("ext.drawElementsInstancedANGLE(gl.TRIANGLES, $(count), $(type), $(offset), $(primcount))", gl, wtu, ext);
+    debug("");
+}
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

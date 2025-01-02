@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment scrollbars</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="reference/contain-size-scrollbars-001-ref.html">
+<meta name=assert content="This test checks that the size of an element with 'contain: size' includes the scrollbars too.">
+<style>
+div {
+  contain: size;
+  display: inline-block;
+  border: solid thick;
+  overflow: scroll;
+}
+</style>
+<p>This test passes if it has the same output as the reference.</p>
+<div>FAIL</div>

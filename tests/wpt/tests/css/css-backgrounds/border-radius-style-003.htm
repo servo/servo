@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-radius' is set with 'border-style: double'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-style" />
+        <meta name="assert" content="'Border-style: double' follows the curve of the border." />
+        <style type="text/css">
+            div
+            {
+                width: 200px;
+                height: 100px;
+                border: 70px double black;
+                border-radius: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box below with double border and rounded corners.</p>
+        <div></div>
+    </body>
+</html>

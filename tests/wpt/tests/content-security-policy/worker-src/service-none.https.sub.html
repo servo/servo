@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/testharness-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="worker-src 'none'">
+<script>
+  var url = new URL("../support/ping.js", document.baseURI).toString();
+  assert_service_worker_is_blocked(url, "Same-origin service worker blocked by 'none'.");
+</script>

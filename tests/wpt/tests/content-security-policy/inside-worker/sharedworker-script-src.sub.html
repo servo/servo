@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Test the 'script-src' directive on shared workers -->
+<meta http-equiv="content-security-policy" content="script-src 'self' 'nonce-a' blob: filesystem:">
+<script nonce="a">
+  promise_test(async () => {
+    // Shared workers do not inherit CSP.
+    await fetch_tests_from_worker(
+      new SharedWorker("./support/script-src-allow.sub.js"));
+
+    // Service workers honor CSP received in their response headers.
+    await fetch_tests_from_worker(
+      new SharedWorker(
+        "./support/script-src-self.sub.js?id={{$id1:uuid()}}" +
+          "&test-name=script-src 'self'" +
+          "&pipe=sub|header(Content-Security-Policy," +
+          "script-src 'self' ; report-uri " +
+          "/reporting/resources/report.py?op=put%26reportID={{$id1}})"));
+
+    // Also check that script-src falls back to default-src.
+    await fetch_tests_from_worker(
+      new SharedWorker(
+        "./support/script-src-self.sub.js?id={{$id2:uuid()}}" +
+          "&test-name=default-src 'self'" +
+          "&pipe=sub|header(Content-Security-Policy," +
+          "default-src 'self' ; report-uri " +
+          "/reporting/resources/report.py?op=put%26reportID={{$id2}})"));
+  });
+</script>

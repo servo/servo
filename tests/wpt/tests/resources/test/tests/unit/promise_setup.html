@@ -1,0 +1,333 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="../../nested-testharness.js"></script>
+  <title>promise_setup</title>
+</head>
+<body>
+<script>
+'use strict';
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        promise_setup({});
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, undefined);
+    });
+}, 'Error when no function provided');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => {}, 'before');
+        promise_setup(() => Promise.resolve(), {});
+        promise_test(() => Promise.resolve(), 'after');
+        throw new Error('this error is expected');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'Does not apply unspecified configuration properties');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        var properties = {
+          allow_uncaught_exception: true
+        };
+        test(() => {}, 'before');
+        promise_setup(() => Promise.resolve(), properties);
+        promise_test(() => Promise.resolve(), 'after');
+        throw new Error('this error is expected');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'Ignores configuration properties when some tests have already run');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        var properties = {
+          allow_uncaught_exception: true
+        };
+        promise_setup(() => Promise.resolve(), properties);
+        promise_test(() => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve();
+              throw new Error('this error is expected');
+            });
+          });
+        }, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.after, 'PASS');
+    });
+}, 'Honors configuration properties');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        promise_setup(() => { throw new Error('this error is expected'); });
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'Error for synchronous exceptions');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        promise_setup(() => undefined);
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'Error for missing return value');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        var noThen = Promise.resolve();
+        noThen.then = undefined;
+        promise_setup(() => noThen);
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'Error for non-thenable return value');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        var poisonedThen = {
+          get then() {
+            throw new Error('this error is expected');
+          }
+        };
+        promise_setup(() => poisonedThen);
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'Error for "poisoned" `then` property');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        var badThen = {
+          then() {
+            throw new Error('this error is expected');
+          }
+        };
+        promise_setup(() => badThen);
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'Error for synchronous error from `then` method');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        promise_setup(() => Promise.resolve());
+        test(() => {}, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, undefined);
+    });
+}, 'Error for subsequent invocation of `test`');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        promise_setup(() => Promise.resolve());
+        async_test((t) => t.done(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, undefined);
+    });
+}, 'Error for subsequent invocation of `async_test`');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        // Ensure that the harness error is the result of explicit error
+        // handling
+        setup({ allow_uncaught_exception: true });
+
+        test(() => {}, 'before');
+        promise_setup(() => Promise.reject());
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'Error for rejected promise');
+
+promise_test(() => {
+  var expected_sequence = [
+    'test body',
+    'promise_setup begin',
+    'promise_setup end',
+    'promise_test body'
+  ];
+  var actual_sequence = window.actual_sequence = [];
+
+  return makeTest(
+      () => {
+        test(() => { parent.actual_sequence.push('test body'); }, 'before');
+        promise_setup(() => {
+          parent.actual_sequence.push('promise_setup begin');
+
+          return Promise.resolve()
+            .then(() => new Promise((resolve) => setTimeout(resolve, 300)))
+            .then(() => parent.actual_sequence.push('promise_setup end'));
+        });
+        promise_test(() => {
+          parent.actual_sequence.push('promise_test body');
+          return Promise.resolve();
+        }, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'PASS');
+      assert_array_equals(actual_sequence, expected_sequence);
+    });
+}, 'Waits for promise to settle');
+
+promise_test(() => {
+  var expected_sequence = [
+    'promise_test 1 begin',
+    'promise_test 1 end',
+    'promise_setup begin',
+    'promise_setup end',
+    'promise_test 2 body'
+  ];
+  var actual_sequence = window.actual_sequence = [];
+
+  return makeTest(
+      () => {
+        promise_test((t) => {
+          parent.actual_sequence.push('promise_test 1 begin');
+
+          return Promise.resolve()
+            .then(() => new Promise((resolve) => t.step_timeout(resolve, 300)))
+            .then(() => parent.actual_sequence.push('promise_test 1 end'));
+        }, 'before');
+        promise_setup(() => {
+          parent.actual_sequence.push('promise_setup begin');
+
+          return Promise.resolve()
+            .then(() => new Promise((resolve) => setTimeout(resolve, 300)))
+            .then(() => parent.actual_sequence.push('promise_setup end'));
+        });
+        promise_test(() => {
+          parent.actual_sequence.push('promise_test 2 body');
+          return Promise.resolve();
+        }, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'PASS');
+      assert_array_equals(actual_sequence, expected_sequence);
+    });
+}, 'Waits for existing promise_test to complete');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        var properties = { allow_uncaught_exception: true };
+        promise_test(() => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve();
+              throw new Error('this error is expected');
+            });
+          });
+        }, 'before');
+        promise_setup(() => Promise.resolve(), properties);
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'ERROR');
+      assert_equals(tests.before, 'PASS');
+    });
+}, 'Defers application of setup properties');
+</script>
+</body>
+</html>

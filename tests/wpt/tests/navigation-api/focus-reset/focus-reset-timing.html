@@ -1,0 +1,61 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "after-transition" });
+  }, { once: true });
+
+  const button = document.body.appendChild(document.createElement("button"));
+  const button2 = document.body.appendChild(document.createElement("button"));
+  button2.tabIndex = 0;
+  t.add_cleanup(() => {
+    button.remove();
+    button2.remove();
+  });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  button.focus();
+  assert_equals(document.activeElement, button, "focus() worked");
+
+  let navigatesuccess_called = false;
+  navigation.onnavigatesuccess = t.step_func(() => {
+    navigatesuccess_called = true;
+    assert_equals(document.activeElement, document.body, "Focus must be reset before navigatesuccess");
+  });
+
+  await navigation.navigate("#1").finished;
+  assert_true(navigatesuccess_called);
+}, "Focus should be reset before navigatesuccess");
+
+promise_test(async t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler: () => Promise.reject(),
+                  focusReset: "after-transition" });
+  }, { once: true });
+
+  const button = document.body.appendChild(document.createElement("button"));
+  const button2 = document.body.appendChild(document.createElement("button"));
+  button2.tabIndex = 0;
+  t.add_cleanup(() => {
+    button.remove();
+    button2.remove();
+  });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  button.focus();
+  assert_equals(document.activeElement, button, "focus() worked");
+
+  let navigateerror_called = false;
+  navigation.onnavigateerror = t.step_func(() => {
+    navigateerror_called = true;
+    assert_equals(document.activeElement, document.body, "Focus must be reset before navigateerror");
+  });
+
+  await promise_rejects_exactly(t, undefined, navigation.navigate("#2").finished);
+  assert_true(navigateerror_called);
+}, "Focus should be reset before navigateerror");
+</script>
+</body>

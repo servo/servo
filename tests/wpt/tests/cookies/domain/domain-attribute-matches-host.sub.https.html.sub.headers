@@ -1,0 +1,1 @@
+Set-Cookie: domain-attribute-matches-host=b; Path=/; Domain={{host}}

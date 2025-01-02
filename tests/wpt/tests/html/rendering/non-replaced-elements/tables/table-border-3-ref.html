@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<head>
+  <title>Reference for default 'border-color' on table (with 'color' set)</title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    * {
+      border-color: teal;
+      /* This only affects the elements that we specify 'border-style' on: */
+      border-width: 6px;
+    }
+
+    table {
+      height: 30px;
+      width: 30px;
+      border-spacing: 0;
+
+      /* To test in "rows": */
+      float: left;
+      margin: 1px;
+    }
+    br {
+      clear: both;
+    }
+
+    .dotted {
+      border-style: dotted;
+    }
+    .dashed {
+      border-style: dashed;
+    }
+    .solid {
+      border-style: solid;
+    }
+    .double {
+      border-style: double;
+    }
+    .groove {
+      border-style: groove;
+    }
+    .ridge {
+      border-style: ridge;
+    }
+    .inset {
+      border-style: inset;
+    }
+    .outset {
+      border-style: outset;
+    }
+  </style>
+</head>
+
+<table class="dotted"><td></td></table>
+<table><th class="dotted"></th></table>
+<table><td class="dotted"></td></table>
+<br>
+
+<table class="dashed"><td></td></table>
+<table><th class="dashed"></th></table>
+<table><td class="dashed"></td></table>
+<br>
+
+<table class="solid"><td></td></table>
+<table><th class="solid"></th></table>
+<table><td class="solid"></td></table>
+<br>
+
+<table class="double"><td></td></table>
+<table><th class="double"></th></table>
+<table><td class="double"></td></table>
+<br>
+
+<table class="groove"><td></td></table>
+<table><th class="groove"></th></table>
+<table><td class="groove"></td></table>
+<br>
+
+<table class="ridge"><td></td></table>
+<table><th class="ridge"></th></table>
+<table><td class="ridge"></td></table>
+<br>
+
+<table class="inset"><td></td></table>
+<table><th class="inset"></th></table>
+<table><td class="inset"></td></table>
+<br>
+
+<table class="outset"><td></td></table>
+<table><th class="outset"></th></table>
+<table><td class="outset"></td></table>
+<br>

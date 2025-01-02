@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: break-inside: avoid child</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="break-inside-avoid-child-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5; totalPixels=0-1600">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.old {
+  position: relative;
+  top: 300px;
+  left: 0;
+  background: lightblue;
+}
+.new {
+  position: relative;
+  top: 0;
+  left: 0;
+  background: green;
+}
+.columns {
+  columns: 2;
+  contain: layout;
+  border: 1px solid black;
+  view-transition-name: target;
+}
+
+.inner {
+  break-inside: avoid;
+  width: 300px;
+  height: 300px;
+}
+
+html::view-transition-group(root) { animation-duration: 300s; }
+html::view-transition-old(target) {
+  animation: unset;
+  opacity: 1;
+}
+html::view-transition-new(target) {
+  animation: unset;
+  opacity: 0;
+}
+</style>
+
+<div class="columns">
+  <div id="inner" class="inner old"></div>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  let transition = document.startViewTransition(() => {
+    inner.classList.replace("old", "new");
+  });
+  transition.ready.then(() => requestAnimationFrame(takeScreenshot));
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

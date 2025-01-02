@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: baseline-aligned subgrid item</title>
+  <link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-2">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 Ahem; padding:0; margin:0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  max-width: 100px;
+  place-items: baseline start;
+}
+
+.first {
+  font-size: 3em;
+}
+
+.second {
+  font-size: 2em;
+}
+  </style>
+</head>
+<body>
+<div class="grid">
+  <div class="first">A</div>
+  <div class="second">A</div>
+</div>
+
+</body>
+</html>

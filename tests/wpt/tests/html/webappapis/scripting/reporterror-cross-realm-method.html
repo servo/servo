@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>self.reportError() dispatches an "error" event for this's relevant global object</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#dom-reporterror">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+setup({ allow_uncaught_exception: true });
+
+async_test(t => {
+  window.addEventListener("error", t.unreached_func("'error' event should not be dispatched for top window!"));
+
+  const iframe = document.createElement("iframe");
+  iframe.onload = t.step_func_done(() => {
+    let eventFired = false;
+    const error = new TypeError("foo");
+    const otherWindow = iframe.contentWindow;
+    otherWindow.addEventListener("error", t.step_func(event => {
+      assert_equals(event.error, error);
+      eventFired = true;
+    }));
+
+    window.reportError.call(otherWindow, error);
+    assert_true(eventFired);
+  });
+  document.body.append(iframe);
+});
+</script>

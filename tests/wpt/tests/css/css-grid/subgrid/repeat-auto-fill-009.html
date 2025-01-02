@@ -1,0 +1,121 @@
+<!DOCTYPE HTML>
+<html>
+  <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-2/#resolved-track-list">
+  <head>
+    <style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+
+.wrapper {
+  display: inline-block;
+  width: 110px;
+  border: 1px solid;
+}
+
+.grid {
+  display: grid;
+  grid-auto-rows: 8px;
+  background: grey;
+}
+
+.fill-0a  { grid-template-columns: subgrid repeat(auto-fill, [y]) [z] }
+.fill-0b  { grid-template-columns: subgrid [x] repeat(auto-fill, [y]) [z] }
+.fill-0c  { grid-template-columns: subgrid [x] [y] repeat(auto-fill, [z]) }
+.fill-0d  { grid-template-columns: subgrid repeat(auto-fill, [x]) }
+.fill-0e  { grid-template-columns: subgrid [x] }
+
+.grid > :nth-child(2n)   {  background: black; }
+.grid > :nth-child(2n+1) {  background: pink; }
+
+    </style>
+  </head>
+<body>
+
+<div class="wrapper"><div class="grid fill-0a">
+  <div style="grid-column:y 5"></div>
+  <div style="grid-column:y 4"></div>
+  <div style="grid-column:y 3"></div>
+  <div style="grid-column:y 2"></div>
+  <div style="grid-column:y 1"></div>
+  <div style="grid-column:y -1"></div>
+  <div style="grid-column:y -2"></div>
+  <div style="grid-column:y -3"></div>
+  <div style="grid-column:y -4"></div>
+  <div style="grid-column:y -5"></div>
+</div></div>
+
+<div class="wrapper"><div class="grid fill-0b">
+  <div style="grid-column:y 5"></div>
+  <div style="grid-column:y 4"></div>
+  <div style="grid-column:y 3"></div>
+  <div style="grid-column:y 2"></div>
+  <div style="grid-column:y 1"></div>
+  <div style="grid-column:y -1"></div>
+  <div style="grid-column:y -2"></div>
+  <div style="grid-column:y -3"></div>
+  <div style="grid-column:y -4"></div>
+  <div style="grid-column:y -5"></div>
+</div></div>
+
+<div class="wrapper"><div class="grid fill-0c">
+  <div style="grid-column:y 5"></div>
+  <div style="grid-column:y 4"></div>
+  <div style="grid-column:y 3"></div>
+  <div style="grid-column:y 2"></div>
+  <div style="grid-column:y 1"></div>
+  <div style="grid-column:y -1"></div>
+  <div style="grid-column:y -2"></div>
+  <div style="grid-column:y -3"></div>
+  <div style="grid-column:y -4"></div>
+  <div style="grid-column:y -5"></div>
+</div></div>
+
+<div class="wrapper"><div class="grid fill-0d">
+  <div style="grid-column:y 5"></div>
+  <div style="grid-column:y 4"></div>
+  <div style="grid-column:y 3"></div>
+  <div style="grid-column:y 2"></div>
+  <div style="grid-column:y 1"></div>
+  <div style="grid-column:y -1"></div>
+  <div style="grid-column:y -2"></div>
+  <div style="grid-column:y -3"></div>
+  <div style="grid-column:y -4"></div>
+  <div style="grid-column:y -5"></div>
+</div></div>
+
+<div class="wrapper"><div class="grid fill-0e">
+  <div style="grid-column:y 5"></div>
+  <div style="grid-column:y 4"></div>
+  <div style="grid-column:y 3"></div>
+  <div style="grid-column:y 2"></div>
+  <div style="grid-column:y 1"></div>
+  <div style="grid-column:y -1"></div>
+  <div style="grid-column:y -2"></div>
+  <div style="grid-column:y -3"></div>
+  <div style="grid-column:y -4"></div>
+  <div style="grid-column:y -5"></div>
+</div></div>
+
+<script>
+  const expectedResults = [
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+    "10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px",
+  ];
+  [...document.querySelectorAll('.grid')].forEach(function(grid, i) {
+    let actual = window.getComputedStyle(grid)['grid-template-columns'];
+    let expected = expectedResults[i];
+    if (actual != expected) {
+      let err = "Unexpected getComputedStyle value for grid " + i + " with className '" + grid.className + "':" +
+      " Actual: \"" + actual + "\", Expected: \"" + expected + "\"";
+      document.body.appendChild(document.createTextNode(err));
+      document.body.appendChild(document.createElement("br"));
+    }
+  });
+</script>
+
+</body>

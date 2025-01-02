@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>compute the kind of widget: animation origin only</title>
+<link rel="match" href="appearance-animation-002-ref.html">
+<style>
+  .bg200 {
+    animation: 1e10s steps(2, start) animate-bg;
+  }
+  @keyframes animate-bg {
+    to {
+      background-color: rgb(255, 0, 0);
+    }
+  }
+</style>
+<input value="text" id=input>
+<script>
+  document.documentElement.offsetTop;
+  input.classList.toggle('bg200');
+</script>
+<p>PASS if the input field does not have a red background</p>

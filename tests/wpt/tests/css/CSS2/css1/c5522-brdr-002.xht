@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border</title>
+
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-01 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+
+  <style type="text/css"><![CDATA[
+   body { color: blue; }
+   td {border: 2px solid blue;}
+   table { border-collapse: separate; border-spacing: 6px; }
+  ]]></style>
+ </head>
+ <body>
+  <table>
+   <tr>
+    <td colspan="2">
+     There should be a blue border around this sentence.
+    </td>
+   </tr>
+   <tr>
+    <td>
+     There should be a blue border around this sentence.
+    </td>
+    <td>
+     <table>
+      <tr>
+       <td>
+        There should be <strong><em>two</em> blue borders</strong> around this sentence.
+       </td>
+      </tr>
+     </table>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

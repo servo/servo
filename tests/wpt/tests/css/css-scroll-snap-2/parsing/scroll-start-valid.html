@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-block with valid values</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+
+<body>
+  <script>
+    test_valid_value("scroll-start", "start");
+    test_valid_value("scroll-start", "start start", "start");
+    test_valid_value("scroll-start", "50%");
+    test_valid_value("scroll-start", "center");
+    test_valid_value("scroll-start", "100px 200px");
+    test_valid_value("scroll-start", "50% 100px");
+    test_valid_value("scroll-start", "start 50%");
+    test_valid_value("scroll-start", "center start", "center");
+    test_valid_value("scroll-start", "end center");
+    test_valid_value("scroll-start", "top end");
+    test_valid_value("scroll-start", "bottom top");
+    test_valid_value("scroll-start", "left bottom");
+    test_valid_value("scroll-start", "right left");
+    test_valid_value("scroll-start", "auto right");
+    test_valid_value("scroll-start", "calc(1px) auto");
+
+    test_valid_value("scroll-start-block", "100px");
+    test_valid_value("scroll-start-block", "50%");
+    test_valid_value("scroll-start-block", "start");
+    test_valid_value("scroll-start-block", "center");
+    test_valid_value("scroll-start-block", "end");
+    test_valid_value("scroll-start-block", "top");
+    test_valid_value("scroll-start-block", "bottom");
+    test_valid_value("scroll-start-block", "left");
+    test_valid_value("scroll-start-block", "right");
+    test_valid_value("scroll-start-block", "auto");
+    test_valid_value("scroll-start-block", "calc(-1px)");
+
+    test_valid_value("scroll-start-inline", "100px");
+    test_valid_value("scroll-start-inline", "50%");
+    test_valid_value("scroll-start-inline", "start");
+    test_valid_value("scroll-start-inline", "center");
+    test_valid_value("scroll-start-inline", "end");
+    test_valid_value("scroll-start-inline", "top");
+    test_valid_value("scroll-start-inline", "bottom");
+    test_valid_value("scroll-start-inline", "left");
+    test_valid_value("scroll-start-inline", "right");
+    test_valid_value("scroll-start-inline", "auto");
+    test_valid_value("scroll-start-inline", "calc(-1px)");
+
+    test_valid_value("scroll-start-x", "100px");
+    test_valid_value("scroll-start-x", "50%");
+    test_valid_value("scroll-start-x", "start");
+    test_valid_value("scroll-start-x", "center");
+    test_valid_value("scroll-start-x", "end");
+    test_valid_value("scroll-start-x", "top");
+    test_valid_value("scroll-start-x", "bottom");
+    test_valid_value("scroll-start-x", "left");
+    test_valid_value("scroll-start-x", "right");
+    test_valid_value("scroll-start-x", "auto");
+    test_valid_value("scroll-start-x", "calc(-1px)");
+
+    test_valid_value("scroll-start-y", "100px");
+    test_valid_value("scroll-start-y", "50%");
+    test_valid_value("scroll-start-y", "start");
+    test_valid_value("scroll-start-y", "center");
+    test_valid_value("scroll-start-y", "end");
+    test_valid_value("scroll-start-y", "top");
+    test_valid_value("scroll-start-y", "bottom");
+    test_valid_value("scroll-start-y", "left");
+    test_valid_value("scroll-start-y", "right");
+    test_valid_value("scroll-start-y", "auto");
+    test_valid_value("scroll-start-y", "calc(-1px)");
+    </script>
+</body>
+
+</html>

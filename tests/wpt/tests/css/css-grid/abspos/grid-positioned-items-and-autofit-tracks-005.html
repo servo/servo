@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned items in auto-fit tracks and gaps</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat" title="7.2.2.2. Repeat-to-fill: auto-fill and auto-fit repetitions">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-repeat-auto-fit">
+<meta name="assert" content="This test checks that positioned items ignore collapsed gaps, both before and after the first in-flow item .">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.container {
+  width: 200px;
+}
+.grid {
+  position: relative;
+  grid: 10px / repeat(auto-fit, 30px);
+  grid-gap: 5px;
+}
+span {
+  background: blue;
+}
+.abs {
+  position: absolute;
+  top:0; right:0; bottom:0; left:0;
+  background: pink;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+<br>
+<div class="container">
+    <div class="grid">
+        <span style="grid-column: 1 / 5" class="abs" data-expected-width="30" data-expected-height="10"></span>
+        <span style="grid-column: 2" data-expected-width="30" data-expected-height="10"></span>
+    </div>
+</div>
+</body>

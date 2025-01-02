@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+</head>
+<body onload="doTests()">
+  <iframe src="about:blank" id="if">
+  </iframe>
+  <script>
+  function doTests() {
+    promise_test(async function(t) {
+      var child = document.getElementById("if");
+      var grandKid = child.contentDocument.createElement("iframe");
+      child.contentDocument.body.appendChild(grandKid);
+      var value = "" + Math.random();
+      await resetSameSiteCookies(SECURE_ORIGIN, value);
+
+      // Using postToParent.py here to see cookies used when navigating the page.
+      grandKid.src = SECURE_ORIGIN + "/cookies/resources/postToParent.py"
+      var e = await wait_for_message("COOKIES", SECURE_ORIGIN);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_unspecified", value, true);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_lax", value, true);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_strict", value, true);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_none", value, true);
+    }, "SameSite cookies with intervening about:blank iframes and navigation");
+  }
+  </script>
+</body>

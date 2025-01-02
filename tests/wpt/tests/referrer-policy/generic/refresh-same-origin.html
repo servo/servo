@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Same-Origin Referrer Policy applied to Refresh</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=266554">
+<link rel="help" href="https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#populating-a-session-history-entry:concept-request">
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/refresh-by-host.js"></script>
+<body>
+<script>
+const path = "resources/referrer-info.sub.html";
+const url = new URL(path, location).href;
+const expectationsByPolicy = {
+  "no-referrer": kExpectEmptyString,
+  "no-referrer-when-downgrade": kExpectFullURL,
+  "origin": kExpectOrigin,
+  "origin-when-cross-origin": kExpectFullURL,
+  "same-origin": kExpectFullURL,
+  "strict-origin": kExpectOrigin,
+  "strict-origin-when-cross-origin": kExpectFullURL,
+  "unsafe-url": kExpectFullURL,
+  "": kExpectFullURL,
+};
+
+refreshWithPoliciesTest(url, expectationsByPolicy);
+</script>

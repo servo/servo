@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Borders: border-right-width: medium equals 3px</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-width">
+<link rel="match" href="reference/border-right-width-3px-ref.html">
+<meta name="assert" content="The 'thin' keyword for 'border-right-width' is 3px." />
+<style>
+  div { display: inline-block; height: 100px; }
+  .red-if-too-thin { width: 3px; background: red; }
+  .cb { position: relative; }
+  .red-if-too-thick { width: 20px; background: red; }
+  .overlap-red-if-too-thick { width: 20px; background: white; position: absolute; left: 0; }
+  .border-test { border-right-style: solid; border-right-width: medium; margin-left: -3px; }
+</style>
+</head>
+<body>
+  <p>There should be a black line below and no red.</p>
+  <div class=red-if-too-thin></div><!--
+  --><div class=cb><!--
+    --><div class=border-test></div><!--
+    --><div class=red-if-too-thick></div><!--
+    --><div class=overlap-red-if-too-thick></div><!--
+  --></div>
+</body>
+</html>

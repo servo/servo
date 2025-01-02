@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Unclosed URI Token at EOF (in @import)</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <meta name="flags" content="invalid image" />
+  <meta name="assert" content="User agents must close open URI constructs and statements at the end of the style sheet." />
+  <style type="text/css">
+    @import url(support/import-green.css</style>
+    p { color: red; }
+ </head>
+ <body>
+  <p class="import">This text should be green.</p>
+ </body>
+</html>

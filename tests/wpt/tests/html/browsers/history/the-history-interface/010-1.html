@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <title>history.pushState/replaceState and referer headers (before onload)</title>
+  </head>
+  <body>
+
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+    <script type="text/javascript">
+try { history.pushState('','','010-2.html?1234'); } catch(e) {}
+location.href = '010-3.html?pipe=sub';
+    </script>
+
+  </body>
+</html>

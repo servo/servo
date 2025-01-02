@@ -1,0 +1,85 @@
+<title>Cross-Origin-Opener-Policy: a navigated popup with reporting</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/utils.js"></script> <!-- Use token() to allow running tests in parallel -->
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script
+  src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js?pipe=sub&report_id=df3cde15-b00b-4a59-b6e2-498b67a6146e&report_only_id=ebf3a415-7a74-42e1-92d1-e600b1bbe22e"></script>
+
+<script>
+
+// This test does the following:
+//  1 - This document has COOP: same-origin-allow-popups; report-to="coop-report-endpoint"
+//  2 - Open a popup on a same-origin page without COOP, with the coop-popup-report-endpoint
+//  3 - Navigate the popup to a same-origin page with COOP, with the coop-redirect-report-endpoint
+// it verifies that the reports are properly send for the browsing context switch
+// during the navigation in the popup (step 3). The current document (the opener)
+// endpoint should not receive any report as no switch ocurred on 2.
+promise_test( async t => {
+  const callbackToken = token();
+  const noCoopToken = token();
+  const coopToken= token();
+  await reportingTest(async resolve => {
+    const noCOOPUrl = executor_path +
+      convertToWPTHeaderPipe(getReportingEndpointsHeader(location.origin)) +
+      `|header(Cross-Origin-Opener-Policy,${encodeURIComponent(`unsafe-none; report-to="${popupReportEndpoint.name}"`)})` +
+      `&uuid=${noCoopToken}`;
+    const coopUrl = executor_path +
+      convertToWPTHeaderPipe(getReportingEndpointsHeader(location.origin)) +
+      `|header(Cross-Origin-Opener-Policy,${encodeURIComponent(`same-origin; report-to="${redirectReportEndpoint.name}"`)})` +
+      `&uuid=${coopToken}`;
+
+    // 1. Open a popup without COOP and with reporting. COOP does not trigger
+    // a browsing context group switch because the current document is
+    // same-origin-allow-popups
+    const popup = window.open(noCOOPUrl);
+    t.add_cleanup(() => send(noCoopToken, "window.close()"));
+
+    // 2. Navigate the popup to a COOP document, which switches the browsing
+    // context group.
+    send(noCoopToken, `window.location = "${coopUrl}";`);
+    t.add_cleanup(() => send(coopToken, "window.close()"));
+
+    // 3. Make sure the new document is loaded.
+    send(coopToken, `
+      send("${callbackToken}", "Ready");
+    `);
+    let reply = await receive(callbackToken);
+    resolve();
+  },
+  "", // executor token for the report replacements, unused in this test
+  [
+    // Reports expected for the navigation from "noCOOP" to "coop"
+    {
+      "endpoint": popupReportEndpoint,
+      "report": {
+        "body": {
+          "disposition": "enforce",
+          "effectivePolicy": "unsafe-none",
+          "nextResponseURL": RegExp(`uuid=${coopToken}$`),
+          "type": "navigation-from-response"
+        },
+        "url": RegExp(`uuid=${noCoopToken}$`),
+        "type": "coop"
+      }
+    },
+    {
+      "endpoint": redirectReportEndpoint,
+      "report": {
+        "body": {
+          "disposition": "enforce",
+          "effectivePolicy": "same-origin",
+          "previousResponseURL": RegExp(`uuid=${noCoopToken}$`),
+          "referrer": RegExp(`uuid=${noCoopToken}$`),
+          "type": "navigation-to-response"
+        },
+        "url": RegExp(`uuid=${coopToken}$`),
+        "type": "coop"
+      }
+    },
+  ]);
+}, "Open a popup to a document without COOP, then navigate it to a document with");
+
+verifyRemainingReports();
+
+</script>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:title>Opacity on tspan, textPath, and a elements</h:title>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html"/>
+    <h:link rel="match" href="opacity-ref.svg"/>
+    <h:link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  </metadata>
+  <style>
+    text {
+      font-size: 50px;
+    }
+  </style>
+  <defs>
+    <path id="path" d="M100, 120 300, 120"/>
+  </defs>
+  <text x="100" y="60">
+    <tspan style="opacity: 0.5">tspan</tspan>
+  </text>
+  <text>
+    <textPath href="#path" style="opacity: 0.5">textPath</textPath>
+  </text>
+  <text x="100" y="180">
+    <a href="https://www.w3.org" style="opacity: 0.5"><tspan>link</tspan></a>
+  </text>
+  <text x="100" y="240">
+    <a href="https://www.w3.org"><tspan style="opacity: 0.5">another link</tspan></a>
+  </text>
+  <text x="100" y="300" opacity="0.5" font-family="Ahem">
+    <tspan style="opacity: 0.5">XXXX</tspan>
+  </text>
+</svg>

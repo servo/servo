@@ -1,0 +1,22 @@
+timings, omitted hours
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-timestamp">
+
+assert_equals(cues.length, 3);
+
+Array.from(cues).forEach(function(cue, index) {
+    assert_equals(cue.text, 'text' + index, 'Failed with cue ' + index);
+    assert_equals(cue.startTime, 0, 'Failed with cue ' + index);
+    assert_equals(cue.endTime, 1, 'Failed with cue ' + index);
+});
+
+===
+WEBVTT
+
+00:00.000 --> 00:00:01.000
+text0
+
+00:00:00.000 --> 00:01.000
+text1
+
+00:00.000 --> 00:01.000
+text2

@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Positioning with a relpos ancestor containing block</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-08 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/023.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos" />
+  <link rel="match" href="abspos-002-ref.xht" />
+
+  <style type="text/css">
+   .container { position: relative; background: red; width: 6em;
+                border-top: 1em solid blue; }
+   .test { position: absolute; height: 2em; width: 4em;
+           background: white; color: green;
+           border: solid 1em blue;
+           border-top: none;}
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a hollow blue rectangle.</p>
+  <div class="container">
+   <div>
+    <div>
+     <div class="test">
+     </div>
+    </div>
+   </div>
+  </div>
+ </body>
+</html>

@@ -1,0 +1,471 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCIceTransport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src='RTCConfiguration-helper.js'></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //  createDataChannelPair
+  //  awaitMessage
+
+  /*
+    5.6.  RTCIceTransport Interface
+      interface RTCIceTransport {
+        readonly attribute RTCIceRole           role;
+        readonly attribute RTCIceComponent      component;
+        readonly attribute RTCIceTransportState state;
+        readonly attribute RTCIceGathererState  gatheringState;
+        sequence<RTCIceCandidate> getLocalCandidates();
+        sequence<RTCIceCandidate> getRemoteCandidates();
+        RTCIceCandidatePair?      getSelectedCandidatePair();
+        RTCIceParameters?         getLocalParameters();
+        RTCIceParameters?         getRemoteParameters();
+        ...
+      };
+
+      getLocalCandidates
+        Returns a sequence describing the local ICE candidates gathered for this
+        RTCIceTransport and sent in onicecandidate
+
+      getRemoteCandidates
+        Returns a sequence describing the remote ICE candidates received by this
+        RTCIceTransport via addIceCandidate()
+
+      getSelectedCandidatePair
+        Returns the selected candidate pair on which packets are sent, or null if
+        there is no such pair.
+
+      getLocalParameters
+        Returns the local ICE parameters received by this RTCIceTransport via
+        setLocalDescription , or null if the parameters have not yet been received.
+
+      getRemoteParameters
+        Returns the remote ICE parameters received by this RTCIceTransport via
+        setRemoteDescription or null if the parameters have not yet been received.
+   */
+  function getIceTransportFromSctp(pc) {
+    const sctpTransport = pc.sctp;
+    assert_true(sctpTransport instanceof RTCSctpTransport,
+      'Expect pc.sctp to be instantiated from RTCSctpTransport');
+
+    const dtlsTransport = sctpTransport.transport;
+    assert_true(dtlsTransport instanceof RTCDtlsTransport,
+      'Expect sctp.transport to be an RTCDtlsTransport');
+
+    const {iceTransport} = dtlsTransport;
+    assert_true(iceTransport instanceof RTCIceTransport,
+      'Expect dtlsTransport.transport to be an RTCIceTransport');
+
+    return iceTransport;
+  }
+
+  function validateCandidates(candidates) {
+    assert_greater_than(candidates.length, 0,
+      'Expect at least one ICE candidate returned from get*Candidates()');
+
+    for(const candidate of candidates) {
+      assert_true(candidate instanceof RTCIceCandidate,
+        'Expect candidate elements to be instance of RTCIceCandidate');
+    }
+  }
+
+  function validateCandidateParameter(param) {
+    assert_not_equals(param, null,
+      'Expect candidate parameter to be non-null after data channels are connected');
+
+    assert_equals(typeof param.usernameFragment, 'string',
+      'Expect param.usernameFragment to be set with string value');
+    assert_equals(typeof param.password, 'string',
+      'Expect param.password to be set with string value');
+  }
+
+  function validateConnectedIceTransport(iceTransport) {
+    const { state, gatheringState, role, component } = iceTransport;
+
+    assert_true(role === 'controlling' || role === 'controlled',
+      'Expect RTCIceRole to be either controlling or controlled, found ' + role);
+
+    assert_true(component === 'rtp' || component === 'rtcp',
+      'Expect RTCIceComponent to be either rtp or rtcp');
+
+    assert_true(state === 'connected' || state === 'completed',
+      'Expect ICE transport to be in connected or completed state after data channels are connected');
+
+    assert_true(gatheringState === 'gathering' || gatheringState === 'completed',
+      'Expect ICE transport to be in gathering or completed gatheringState after data channels are connected');
+
+    validateCandidates(iceTransport.getLocalCandidates());
+    validateCandidates(iceTransport.getRemoteCandidates());
+
+    const candidatePair = iceTransport.getSelectedCandidatePair();
+    assert_not_equals(candidatePair, null,
+      'Expect selected candidate pair to be non-null after ICE transport is connected');
+
+    assert_true(candidatePair.local instanceof RTCIceCandidate,
+      'Expect candidatePair.local to be instance of RTCIceCandidate');
+
+    assert_true(candidatePair.remote instanceof RTCIceCandidate,
+      'Expect candidatePair.remote to be instance of RTCIceCandidate');
+
+    validateCandidateParameter(iceTransport.getLocalParameters());
+    validateCandidateParameter(iceTransport.getRemoteParameters());
+  }
+
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    return createDataChannelPair(t, {}, pc1, pc2)
+    .then(([channel1, channel2]) => {
+      // Send a ping message and wait for it just to make sure
+      // that the connection is fully working before testing
+      channel1.send('ping');
+      return awaitMessage(channel2);
+    })
+    .then(() => {
+      const iceTransport1 = getIceTransportFromSctp(pc1);
+      const iceTransport2 = getIceTransportFromSctp(pc2);
+
+      validateConnectedIceTransport(iceTransport1);
+      validateConnectedIceTransport(iceTransport2);
+
+      assert_equals(
+        iceTransport1.getLocalCandidates().length,
+        iceTransport2.getRemoteCandidates().length,
+        `Expect iceTransport1 to have same number of local candidate as iceTransport2's remote candidates`);
+
+      assert_equals(
+        iceTransport1.getRemoteCandidates().length,
+        iceTransport2.getLocalCandidates().length,
+        `Expect iceTransport1 to have same number of remote candidate as iceTransport2's local candidates`);
+
+      const candidatePair1 = iceTransport1.getSelectedCandidatePair();
+      const candidatePair2 = iceTransport2.getSelectedCandidatePair();
+
+      assert_equals(candidatePair1.local.candidate, candidatePair2.remote.candidate,
+        'Expect selected local candidate of one pc is the selected remote candidate or another');
+
+      assert_equals(candidatePair1.remote.candidate, candidatePair2.local.candidate,
+        'Expect selected local candidate of one pc is the selected remote candidate or another');
+
+      assert_equals(iceTransport1.role, 'controlling',
+        `Expect offerer's iceTransport to take the controlling role`);
+
+      assert_equals(iceTransport2.role, 'controlled',
+        `Expect answerer's iceTransport to take the controlled role`);
+    });
+  }, 'Two connected iceTransports should have matching local/remote candidates returned');
+
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('');
+
+    // setRemoteDescription(answer) without the other peer
+    // setting answer it's localDescription
+    return pc1.createOffer()
+    .then(offer =>
+      pc1.setLocalDescription(offer)
+      .then(() => pc2.setRemoteDescription(offer))
+      .then(() => pc2.createAnswer()))
+    .then(answer => pc1.setRemoteDescription(answer))
+    .then(() => {
+      const iceTransport = getIceTransportFromSctp(pc1);
+
+      assert_array_equals(iceTransport.getRemoteCandidates(), [],
+        'Expect iceTransport to not have any remote candidate');
+
+      assert_equals(iceTransport.getSelectedCandidatePair(), null,
+        'Expect selectedCandidatePair to be null');
+    });
+  }, 'Unconnected iceTransport should have empty remote candidates and selected pair');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio');
+    await pc1.setLocalDescription();
+    const {iceTransport} = transceiver.sender.transport;
+    assert_equals(iceTransport.state, 'new');
+    assert_equals(iceTransport.gatheringState, 'new');
+  }, 'RTCIceTransport should be in state "new" initially');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio');
+    await pc1.setLocalDescription();
+    const {iceTransport} = transceiver.sender.transport;
+    assert_equals(await nextGatheringState(iceTransport), 'gathering');
+    assert_equals(await nextGatheringState(iceTransport), 'complete');
+  }, 'RTCIceTransport should transition to "gathering" then "complete", after sLD');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio');
+    await pc1.setLocalDescription();
+    const {iceTransport} = transceiver.sender.transport;
+    assert_equals(await nextGatheringState(iceTransport), 'gathering');
+    pc1.close();
+    assert_equals(iceTransport.gatheringState, 'gathering');
+    const result = await Promise.race([
+      gatheringStateReached(iceTransport, 'complete'),
+      new Promise(r => t.step_timeout(r, 1000))]);
+    assert_equals(result, undefined, `Did not expect a statechange after PC.close(), but got one. state is "${result}"`);
+  }, 'PC.close() should not cause the RTCIceTransport gathering state to transition to "complete"');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection({bundlePolicy: 'max-bundle'});
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('test');
+    // TODO: If the spec settles on exposing the sctp transport in
+    // have-local-offer, we won't need this audio transceiver hack.
+    // See https://github.com/w3c/webrtc-pc/issues/2898 and
+    // https://github.com/w3c/webrtc-pc/issues/2899
+    const transceiver = pc1.addTransceiver('audio');
+    await pc1.setLocalDescription();
+    const {iceTransport} = transceiver.sender.transport;
+    assert_equals(await nextGatheringState(iceTransport), 'gathering');
+    assert_equals(await nextGatheringState(iceTransport), 'complete');
+    // TODO: Maybe, maybe not.
+    assert_not_equals(pc1.sctp, null, 'pc1.sctp should be set after sLD');
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_equals(pc1.sctp.transport.iceTransport, transceiver.sender.transport.iceTransport);
+  }, 'RTCIceTransport should transition to "gathering", then "complete" after sLD (DataChannel case)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const {sender} = pc1.addTransceiver('audio');
+    await pc1.setLocalDescription();
+    // Copy the SDP before it has candidate attrs
+    const offer = pc1.localDescription;
+    const checkingReached = connectionStateReached(sender.transport.iceTransport, 'checking');
+
+    let result = await Promise.race([checkingReached, new Promise(r => t.step_timeout(r, 1000))]);
+    assert_equals(result, undefined, `Did not expect a statechange right after sLD(offer), but got one. state is "${result}"`);
+
+    await pc2.setRemoteDescription(offer);
+
+    const firstPc2CandidatePromise =
+      new Promise(r => pc2.onicecandidate = e => r(e.candidate));
+
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    result = await Promise.race([checkingReached, new Promise(r => t.step_timeout(r, 1000))]);
+    assert_equals(result, undefined, `Did not expect a statechange callback after sRD(answer), but got one. state is "${result}"`);
+
+    const candidate = await firstPc2CandidatePromise;
+    pc1.addIceCandidate(candidate);
+
+    await checkingReached;
+  }, 'RTCIceTransport should not transition to "checking" until after the answer is set _and_ the first remote candidate is received');
+
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+    exchangeIceCandidates(pc1, pc2);
+    const gatheringDone = Promise.all([gatheringStateReached(pc1, 'complete'), gatheringStateReached(pc2, 'complete')]);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_equals(await nextConnectionState(sender.transport.iceTransport), 'checking');
+    assert_equals(await nextConnectionState(sender.transport.iceTransport), 'connected');
+    await gatheringDone;
+    pc2.close();
+    await connectionStateReached(sender.transport.iceTransport, 'disconnected');
+  }, 'RTCIceTransport should transition to "disconnected" if packets stop flowing');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('test');
+    exchangeIceCandidates(pc1, pc2);
+    const gatheringDone = Promise.all([gatheringStateReached(pc1, 'complete'), gatheringStateReached(pc2, 'complete')]);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const {sctp} = pc1;
+    assert_equals(await nextConnectionState(sctp.transport.iceTransport), 'checking');
+    assert_equals(await nextConnectionState(sctp.transport.iceTransport), 'connected');
+    await gatheringDone;
+    pc2.close();
+    await connectionStateReached(sctp.transport.iceTransport, 'disconnected');
+  }, 'RTCIceTransport should transition to "disconnected" if packets stop flowing (DataChannel case)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+    await pc1.setLocalDescription();
+    const {iceTransport} = sender.transport;
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    pc1.restartIce();
+
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    assert_equals(sender.transport.iceTransport, iceTransport, 'ICE restart should not result in a different ICE transport');
+  }, 'Local ICE restart should not result in a different ICE transport');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('test');
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const {iceTransport} = pc1.sctp.transport;
+
+    pc1.restartIce();
+
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    assert_equals(pc1.sctp.transport.iceTransport, iceTransport, 'ICE restart should not result in a different ICE transport');
+  }, 'Local ICE restart should not result in a different ICE transport (DataChannel case)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+
+    await pc1.setLocalDescription();
+    const {iceTransport} = sender.transport;
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    pc2.restartIce();
+
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc1.localDescription);
+
+    assert_equals(sender.transport.iceTransport, iceTransport, 'ICE restart should not result in a different ICE transport');
+  }, 'Remote ICE restart should not result in a different ICE transport');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('test');
+
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const {iceTransport} = pc1.sctp.transport;
+
+    pc2.restartIce();
+
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc1.localDescription);
+
+    assert_equals(pc1.sctp.transport.iceTransport, iceTransport, 'ICE restart should not result in a different ICE transport');
+  }, 'Remote ICE restart should not result in a different ICE transport (DataChannel case)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    // Add two transceivers, one audio and one video. The default bundlePolicy
+    // ("balanced") will result in each being offered with its own transport,
+    // but allowing the answerer to bundle the second transceiver on the
+    // transport of the first, which the answerer will do by default.
+    const audioTransceiver = pc1.addTransceiver('audio');
+    const videoTransceiver = pc1.addTransceiver('video');
+    pc1.createDataChannel('test');
+
+    await pc1.setLocalDescription();
+    const audioIceTransport = audioTransceiver.sender.transport.iceTransport;
+    const videoIceTransport = videoTransceiver.sender.transport.iceTransport;
+
+    assert_not_equals(audioIceTransport, videoIceTransport, 'audio and video should start out with different transports');
+
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const sctpIceTransport = pc1.sctp.transport.iceTransport;
+
+    assert_equals(videoTransceiver.sender.transport.iceTransport, audioIceTransport, 'After negotiation, the video sender should use the bundle ICE transport from the audio sender');
+    assert_equals(pc1.sctp.transport.iceTransport, audioIceTransport, 'After negotiation, the datachannel should use the bundle ICE transport from the audio sender');
+    assert_not_equals(videoIceTransport.state, 'closed', 'Completion of offer/answer should not close the unused ICE transport immediately');
+
+    await connectionStateReached(videoIceTransport, 'closed');
+  }, 'RTCIceTransport should transition to "closed" if the underlying transport is closed because the answer used bundle');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+    exchangeIceCandidates(pc1, pc2);
+    const gatheringDone = Promise.all([gatheringStateReached(pc1, 'complete'), gatheringStateReached(pc2, 'complete')]);
+    await pc1.setLocalDescription();
+    const {iceTransport} = sender.transport;
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_equals(await nextConnectionState(iceTransport), 'checking');
+    assert_equals(await nextConnectionState(iceTransport), 'connected');
+    await gatheringDone;
+
+    const closedEvent = connectionStateReached(iceTransport, 'closed');
+    pc1.close();
+    assert_equals(sender.transport.iceTransport, iceTransport, 'PC.close() should not unset the sender transport');
+    assert_equals(iceTransport.state, 'closed', 'pc.close() should close the sender transport synchronously');
+    const result = await Promise.race([closedEvent, new Promise(r => t.step_timeout(r, 1000))]);
+    assert_equals(result, undefined, 'statechange event should not fire when transitioning to closed due to PC.close()');
+  }, 'RTCIceTransport should synchronously transition to "closed" with no event if the underlying transport is closed due to PC.close()');
+
+</script>

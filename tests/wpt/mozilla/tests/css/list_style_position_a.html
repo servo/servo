@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!--
+    Tests that `list-style-position: inside` and `list-style-image` work. This is deliberately
+    conservative because the exact placement of the marker is unspecified.
+-->
+<html>
+<head>
+<link rel=match href=list_style_position_ref.html>
+<style>
+ul {
+    margin: 0;
+    padding: 0;
+}
+li {
+    list-style-image: url(smiling.png);
+    list-style-position: inside;
+    margin: 0;
+    padding: 0;
+}
+</style>
+</head>
+<body>
+<ul>
+<li></li>
+<li></li>
+<li></li>
+</ul>
+</body>
+</html>
+

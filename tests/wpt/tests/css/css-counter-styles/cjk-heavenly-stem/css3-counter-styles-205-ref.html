@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>cjk-heavenly-stem, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name="assert" content="list-style-type: cjk-heavenly-stem falls back to cjk-decimal after 10 per the spec.">
+<style type='text/css'>
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em;}
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="11"><div><bdi>一一、</bdi>一一</div></ol>
+<ol start="12"><div><bdi>一二、</bdi>一二</div></ol>
+<ol start="43"><div><bdi>四三、</bdi>四三</div></ol>
+<ol start="77"><div><bdi>七七、</bdi>七七</div></ol>
+<ol start="80"><div><bdi>八〇、</bdi>八〇</div></ol>
+<ol start="99"><div><bdi>九九、</bdi>九九</div></ol>
+<ol start="100"><div><bdi>一〇〇、</bdi>一〇〇</div></ol>
+<ol start="101"><div><bdi>一〇一、</bdi>一〇一</div></ol>
+<ol start="222"><div><bdi>二二二、</bdi>二二二</div></ol>
+<ol start="540"><div><bdi>五四〇、</bdi>五四〇</div></ol>
+<ol start="999"><div><bdi>九九九、</bdi>九九九</div></ol>
+<ol start="1000"><div><bdi>一〇〇〇、</bdi>一〇〇〇</div></ol>
+<ol start="1005"><div><bdi>一〇〇五、</bdi>一〇〇五</div></ol>
+<ol start="1060"><div><bdi>一〇六〇、</bdi>一〇六〇</div></ol>
+<ol start="1065"><div><bdi>一〇六五、</bdi>一〇六五</div></ol>
+<ol start="1800"><div><bdi>一八〇〇、</bdi>一八〇〇</div></ol>
+<ol start="1860"><div><bdi>一八六〇、</bdi>一八六〇</div></ol>
+<ol start="5865"><div><bdi>五八六五、</bdi>五八六五</div></ol>
+<ol start="7005"><div><bdi>七〇〇五、</bdi>七〇〇五</div></ol>
+<ol start="7800"><div><bdi>七八〇〇、</bdi>七八〇〇</div></ol>
+<ol start="7864"><div><bdi>七八六四、</bdi>七八六四</div></ol>
+<ol start="9999"><div><bdi>九九九九、</bdi>九九九九</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+The test relies on the start attribute working.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

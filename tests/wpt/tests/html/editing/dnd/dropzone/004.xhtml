@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dropzone and link drag and drop: allowed effects 'link','copyLink','linkMove' and 'all'</title>
+<style type="text/css">
+div
+  {background-color:gray;
+  width:200px;
+  height:200px;}
+</style>
+<script type="application/ecmascript">
+var effects = ['link','copyLink','linkMove','all'];
+function start(event)
+  {var e = parseInt(event.target.href.substring(16));
+  event.dataTransfer.effectAllowed = effects[e];}
+function finish(event)
+  {var e = parseInt(event.dataTransfer.getData('text/uri-list').substring(16,17));
+  document.querySelectorAll('a')[e].firstChild.nodeValue = (event.dataTransfer.dropEffect == 'link' &amp;&amp; event.dataTransfer.effectAllowed == effects[e])?'PASS':'FAIL';}
+</script>
+</head>
+<body>
+<p>Drag links one by one and drop them into gray box below, link text should be updated as you drop them.</p>
+<p ondragstart="start(event)">
+  <a href="data:text/plain,0">Link</a>
+  <a href="data:text/plain,1">Link</a>
+  <a href="data:text/plain,2">Link</a>
+  <a href="data:text/plain,3">Link</a>
+</p>
+<div dropzone="link string:text/uri-list" ondrop="finish(event)"/>
+</body>
+</html>

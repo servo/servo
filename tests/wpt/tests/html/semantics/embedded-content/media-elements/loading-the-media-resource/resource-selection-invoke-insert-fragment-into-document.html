@@ -1,0 +1,22 @@
+<!doctype html>
+<title>NOT invoking resource selection by inserting document fragment into a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var v;
+var t = async_test(function(t) {
+  v = document.createElement('video');
+  var fragment = document.createDocumentFragment();
+  fragment.appendChild(v);
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after fragment.appendChild(v)');
+  document.body.appendChild(fragment);
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after document.body.appendChild(fragment)');
+});
+</script>
+<script>
+t.step(function() {
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState in separate script');
+  t.done();
+});
+</script>

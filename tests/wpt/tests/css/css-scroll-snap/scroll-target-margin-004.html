@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<title>scroll-margin on elements with 'display: table;'</title>
+<link rel='author' title='Jan Grosser' href='mailto:jan_firefoxdev@t-online.de'>
+<link rel='help' href='https://bugzilla.mozilla.org/show_bug.cgi?id=1633192'>
+<link rel='help' href='https://www.w3.org/TR/css-scroll-snap-1/#scroll-margin'>
+<link rel='match' href='scroll-target-001-ref.html'>
+<meta name="flags" content="should">
+<meta name='assert' content="Test passes if scroll-margin is honored on elements with 'display: table'.">
+<style type='text/css'>
+  .container {
+    border: solid blue 4px;
+    height: 4em;
+    overflow: auto;
+
+    /* to make failing more obvious */
+    background: 0 1em / 100% 1em linear-gradient(red, red) repeat-x;
+    /* avoid anti-aliasing issues */
+    font: 20px/1 sans-serif;
+    scrollbar-width: none;
+  }
+  .container > div {
+    height: 1em;
+  }
+  #target    { scroll-margin: 2em 0 1em; display: table; } /* snap area is exact fit for snapport */
+  #stripe    { background: green;        } /* color part of the snap area         */
+  .fail      { color: red;               } /* make failing more obvious           */
+
+  /* emulate `scrollbar-width: none` for browsers that don't support it yet */
+  ::-webkit-scrollbar { display: none; }
+</style>
+
+<div id='instructions'>Test passes if there is a green stripe across the second quarter of the box below and no red.</div>
+
+<div class="container">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div class="fail">FAIL</div>
+  <div></div>
+  <div id="stripe"></div>
+  <div id="target"></div>
+  <div></div>
+  <div class="fail">FAIL</div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<script>
+  document.getElementById('target').scrollIntoView();
+</script>

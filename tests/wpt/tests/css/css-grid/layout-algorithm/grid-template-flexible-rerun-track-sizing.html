@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1149627">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-4309" />
+<style>
+.grid {
+  display: inline-grid;
+  position: relative;
+  grid-template-columns: minmax(0, .5fr);
+  grid-template-rows: minmax(0, .5fr);
+}
+.item {
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(green, green) no-repeat;
+  background-size: 100px 100px;
+}
+.abspos {
+  grid-area: 1 / 1 / 2 / 2;
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: red;
+  z-index: -1;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="grid">
+  <span class="item"></span>
+  <span class="abspos"></span>
+</div>

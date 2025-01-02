@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-image: interleave SVG mask with image mask</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+    <link rel="match" href="mask-image-3-ref.html">
+    <meta name="assert" content="Test checks whether SVG mask and image as mask layer works correctly or not.">
+    <meta name="fuzzy" content="0-1; 0-100">
+    <svg height="0">
+      <mask id="mask1" x="0" y="0" width="1" height="1" >
+        <circle cx="50" cy="50" r="25" style="stroke:none; fill: #ffffff"/>
+      </mask>
+    </svg>
+    <style type="text/css">
+      div.outter {
+        margin: 0px;
+        padding: 0px;
+        width: 200px;
+        height: 200px;
+        transform: translate(-10px, -10px);
+      }
+      div.inner {
+        background-color: purple;
+        mask-image: url(support/50x50-opaque-blue.svg), url(#mask1);
+        mask-repeat: no-repeat, repeat;
+        mask-position: 0 0, 0 0;
+        /*mask: url(#mask1);*/
+        width: 100px;
+        height: 100px;
+        transform: translate(10px, 10px);
+      }
+    </style>
+
+  </head>
+  <body>
+    <div class="outter">
+      <div class="inner"></div>
+    </div>
+  </body>
+</html>

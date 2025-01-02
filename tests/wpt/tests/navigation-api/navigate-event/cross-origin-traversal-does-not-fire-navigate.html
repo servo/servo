@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+promise_test(async t => {
+  // Open a cross-origin window.
+  let w = window.open(get_host_info().HTTP_REMOTE_ORIGIN + "/navigation-api/navigate-event/resources/opener-postMessage-onload.html");
+  await new Promise(resolve => window.onmessage = resolve);
+
+  // Navigate the opened window to this origin.
+  w.location = get_host_info().ORIGIN + "/navigation-api/navigate-event/resources/opener-postMessage-onload.html";
+  await new Promise(resolve => window.onmessage = resolve);
+  assert_equals(w.navigation.entries().length, 1);
+  assert_equals(w.navigation.currentEntry.index, 0);
+
+  // Go back. This should not fire a navigate event, because the traversal is
+  // cross-origin. Note that history.back() must be used instead of
+  // navigation.back() because navigation.back() can never go cross-origin.
+  w.navigation.onnavigate = t.unreached_func("navigate should not fire");
+  w.history.back();
+  await new Promise(resolve => window.onmessage = resolve);
+}, "A cross-origin traversal does not fire the navigate event");
+</script>

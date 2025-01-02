@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> CSS Scroll Snap 2 Test: scrollsnapchange events</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/css/css-scroll-snap/support/common.js"></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow: scroll;
+        width: 200px;
+        height: 200px;
+        border: solid 1px black;
+        scroll-snap-type: y mandatory;
+        position: absolute;
+        resize: both;
+      }
+      .snaparea {
+        scroll-snap-align: start;
+        height: 50px;
+        width: 50px;
+        color: white;
+        margin-top: 100px;
+        background-color: purple;
+      }
+      .space {
+        height: 300vh;
+        width: 300vw;
+        position: absolute;
+      }
+    </style>
+    <div class="scroller" id="scroller">
+      <div class="space"></div>
+      <div class="snaparea"> Area2</div>
+      <div class="snaparea"> Area1</div>
+    </div>
+
+    <script>
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+
+        scroller.focus();
+
+        const scrollsnapchange_promise = waitForSnapEvent(scroller, "scrollsnapchange");
+        await test_driver.send_keys(scroller, KEY_CODE_MAP["ArrowRight"]);
+        const snap_event = await scrollsnapchange_promise;
+
+        assert_equals(snap_event, null, "no scrollsnapchange event fired as " +
+          "scroller doesn't snap in the x axis");
+      }, "keyboard scroll on non-snapping axis doesn't trigger scrollsnapchange");
+
+      promise_test(async (t) => {
+        await waitForScrollReset(t, scroller);
+        await waitForCompositorCommit();
+        scroller.focus();
+
+        const scrollsnapchange_promise = waitForSnapEvent(scroller, "scrollsnapchange");
+        const wheel_scroll_amount = 25;
+        new test_driver.Actions().scroll(0, 0,
+          wheel_scroll_amount,
+          0,
+          { origin: scroller }).send();
+        const snap_event = await scrollsnapchange_promise;
+        assert_equals(snap_event, null, "no scrollsnapchange event fired as " +
+          "scroller doesn't snap in the x axis");
+      }, "wheel scroll on non-snapping axis doesn't trigger scrollsnapchange");
+    </script>
+  </body>
+</html>

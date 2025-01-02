@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: WWW-Authenticate challenge when user,pass are not passed to open()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::code[contains(@title,'http-authorization')]/.." />
+  </head>
+  <body>
+    <p>Please follow these steps to complete the test:</p>
+    <ol>
+      <li>If you are prompted for user name and password, type in 'usr' and 'secret'</li>
+    </ol>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest(),
+          urlstart = location.host + location.pathname.replace(/\/[^\/]*$/, '/')
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth6/auth.py", false)
+        client.send(null)
+        assert_equals(client.responseText, 'usr' + "\n" + 'secret')
+      }, document.title)
+    </script>
+  </body>
+</html>

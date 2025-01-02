@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Reference: Grid Item Sizing</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+  button {
+    margin: 0; /* Prevent WebKit from adding some margin */
+  }
+</style>
+
+<p>Test passes if it has the same output than the reference.</p>
+
+<div id="grid">
+  <button style="width: 200px; height: 200px;">Stretched button (200x200)</button><button style="width: 200px; height: 200px;">Stretched button (200x200)</button><button style="vertical-align: top;">Regular button</button>
+  <br>
+  <img style="vertical-align: top; margin-right: 150px;" src="support/50x50-green.png" alt="Image download support must be enabled" /><img src="support/200x200-green.png" alt="Image download support must be enabled" /><img style="vertical-align: top;" src="support/50x50-green.png" alt="Image download support must be enabled" />
+</div>
+

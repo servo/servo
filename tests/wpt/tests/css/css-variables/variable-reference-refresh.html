@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Variable reference across document refresh</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <!-- This is not directly specified in the spec but should work -->
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+    <iframe id="iframe" src="resources/variable-reference-refresh-iframe.html"></iframe>
+
+<script type="text/javascript">
+    "use strict";
+
+    setup({explicit_done: true});
+
+    // Set up event handler to drive tests
+    var loadCount = 0;
+    document.getElementById("iframe").addEventListener("load", function() {
+        loadCount++;
+        if (loadCount == 1)
+        {
+            test(function() {
+                var iframe = document.getElementById("iframe");
+                var iframeWindow = iframe.contentWindow;
+                var iframeDocument = iframe.contentDocument;
+                var testElement = iframeDocument.getElementById("testElement");
+                var computedValue = iframeWindow.getComputedStyle(testElement).getPropertyValue("color").trim();
+                assert_equals(computedValue, "rgb(0, 128, 0)", "color is green before page refresh");
+                iframe.src = iframe.src;
+            }, "Verify substituted color value before refresh");
+        }
+        else if (loadCount == 2)
+        {
+            test(function() {
+                var iframeWindow = document.getElementById("iframe").contentWindow;
+                var iframeDocument = document.getElementById("iframe").contentDocument;
+                var testElement = iframeDocument.getElementById("testElement");
+                var computedValue = iframeWindow.getComputedStyle(testElement).getPropertyValue("color").trim();
+                assert_equals(computedValue, "rgb(0, 128, 0)", "color is green after page refresh");
+            }, "Verify substituted color value after refresh");
+
+            done();
+        }
+    });
+</script>
+
+</body>
+</html>

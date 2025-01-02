@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-custom-timing-function-reverse-ref.html">
+<meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-692" />
+<!--
+  Test that ensures that the bounding rect for a clip path animation is not
+  limited to the size of the largest keyframe.a.
+
+  This is the reverse of clip-path-animation-custom-timing-fumction.html,
+  and tests extrapolation in the negative direction
+-->
+<style>
+  @keyframes clippath {
+    0% {
+      clip-path: inset(45% 45%);
+    }
+
+    25% {
+      clip-path: inset(49% 49%);
+    }
+
+    50% {
+      clip-path: inset(45% 45%);
+    }
+
+    75% {
+      clip-path: inset(40% 40%);
+      animation-timing-function: cubic-bezier(0, -9, 1, -9);
+      /* Test that the correct keyframe's timing function is being used. */
+    }
+
+    100% {
+      clip-path: inset(45% 45%);
+    }
+  }
+
+  .green {
+    background-color: green;
+    width: 200px;
+    height: 200px;
+
+    animation: clippath 10000000s -8717082s
+      /* halfway between the second to last and last keyframes.*/
+    ;
+  }
+
+</style>
+<script src="/common/reftest-wait.js"></script>
+
+<body>
+  <div class="green anim"></div>
+
+  <script>
+    document.getAnimations()[0].ready.then(takeScreenshot);
+  </script>
+</body>
+
+</html>

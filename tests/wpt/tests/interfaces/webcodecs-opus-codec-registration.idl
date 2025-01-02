@@ -1,0 +1,36 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Opus WebCodecs Registration (https://w3c.github.io/webcodecs/opus_codec_registration.html)
+
+partial dictionary AudioEncoderConfig {
+  OpusEncoderConfig opus;
+};
+
+dictionary OpusEncoderConfig {
+  OpusBitstreamFormat format = "opus";
+  OpusSignal signal = "auto";
+  OpusApplication application = "audio";
+  [EnforceRange] unsigned long long frameDuration = 20000;
+  [EnforceRange] unsigned long complexity;
+  [EnforceRange] unsigned long packetlossperc = 0;
+  boolean useinbandfec = false;
+  boolean usedtx = false;
+};
+
+enum OpusBitstreamFormat {
+  "opus",
+  "ogg",
+};
+
+enum OpusSignal {
+  "auto",
+  "music",
+  "voice",
+};
+
+enum OpusApplication {
+  "voip",
+  "audio",
+  "lowdelay",
+};

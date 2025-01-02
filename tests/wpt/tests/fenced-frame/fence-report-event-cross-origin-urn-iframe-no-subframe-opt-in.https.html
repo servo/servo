@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent from cross-origin subframes.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const outer_iframe = await attachIFrameContext({
+    generator_api: 'fledge',
+    headers: [[
+      'Allow-Cross-Origin-Event-Reporting', '?1'
+    ]],
+    register_beacon: true
+  });
+  await outer_iframe.execute(async () => {
+    const inner_iframe = await attachIFrameContext({
+      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+    });
+    await inner_iframe.execute(() => {
+      const destination_url = new URL(BEACON_URL + "?type=url",
+          get_host_info().HTTPS_ORIGIN);
+      window.fence.reportEvent({
+        eventType: "click",
+        eventData: "enum",
+        destination: ["buyer"],
+        crossOriginExposed: false
+      });
+      window.fence.reportEvent({
+        destinationURL: destination_url,
+        crossOriginExposed: false
+      });
+    });
+  });
+  // Check that both the destination enum and destination URL events were
+  // reported.
+  await verifyBeaconData("click", "enum", null, false, t);
+  await verifyBeaconData("url", "<No data>", null, false, t);
+}, 'Cross-origin window.fence.reportEvent without subframe opt-in');
+</script>
+</body>

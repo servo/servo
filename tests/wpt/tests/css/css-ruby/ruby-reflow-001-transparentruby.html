@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html style="overflow:hidden;">
+<head>
+<title>CSS Test: Ruby Base Frames Reflowed</title>
+<link rel="author" title="Sam Bowen" href="mailto:sgbowen8@gmail.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="http://www.w3.org/TR/2014/WD-css-ruby-1-20140805/">
+<link rel="match" href="ruby-reflow-001-noruby.html">
+<meta name="assert" content="Test checks that ruby bases are reflowed.">
+<meta charset="UTF-8">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+body { line-height: 3; }
+rtc { color: transparent; }
+</style>
+</head>
+<body>
+<ruby>
+  <rbc><rb>新</rb><rb>幹</rb><rb>線</rb></rbc>
+  <rtc><rt>しん</rt><rt>かん</rt><rt>せん</rt></rtc>
+</ruby>
+</body>
+</html>

@@ -1,0 +1,5 @@
+spec: https://drafts.csswg.org/css-namespaces/
+suggested_reviewers:
+  - plinss
+  - dbaron
+  - fantasai

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>@property: viewport units in initial value</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#initial-value-descriptor" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  iframe {
+    width: 400px;
+    height: 200px;
+  }
+</style>
+<iframe id=iframe srcdoc="
+  <style>
+    @property --10vw { syntax: '<length>'; inherits: true; initial-value: 10vw}
+    @property --10vh { syntax: '<length>'; inherits: true; initial-value: 10vh}
+    @property --10vi { syntax: '<length>'; inherits: true; initial-value: 10vi}
+    @property --10vb { syntax: '<length>'; inherits: true; initial-value: 10vb}
+    @property --10vmin { syntax: '<length>'; inherits: true; initial-value: 10vmin}
+    @property --10vmax { syntax: '<length>'; inherits: true; initial-value: 10vmax}
+
+    @property --10svw { syntax: '<length>'; inherits: true; initial-value: 10svw}
+    @property --10svh { syntax: '<length>'; inherits: true; initial-value: 10svh}
+    @property --10svi { syntax: '<length>'; inherits: true; initial-value: 10svi}
+    @property --10svb { syntax: '<length>'; inherits: true; initial-value: 10svb}
+    @property --10svmin { syntax: '<length>'; inherits: true; initial-value: 10svmin}
+    @property --10svmax { syntax: '<length>'; inherits: true; initial-value: 10svmax}
+
+    @property --10lvw { syntax: '<length>'; inherits: true; initial-value: 10lvw}
+    @property --10lvh { syntax: '<length>'; inherits: true; initial-value: 10lvh}
+    @property --10lvi { syntax: '<length>'; inherits: true; initial-value: 10lvi}
+    @property --10lvb { syntax: '<length>'; inherits: true; initial-value: 10lvb}
+    @property --10lvmin { syntax: '<length>'; inherits: true; initial-value: 10lvmin}
+    @property --10lvmax { syntax: '<length>'; inherits: true; initial-value: 10lvmax}
+
+    @property --10dvw { syntax: '<length>'; inherits: true; initial-value: 10dvw}
+    @property --10dvh { syntax: '<length>'; inherits: true; initial-value: 10dvh}
+    @property --10dvi { syntax: '<length>'; inherits: true; initial-value: 10dvi}
+    @property --10dvb { syntax: '<length>'; inherits: true; initial-value: 10dvb}
+    @property --10dvmin { syntax: '<length>'; inherits: true; initial-value: 10dvmin}
+    @property --10dvmax { syntax: '<length>'; inherits: true; initial-value: 10dvmax}
+  </style>
+  <div></div>
+"></iframe>
+<script>
+  iframe.offsetTop;
+
+  function waitForLoad(w) {
+    return new Promise(resolve => {
+      if (w.document.readyState == 'complete')
+        resolve();
+      else
+        w.addEventListener('load', resolve)
+    });
+  }
+
+  function test_unit(element, actual, expected) {
+    promise_test(async (t) => {
+      await waitForLoad(window);
+      let element = iframe.contentDocument.querySelector('div');
+      assert_equals(getComputedStyle(element).getPropertyValue(`--${actual}`), expected);
+    },`${actual} is ${expected}`);
+  }
+
+  test_unit(iframe, '10vw', '40px');
+  test_unit(iframe, '10vh', '20px');
+  test_unit(iframe, '10vi', '40px');
+  test_unit(iframe, '10vb', '20px');
+  test_unit(iframe, '10vmin', '20px');
+  test_unit(iframe, '10vmax', '40px');
+
+  test_unit(iframe, '10svw', '40px');
+  test_unit(iframe, '10svh', '20px');
+  test_unit(iframe, '10svi', '40px');
+  test_unit(iframe, '10svb', '20px');
+  test_unit(iframe, '10svmin', '20px');
+  test_unit(iframe, '10svmax', '40px');
+
+  test_unit(iframe, '10lvw', '40px');
+  test_unit(iframe, '10lvh', '20px');
+  test_unit(iframe, '10lvi', '40px');
+  test_unit(iframe, '10lvb', '20px');
+  test_unit(iframe, '10lvmin', '20px');
+  test_unit(iframe, '10lvmax', '40px');
+
+  test_unit(iframe, '10dvw', '40px');
+  test_unit(iframe, '10dvh', '20px');
+  test_unit(iframe, '10dvi', '40px');
+  test_unit(iframe, '10dvb', '20px');
+  test_unit(iframe, '10dvmin', '20px');
+  test_unit(iframe, '10dvmax', '40px');
+</script>

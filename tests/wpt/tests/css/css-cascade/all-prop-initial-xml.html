@@ -1,0 +1,42 @@
+<!doctype html>
+<title>all: initial on unknown XML tree</title>
+<link rel=help href=https://www.w3.org/TR/css-cascade-3/#all-shorthand>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const iframe = document.createElement("iframe");
+const setup_test = async_test("setup");
+iframe.onload = setup_test.step_func_done(function() {
+    const root = iframe.contentDocument.documentElement;
+    // we need the empty stylesheet to avoid default XSLT views of the XML
+    const style = iframe.contentDocument.createElementNS("http://www.w3.org/1999/xhtml", "style");
+    root.appendChild(style);
+
+    // Grab initial styles from a random element, as the root can get non-initial UA styling.
+    const div = iframe.contentDocument.createElementNS("http://www.w3.org/1999/xhtml", "div");
+    root.appendChild(div);
+    // the document element should have unicode-bidi 'normal', while <div> has 'isolate':
+    div.style.unicodeBidi = 'normal';
+    const cs = iframe.contentWindow.getComputedStyle(div);
+
+    let actual_initial = Object.create(null);
+    for (let i = 0; i < cs.length; i++) {
+        let prop_name = cs[i];
+        actual_initial[prop_name] = cs[prop_name];
+    }
+    const rootCS = iframe.contentWindow.getComputedStyle(root);
+    test(() => {
+        style.textContent = ":root { color: blue }";
+        assert_equals(rootCS["color"], "rgb(0, 0, 255)");
+    }, "stylesheet takes effect");
+    style.textContent = ":root { all: initial; direction: initial; unicode-bidi: initial; } style { display: none; }";
+    for (let prop_name in actual_initial) {
+        test(() => {
+            assert_equals(rootCS[prop_name], actual_initial[prop_name]);
+        }, prop_name);
+    }
+});
+iframe.src = URL.createObjectURL(new Blob(["<foo/>"], { type: "application/xml" }));
+document.body.appendChild(iframe);
+</script>

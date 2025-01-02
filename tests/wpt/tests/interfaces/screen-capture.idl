@@ -1,0 +1,92 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Screen Capture (https://w3c.github.io/mediacapture-screen-share/)
+
+partial interface MediaDevices {
+  Promise<MediaStream> getDisplayMedia(optional DisplayMediaStreamOptions options = {});
+};
+
+enum CaptureStartFocusBehavior {
+  "focus-capturing-application",
+  "focus-captured-surface",
+  "no-focus-change"
+};
+
+[Exposed=Window, SecureContext]
+interface CaptureController : EventTarget {
+  constructor();
+  undefined setFocusBehavior(CaptureStartFocusBehavior focusBehavior);
+};
+
+enum SelfCapturePreferenceEnum {
+  "include",
+  "exclude"
+};
+
+enum SystemAudioPreferenceEnum {
+  "include",
+  "exclude"
+};
+
+enum SurfaceSwitchingPreferenceEnum {
+  "include",
+  "exclude"
+};
+
+enum MonitorTypeSurfacesEnum {
+  "include",
+  "exclude"
+};
+
+dictionary DisplayMediaStreamOptions {
+  (boolean or MediaTrackConstraints) video = true;
+  (boolean or MediaTrackConstraints) audio = false;
+  CaptureController controller;
+  SelfCapturePreferenceEnum selfBrowserSurface;
+  SystemAudioPreferenceEnum systemAudio;
+  SurfaceSwitchingPreferenceEnum surfaceSwitching;
+  MonitorTypeSurfacesEnum monitorTypeSurfaces;
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean displaySurface = true;
+  boolean logicalSurface = true;
+  boolean cursor = true;
+  boolean restrictOwnAudio = true;
+  boolean suppressLocalAudioPlayback = true;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainDOMString displaySurface;
+  ConstrainBoolean logicalSurface;
+  ConstrainDOMString cursor;
+  ConstrainBoolean restrictOwnAudio;
+  ConstrainBoolean suppressLocalAudioPlayback;
+};
+
+partial dictionary MediaTrackSettings {
+  DOMString displaySurface;
+  boolean logicalSurface;
+  DOMString cursor;
+  boolean restrictOwnAudio;
+  boolean suppressLocalAudioPlayback;
+};
+
+partial dictionary MediaTrackCapabilities {
+  DOMString displaySurface;
+  boolean logicalSurface;
+  sequence<DOMString> cursor;
+};
+
+enum DisplayCaptureSurfaceType {
+  "monitor",
+  "window",
+  "browser"
+};
+
+enum CursorCaptureConstraint {
+  "never",
+  "always",
+  "motion"
+};

@@ -1,0 +1,30 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Permissions Policy (https://w3c.github.io/webappsec-permissions-policy/)
+
+[Exposed=Window]
+interface PermissionsPolicy {
+  boolean allowsFeature(DOMString feature, optional DOMString origin);
+  sequence<DOMString> features();
+  sequence<DOMString> allowedFeatures();
+  sequence<DOMString> getAllowlistForFeature(DOMString feature);
+};
+
+partial interface Document {
+    [SameObject] readonly attribute PermissionsPolicy permissionsPolicy;
+};
+
+partial interface HTMLIFrameElement {
+    [SameObject] readonly attribute PermissionsPolicy permissionsPolicy;
+};
+
+[Exposed=Window]
+interface PermissionsPolicyViolationReportBody : ReportBody {
+  [Default] object toJSON();
+  readonly attribute DOMString featureId;
+  readonly attribute DOMString? sourceFile;
+  readonly attribute long? lineNumber;
+  readonly attribute long? columnNumber;
+  readonly attribute DOMString disposition;
+};

@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGFEMorphologyElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGFEMorphologyElement.
+
+  var feMorphologyElement = document.createElementNS("http://www.w3.org/2000/svg", "feMorphology");
+  feMorphologyElement.setAttribute("operator", "erode");
+
+  // Check initial 'operator' value.
+  assert_true(feMorphologyElement.operator instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feMorphologyElement.operator.baseVal), "number");
+  assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_ERODE);
+
+  // Switch to 'dilate'.
+  feMorphologyElement.operator.baseVal = SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE;
+  assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE);
+  assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { feMorphologyElement.operator.baseVal = 4; });
+  assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE);
+  assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
+
+  assert_throws_js(TypeError, function() { feMorphologyElement.operator.baseVal = -1; });
+  assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE);
+  assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
+
+  assert_throws_js(TypeError, function() { feMorphologyElement.operator.baseVal = 0; });
+  assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_DILATE);
+  assert_equals(feMorphologyElement.getAttribute('operator'), "dilate");
+
+  // Switch to 'erode'.
+  feMorphologyElement.operator.baseVal = SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_ERODE;
+  assert_equals(feMorphologyElement.operator.baseVal, SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_ERODE);
+  assert_equals(feMorphologyElement.getAttribute('operator'), "erode");
+});
+</script>

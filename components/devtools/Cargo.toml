@@ -1,0 +1,33 @@
+[package]
+name = "devtools"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "devtools"
+path = "lib.rs"
+
+[build-dependencies]
+chrono = { workspace = true }
+
+[dependencies]
+base = { workspace = true }
+chrono = { workspace = true }
+crossbeam-channel = { workspace = true }
+devtools_traits = { workspace = true }
+embedder_traits = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+net_traits = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+servo_config = { path = "../config" }
+servo_rand = { path = "../rand" }
+servo_url = { path = "../url" }
+uuid = { workspace = true }

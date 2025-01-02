@@ -1,0 +1,37 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: auto in the viewport.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-027-ref.html">
+<meta name="assert" content="content-visibility auto element in the viewport paints">
+<meta name="assert" content="content-visibility auto element in the viewport does not have size containment">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+div {
+  content-visibility: auto;
+  border: 1px solid black;
+}
+</style>
+
+<div class=locked>
+  Test passes if there is a border around this text.
+</div>
+
+<script>
+
+window.onload = requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      takeScreenshot();
+    });
+  });
+});
+
+</script>
+</html>
+
+

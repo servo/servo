@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Test setReportEventDataForAutomaticBeacons called only once</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext(
+      {generator_api: 'fledge', register_beacon: true,
+       origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+
+  let beacon_event = {
+    eventType: "reserved.top_navigation_commit",
+    eventData: "This is the beacon data!",
+    destination: ["buyer"],
+    once: true,
+  }
+  await setupAutomaticBeacon(fencedframe, [beacon_event],
+      "resources/dummy.html", NavigationTrigger.ClickOnce);
+
+  // The first click should trigger the automatic beacon and clear the beacon
+  // data.
+  await new test_driver.Actions()
+               .pointerMove(0, 0, {origin: fencedframe.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData,
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+
+  // The second click should not have any associated automatic beacon info, so
+  // no beacon should be sent.
+  // Set up a timeout to ensure that there's enough time to send any potential
+  // automatic beacons.
+  await new test_driver.Actions()
+               .pointerMove(0, 0, {origin: fencedframe.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData,
+      get_host_info().HTTPS_REMOTE_ORIGIN, false, t);
+}, 'Set expiring automatic beacon but trigger two events in a click handler');
+
+</script>
+</body>

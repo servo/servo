@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>This tests that first line text-indent is applied properly when the child is a statically positioned out-of-flow renderer.</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<link rel="match" href="reference/text-indent-with-absolute-pos-child-ref.html">
+<meta name="assert" content="First line text-indent is applied properly when the child is a statically positioned out-of-flow renderer.">
+
+<link rel="stylesheet" href="/fonts/ahem.css" />
+<style>
+  body {
+    margin: 40px;
+  }
+
+  .container {
+    display: block;
+    background-color: green;
+    width: 100px;
+    height: 20px;
+    color: green;
+    font-family: Ahem;
+    font-size: 10px;
+  }
+
+  .inner {
+    display: inline;
+    position: absolute;
+    background-color: blue;
+    width: 20px;
+    height: 20px;
+  }
+</style>
+</head>
+<body>
+<div>
+<div class=container style="text-indent: 20px"><div class=inner></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="display: inline-block;"></div></div>
+<div class=container style="text-indent: 20px"><div class=inner></div>foobar</div>
+<div class=container style="text-indent: 20px"><div class=inner style="text-indent: 20px;">f</div></div>
+<div class=container style="text-indent: 10px">foobar<div class=inner></div></div>
+<div class=container style="text-indent: -20px"><div class=inner></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="left: 40px;"></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="display: block;"></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="position: relative; display: block;"></div></div>
+<div class=container style="text-indent: 20px">foobar<br><div class=inner></div></div>
+<div class=container><div class=inner></div></div>
+</div>
+
+<div style="direction: rtl;">
+<div class=container style="text-indent: 20px"><div class=inner></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="display: inline-block;"></div></div>
+<div class=container style="text-indent: 20px"><div class=inner></div>foobar</div>
+<div class=container style="text-indent: 20px"><div class=inner style="text-indent: 20px;">f</div></div>
+<div class=container style="text-indent: 10px">foobar<div class=inner></div></div>
+<div class=container style="text-indent: -20px"><div class=inner></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="right: 40px;"></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="display: block;"></div></div>
+<div class=container style="text-indent: 20px"><div class=inner style="position: relative; display: block;"></div></div>
+<div class=container style="text-indent: 20px">foobar<br><div class=inner></div></div>
+<div class=container><div class=inner></div></div>
+</div>
+
+</body>
+</html>

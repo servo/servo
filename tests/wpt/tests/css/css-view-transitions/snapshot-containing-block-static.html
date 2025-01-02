@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: use snapshot containing block for static position</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="snapshot-containing-block-static-ref.html">
+<meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-100">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+:root {
+  view-transition-name: none;
+  background-color: red;
+}
+
+body {
+  height: 400vh;
+}
+
+div {
+  position: absolute;
+  left: 200px;
+  top: 600px;
+  width: 100px;
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+
+  background: darkseagreen;
+  view-transition-name: target;
+}
+
+::view-transition-group(target) {
+  animation-duration: 50s;
+}
+
+::view-transition {
+  position: static;
+  display: block;
+  height: 100%;
+  width: 100%;
+  background-color: limegreen;
+}
+
+</style>
+
+<div id="target">TARGET</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  // Start the view transition at a scroll offset so that the snapshot
+  // containing block differs from the initial containing block.
+  const scrollTargetY = document.getElementById('target').offsetTop - 100;
+  window.scrollTo(0, scrollTargetY);
+  let transition = document.startViewTransition();
+  await transition.ready;
+  takeScreenshot();
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

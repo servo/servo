@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<!-- Regression test for https://issues.chromium.org/issues/381099745 -->
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    let agent = await spawnWindow(t);
+    let nextUrl = agent.getExecutorURL({ executor: "conditional-status.py" });
+    await agent.forceSinglePrefetch(nextUrl);
+    await agent.navigate(nextUrl);
+
+    const result = await agent.execute_script(() => {
+      return document.body.textContent;
+    });
+
+    assert_equals(result, "200", "Should use the non-prefetched 200, instead of the prefetched 503");
+  }, "Check that the HTTP cache doesn't cache when the server conditionally responds with 503 for prefetch requests.");
+</script>

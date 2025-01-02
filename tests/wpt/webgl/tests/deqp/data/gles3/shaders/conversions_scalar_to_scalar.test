@@ -1,0 +1,392 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-conversions.js
+
+group scalar_to_scalar "Scalar to Scalar Conversions"
+
+	case float_to_float
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output float out0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = float(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_int
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output int out0 = [ 0 | 1 | 2 | 3 | 0 | -8 | -20 | 36 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = int(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_bool
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output bool out0 = [ false | true | true | true | true | true | true | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bool(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_float
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output float out0 = [ 0.0 | 1.0 | 2.0 | 5.0 | 8.0 | 11.0 | -12.0 | -66.0 | -192.0 | 255.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = float(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_int
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output int out0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = int(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_bool
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output bool out0 = [ false | true | true | true | true | true | true | true | true | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bool(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_float
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output float out0 = [ 0.0 | 2.0 | 3.0 | 8.0 | 9.0 | 12.0 | 10.0 | 45.0 | 193.0 | 255.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = float(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_int
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output int out0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = int(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_bool
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output bool out0 = [ false | true | true | true | true | true | true | true | true | true ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bool(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_float
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output float out0 = [ 1.0 | 0.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = float(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_int
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output int out0 = [ 1 | 0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = int(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_bool
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output bool out0 = [ true | false ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bool(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_uint
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | 0.5 | 8.25 | 20.125 | 36.8125 ];
+			output uint out0 = [ 0 | 1 | 2 | 3 | 0 | 8 | 20 | 36 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uint(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_uint
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | 12 | 66 | 192 | 255 ];
+			output uint out0 = [ 0 | 1 | 2 | 5 | 8 | 11 | 12 | 66 | 192 | 255 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uint(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_uint
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output uint out0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uint(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_uint
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output uint out0 = [ 1 | 0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uint(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # scalar_to_scalar

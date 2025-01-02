@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Testcase for bug 1526567</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+.webconsole-app {
+  display: grid;
+}
+
+.sidebar {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  background: blue;
+}
+
+.controlled {
+  display: flex;
+  overflow: auto;
+}
+
+.sidebar-wrapper {
+  display: grid;
+  grid-template-columns: 100px;
+  grid-template-rows: 50px 1fr;
+  overflow: hidden;
+}
+
+.sidebar-contents {
+  grid-row: 2 / 3;
+  overflow: auto;
+}
+
+  </style>
+</head>
+<body>
+
+<div class="webconsole-app">
+  <div class="sidebar">
+    <div class="controlled">
+      <div class="sidebar-wrapper">
+        <div></div>
+        <div class="sidebar-contents">
+          <div style="height:400px; background: grey"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

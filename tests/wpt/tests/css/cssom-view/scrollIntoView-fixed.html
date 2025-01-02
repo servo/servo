@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSSOM View - scrollIntoView from position:fixed</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <link rel="author" title="David Bokan" href="mailto:bokan@chromium.org">
+    <link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      body {
+        width: 1000vw;
+        height: 1000vh;
+        /* stripes so we can see scroll offset more easily */
+        background: repeating-linear-gradient(
+          45deg,
+          #A2CFD9,
+          #A2CFD9 100px,
+          #C3F3FF 100px,
+          #C3F3FF 200px
+        );
+      }
+
+      .fixedContainer {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        width:  150px;
+        height: 150px;
+        background-color: coral;
+      }
+
+      .fixedContainer.scrollable {
+        overflow: auto;
+        left: unset;
+        right: 10px;
+      }
+
+      button {
+        position: absolute;
+        margin: 5px;
+      }
+
+      .target {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background-color: blue;
+        left: 50%;
+        top: 50%;
+      }
+
+      .scrollable .target {
+        left: 200%;
+        top: 200%;
+      }
+
+      iframe {
+        width: 96vw;
+        height: 300px;
+        position: absolute;
+        left: 2vw;
+        top: 100px;
+      }
+    </style>
+    <script>
+    </script>
+  </head>
+  <body>
+    <div style="width:90vw">
+      <p>
+        The orange boxes are position: fixed. Clicking ScrollIntoView in each box
+        will attempt to scroll into view the blue target element inside that fixed
+        container to block/inline: start (i.e. aligned with top left corner in RTL).
+      </p>
+      <p>
+        scrollIntoView from a position:fixed element must not scroll its
+        containing frame; however, it must scroll further ancestor scrollers as
+        the element isn't fixed in relation to them.
+      </p>
+    </div>
+    <iframe></iframe>
+    <div class="fixedContainer">
+      Box A
+      <button id="fixedContainerBtn">ScrollIntoView</button>
+      <div class="target"></div>
+    </div>
+    <div class="fixedContainer scrollable">
+      Box C
+      <button id="scrollableFixedContainerBtn">ScrollIntoView</button>
+      <div class="target"></div>
+    </div>
+    <script>
+      if (typeof setup != 'undefined') {
+        setup({ explicit_done: true });
+        window.addEventListener("load", runTests);
+      }
+
+      function scrollIntoView(evt) {
+        const container = evt.target.closest('.fixedContainer');
+        const target = container.querySelector('.target');
+        target.scrollIntoView({block: 'start', inline: 'start'});
+      }
+
+      document.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', scrollIntoView);
+      });
+
+      const iframe = document.querySelector('iframe');
+      iframe.onload = () => {
+        frames[0].document.querySelectorAll('button').forEach((btn) => {
+          btn.addEventListener('click', scrollIntoView);
+        });
+      }
+      iframe.srcdoc = `
+        <!DOCTYPE html>
+        <style>
+          body {
+            height: 200vh;
+            width: 200vw;
+            /* stripes so we can see scroll offset more easily */
+            background: repeating-linear-gradient(
+              45deg,
+              #C3A2D9,
+              #C3A2D9 50px,
+              #E5C0FF 50px,
+              #E5C0FF 100px
+            );
+          }
+          .fixedContainer {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            width:  150px;
+            height: 150px;
+            background-color: coral;
+          }
+
+          .fixedContainer.scrollable {
+            overflow: auto;
+            left: unset;
+            right: 10px;
+          }
+
+          button {
+            position: absolute;
+            margin: 5px;
+          }
+
+          .target {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: blue;
+            left: 50%;
+            top: 50%;
+          }
+
+          .scrollable .target {
+            left: 200%;
+            top: 200%;
+          }
+        </style>
+        IFRAME
+        <div class="fixedContainer">
+          Box B
+          <button id="fixedContainerBtn">ScrollIntoView</button>
+          <div class="target"></div>
+        </div>
+        <div class="fixedContainer scrollable">
+          Box D
+          <button id="scrollableFixedContainerBtn">ScrollIntoView</button>
+          <div class="target"></div>
+        </div>
+      `;
+
+      function reset() {
+        [document, frames[0].document].forEach((doc) => {
+          doc.scrollingElement.scrollLeft = 0;
+          doc.scrollingElement.scrollTop = 0;
+          doc.querySelectorAll('.fixedContainer').forEach((e) => {
+            e.scrollLeft = 0;
+            e.scrollTop = 0;
+          });
+        });
+      }
+
+      function runTests() {
+        // Test scrollIntoView from a plain, unscrollable position:fixed element.
+        // Nothing should scroll.
+        test(() => {
+          reset()
+          const container = document.querySelector('.fixedContainer:not(.scrollable)');
+          const target = container.querySelector('.target');
+          target.scrollIntoView({block: 'start', inline: 'start'});
+          assert_equals(window.scrollX, 0, 'must not scroll window [scrollX]');
+          assert_equals(window.scrollY, 0, 'must not scroll window [scrollY]');
+        }, `[Box A] scrollIntoView from unscrollable position:fixed`);
+
+        // Same as above but from inside an iframe. Since the container is fixed
+        // only to the iframe, we should scroll the outer window.
+        test(() => {
+          reset()
+          const container = frames[0].document.querySelector('.fixedContainer:not(.scrollable)');
+          const target = container.querySelector('.target');
+          target.scrollIntoView({block: 'start', inline: 'start'});
+
+          // Large approx to account for differences like scrollbars
+          assert_approx_equals(window.scrollX, 100, 20, 'must scroll outer window [scrollX]');
+          assert_approx_equals(window.scrollY, 300, 20, 'must scroll outer window [scrollY]');
+          assert_equals(frames[0].window.scrollX, 0, 'must not scroll iframe [scrollX]');
+          assert_equals(frames[0].window.scrollY, 0, 'must not scroll iframe [scrollY]');
+        }, `[Box B] scrollIntoView from unscrollable position:fixed in iframe`);
+
+        // Test scrollIntoView from a scroller that's position fixed. The
+        // scroller should be scrolled but shouldn't bubble the scroll as the
+        // window scrolling won't change the target's position.
+        test(() => {
+          reset()
+          const container = document.querySelector('.fixedContainer.scrollable');
+          const target = container.querySelector('.target');
+          target.scrollIntoView({block: 'start', inline: 'start'});
+          // Large approx to account for differences like scrollbars
+          assert_equals(window.scrollX, 0, 'must not scroll window [scrollX]');
+          assert_equals(window.scrollY, 0, 'must not scroll window [scrollY]');
+          assert_approx_equals(container.scrollLeft, 145, 20,
+              'scrollIntoView in container [scrollLeft]');
+          assert_approx_equals(container.scrollTop, 145, 20,
+              'scrollIntoView in container [scrollTop]');
+        }, `[Box C] scrollIntoView from scrollable position:fixed`);
+
+        // Same as above but from inside an iframe. In this case, the scroller
+        // should bubble the scroll but skip its own frame (as it's fixed with
+        // respect to its own frame's scroll offset) and bubble to the outer
+        // window.
+        test(() => {
+          reset()
+          const container = frames[0].document.querySelector('.fixedContainer.scrollable');
+          const target = container.querySelector('.target');
+          target.scrollIntoView({block: 'start', inline: 'start'});
+          // Large approx to account for differences like scrollbars
+          assert_approx_equals(window.scrollX, 740, 20, 'must scroll outer window [scrollX]');
+          assert_approx_equals(window.scrollY, 360, 20, 'must scroll outer window [scrollY]');
+          assert_approx_equals(container.scrollLeft, 145, 20,
+              'scrollIntoView in container [scrollLeft]');
+          assert_approx_equals(container.scrollTop, 145, 20,
+              'scrollIntoView in container [scrollTop]');
+          assert_equals(frames[0].window.scrollX, 0, 'must not scroll iframe [scrollX]');
+          assert_equals(frames[0].window.scrollY, 0, 'must not scroll iframe [scrollY]');
+        }, `[Box D] scrollIntoView from scrollable position:fixed in iframe`);
+
+        done();
+      }
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+<!--
+  This document has set "Content-Security-Policy: upgrade-insecure-requests". It
+  contains an iframe. This iframe clicks on a link to the same host. The link
+  must be upgraded.
+
+  This is a bit of a hack. UPGRADE doesn't upgrade the port number. So if
+  the url is not upgraded, the url is invalid (http over the https port).
+  The expected behavior is that the url is upgraded and the page loads.
+-->
+<iframe src= "./resources/click-on-link.sub.html?url=http://{{host}}:{{ports[https][0]}}/upgrade-insecure-requests/link-upgrade/resources/post-message-to-opener.sub.html%3Fmessage=iframe-link-upgrade">
+</iframe>

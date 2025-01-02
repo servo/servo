@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> TextEvent: inputMode with DOM_INPUT_METHOD_PASTE </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "textInput";
+            var TARGET;
+
+            function TestEvent(evt)
+            {
+                TARGET.removeEventListener(EVENT, TestEvent, true);
+
+                if ((0x02 == evt.inputMode) && ("Hello World" == evt.data))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: TextEvent.inputMode is DOM_INPUT_METHOD_PASTE (0x02)
+            when the text string was pasted in from a clipboard.
+        </h4>
+
+         <span id="parent">
+            <div contenteditable="true" style="border:solid 1px green; width:150px; height:20px">Hello World</div>
+            <br/>
+            <input id="target" type="text" />
+        </span>
+
+        <p id="manualsteps">
+            Steps:
+            <ol>
+                <li> Select and copy "Hello World" inside the green editbox
+                <li> Paste it ("Hello World") to the textbox below the green editbox
+            </ol>
+        </p>
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<title>Container Queries Test: size change detected while focusing inside content-visibility: auto container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#using-cv-auto">
+<link rel="help" href="https://crbug.com/1270848">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+
+<style>
+.spacer { height: 3000px; }
+.auto { content-visibility: auto; }
+#container {
+  border: 1px solid black;
+  width: 100px;
+  height: 100px;
+
+  container-type: size;
+}
+#input {
+  width: 100%;
+  visibility: hidden;
+}
+@container (min-width: 150px) {
+  #input { visibility: visible; }
+}
+
+</style>
+
+<div class=spacer></div>
+<div class=auto>
+  <div id=container>
+    <input id=input type=text></input>
+  </div>
+</div>
+
+<script>
+function focus() {
+  container.style.width = "200px";
+  input.focus();
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(focus));
+</script>

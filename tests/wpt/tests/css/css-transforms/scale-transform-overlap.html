@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Test (Transforms): Tests overlap testing + clipping + scale transforms + compositing.</title>
+    <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/">
+    <link rel="match" href="scale-transform-overlap-ref.html">
+</head>
+<style>
+  div {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    transform-origin: 0px 0px;
+  }
+</style>
+<div style="width: 250px; height: 100px; overflow: hidden; transform: translate(-250px, 50px) scale(1.8, 1.8);">
+  <div style="transform: translate(160px, 0px)">
+    <div style="background: lightblue; will-change: transform"></div>
+    <div style="background: green; left: 10px; top: 10px;"></div>
+  </div>
+</div>
+

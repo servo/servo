@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS reftest Reference</title>
+    <style>
+      div {
+        margin: 2px;
+        width: 50px;
+        height: 50px;
+      }
+      .div1 {
+        background-color: #7f007f;
+      }
+      .div2 {
+        background-color: #7f007f;
+      }
+      .div3 {
+        background-color: #7f007f;
+      }
+      .div4 {
+        width: 200px;
+        height: 200px;
+        background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' style='background: black'><rect fill='red' width='150' height='150' fill-opacity='0.75' style='mix-blend-mode: screen'/><rect fill='blue' x='50' y='50' width='150' height='150' fill-opacity='0.25' style='mix-blend-mode: screen'/></svg>");
+      }
+    </style>
+  </head>
+  <p>These three should all look the same; a dark purple.</p>
+  <div class="div1"></div>
+  <div class="div2"></div>
+  <div class="div3"></div>
+  <p>This should show red and blue translucent squares on a black background, with the red being clearer.</p>
+  <div class="div4"></div>
+</html>

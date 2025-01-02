@@ -1,0 +1,30 @@
+<!doctype html>
+<link rel="author" title="Xiaocheng Hu" href="xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-load">
+<link rel="help" href="https://crbug.com/1092411">
+<meta name="assert" content="Ensure that content of a modal dialog is re-rendered with loaded web font." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target {
+  font: 25px/1 custom-font, monospace;
+}
+</style>
+<dialog><span id=target>0123456789</span></dialog>
+<script>
+document.querySelector('dialog').showModal();
+
+function raf() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+promise_test(async () => {
+  await raf();
+
+  const face = new FontFace('custom-font', 'url(/fonts/Ahem.ttf)');
+  document.fonts.add(face);
+  await face.load();
+
+  assert_equals(target.offsetWidth, 250);
+}, 'Modal dialog content should be re-rendered with loaded web font');
+</script>

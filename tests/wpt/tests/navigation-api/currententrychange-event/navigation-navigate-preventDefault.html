@@ -1,0 +1,10 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  navigation.oncurrententrychange = t.unreached_func("currententrychange should not fire");
+  navigation.onnavigate = e => e.preventDefault();
+  await promise_rejects_dom(t, "AbortError", navigation.navigate("#foo").committed);
+}, "currententrychange does not fire when onnavigate preventDefault() is called");
+</script>

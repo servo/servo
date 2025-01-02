@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Test cross-origin automatic beacons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    register_beacon: true
+  });
+
+  let beacon_event = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "this is the beacon data",
+    destination: ["buyer"],
+    crossOriginExposed: true,
+  }
+
+  await setupAutomaticBeacon(fencedframe, [beacon_event],
+      "resources/close.html", NavigationTrigger.CrossOriginClick);
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+  const received_beacon_data =
+      await nextBeacon(beacon_event.eventType, beacon_event.eventData);
+}, 'Automatic beacon in a cross-origin subframe');
+</script>
+</body>

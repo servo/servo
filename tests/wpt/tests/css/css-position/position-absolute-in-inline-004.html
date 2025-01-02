@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+  Out-of-flow positioned element with inline containing block.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #container {
+    height: 100px;
+    width: 100px;
+    font: 20px/1 Ahem;
+    color: white;
+    background-color: red;
+  }
+  .abs {
+    position: absolute;
+    background-color: green;
+    height: 100px;
+    width: 50px;
+    top: -50px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container">
+  <div style="height: 50px;"></div>
+  BBBB
+  <span style="position: relative;">
+    <div class="abs" style="left: -30px;"></div>
+    AA A AA AAAA
+    <div class="abs" style="left: -80px;"></div>
+  </span>
+</div>

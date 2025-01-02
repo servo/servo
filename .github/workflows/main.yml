@@ -1,0 +1,79 @@
+name: Main
+
+on:
+  push:
+    # Run the entire pipeline for 'main' even though the merge queue already runs checks
+    # for every change. This just offers an extra layer of testing and covers the case of
+    # random force pushes.
+    branches: ["main"]
+  pull_request:
+    types: ['opened', 'synchronize']
+    branches: ["**"]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+jobs:
+  decision:
+    name: Generate Try Configuration
+    runs-on: ubuntu-20.04
+    outputs:
+      configuration: ${{ steps.configuration.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            python/servo/try_parser.py
+            .github/actions/setup-python
+            .python-version
+          sparse-checkout-cone-mode: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Get Configuration
+        id: configuration
+        run: |
+          {
+            echo 'result<<EOF'
+            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux lint' || 'fail-fast full' }}
+            echo EOF
+           } >> $GITHUB_OUTPUT
+
+  build:
+    needs: ["decision"]
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.decision.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.decision.outputs.configuration).matrix }}
+    # We need to use `dipatch-workflow.yml` because workflows do not support using: ${}
+    uses: ./.github/workflows/dispatch-workflow.yml
+    secrets: inherit
+    with:
+      workflow: ${{ matrix.workflow }}
+      wpt-layout: ${{ matrix.wpt_layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
+      wpt-args: ${{ matrix.wpt_args }}
+      bencher: ${{ matrix.bencher }}
+
+  build-result:
+    name: Result
+    runs-on: ubuntu-latest
+    if: always()
+    # needs all build to detect cancellation
+    needs:
+      - build
+    steps:
+      - name: Merge build timings
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: cargo-timings
+          pattern: cargo-timings-*
+          delete-merged: true
+      - name: Success
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        run: exit 0
+      - name: Failure
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

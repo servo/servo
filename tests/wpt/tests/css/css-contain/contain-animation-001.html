@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: contain is not animatable</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name=assert content="the contain property is not animatable">
+<style>
+div {
+  border: 50px solid green;
+  background: red;
+  position: absolute; /* for shrinkwrap */
+  contain: strict;
+
+  animation-duration: 1s;
+  animation-name: bad;
+  animation-play-state: paused;
+
+  font-size: 100px;
+}
+
+@keyframes bad {
+  from {
+    contain: none;
+  }
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div>&nbsp;</div>
+

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Ruby Layout: parsing ruby-overhang with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#propdef-ruby-overhang">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<meta name="assert" content="ruby-overhang only supports the grammar 'auto | none'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("ruby-overhang", "auto none");
+test_invalid_value("ruby-overhang", "none auto");
+test_invalid_value("ruby-overhang", "auto auto");
+test_invalid_value("ruby-overhang", "none none");
+test_invalid_value("ruby-overhang", "auto 2px");
+test_invalid_value("ruby-overhang", "none 2px");
+</script>
+</body>
+</html>

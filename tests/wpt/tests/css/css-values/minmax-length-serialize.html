@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#lengths">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div style="width: 100px;">
+    <div id=target></div>
+</div>
+<script>
+function test_serialization(t,s,c,u, {prop}={}) {
+    test_specified_serialization(prop || 'text-indent', t, s);
+    test_computed_serialization(prop || 'text-indent', t, c);
+    if(u) test_used_serialization(prop || 'margin-left', t, u);
+}
+
+test_serialization(
+	'min(1px)',
+	'calc(1px)',
+	'1px');
+test_serialization(
+	'min(1in)',
+	'calc(96px)',
+	'96px');
+test_serialization(
+	'max(1px)',
+	'calc(1px)',
+	'1px');
+test_serialization(
+	'max(1in)',
+	'calc(96px)',
+	'96px');
+
+// Values are case-insensitive and serialize as lower case, for example 1Q
+// serializes as 1q.
+test_serialization(
+	'min(1PX)',
+	'calc(1px)',
+	'1px');
+
+// Arguments simplify down eagerly
+test_serialization(
+	'min(50px, 1in + 1px)',
+	'calc(50px)',
+	'50px');
+test_serialization(
+	'max(50px, 1in + 1px)',
+	'calc(97px)',
+	'97px');
+
+// And the entire function simplifies eagerly if possible
+test_serialization(
+	'calc(1px + min(1in, 100px))',
+	'calc(97px)',
+	'97px');
+test_serialization(
+	'calc(1px + max(1in, 100px))',
+	'calc(101px)',
+	'101px');
+
+// Computed-value units preserve min()/max() in specified values
+test_serialization(
+	'min(1px, 1em)',
+	'min(1px, 1em)',
+	'1px');
+test_serialization(
+	'calc(min(1px, 1in) + max(100px + 1em, 10px + 1in) + 1px)',
+	'calc(2px + max(1em + 100px, 106px))',
+	'118px');
+
+// Can't test that min()/max() are preserved in computed values with just lengths;
+// see minmax-length-percentage-serialize for tests of that.
+</script>

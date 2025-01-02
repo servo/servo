@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTML Canvas reference</title>
+<body>
+<canvas id=c>
+</body>
+<script>
+var c = document.getElementById("c");
+var ctx = c.getContext("2d");
+ctx.font = "50px monospace";
+ctx.fillText("Hello", 50, 75);
+ctx.font = "25px serif";
+ctx.fillText("World", 100, 100);
+c.style.border = "3px solid cyan";
+</script>
+

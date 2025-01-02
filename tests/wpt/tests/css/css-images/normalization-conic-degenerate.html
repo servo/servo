@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conic gradient stop normalization</title>
+<link rel="help" href="https://www.w3.org/TR/css-images-3/#repeating-gradients">
+<meta name="assert" content="Rendering of repeating-conic-gradient w/ stops at the same place">
+<meta name="fuzzy" content="maxDifference=1;totalPixels=10000">
+<link rel="match" href="reference/100x100-blue.html">
+<style>
+  #gradient {
+    width: 100px;
+    height: 100px;
+    background-image: repeating-conic-gradient(orange 50%, blue 50%);
+  }
+</style>
+<div id="gradient"></div>

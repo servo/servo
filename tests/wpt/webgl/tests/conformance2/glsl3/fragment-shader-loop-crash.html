@@ -1,0 +1,74 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Fragment shader containing loop should not crash</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+precision highp float;
+out vec2 v_tex_coord;
+uniform mat4 matrix;
+
+void main() {
+   v_tex_coord = vec2(0.0, 0.0);
+   gl_Position = vec4(0.0, 0.0, 0.0, 0.0);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in vec2 v_tex_coord;
+out vec4 out_color;
+
+uniform sampler2D texture_1;
+uniform vec2 resolution;
+
+vec4 do_loops(vec4 z)
+{
+    vec4 v[16];
+    for (int i = 0; i < 16; i++)
+    {
+        v[i] = z;
+    }
+    return v[1];
+}
+
+void main() {
+    out_color = do_loops(vec4(0.2, 0.4, 0.6, 1.0)) - texture(texture_1, v_tex_coord);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+const wtu = WebGLTestUtils;
+const tests = [
+    {
+        vShaderSource: wtu.getScript('vshader'),
+        fShaderSource: wtu.getScript('fshader'),
+        vShaderSuccess: true,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        passMsg: 'Fragment shader containing a simple loop should compile and link'
+    }
+];
+
+GLSLConformanceTester.runTests(tests, 2);
+</script>
+</body>
+</html>

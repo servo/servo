@@ -1,0 +1,9 @@
+- name: 2d.video.invalid
+  desc: Verify test doesn't crash with invalid video.
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var v = document.createElement('video');
+    v.play();
+    // Test is deliberately not waiting for the 'playing' event to fire.
+    ctx.createPattern(v, 'repeat-x');
+    ctx.drawImage(v, 0, 0);

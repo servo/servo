@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<style>
+.test { width: 50px; background-color: yellow; }
+.center { text-align: center; }
+.center .test { margin: 0 auto; }
+.left { text-align: left; }
+.left .test { margin-right: auto; }
+.right { text-align: right; }
+.right .test { margin-left: auto; }
+.rtl { direction: rtl; }
+.ltr { direction: ltr; }
+.left .margin { margin-left: 1em; }
+.right .margin { margin-right: 1em; }
+</style>
+</head>
+<body>
+<!-- Centered tests -->
+<div class=center>
+<div class=test>t א</div>
+<div class="test rtl">t א</div>
+<div class="test margin">t א</div>
+</div>
+
+<div class=center>
+<div class="test left">t א</div>
+<div class="test right">t א</div>
+</div>
+
+<div class=left>
+<div class=center>
+<div class=test>t א</div>
+</div>
+</div>
+
+<!-- Left-aligned tests -->
+<div class=left>
+<div class=test>t א</div>
+<div class="test rtl">t א</div>
+<div class="test margin">t א</div>
+</div>
+
+<div class="left rtl">
+<div class=test>t א</div>
+<div class="test ltr">t א</div>
+<div class="test margin">t א</div>
+</div>
+
+<div class=left>
+<div class="test center">t א</div>
+<div class="test right">t א</div>
+</div>
+
+<!-- Right-aligned tests -->
+<div class=right>
+<div class=test>t א</div>
+<div class="test rtl">t א</div>
+<div class="test margin">t א</div>
+</div>
+
+<div class="right rtl">
+<div class=test>t א</div>
+<div class="test ltr">t א</div>
+<div class="test margin">t א</div>
+</div>
+
+<div class=right>
+<div class="test left">t א</div>
+<div class="test center">t א</div>
+</div>
+
+</body>
+</html>
+

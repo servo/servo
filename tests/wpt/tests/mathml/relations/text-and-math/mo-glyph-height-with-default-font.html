@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="UTF-8">
+    <title>mo glyph height with default font</title>
+    <meta name="assert" content="Verify operators with default fonts are not too tall.">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1219068"/>
+    <link rel="match" href="mo-glyph-height-with-default-font-ref.html"/>
+  </head>
+  <body>
+    <math style="position:absolute; top: 0; font-size:1em;  z-index: 0;" display="block">
+      <mrow>
+        <mo>|</mo>
+        <mrow>
+          <mi>f</mi>
+          <mrow>
+            <mn>(</mn>
+            <mi>x</mi>
+            <mn>)</mn>
+          </mrow>
+          <mn>−</mn>
+          <mrow>
+            <mi>f</mi>
+            <mrow>
+              <mn>(</mn>
+              <msub>
+                <mi>x</mi>
+                <mn>0</mn>
+              </msub>
+              <mn>)</mn>
+            </mrow>
+          </mrow>
+        </mrow>
+        <mo>|</mo>
+      </mrow>
+    </math>
+    <div id="hider"
+         style="position:absolute; top:0; left:0; background-color:green;
+                height:1em; width:100%; z-index:1; padding-top:5px;
+                padding-bottom:5px; visibility:hidden" />
+    <script>
+      function obscureMathML() {
+          var hider = document.getElementById("hider");
+          hider.style.visibility="visible";
+          // The math should now be completely obscured
+
+          document.documentElement.removeAttribute("class");
+      }
+      window.addEventListener("TestRendered", obscureMathML);
+    </script>
+  </body>
+</html>

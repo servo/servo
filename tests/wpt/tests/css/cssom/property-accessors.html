@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Accessing properties via CSSStyleDeclaration</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface">
+<!-- this is really a crash test, but let's claim it's a testharness test -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {}
+</style>
+<div id="testElement"></div>
+<script>
+// Goal here is to test a cross-section of prefixed, properties, and descriptors.
+const properties = [
+  "-apple-color-filter", "-apple-pay-button-style", "-epub-writing-mode",
+  "-webkit-flex", "gap", "grid-gap", "overscroll-behavior",
+  "src", "unicode-range",
+];
+
+const el = document.getElementById("testElement");
+const decls = [window.getComputedStyle(el), el.style, document.styleSheets[0].cssRules[0].style];
+
+for (const prop of properties) {
+  test(() => {
+    for (const decl of decls) {
+      let _;
+
+      _ = decl[prop];
+      try {
+        decl[prop] = "nonsense";
+      } catch {
+        assert_equals(decl, decls[0]);
+      }
+
+      _ = decl.cssText;
+      try {
+        decl.cssText = `${prop}: nonsense`;
+      } catch {
+        assert_equals(decl, decls[0]);
+      }
+
+      _ = decl.getPropertyValue(prop);
+      _ = decl.getPropertyPriority(prop);
+
+      if ("getPropertyCSSValue" in decl) {
+        _ = decl.getPropertyCSSValue(prop);
+      }
+
+      try {
+        decl.setProperty(prop, "nonsense", "");
+      } catch {
+        assert_equals(decl, decls[0]);
+      }
+
+      try {
+        decl.removeProperty(prop);
+      } catch {
+        assert_equals(decl, decls[0]);
+      }
+    }
+  }, prop);
+}
+</script>

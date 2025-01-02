@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  var sec_ch_ua_header = "";
+
+  function grabSECCHUAHeader(t) {
+    return new Promise((resolve, reject) => {
+      var w;
+      window.onmessage = e => {
+        try {
+          resolve(e.data.header)
+        } catch (ex) {
+          reject(ex);
+        }
+      };
+      w = window.open("./resources/sec-ch-ua.py");
+      t.add_cleanup(w.close);
+    });
+  }
+  promise_test(t => {
+    return grabSECCHUAHeader(t).then(header => {
+      sec_ch_ua_header = header;
+      assert_not_equals(sec_ch_ua_header, "", "`Sec-CH-UA` is sent.");
+    });
+  }, "Open HTTPS window: `Sec-CH-UA` header returned by default.");
+
+  promise_test(t => {
+    return grabSECCHUAHeader(t).then(header => {
+      assert_not_equals(header, "", "The `Sec-CH-UA` header is delivered.");
+      assert_equals(header, sec_ch_ua_header,
+        "The `Sec-CH-UA` header did not change between requests.");
+    });
+  }, "Open HTTPS window: `Sec-CH-UA` header is consistent across versions.");
+
+  promise_test(t => {
+    return grabSECCHUAHeader(t).then(header => {
+      assert_true(header.split(", ").every((brand) => {
+        let brandEnd = brand.indexOf(";v=");
+        assert_true(brandEnd !== -1,
+          "A well-formed Sec-CH-UA header must have version (v=) params");
+        /* 32 + 2, becuase of the extra quotes padding the brand,
+           e.g. '"lol";v=22"' */
+        return brandEnd < 34;
+      }));
+    });
+  }, "Open HTTPS window: No brand in `Sec-CH-UA` header is > than 32 chars.");
+</script>
+</head>

@@ -1,0 +1,42 @@
+<Files "http1.css">
+AddCharset iso-8859-1 .css
+</Files>
+<Files "http15.css">
+AddCharset iso-8859-15 .css
+</Files>
+<Files "http8.css">
+AddCharset utf-8 .css
+</Files>
+<Files "charset8.css">
+RemoveCharset .css
+</Files>
+<Files "charset1.css">
+RemoveCharset .css
+</Files>
+<Files "charset15.css">
+RemoveCharset .css
+</Files>
+<Files "none.css">
+RemoveCharset .css
+</Files>
+<Files "bom.css">
+RemoveCharset .css
+</Files>
+<Files "bom-charset1.css">
+RemoveCharset .css
+</Files>
+<Files "bom-charset15.css">
+RemoveCharset .css
+</Files>
+<Files "illegalcharset.css">
+RemoveCharset .css
+</Files>
+<Files "http8-charset1.css">
+AddCharset utf-8 .css
+</Files>
+<Files "http1-charset8.css">
+AddCharset iso-8859-1 .css
+</Files>
+<Files "http1-bom.css">
+AddCharset iso-8859-1 .css
+</Files>

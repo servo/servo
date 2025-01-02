@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Containing Block for Absolute Positioning (bottom/right)</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='"In the HTML namespace, any value other than
+    &apos;none&apos; for the transform results in the creation of . . . a
+    containing block."  This means absolutely positioned elements need to be
+    rooted at a transformed ancestor, just as though it had non-static
+    position.  Therefore, this test should be offset by one pixel from the
+    reference.'>
+    <link rel="mismatch" href="transform-abspos-ref.html">
+    <style>
+      body > div {
+        width: 100px;
+        height: 200px;
+        transform: translate(50px, 50px);
+        background: gold;
+      }
+      body > div > div {
+        width: 200px;
+        height: 100px;
+        position: absolute;
+        right: -160px;
+        bottom: 0;
+        background: navy;
+        color: gold;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+      <div>
+        0 1 2 3 4 5 6 7 8 9
+      </div>
+    </div>
+  </body>
+</html>

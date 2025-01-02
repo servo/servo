@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_05_02_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-201305214#retargeting-related-target">
+<meta name="assert" content="Retargeting relatedTarget:Event retargeting is a process of computing relative targets for each ancestor of the node at which the event is dispatched. A relative target is a DOM node that most accurately represents the target of a dispatched event at a given ancestor while maintaining the upper boundary encapsulation.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_05_02_01_T01 = async_test('A_05_02_01_T1');
+
+A_05_02_01_T01.step(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.setAttribute('style', 'height:100%; width:100%');
+    host.setAttribute('id', 'host');
+    d.body.appendChild(host);
+
+    //Shadow root to play with
+    var s = host.attachShadow({mode: 'open'});
+
+    var div1 = d.createElement('div');
+    div1.setAttribute('style', 'height:40px; width:100%');
+    div1.setAttribute('id', 'div1');
+    s.appendChild(div1);
+
+    var div2 = d.createElement('div');
+    div2.setAttribute('style', 'height:40px; width:100%');
+    div2.setAttribute('id', 'div2');
+    s.appendChild(div2);
+
+    s.addEventListener('mouseover', A_05_02_01_T01.step_func(function(event) {
+        assert_equals(event.relatedTarget.getAttribute('id'), 'div1', 'Wrong relatedTarget');
+    }), false);
+
+    d.body.addEventListener('mouseover', A_05_02_01_T01.step_func(function(event) {
+        assert_true(false, 'Event must be stopped at Shadow boundary');
+    }), false);
+
+
+    var evt = document.createEvent("MouseEvents");
+    evt.initMouseEvent("mouseover", true, false, window,
+      0, 10, 10, 10, 10, false, false, false, false, 0, div1);
+
+    div2.dispatchEvent(evt);
+
+
+    A_05_02_01_T01.done();
+}));
+</script>
+</body>
+</html>

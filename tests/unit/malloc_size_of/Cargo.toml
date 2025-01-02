@@ -1,0 +1,16 @@
+[package]
+name = "malloc_size_of_tests"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+test = false
+
+[dependencies]
+malloc_size_of = { workspace = true }
+servo_arc = { workspace = true }

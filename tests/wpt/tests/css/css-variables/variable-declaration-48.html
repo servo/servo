@@ -1,0 +1,25 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test declaring a number of variables in a cycle.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#cycles">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+body {
+  color: green;
+}
+p {
+  color: crimson;
+  --a: red var(--b);
+  --b: var(--c);
+  --c: var(--d);
+  --d: var(--e);
+  --e: var(--a);
+  --f: var(--e);
+  color: var(--f);
+}
+</style>
+<p>This text must be green.</p>

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-UI test: outline & border-radius</title>
+  <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+  <meta name=flags content="should">
+  <meta name=assert content="To the extent that the outline follows the border edge, it should follow the border-radius curve.">
+  <!-- Allow slight color differences where the outline and the background intersect -->
+  <meta name=fuzzy content="0-2;0-100">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <link rel=help href="https://drafts.csswg.org/css-ui-3/#outline-props">
+<style>
+body > div {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  background: red;
+  display: table-cell; /* Make a BFC */
+}
+div > div {
+  width: 50px;
+  height: 50px;
+  margin: 25px;
+  background: green;
+  border-radius: 100%;
+  outline: solid green 100px;
+  outline-offset: -1px;
+}
+</style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div><div></div></div>
+

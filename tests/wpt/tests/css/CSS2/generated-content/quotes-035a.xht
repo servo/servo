@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS and Quotes: Counting Right (Slightly Simpler Version)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/quotes/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#quotes" />
+  <link rel="match" href="quotes-035-ref.xht"/>
+  <style type="text/css">
+  <![CDATA[
+     .party1 * { display: inline; }
+     .party1 .a { quotes: "Isn"        "'"
+                          "t"          "FAIL!"
+                          "FAIL!"      " i"; }
+     .party1 .b { quotes: ""           "FAIL!!"
+                          " wonderful" "!!!"
+                          " to "       " work"
+                          "see "       " [FAIL to]"
+                          "C"          "quotes"
+                          "S"          " "
+                          "S"          " "; }
+     .party1 .c { quotes: none; }
+     .party1 .d { quotes: "FAIL!"      "FAIL!"
+                          "FAIL!"      "FAIL!"
+                          ""           ""
+                          ""           ""; }
+     .test { margin-left: 2em; }
+     .test .no-open:before { content: no-open-quote; }
+     .test .open:before { content: open-quote; }
+     .test .triple-open:before { content: open-quote open-quote open-quote; }
+     .test .no-close:after { content: no-close-quote; }
+     .test .triple-no-close:after { content: no-close-quote no-close-quote no-close-quote; }
+     .test .close:after { content: close-quote; }
+     .test .triple-close:after { content: close-quote close-quote close-quote; }
+     .test .no-close-open:before { content: no-close-quote open-quote; }
+
+  ]]>
+  </style>
+ </head>
+ <body>
+
+  <!-- this is the same as the 002.xml version except the <br> and <hr> nodes are <div>s. -->
+
+    <!--                                               Isn't it wonderful to see CSS quotes work!!!
+    --><div class="test c party1"><!--               c 0
+     --><div class="a open close"><!-- open          a 1 isn
+     --></div><!-- close                             a 0 '
+     --><div class="a"><!--                          a 0
+      --><div class="c open"><!-- open               c 1
+       --><div class="a open"><!-- open              a 2 t
+       --></div><!--                                 a 2
+      --></div><!--                                  c 2
+      --><div class="no-open close"><!--             a 3 [FAIL!]
+      --></div><!-- close                            a 2 i
+     --></div><!--                                   a 2
+     --><div class="no-close-open no-close a"><!--   a 2 [FAIL!] t
+     --></div><!-- close                             a 1
+     --><div class="d no-open no-close"><!-- open    d 2 [FAIL!]
+      --><div class="open close"><!-- open           d 3
+       --><div class="open close"><!-- open          d 4
+       --></div><!-- close                           d 3
+      --></div><!-- close                            d 2
+     --></div><!-- close                             d 1 [FAIL!]
+     --><div class="b no-close"><!--                 b 1
+      --><div class="no-close"/><!-- close           b 0 [FAIL!!]
+      --><div class="triple-open"/><!-- open x 3     b 3 "", "wonderful ", "to "
+      --><div class="triple-open"/><!-- open x 3     b 6 "see ", "C", "S"
+      --><div class="open close"><!-- open           b 7 S
+       --><div class="close"><!--                    b 7
+        --><div class="no-close"><!--                b 7
+         --><div class="close"><!--                  b 7
+          --><div class="no-close"><!--              b 7
+           --><div class="close"><!--                b 7
+           --></div><!-- close                       b 6 " "
+          --></div><!-- close                        b 5 [" "]
+         --></div><!-- close                         b 4  quotes
+        --></div><!-- close                          b 3 [ FAIL to]
+       --></div><!-- close                           b 2  work
+      --></div><!-- close                            b 1 !!!
+     --></div><!-- close                             b 0 [FAIL!!]
+    --></div><!--                                    b 0
+    -->
+
+ </body>
+</html>

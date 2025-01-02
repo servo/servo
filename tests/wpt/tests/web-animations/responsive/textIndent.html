@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    container.style.fontSize = '10px';
+
+    var keyframes = [
+        {textIndent: '10em hanging'},
+        {textIndent: '10em hanging'}
+    ];
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+
+    var textIndent = getComputedStyle(element).textIndent;
+    container.style.fontSize = '20px';
+    assert_not_equals(getComputedStyle(element).textIndent, textIndent);
+}, 'textIndent responsive to style changes');
+
+test(function() {
+    var keyframes = [
+        {textIndent: 'inherit'},
+        {textIndent: '200px hanging each-line'}
+    ];
+
+    container.style.textIndent = '100px hanging each-line';
+    var player = element.animate(keyframes, 10);
+
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).textIndent, '150px hanging each-line');
+
+    container.style.textIndent = '400px hanging';
+    assert_equals(getComputedStyle(element).textIndent, '200px hanging each-line');
+
+    container.style.textIndent = '400px hanging each-line';
+    assert_equals(getComputedStyle(element).textIndent, '300px hanging each-line');
+
+    container.style.textIndent = '800px hanging each-line';
+    assert_equals(getComputedStyle(element).textIndent, '500px hanging each-line');
+
+    container.style.textIndent = '400px each-line';
+    assert_equals(getComputedStyle(element).textIndent, '200px hanging each-line');
+
+    container.style.textIndent = '800px hanging each-line';
+    assert_equals(getComputedStyle(element).textIndent, '500px hanging each-line');
+
+    container.style.textIndent = '400px hanging each-line';
+    assert_equals(getComputedStyle(element).textIndent, '300px hanging each-line');
+}, 'textIndent responsive to inherited textIndent changes');
+</script>

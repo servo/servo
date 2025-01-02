@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Line-height with multiple font sizes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-line-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="The 'line-height' value may use the largest font size when there is more than one font size." />
+        <style type="text/css">
+            div
+            {
+                background-color: blue;
+            }
+            #span1
+            {
+                font-size: 0.5in;
+            }
+            #span2
+            {
+                font-size: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is completely contained within the blue box.</p>
+        <div>
+            <span id="span1">Filler</span>
+            <span id="span2">Text</span>
+        </div>
+    </body>
+</html>

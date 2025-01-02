@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-autospace with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-text-autospace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-autospace", "normal ideograph-alpha");
+test_invalid_value("text-autospace", "normal ideograph-alpha ideograph-numeric");
+test_invalid_value("text-autospace", "normal punctuation");
+test_invalid_value("text-autospace", "auto ideograph-alpha");
+test_invalid_value("text-autospace", "auto ideograph-alpha ideograph-numeric");
+test_invalid_value("text-autospace", "auto punctuation");
+
+test_invalid_value("text-autospace", "normal insert");
+test_invalid_value("text-autospace", "normal replace");
+test_invalid_value("text-autospace", "auto insert");
+test_invalid_value("text-autospace", "auto replace");
+</script>
+</body>
+</html>

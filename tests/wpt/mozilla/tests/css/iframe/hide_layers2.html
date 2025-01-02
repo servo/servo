@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <link rel=match href=hide_layers_ref.html>
+    <style type="text/css">
+        body {
+            background-color: green;
+        }
+    </style>
+    <body>
+        <iframe id="iframe" src="data:text/html,%3Cspan%3EJust%20a%20simple%20little%20iframe.%3C%2Fspan%3E"></iframe>
+    </body>
+    <script type="text/javascript">
+        window.onload = function() {
+            var iframe = document.getElementById("iframe");
+            iframe.parentNode.removeChild(iframe);
+            document.documentElement.classList.remove("reftest-wait");
+        }
+    </script>
+</html>

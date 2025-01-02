@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Reference: Inlinize block-level boxes inside ruby</title>
+  <link rel="author" title="Xidorn Quan" href="mailto:quanxunzhen@gmail.com">
+  <link rel="stylesheet" href="support/ruby-common.css">
+  <style>
+    .inline {
+      display: inline-block;
+      background-color: yellow;
+      width: 30px; height: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div><ruby>a<div class="inline">b</div>c</ruby></div>
+  <div><rb>a<div class="inline">b</div>c</rb></div>
+  <div><rt>a<div class="inline">b</div>c</rt></div>
+  <div><rbc>a<div class="inline">b</div>c</rbc></div>
+  <div><rtc>a<div class="inline">b</div>c</rtc></div>
+</body>
+</html>

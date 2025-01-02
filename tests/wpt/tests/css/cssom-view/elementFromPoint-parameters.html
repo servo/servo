@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Tests that the parameters to document.elementFromPoint() and
+document.elementsFromPoint() are mandatory and of type double.</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extensions-to-the-document-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function validate_function_parameter_count(testFunc, funcName) {
+    test(function() {
+        assert_throws_js(TypeError, function() {
+            testFunc();
+        }, "Called with no parameter");
+        assert_throws_js(TypeError, function() {
+            testFunc(0);
+        }, "Called with 1 parameter");
+    }, funcName + ": Parameters are mandatory.");
+}
+
+function validate_function_parameter_type(testFunc, funcName) {
+    test(function() {
+        assert_throws_js(TypeError, function() {
+            testFunc(0, Infinity);
+        }, "Passing Infinity as second parameter throws");
+        assert_throws_js(TypeError, function() {
+            testFunc(Infinity, 0);
+        }, "Passing Infinity as first parameter throws");
+        assert_throws_js(TypeError, function() {
+            testFunc(0, NaN);
+        }, "Passing NaN as second parameter throws");
+        assert_throws_js(TypeError, function() {
+            testFunc(NaN, 0);
+        }, "Passing NaN as first parameter throws");
+    }, funcName + ": Parameters should be finite floating point values.");
+}
+
+validate_function_parameter_count(function(x, y) {
+    document.elementFromPoint(x, y);
+}, "document.elementFromPoint");
+
+validate_function_parameter_type(function(x, y) {
+    document.elementFromPoint(x, y);
+}, "document.elementFromPoint");
+
+validate_function_parameter_count(function(x, y) {
+    document.elementsFromPoint(x, y);
+}, "document.elementsFromPoint");
+
+validate_function_parameter_type(function(x, y) {
+    document.elementsFromPoint(x, y);
+}, "document.elementsFromPoint");
+</script>

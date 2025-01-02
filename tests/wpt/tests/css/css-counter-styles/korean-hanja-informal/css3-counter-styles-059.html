@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>korean-hanja-informal, outside range</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel='match' href='css3-counter-styles-059-ref.html'>
+<link rel='match' href='css3-counter-styles-059-alt-ref.html'><!-- Gecko prefers this rendering over the fallback rendering -->
+<meta name="assert" content="[Exploratory] list-style-type: korean-hanja-informal produces counter values outside its range without using the prescribed fallback style.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol { list-style-type: korean-hanja-informal; list-style-position: inside; }
+</style>
+</head>
+<body>
+<p class="instructions">Test fails if the two columns of the first line are NOT the same. Otherwise, test passes only if the left column of the 2nd and 3rd lines is NOT decimal digits. If it is decimal digits (ie. the fallback) score as Partial. In all this IGNORE the suffix.</p>
+<div class="test"><ol start="9999">
+<li title="9999">九千九百九十九</li>
+<li title="10000">10000.</li>
+<li title="10001">10001.</li>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

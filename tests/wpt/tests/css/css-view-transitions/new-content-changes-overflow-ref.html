@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>View transitions: capture elements and then change overflow (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+body { background: pink }
+#target {
+  position: relative;
+  background: green;
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+}
+#child {
+  background: blue;
+  position: relative;
+  top: 20px;
+  left: 30px;
+  width: 50px;
+  height: 100px;
+}
+#child.large {
+  height: 200px;
+}
+</style>
+
+<div id=target><div id=child class=large></div></div>

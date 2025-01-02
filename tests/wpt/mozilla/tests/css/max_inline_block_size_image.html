@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Max inline-block size inside another inline-block element</title>
+<link rel="match" href="max_inline_block_size_ref.html">
+<style>
+html, body { margin: 0; padding: 0; }
+
+div, img { display: inline-block; }
+
+#a {
+  background: red;
+}
+
+#b {
+  max-width: 250px;
+}
+</style>
+<div id="a"><img id="b" width="500" height="250" src="250x250_green.png"></div>

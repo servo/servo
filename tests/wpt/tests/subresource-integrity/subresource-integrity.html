@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Subresource Integrity</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/sriharness.js"></script>
+<script src="/common/utils.js"></script>
+<script src="sri-test-helpers.sub.js"></script>
+
+<div id="log"></div>
+
+<div id="container"></div>
+<script>
+    var style_tests = [];
+    style_tests.execute = function() {
+        if (this.length > 0) {
+            this.shift().execute();
+        }
+    }
+    add_result_callback(function(res) {
+        if (res.name.startsWith("Style: ")) {
+          style_tests.execute();
+        }
+    });
+
+    // Script tests
+    new SRIScriptTest(
+        true,
+        "Same-origin with correct sha256 hash.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with correct sha384 hash.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha384-cINXh+nCzEHPWzXS7eoT+vYMBpyqczOybRLNU3XAButFWCRhHT5hLByIbPRqIm2f"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with correct sha512 hash.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha512-KZdenhzBd7X7Q/vmaOSyvFz1CGdoVt26xzCZjlkU9lfBEK+V/ougGys7iYDi0+tOHIQSQa87bIqx95R7GU7I9Q=="
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with empty integrity.",
+        `${same_origin_prefix}script.js?${token()}`,
+        ""
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "Same-origin with incorrect hash.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
+    // Scripts with integrity attribute changed after #prepare-a-script.
+    new SRIScriptTest(
+        false,
+        "Same-origin with incorrect integrity => cleared after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead",
+        undefined,
+        undefined,
+        null
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "Same-origin with incorrect integrity => set to correct hash after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead",
+        undefined,
+        undefined,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with empty integrity => set to incorrect hash after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "",
+        undefined,
+        undefined,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with correct integrity => set to incorrect hash after prepare.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=",
+        undefined,
+        undefined,
+        "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with multiple sha256 hashes, including correct.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA= sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with multiple sha256 hashes, including unknown algorithm.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA= foo666-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with sha256 mismatch, sha512 match",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha512-KZdenhzBd7X7Q/vmaOSyvFz1CGdoVt26xzCZjlkU9lfBEK+V/ougGys7iYDi0+tOHIQSQa87bIqx95R7GU7I9Q== sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "Same-origin with sha256 match, sha512 mismatch",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha512-deadbeefspbnUnwooKGNNCb39nvg+EW0O9hDScTXeo/9pVZztLSUYU3LNV6H0lZapo8bCJUpyPPLAzE9fDzpxg== sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "<crossorigin='anonymous'> with correct hash, ACAO: *",
+        `${xorigin_prefix}script.js?${token()}&pipe=header(Access-Control-Allow-Origin,*)`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=",
+        "anonymous"
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "<crossorigin='anonymous'> with incorrect hash, ACAO: *",
+        `${xorigin_prefix}script.js?${token()}&pipe=header(Access-Control-Allow-Origin,*)`,
+        "sha256-deadbeefcSLlbFZCj1OACLxTxVck2TOrBTEdUbwz1yU=",
+        "anonymous"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "<crossorigin='use-credentials'> with correct hash, CORS-eligible",
+        `${xorigin_prefix}script.js?${token()}&pipe=header(Access-Control-Allow-Credentials,true)|header(Access-Control-Allow-Origin,${location.origin})`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=",
+        "use-credentials"
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "<crossorigin='use-credentials'> with incorrect hash CORS-eligible",
+        `${xorigin_prefix}script.js?${token()}&pipe=header(Access-Control-Allow-Credentials,true)|header(Access-Control-Allow-Origin,${location.origin})`,
+        "sha256-deadbeef2S+pTRZgiw3DWrhC6JLDlt2zRyGpwH7unU8=",
+        "use-credentials"
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "<crossorigin='anonymous'> with CORS-ineligible resource",
+        `${xorigin_prefix}script.js?${token()}`, /* no ACAO header makes this CORS-ineligible */
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=",
+        "anonymous"
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "Cross-origin, not CORS request, with correct hash",
+        `${xorigin_prefix}script.js?${token()}&pipe=header(Access-Control-Allow-Origin,*)`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="
+    ).execute();
+
+    new SRIScriptTest(
+        false,
+        "Cross-origin, not CORS request, with hash mismatch",
+        `${xorigin_prefix}script.js?${token()}&pipe=header(Access-Control-Allow-Origin,*)`,
+        "sha256-deadbeef01Y0yKSx3/UoIKtIY2UQ9+H8WGyyMuOWOC0="
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Cross-origin, empty integrity",
+        `${xorigin_prefix}script.js?${token()}&pipe=header(Access-Control-Allow-Origin,*)`,
+        ""
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with correct hash, options.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=?foo=bar?spam=eggs"
+    ).execute();
+
+    new SRIScriptTest(
+        true,
+        "Same-origin with unknown algorithm only.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "foo666-U9WYDtBWkcHx13+9UKk/3Q5eoqDc4YGxYb07EPWzb9E="
+    ).execute();
+
+    // Style tests
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha256 hash",
+        {
+            href: "style.css?1",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha384 hash",
+        {
+            href: "style.css?2",
+            integrity: "sha384-wDAWxH4tOWBwAwHfBn9B7XuNmFxHTMeigAMwn0iVQ0zq3FtmYMLxihcGnU64CwcX"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha512 hash",
+        {
+            href: "style.css?3",
+            integrity: "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w=="
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with empty integrity",
+        {
+            href: "style.css?4",
+            integrity: ""
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Same-origin with incorrect hash.",
+        {
+            href: "style.css?5",
+            integrity: "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with multiple sha256 hashes, including correct.",
+        {
+            href: "style.css?6",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4= sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with multiple sha256 hashes, including unknown algorithm.",
+        {
+            href: "style.css?7",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4= foo666-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with sha256 mismatch, sha512 match",
+        {
+            href: "style.css?8",
+            integrity: "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w== sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Same-origin with sha256 match, sha512 mismatch",
+        {
+            href: "style.css?9",
+            integrity: "sha512-deadbeef9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2== sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "<crossorigin='anonymous'> with correct hash, ACAO: *",
+        {
+            href: xorigin_anon_style + '&1',
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            crossorigin: "anonymous"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "<crossorigin='anonymous'> with incorrect hash, ACAO: *",
+        {
+            href: xorigin_anon_style + '&2',
+            integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
+            crossorigin: "anonymous"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "<crossorigin='use-credentials'> with correct hash, CORS-eligible",
+        {
+            href: xorigin_creds_style + '&1',
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            crossorigin: "use-credentials"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "<crossorigin='use-credentials'> with incorrect hash CORS-eligible",
+        {
+            href: xorigin_creds_style + '&2',
+            integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
+            crossorigin: "use-credentials"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "<crossorigin='anonymous'> with CORS-ineligible resource",
+        {
+            href: xorigin_ineligible_style + '&1',
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            crossorigin: "anonymous"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Cross-origin, not CORS request, with correct hash",
+        {
+            href: xorigin_anon_style + '&3',
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Cross-origin, not CORS request, with hash mismatch",
+        {
+            href: xorigin_anon_style + '&4',
+            integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk="
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Cross-origin, empty integrity",
+        {
+            href: xorigin_anon_style + '&5',
+            integrity: ""
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct hash, options.",
+        {
+            href: "style.css?10",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with unknown algorithm only.",
+        {
+            href: "style.css?11",
+            integrity: "foo666-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha256 hash, rel='stylesheet license'",
+        {
+            href: "style.css?12",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            rel: "stylesheet license"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha256 hash, rel='license stylesheet'",
+        {
+            href: "style.css?13",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
+            rel: "license stylesheet"
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with correct sha256 and sha512 hash, rel='alternate stylesheet' enabled",
+        {
+            href: "alternate.css?1",
+            title: "alt",
+            type: "text/css",
+            class: "alternate",
+            disabled: "disabled",
+            rel: "alternate stylesheet",
+            integrity: "sha256-phbz83bWhnLig+d2VPKrRrTRyhqoDRo1ruGqZLZ0= sha512-8OYEB7ktnzcb6h+kB9CUIuc8qvKIyLpygRJdQSEEycRy74dUsB+Yu9rSjpOPjRUblle8WWX9Gn7v39LK2Oceig==",
+        },
+        function (link, container) {
+            var alternate = document.querySelector('link.alternate');
+            alternate.disabled = false;
+        },
+        "rgb(255, 0, 0)"
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Same-origin with incorrect sha256 and sha512 hash, rel='alternate stylesheet' enabled",
+        {
+            href: "alternate.css?2",
+            title: "alt",
+            type: "text/css",
+            class: "alternate",
+            disabled: "disabled",
+            rel: "alternate stylesheet",
+            integrity: "sha256-fail83bWhnLig+d2VPKrRrTRyhqoDRo1ruGqZLZ0= sha512-failB7ktnzcb6h+kB9CUIuc8qvKIyLpygRJdQSEEycRy74dUsB+Yu9rSjpOPjRUblle8WWX9Gn7v39LK2Oceig==",
+        },
+        function (link, container) {
+            var alternate = document.querySelector('link.alternate');
+            alternate.disabled = false;
+        }
+    );
+
+    style_tests.execute();
+
+</script>
+<!-- TODO check cache-poisoned resources, transfer-encoding, 3xx redirect
+   to resource with matching hash, and cross-origin leakage test as in sec5.3.
+    -->

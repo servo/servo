@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Interpolation of dynamic-range-limit</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-hdr/#the-dynamic-range-limit-property">
+<meta name="assert" content="Interpolation of dynamic-range-limit">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+  <template id="target-template">T</template>
+</body>
+
+<script>
+test_interpolation({
+  property: "dynamic-range-limit",
+  from: "high",
+  to: "standard",
+}, [
+  {at: 0.0, expect: "high"},
+  {at: 0.25, expect: "dynamic-range-limit-mix(standard 25%, high 75%)"},
+  {at: 0.75, expect: "dynamic-range-limit-mix(standard 75%, high 25%)"},
+  {at: 1.0, expect: "standard"},
+]);
+
+test_interpolation({
+  property: "dynamic-range-limit",
+  from: "constrained-high",
+  to: "standard",
+}, [
+  {at: 0.0, expect: "constrained-high"},
+  {at: 0.5, expect: "dynamic-range-limit-mix(standard 50%, constrained-high 50%)"},
+  {at: 1.0, expect: "standard"},
+]);
+
+test_interpolation({
+  property: "dynamic-range-limit",
+  from: "dynamic-range-limit-mix(standard 50%, high 50%)",
+  to: "standard",
+}, [
+  {at: 0.0, expect: "dynamic-range-limit-mix(standard 50%, high 50%)"},
+  {at: 0.75, expect: "dynamic-range-limit-mix(standard 87.5%, high 12.5%)"},
+  {at: 1.0, expect: "standard"},
+]);
+
+test_interpolation({
+  property: "dynamic-range-limit",
+  from: "dynamic-range-limit-mix(standard 90%, high 10%)",
+  to: "dynamic-range-limit-mix(standard 10%, high 90%)",
+}, [
+  {at: 0.0, expect: "dynamic-range-limit-mix(standard 90%, high 10%)"},
+  {at: 0.5, expect: "dynamic-range-limit-mix(standard 50%, high 50%)"},
+  {at: 1.0, expect: "dynamic-range-limit-mix(standard 10%, high 90%)"},
+]);
+
+test_interpolation({
+  property: "dynamic-range-limit",
+  from: "dynamic-range-limit-mix(constrained-high 90%, standard 10%)",
+  to: "dynamic-range-limit-mix(high 10%, standard 90%)",
+}, [
+  {at: 0.0, expect: "dynamic-range-limit-mix(standard 10%, constrained-high 90%)"},
+  {at: 0.5, expect: "dynamic-range-limit-mix(standard 50%, constrained-high 45%, high 5%)"},
+  {at: 1.0, expect: "dynamic-range-limit-mix(standard 90%, high 10%)"},
+]);
+</script>

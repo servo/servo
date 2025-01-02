@@ -1,0 +1,5 @@
+<!doctype html>
+<script>
+addEventListener("pagehide", function() {parent.events.push("pagehide"); setTimeout(function() {parent.events.push("timeout")}, 0)}, false);
+addEventListener("unload", function() {parent.events.push("unload")}, false);
+</script>

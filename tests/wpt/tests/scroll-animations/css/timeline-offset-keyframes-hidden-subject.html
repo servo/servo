@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<script src="/web-animations/resources/keyframe-utils.js"></script>
+<title>Animation range and delay</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    cover 0% {
+      margin-left: 0px;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    cover 100% {
+      margin-right: 0px;
+    }
+  }
+
+  #scroller {
+    border: 10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+    timeline-scope: --t1;
+  }
+  #block {
+    margin-top: 800px;
+    margin-left: 10px;
+    margin-right: 10px;
+    width: 100px;
+    height: 50px;
+    background-color: blue;
+    view-timeline: --t1;
+  }
+  #target {
+    margin-bottom: 800px;
+    margin-left: 10px;
+    margin-right: 10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation: anim auto both linear;
+    animation-range-start: contain 0%;
+    animation-range-end: contain 100%;
+    animation-timeline: --t1;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="block"></div>
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    promise_test(async t => {
+      await waitForNextFrame();
+      const anims = document.getAnimations();
+      assert_equals(anims.length, 1,
+                    "Should have one animation attached to the view-timeline");
+      const anim = anims[0];
+      await anim.ready;
+      await waitForNextFrame();
+
+      let frames = anim.effect.getKeyframes();
+      let expected_resolved_offsets = [
+        { offset: 0, computedOffset: 0, easing: "linear", composite: "replace",
+          marginRight: "10px", opacity: "1" },
+        { offset: 1/2, computedOffset: 1/2, easing: "linear",
+          composite: "auto", opacity: "0.5" },
+        { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
+          marginLeft: "10px", opacity: "1" },
+        { offset: { rangeName: "cover", offset: CSS.percent(0) },
+          computedOffset: -1/3, easing: "linear",
+          composite: "auto", marginLeft: "0px" },
+        { offset: { rangeName: "cover", offset: CSS.percent(100) },
+          computedOffset: 4/3, easing: "linear", composite: "auto",
+          marginRight: "0px" },
+      ];
+      assert_frame_lists_equal(frames, expected_resolved_offsets,
+                               'Initial keyframes with active view-timeline');
+
+      block.style.display = 'none';
+      // View-timeline becomes inactive. Keyframes with timeline offsets must be
+      // ignored.
+      frames = anim.effect.getKeyframes();
+      let expected_unresolved_offsets = [
+        { offset: 0, computedOffset: 0, opacity: "1", easing: "linear",
+          composite: "replace" },
+        { offset: 0.5, computedOffset: 0.5, opacity: "0.5", easing: "linear",
+          composite: "auto", },
+        { offset: 1, computedOffset: 1, opacity: "1", easing: "linear",
+          composite: "replace" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(0) },
+          computedOffset: null, easing: "linear",
+          composite: "auto", marginLeft: "0px" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(100) },
+          computedOffset: null, easing: "linear", composite: "auto",
+          marginRight: "0px" }
+      ];
+      assert_frame_lists_equal(frames, expected_unresolved_offsets,
+                               'Keyframes with invalid view timeline');
+
+      block.style.display = 'block';
+      // Timeline remains inactive until next frame.
+      await waitForNextFrame();
+
+      // Ensure that keyframes with timeline-offsets are restored.
+      frames = anim.effect.getKeyframes();
+
+      assert_frame_lists_equal(frames, expected_resolved_offsets,
+                               'Keyframes with restored view timeline');
+    }, 'Keyframes with timeline-offsets ignored when timeline is inactive');
+  }
+
+  window.onload = runTest;
+</script>

@@ -1,0 +1,112 @@
+---
+name: Mac WPT Tests
+on:
+  workflow_call:
+    inputs:
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      profile:
+        required: true
+        type: string
+      wpt-layout:
+        required: true
+        type: string
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  WPT_COMMAND_LINE_ARG: "${{ inputs.wpt-layout == 'layout-2013' && '--legacy-layout' || '' }}"
+
+jobs:
+  mac-wpt:
+    name: WPT ${{ inputs.wpt-layout }}
+    runs-on: macos-13
+    env:
+      max_chunk_id: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk_id: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: refs/pull/${{ github.event.number }}/head
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-macos
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Prep test environment
+        run: |
+          gtar -xzf target.tar.gz
+          ./mach bootstrap --skip-lints
+      - name: Smoketest
+        run: ./mach smoketest --${{ inputs.profile }}
+      - name: Run tests
+        run: |
+          mkdir -p wpt-filtered-logs/macos-${{ inputs.wpt-layout }}
+          mkdir -p wpt-full-logs/macos-${{ inputs.wpt-layout }}
+          ./mach test-wpt $WPT_COMMAND_LINE_ARG \
+            --${{ inputs.profile }} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
+            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+            --log-raw wpt-full-logs/macos-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
+            --log-raw-unexpected wpt-filtered-logs/macos-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
+            --filter-intermittents wpt-filtered-logs/macos-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.json
+            ${{ inputs.wpt-args }}
+      - name: Archive results (filtered)
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: wpt-filtered-logs-macos-${{ inputs.wpt-layout }}-${{ matrix.chunk_id }}
+          path: wpt-filtered-logs/*/
+      - name: Archive results (full)
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: wpt-full-logs-macos-${{ inputs.wpt-layout }}-${{ matrix.chunk_id }}
+          path: wpt-full-logs/*/
+
+  report-test-results:
+    name: Process WPT Results
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: mac-wpt
+    steps:
+      - name: Merge logs (filtered)
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: wpt-filtered-logs-macos-${{ inputs.wpt-layout }}
+          pattern: wpt-filtered-logs-macos-${{ inputs.wpt-layout }}-*
+          delete-merged: true
+      - name: Merge logs (full)
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: wpt-full-logs-macos-${{ inputs.wpt-layout }}
+          pattern: wpt-full-logs-macos-${{ inputs.wpt-layout }}-*
+          delete-merged: true
+      - uses: actions/checkout@v3
+        if: ${{ !cancelled() }}
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: wpt-filtered-logs-macos-${{ inputs.wpt-layout }}
+          path: results
+      - name: Report results
+        if: ${{ !cancelled() }}
+        run: |
+          etc/ci/report_aggregated_expected_results.py \
+            --tag="macos-wpt-${{ inputs.wpt-layout }}" \
+            results/macos-${{ inputs.wpt-layout }}/*.json
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESULTS: ${{ toJson(needs.*.result) }}

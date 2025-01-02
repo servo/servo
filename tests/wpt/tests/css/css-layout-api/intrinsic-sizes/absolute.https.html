@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-sizing">
+<link rel="match" href="absolute-ref.html">
+<meta name="assert" content="This test checks that the absolute positioning respects the intrinsicSizes function." />
+
+<style>
+.test {
+  background: red;
+  position: absolute;
+}
+
+@supports (display: layout(test-layout)) {
+  .test {
+    display: layout(test-layout);
+    background: green;
+  }
+}
+
+.container-1 {
+  border: solid 2px;
+  position: relative;
+  height: 200px;
+  width: 300px;
+}
+
+.container-2 {
+  border: solid 2px;
+  position: relative;
+  height: 25px;
+  width: 25px;
+}
+
+.horizontal {
+  writing-mode: horizontal-tb;
+}
+
+.vertical {
+  writing-mode: vertical-rl;
+}
+
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+
+<div class="container-1">
+  <div class="horizontal test" style="height: 100px; bottom: 0px;"></div>
+  <div class="vertical test" style="width: 100px; right: 0px;"></div>
+</div>
+
+<div class="container-2">
+  <div class="horizontal test" style="height: 25px; bottom: 0px;"></div>
+</div>
+
+<div class="container-2">
+  <div class="vertical test" style="width: 25px; right: 0px;"></div>
+</div>
+
+
+<script id="code" type="text/worklet">
+registerLayout('test-layout', class {
+  async intrinsicSizes() {
+    return { maxContentSize: 100, minContentSize: 50 };
+  }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Page Visibility API Child Document Test</title>
+
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript" src="resources/pagevistestharness.js"></script>
+
+        <style type="text/css">
+            iframe
+            {
+                width:250px;
+                height:250px;
+                margin-left:5px;
+            }
+
+            div.docs
+            {
+                position:relative;
+                float:left;
+                text-align:center;
+                margin:10px;
+                border:solid 1px black;
+                padding:3px;
+            }
+        </style>
+
+        <script type="text/javascript" >
+            setup({explicit_done: true});
+
+            function onload_test()
+            {
+                pv_test();
+
+                var frames = document.getElementsByTagName("iframe");
+                var doc, doc_name;
+
+                for (var i = 0; i < frames.length; i++)
+                {
+                    doc = frames[i].contentDocument;
+                    doc_name = "IFrame with " + frames[i].id;
+
+                    pv_test(function()
+                    {
+                        test_feature_exists(doc, " for frame with " + frames[i].id);
+                    });
+
+                    test_equals(doc.visibilityState, VISIBILITY_STATES.VISIBLE,
+                                "document.visibilityState for frame with " +
+                                frames[i].id + " == " +
+                                VISIBILITY_STATES.VISIBLE);
+                }
+
+                done();
+            }
+        </script>
+    </head>
+    <body onload="onload_test()">
+        <h1>Description</h1>
+        <p>This test validates that, within child documents, all of the Page Visibility API attributes exist,
+           are read-only, and match the value of the attributes within the parent document.</p>
+
+        <div id="log"></div>
+
+        <br/>
+
+        <div class="docs">
+            IFrame with no style attribute
+            <br/>
+            <iframe id="no style attribute" src="resources/blank_page_green.html">
+                iframes unsupported
+            </iframe>
+        </div>
+
+        <div class="docs">
+            IFrame with "display:none" style<br/>
+            <iframe id="'display:none' style" style="display:none"
+                    src="resources/blank_page_green.html">
+                iframes unsupported
+            </iframe>
+        </div>
+
+        <div class="docs">
+            IFrame with "visibility:hidden" style
+            <br/>
+            <iframe id="'visibility:hidden' style" style="visibility:hidden"
+                    src="resources/blank_page_green.html">
+                iframes unsupported
+            </iframe>
+        </div>
+    </body>
+</html>

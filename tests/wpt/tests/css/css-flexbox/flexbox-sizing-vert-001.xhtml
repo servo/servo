@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This testcase checks how "min-height" and "max-height" affect the sizing
+     of vertical flex containers that have no explicit "height" property.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing sizing of an auto-sized vertical flex container with min-height and max-height constraints</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm"/>
+    <link rel="match" href="flexbox-sizing-vert-001-ref.xhtml"/>
+    <style>
+      div { width: 10px; }
+      div.flexbox {
+        float: left;
+        border: 1px dashed blue;
+        font-size: 10px;
+        display: flex;
+        flex-direction: column;
+        margin-right: 2px;
+      }
+      div.a {
+        flex: 1 20px;
+        max-height: 60px;
+        background: lightgreen;
+      }
+      div.b {
+        flex: 1 20px;
+        min-height: 40px;
+        max-height: 60px;
+        background: purple;
+      }
+      div.c {
+        flex: 1 40px;
+        min-height: 10px;
+        max-height: 60px;
+        background: orange;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- floated auto-sized vertical flexbox should shrinkwrap its flex items'
+         hypothetical main sizes (their flex base sizes, clamped to min/max) -->
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- Adding a small min-size shouldn't affect that. -->
+    <div class="flexbox" style="min-height: 10px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- ...nor should a large max-size. -->
+    <div class="flexbox" style="max-height: 300px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- OK. Now, if we set a minimum size that's larger than the shrinkwrap
+         size, we should jump up to that size.-->
+    <div class="flexbox" style="min-height: 120px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- ...even if it's large enough that our items won't occupy all the
+         space. -->
+    <div class="flexbox" style="min-height: 200px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- If we set a maximum size that's smaller than the shrinkwrap size,
+         we should max out at that size.-->
+    <div class="flexbox" style="max-height: 70px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- The max-size may be small enough that our items will overflow. -->
+    <div class="flexbox" style="max-height: 20px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- But if we add a min-size, it beats the max-size. Here, we use a
+         min-size smaller than the sum of the items' base sizes... -->
+    <div class="flexbox" style="min-height: 58px; max-height: 20px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- ...and here we use a min-size larger than the sum of the items'
+         base sizes. -->
+    <div class="flexbox" style="min-height: 140px; max-height: 20px">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+  </body>
+</html>

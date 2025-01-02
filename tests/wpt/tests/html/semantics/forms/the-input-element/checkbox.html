@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>input type checkbox</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox)">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<input type=checkbox id=checkbox1>
+<input type=checkbox id=checkbox2 disabled>
+<input type=checkbox id=checkbox3>
+<input type=checkbox id=checkbox4 checked>
+<input type=checkbox id=checkbox5>
+<input type=checkbox id=checkbox6>
+<script>
+  var checkbox1 = document.getElementById('checkbox1'),
+      checkbox2 = document.getElementById('checkbox2'),
+      checkbox3 = document.getElementById('checkbox3'),
+      checkbox4 = document.getElementById('checkbox4'),
+      checkbox5 = document.getElementById('checkbox5'),
+      checkbox6 = document.getElementById('checkbox6'),
+      c1_click_fired = false,
+      c1_input_fired = false,
+      c1_change_fired = false,
+      t1 = async_test("click on mutable checkbox fires a click event, then an input event, then a change event"),
+      t2 = async_test("click on non-mutable checkbox doesn't fire the input or change event"),
+      t3 = async_test("pre-activation steps on unchecked checkbox"),
+      t4 = async_test("pre-activation steps on checked checkbox"),
+      t5 = async_test("canceled activation steps on unchecked checkbox"),
+      t6 = async_test("canceled activation steps on unchecked checkbox (indeterminate=true in onclick)");
+
+  checkbox1.onclick = t1.step_func(function(e) {
+    c1_click_fired = true;
+    assert_false(c1_input_fired, "click event should fire before input event");
+    assert_false(c1_change_fired, "click event should fire before change event");
+    assert_false(e.isTrusted, "click()-initiated click event should not be trusted");
+  });
+  checkbox1.oninput = t1.step_func(function(e) {
+    c1_input_fired = true;
+    assert_true(c1_click_fired, "input event should fire after click event");
+    assert_false(c1_change_fired, "input event should fire before change event");
+    assert_true(e.bubbles, "event should bubble");
+    assert_true(e.isTrusted, "click()-initiated event should be trusted");
+    assert_false(e.cancelable, "event should not be cancelable");
+    assert_true(checkbox1.checked, "checkbox is checked");
+    assert_false(checkbox1.indeterminate, "checkbox is not indeterminate");
+  });
+
+  checkbox1.onchange = t1.step_func(function(e) {
+    c1_change_fired = true;
+    assert_true(c1_click_fired, "change event should fire after click event");
+    assert_true(c1_input_fired, "change event should fire after input event");
+    assert_true(e.bubbles, "event should bubble")
+    assert_true(e.isTrusted, "click()-initiated event should be trusted");
+    assert_false(e.cancelable, "event should not be cancelable");
+    assert_true(checkbox1.checked, "checkbox is checked");
+    assert_false(checkbox1.indeterminate, "checkbox is not indeterminate");
+  });
+
+  checkbox2.oninput= t2.step_func(function(e) {
+    assert_unreached("event input fired");
+  });
+
+  checkbox2.onchange = t2.step_func(function(e) {
+    assert_unreached("event change fired");
+  });
+
+  t1.step(function() {
+    checkbox1.click();
+    assert_true(c1_input_fired);
+    assert_true(c1_change_fired);
+    t1.done();
+  });
+
+  t2.step(function() {
+    checkbox2.click();
+    t2.done();
+  });
+
+  t3.step(function() {
+    checkbox3.indeterminate = true;
+    checkbox3.click();
+    assert_true(checkbox3.checked);
+    assert_false(checkbox3.indeterminate);
+    t3.done();
+  });
+
+  t4.step(function() {
+    checkbox4.indeterminate = true;
+    checkbox4.click();
+    assert_false(checkbox4.checked);
+    assert_false(checkbox4.indeterminate);
+    t4.done();
+  });
+
+  checkbox5.onclick = t5.step_func(function(e) {
+    e.preventDefault();
+    /*
+    The prevention of the click doesn't have an effect until after all the
+    click event handlers have been run.
+    */
+    assert_true(checkbox5.checked);
+    assert_false(checkbox5.indeterminate);
+    t5.step_timeout(function() {
+      /*
+      The click event has finished being dispatched, so the checkedness and
+      determinateness have been toggled back by now because the event
+      was preventDefault-ed.
+      */
+      assert_false(checkbox5.checked);
+      assert_false(checkbox5.indeterminate);
+      t5.done();
+    }, 0);
+  });
+
+  t5.step(function(){
+    assert_false(checkbox5.checked);
+    assert_false(checkbox5.indeterminate);
+    checkbox5.click();
+  });
+
+  checkbox6.onclick = t6.step_func(function(e) {
+    checkbox6.indeterminate = true;
+    e.preventDefault();
+    /*
+    The prevention of the click doesn't have an effect until after all the
+    click event handlers have been run.
+    */
+    assert_true(checkbox6.checked);
+    assert_true(checkbox6.indeterminate);
+    t6.step_timeout(function() {
+      /*
+      The click event has finished being dispatched, so the checkedness and
+      determinateness have been toggled back by now because the event
+      was preventDefault-ed.
+      */
+      assert_false(checkbox6.checked);
+      assert_false(checkbox6.indeterminate);
+      t6.done();
+    }, 0);
+  });
+
+  t6.step(function(){
+    assert_false(checkbox6.checked);
+    assert_false(checkbox6.indeterminate);
+    checkbox6.click();
+  });
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Don't crash during getComputedStyle which removes ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5">
+<link rel="help" href="https://crbug.com/1349732">
+<style>
+#container {
+  width: 100px;
+  height: 100px;
+  container-type: size;
+}
+@container (width) {
+  span { color: green; }
+}
+</style>
+<ul>
+  <li id="target"></li>
+</ul>
+<div id=container>
+  <span>PASS if no crash</span>
+</div>
+<script>
+let li = document.querySelector('li');
+getComputedStyle(target, '::marker').width;
+li.style.listStyleType = 'none';
+getComputedStyle(target, '::marker').width;
+</script>

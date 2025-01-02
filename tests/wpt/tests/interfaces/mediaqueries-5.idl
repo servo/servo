@@ -1,0 +1,30 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Queries Level 5 (https://drafts.csswg.org/mediaqueries-5/)
+
+[Exposed=Window, SecureContext]
+partial interface Navigator {
+  [SameObject] readonly attribute PreferenceManager preferences;
+};
+
+[Exposed=Window, SecureContext]
+interface PreferenceManager {
+  readonly attribute PreferenceObject colorScheme;
+  readonly attribute PreferenceObject contrast;
+  readonly attribute PreferenceObject reducedMotion;
+  readonly attribute PreferenceObject reducedTransparency;
+  readonly attribute PreferenceObject reducedData;
+};
+
+[Exposed=Window, SecureContext]
+interface PreferenceObject : EventTarget {
+  readonly attribute DOMString? override;
+  readonly attribute DOMString value;
+  readonly attribute FrozenArray<DOMString> validValues;
+
+  undefined clearOverride();
+  Promise<undefined> requestOverride(DOMString? value);
+
+  attribute EventHandler onchange;
+};

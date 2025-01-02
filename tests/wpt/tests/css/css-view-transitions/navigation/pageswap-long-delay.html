@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>View transitions: long delay in pageswap aborts the transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(event.viewTransition, null,
+        'viewTransition must have been skipped.');
+  });
+  break;
+case "old":
+  onpageswap = (e) => {
+    assert_not_equals(e.viewTransition, null);
+
+    // Busy loop for 4.5 seconds in order to "synchronously block"
+    var start = Date.now();
+    var end = start + 4500;
+    while (end - Date.now() > 0);
+  };
+
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  onpagereveal = e => window.opener.did_reveal(e);
+  break;
+}
+</script>

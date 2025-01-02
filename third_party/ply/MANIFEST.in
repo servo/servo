@@ -1,0 +1,8 @@
+recursive-include example *
+recursive-include doc *
+recursive-include test *
+include ANNOUNCE
+include README.md
+include CHANGES
+include TODO
+global-exclude *.pyc

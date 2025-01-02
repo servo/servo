@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Node.appendChild: inserted script should be able to take own mutation record</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<main></main>
+<script>
+
+test(() => {
+  window.mutationObserver = new MutationObserver(() => {});
+  window.mutationObserver.observe(document.querySelector("main"), {childList: true});
+  const script = document.createElement("script");
+  script.textContent = `
+    window.mutationRecords = window.mutationObserver.takeRecords();
+  `;
+  document.querySelector("main").appendChild(script);
+  assert_equals(window.mutationRecords.length, 1);
+  assert_array_equals(window.mutationRecords[0].addedNodes, [script]);
+}, "An inserted script should be able to observe its own mutation record with takeRecords");
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test that iframe with object triggers load event in owner document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  async_test(t => {
+    window.onload = t.step_func_done();
+    const obj = document.createElement("iframe");
+    obj.style.display = "none";
+    obj.src = "support/iframe-with-object.html";
+    document.body.appendChild(obj);
+  }, "Load event triggered on window");
+</script>
+</body>

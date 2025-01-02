@@ -1,0 +1,71 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/helper.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+// Calling Clients.claim() on the service worker when a controlled page is in
+// BFCache should evict the page from BFCache, as per
+// https://github.com/w3c/ServiceWorker/issues/1038#issuecomment-291028845.
+promise_test(async t => {
+  const pageA = new RemoteContext(token());
+  const pageB = new RemoteContext(token());
+
+  const urlA = location.origin + executorPath + pageA.context_id;
+  const urlB = originCrossSite + executorPath + pageB.context_id;
+
+  window.open(urlA, '_blank', 'noopener');
+  await pageA.execute_script(waitForPageShow);
+
+  // Register a service worker after `pageA` is loaded to make `pageA`
+  // uncontrolled at this time.
+  const workerUrl =
+      'resources/service-worker.js?pipe=header(Service-Worker-Allowed,../)';
+  const registration =
+      await service_worker_unregister_and_register(t, workerUrl, './');
+  t.add_cleanup(_ => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+
+  // Navigate to `urlB`.
+  await pageA.execute_script(
+    (url) => {
+      prepareNavigation(() => { location.href = url; });
+    },
+    [urlB]);
+  await pageB.execute_script(waitForPageShow);
+
+  // Call Clients.claim() on the service worker when `pageA` is in BFCache.
+  const controllerChanged = new Promise(
+      resolve => navigator.serviceWorker.oncontrollerchange = resolve);
+  await claim(t, registration.active);
+  await controllerChanged;
+
+  // `pageA` doesn't appear in matchAll().
+  const clients1 = await (await fetch('/get-clients-matchall')).json();
+  assert_true(clients1.indexOf(urlA) < 0,
+              '1: matchAll() before back navigation');
+
+  // Back navigate and check that the page was evicted from BFCache.
+  await pageB.execute_script(
+    () => {
+      prepareNavigation(() => { history.back(); });
+    }
+  );
+  await pageA.execute_script(waitForPageShow);
+  await assert_not_bfcached(pageA);
+
+  // After back navigation, `pageA` appear in matchAll(), because it was newly
+  // loaded and controlled by the service worker.
+  const clients2 = await (await fetch('/get-clients-matchall')).json();
+  const controlled2 = await pageA.execute_script(
+    () => (navigator.serviceWorker.controller !== null));
+  assert_true(clients2.indexOf(urlA) >= 0,
+    '2: matchAll() just after back navigation');
+  assert_true(controlled2,
+    '2: pageA should be controlled just after back navigation');
+
+}, 'Clients.claim() evicts pages that would be affected from BFCache');
+</script>

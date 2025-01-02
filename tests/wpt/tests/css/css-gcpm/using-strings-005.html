@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: using 'last' property of named strings</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-gcpm-3/#string-last">
+<meta name="flags" content="paged">
+<meta name="assert" content="Test checks that if string is set to last, the last appearance of that element determines the content of the string">
+<style>
+  @page {
+   @top-center {
+   content: string(title, last);
+   }
+  }
+
+ h2 {
+ string-set: title content();
+ }
+
+#s2, #s4 { page-break-before: always; }
+
+</style>
+</head>
+<body>
+<p>Note: test has three pages. Test passes if:</p>
+<ol>
+<li>
+Running head on page one is “Section One”
+</li>
+<li>
+Running head on page two is “Section Three”
+</li>
+<li>
+Running head on page three is “Section Six”
+</li>
+</ol>
+<h2 id="s1">Section One</h2>
+<h2 id="s2">Section Two</h2>
+<h2 id="s3">Section Three</h2>
+<h2 id="s4">Section Four</h2>
+<h2 id="s5">Section Five</h2>
+<h2 id="s6">Section Six</h2>
+</body>
+</html>

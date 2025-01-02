@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+// Detectors should reject undecodable images with an InvalidStateError.
+const badImageTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        name: "Face - detect(broken image)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        name: "Barcode - detect(broken image)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        name: "Text - detect(broken image)"
+      }
+    ];
+
+for (let badImageTest of badImageTests) {
+  // This test verifies that a Detector will reject an undecodable image.
+  promise_test(async t => {
+    const img = new Image();
+    const error =
+        await detectOnElementAndExpectError(badImageTest.createDetector,
+                                            img, "/images/broken.png");
+    assert_equals(error.name, "InvalidStateError");
+  }, badImageTest.name);
+}
+
+// Detectors should reject undecodable videos with an InvalidStateError.
+const badVideoTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        name: "Face - detect(broken video)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        name: "Barcode - detect(broken video)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        name: "Text - detect(broken video)"
+      }
+    ];
+
+for (let badVideoTest of badVideoTests) {
+  // This test verifies that a Detector will reject a broken video.
+  promise_test(async t => {
+    const video = document.createElement('video');
+    const error =
+        await detectOnElementAndExpectError(badVideoTest.createDetector,
+                                            video, "garbage.webm");
+    assert_equals(error.name, "InvalidStateError");
+  }, badVideoTest.name);
+}
+
+// Returns a Promise that is resolve()d if detect() is rejected. Needs an input
+// |element| (e.g. an HTMLImageElement or HTMLVideoElement) and a |url| to load.
+function detectOnElementAndExpectError(createDetector, element, url) {
+  return new Promise((resolve, reject) => {
+    const tryDetection = async () => {
+      const detector = createDetector();
+      try {
+        const detectionResult = await detector.detect(element);
+        reject("Promise should have been rejected.");
+      } catch (error) {
+        resolve(error);
+      }
+    };
+    element.onload = tryDetection;
+    element.onerror = tryDetection;
+    element.src = url;
+  });
+};
+
+</script>

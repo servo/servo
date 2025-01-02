@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: Baseline of nested flex containers with stretched textfield inside</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1672640">
+    <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-baselines">
+    <link rel="match" href="flexbox-baseline-nested-001-ref.html">
+
+    <style>
+      .ib {
+        display: inline-block;
+      }
+      .outerFlex {
+        display: flex;
+      }
+      .innerFlex {
+        display: flex;
+        height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    abc
+    <div class="ib">
+      <div class="outerFlex">
+        <div class="innerFlex">
+          <input value="def">
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

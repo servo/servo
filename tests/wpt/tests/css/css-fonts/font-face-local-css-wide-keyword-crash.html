@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Crash test for using unquoted CSS-wide keyword in local() font</title>
+<link rel="help" href="https://crbug.com/1342244">
+<style>
+  @font-face {
+    font-family: 'TestFont';
+    src: local(default);
+  }
+</style>
+<p style="font-family: TestFont">Test passes if it does not crash.</p>

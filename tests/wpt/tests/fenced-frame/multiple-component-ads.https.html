@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Test loading multiple component ads</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    num_components: 2,
+  });
+
+  await fencedframe.execute(async () => {
+    const ad_component_1 = await attachComponentFencedFrameContext(0);
+    const ad_component_2 = await attachComponentFencedFrameContext(1);
+
+    await ad_component_1.execute(() => {
+      window.component_1_var = 4;
+    });
+
+    // Check that ad_component_2 is its own separate frame.
+    await ad_component_2.execute(() => {
+      assert_equals(window.component_1_var, undefined);
+    });
+  });
+}, 'Test creating and using multiple component ads in a FLEDGE auction');
+</script>
+</body>

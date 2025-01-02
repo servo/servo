@@ -1,0 +1,102 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#no-border {
+    width: 100px;
+    height: 100px;
+}
+#with-border {
+    border: 10px solid black;
+    width: 100px;
+    height: 100px;
+}
+#with-border-and-padding {
+    border: 10px solid black;
+    padding: 10px;
+    width: 100px;
+    height: 100px;
+}
+#abs1 {
+    position: absolute;
+    background-color: red;
+    top: 45px;
+    left: 155px;
+    width: 100px;
+    height: 120px;
+}
+#abs2 {
+    position: absolute;
+    background-color: green;
+    top: 5px;
+    left: 5px;
+    width: 80px;
+    height: 80px;
+}
+#abs3 {
+    position: absolute;
+    background-color: blue;
+    top: 12px;
+    left: 14px;
+    width: 48px;
+    height: 40px;
+}
+#span1 {
+    font-family: 'ahem';
+    font-size: 20px;
+    line-height: 1;
+}
+#rotated {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  transform: rotate(45deg);
+}
+#inline-block {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: inline-block;
+}
+#display-none {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: none;
+}
+</style>
+</head>
+<body>
+    <div id="no-border">my div</div>
+    <div id="with-border">my div</div>
+    <div id="with-border-and-padding">my div</div>
+    <div id="abs1">
+        <span id="span1">X</span>
+    </div>
+    <div id='rotated'>rotated</div>
+    <div id='inline-block'>inline-block</div>
+    <div id='display-none'>display-none</div>
+    <script>
+    function test_rect(name, left, top, height, width) {
+      var div = document.getElementById(name);
+      var rect = div.getBoundingClientRect();
+
+      assert_equals(div.clientLeft, left);
+      assert_equals(div.clientTop, top);
+      assert_equals(div.clientHeight, height);
+      assert_equals(div.clientWidth, width);
+    }
+
+    test(function() { test_rect('no-border', 0, 0, 100, 100); }, 'Block without border');
+    test(function() { test_rect('with-border', 10, 10, 100, 100); }, 'Block with border');
+    test(function() { test_rect('with-border-and-padding', 10, 10, 120, 120); }, 'Block without border and padding');
+    test(function() { test_rect('abs1', 0, 0, 120, 100); }, 'Absolutely positioned block');
+    test(function() { test_rect('rotated', 0, 0, 100, 100); }, 'Rotated block');
+    test(function() { test_rect('span1', 0, 0, 0, 0); }, 'Span');
+    test(function() { test_rect('inline-block', 0, 0, 100, 100); }, 'Inline block');
+    test(function() { test_rect('display-none', 0, 0, 0, 0); }, 'display: none');
+    </script>
+</body>
+</html>

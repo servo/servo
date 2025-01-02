@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:jarhar@chromium.org">
+<link rel="help" href="http://crbug.com/1247417">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="content-visibility:hidden">
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <g id="group_text_1">
+      <text x="5" y="16" transform="scale(2, 2)">Hello World!</text>
+      <text x="8" y="32" transform="translate(0 20) scale(1.25 1)">Hello World Again!</text>
+    </g>
+  </svg>
+</div>
+
+<script>
+  test(() => {
+    const groupElement = document.getElementById('group_text_1');
+    const bbox = groupElement.getBBox();
+    assert_not_equals(bbox.width, 0, 'width');
+    assert_not_equals(bbox.height, 0, 'height');
+    assert_not_equals(bbox.x, 0, 'x');
+    assert_not_equals(bbox.y, 0, 'y');
+  }, `getBBox() should return nonzero values in a c-v:hidden subtree.`);
+</script>

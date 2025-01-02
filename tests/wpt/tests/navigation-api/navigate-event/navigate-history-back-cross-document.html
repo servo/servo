@@ -1,0 +1,34 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let target_key = i.contentWindow.navigation.currentEntry.key;
+    let target_id = i.contentWindow.navigation.currentEntry.id;
+    i.contentWindow.navigation.navigate("?foo");
+    i.onload = t.step_func(() => {
+      i.contentWindow.navigation.onnavigate = t.step_func_done(e => {
+        assert_equals(e.navigationType, "traverse");
+        assert_false(e.cancelable);
+        assert_false(e.canIntercept);
+        assert_false(e.userInitiated);
+        assert_false(e.hashChange);
+        assert_equals(e.downloadRequest, null);
+        assert_equals(new URL(e.destination.url).pathname, "/common/blank.html");
+        assert_false(e.destination.sameDocument);
+        assert_equals(e.destination.key, target_key);
+        assert_equals(e.destination.id, target_id);
+        assert_equals(e.destination.index, 0);
+        assert_equals(e.formData, null);
+        assert_equals(e.info, undefined);
+        // NavigateEvent sourceElement is still in development, so test whether it is available.
+        if ("sourceElement" in e) assert_equals(e.sourceElement, null);
+      });
+      assert_true(i.contentWindow.navigation.canGoBack);
+      i.contentWindow.history.back();
+    })
+  });
+}, "navigate event for history.back() - cross-document");
+</script>

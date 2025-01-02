@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>dialog element centered frame</title>
+<style>
+  html {
+    writing-mode: {{GET[html-writing-mode]}}
+  }
+
+  #container {
+    writing-mode: {{GET[container-writing-mode]}}
+  }
+
+  dialog {
+    writing-mode: {{GET[dialog-writing-mode]}};
+    border: none;
+    padding: 0;
+    max-width: initial;
+    max-height: initial;
+    width: {{GET[dialog-width]}};
+    height: {{GET[dialog-height]}};
+  }
+</style>
+
+<div id="container">
+  <dialog>X</dialog>
+</div>
+
+<script>
+"use strict";
+document.querySelector("dialog").showModal();
+</script>

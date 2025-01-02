@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>content position with width/height</title>
+<link rel="match" href="width-height-003-ref.html">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+<meta name="assert" content="Verify the inline-start and block-start edges of the math content box for the munder, mover, munderover, msub, msup, msubsup, multiscripts layout algorithms."/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body, math {
+      font: 25px/1 Ahem;
+      color: black;
+  }
+  .test {
+      margin: .5em;
+  }
+  .box {
+      width: 7em;
+      height: 3em;
+      border: 1px solid blue;
+  }
+</style>
+</head>
+<body>
+
+  <div class="test">
+    <math>
+      <munder class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munder>
+    </math>
+    <math dir="rtl">
+      <munder class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munder>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mover class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mover>
+    </math>
+    <math dir="rtl">
+      <mover class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mover>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <munderover class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munderover>
+    </math>
+    <math dir="rtl">
+      <munderover class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </munderover>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <msub class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </msub>
+    </math>
+    <math dir="rtl">
+      <msub class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </msub>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <msup class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </msup>
+    </math>
+    <math dir="rtl">
+      <msup class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </msup>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <msubsup class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </msubsup>
+    </math>
+    <math dir="rtl">
+      <msubsup class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </msubsup>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mmultiscripts class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mprescripts/>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mmultiscripts>
+    </math>
+    <math dir="rtl">
+      <mmultiscripts class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mprescripts/>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mmultiscripts>
+    </math>
+  </div>
+
+</body>
+</htmL>

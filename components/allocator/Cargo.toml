@@ -1,0 +1,25 @@
+[package]
+name = "servo_allocator"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[features]
+use-system-allocator = ["libc"]
+
+[target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
+tikv-jemallocator = { workspace = true }
+tikv-jemalloc-sys = { workspace = true }
+libc = { workspace = true, optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_System_Memory"] }
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+libc = { workspace = true }

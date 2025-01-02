@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extensions: Unique origin with Clear Key, mp4</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/unique-origin.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+    <div id='video'>
+        <video id="videoelement" width="200px"></video>
+    </div>
+
+    <script>
+        var contentItem = content['mp4-av-multikey'],
+            config = {
+                video: document.getElementById('videoelement'),
+                keysystem: 'org.w3.clearkey',
+                initDataType: contentItem.initDataType,
+                audioType: contentItem.audio.type,
+                videoType: contentItem.video.type,
+                audioPath: contentItem.audio.path,
+                videoPath: contentItem.video.path
+            };
+        runTest(config);
+    </script>
+  </body>
+</html>

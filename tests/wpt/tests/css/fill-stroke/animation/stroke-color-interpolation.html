@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.fxtf.org/fill-stroke/#stroke-color">
+<meta name="test" content="stroke-color supports animation as a <color>">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  stroke-color: #eee;
+}
+.target {
+  width: 60px;
+  height: 60px;
+  display: inline-block;
+  border: 2px solid black;
+  margin-right: 2px;
+  color: rgba(0, 0, 255, 0.5);
+  stroke-color: black;
+}
+.expected {
+  margin-right: 15px;
+}
+</style>
+
+<body></body>
+
+<script>
+test_interpolation({
+  property: 'stroke-color',
+  from: neutralKeyframe,
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 0)'},
+  {at: 0, expect: 'rgb(0, 0, 0)'},
+  {at: 0.3, expect: 'rgb(0, 38, 0)'},
+  {at: 0.6, expect: 'rgb(0, 77, 0)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'stroke-color',
+  from: 'initial',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgba(0, 0, 0, 0)'},
+  {at: 0, expect: 'rgba(0, 0, 0, 0)'},
+  {at: 0.3, expect: 'rgba(0, 128, 0, 0.3)'},
+  {at: 0.6, expect: 'rgba(0, 128, 0, 0.6)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'stroke-color',
+  from: 'inherit',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(255, 255, 255)'},
+  {at: 0, expect: 'rgb(238, 238, 238)'},
+  {at: 0.3, expect: 'rgb(167, 205, 167)'},
+  {at: 0.6, expect: 'rgb(95, 172, 95)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 73, 0)'},
+]);
+
+test_interpolation({
+  property: 'stroke-color',
+  from: 'unset',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(255, 255, 255)'},
+  {at: 0, expect: 'rgb(238, 238, 238)'},
+  {at: 0.3, expect: 'rgb(167, 205, 167)'},
+  {at: 0.6, expect: 'rgb(95, 172, 95)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 73, 0)'},
+]);
+
+test_interpolation({
+  property: 'stroke-color',
+  from: 'white',
+  to: 'orange',
+}, [
+  {at: -0.3, expect: 'white'},
+  {at: 0, expect: 'white'},
+  {at: 0.3, expect: 'rgb(255, 228, 179)'},
+  {at: 0.6, expect: 'rgb(255, 201, 102)'},
+  {at: 1, expect: 'orange'},
+  {at: 1.5, expect: 'rgb(255, 120, 0)'},
+]);
+
+test_interpolation({
+  property: 'stroke-color',
+  from: 'transparent',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgba(0, 0, 0, 0)'},
+  {at: 0, expect: 'rgba(0, 0, 0, 0)'},
+  {at: 0.3, expect: 'rgba(0, 128, 0, 0.3)'},
+  {at: 0.6, expect: 'rgba(0, 128, 0, 0.6)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'stroke-color',
+  from: 'currentcolor',
+  to: 'rgba(0, 255, 0, 0.75)',
+}, [
+  {at: -0.5, expect: 'rgba(0, 0, 255, 0.38)'},
+  {at: 0, expect: 'rgba(0, 0, 255, 0.5)'},
+  {at: 0.25, expect: 'rgba(0, 85, 170, 0.56)'},
+  {at: 0.5, expect: 'rgba(0, 153, 102, 0.63)'},
+  {at: 0.75, expect: 'rgba(0, 208, 47, 0.69)'},
+  {at: 1, expect: 'rgba(0, 255, 0, 0.75)'},
+  {at: 1.5, expect: 'rgba(0, 255, 0, 0.88)'},
+]);
+</script>

@@ -1,0 +1,12 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(function(t) {
+      let p = new Promise((r) => t.step_timeout(r, 0));
+      p.then = function() {};
+      let p2 = new Promise((r) => t.step_timeout(r, 10));
+      return Promise.race([p, p2]);
+  }, 'No panic when SM puts a dummy promise with no incumbent in the queue');
+</script>

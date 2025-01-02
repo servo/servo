@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Filters: SVG filter on transparent element</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=510541">
+<link rel="match" href="reference/effect-reference-on-transparent-element-ref.html">
+<meta name="assert" content="Check that applying a SVG filter to a transparent element works as expected. You should see a green lime colored square."/>
+
+<style>
+.box {
+  width: 100px;
+  height: 100px;
+  filter: url(#flood_green);
+}
+</style>
+
+<body>
+<div class="box"></div>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="0" height="0">
+  <defs>
+    <filter id="flood_green" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0 0 0 0 0
+                                           0 0 0 0 1
+                                           0 0 0 0 0
+                                           0 0 0 0 1"/>
+    </filter>
+  </defs>
+</svg>
+</body>
+</html>

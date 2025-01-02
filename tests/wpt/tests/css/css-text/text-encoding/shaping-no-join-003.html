@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: zwnj and text-shaping, cross font, explicit</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-encoding">
+<link rel="help" href="https://www.unicode.org/versions/Unicode11.0.0/ch23.pdf">
+<link rel="help" href="https://www.unicode.org/versions/Unicode11.0.0/ch09.pdf">
+<link rel="help" href="https://www.w3.org/TR/alreq/#h_disjoining_enforcement">
+<link rel="help" href="https://www.w3.org/TR/alreq/#h_joining_enforcement">
+<link rel="match" href="reference/shaping-no-join-001-ref.html">
+<meta name="assert" content="Arabic characters next to a ZERO WIDTH NON JOINER character must not take their positional form, even if the ZWNJ comes from a differnt font due to being in a different element with an explicit different font.">
+<style>
+  table {
+    font-size: 3em;
+    border-spacing: 0 3px;
+  }
+  td {
+    padding: 0 0.5ch;
+    line-height: 1;
+    border: 1px solid;
+  }
+  @font-face {
+    font-family: 'joiners';
+    src: url('/fonts/noto/noto-sans-v8-latin-regular.woff') format('woff');
+  }
+  @font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+  }
+  span {
+    font-family: 'joiners';
+    line-height: 0;
+  }
+  table {
+    font-family: 'csstest_noto';
+  }
+</style>
+
+<p>Test passes if both halves of each of the pairs below are identical:
+
+<table dir=rtl lang=ar>
+<tr><!-- alef, isolated rather than final -->
+  <td>&#x640;<span>&zwnj;</span>&#x0627;
+  <td>&#x640;&#xFE8D;
+<tr><!-- beh, isolated rather than initial -->
+  <td>&#x0628;<span>&zwnj;</span>&#x640;
+  <td>&#xFE8F;&#x640;
+<tr><!-- beh, final rather than medial -->
+  <td>&#x640;&#x0628;<span>&zwnj;</span>&#x640;
+  <td>&#x640;&#xFE90;&#x640;
+<tr><!-- beh, isolated rather than medial -->
+  <td>&#x640;<span>&zwnj;</span>&#x0628;<span>&zwnj;</span>&#x640;
+  <td>&#x640;&#xFE8F;&#x640;
+<tr><!-- beh, initial rather than medial -->
+  <td>&#x640;<span>&zwnj;</span>&#x0628;&#x640;
+  <td>&#x640;&#xFE91;&#x640;
+<tr><!-- beh, isolated rather than final -->
+  <td>&#x640;<span>&zwnj;</span>&#x0628;
+  <td>&#x640;&#xFE8F;
+</table>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: An Empty Text Node Should Not Generate a Baseline</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#intro">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9606">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1855583">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+
+#container {
+  font-family: Ahem;
+}
+
+#inner {
+  display: inline-block;
+}
+</style>
+<div id="container"><div id="inner">x</div><span id="span">x</span></div>
+<script>
+const expected = span.offsetTop;
+
+// Force an empty text node on the second line of #inner
+inner.appendChild(document.createElement("br"));
+inner.appendChild(document.createTextNode(''));
+
+test(function() {
+  assert_equals(span.offsetTop, expected);
+}, "Empty second line in #inner does not generate baseline for #span");
+
+test(function() {
+  inner.style = "white-space: pre-line";
+  assert_equals(span.offsetTop, expected);
+}, "Empty second line in #inner does not generate baseline for #span with white-space: pre-line");
+
+test(function() {
+  inner.style = "white-space: pre";
+  assert_equals(span.offsetTop, expected);
+}, "Empty second line in #inner does not generate baseline for #span with white-space: pre");
+</script>

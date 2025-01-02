@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance.navigation.type with a reloaded navigation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+        <script>
+            setup({explicit_done: true});
+
+            // explicitly test the namespace before we start testing
+            test_namespace('navigation');
+            var reload_frame;
+            var startingTime;
+
+            function deepCopy(p, c)
+            {
+                var c = c || {};
+                for (var i in p)
+                {
+                    if (typeof p[i] === 'object')
+                    {
+                        c[i] = (p[i].constructor === Array) ? [] : {};
+                        deepCopy(p[i], c[i]);
+                    } else c[i] = p[i];
+                }
+                return c;
+            }
+
+
+            function onload_test()
+            {
+                reload_frame = document.getElementById("frameContext");
+                reload_frame.onload = function() {
+                    /* Need to make sure we don't examine loadEventEnd
+                     until after the load event has finished firing */
+                    step_timeout(do_test, 0);
+                }
+                step_timeout(reload_the_frame, 100);
+            }
+
+            function reload_the_frame()
+            {
+                //Before reloading, save the current timing
+                startingTime = deepCopy(reload_frame.contentWindow.performance.timing);
+                reload_frame.contentWindow.location.reload(true);
+            }
+
+            function do_test()
+            {
+                reload_frame.onload = null;
+                if (performanceNamespace)
+                {
+                    //Verify that the navigation type has updated to reload
+                    test_equals(reload_frame.contentWindow.performance.navigation.type,
+                            performanceNamespace.navigation.TYPE_RELOAD,
+                            'window.performance.navigation.type == TYPE_RELOAD');
+
+                    //Verify that the timing data has been updated into the future
+                    var reloadTime = reload_frame.contentWindow.performance.timing;
+                    for (attribute in timingAttributes)
+                    {
+                        var time = timingAttributes[attribute];
+                        if (reloadTime[time] === 0)
+                        {
+                            test_equals(reloadTime[time],
+                                        startingTime[time],
+                                        "Reload " + time + "(" + reloadTime[time] + ")" +
+                                        " == " +
+                                        "Original " + time + "(" + startingTime[time] + ")");
+                        }
+                        else
+                        {
+                            test_greater_than(reloadTime[time],
+                                              startingTime[time],
+                                              "Reload " + time +
+                                              " > " +
+                                              "Original " + time);
+                        }
+                    }
+                }
+
+                done();
+            }
+        </script>
+    </head>
+    <body onload="onload_test();">
+        <h1>Description</h1>
+        <p>This test validates the value of window.performance.navigation.type and the values of
+            window.performance.timing.* with a reloaded navigation.</p>
+
+        <p>This page should be loaded with a green background frame below.  The frame will be automatically reloaded
+        and then verified that
+        <ul>
+            <li>The window.performance.navigation.type = TYPE_RELOAD</li>
+            <li>All of the widow.performance.timing.* values after reload are > all of the window.performance.timing.* values
+                prior to reload.</li>
+        </ul>
+        </p>
+
+        <div id="log"></div>
+        <br />
+        <iframe id="frameContext" src="resources/blank_page_green.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

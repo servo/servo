@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<title>CSSOM View Module test: subpixel sizes and offsets</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9866">
+<link rel="help" href="https://lists.w3.org/Archives/Public/www-style/2015Feb/0195.html">
+
+<div style="overflow: hidden; position: relative">
+  <div id="target">
+    <div id="child"></div>
+  </div>
+</div>
+
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// clientWidth, offsetWidth and scrollWidth round to the nearest integer.
+test(function() {
+  target.style.cssText = "width: 5.1px";
+  assert_equals(target.clientWidth, 5, "clientWidth");
+  assert_equals(target.offsetWidth, 5, "offsetWidth");
+  assert_equals(target.scrollWidth, 5, "scrollWidth");
+}, "clientWidth, offsetWidth and scrollWidth round 5.1 to 5");
+test(function() {
+  target.style.cssText = "width: 5.5px";
+  assert_equals(target.clientWidth, 6, "clientWidth");
+  assert_equals(target.offsetWidth, 6, "offsetWidth");
+  assert_equals(target.scrollWidth, 6, "scrollWidth");
+}, "clientWidth, offsetWidth and scrollWidth round 5.5 to 6");
+test(function() {
+  target.style.cssText = "width: 5.9px";
+  assert_equals(target.clientWidth, 6, "clientWidth");
+  assert_equals(target.offsetWidth, 6, "offsetWidth");
+  assert_equals(target.scrollWidth, 6, "scrollWidth");
+}, "clientWidth, offsetWidth and scrollWidth round 5.9 to 6");
+
+// clientHeight, offsetHeight and scrollHeight round to the nearest integer.
+test(function() {
+  target.style.cssText = "height: 5.1px";
+  assert_equals(target.clientHeight, 5, "clientHeight");
+  assert_equals(target.offsetHeight, 5, "offsetHeight");
+  assert_equals(target.scrollHeight, 5, "scrollHeight");
+}, "clientHeight, offsetHeight and scrollHeight round 5.1 to 5");
+test(function() {
+  target.style.cssText = "height: 5.5px";
+  assert_equals(target.clientHeight, 6, "clientHeight");
+  assert_equals(target.offsetHeight, 6, "offsetHeight");
+  assert_equals(target.scrollHeight, 6, "scrollHeight");
+}, "clientHeight, offsetHeight and scrollHeight round 5.5 to 6");
+test(function() {
+  target.style.cssText = "height: 5.9px";
+  assert_equals(target.clientHeight, 6, "clientHeight");
+  assert_equals(target.offsetHeight, 6, "offsetHeight");
+  assert_equals(target.scrollHeight, 6, "scrollHeight");
+}, "clientHeight, offsetHeight and scrollHeight round 5.9 to 6");
+
+// offsetLeft and offsetTop round to the nearest integer.
+test(function() {
+  target.style.cssText = "margin: 5.1px";
+  assert_equals(target.offsetLeft, 5, "offsetLeft");
+  assert_equals(target.offsetTop, 5, "offsetTop");
+}, "offsetLeft and offsetTop round 5.1 to 5");
+test(function() {
+  target.style.cssText = "margin: 5.5px";
+  assert_equals(target.offsetLeft, 6, "offsetLeft");
+  assert_equals(target.offsetTop, 6, "offsetTop");
+}, "offsetLeft and offsetTop round 5.5 to 6");
+test(function() {
+  target.style.cssText = "margin: 5.9px";
+  assert_equals(target.offsetLeft, 6, "offsetLeft");
+  assert_equals(target.offsetTop, 6, "offsetTop");
+}, "offsetLeft and offsetTop round 5.9 to 6");
+
+// clientLeft and clientTop round the border width to the nearest integer.
+// Note that the computed value of a border width is snapped to device pixels,
+// so the results can vary depending on the device pixel ratio.
+function borderLeftWidth() {
+  return child.getBoundingClientRect().left - target.getBoundingClientRect().left;
+}
+function borderTopWidth() {
+  return child.getBoundingClientRect().top - target.getBoundingClientRect().top;
+}
+test(function() {
+  target.style.cssText = "border: 5.1px solid";
+  assert_equals(target.clientLeft, Math.round(borderLeftWidth()), "clientLeft");
+  assert_equals(target.clientLeft, Math.round(borderTopWidth()), "clientTop");
+}, "clientLeft and clientTop round 5.1");
+test(function() {
+  target.style.cssText = "border: 5.5px solid";
+  assert_equals(target.clientLeft, Math.round(borderLeftWidth()), "clientLeft");
+  assert_equals(target.clientLeft, Math.round(borderTopWidth()), "clientTop");
+}, "clientLeft and clientTop round 5.5");
+test(function() {
+  target.style.cssText = "border: 5.9px solid";
+  assert_equals(target.clientLeft, Math.round(borderLeftWidth()), "clientLeft");
+  assert_equals(target.clientLeft, Math.round(borderTopWidth()), "clientTop");
+}, "clientLeft and clientTop round 5.9");
+
+// Unlike the attributes above, scrollLeft and scrollTop are `double`s,
+// so the results shouldn't be rounded.
+child.style.cssText = "width: 50px; height: 50px";
+test(function() {
+  target.style.cssText = "overflow: hidden; width: 5.1px;";
+  target.scrollTo(target.scrollWidth, target.scrollHeight);
+  assert_equals(target.scrollLeft, 44.9, "scrollLeft");
+  assert_equals(target.scrollTop, 44.9, "scrollTop");
+}, "clientLeft and clientTop don't round 44.9");
+test(function() {
+  target.style.cssText = "overflow: hidden; width: 5.5px;";
+  target.scrollTo(target.scrollWidth, target.scrollHeight);
+  assert_equals(target.scrollLeft, 44.5, "scrollLeft");
+  assert_equals(target.scrollTop, 44.5, "scrollTop");
+}, "clientLeft and clientTop don't round 44.5");
+test(function() {
+  target.style.cssText = "overflow: hidden; width: 5.9px;";
+  target.scrollTo(target.scrollWidth, target.scrollHeight);
+  assert_equals(target.scrollLeft, 44.1, "scrollLeft");
+  assert_equals(target.scrollTop, 44.1, "scrollTop");
+}, "clientLeft and clientTop don't round 44.1");
+</script>

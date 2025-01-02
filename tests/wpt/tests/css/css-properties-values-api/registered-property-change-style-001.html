@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Variables Test: Style changes on registered properties using variables</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+<meta name="assert" content="A change in the custom property declaration must be propagated to all the descendants">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="outer">
+    <div id="inbetween">
+        <div id="inner"></div>
+    </div>
+</div>
+<script>
+    "use strict";
+    test( function () {
+        outer.style.cssText = '';
+        inbetween.style.cssText = '';
+        inner.style.cssText = 'color: var(--color1)';
+        let initialValue = getComputedStyle(inner).getPropertyValue('color');
+        assert_equals(initialValue, "rgb(0, 0, 0)", "Initial value");
+
+        inbetween.style.cssText = 'color: green';
+        let inheritedValue = getComputedStyle(inner).getPropertyValue('color');
+        assert_equals(inheritedValue, "rgb(0, 128, 0)", "Inherited value");
+
+        CSS.registerProperty({name: '--color1', syntax: '<color>', initialValue: 'red', inherits: true});
+        let actualValue = getComputedStyle(inner).getPropertyValue('color');
+        assert_equals(actualValue, "rgb(255, 0, 0)", "Resolved value");
+    }, "New registered property declaration");
+
+    test( function () {
+        outer.style.cssText = '';
+        inbetween.style.cssText = '';
+        inner.style.cssText = 'color: var(--color2)';
+        let initialValue = getComputedStyle(inner).getPropertyValue('color');
+        assert_equals(initialValue, "rgb(0, 0, 0)", "Initial value");
+
+        outer.style.cssText = '--color2: blue';
+        inbetween.style.cssText = 'color: green';
+        let resolvedValue = getComputedStyle(inner).getPropertyValue('color');
+        assert_equals(resolvedValue, "rgb(0, 0, 255)", "Resolved value");
+
+        outer.style.cssText = '';
+        CSS.registerProperty({name: '--color2', syntax: '<color>', initialValue: 'red', inherits: true});
+        let actualValue = getComputedStyle(inner).getPropertyValue('color');
+        assert_equals(actualValue, "rgb(255, 0, 0)", "Resolved value");
+    }, "Registered property overrides a previous declaration ");
+</script>
+

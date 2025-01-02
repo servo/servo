@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: Keyboard event simulated click</title>
+<meta charset=utf-8 />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+
+<a id="lnk" href="url">
+
+<script>
+  promise_test(async t => {
+
+    let map = new Map();
+
+    const link = document.getElementById('lnk');
+
+    link.addEventListener('click', e=>{ e.preventDefault();})
+
+    const callback = (entryList) => { entryList.getEntries().filter(filterAndAddToMap(['keydown','click'], map)); };
+
+    const readyToResolve = () => { return map.has('keydown') && map.has('click'); };
+
+    const observerPromise = createPerformanceObserverPromise(['event'], callback, readyToResolve);
+
+    await interactAndObserve('enter-key-simulated-click', link, observerPromise );
+
+    assert_equals(map.get('click'), map.get('keydown'),
+    'Click event should have the same interaction id as the keydown event.');
+
+  }, 'Click event triggered by space key in checkbox should have the same\
+      interaction id as that of the associated keyboard events.');
+</script>

@@ -1,0 +1,228 @@
+name: Linux
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-sync-from-upstream:
+        required: false
+        default: false
+        type: boolean
+      wpt-layout:
+        required: false
+        type: string
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
+      github-release-id:
+        required: false
+        type: string
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: choice
+        options: ["release", "debug", "production"]
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-sync-from-upstream:
+        default: false
+        required: false
+        type: boolean
+      wpt-layout:
+        required: false
+        type: choice
+        options: ["none", "2013", "2020", "all"]
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+  runner-select:
+    uses: ./.github/workflows/self-hosted-runner-select.yml
+    secrets: inherit
+    with:
+      # Ubuntu 22.04 has glibc 2.34 so the binaries produced
+      # won't run on systems with older glibc e.g wpt.fyi
+      # runners which still use 20.04.
+      github-hosted-runner-label: ubuntu-${{ inputs.upload && '20.04' || '22.04' }}
+      self-hosted-image-name: servo-ubuntu2204
+      force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
+  runner-timeout:
+    needs:
+      - runner-select
+    uses: ./.github/workflows/self-hosted-runner-timeout.yml
+    secrets: inherit
+    with:
+      unique-id: ${{ needs.runner-select.outputs.unique-id }}
+      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+
+  build:
+    needs:
+      - runner-select
+    name: Linux Build [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Faster checkout for self-hosted runner that uses prebaked repo.
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      - if: ${{ runner.environment == 'self-hosted' }}
+        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
+        # trees, in case the runner image was baked with a dirty working tree.
+        run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
+      - name: Install LLVM and Clang
+        # Expliclity install Clang 14 on Ubuntu 20.04 used by the nightly job (#34713).
+        if: ${{ runner.environment != 'self-hosted' && inputs.upload }}
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: 14
+        # FIXME: It would be better to use the above step for regular Linux jobs
+        # and remove the following step, but currenty that is failing and needs investigation.
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        if: ${{ runner.environment != 'self-hosted' && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          sudo apt update
+          ./mach bootstrap --skip-lints
+
+      # Always install crown, even on self-hosted runners, because it is tightly
+      # coupled to the rustc version, and we may have the wrong version if the
+      # commit we are building uses a different rustc version.
+      - name: Install crown
+        run: cargo install --path support/crown
+
+      - name: Build (${{ inputs.profile }})
+        run: |
+          ./mach build --use-crown --locked --${{ inputs.profile }} --features "layout_2013"
+          cp -r target/cargo-timings target/cargo-timings-linux
+      - name: Smoketest
+        run: xvfb-run ./mach smoketest --${{ inputs.profile  }}
+      - name: Script tests
+        run: ./mach test-scripts
+      - name: Unit tests
+        if: ${{ inputs.unit-tests }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 2 # https://github.com/servo/servo/issues/30683
+          command: ./mach test-unit --${{ inputs.profile }}
+      - name: Archive build timing
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-timings-linux
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*
+      - name: Build mach package
+        run: ./mach package --${{ inputs.profile }}
+      - name: Upload artifact for mach package
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+      - name: Upload nightly
+        if: ${{ inputs.upload }}
+        run: |
+          ./mach upload-nightly linux \
+            --secret-from-environment \
+            --github-release-id ${{ inputs.github-release-id }}
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      - name: Build package for target
+        run: tar -czf target.tar.gz target/${{ inputs.profile }}/servo resources
+      - name: Upload artifact for target
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-linux
+          path: target.tar.gz
+
+  wpt-2020:
+    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    name: Linux WPT
+    needs: ["build"]
+    uses: ./.github/workflows/linux-wpt.yml
+    with:
+      wpt-args: ${{ inputs.wpt-args }}
+      profile: ${{ inputs.profile }}
+      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
+      wpt-layout: "layout-2020"
+    secrets: inherit
+
+  wpt-2013:
+    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
+    name: Linux WPT (Legacy)
+    needs: ["build"]
+    uses: ./.github/workflows/linux-wpt.yml
+    with:
+      wpt-args: ${{ inputs.wpt-args }}
+      profile: ${{ inputs.profile }}
+      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
+      wpt-layout: "layout-2013"
+    secrets: inherit
+
+  bencher:
+    needs: ["build"]
+    # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
+    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/linux-bencher.yml
+    secrets: inherit

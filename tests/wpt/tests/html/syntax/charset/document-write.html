@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<head>
+<link rel="mismatch" href="references/document-write-ref.html">
+<script>document.write('<meta char' + 'set="windows-1251">');</script>
+</head>
+<body>
+<p>Meta from <code>document.write</code> (with concatenation in the middle of <code>charset</code> to require execution for effect).</p>
+<p>Test: æ</p>
+<p>If &#x0436;, meta takes effect</p>
+</body>

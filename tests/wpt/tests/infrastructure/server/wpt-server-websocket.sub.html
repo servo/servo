@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WPT Server checker</title>
+    <meta charset="utf-8" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+</body>
+<body>
+<script>
+function check(protocol, domain, port, done) {
+  var url = protocol + '://' + domain + ':' + port + '/echo';
+  var ws = new WebSocket(url);
+
+  ws.addEventListener('error', function() {
+    done(false);
+  });
+
+  ws.addEventListener('open', function() {
+    done(true);
+  });
+}
+
+async_test(function(t) {
+  check('ws', '{{browser_host}}', {{ports[ws][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WS protocol, no subdomain');
+
+async_test(function(t) {
+  check('ws', '{{domains[www1]}}', {{ports[ws][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WS protocol, www subdomain #1');
+
+async_test(function(t) {
+  check('ws', '{{domains[www1]}}', {{ports[ws][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WS protocol, www subdomain #2');
+
+async_test(function(t) {
+  check('ws', '{{domains[www2]}}', {{ports[ws][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WS protocol, www subdomain #3');
+
+async_test(function(t) {
+  check('ws', '{{domains[élève]}}', {{ports[ws][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WS protocol, punycode subdomain #1');
+
+async_test(function(t) {
+  check('ws', '{{domains[天気の良い日]}}', {{ports[ws][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WS protocol, punycode subdomain #2');
+
+async_test(function(t) {
+  check('wss', '{{browser_host}}', {{ports[wss][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WSS protocol, no subdomain');
+
+async_test(function(t) {
+  check('wss', '{{domains[www1]}}', {{ports[wss][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WSS protocol, www subdomain #1');
+
+async_test(function(t) {
+  check('wss', '{{domains[www1]}}', {{ports[wss][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WSS protocol, www subdomain #2');
+
+async_test(function(t) {
+  check('wss', '{{domains[www2]}}', {{ports[wss][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WSS protocol, www subdomain #3');
+
+async_test(function(t) {
+  check('wss', '{{domains[élève]}}', {{ports[wss][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WSS protocol, punycode subdomain #1');
+
+async_test(function(t) {
+  check('wss', '{{domains[天気の良い日]}}', {{ports[wss][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'WSS protocol, punycode subdomain #2');
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body p, span {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+::backdrop {
+    display: none;
+}
+</style>
+</head>
+<body>
+<p>Test that inert nodes are not painted as being selected. The test passes if
+none of the text outside the dialog is highlighted when selected.</p>
+
+<p>Although not shown as selected, the inert nodes are in window.getSelection()
+and copied to the clipboard, which is the same behavior as user-select:
+none (crbug.com/147490).</p>
+
+<br><span>This text shouldn't be highlighted as selected.</span>
+
+<dialog>
+    <div id="selectable">I'm selectable.</div>
+</dialog>
+
+<script>
+dialog = document.querySelector('dialog');
+dialog.showModal();
+selectable = document.querySelector('#selectable');
+window.getSelection().selectAllChildren(selectable);
+</script>
+</body>
+</html>

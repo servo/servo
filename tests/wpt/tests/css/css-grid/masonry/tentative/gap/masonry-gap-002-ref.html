@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+<meta charset="utf-8">
+<title>Reference: Masonry layout with normal `gap` in both axes</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Elika J. Etemad" href="https://fantasai.inkedblade.net/contact">
+<style>
+html,body {
+  color:black; background-color:white; font:25px/1 "Courier New", monospace; padding:0; margin:0;
+}
+
+grid {
+  display: inline-grid;
+  gap: 0;
+  grid-template-columns: auto min-content repeat(2,auto);
+  color: #444;
+  border: 1px solid;
+  padding: 2px;
+}
+
+item {
+  background-color: #444;
+  color: #fff;
+  padding: 20px;
+  margin: 3px;
+  border: 5px solid blue;
+  place-self: start;
+  grid-row: span 2;
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<grid>
+  <item>1</item>
+  <item style="padding:0; grid-row: span 1">2</item>
+  <item>3</item>
+  <item>4</item>
+  <item style="padding:0; grid-column: 2; grid-row: 2">5</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <item style="padding:0; grid-row: span 1">2</item>
+  <item>3</item>
+  <item>4</item>
+  <item style="padding:0; grid-column: 2; grid-row: 2">5</item>
+</grid>
+
+<grid>
+  <div style="columns: 3; column-gap: 1em;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+  </div>
+  <div style="columns: 3; column-gap: 1em; visibility: hidden;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+  </div>
+  <div style="columns: 3; column-gap: 1em; visibility: hidden;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+  </div>
+  <div style="columns: 3; column-gap: 1em; visibility: hidden;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+  </div>
+</grid>
+

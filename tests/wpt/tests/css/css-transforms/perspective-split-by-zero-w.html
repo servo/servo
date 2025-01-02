@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Test (Transforms): Filter on an element in a preserve-3d scene</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#processing-of-perspective-transformed-boxes">
+<meta name="assert" content="A box that perspective causes to have parts with w<0 still has the w>0 parts rendered correctly.  (Chromium issue 1202695)">
+<link rel="match" href="perspective-split-by-zero-w-ref.html">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+html { overflow: hidden }
+body {
+  perspective: 500px;
+  perspective-origin: 400px 299px;
+  background: rgb(200, 200, 200);
+}
+div {
+  width: 1140px;
+  height: 990px;
+  transform-style: preserve-3d;
+  position: absolute;
+  top: 299.5px;
+  left: 400px;
+  transform: translate3d(-570px, -495px, 500px) rotateY(64.24deg) translateY(23px) rotateX(90deg);
+  background-image: url('support/tile-bg.png');
+  background-size: 100% 100%;
+}
+</style>
+
+<div></div>

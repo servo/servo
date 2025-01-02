@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<title>Trivial mandatory constraint in getUserMedia</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-NavigatorUserMedia-getUserMedia-void-MediaStreamConstraints-constraints-NavigatorUserMediaSuccessCallback-successCallback-NavigatorUserMediaErrorCallback-errorCallback">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#idl-def-NavigatorUserMediaError">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that setting an impossible mandatory
+constraint (width &gt;=1G) in getUserMedia works</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async () => {
+  await setMediaPermission("granted", ["camera"]);
+  // Note - integer conversion is weird for +inf and numbers > 2^32, so we
+  // use a number less than 2^32 for testing.
+  try {
+    await navigator.mediaDevices.getUserMedia({video: {width: {min:100000000}}});
+    assert_unreached("a Video stream of width 100M cannot be created");
+
+  } catch (error) {
+    assert_equals(error.name, "OverconstrainedError", "An impossible constraint triggers a OverconstrainedError");
+    assert_equals(error.constraint, "width", "The name of the not satisfied error is given in error.constraint");
+  }
+}, "Tests that setting an impossible constraint in getUserMedia fails");
+</script>
+</body>
+</html>

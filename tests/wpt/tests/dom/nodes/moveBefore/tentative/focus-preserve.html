@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>moveBefore should not automatically clear focus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<section id="old_parent">
+<button id="button" tabindex="1">Button</button>
+</section>
+<section id="new_parent">
+</section>
+<section id="inert_parent" inert>
+</section>
+<section id="hidden_parent" hidden>
+</section>
+<script>
+
+function eventually_blurred(t, item, timeout = 1000) {
+    return new Promise((resolve, reject) => {
+        function onblur() {
+            resolve();
+            item.removeEventListener("blur", onblur);
+        }
+        item.addEventListener("blur", onblur);
+        t.step_timeout(reject, timeout);
+    });
+}
+
+test(t => {
+    const old_parent = document.querySelector("#old_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => old_parent.append(button));
+    button.focus();
+    assert_equals(document.activeElement, button);
+    new_parent.moveBefore(button, null);
+    assert_equals(document.activeElement, button);
+}, "when reparenting an element, don't automatically reset the document focus");
+
+promise_test(async t => {
+    const old_parent = document.querySelector("#old_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => old_parent.append(button));
+    const inert_parent = document.querySelector("#inert_parent");
+    button.focus();
+    assert_equals(document.activeElement, button);
+    inert_parent.moveBefore(button, null);
+
+    // The button will still be considered the active element. It will blur asynchronously.
+    assert_equals(document.activeElement, button);
+    await eventually_blurred(t, button);
+    assert_equals(document.activeElement, document.body);
+}, "when reparenting a focused element into an inert parent, reset the document focus");
+
+
+promise_test(async t => {
+    const old_parent = document.querySelector("#old_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => old_parent.append(button));
+    const hidden_parent = document.querySelector("#hidden_parent");
+    button.focus();
+    assert_equals(document.activeElement, button);
+    hidden_parent.moveBefore(button, null);
+
+    // The button will still be considered the active element. It will blur asynchronously.
+    // This is similar to other operations that can cause a blur due to change in inert trees,
+    // e.g. a style change that makes an ancestor `display: none`.
+    assert_equals(document.activeElement, button);
+    await eventually_blurred(t, button);
+    assert_equals(document.activeElement, document.body);
+}, "when reparenting a focused element into a hidden parent, reset the document focus");
+
+promise_test(async t => {
+    const old_parent = document.querySelector("#old_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => document.body.append(old_parent));
+    const hidden_parent = document.querySelector("#hidden_parent");
+    button.focus();
+    assert_equals(document.activeElement, button);
+    hidden_parent.moveBefore(old_parent, null);
+
+    // The button will still be considered the active element. It will blur asynchronously.
+    assert_equals(document.activeElement, button);
+    await eventually_blurred(t, button);
+    assert_equals(document.activeElement, document.body);
+}, "when reparenting an ancestor of an focused element into a hidden parent, reset the document focus");
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>More than one class selector</title>
+  <style type="text/css"><![CDATA[p { background-color : red ; border : thick solid red ; padding : 1em }
+p.t1 { background-color : lime }
+p.t2 { border : thick solid green }
+
+div { background: green; color: white; }
+div.teST { background: red; color: yellow; }
+div.te { background: red; color: yellow; }
+div.st { background: red; color: yellow; }
+div.te.st { background: red; color: yellow; }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+ </head>
+ <body>
+
+<p class="t1 t2">This paragraph
+should have a green background and a green thick solid border because
+it carries both classes t1 and t2.</p>
+
+<div class="test">This line
+should be green.</div>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>A separate Report-Only policy does not influence `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served:
+    1) Content-Security-Policy: script-src 'strict-dynamic' 'nonce-dummy'
+    2) Content-Security-Policy-Report-Only: script-src 'none'
+    -->
+</head>
+
+<body>
+    <h1>A separate Report-Only policy does not influence `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'appendChild-reportOnly') {
+                    t.done();
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (violation.blockedURI.split('?')[1] !== 'appendChild-reportOnly') {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                // Check that the violation comes from the Report-Only policy.
+                assert_equals(violation.originalPolicy, "script-src 'none'");
+                t.done();
+            }));
+            var e = document.createElement('script');
+            e.id = 'appendChild-reportOnly';
+            e.src = 'simpleSourcedScript.js?' + e.id;
+            e.onerror = t.unreached_func('Error should not be triggered.');
+            document.body.appendChild(e);
+        }, 'Script injected via `appendChild` is allowed with `strict-dynamic` + Report-Only `script-src \'none\'` policy.');
+    </script>
+</body>
+
+</html>

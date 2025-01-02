@@ -1,0 +1,12 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <title>insertrule @import test</title>
+  <link rel="help" href="https://drafts.csswg.org/cssom/">
+  <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssrule-interface">
+  <link rel="match" href="insertRule-from-script-ref.html">
+  <style></style>
+</head>
+<body>
+  <script>document.styleSheets[0].insertRule("@import url(\"support/black.css\");");</script>
+</body>

@@ -1,0 +1,41 @@
+import importlib
+keys = importlib.import_module("fedcm.support.keys")
+
+def main(request, response):
+  manifest_url = request.server.stash.take(keys.MANIFEST_URL_IN_MANIFEST_LIST_KEY)
+
+  if manifest_url is None or not len(manifest_url):
+    port = request.server.config.ports["https"][0]
+    hostname = request.url_parts.hostname
+    manifest_url = "https://{0}:{1}/fedcm/support/manifest.py".format(
+        hostname, str(port))
+  else:
+    try:
+      manifest_url = manifest_url.decode()
+    except (UnicodeDecodeError, AttributeError):
+      pass
+
+  if len(request.cookies) > 0:
+    return (530, [], "Cookie should not be sent to manifest list endpoint")
+  if request.headers.get(b"Accept") != b"application/json":
+    return (531, [], "Wrong Accept")
+  if request.headers.get(b"Sec-Fetch-Dest") != b"webidentity":
+    return (532, [], "Wrong Sec-Fetch-Dest header")
+  if request.headers.get(b"Referer"):
+    return (533, [], "Should not have Referer")
+  if request.headers.get(b"Origin"):
+    return (534, [], "Should not have Origin")
+  if request.headers.get(b"Sec-Fetch-Mode") != b"no-cors":
+    return (535, [], "Wrong Sec-Fetch-Mode header")
+  if request.headers.get(b"Sec-Fetch-Site") != b"cross-site":
+    return (536, [], "Wrong Sec-Fetch-Site header")
+
+  response.headers.set(b"Content-Type", b"application/json")
+
+  return """
+{{
+  "provider_urls": [
+    "{0}"
+  ]
+}}
+""".format(manifest_url)

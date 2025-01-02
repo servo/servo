@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SharedWorker Fetcher</title>
+<script>
+  window.addEventListener("message", function (evt) {
+    let { url } = evt.data;
+
+    const worker = new SharedWorker(url);
+
+    worker.onerror = (evt) => {
+      parent.postMessage({ error: evt.message || "unknown error" }, "*");
+    };
+
+    worker.port.addEventListener("message", (evt) => {
+      parent.postMessage(evt.data, "*");
+    });
+    worker.port.start();
+  });
+</script>

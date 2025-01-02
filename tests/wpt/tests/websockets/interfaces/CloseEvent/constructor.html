@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CloseEvent: constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  var event = new CloseEvent("foo");
+  assert_true(event instanceof CloseEvent, "should be a CloseEvent");
+  assert_equals(event.type, "foo");
+  assert_false(event.bubbles, "bubbles");
+  assert_false(event.cancelable, "cancelable");
+  assert_false(event.wasClean, "wasClean");
+  assert_equals(event.code, 0);
+  assert_equals(event.reason, "");
+}, "new CloseEvent() without dictionary");
+
+test(function() {
+  var event = new CloseEvent("foo", {
+    bubbles: true,
+    cancelable: true,
+    wasClean: true,
+    code: 7,
+    reason: "x",
+  });
+  assert_true(event instanceof CloseEvent, "should be a CloseEvent");
+  assert_equals(event.type, "foo");
+  assert_true(event.bubbles, "bubbles");
+  assert_true(event.cancelable, "cancelable");
+  assert_true(event.wasClean, "wasClean");
+  assert_equals(event.code, 7);
+  assert_equals(event.reason, "x");
+}, "new CloseEvent() with dictionary");
+</script>

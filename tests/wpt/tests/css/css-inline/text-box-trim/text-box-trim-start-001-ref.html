@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="support/variant-class.js"></script>
+<style>
+@import "support/MetricsTestFont.css";
+
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font: 100px/2 MetricsTestFont;
+}
+.offset {
+  position: relative;
+}
+.vrl { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; }
+.auto .target, .text .target { line-height: 150px; }
+.auto .offset, .text .offset { inset-block-start: -25px; }
+.cap .target { line-height: 130px; }
+.cap .offset { inset-block-start: -35px; }
+.ex .target { line-height: 90px; }
+.ex .offset { inset-block-start: -55px; }
+.vlr.alphabetic .target { line-height: 130px; }
+.vlr.alphabetic .offset { inset-block-start: -35px;}
+</style>
+<div class="spacer"></div>
+<div class="target">
+  <span class="offset">ApÉx</span>
+</div>
+<div class="spacer"></div>

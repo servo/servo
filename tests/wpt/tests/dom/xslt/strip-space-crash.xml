@@ -1,0 +1,33 @@
+<?xml-stylesheet type="text/xsl" href="#style"?>
+<xsl:stylesheet
+    version="1.0"
+    xml:id="style"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:exsl="http://exslt.org/common"
+    extension-element-prefixes="exsl"
+>
+    <xsl:strip-space elements="s"/>
+
+    <xsl:template match="/">
+        <xsl:variable name="space">
+            <s>
+                <xsl:text> </xsl:text>
+                <e/>
+                <xsl:text> </xsl:text>
+                <e/>
+                <xsl:text> </xsl:text>
+            </s>
+        </xsl:variable>
+        <xsl:apply-templates select="exsl:node-set($space)/s"/>
+    </xsl:template>
+
+    <xsl:template match="s">
+        <r>
+            <xsl:variable name="text-nodes" select="text()"/>
+            <xsl:apply-templates/>
+            <xsl:copy-of select="$text-nodes"/>
+        </r>
+    </xsl:template>
+
+    <xsl:template match="node()"/>
+</xsl:stylesheet>

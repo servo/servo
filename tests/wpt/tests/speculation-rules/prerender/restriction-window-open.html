@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+function runTest(test_file, expectation, description) {
+  promise_test(async t => {
+    const uid = token();
+    // Run test in a new window for test isolation.
+    window.open(`${test_file}?uid=${uid}`, '_blank', 'noopener');
+
+    // Wait until the prerendered page sends the result.
+    const bc = new PrerenderChannel('result', uid);
+    t.add_cleanup(() => {
+      new PrerenderChannel('close', uid).postMessage('close');
+    })
+    const result = await new Promise(r => bc.addEventListener('message', e => r(e.data)));
+    assert_equals(result, expectation);
+  }, description);
+}
+
+// Test that a page opens a window during prerendering.
+runTest(
+    'resources/window-open-during-prerendering.html',
+    'failed to open',
+    'window.open() should fail during prerendering');
+
+// Test that a page opens a window in the prerenderingchange event.
+runTest(
+    'resources/window-open-in-prerenderingchange.html',
+    'opened',
+    'window.open() should succeed in the prerenderingchange event');
+</script>

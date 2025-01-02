@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<iframe sandbox srcdoc="<input autofocus>"></iframe>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  await waitForLoad(window);
+  await waitUntilStableAutofocusState();
+  assert_not_equals(document.activeElement, document.querySelector('iframe'));
+}, 'If the sandboxed automatic features browsing context flag is set, ' +
+    'autofocus in the browsing context should not be handled.');
+</script>

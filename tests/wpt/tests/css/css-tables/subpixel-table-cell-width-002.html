@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS21/cascade.html#value-stages">
+<link rel="match" href="subpixel-table-cell-width-001-ref.html">
+<meta name="assert" content="When a cell has a specified percent width that results in a fractional used width, the cell's actual width should match that of a block whose specified fixed width is the cell's used width" />
+
+<style>
+.table {
+  display: table;
+  height: 20px;
+  background: red;
+}
+.cell {
+  display: table-cell;
+}
+div > div:first-child {
+  background: blue;
+}
+div > div:nth-child(2) {
+  background: lime;
+}
+</style>
+
+
+<div class=table style="width:7.2px;">
+  <div class=cell style="width:50%;"></div>
+  <div class=cell style="width:50%;"></div>
+</div>
+
+<br><br>
+
+<div class=table style="width:6.6px;">
+  <div class=cell style="width:50%;"></div>
+  <div class=cell style="width:50%;"></div>
+</div>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+
+function boom()
+{
+  var mo = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mo");
+  var text = document.createTextNode(" ");
+  mo.appendChild(text);
+  document.body.appendChild(mo);
+
+  window.getSelection().removeAllRanges();
+  var r = document.createRange();
+  r.setStart(mo.firstChild, 0);
+  r.setEnd(mo.firstChild, 1);
+  window.getSelection().addRange(r);
+
+  window.getSelection().toString();
+}
+
+</script>
+</head>
+<body onload="boom();"></body>
+</html>

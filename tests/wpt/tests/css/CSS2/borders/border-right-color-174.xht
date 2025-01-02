@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-right-color set to transparent</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-03 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-right-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+		<link rel="match" href="border-left-color-174-ref.xht" />
+
+        <meta name="assert" content="The 'border-right-color' set to transparent properly renders a border with no visible color." />
+        <style type="text/css">
+            #wrapper
+            {
+                background-color: green;
+                height: 1in;
+            }
+            #test
+            {
+                border-right-style: solid;
+                border-right-width: 1in;
+                border-right-color: red;
+                border-right-color: transparent;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a wide filled green rectangle and <strong>no red</strong>.</p>
+        <div id="wrapper">
+            <div id="test"></div>
+        </div>
+    </body>
+</html>

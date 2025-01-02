@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation type for the 'display' property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+
+<body>
+  <div id="log"></div>
+  <div id="target"></div>
+  <script>
+    'use strict';
+
+    test(t => {
+      const div = createDiv(t);
+      div.style.display = 'none';
+      const anim = div.animate({ display: ['block', 'block'] },
+        { duration: 100 * MS_PER_SEC });
+
+      anim.currentTime = 0;
+      assert_equals(getComputedStyle(div).display, 'block',
+        'Display when progress = 0');
+
+      anim.currentTime = 10 * MS_PER_SEC + 1;
+      assert_equals(getComputedStyle(div).display, 'block',
+        'Display when progress > 0');
+
+      anim.finish();
+      assert_equals(getComputedStyle(div).display, 'none',
+        'Display when progress = 1');
+
+    }, 'Display can be held by animation');
+  </script>
+</body>

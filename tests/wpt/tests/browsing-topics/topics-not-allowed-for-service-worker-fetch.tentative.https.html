@@ -1,0 +1,36 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+  <script>
+    promise_test(async t => {
+      let url = 'resources/topics-not-allowed-for-service-worker-fetch-helper.tentative.https.html';
+
+      let r = await service_worker_unregister_and_register(t,
+          'resources/fetch-topics.js', url);
+      await wait_for_state(t, r.installing, 'activated');
+
+      var popup_window = window.open("/common/blank.html");
+
+      t.add_cleanup(async _=>{
+        popup_window.close();
+        await r.unregister();
+      });
+
+      // The current page isn't yet controlled by the service worker. Thus,
+      // execute the actual test in a new page and let it post its result back
+      // to this page.
+      test_helper_popup_page_result = new Promise((resolve, reject) => {
+        window.addEventListener('message', t.step_func((e) => {
+          assert_equals(e.data.testResult,
+                        'Topics fetch initiated from service worker did not include the topics header');
+          resolve();
+        }));
+      });
+
+      popup_window.location = url;
+      await test_helper_popup_page_result;
+    }, 'test that fetch(<url>, {browsingTopics: true}) from a service worker context will not include the topics header');
+  </script>
+</body>

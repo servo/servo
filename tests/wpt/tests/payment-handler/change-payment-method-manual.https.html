@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Tests for PaymentRequestEvent.changePaymentMethod()</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/payment-handler/#changepaymentmethod-method"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<p>If the payment sheet is shown, please authorize the mock payment.</p>
+<script>
+const methodName = window.location.origin
+    + '/payment-handler/change-payment-method-manual-manifest.json';
+
+promise_test(async (t) => {
+  const request = new PaymentRequest([{supportedMethods: methodName}], {
+    total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+  });
+  // Intentionally do not respond to the 'paymentmethodchange' event.
+  const response = await test_driver.bless('showing a payment sheet', () =>
+    request.show()
+  );
+  const complete_promise = response.complete('success');
+
+  assert_equals(response.details.changePaymentMethodReturned, null);
+
+  return complete_promise;
+}, 'If updateWith(details) is not run, changePaymentMethod() returns null.');
+
+promise_test(async (t) => {
+  const request = new PaymentRequest([{supportedMethods: methodName}], {
+    total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+  });
+  request.addEventListener('paymentmethodchange', (event) => {
+    assert_equals(event.methodName, methodName);
+    assert_equals(event.methodDetails.country, 'US');
+    event.updateWith(Promise.reject('Error'));
+  });
+  const response_promise = test_driver.bless(
+    'showing a payment sheet',
+    () => request.show()
+  );
+
+  return promise_rejects_dom(t, 'AbortError', response_promise);
+}, 'If updateWith(details) is rejected, abort the PaymentRequest.show().');
+
+promise_test(async (t) => {
+  const request = new PaymentRequest([{supportedMethods: methodName}], {
+    total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+  });
+  request.addEventListener('paymentmethodchange', (event) => {
+    assert_equals(event.methodName, methodName);
+    assert_equals(event.methodDetails.country, 'US');
+    event.updateWith(
+      new Promise(() => {
+        throw 'Error for test';
+      })
+    );
+  });
+  const response_promise = test_driver.bless(
+    'showing a payment sheet',
+    () => request.show()
+  );
+
+  return promise_rejects_dom(t, 'AbortError', response_promise);
+}, 'If updateWith(details) throws inside of the promise, abort the PaymentRequest.show().');
+
+promise_test(async (t) => {
+  const request = new PaymentRequest([{supportedMethods: methodName}], {
+    total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+  });
+  request.addEventListener('paymentmethodchange', (event) => {
+    assert_equals(event.methodName, methodName);
+    assert_equals(event.methodDetails.country, 'US');
+    event.updateWith({
+      total: {label: 'Total', amount: {currency: 'GBP', value: '0.02'}},
+      error: 'Error for test',
+      modifiers: [
+        {
+          supportedMethods: methodName,
+          data: {soup: 'potato'},
+          total: {
+            label: 'Modified total',
+            amount: {currency: 'EUR', value: '0.03'},
+          },
+          additionalDisplayItems: [
+            {
+              label: 'Modified display item',
+              amount: {currency: 'INR', value: '0.06'},
+            },
+          ],
+        },
+        {
+          supportedMethods: methodName + '2',
+          data: {soup: 'tomato'},
+          total: {
+            label: 'Modified total #2',
+            amount: {currency: 'CHF', value: '0.07'},
+          },
+          additionalDisplayItems: [
+            {
+              label: 'Modified display item #2',
+              amount: {currency: 'CAD', value: '0.08'},
+            },
+          ],
+        },
+      ],
+      paymentMethodErrors: {country: 'Unsupported country'},
+      displayItems: [
+        {
+          label: 'Display item',
+          amount: {currency: 'CNY', value: '0.04'},
+        },
+      ],
+      shippingOptions: [
+        {
+          label: 'Shipping option',
+          id: 'id',
+          amount: {currency: 'JPY', value: '0.05'},
+        },
+      ],
+    });
+  });
+  const response = await test_driver.bless('showing a payment sheet', () =>
+    request.show()
+  );
+  const complete_promise = response.complete('success');
+  const changePaymentMethodReturned =
+    response.details.changePaymentMethodReturned;
+
+  assert_equals(changePaymentMethodReturned.total.currency, 'GBP');
+  assert_equals(changePaymentMethodReturned.total.value, '0.02');
+  assert_equals(changePaymentMethodReturned.total.label, undefined);
+  assert_equals(changePaymentMethodReturned.error, 'Error for test');
+  assert_equals(changePaymentMethodReturned.modifiers.length, 1);
+  assert_equals(changePaymentMethodReturned.displayItems, undefined);
+  assert_equals(changePaymentMethodReturned.shippingOptions, undefined);
+  assert_equals(
+    changePaymentMethodReturned.paymentMethodErrors.country,
+    'Unsupported country'
+  );
+
+  const modifier = changePaymentMethodReturned.modifiers[0];
+
+  assert_equals(modifier.supportedMethods, methodName);
+  assert_equals(modifier.data.soup, 'potato');
+  assert_equals(modifier.total.label, '');
+  assert_equals(modifier.total.amount.currency, 'EUR');
+  assert_equals(modifier.total.amount.value, '0.03');
+  assert_equals(modifier.additionalDisplayItems, undefined);
+
+  return complete_promise;
+}, 'The changePaymentMethod() returns some details from the "paymentmethodchange" event\'s updateWith(details) call.');
+</script>

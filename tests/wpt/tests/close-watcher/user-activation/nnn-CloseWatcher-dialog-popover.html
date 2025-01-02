@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/9462">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<button id=b0>button</button>
+
+<dialog id=dialog>
+  <button id=b1>button</button>
+  <div id=popover popover=auto>popover</div>
+</dialog>
+
+<script>
+promise_test(async t => {
+  const events = [];
+  const closeWatcher = createRecordingCloseWatcher(t, events, 'CloseWatcher', 'CloseWatcher');
+  const dialog = createRecordingCloseWatcher(t, events, 'dialog', 'dialog');
+  const popover = createRecordingCloseWatcher(t, events, 'popover', 'popover');
+  assert_true(dialog.hasAttribute('open'), 'The dialog should be open.');
+  assert_true(popover.matches(':popover-open'), 'The popover should be open.');
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+
+  assert_false(popover.matches(':popover-open'), 'The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'The dialog should be closed.');
+  assert_array_equals(events, ['dialog cancel[cancelable=false]', 'CloseWatcher cancel[cancelable=false]', 'CloseWatcher close', 'dialog close']);
+}, 'Create a CloseWatcher without user activation; create a dialog without user activation; create a popover without user activation');
+</script>

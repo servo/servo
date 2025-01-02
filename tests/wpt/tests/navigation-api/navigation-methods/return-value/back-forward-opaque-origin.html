@@ -1,0 +1,9 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="i" sandbox="allow-scripts" src="resources/back-forward-opaque-origin-page.html"></iframe>
+
+<script>
+fetch_tests_from_window(i.contentWindow);
+</script>

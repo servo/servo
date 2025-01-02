@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSSOM View - 4.2 - screen.height immutability</title>
+    <link rel="author" title="Neils Christoffersen" href="mailto:neils.christoffersen@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/cssom-view/#the-screen-interface">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="screen.height is immutable">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="myDiv"></div>
+    <div id="log"></div>
+    <script>
+        var originalVal = window.screen.height;
+
+        // try to set window.screen.height
+        window.screen.height = 0;
+
+        // verify window.screen.height didn't change
+        test(function() {
+            assert_equals(window.screen.height, originalVal, "window.screen.height should be immutable")
+        }, "immutability test");
+    </script>
+</body>
+</html>

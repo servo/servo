@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html class=test-wait>
+<style type="text/css">
+  @keyframes anim {
+    from {
+      opacity: 0.99;
+    }
+    to {
+      opacity: 0.9;
+      transform: scale(1, 1);
+    }
+  }
+</style>
+<div id="div" style="transform: scale(1, 10); animation: 50ms linear 0s anim;"></div>
+<script>
+  function boom() {
+    div.style.transform = '';
+    document.execCommand("SelectAll", false, "");
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove('test-wait');
+      });
+    });
+  }
+  setTimeout(boom, 50);
+</script>
+</html>

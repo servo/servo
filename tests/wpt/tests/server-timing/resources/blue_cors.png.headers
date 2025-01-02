@@ -1,0 +1,2 @@
+Access-Control-Allow-Origin: *
+Server-Timing: metric2; dur=2.1; desc=blue.png

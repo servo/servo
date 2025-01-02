@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline delay</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+  #container {
+    border:  10px solid lightgray;
+    overflow-x: scroll;
+    height:  200px;
+    width: 200px;
+  }
+  #content {
+    display:  flex;
+    flex-flow:  row nowrap;
+    justify-content:  flex-start;
+    width:  1800px;
+    margin: 0;
+  }
+  .spacer {
+    width:  800px;
+    display:  inline-block;
+  }
+  #target {
+    background-color:  green;
+    height:  100px;
+    width:  100px;
+    display:  inline-block;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="content">
+      <div class="spacer"></div>
+      <div id="target"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+</body>
+<script type="text/javascript">
+  const MAX_SCROLL = 1600;
+
+  promise_test(async t => {
+    // Points of interest along view timeline:
+    //   600 px cover start, entry start
+    //   700 px contain start, entry end
+    //   800 px contain end, exit start
+    //   900 px cover end, exit end
+    const anim =
+        CreateViewTimelineOpacityAnimation(t, target,
+                                           {
+                                             timeline: { axis: 'inline' },
+                                             animation: { fill: 'both' }
+                                           });
+    let timeline = anim.timeline;
+
+    container.scrollLeft = 600;
+    await waitForNextFrame();
+
+    assert_percents_approx_equal(timeline.getCurrentTime('cover'), 0,
+                                 MAX_SCROLL, 'Scroll aligned with cover start');
+    assert_percents_approx_equal(timeline.getCurrentTime('entry'), 0,
+                                 MAX_SCROLL, 'Scroll aligned with entry start');
+    assert_percents_approx_equal(timeline.getCurrentTime(), 0,
+                                 MAX_SCROLL,
+                                 'Scroll aligned with timeline start offset');
+
+    container.scrollLeft = 650;
+    await waitForNextFrame();
+
+    assert_percents_approx_equal(timeline.getCurrentTime('entry'), 50,
+                                 MAX_SCROLL, 'Scroll at entry midpoint');
+
+    container.scrollLeft = 700;
+    await waitForNextFrame();
+
+    assert_percents_approx_equal(timeline.getCurrentTime('entry'), 100,
+                                 MAX_SCROLL, 'Scroll at entry end');
+    assert_percents_approx_equal(timeline.getCurrentTime('contain'), 0,
+                                 MAX_SCROLL, 'Scroll at contain start');
+
+    container.scrollLeft = 750;
+    await waitForNextFrame();
+
+    assert_percents_approx_equal(timeline.getCurrentTime('contain'), 50,
+                                 MAX_SCROLL, 'Scroll at contain midpoint');
+    assert_percents_approx_equal(timeline.getCurrentTime(), 50,
+                                 MAX_SCROLL, 'Scroll at timeline midpoint');
+
+    container.scrollLeft = 800;
+    await waitForNextFrame();
+
+    assert_percents_approx_equal(timeline.getCurrentTime('exit'), 0,
+                                 MAX_SCROLL, 'Scroll at exit start');
+    assert_percents_approx_equal(timeline.getCurrentTime('contain'), 100,
+                                 MAX_SCROLL, 'Scroll at contain end');
+
+    container.scrollLeft = 850;
+    await waitForNextFrame();
+
+    assert_percents_approx_equal(timeline.getCurrentTime('exit'), 50,
+                                 MAX_SCROLL, 'Scroll at exit midpoint');
+
+    container.scrollLeft = 900;
+    await waitForNextFrame();
+
+    assert_percents_approx_equal(timeline.getCurrentTime('exit'), 100,
+                                 MAX_SCROLL, 'Scroll at exit end');
+    assert_percents_approx_equal(timeline.getCurrentTime('cover'), 100,
+                                 MAX_SCROLL, 'Scroll at cover end');
+    assert_percents_approx_equal(timeline.getCurrentTime(), 100,
+                                 MAX_SCROLL, 'Scroll at end of timeline');
+
+    assert_equals(timeline.getCurrentTime('gibberish'), null,
+                  'No current time for unknown named range');
+
+    // Add insets to force the start and end offsets to align. This forces
+    // the timeline to become inactive.
+    // start_offset = target_offset - viewport_size + end_side_inset
+    //              = 600 + end_side_inset
+    // end_offset = target_offset + target_size - start_side_inset
+    //            = 900 - start_side_inset
+    // Equating start_offset and end_offset:
+    //    end_side_inset = 300 - start_side_inset;
+    timeline =
+        new ViewTimeline ({
+          subject: target,
+          axis: 'inline',
+          inset: [ CSS.px(150), CSS.px(150) ]
+        });
+    anim.timeline = timeline;
+    await waitForNextFrame();
+
+    assert_equals(timeline.currentTime, null,
+                  'Current time is null when scroll-range is zero');
+    assert_equals(timeline.getCurrentTime(), null,
+                  'getCurrentTime with an inactive timeline.');
+    assert_equals(timeline.getCurrentTime('contain'), null,
+                  'getCurrentTime on a ranged name with an inactive timeline.');
+
+  }, 'View timeline current time for named range');
+
+</script>

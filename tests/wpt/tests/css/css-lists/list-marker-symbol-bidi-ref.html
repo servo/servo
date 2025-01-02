@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: Symbol markers with unicode-bidi</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+section {
+  float: left;
+}
+.inside {
+  list-style-position: inside;
+}
+span {
+  float: right;
+}
+::marker { font-family: inherit; }
+</style>
+<section>
+  <ul dir="ltr">
+    <li class="outside embed-none">text</li>
+    <li class="outside embed-item">text</li>
+    <li class="outside embed-marker">text</li>
+    <li class="outside embed-both">text</li>
+    <li class="inside embed-none">text</li>
+    <li class="inside embed-item">text</li>
+    <li class="inside embed-marker">text</li>
+    <li class="inside embed-both">text</li>
+  </ul>
+  <ul dir="rtl">
+    <li class="outside isolate-none">text</li>
+    <li class="outside isolate-item">text</li>
+    <li class="outside isolate-marker">text</li>
+    <li class="outside isolate-both">text</li>
+    <li class="inside isolate-none">text</li>
+    <li class="inside isolate-item">text</li>
+    <li class="inside isolate-marker">text</li>
+    <li class="inside isolate-both">text</li>
+  </ul>
+</section>
+<section>
+  <ul dir="ltr">
+    <li class="outside isolate-none">text</li>
+    <li class="outside isolate-item">text</li>
+    <li class="outside isolate-marker">text</li>
+    <li class="outside isolate-both">text</li>
+    <li class="inside isolate-none">text</li>
+    <li class="inside isolate-item">text</li>
+    <li class="inside isolate-marker">text</li>
+    <li class="inside isolate-both">text</li>
+  </ul>
+  <ul dir="rtl">
+    <li class="outside isolate-none">text</li>
+    <li class="outside isolate-item">text</li>
+    <li class="outside isolate-marker">text</li>
+    <li class="outside isolate-both">text</li>
+    <li class="inside isolate-none">text</li>
+    <li class="inside isolate-item">text</li>
+    <li class="inside isolate-marker">text</li>
+    <li class="inside isolate-both">text</li>
+  </ul>
+</section>
+<section>
+  <ul dir="ltr">
+    <li class="outside override-none">text</li>
+    <li class="outside override-item">text</li>
+    <li class="outside override-marker">text</li>
+    <li class="outside override-both">text</li>
+    <li class="inside override-none">text</li>
+    <li class="inside override-item">text</li>
+    <li class="inside override-marker">text</li>
+    <li class="inside override-both">text</li>
+  </ul>
+  <ul dir="rtl">
+    <li class="outside override-none">text</li>
+    <li class="outside override-item">txet</li>
+    <li class="outside override-marker">text</li>
+    <li class="outside override-both">txet</li>
+    <li class="inside override-none">text</li>
+    <li class="inside override-item">txet</li>
+    <li class="inside override-marker">text</li>
+    <li class="inside override-both">txet</li>
+  </ul>
+</section>
+<section>
+  <ul dir="ltr">
+    <li class="outside isolateoverride-none">text</li>
+    <li class="outside isolateoverride-item">text</li>
+    <li class="outside isolateoverride-marker">text</li>
+    <li class="outside isolateoverride-both">text</li>
+    <li class="inside isolateoverride-none">text</li>
+    <li class="inside isolateoverride-item">text</li>
+    <li class="inside isolateoverride-marker">text</li>
+    <li class="inside isolateoverride-both">text</li>
+  </ul>
+  <ul dir="rtl">
+    <li class="outside isolateoverride-none">text</li>
+    <li class="outside isolateoverride-item">txet</li>
+    <li class="outside isolateoverride-marker">text</li>
+    <li class="outside isolateoverride-both">txet</li>
+    <li class="inside isolateoverride-none">text</li>
+    <li class="inside isolateoverride-item">txet</li>
+    <li class="inside isolateoverride-marker">text</li>
+    <li class="inside isolateoverride-both">txet</li>
+  </ul>
+</section>
+<section>
+  <ul dir="ltr">
+    <li class="outside plaintext-none">text</li>
+    <li class="outside plaintext-item">text</li>
+    <li class="outside plaintext-marker">text</li>
+    <li class="outside plaintext-both">text</li>
+    <li class="inside plaintext-none">text</li>
+    <li class="inside plaintext-item">text</li>
+    <li class="inside plaintext-marker">text</li>
+    <li class="inside plaintext-both">text</li>
+  </ul>
+  <ul dir="rtl">
+    <li class="outside plaintext-none">text</li>
+    <li class="outside plaintext-item">text</li>
+    <li class="outside plaintext-marker">text</li>
+    <li class="outside plaintext-both">text</li>
+    <li class="inside plaintext-none">text</li>
+    <li class="inside plaintext-item"><span>text</span></li>
+    <li class="inside plaintext-marker">text</li>
+    <li class="inside plaintext-both"><span>text</span></li>
+  </ul>
+</section>

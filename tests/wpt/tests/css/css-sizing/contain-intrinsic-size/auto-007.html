@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Last remembered size</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<meta name="assert" content="Tests that the last remembered size works well in a variety of different elements or boxes." />
+
+<style>
+.test {
+  width: max-content;
+  height: max-content;
+  border: 1px solid;
+}
+.test::before {
+  content: "";
+  display: block;
+  width: 320px;
+  height: 240px;
+}
+.contain-size {
+  contain: size;
+}
+.auto-width {
+  contain-intrinsic-width: auto 1px;
+}
+.auto-height {
+  contain-intrinsic-height: auto 2px;
+}
+.auto-both {
+  contain-intrinsic-size: auto 3px auto 4px;
+}
+.skip-contents .test {
+  content-visibility: hidden;
+}
+.scroll {
+  overflow: scroll;
+}
+.columns {
+  columns: 60px 2;
+}
+.grid {
+  display: grid;
+}
+.flex {
+  display: flex;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="tests">
+  <div></div>
+  <div class="scroll"></div>
+  <div class="columns"></div>
+  <div class="grid"></div>
+  <div class="flex"></div>
+  <fieldset></fieldset>
+  <img src="resources/dice.png">
+  <svg></svg>
+  <canvas></canvas>
+  <iframe></iframe>
+  <video></video>
+  <button></button>
+  <select><option>Lorem ipsum</option></select>
+  <select multiple><option>Lorem ipsum</option></select>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+addEventListener("load", async function() {
+  const wrapper = document.getElementById("tests");
+  const tests = new DocumentFragment();
+  for (let template of wrapper.children) {
+    template.classList.add("test");
+    const autoWidthTest = template.cloneNode(true);
+    const autoHeightTest = template.cloneNode(true);
+    const autoBothTest = template.cloneNode(true);
+    autoWidthTest.classList.add("auto-width");
+    autoHeightTest.classList.add("auto-height");
+    autoBothTest.classList.add("auto-both");
+
+    const normalWidth = template.clientWidth;
+    const normalHeight = template.clientHeight;
+    template.classList.add("contain-size");
+    const containedWidth = template.clientWidth;
+    const containedHeight = template.clientHeight;
+
+    autoWidthTest.dataset.expectedClientWidth = normalWidth;
+    autoWidthTest.dataset.expectedClientHeight = containedHeight;
+    autoHeightTest.dataset.expectedClientWidth = containedWidth;
+    autoHeightTest.dataset.expectedClientHeight = normalHeight;
+    autoBothTest.dataset.expectedClientWidth = normalWidth;
+    autoBothTest.dataset.expectedClientHeight = normalHeight;
+
+    tests.append(autoWidthTest, autoHeightTest, autoBothTest);
+  }
+  wrapper.textContent = "";
+  wrapper.appendChild(tests);
+
+  // Wait so that the last remembered size can be stored.
+  await nextRendering();
+
+  wrapper.classList.add("skip-contents");
+  checkLayout(".test");
+});
+</script>

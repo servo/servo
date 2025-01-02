@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Invalid MediaSource.endOfStream() parameter test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+              assert_equals(mediaSource.readyState, 'open');
+
+              assert_throws_js(TypeError,
+                  function() { mediaSource.endOfStream('garbage'); },
+                  'endOfStream(\'garbage\') throws TypeError');
+
+              assert_equals(mediaSource.readyState, 'open');
+              test.done();
+          }, 'Test MediaSource.endOfStream() with invalid non-empty error string.');
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+              assert_equals(mediaSource.readyState, 'open');
+
+              assert_throws_js(TypeError,
+                  function() { mediaSource.endOfStream(''); },
+                  'endOfStream(\'\') throws TypeError');
+
+              assert_equals(mediaSource.readyState, 'open');
+              test.done();
+          }, 'Test MediaSource.endOfStream() with invalid empty error string.');
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+              assert_equals(mediaSource.readyState, 'open');
+
+              assert_throws_js(TypeError,
+                  function() { mediaSource.endOfStream(null); },
+                  'endOfStream(null) throws TypeError');
+
+              assert_equals(mediaSource.readyState, 'open');
+              test.done();
+          }, 'Test MediaSource.endOfStream() with invalid null error parameter.');
+        </script>
+    </body>
+</html>

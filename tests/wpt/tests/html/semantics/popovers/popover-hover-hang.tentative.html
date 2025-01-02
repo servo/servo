@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Crash/hang test for popover hover behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover-hint.research.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div id=menu popover=manual>
+  Popover
+  <button popovertarget="submenu"><span id=button>Button</span>
+    <div id=submenu popover=manual>Button-contained popover</div>
+  </button>
+</div>
+<button id=unrelated>Unrelated</button>
+
+<script>
+  promise_test(async (t) => {
+    menu.showPopover();
+    assert_true(menu.matches(':popover-open'));
+    await mouseHover(button,100);
+    button.click();
+    assert_true(menu.matches(':popover-open'));
+    assert_true(submenu.matches(':popover-open'));
+    await mouseHover(submenu,100);
+    await mouseHover(unrelated,100);
+    assert_true(submenu.matches(':popover-open'));
+    // This test passes if nothing crashes/hangs.
+  },'This is a crash test - it has some asserts, but mostly is just checking for crashes');
+</script>

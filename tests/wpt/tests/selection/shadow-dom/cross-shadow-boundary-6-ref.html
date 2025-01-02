@@ -1,0 +1,12 @@
+<!doctype html>
+<span id="span">Start
+<div>
+  <span id="inner1">inner1</p>
+  <span id="inner2">inner2</p>
+</div>
+</span>
+<script>
+  const start = document.getElementById("span").firstChild;
+  const end = document.getElementById("inner2");
+  window.getSelection().setBaseAndExtent(start, 3, end.firstChild, 3);
+</script>

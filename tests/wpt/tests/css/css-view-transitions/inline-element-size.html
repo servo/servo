@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: capture elements with display inline</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="inline-element-size-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/common/reftest-wait.js"></script>
+<style>
+:root {
+  font: 20px/1 Ahem;
+}
+
+#box {
+  background: green;
+  view-transition-name: target;
+}
+
+/* We're verifying what we capture, so just display the old contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-group(target) { background: green; }
+html::view-transition-new(*) { animation: unset; opacity: 0; }
+html::view-transition-old(*) { animation: unset; opacity: 1; }
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: pink; }
+</style>
+
+<span id=box>BOX</span>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let t = document.startViewTransition();
+  t.ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</html>

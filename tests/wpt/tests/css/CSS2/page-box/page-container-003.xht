@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: paged media position fixed</title>
+    <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#choose-position" />
+    <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule" />
+    <meta name="flags" content="paged" />
+    <meta name="assert" content="Elements with 'position: fixed' are positioned relative to the page area and are rendered on every page of the printed document." />
+    <style type="text/css">
+
+  .logo
+  {
+		position: fixed;
+		top: 0;
+		left: 0;
+  }
+  p
+  {
+		padding-top: 3cm;
+  }
+  .break-before
+  {
+  	page-break-before: always;
+	}
+    </style>
+  </head>
+  <body>
+    <div>
+      <img class="logo" alt="W3C" src="support/w3c_home.png" />
+      <p>This test produces three pages of output on paged media.</p>
+      <p>The W3C logo appears in the top left corner of each page.</p>
+      <p class="break-before">Page two.</p>
+      <p class="break-before">Page three.</p>
+    </div>
+
+  </body>
+</html>

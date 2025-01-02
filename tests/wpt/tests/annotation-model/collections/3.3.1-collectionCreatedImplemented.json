@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-collectionCreatedImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Valid Annotation Collection-level created key not found. Annotation Collection may have exactly one created key value.",
+  "title": "Implements Annotation Collection-level **_created_ key** which has a **single value** that is a **string of format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when the Annotation Collection implements exactly one created key value (Sections 3.3.1 and 5.1)",
+  "allOf":
+    [
+    { "$ref": "otherProperties.json#/definitions/createdValidIfPresent"},
+    { "type": "object",
+      "required" : [ "created" ]
+    }
+    ]
+}

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>BiDi text selection drag and drop to contenteditable element</title>
+<style type="text/css">
+div[contenteditable]
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;
+  color:white;
+  background-color:navy;}
+</style>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p>PASS|LIAF &#x202E;FAIL|SSAP&#x202C; PASS|LIAF</p>
+<p>Drag selected text to the blue box. Copy of selection should end up in the box once you drop it there. Text direction should be preserved during drag and drop.</p>
+<p><div contenteditable="true"/></p>
+</body>
+</html>

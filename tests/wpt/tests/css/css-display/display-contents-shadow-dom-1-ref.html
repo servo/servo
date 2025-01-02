@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+  <title>Reference: CSS display:contents; in Shadow DOM</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=907396">
+<style>
+html,body {
+  color:black; background-color:white; font:20px/1 monospace; padding:0; margin:0;
+}
+
+span { color:blue; }
+</style>
+  </head>
+  <body>
+    <div>X 1 c</div>
+    <div>a 2 c</div>
+    <div>a 3 Y</div>
+    <div>X 4 Y</div>
+    <div>a 5 Y</div>
+    <div>X <span>6</span> c</div>
+    <div>a <span>7</span> c</div>
+    <div>a <span>8</span> Y</div>
+    <div>X <span>9</span> Y</div>
+    <div>a <span>A</span> Y</div>
+    <div>a <span>1 2</span> B</div>
+    <div>A <span>a 1 2 c</span> B</div>
+    <div>A <span>a 1 a 2 ca 3 c</span> B</div>
+    <div>A <span>a 1 c a 2 c</span> B</div>
+    <div>X <span>a 1 c a 2 c</span> B</div>
+    <div><span>1a 2 c</span></div>
+    <div><span>a 1 c2</span></div>
+    <div>A<span>b</span>c</div>
+    <div>A<span>b</span>c</div>
+    <div><span>b c</span>d</div>
+    <div><span>a </span>b</div>
+    <div><b>One</b><i>Two</i></div>
+    <div><b>One</b><i>Two</i></div>
+    <div><b>One</b><i>Two</i></div>
+    <div><b>One</b><i>Two</i></div>
+    <b style="color:blue">One</b><i style="color:blue">Two</i>Three
+    <div></div>
+    <b style="color:green">V</b>
+  </body>
+</html>

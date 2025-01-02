@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Animation element that end before time container begin</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#Timing-BeginEnd-LC-Start">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<svg>
+  <rect width="100" height="100" fill="green">
+    <animate attributeName="fill" values="red;red" begin="-1s" dur="1s" fill="freeze"/>
+  </rect>
+  <set attributeName="stroke-width" to="10"/>
+</svg>
+<script>
+  promise_test(t => {
+    const animationStart = new Promise(resolve => {
+      document.querySelector('set').onbegin = resolve;
+    });
+    return animationStart
+      .then(() =>
+        waitForAtLeastOneFrame())
+      .then(() => {
+        const rect = document.querySelector('rect');
+        assert_equals(getComputedStyle(rect).fill, 'rgb(0, 128, 0)', 'animation does not apply');
+      });
+  });
+</script>

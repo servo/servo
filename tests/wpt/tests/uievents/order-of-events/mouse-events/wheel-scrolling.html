@@ -1,0 +1,109 @@
+<!doctype html>
+<head>
+  <meta charset=utf-8>
+  <title>WheelEvent - scrolling wheel event</title>
+  <style>
+    .testarea{ margin: auto; width: 80%; height: 250px; border: 1px solid grey; position: relative; }
+
+    #wheelbox { background-color: red; border: 1px solid black; margin: 0; padding: 0; }
+    #wheelbox.green { background-color: green; }
+    #wheelbox { position: absolute; left: 15%; top: 15%; width: 50%; height: 50% }
+
+    #lipsum { margin: auto; width: 40%; position: relative; }
+  </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script>
+    setup({explicit_timeout: true});
+  </script>
+  <script src="/uievents/resources/eventrecorder.js"></script>
+</head>
+
+<body>
+  <p><strong>Description</strong>: Verifies that we can scroll the page when wheel events are captured</p>
+  <p><strong>Instructions</strong>: </p>
+  <ol>
+    <li>Place your mouse over the box</li>
+    <li>Scroll the mouse wheel to change the box color</li>
+  </ol>
+  <p><strong>Test Passes</strong> if the box turns green and the word 'PASS' appears below</p>
+
+  <section class="testarea">
+    <div id="wheelbox"></div>
+  </section>
+
+  <script>
+    var wheelbox = document.getElementById("wheelbox");
+    var test_wheel_scrolling = async_test("wheel scrolling test");
+    var actions_promise;
+
+    EventRecorder.configure({
+      mergeEventTypes: ['wheel'],
+      objectMap: {
+        "div#wheelbox": wheelbox
+      }
+    });
+
+    wheelbox.addRecordedEventListener('wheel', function (e) {
+      e.stopPropagation();
+      this.className = "green";
+      endTest();
+      // Make sure the test finishes after all the input actions are completed.
+      actions_promise.then( () => {
+        test_wheel_scrolling.done();
+      });
+    });
+
+    function endTest() {
+      EventRecorder.stop();
+      var results = EventRecorder.getRecords();
+      test_wheel_scrolling.step(function () {
+        // Check results:
+        assert_equals(results.length, 1, "One mousemove event");
+        assert_equals(results[0].event.type, 'wheel', "First event is a wheel event");
+        assert_equals(results[0].event.target, 'div#wheelbox', "First event targetted wheelbox");
+      });
+    }
+
+    EventRecorder.start();
+
+    // Inject wheel inputs.
+    actions_promise = new test_driver.Actions()
+        .scroll(0, 0, 0, 10, {origin: wheelbox})
+        .send();
+  </script>
+
+<section id="lipsum">
+  <p>
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras non sodales nunc. Nunc interdum laoreet magna, quis faucibus mi malesuada ut. Donec eu dictum nibh. Quisque consectetur velit arcu, ac bibendum lacus interdum eget. Sed gravida consequat lectus feugiat feugiat. Nunc finibus lacus sit amet ultrices pulvinar. Integer ultrices nulla ut ligula porttitor aliquet. Nulla dapibus dignissim cursus. Morbi euismod accumsan dapibus. Nullam rutrum neque eu finibus luctus. Praesent ultricies pellentesque bibendum.
+  </p>
+  <p>
+Cras faucibus facilisis justo, sit amet euismod nulla posuere sit amet. Donec odio justo, egestas ornare tristique vitae, convallis ac diam. Cras rutrum, massa nec feugiat sodales, diam ex faucibus diam, ac imperdiet dolor lacus eu nisi. Fusce feugiat ex vitae ex fermentum convallis. Pellentesque vulputate cursus lorem, vel sollicitudin eros feugiat a. Morbi egestas neque erat, eget semper nisi tempor id. Etiam eleifend fermentum convallis. Proin sem ipsum, porttitor a condimentum vel, malesuada ac est.
+  </p>
+  <p>
+Curabitur at porttitor ipsum, nec aliquam sapien. Quisque aliquet dapibus nulla. Donec consequat ornare dui, quis efficitur metus fringilla vitae. Fusce ut ultricies neque. In rutrum efficitur mi ut rhoncus. In ornare, justo quis volutpat dapibus, nulla ligula tincidunt dui, vitae porttitor lectus est eget metus. Integer convallis leo vitae dui auctor, at consectetur sem sollicitudin. Ut condimentum enim non tellus finibus mattis.
+  </p>
+  <p>
+Aenean pharetra, erat rutrum lacinia iaculis, ligula quam efficitur nibh, sit amet porttitor est ligula semper sapien. Morbi cursus finibus justo blandit commodo. Pellentesque at diam scelerisque, varius dolor a, tempus tortor. Nam placerat mi id elit eleifend scelerisque. Fusce imperdiet ac augue id fringilla. Quisque luctus nec sapien in tempor. Vestibulum faucibus metus nulla, nec faucibus metus rutrum sit amet. Nulla facilisi. Aliquam varius dignissim laoreet. Morbi gravida, velit sed efficitur iaculis, enim lectus hendrerit diam, ac aliquam mauris enim ut nulla. Vivamus quis aliquet libero. Vivamus accumsan elit et dolor posuere, ac volutpat nulla blandit. Proin vitae tortor rutrum, hendrerit odio vitae, ultricies metus. Pellentesque mattis sem ac lorem lacinia vestibulum. Ut orci est, placerat vitae imperdiet ac, dictum a nisi.
+  </p>
+  <p>
+Proin elementum faucibus neque, sed varius est rhoncus nec. Ut nec porttitor velit, a viverra lorem. Nam lectus arcu, malesuada non suscipit at, efficitur eget diam. Morbi at purus vitae nisl mollis suscipit ac at dolor. Nam vel ullamcorper est. Sed efficitur ligula quis elit viverra, at ornare velit posuere. Maecenas porta risus velit, eu pharetra ex vehicula rutrum. Mauris eu tortor vestibulum, tristique arcu et, euismod velit. Donec et mattis ligula. Pellentesque lacinia elit sit amet libero rhoncus convallis. Aenean porta, enim eget consequat blandit, leo ante finibus massa, gravida viverra dolor massa porta neque.
+  </p>
+  <p>
+ Mauris vitae tortor quis nibh tempus tempor et quis eros. Quisque massa libero, pulvinar nec fringilla non, molestie eget justo. Maecenas mollis est et felis auctor, eu sodales erat fermentum. Curabitur porttitor nibh magna, non porta mi dictum et. Aliquam nec auctor nisi. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi nec porttitor ante, a rutrum ante. Vivamus faucibus et augue sit amet auctor. Nulla nec risus lacus. Quisque mattis vitae neque sit amet aliquet. Nam placerat mattis iaculis.
+  </p>
+  <p>
+Quisque ultrices varius nisi eu feugiat. Sed a aliquam risus. Nulla fermentum erat odio, ultricies fermentum arcu tristique a. Phasellus vulputate sapien in augue sollicitudin auctor. Aenean eu lectus placerat, bibendum leo et, efficitur diam. Quisque in lacus in justo volutpat convallis. Sed vitae rhoncus tellus. Curabitur elementum mi id diam volutpat interdum. Proin urna orci, vehicula non mattis dictum, dignissim a sem. Vivamus in ultricies quam, id auctor arcu. In lacinia ex ac dui fermentum pulvinar. Donec luctus auctor ultrices. Suspendisse semper eros a dolor vulputate aliquam.
+  </p>
+  <p>
+Nullam in tempor tellus, ac ullamcorper tortor. Cras vel aliquet magna, in congue nisi. Nam turpis quam, consectetur at vehicula ut, pellentesque eu risus. In vestibulum neque a ex fringilla tempor quis ac dui. Praesent dictum venenatis scelerisque. Proin ut lectus lobortis, eleifend ipsum blandit, tristique mi. Etiam lacus est, scelerisque at lectus at, interdum mattis ex. Nulla neque mauris, suscipit tempus elementum quis, viverra eu ligula. Etiam at velit vulputate, pulvinar metus eu, hendrerit odio. Sed nec feugiat tortor. Fusce nunc sapien, pretium non viverra et, volutpat eu arcu. Nullam libero justo, varius at suscipit at, scelerisque ut lectus. In leo lorem, tempor sed pellentesque nec, vulputate non lectus. Pellentesque volutpat sit amet lectus in finibus. Aliquam tristique, arcu sit amet venenatis commodo, ligula dolor efficitur ante, at faucibus mi diam ac sapien.
+  </p>
+  <p>
+Ut porttitor metus et mauris euismod iaculis. Ut in lorem neque. Nam a sollicitudin ligula, non lobortis sapien. Curabitur ullamcorper justo quis vulputate cursus. Aliquam rhoncus volutpat quam non condimentum. Donec dictum aliquam metus tempor vehicula. Curabitur lorem urna, venenatis vel tellus et, mollis ornare sapien. Aliquam erat elit, tristique at suscipit efficitur, condimentum eget quam. Quisque vel metus nisl. Integer eget cursus neque, sed auctor purus. Sed ac urna nec lectus elementum laoreet. Donec posuere diam ut nibh vestibulum efficitur. Nam ut rhoncus enim, semper sollicitudin libero.
+  </p>
+</section>
+</body>
+</html>

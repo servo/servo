@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>HTMLScriptElement.supports webbundle</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_true(HTMLScriptElement.supports('webbundle'));
+}, 'HTMLScriptElement.supports returns true for \'webbundle\'');
+
+test(() => {
+  assert_false(HTMLScriptElement.supports(' webbundle'));
+  assert_false(HTMLScriptElement.supports('webbundle '));
+  assert_false(HTMLScriptElement.supports('WEBBUNDLE'));
+}, 'HTMLScriptElement.supports returns false for unsupported types');
+</script>

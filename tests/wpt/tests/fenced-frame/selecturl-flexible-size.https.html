@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Test frame size behavior in selectURL fenced frames.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+async function runTest(original_width, original_height, new_width, new_height) {
+  // Attach a selectURL fenced frame whose outer container has dimensions
+  // `original_width` by `original_height`.
+  const frame = await attachFencedFrameContext({
+      generator_api: "sharedstorage", resolve_to_config: true,
+      attributes: [["width", original_width], ["height", original_height]]});
+
+  const assert_dimensions =
+      (label, original_width, original_height,
+       expected_width, expected_height) => {
+    assert_equals(getComputedStyle(document.documentElement).width,
+        expected_width+"px",
+        label + " the computed width (originally " + original_width
+        + ") should be " + expected_width);
+    assert_equals(window.innerWidth, expected_width,
+        label + " the innerWidth (originally " + original_width
+        + ") should be " + expected_width);
+    assert_equals(window.innerHeight, expected_height,
+        label + " the innerHeight (originally " + original_height
+        + ") should be " + expected_height);
+  }
+
+  // Assert that the fenced frame sees the original dimensions.
+  await frame.execute(assert_dimensions, ["After navigation",
+      original_width, original_height, original_width, original_height]);
+
+  // Assert that the embedder sees the fenced frame's original dimensions.
+  assert_equals(frame.width, original_width.toString(),
+      "The outer container width is the requested width.");
+  assert_equals(frame.height, original_height.toString(),
+      "The outer container height is the requested height.");
+
+  // Resize the fenced frame's outer container.
+  frame.width = new_width;
+  frame.height = new_height;
+
+  // Observe that the selectURL fenced frame sees the new size.
+  await frame.execute(assert_dimensions, ["After resizing",
+      original_width, original_height, new_width, new_height]);
+}
+
+// Exact size cases.
+promise_test(async () => { return runTest(299, 72, 100, 101); }, '299x72->100x101');
+
+</script>
+</body>

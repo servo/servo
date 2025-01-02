@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<script src=/resources/testharness.js></script>
+<script src=/shared-storage/resources/util.js></script>
+<script src=/fenced-frame/resources/utils.js></script>
+<body>
+<script>
+
+async function init() {
+  const [outerKey, innerKey] = parseKeylist();
+  const parsedData = parseExpectedKeyData();
+  let url0 = generateURL("/shared-storage/resources/frame0.html", [innerKey]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html", [innerKey]);
+
+  await addModuleOnce("/shared-storage/resources/simple-module.js");
+  let fencedFrameConfig = await sharedStorage.selectURL(
+      "verify-key-not-found", [{url: url0}, {url: url1}],
+      {data: parsedData, resolveToConfig: true});
+  assert_true(validateSelectURLResult(fencedFrameConfig, true));
+
+  attachFencedFrame(fencedFrameConfig, 'opaque-ads');
+  const result = await nextValueFromServer(innerKey);
+  const dataStr = JSON.stringify(parsedData);
+  assert_equals(result, "frame1_loaded",
+                `verifying key ${dataStr} not found for ${location.origin};`);
+
+  await writeValueToServer(outerKey,
+    "verify_key_not_found_loaded");
+}
+
+init();
+</script>
+</body>
+</html>

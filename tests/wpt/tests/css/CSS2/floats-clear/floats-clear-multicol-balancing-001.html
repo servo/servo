@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<title>CSS Float Test: Test the clear position after the floating elements breaking across multi-columns</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css2/visuren.html#flow-control">
+<link rel="match" href="floats-clear-multicol-balancing-000-ref.html">
+
+<style type="text/css">
+.multicol {
+  margin: 1em;
+  border: solid silver;
+  width: 300px;
+  column-width: 100px;
+  column-gap: 0;
+  height: 100px;
+}
+
+.float {
+  float: right;
+  width: 15px;
+  background: aqua;
+  height: 250px;
+}
+.L {
+  float: left;
+}
+
+.container {
+  width: 100%;
+}
+
+.clear {
+  border-bottom: 5px solid orange;
+  background: red;
+}
+</style>
+
+<p>The orange line should be in the third column
+(immediately after the end of the aqua lines).
+
+<div class="multicol">
+  <div class="container">
+    <div class="float L"></div>
+    <div class="float R"></div>
+    <br clear="all">
+  </div>
+  <div class="clear">
+  </div>
+</div>

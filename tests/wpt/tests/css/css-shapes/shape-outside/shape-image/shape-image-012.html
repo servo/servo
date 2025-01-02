@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Wrapping content around right floating actual jpg image</title>
+    <link rel="author" title="Zoltan Horvath" href="mailto:zoltan@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="match" href="reference/shape-image-012-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that content wraps around all the image pixels when shape-outside is given a jpg."/>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css">
+        .container {
+            position: absolute;
+            top: 70px;
+            left: 8px;
+            font-family: Ahem;
+            font-size: 20px;
+            color: green;
+            line-height: 20px;
+        }
+        #test {
+            width: 200px;
+            height: 200px;
+            text-align: right;
+            background-color: red;
+        }
+        #image {
+            float: right;
+            margin-left: 10px;
+            shape-outside: url("support/right-half-rectangle.jpg");
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if there's a green square with an image at top right with vertical white and green stripes.
+        There should be no red.
+    </p>
+    <div id="test" class="container">
+        <img id="image" src="support/right-half-rectangle.jpg"/>
+        XXXXX XXXXX XXXXX XXXXX XXXXX
+        XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+    </div>
+</body>
+</html>

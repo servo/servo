@@ -1,0 +1,137 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>window.open() with "noopener" tests</title>
+
+<meta name="variant" content="?indexed">
+<meta name="variant" content="?_self">
+<meta name="variant" content="?_parent">
+<meta name="variant" content="?_top">
+<meta name=timeout content=long>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+var testData = [
+  { testDescription: "window.open() with 'noopener' should reuse existing target",
+    secondWindowFeatureString: "noopener",
+    shouldReturnWindow: false },
+  { testDescription: "noopener=1 means the same as noopener",
+    secondWindowFeatureString: "noopener=1",
+    shouldReturnWindow: false },
+  { testDescription: "noopener=true means the same as noopener",
+    secondWindowFeatureString: "noopener=true",
+    shouldReturnWindow: false },
+  { testDescription: "noopener=0 means lack of noopener",
+    secondWindowFeatureString: "noopener=0",
+    shouldReturnWindow: true },
+  { testDescription: "noopener separated only by spaces should work",
+    secondWindowFeatureString: "make me noopener",
+    shouldReturnWindow: false },
+  { testDescription: "Trailing noopener should work",
+    secondWindowFeatureString: "abc def,  \n\r noopener",
+    shouldReturnWindow: false },
+  { testDescription: "Leading noopener should work",
+    secondWindowFeatureString: "noopener \f\t , hey, there",
+    shouldReturnWindow: false },
+  { testDescription: "Interior noopener should work",
+    secondWindowFeatureString: "and now, noopener   , hey, there",
+    shouldReturnWindow: false },
+  { testDescription: "noreferrer should also suppress opener when reusing existing target",
+    secondWindowFeatureString: "noreferrer",
+    shouldReturnWindow: false },
+];
+
+/**
+ * Loop over our testData array and kick off an async test for each entry.  Each
+ * async test opens a window using window.open() with some per-test unique name,
+ * then tries to do a second window.open() call with the same name and the
+ * test-specific feature string.  It then checks whether that second
+ * window.open() call reuses the existing window, whether the return value of
+ * the second window.open() call is correct (it should be null in the noopener
+ * cases and non-null in the cases when the existing window gets reused) and so
+ * forth.
+ */
+function indexedTests() {
+  var tests = [];
+  for(var i = 0; i < testData.length; ++i) {
+    var test = testData[i];
+    var t = async_test(test.testDescription);
+    tests.push(t);
+    t.secondWindowFeatureString = test.secondWindowFeatureString;
+    t.windowName = "someuniquename" + i;
+
+    if (test.shouldReturnWindow) {
+      t.step(function() {
+        var windowName = this.windowName;
+
+        var w1 = window.open("", windowName);
+        this.add_cleanup(function() { w1.close(); });
+
+        assert_equals(w1.opener, window);
+
+        var w2 = window.open("", windowName, this.secondWindowFeatureString);
+        assert_equals(w2, w1);
+        assert_equals(w2.opener, w1.opener);
+        assert_equals(w2.opener, window);
+        this.done();
+      });
+    } else {
+      t.step(function() {
+        var w1;
+        this.add_cleanup(function() {
+          w1.close();
+          channel.postMessage(null);
+        });
+
+        var windowName = this.windowName;
+        var channel = new BroadcastChannel(windowName);
+
+        channel.onmessage = this.step_func_done(function(e) {
+          var data = e.data;
+          assert_equals(data.name, windowName, "Should have the right name");
+          assert_equals(data.haveOpener, true, "Should still have opener");
+          assert_equals(w1.opener, window);
+          assert_not_equals(w1.location.href, "about:blank", "Should have navigated");
+        });
+
+        w1 = window.open("", windowName);
+        assert_equals(w1.opener, window);
+
+        var w2 = window.open("support/noopener-target.html?" + windowName,
+                            windowName, this.secondWindowFeatureString);
+        assert_equals(w2, null);
+
+        assert_equals(w1.opener, window);
+      });
+    }
+  }
+}
+
+/**
+ * Loop over the special targets that ignore noopener and check that doing a
+ * window.open() with those targets correctly reuses the existing window.
+ */
+function specialTargetTest(target) {
+  if (["_self", "_parent", "_top"].includes(target)) {
+    var t = async_test("noopener window.open targeting " + target);
+    t.openedWindow = window.open(`javascript:var w2 = window.open("", "${target}", "noopener"); this.checkValues(w2); this.close(); void(0);`);
+    assert_equals(t.openedWindow.opener, window);
+    t.openedWindow.checkValues = t.step_func_done(function(win) {
+      assert_equals(win, this.openedWindow);
+    });
+  } else {
+    throw 'testError: special target must be one of: _self, _parent, _top'
+  }
+}
+
+/**
+ * Parse the Query string, check if it matches keyword 'indexed' to run the indexed tests,
+ * otherwise test it as a special target
+ */
+var variant = window.location.href.split("?")[1]
+if(variant == "indexed") {
+  indexedTests();
+} else {
+  specialTargetTest(variant);
+}
+</script>

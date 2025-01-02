@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Setting the playback rate of an animation</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#setting-the-playback-rate-of-an-animation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = 2;
+  await animation.ready;
+
+  const previousAnimationCurrentTime = animation.currentTime;
+  const previousTimelineCurrentTime = animation.timeline.currentTime;
+
+  await waitForAnimationFrames(1);
+
+  const animationCurrentTimeDifference =
+    animation.currentTime - previousAnimationCurrentTime;
+  const timelineCurrentTimeDifference =
+    animation.timeline.currentTime - previousTimelineCurrentTime;
+
+  assert_times_equal(
+    animationCurrentTimeDifference,
+    timelineCurrentTimeDifference * animation.playbackRate,
+    'The current time should increase two times faster than timeline'
+  );
+}, 'The playback rate affects the rate of progress of the current time');
+
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.playbackRate = 2;
+  assert_time_equals_literal(animation.currentTime, 50 * MS_PER_SEC);
+}, 'Setting the playback rate while play-pending preserves the current time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+  await animation.ready;
+  animation.playbackRate = 2;
+  assert_greater_than_equal(animation.currentTime, 50 * MS_PER_SEC);
+  assert_less_than(animation.currentTime, 100 * MS_PER_SEC);
+}, 'Setting the playback rate while playing preserves the current time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.updatePlaybackRate(2);
+  animation.playbackRate = 1;
+  await animation.ready;
+  assert_equals(animation.playbackRate, 1);
+}, 'Setting the playback rate should clear any pending playback rate');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.pause();
+  await animation.ready;
+  animation.playbackRate = 2;
+  // Ensure that the animation remains paused and current time is preserved.
+  assert_equals(animation.playState, 'paused');
+  assert_time_equals_literal(animation.currentTime, 50 * MS_PER_SEC);
+}, 'Setting the playback rate while paused preserves the current time and '
+    + 'state');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 150 * MS_PER_SEC;
+  await animation.ready;
+  animation.playbackRate = 2;
+  // Ensure that current time is preserved and does not snap to the effect end
+  // time.
+  assert_equals(animation.playState, 'finished');
+  assert_time_equals_literal(animation.currentTime, 150 * MS_PER_SEC);
+}, 'Setting the playback rate while finished preserves the current time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 150 * MS_PER_SEC;
+  await animation.ready;
+  assert_equals(animation.playState, 'finished');
+  animation.playbackRate = -1;
+  // Ensure that current time does not snap to the effect end time and that the
+  // animation resumes playing.
+  assert_equals(animation.playState, 'running');
+  assert_time_equals_literal(animation.currentTime, 150 * MS_PER_SEC);
+  await waitForAnimationFrames(2);
+  assert_less_than(animation.currentTime, 150 * MS_PER_SEC);
+}, 'Reversing the playback rate while finished restarts the animation');
+
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.playbackRate = 0;
+  // Ensure that current time does not drift.
+  assert_equals(animation.playState, 'running');
+  await waitForAnimationFrames(2);
+  assert_time_equals_literal(animation.currentTime, 50 * MS_PER_SEC);
+}, 'Setting a zero playback rate while running preserves the current time');
+
+</script>
+</body>

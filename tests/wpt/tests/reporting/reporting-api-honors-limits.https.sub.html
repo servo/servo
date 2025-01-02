@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <title>Test that the report-api honors buffer limits on a per-report type basis</title>
+  <link rel="author" title="Brent Fulgham" href="bfulgham@apple.com">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <script>
+    var t1 = async_test("Test that image does not load");
+
+    promise_test(async function() {
+      for (let i = 0; i < 110; ++i)
+        await test_driver.generate_test_report("" + i);
+    }, "Buffer filled");
+
+    async_test(function(t2) {
+      window.addEventListener("securitypolicyviolation", t2.step_func(function(e) {
+        assert_equals(e.blockedURI, "{{location[scheme]}}://{{location[host]}}/reporting/support/fail.png");
+        assert_equals(e.violatedDirective, "img-src");
+        t2.done();
+      }));
+    }, "Event is fired");
+
+    promise_test(async function(test) {
+      const cspReports = await new Promise(resolve => {
+          let observer = new ReportingObserver(resolve, {types:["csp-violation"], buffered:true});
+          observer.observe();
+      });
+
+      // WebKit generates two CSP reports for the blocked image load (https://bugs.webkit.org/show_bug.cgi?id=153162)
+      assert_true(cspReports.length > 0 && cspReports.length < 3);
+
+      // Ensure that the contents of the report are valid.
+      assert_equals(cspReports[0].type, "csp-violation");
+    }, "CSP Report limits were honored");
+
+    promise_test(async function(test) {
+      const testReports = await new Promise(resolve => {
+          let observer = new ReportingObserver(resolve, {types:["test"], buffered:true});
+          observer.observe();
+      });
+
+      assert_equals(testReports.length, 100);
+
+      for (let i = 0; i < 100; ++i) {
+        assert_equals(testReports[i].type, "test");
+        assert_equals(testReports[i].body.message, "" + (i + 10));
+      }
+    }, "Test Report limits were honored");
+
+    promise_test(async function(test) {
+      const allReports = await new Promise(resolve => {
+          let observer = new ReportingObserver(resolve, {buffered:true});
+          observer.observe();
+      });
+
+      // WebKit generates two CSP reports for the blocked image load (https://bugs.webkit.org/show_bug.cgi?id=153162)
+      // Other browsers produce only one.
+      assert_true(allReports.length >= 101 && allReports.length <= 102);
+    }, "Combined report limits were honored");
+  </script>
+  <img src='/reporting/support/fail.png'
+       onload='t1.unreached_func("The image should not have loaded");'
+       onerror='t1.done();'>
+</body>
+</html>

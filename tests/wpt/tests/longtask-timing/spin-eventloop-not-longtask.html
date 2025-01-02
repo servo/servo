@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: synchronous XHR</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<link rel="stylesheet" href="/resource-timing/resources/delay-css.py?delay=1000" />
+<h1>Long Task: Spin event loop</h1>
+<div id="log"></div>
+<script>
+setup(() => assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.'));
+
+promise_test(async t => {
+    const didReceiveLongTask = false;
+    new PerformanceObserver(() => {
+        didReceiveLongTask = true;
+    }).observe({entryTypes: ['longtask']});
+
+    await new Promise(resolve => window.addEventListener('load', resolve));
+    assert_false(didReceiveLongTask);
+}, 'Waiting for load event (spinning an event loop), is not a longtask');
+</script>
+</body>

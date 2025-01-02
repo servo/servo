@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: Detached buffers supplied as binary keys</title>
+<meta name="help" href="http://w3c.github.io/IndexedDB/#convert-a-value-to-a-key">
+<meta name="help" href="https://webidl.spec.whatwg.org/#dfn-get-buffer-source-copy">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+<script>
+
+indexeddb_test(
+  (t, db) => { db.createObjectStore('store'); },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const store = tx.objectStore('store');
+
+    const array = new Uint8Array([1,2,3,4]);
+    const buffer = array.buffer;
+    assert_equals(array.byteLength, 4);
+
+    // Detach the ArrayBuffer by transferring it to a worker.
+    const worker = new Worker(URL.createObjectURL(new Blob([])));
+    worker.postMessage('', [buffer]);
+    assert_equals(array.byteLength, 0);
+
+    assert_throws_dom("DataError", () => { store.put('', buffer); });
+    t.done();
+  },
+  'Detached ArrayBuffer'
+);
+
+indexeddb_test(
+  (t, db) => { db.createObjectStore('store'); },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const store = tx.objectStore('store');
+
+    const array = new Uint8Array([1,2,3,4]);
+    assert_equals(array.length, 4);
+
+    // Detach the ArrayBuffer by transferring it to a worker.
+    const worker = new Worker(URL.createObjectURL(new Blob([])));
+    worker.postMessage('', [array.buffer]);
+    assert_equals(array.length, 0);
+
+    assert_throws_dom("DataError", () => { store.put('', array); });
+    t.done();
+  },
+  'Detached TypedArray'
+);
+
+</script>

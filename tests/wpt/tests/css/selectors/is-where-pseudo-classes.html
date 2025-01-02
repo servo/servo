@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>:is() combined with pseudo-classes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<link rel="help" href="https://drafts.csswg.org/selectors/#useraction-pseudos">
+<style>
+  button {
+    color: black;
+  }
+  /* Selects #a, #c */
+  :is(main :where(main #a), #c:nth-child(odd), #d):is(:enabled) {
+    color: green;
+  }
+  /* Selects #b, #d, #f */
+  button:is(:nth-child(even), span #e):is(:enabled, :where(:disabled)) {
+    color: blue;
+  }
+</style>
+<main>
+  <button id=a>A</button>
+  <button id=b>B</button>
+  <button id=c>C</button>
+  <button id=d disabled>D</button>
+  <button id=e disabled>E</button>
+  <button id=f disabled>F</button>
+</main>
+<script>
+  test(function() {
+    assert_equals(getComputedStyle(a).color, 'rgb(0, 128, 0)');
+    assert_equals(getComputedStyle(b).color, 'rgb(0, 0, 255)');
+    assert_equals(getComputedStyle(c).color, 'rgb(0, 128, 0)');
+    assert_equals(getComputedStyle(d).color, 'rgb(0, 0, 255)');
+    assert_equals(getComputedStyle(e).color, 'rgb(0, 0, 0)');
+    assert_equals(getComputedStyle(f).color, 'rgb(0, 0, 255)');
+  }, ':is() combined with pseudo-classes');
+</script>

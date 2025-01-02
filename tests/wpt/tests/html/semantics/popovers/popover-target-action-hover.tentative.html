@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>The popovertargetaction=hover behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<body>
+<style>
+.unrelated {top:0;}
+.invoker {top:100px; width:fit-content; height:fit-content;}
+[popover] {top: 200px;}
+.offset-child {top:300px; left:300px;}
+</style>
+
+<script>
+const popoverShowDelay = 100; // The CSS delay setting.
+const hoverWaitTime = 200; // How long to wait to cover the delay for sure.
+async function makePopoverAndInvoker(test, popoverType, invokerType, delayMs) {
+  delayMs = delayMs || popoverShowDelay;
+  const popover = Object.assign(document.createElement('div'),{popover: popoverType});
+  document.body.appendChild(popover);
+  popover.textContent = 'Popover';
+  // Set popover-show-delay on the popover to 0 - it should be ignored.
+  popover.setAttribute('style',`popover-show-delay: 0; popover-hide-delay: 1000s;`);
+  let invoker = document.createElement('button');
+  invoker.setAttribute('class','invoker');
+  invoker.popoverTargetElement = popover;
+  invoker.popoverTargetAction = "hover";
+  // Set popover-hide-delay on the invoker to 0 - it should be ignored.
+  invoker.setAttribute('style',`popover-show-delay: ${delayMs}ms; popover-hide-delay: 0;`);
+  document.body.appendChild(invoker);
+  const actualHoverDelay = Number(getComputedStyle(invoker)['popoverShowDelay'].slice(0,-1))*1000;
+  assert_equals(actualHoverDelay,delayMs,'popover-show-delay is incorrect');
+  const originalInvoker = invoker;
+  const reassignPopoverFn = (p) => {originalInvoker.popoverTargetElement = p};
+  switch (invokerType) {
+    case 'plain':
+      // Invoker is just a button.
+      invoker.textContent = 'Invoker';
+      break;
+    case 'nested':
+      // Invoker is just a button containing a div.
+      const child1 = invoker.appendChild(document.createElement('div'));
+      child1.textContent = 'Invoker';
+      break;
+    case 'nested-offset':
+      // Invoker is a child of the invoking button, and is not contained within
+      // the bounds of the popovertarget element.
+      invoker.textContent = 'Invoker';
+      // Reassign invoker to the child:
+      invoker = invoker.appendChild(document.createElement('div'));
+      invoker.textContent = 'Invoker child';
+      invoker.setAttribute('class','offset-child');
+      break;
+    case 'none':
+      // No invoker.
+      invoker.remove();
+      break;
+    default:
+      assert_unreached(`Invalid invokerType ${invokerType}`);
+  }
+  const unrelated = document.createElement('div');
+  document.body.appendChild(unrelated);
+  unrelated.textContent = 'Unrelated';
+  unrelated.setAttribute('class','unrelated');
+  test.add_cleanup(async () => {
+    popover.remove();
+    invoker.remove();
+    originalInvoker.remove();
+    unrelated.remove();
+    await waitForRender();
+  });
+  await mouseOver(unrelated); // Start by mousing over the unrelated element
+  await waitForRender();
+  return {popover,invoker,reassignPopoverFn};
+}
+
+// NOTE about testing methodology:
+// This test checks whether popovers are triggered *after* the appropriate hover
+// delay. The delay used for testing is kept low, to avoid this test taking too
+// long, but that means that sometimes on a slow bot/client, the hover delay can
+// elapse before we are able to check the popover status. And that can make this
+// test flaky. To avoid that, the msSinceMouseOver() function is used to check
+// that not-too-much time has passed, and if it has, the test is simply skipped.
+
+["auto","hint","manual"].forEach(type => {
+  ["plain","nested","nested-offset"].forEach(invokerType => {
+    promise_test(async (t) => {
+      const {popover,invoker} = await makePopoverAndInvoker(t,type,invokerType);
+      assert_false(popover.matches(':popover-open'));
+      await mouseOver(invoker);
+      let showing = popover.matches(':popover-open');
+      // See NOTE above.
+      if (msSinceMouseOver() < popoverShowDelay)
+        assert_false(showing,'popover should not show immediately');
+      await waitForHoverTime(hoverWaitTime);
+      assert_true(msSinceMouseOver() >= hoverWaitTime,'waitForHoverTime should wait the specified time');
+      assert_true(popover.matches(':popover-open'),'popover should show after delay');
+      assert_true(hoverWaitTime > popoverShowDelay,'popoverShowDelay is the CSS setting, hoverWaitTime should be longer than that');
+      popover.hidePopover(); // Cleanup
+    },`popovertargetaction=hover shows a popover with popover=${type}, invokerType=${invokerType}`);
+
+    promise_test(async (t) => {
+      const {popover,invoker} = await makePopoverAndInvoker(t,type,invokerType);
+      assert_false(popover.matches(':popover-open'));
+      invoker.click(); // Click the invoker
+      assert_true(popover.matches(':popover-open'),'Clicking the invoker should show the popover, even when popovertargetaction=hover');
+      popover.hidePopover(); // Cleanup
+    },`popovertargetaction=hover should also allow click activation, for popover=${type}, invokerType=${invokerType}`);
+
+    promise_test(async (t) => {
+      const longerHoverDelay = hoverWaitTime*2;
+      const {popover,invoker} = await makePopoverAndInvoker(t,type,invokerType,longerHoverDelay);
+      await mouseOver(invoker);
+      let showing = popover.matches(':popover-open');
+      // See NOTE above.
+      if (msSinceMouseOver() >= longerHoverDelay)
+        return; // The WPT runner was too slow.
+      assert_false(showing,'popover should not show immediately');
+      await waitForHoverTime(hoverWaitTime);
+      showing = popover.matches(':popover-open');
+      if (msSinceMouseOver() >= longerHoverDelay)
+        return; // The WPT runner was too slow.
+      assert_false(showing,'popover should not show after not long enough of a delay');
+    },`popovertargetaction=hover popover-show-delay is respected (popover=${type}, invokerType=${invokerType})`);
+
+    promise_test(async (t) => {
+      const {popover,invoker} = await makePopoverAndInvoker(t,type,invokerType);
+      popover.showPopover();
+      assert_true(popover.matches(':popover-open'));
+      await mouseOver(invoker);
+      assert_true(popover.matches(':popover-open'),'popover should stay showing on mouseover');
+      await waitForHoverTime(hoverWaitTime);
+      assert_true(popover.matches(':popover-open'),'popover should stay showing after delay');
+      popover.hidePopover(); // Cleanup
+    },`popovertargetaction=hover does nothing when popover is already showing (popover=${type}, invokerType=${invokerType})`);
+
+    promise_test(async (t) => {
+      const {popover,invoker} = await makePopoverAndInvoker(t,type,invokerType);
+      await mouseOver(invoker);
+      let showing = popover.matches(':popover-open');
+      popover.remove();
+      // See NOTE above.
+      if (msSinceMouseOver() >= popoverShowDelay)
+        return; // The WPT runner was too slow.
+      assert_false(showing,'popover should not show immediately');
+      await waitForHoverTime(hoverWaitTime);
+      assert_false(popover.matches(':popover-open'),'popover should not show even after a delay');
+      // Now put it back in the document and make sure it doesn't trigger.
+      document.body.appendChild(popover);
+      await waitForHoverTime(hoverWaitTime);
+      assert_false(popover.matches(':popover-open'),'popover should not show even when returned to the document');
+    },`popovertargetaction=hover does nothing when popover is moved out of the document (popover=${type}, invokerType=${invokerType})`);
+
+    promise_test(async (t) => {
+      const {popover,invoker,reassignPopoverFn} = await makePopoverAndInvoker(t,type,invokerType);
+      const popover2 = Object.assign(document.createElement('div'),{popover: type});
+      document.body.appendChild(popover2);
+      t.add_cleanup(() => popover2.remove());
+      await mouseOver(invoker);
+      let eitherShowing = popover.matches(':popover-open') || popover2.matches(':popover-open');
+      reassignPopoverFn(popover2);
+      // See NOTE above.
+      if (msSinceMouseOver() >= popoverShowDelay)
+        return; // The WPT runner was too slow.
+      assert_false(eitherShowing,'popover should not show immediately');
+      await waitForHoverTime(hoverWaitTime);
+      assert_false(popover.matches(':popover-open'),'popover #1 should not show since popovertarget was reassigned');
+      assert_false(popover2.matches(':popover-open'),'popover #2 should not show since popovertarget was reassigned');
+    },`popovertargetaction=hover does nothing when target changes (popover=${type}, invokerType=${invokerType})`);
+  });
+});
+</script>

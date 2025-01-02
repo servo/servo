@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: @view-transition opt out in new document.</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="at-rule-opt-in-none-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+html {
+  background: blue;
+}
+</style>
+<script>
+function runTest() {
+  const url = "resources/at-rule-opt-in-none.html";
+  window.location.replace(new URL(url, window.location));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

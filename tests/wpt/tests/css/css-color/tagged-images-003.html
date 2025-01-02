@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Color Space of Tagged Images. CSS background property</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#tagged-images">
+<link rel="help" href="https://w3c.github.io/PNG-spec/#11iCCP">
+<meta name="assert" content="Tagged RGB images... if the color profile or other identifying information is valid, must be treated as being in the specified color space.">
+<link rel="match" href="./greensquare-090-ref.html">
+<style>
+    .test { background-color: red; width: 12em; height: 6em; margin-top: 0; }
+    .ref { background-color: #090; width: 12em; height: 6em; margin-bottom: 0; } /* red-green swap of #900 sRGB */
+    /* solid color #990000 PNG image, iCCP with v2 ICC swapped red-green sRGB profile */
+    .test { background: url(./support/swap-990000-iCCP.png); }
+</style>
+<body>
+    <p>Test passes if you see a green square, and no red.</p>
+    <div class="ref"></div>
+    <div class="test"></div>
+
+</body>

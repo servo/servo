@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>text-box-trim does not interfere with positive clearance</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="match" href="text-box-trim-float-clear-br-001-ref.html">
+<style>
+@import "support/MetricsTestFont.css";
+
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target, .float {
+  font: 50px/1 MetricsTestFont;
+}
+.target {
+  text-box-trim: trim-end;
+  text-box-edge: text;
+}
+.float {
+  float: left;
+  width: 100px;
+  background: yellow;
+}
+.clear { clear: both; }
+</style>
+<div class="float">F<br>F</div>
+<div class="target">
+  ApÉx
+  <br class="clear">
+</div>
+<div class="spacer"></div>

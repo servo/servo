@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Replaced inline elements with % widths</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-15 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/replaced/004.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" />
+  <link rel="match" href="inline-replaced-width-014-ref.xht" />
+
+  <meta content="image" name="flags" />
+
+  <style type="text/css">
+   div.a { width: 300px; height: 100px; background: red; }
+   div.a p { width: 200%; }
+   div.a img { width: 50%; height: 100px; vertical-align: bottom; }
+   div.b { width: 300px; position: relative; }
+   div.b p { width: 200%; }
+   div.b img { width: 50%; height: 100px; vertical-align: bottom; }
+   div.b span { position: absolute; top: 0; left: 0; background: green; width: 300px; height: 100px; }
+  </style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 2 identical filled green rectangles and <strong>no red</strong>.</p>
+
+  <div class="a">
+   <p>
+    <img src="support/1x1-green.png" alt="Image support required for this test"/>
+   </p>
+  </div>
+
+  <div class="b">
+   <p>
+    <img src="support/1x1-red.png" alt="Image support required for this test"/>
+    <span></span>
+   </p>
+  </div>
+
+ </body>
+</html>

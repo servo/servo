@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.1-bodyValueImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "bodyValue key not found. Annotation May have exactly one bodyValue (if no body also included).",
+  "title": "Implements **_bodyValue_ key** which has a **single value** that is a **string** [model 3.2.5](https://www.w3.org/TR/annotation-model/#string-body)",
+  "description": "True when the Annotation implements a bodyValue key (Section 3.2.5)",
+  "allOf":
+    [
+    { "$ref": "annotations.json#/definitions/bodyValueFound"}
+    ]
+}

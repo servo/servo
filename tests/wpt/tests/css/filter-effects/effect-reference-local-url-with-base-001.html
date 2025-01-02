@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>SVG Filters: local URL with a base element</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.csswg.org/css-values/#local-urls">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=470608">
+<link rel="match" href="reference/effect-reference-local-url-with-base-001-ref.html">
+<meta name="assert" content="Check that fragment-only URLs are always document-local references.">
+
+<base href="http://www.example.com/">
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  filter: url(#filter);
+}
+</style>
+<div id="target"></div>
+<svg>
+  <filter id="filter" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
+    <feFlood flood-color="green"/>
+  </filter>
+</svg>

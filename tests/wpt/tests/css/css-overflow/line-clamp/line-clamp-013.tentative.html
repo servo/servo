@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: when clamping by lines, clamped block descendent heights are respected</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-013-ref.html">
+<meta name="assert" content="when line-clamp is used with a number of lines, if the clamp happens inside a block descendent with a set height, that height will be respected">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  padding: 4px;
+  white-space: pre;
+  background-color: yellow;
+  border: 2px solid black;
+}
+.inner {
+  background-color: skyblue;
+  height: 3lh;
+  padding: 4px;
+  border: 2px solid purple;
+}
+</style>
+<div class="clamp">Line 1
+Line 2<div class="inner">Line 3
+Line 4
+Line 5
+Line 6</div></div>
+<p>Following content.</p>

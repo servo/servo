@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<iframe width="800" srcdoc='<!DOCTYPE html>
+                            <style>
+                              .wrapper {
+                                container: example / inline-size;
+                                position: fixed;
+                                width: 100%;
+                              }
+                              .inner {
+                                display: none;
+                              }
+                              @container (min-width: 600px) {
+                                .inner {
+                                  display: block;
+                                }
+                              }
+                            </style>
+                            <body style="width: 600px;">
+                              <div class="wrapper">
+                                <div class="inner">
+                                  <dialog>
+                                    <div class="wrapper">
+                                      <div class="inner">
+                                        <dialog></dialog>
+                                      </div>
+                                    </div>
+                                  </dialog>
+                                </div>
+                              </div>
+                            </body>
+                            <script>
+                              const dialogs = document.querySelectorAll("dialog");
+                              for (let dialog of dialogs) {
+                                dialog.showModal();
+                              }
+                            </script>'>
+</iframe>
+<script>
+window.onload = () => {
+  const iframe = document.querySelector('iframe');
+  iframe.width = 400;
+  iframe.contentDocument.body.offsetTop;
+  iframe.width = 800;
+};
+</script>

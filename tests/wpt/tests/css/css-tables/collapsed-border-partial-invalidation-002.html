@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="David Shin" href="dshin@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1879731">
+<link rel="match" href="collapsed-border-partial-invalidation-002-ref.html">
+<meta name="assert" content="Invalidating part of a border-collapsed table keeps border styling correctly.">
+<style>
+table {
+  border-collapse: collapse;
+}
+
+.group {
+  border-top: 1px solid black;
+  border-bottom: 3px solid black;
+}
+</style>
+<table id="table">
+  <tr id="row"><td class="group">X</td><td>X</td><td id="last" class="group">X</td></tr>
+</table>
+<script>
+onload = function () {
+  // Make sure the table layout is flushed
+  table.getBoundingClientRect();
+  let td = document.createElement('td');
+  td.innerText = "X";
+  // Requring #last is an unfortunate side effect of bug 1880560.
+  last.before(td);
+  document.documentElement.className = "";
+}
+</script>
+</html>

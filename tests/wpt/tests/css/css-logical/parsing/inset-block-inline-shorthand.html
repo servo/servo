@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: inset-block and inset-inline set longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-inset-block">
+<meta name="assert" content="inset-block, inset-inline support the full grammar '<'top'>{1,2}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('inset-block', '10px', {
+  'inset-block-start': '10px',
+  'inset-block-end': '10px'
+});
+
+test_shorthand_value('inset-block', '20% auto', {
+  'inset-block-start': '20%',
+  'inset-block-end': 'auto'
+});
+
+test_shorthand_value('inset-inline', '30%', {
+  'inset-inline-start': '30%',
+  'inset-inline-end': '30%'
+});
+
+test_shorthand_value('inset-inline', 'auto 40px', {
+  'inset-inline-start': 'auto',
+  'inset-inline-end': '40px'
+});
+</script>
+</body>
+</html>

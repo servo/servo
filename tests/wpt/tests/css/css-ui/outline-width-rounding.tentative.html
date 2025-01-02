@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+    CSS Outline: width rounding
+  </title>
+
+  <link rel="author" title="Traian Captan" href="mailto:tcaptan@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-ui-4/#outline-width">
+
+  <meta name="assert" content="outline-width computed value after rounding.">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <h1>
+    Test passes if outline widths are rounded up
+    when they are greater than 0px and less than 1px,
+    and rounded down when they are greater than 1px.
+  </h1>
+
+  <script>
+    const values = [
+      { input: "0px", expected: "0px" },
+      { input: "0.1px", expected: "1px" },
+      { input: "0.25px", expected: "1px" },
+      { input: "0.5px", expected: "1px" },
+      { input: "0.9px", expected: "1px" },
+      { input: "1px", expected: "1px" },
+      { input: "1.25px", expected: "1px" },
+      { input: "1.5px", expected: "1px" },
+      { input: "2px", expected: "2px" },
+      { input: "2.75px", expected: "2px" },
+      { input: "2.99px", expected: "2px" },
+      { input: "3px", expected: "3px" },
+    ];
+
+    for (const value of values) {
+      const div = document.createElement("div");
+      div.style = `outline: solid ${value.input} green; margin-bottom: 20px;`;
+      document.body.appendChild(div);
+    }
+
+    var targets = document.querySelectorAll("div");
+
+    for (var i=0; i < targets.length; ++i) {
+      test(() => {
+        assert_equals(getComputedStyle(targets[i]).outlineWidth, values[i].expected);
+      }, values[i].input);
+    }
+    </script>
+</body>
+</html>

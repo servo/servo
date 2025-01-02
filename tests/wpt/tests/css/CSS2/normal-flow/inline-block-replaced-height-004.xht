@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline-block replaced element without intrinsic ratio and 'height' set to 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-12 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height" />
+		<link rel="match" href="block-replaced-height-004-ref.xht" />
+
+        <meta name="assert" content="For inline-block replaced element that has no intrinsic ratio and a 'height' set to 'auto', the 'height' is set to the largest rectangle that has a 2:1 ratio that is not greater than 150px and has a 'width' not greater than the device width." />
+        <style type="text/css">
+            div
+            {
+                position: relative;
+            }
+            div div
+            {
+                border: solid green;
+                height: 150px;
+                position: absolute;
+                top: 0;
+                width: 300px;
+            }
+            iframe
+            {
+                border: solid red;
+                display: inline-block;
+                height: auto;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div>
+            <iframe></iframe>
+            <div></div>
+        </div>
+    </body>
+</html>

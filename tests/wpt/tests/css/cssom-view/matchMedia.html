@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="flags" content="dom">
+<title>CSS Test: CSSOM View matchMedia and MediaQueryList</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://www.w3.org/TR/cssom-view-1/#dom-window-matchmedia">
+<link rel="help" href="https://www.w3.org/TR/cssom-view-1/#the-mediaquerylist-interface">
+<link rel="help" href="https://www.w3.org/TR/cssom-1/#serializing-media-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/matchMedia.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(() => {
+    assert_equals(
+        typeof window.matchMedia,
+        "function",
+        "FATAL ERROR: The window.matchMedia function is not present. The rest of the testsuite will fail to run."
+    );
+}, "window.matchMedia is a function");
+
+test(() => {
+    const mql = window.matchMedia("all");
+    assert_equals(mql.media, "all");
+    assert_true(mql.matches);
+}, 'window.matchMedia("all") matches');
+
+test(() => {
+    const mql = window.matchMedia("");
+    assert_equals(mql.media, "");
+    assert_true(mql.matches);
+}, 'window.matchMedia("") matches');
+
+test(() => {
+    const mql = window.matchMedia("(min-width: 1px)");
+    assert_equals(mql.media, "(min-width: 1px)");
+    assert_true(mql.matches);
+}, 'window.matchMedia("(min-width: 1px)") matches');
+
+test(() => {
+    const mql = window.matchMedia("::");
+    assert_true(mql instanceof MediaQueryList);
+    assert_equals(mql.media, "not all");
+    assert_false(mql.matches);
+}, 'media query with syntax error is serialized as "not all"');
+
+promise_test(async t => {
+    const iframe = await createIFrame(t, 200);
+    const mql = iframe.contentWindow.matchMedia("(max-width: 199px), all and (min-width: 200px)");
+    assert_equals(mql.media, "(max-width: 199px), (min-width: 200px)");
+    assert_true(mql.matches);
+}, 'iframe.matchMedia("(max-width: 199px), all and (min-width: 200px)") is serialized w/o "all"');
+
+promise_test(async t => {
+    const iframe = await createIFrame(t);
+    const mql = iframe.contentWindow.matchMedia("(min-aspect-ratio: 1/1)");
+    assert_true(mql.matches);
+}, 'iframe.matchMedia("(min-aspect-ratio: 1/1)") matches');
+
+promise_test(async t => {
+    const iframe = await createIFrame(t, 200);
+    const mql = iframe.contentWindow.matchMedia("(width: 200px)");
+    assert_true(mql.matches);
+}, 'iframe.matchMedia("(width: 200px)") matches');
+
+promise_test(async t => {
+    const iframe = await createIFrame(t, 200, 100);
+    const mql = iframe.contentWindow.matchMedia("(max-height: 50px)");
+    assert_false(mql.matches);
+}, 'iframe.matchMedia("(max-height: 50px)") matches');
+
+promise_test(async t => {
+    const iframe = await createIFrame(t, 200, 100);
+    const mql = iframe.contentWindow.matchMedia("(min-width: 150px)");
+    assert_true(mql.matches);
+}, 'iframe.matchMedia("(min-width: 150px)") matches');
+</script>

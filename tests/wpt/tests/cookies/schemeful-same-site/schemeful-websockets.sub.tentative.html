@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+</head>
+<body>
+<div id=log></div>
+<script>
+  promise_test(async function (t) {
+    var value = "" + Math.random();
+    document.cookie = `schemeful_same_site_websockets_strict=${value}; sameSite=strict; path=/`;
+    document.cookie = `schemeful_same_site_websockets_lax=${value}; sameSite=lax; path=/`;
+    await credFetch(SECURE_ORIGIN + "/cookies/resources/setSameSiteNone.py?" + value)
+    t.add_cleanup(async function() {
+      await credFetch(origin + "/cookies/resources/drop.py?name=" + "schemeful_same_site_websockets_strict");
+      await credFetch(origin + "/cookies/resources/drop.py?name=" + "schemeful_same_site_websockets_lax");
+      await credFetch(SECURE_ORIGIN + "/cookies/resources/dropSameSiteNone.py");
+    });
+
+    var ws = new WebSocket("ws://{{host}}:{{ports[ws][0]}}/echo-cookie");
+    return new Promise((resolve, reject) => {
+      ws.onclose = t.step_func_done(function () {
+        assert_unreached("'close' should not fire before 'open'.");
+      });
+      ws.onmessage = t.step_func(function (e) {
+        ws.onclose = null;
+        ws.close();
+        // Same-scheme WebSockets should get Lax and Strict cookies.
+        var strictRegex = new RegExp("schemeful_same_site_websockets_strict=" + value);
+        var laxRegex = new RegExp("schemeful_same_site_websockets_lax=" + value);
+        assert_regexp_match(e.data, strictRegex, "Same-scheme strict");
+        assert_regexp_match(e.data, laxRegex, "Same-scheme strict");
+
+        var ws2 = new WebSocket("wss://{{host}}:{{ports[wss][0]}}/echo-cookie");
+        ws2.onclose = t.step_func_done(function () {
+          assert_unreached("'close' should not fire before 'open'.");
+        });
+        ws2.onmessage = t.step_func(function (e2) {
+          ws2.onclose = null;
+          ws2.close();
+          // Cross-scheme WebSockets should only get samesite_none.
+          var noneRegex = new RegExp("samesite_none_secure=" + value);
+          assert_regexp_match(e2.data, noneRegex, "Cross-scheme none");
+          assert_false(strictRegex.test(e2.data), "Cross-scheme strict");
+          assert_false(laxRegex.test(e2.data), "Cross-scheme lax");
+          resolve();
+        });
+      });
+    });
+  }, "Cross-scheme WebSockets are cross-site");
+</script>
+</body>
+</html>

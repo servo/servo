@@ -1,0 +1,134 @@
+[package]
+name = "servoshell"
+build = "build.rs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servoshell"
+path = "lib.rs"
+bench = false
+
+[[bin]]
+name = "servo"
+path = "main.rs"
+bench = false
+
+# Some of these dependencies are only needed for a specific target os, but
+# since build-scripts can't detect the cargo target os at build-time, we
+# must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
+[build-dependencies]
+vergen-git2 = { version = "1.0.2", features = ["build"] }
+# MacOS only
+cc = "1.2"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[package.metadata.winres]
+FileDescription = "Servo"
+LegalCopyright = "© The Servo Project Developers"
+OriginalFilename = "servo.exe"
+ProductName = "Servo"
+
+[features]
+debugmozjs = ["libservo/debugmozjs"]
+default = ["max_log_level", "webdriver", "webxr", "webgpu"]
+jitspew = ["libservo/jitspew"]
+js_backtrace = ["libservo/js_backtrace"]
+layout_2013 = ["libservo/layout_2013"]
+max_log_level = ["log/release_max_level_info"]
+media-gstreamer = ["libservo/media-gstreamer"]
+multiview = ["libservo/multiview"]
+native-bluetooth = ["libservo/native-bluetooth"]
+profilemozjs = ["libservo/profilemozjs"]
+refcell_backtrace = ["libservo/refcell_backtrace"]
+tracing = ["dep:tracing", "dep:tracing-subscriber", "libservo/tracing"]
+tracing-hitrace = ["tracing", "dep:hitrace"]
+tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
+webdriver = ["libservo/webdriver"]
+webgl_backtrace = ["libservo/webgl_backtrace"]
+webxr = ["dep:webxr", "libservo/webxr"]
+webgpu = ["libservo/webgpu"]
+
+[dependencies]
+libc = { workspace = true }
+libservo = { path = "../../components/servo" }
+cfg-if = { workspace = true }
+keyboard-types = { workspace = true }
+log = { workspace = true }
+getopts = { workspace = true }
+hitrace = { workspace = true, optional = true }
+mime_guess = { workspace = true }
+url = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
+tracing-perfetto = { workspace = true, optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.14"
+ipc-channel = { workspace = true }
+jni = "0.21.1"
+libloading = "0.8"
+
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+backtrace = { workspace = true }
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+env_filter = "0.1.3"
+# force inprocess, until libc-rs 0.2.156 is released containing
+# https://github.com/rust-lang/libc/commit/9e248e212c5602cb4e98676e4c21ea0382663a12
+ipc-channel = { workspace = true, features = ["force-inprocess"] }
+hilog = "0.1.1"
+napi-derive-ohos = "1.0.3"
+napi-ohos = "1.0.3"
+ohos-sys = { version = "0.4.0", features = ["xcomponent"] }
+ohos-vsync = "0.1.2"
+ohos-ime = { version = "0.2" }
+ohos-ime-sys = "0.1.1"
+xcomponent-sys = { version = "0.1.1", features = ["api-12", "keyboard-types"] }
+
+[target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
+nix = { workspace = true, features = ["fs"] }
+surfman = { workspace = true, features = ["sm-angle-default"] }
+serde_json = { workspace = true }
+webxr = { workspace = true, optional = true }
+
+[target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+# For optional feature servo_allocator/use-system-allocator
+servo_allocator = { path = "../../components/allocator" }
+arboard = { version = "3" }
+egui = { version = "0.30.0" }
+egui_glow = { version = "0.30.0", features = ["winit"] }
+egui-winit = { version = "0.30.0", default-features = false, features = ["clipboard", "wayland"] }
+euclid = { workspace = true }
+gilrs = "0.11.0"
+gleam = { workspace = true }
+glow = "0.16.0"
+headers = { workspace = true }
+http = { workspace = true }
+net = { path = "../../components/net" }
+net_traits = { workspace = true }
+raw-window-handle = "0.6"
+shellwords = "1.0.0"
+surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
+tinyfiledialogs = "3.0"
+webxr = { workspace = true, features = ["ipc", "glwindow", "headless"] }
+winit = "0.30.7"
+
+[target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]
+image = { workspace = true }
+
+[target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
+sig = "1.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+webxr = { workspace = true, features = ["ipc", "glwindow", "headless", "openxr-api"] }
+windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
+libservo = { path = "../../components/servo", features = ["no-wgl"] }

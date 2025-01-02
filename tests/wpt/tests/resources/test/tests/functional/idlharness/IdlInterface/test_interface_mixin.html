@@ -1,0 +1,131 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: interface mixins</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <p>Verify the series of sub-tests that are executed for "interface mixin" objects.</p>
+  <script>
+    "use strict";
+
+    // Simple includes statement (valid)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        [Exposed=Window] interface I1 {};
+        interface mixin M1 { attribute any a1; };
+        I1 includes M1;`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+
+    // Partial interface mixin (valid)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        [Exposed=Window] interface I2 {};
+        interface mixin M2 {};
+        partial interface mixin M2 { attribute any a2; };
+        I2 includes M2;`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+
+    // Partial interface mixin without original mixin
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial interface mixin M3 {};');
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+
+    // Name clash between mixin and partial mixin
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        interface mixin M4 { attribute any a4; };
+        partial interface mixin M4 { attribute any a4; };`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+
+    // Name clash between interface and mixin
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        interface mixin M5 { attribute any a5; };
+        interface I5 { attribute any a5; };
+        I5 includes M5;`);
+      idlArray.merge_partials();
+      idlArray.merge_mixins();
+    })();
+  </script>
+  <script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "I1 includes M1: member names are unique",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "I2 includes M2: member names are unique",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "I5 includes M5: member names are unique",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: member a5 is unique expected true got false"
+    },
+    {
+      "name": "Partial interface mixin M2: member names are unique",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface mixin M2: original interface mixin defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface mixin M3: original interface mixin defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original interface mixin should be defined expected true got false"
+    },
+    {
+      "name": "Partial interface mixin M4: member names are unique",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: member a4 is unique expected true got false"
+    },
+    {
+      "name": "Partial interface mixin M4: original interface mixin defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+
+</html>

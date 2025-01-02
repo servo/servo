@@ -1,0 +1,94 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned inline-block element with percentage based height set to 'auto' and over-constrained values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-05 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-height" />
+		<link rel="match" href="absolute-replaced-height-012-ref.xht" />
+
+        <meta name="assert" content="An absolutely positioned inline-block replaced element with percentage height resolves based on the containing block height when such height can be resolved." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+                height: 2in;
+            }
+            div div
+            {
+                border: solid green;
+                height: 1in;
+                position: absolute;
+                top: 1in;
+                width: 300px;
+            }
+            iframe
+            {
+                border: solid red;
+                bottom: 1in;
+                margin-bottom: 0.5in;
+                margin-top: 0.5in;
+                position: absolute;
+                top: 0.5in;
+                width: auto;
+            }
+
+			/*
+
+  			0.5in    : 'top'
+		+
+  			0.5in    : 'margin-top'
+		+
+  			3px      : 'border-top-width' medium which is often resolved as 3px
+		+
+  			0        : 'padding-top'
+		+
+  			1in      : 'height' 50% of height of containing block
+		+
+  			0        : 'padding-bottom'
+		+
+  			3px      : 'border-bottom-width' medium which is often resolved as 3px
+		+
+  			0.5in    : 'margin-bottom'
+		+
+  			1in      : 'bottom'
+		================
+  			342px    : height of containing block (192px)
+
+		So, bottom has to be ignored and forced to have the value that
+		will balance the equation. So, this brings up
+
+
+  			0.5in   : 'top'
+		+
+  			0.5in   : 'margin-top'
+		+
+  			3px     : 'border-top-width' medium which is often resolved as 3px
+		+
+  			0       : 'padding-top'
+		+
+  			1in     : 'height' 50% of height of containing block
+		+
+  			0       : 'padding-bottom'
+		+
+  			3px     : 'border-bottom-width' medium which is often resolved as 3px
+		+
+  			0.5in   : 'margin-bottom'
+		+
+  			(solve) : 'bottom'
+		================
+  			-246px   : height of containing block (192px)
+
+			So, the solved bottom value should be -54px .
+			*/
+
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <iframe height="50%"></iframe>
+            <div></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-collectionModifiedImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Valid Annotation Collection-level modified key not found. Annotation Collection may have zero or exactly one modified key value.",
+  "title": "Implements Annotation Collection-level **_modified_ key** which has a **single value** that is a **string of format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when the Annotation Collection implements exactly one modified key value (Section 3.3.1, 5.1)",
+  "allOf":
+    [
+    { "$ref": "otherProperties.json#/definitions/modifiedValidIfPresent"},
+    { "type": "object",
+      "required": [ "modified" ] }
+    ]
+}

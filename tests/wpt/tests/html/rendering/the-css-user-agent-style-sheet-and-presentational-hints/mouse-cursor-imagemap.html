@@ -1,0 +1,19 @@
+<!doctype html>
+<img usemap="#map" src="data:image/gif;base64,R0lGODlhAQABAIAAAOTm7AAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" width="1000" height="1000" style="border: 1px solid black;">
+<map name="map">
+  <area id="clickable-area" shape="rect" coords="0,0,500,500" href="#" role="img">
+  <area id="nonclickable-area" shape="rect" coords="500,500,1000,1000" role="img"><!-- No href attribute.-->
+</map>
+
+<p>An unclickable (non-link) area should not show the link cursor when hovered.</p>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  let clickable = window.getComputedStyle(document.getElementById('clickable-area'));
+  let nonclickable = window.getComputedStyle(document.getElementById('nonclickable-area'));
+  assert_equals(clickable.getPropertyValue('cursor'), 'pointer');
+  assert_not_equals(nonclickable.getPropertyValue('cursor'), 'pointer');
+}, 'Only clickable areas should show the link cursor.');
+</script>

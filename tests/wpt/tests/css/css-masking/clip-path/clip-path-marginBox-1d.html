@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Masking: clip path with margin-box and border-radius when the ratio of border-radius/margin is less than 1</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#valdef-shape-box-margin-box">
+<link rel="match" href="clip-path-marginBox-1d-ref.html">
+<meta name="fuzzy" content="maxDifference=0-224; totalPixels=0-500">
+<meta name="assert" content="Check that the 'clip-path' property supports margin-box with border-radius.">
+
+<style>
+  .clipped {
+    width: 50px;
+    height: 50px;
+    background-color: green;
+    clip-path: margin-box;
+    border-radius: 10px;
+    /* This outline draws far outside the margin box and should be partially clipped. */
+    outline: 200px solid green;
+    margin: 50px;
+    /* Disables margin collapsing. */
+    float: left;
+  }
+</style>
+<!--
+  Spec: If the ratio of border-radius/margin is less than 1, and margin is
+        positive, then the margin box corner radius is
+        border-radius + margin * (1 + (ratio-1)^3).
+
+  This test has a border-radius of 10 and a margin of 50, and should use a
+  margin box corner radius of: 10 + 50 * (1 + (10/50-1)^3) = 34.4
+-->
+<div class="clipped"></div>

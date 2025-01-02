@@ -1,0 +1,27 @@
+﻿<!doctype html>
+<title>CSS Lists and Counters: counters scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="counters-scope-004-ref.html">
+<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<style type="text/css">
+.reset { counter-reset: c; }
+.rb::before { counter-reset: c; content: "R"; }
+.use { counter-increment: c; }
+.use::before { content: counters(c, ".") " "; }
+</style>
+<p>The following two lines should be the same:</p>
+<!-- As rb creates counter only on ::before, the first span with class "use" -->
+<!-- inside the "rb" will inherit its counter from second "reset" as span "rb" -->
+<!-- will inherit it from previous sibling which is second "reset" -->
+<div>
+  <span class="reset"></span>
+  <span class="use"></span>
+  <span class="reset"></span>
+  <span class="use"></span>
+  <span class="rb">
+    <span class="use"></span>
+    <span class="reset"></span>
+    <span class="use"></span>
+  </span>
+</div>
+<div>1 1 R 2 3</div>

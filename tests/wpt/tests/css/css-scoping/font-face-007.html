@@ -1,0 +1,30 @@
+<!doctype html>
+<title>CSS Test: @font-face from shadow applies to :host.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+
+<div id="host"><span id="in-document">1234567890</span></div>
+<script>
+promise_test(async () => {
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      @font-face {
+        font-family: ff-16-wide;
+        src: url(/fonts/Ahem.ttf);
+      }
+      :host {
+        font-family: ff-16-wide;
+      }
+    </style>
+    <slot></slot>
+    <span id="in-shadow">0123456789</span>
+  `;
+
+  await document.fonts.ready;
+
+  assert_equals(document.getElementById('in-document').offsetWidth, 160);
+  assert_equals(host.shadowRoot.getElementById('in-shadow').offsetWidth, 160);
+}, "@font-face from shadow applies to :host");
+</script>

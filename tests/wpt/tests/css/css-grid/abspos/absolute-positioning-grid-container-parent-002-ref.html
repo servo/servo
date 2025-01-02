@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Absolute positioning grid container parent</title>
+
+<style>
+
+  .grid {
+    display: grid;
+    background-color: gray;
+    grid-template-columns: 50px 100px 150px;
+    grid-template-rows: 25px 50px 100px;
+    width: 300px;
+    height: 200px;
+    border: 5px solid black;
+    margin: 20px 30px;
+    padding: 5px 15px;
+  }
+
+  .container {
+    width: 500px;
+    height: 400px;
+    /* Ensures that the element is the containing block of the absolutely positioned elements. */
+    position: relative;
+  }
+
+  #item {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    background-color: blue;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #absolute {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: pink;
+    grid-column: auto;
+    grid-row: auto;
+    top: 20px;
+    left: 60px;
+  }
+
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div class="container">
+  <div class="grid">
+    <div id="item"></div>
+    <div id="absolute"></div>
+  </div>
+</div>

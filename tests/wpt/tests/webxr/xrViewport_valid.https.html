@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRViewport attributes are valid";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t, sessionObjects) {
+  return session.requestReferenceSpace('local')
+    .then((referenceSpace) => new Promise((resolve) =>{
+      let webglLayer = sessionObjects.glLayer;
+      function onFrame(time, xrFrame) {
+        t.step(() => {
+          let pose = xrFrame.getViewerPose(referenceSpace);
+          assert_not_equals(pose, null);
+          assert_not_equals(pose.views, null);
+
+          if (session.sessionInit['optionalFeatures'].includes('secondary-views')) {
+            assert_equals(pose.views.length, 3);
+          } else {
+            assert_equals(pose.views.length, 2);
+          }
+
+          // Ensure the views report the expected viewports into the WebGL layer.
+          for (let i = 0; i < pose.views.length; i++) {
+            let view = pose.views[i];
+            let viewport = webglLayer.getViewport(view);
+
+            assert_not_equals(viewport, null);
+            assert_true(viewport instanceof XRViewport);
+
+            // Exact viewport values don't matter, but they must pass several tests:
+
+            // Viewports have non-zero widths and heights.
+            assert_greater_than(viewport.width, 0);
+            assert_greater_than(viewport.height, 0);
+
+            // Viewports are located within the framebuffer.
+            assert_greater_than_equal(viewport.x, 0);
+            assert_greater_than_equal(viewport.y, 0);
+
+            assert_less_than_equal(
+              viewport.x + viewport.width, webglLayer.framebufferWidth);
+            assert_less_than_equal(
+              viewport.y + viewport.height, webglLayer.framebufferHeight);
+
+              // Assume that the viewports are ordered from left to right. This is
+            // not a requirement by the WebXR spec, but is a sanity check since
+            // this is how Blink orders them.
+            if (i != 0) {
+              let previousView = pose.views[i - 1];
+              let previousViewport = webglLayer.getViewport(previousView);
+              assert_less_than_equal(previousViewport.x + previousViewport.width, viewport.x);
+            }
+          }
+        });
+
+        resolve();
+      }
+      session.requestAnimationFrame(onFrame);
+  }));
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr',
+  {'optionalFeatures': []});
+
+xr_session_promise_test(
+  testName + ' with secondary views requested', testFunction, fakeDeviceInitParams, 'immersive-vr',
+  {'optionalFeatures': ['secondary-views']});
+
+</script>

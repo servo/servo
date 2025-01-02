@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference: symbols function, invalid</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<style type="text/css">
+  @counter-style triangle-right {
+    system: cyclic;
+    symbols: \25b8;
+    suffix: ' ';
+  }
+  @counter-style triangle-left {
+    system: cyclic;
+    symbols: \25c2;
+    suffix: ' ';
+  }
+  @counter-style triangle-down {
+    system: cyclic;
+    symbols: \25be;
+    suffix: ' ';
+  }
+  @counter-style triangle-up {
+    system: cyclic;
+    symbols: \25b4;
+    suffix: ' ';
+  }
+
+  ul {
+    padding: 0;
+    list-style-position: inside;
+  }
+
+  .t-u { list-style-type: triangle-up; }
+  .t-d { list-style-type: triangle-down; }
+  .t-r { list-style-type: triangle-right; }
+  .t-l { list-style-type: triangle-left; }
+  div { font: 16px system-ui; margin: 1em; border: 1px solid gray; }
+  li::marker { font-family: inherit; }
+</style>
+
+<div style="width: 10em;">
+<ul dir="ltr">
+  <li class="t-r">closed ltr
+  <li class="t-d">open ltr
+</ul>
+<ul dir="rtl">
+  <li class="t-l">closed rtl
+  <li class="t-d">open rtl
+</ul>
+<p dir="ltr">&#x25b8;&nbsp;closed ltr
+<p dir="rtl">&#x25c2;&nbsp;closed rtl
+</div>
+<div style="writing-mode: vertical-lr; height: 10em;">
+<ul dir="ltr">
+  <li class="t-d">closed ltr
+  <li class="t-r">open ltr
+</ul>
+<ul dir="rtl">
+  <li class="t-u">closed rtl
+  <li class="t-r">open rtl
+</ul>
+<p dir="ltr">&#x25be;&nbsp;closed ltr
+<p dir="rtl">&#x25b4;&nbsp;closed rtl
+</div>
+<div style="writing-mode: vertical-rl; height: 10em;">
+<ul dir="ltr">
+  <li class="t-d">closed ltr
+  <li class="t-l">open ltr
+</ul>
+<ul dir="rtl">
+  <li class="t-u">closed rtl
+  <li class="t-l">open rtl
+</ul>
+<p dir="ltr">&#x25be;&nbsp;closed ltr
+<p dir="rtl">&#x25b4;&nbsp;closed rtl
+</div>

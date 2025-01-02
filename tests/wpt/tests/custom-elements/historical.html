@@ -1,0 +1,35 @@
+<!doctype html>
+<title>Custom Elements v0 features</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(() => {
+  assert_false('registerElement' in document)
+}, 'document.registerElement should not exist')
+
+// These tests should pass as long as v0 isn't supported:
+// v0: a 2nd string argument for createElement.
+// v1: a ElementCreationOptions (dictionary) argument.
+test(() => {
+  try {
+    const element = document.createElement('x', 'string')
+    // If neither v0/v1 are supported, then there should be no is attribute.
+    assert_false(element.hasAttribute('is'))
+  } catch (e) {
+    // If v1 is supported, then converting string to dictionary should throw.
+    assert_throws_js(TypeError, function() { throw e })
+  }
+}, 'document.createElement(localName, "string") should not work')
+
+// createElementNS is analagous, but for the 3rd argument
+test(() => {
+  try {
+    const element = document.createElementNS(null, 'x', 'string')
+    // If neither v0/v1 are supported, then there should be no is attribute.
+    assert_false(element.hasAttribute('is'))
+  } catch (e) {
+    // If v1 is supported, then converting string to dictionary should throw.
+    assert_throws_js(TypeError, function() { throw e })
+  }
+}, 'document.createElementNS(namespace, qualifiedName, "string") should not work')
+</script>

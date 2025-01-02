@@ -1,0 +1,90 @@
+/* These are UA styles for select and customizable select. */
+/* TODO(crbug.com/41483940): These rules will probably change here:
+ * https://github.com/w3c/csswg-drafts/issues/10857 */
+
+.customizable-select-button, .customizable-select-popover {
+  box-sizing: border-box;
+}
+
+.customizable-select-popover {
+  box-sizing: border-box;
+  border: 1px solid;
+  padding: 0;
+  color: CanvasText;
+  background-color: Canvas;
+  margin: 0;
+  inset: auto;
+  min-inline-size: anchor-size(self-inline);
+  min-block-size: 1lh;
+  max-block-size: -webkit-fill-available; /* Can be removed when stretch ships */
+  max-block-size: stretch;
+  overflow: auto;
+  position-area: block-end span-inline-end;
+  position-try-order: most-block-size;
+  position-try-fallbacks:
+    block-start span-inline-end,
+    block-end span-inline-start,
+    block-start span-inline-start;
+}
+
+.customizable-select-option {
+  min-inline-size: 24px;
+  min-block-size: max(24px, 1lh);
+  padding-inline: 0.5em;
+  padding-block-end: 0;
+  display: flex;
+  place-items: center;
+  gap: 0.5em;
+  white-space: nowrap;
+}
+
+.customizable-select-option.disabled {
+  color: color-mix(in lab, currentColor 50%, transparent);
+}
+
+.customizable-select-option::before {
+  content: '\2713' / '';
+}
+.customizable-select-option:not(.selected)::before {
+  visibility: hidden;
+}
+
+.customizable-select-button {
+  color: inherit;
+  background-color: transparent;
+  appearance: none;
+  padding-block: 0.25em;
+  padding-inline: 0.5em;
+  border: 1px solid currentColor;
+  border-radius: 0.5em;
+  cursor: default;
+  text-align: inherit;
+  /* TODO(crbug.com/41483940): Make display match the UA stylesheet. */
+  display: inline-flex;
+  gap: 0.5em;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  /* min-size rules ensure that we meet accessibility guidelines for minimum target size.
+   * https://github.com/openui/open-ui/issues/1026
+   * https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
+  min-inline-size: 24px;
+  min-block-size: max(24px, 1lh);
+}
+
+.customizable-select-button.hover {
+  background-color: color-mix(in lab, currentColor 10%, transparent);
+}
+
+.customizable-select-button.active {
+  background-color: color-mix(in lab, currentColor 20%, transparent);
+}
+
+.customizable-select-button::after {
+  content: counter(fake-counter-name, disclosure-open);
+}
+
+.customizable-select-legend {
+  font-weight: bolder;
+  padding-inline: 0.5em;
+  min-block-size: 1lh;
+}

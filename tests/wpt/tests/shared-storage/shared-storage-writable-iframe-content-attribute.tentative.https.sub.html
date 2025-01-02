@@ -1,0 +1,22 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <iframe src="/shared-storage/resources/shared-storage-write-notify-parent.py?write=set%3Bkey%3Dhello%3Bvalue%3Dworld" sharedstoragewritable></iframe>
+  <iframe src="/shared-storage/resources/shared-storage-write-notify-parent.py?write=set%3Bkey%3Dwont%3Bvalue%3Dset"></iframe>
+  <iframe src="/shared-storage/resources/shared-storage-write-notify-parent.py?write=set%3Bkey%3Dgoodnight%3Bvalue%3Dmoon" sharedstoragewritable></iframe>
+  <script>
+    const sameOrigin = new URL("", location.href).origin;
+
+    promise_test(async t => {
+      await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
+      await verifyKeyNotFoundForOrigin('wont', sameOrigin);
+      await verifyKeyValueForOrigin('goodnight', 'moon', sameOrigin);
+      await deleteKeyForOrigin('hello', sameOrigin);
+      await deleteKeyForOrigin('goodnight', sameOrigin);
+    }, 'test <iframe sharedstoragewritable src=[url]> for same origin iframe');
+  </script>
+</body>

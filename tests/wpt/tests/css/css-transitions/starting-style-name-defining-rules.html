@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: Name defining @-rules in @starting-style</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @starting-style {
+    @keyframes anim {
+      from { color: green; }
+      to { color: red; }
+    }
+    @font-face {
+      font-family: web-font;
+      src: url('/fonts/Ahem.ttf');
+    }
+    @layer first;
+  }
+
+  @layer second {
+    #target.not_start {
+      background-color: green;
+    }
+  }
+  @layer first {
+    #target.not_start {
+      background-color: red;
+    }
+  }
+
+  #target.not_start {
+    animation-name: anim;
+    animation-duration: 60s;
+    animation-timing-function: step-end;
+    font-family: web-font;
+    font-size: 20px;
+  }
+
+  #target {
+    /* For measuring text width */
+    display: inline-block;
+  }
+</style>
+<span id="target">XXXX</span>
+<script>
+  test(() => {
+    // Force style update to ensure before-change style is defined.
+    target.offsetTop;
+    target.className = "not_start";
+    let target_style = getComputedStyle(target);
+    assert_equals(target_style.color, "rgb(0, 128, 0)", "@keyframes applied");
+    assert_equals(target_style.backgroundColor, "rgb(0, 128, 0)", "@layer applied");
+  }, "@keyframes and @layer in @starting-style apply");
+
+  promise_test(async () => {
+    await document.fonts.load("20px/1 web-font");
+    assert_equals(getComputedStyle(target).width, "80px");
+  }, "Load @font-face from @starting-style rule");
+</script>

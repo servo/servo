@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- pattern inherits fill color via currentcolor -->
+  <defs>
+    <pattern id="MyPattern" patternUnits="userSpaceOnUse"
+             x="5" y ="5" width="10" height="10">
+      <circle stroke="limegreen" stroke-width="5%" cx="5" cy="5" r="5" />
+    </pattern>
+  </defs>
+
+  <circle stroke="black" fill="url(#MyPattern)" cx="50" cy="50" r="40" />
+</svg>

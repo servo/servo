@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Firing popstate after onload, even if there is no pushed/replaced state</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript">
+
+//spec (25 March 2011 draft) states that popstate must not fire after onload unless there is a pushed/replaced state that is navigated
+var popfired = false;
+setup({explicit_done:true});
+window.addEventListener('popstate',function (e) { popfired = true; },false);
+test(function () {
+  assert_equals( history.state, null );
+}, 'history.state should initially be null');
+window.onload = function () {
+  test(function () {
+    assert_false( popfired );
+  }, 'popstate event should not fire before onload fires');
+  test(function () {
+    assert_equals( history.state, null );
+  }, 'history.state should still be null onload');
+  popfired = false;
+  setTimeout(function () {
+    test(function () {
+      assert_false( popfired );
+    }, 'popstate event should not fire after onload fires');
+    test(function () {
+      assert_equals( history.state, null );
+    }, 'history.state should still be null after onload');
+    test(function () {
+      var failed = false, realstate = history.state;
+      try {
+        history.state = '';
+      } catch(e) {
+        failed = e;
+      }
+      assert_equals(history.state,realstate,'property was read/write');
+      assert_false(failed);
+    }, 'writing to history.state should be silently ignored and not throw an error');
+    done();
+  },100);
+};
+
+    </script>
+  </head>
+  <body>
+
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+
+  </body>
+</html>

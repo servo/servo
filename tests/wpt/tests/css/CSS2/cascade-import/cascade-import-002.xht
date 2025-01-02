@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Cascade: Ordering test with various import techniques</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/import/002.html"/>
+  <link rel="help" href="http://www.w3.org/TR/html4/present/styles.html#h-14.3"/>
+  <link rel="help" href="http://www.w3.org/TR/html4/present/styles.html#h-14.6"/>
+  <!-- There seems to be no spec defining http-equiv="Link" behavior -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#at-import"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#at-import"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#at-import"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#cascading"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#cascading"/>
+  <meta name="flags" content="http" />
+
+  <link rel="stylesheet" href="support/cascade-import-002j.css"/>
+  <style type="text/css">
+   @import url(support/cascade-import-002k.css);
+   .l { color: green; }
+   .m { color: red; }
+   .n { color: red; }
+   .o { color: red; }
+   .p { color: red; }
+   .q { color: red; }
+   .r { color: red; }
+  </style>
+  <link rel="stylesheet" href="support/cascade-import-002p.css"/>
+ </head>
+ <body>
+  <div class="a"> This line should be green. (a) </div>
+  <div class="b"> This line should be green. (b) </div>
+  <div class="c"> This line should be green. (c) </div>
+  <div class="d"> This line should be green. (d) </div>
+  <div class="e"> This line should be green. (e) </div>
+  <div class="f"> This line should be green. (f) </div>
+  <div class="i"> This line should be green. (i) </div>
+  <div class="j"> This line should be green. (j) </div>
+  <div class="k"> This line should be green. (k) </div>
+  <div class="l"> This line should be green. (l) </div>
+  <div class="m"> This line should be green. (m) </div>
+  <div class="n"> This line should be green. (n) </div>
+  <div class="o"> This line should be green. (o) </div>
+  <div class="p"> This line should be green. (p) </div>
+  <!--
+   The cascade is as follows:
+      HTTP Link: header
+       @import
+   a    Rule
+       @import
+        @import
+   b     Rule
+   c    Rule
+   d   Rule
+      HTTP Link: header
+       @import
+   e    Rule
+   f   Rule
+      <link rel="stylesheet">
+       @import
+   i    Rule
+   j   Rule
+      <style type="text/css">
+       @import
+   k    Rule
+   l   Rule
+      <link rel="stylesheet">
+       @import
+        @import
+         @import
+   m      Rule
+         @import
+   n      Rule
+   o    Rule
+   p   Rule
+  -->
+
+
+</body>
+</html>

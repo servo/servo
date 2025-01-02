@@ -1,0 +1,20 @@
+features:
+- name: autonomous-custom-elements
+  files:
+  - "*"
+  # Exclude customized built-in elements. Keep in sync with below list.
+  - "!builtin-coverage.html"
+  - "!customized-built-in-constructor-exceptions.html"
+  - "!Document-createElement-customized-builtins.html"
+  - "!Document-createElementNS-customized-builtins.html"
+  - "!HTMLElement-constructor-customized-builtins.html"
+  - "!pseudo-class-defined-customized-builtins.html"
+- name: customized-built-in-elements
+  files:
+  # Keep in sync with above list.
+  - builtin-coverage.html
+  - customized-built-in-constructor-exceptions.html
+  - Document-createElement-customized-builtins.html
+  - Document-createElementNS-customized-builtins.html
+  - HTMLElement-constructor-customized-builtins.html
+  - pseudo-class-defined-customized-builtins.html

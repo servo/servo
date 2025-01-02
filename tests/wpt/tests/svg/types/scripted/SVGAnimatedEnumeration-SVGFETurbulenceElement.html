@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGFETurbulenceElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGFETurbulenceElement.
+
+  var feTurbulenceElement = document.createElementNS("http://www.w3.org/2000/svg", "feTurbulence");
+  feTurbulenceElement.setAttribute("type", "fractalNoise");
+  feTurbulenceElement.setAttribute("stitchTiles", "stitch");
+
+  // type
+  // Check initial 'type' value.
+  assert_true(feTurbulenceElement.type instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feTurbulenceElement.type.baseVal), "number");
+  assert_equals(feTurbulenceElement.type.baseVal, SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_FRACTALNOISE);
+
+  // Switch to 'turbulence'.
+  feTurbulenceElement.type.baseVal = SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_TURBULENCE;
+  assert_equals(feTurbulenceElement.type.baseVal, SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_TURBULENCE);
+  assert_equals(feTurbulenceElement.getAttribute('type'), "turbulence");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { feTurbulenceElement.type.baseVal = 3; });
+  assert_equals(feTurbulenceElement.type.baseVal, SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_TURBULENCE);
+  assert_equals(feTurbulenceElement.getAttribute('type'), "turbulence");
+
+  assert_throws_js(TypeError, function() { feTurbulenceElement.type.baseVal = -1; });
+  assert_equals(feTurbulenceElement.type.baseVal, SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_TURBULENCE);
+  assert_equals(feTurbulenceElement.getAttribute('type'), "turbulence");
+
+  assert_throws_js(TypeError, function() { feTurbulenceElement.type.baseVal = 0; });
+  assert_equals(feTurbulenceElement.type.baseVal, SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_TURBULENCE);
+  assert_equals(feTurbulenceElement.getAttribute('type'), "turbulence");
+
+  // Switch to 'fractalNoise'.
+  feTurbulenceElement.type.baseVal = SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_FRACTALNOISE;
+  assert_equals(feTurbulenceElement.type.baseVal, SVGFETurbulenceElement.SVG_TURBULENCE_TYPE_FRACTALNOISE);
+  assert_equals(feTurbulenceElement.getAttribute('type'), "fractalNoise");
+
+  // stitchTiles
+  // Check initial 'stitchTiles' value.
+  assert_true(feTurbulenceElement.stitchTiles instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feTurbulenceElement.stitchTiles.baseVal), "number");
+  assert_equals(feTurbulenceElement.stitchTiles.baseVal, SVGFETurbulenceElement.SVG_STITCHTYPE_STITCH);
+
+  // Switch to 'noStitch'.
+  feTurbulenceElement.stitchTiles.baseVal = SVGFETurbulenceElement.SVG_STITCHTYPE_NOSTITCH;
+  assert_equals(feTurbulenceElement.stitchTiles.baseVal, SVGFETurbulenceElement.SVG_STITCHTYPE_NOSTITCH);
+  assert_equals(feTurbulenceElement.getAttribute('stitchTiles'), "noStitch");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { feTurbulenceElement.stitchTiles.baseVal = 3; });
+  assert_equals(feTurbulenceElement.stitchTiles.baseVal, SVGFETurbulenceElement.SVG_STITCHTYPE_NOSTITCH);
+  assert_equals(feTurbulenceElement.getAttribute('stitchTiles'), "noStitch");
+
+  assert_throws_js(TypeError, function() { feTurbulenceElement.stitchTiles.baseVal = -1; });
+  assert_equals(feTurbulenceElement.stitchTiles.baseVal, SVGFETurbulenceElement.SVG_STITCHTYPE_NOSTITCH);
+  assert_equals(feTurbulenceElement.getAttribute('stitchTiles'), "noStitch");
+
+  assert_throws_js(TypeError, function() { feTurbulenceElement.stitchTiles.baseVal = 0; });
+  assert_equals(feTurbulenceElement.stitchTiles.baseVal, SVGFETurbulenceElement.SVG_STITCHTYPE_NOSTITCH);
+  assert_equals(feTurbulenceElement.getAttribute('stitchTiles'), "noStitch");
+
+  // Switch to 'stitch'.
+  feTurbulenceElement.stitchTiles.baseVal = SVGFETurbulenceElement.SVG_STITCHTYPE_STITCH;
+  assert_equals(feTurbulenceElement.stitchTiles.baseVal, SVGFETurbulenceElement.SVG_STITCHTYPE_STITCH);
+  assert_equals(feTurbulenceElement.getAttribute('stitchTiles'), "stitch");
+});
+</script>

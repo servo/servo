@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> setting location to javascript URL from event handler </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="testlib/testlib.js"></script>
+<script type="text/javascript">
+log('inline script #1');
+var t = async_test()
+
+onload = t.step_func(function() {
+  log('onload handler');
+  document.getElementById("log").textContent = 'please wait...';
+  window.location='javascript:log("javascript: URL")';
+  setTimeout(t.step_func(function(){
+    log('timeout');
+    assert_array_equals(eventOrder, ['inline script #1', 'onload handler', 'onload ends', 'javascript: URL', 'timeout']);
+    t.done();
+  }), 200);
+  log('onload ends');
+});
+</script>
+</head>
+<body>
+<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+</body>
+</html>

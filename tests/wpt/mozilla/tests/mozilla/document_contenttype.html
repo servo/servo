@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            test(function() {
+                assert_true(document instanceof Document, "test1-0, HTML document: should be Document");
+                assert_equals(document.contentType, "text/html", "test1-1, HTML document");
+            }, "HTML document");
+
+            test(function() {
+                var doc = new Document;
+                assert_true(doc instanceof Document, "test2-0, XML document: should be Document");
+                assert_equals(doc.contentType, "application/xml", "test2-1, XML document");
+            }, "XML document");
+        </script>
+    </head>
+</html>

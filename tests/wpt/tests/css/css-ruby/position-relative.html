@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#ruby-layout">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  font: 20px/1 Ahem;
+}
+</style>
+<body>
+<div id=container></div>
+<script>
+const container = document.querySelector('#container');
+test(() => {
+  container.innerHTML = '<ruby style="position:relative">base<rt>annotation</ruby>';
+  const rtBefore = document.querySelector('rt').getBoundingClientRect();
+  document.querySelector('ruby').style.left = '100px';
+  const rtAfter = document.querySelector('rt').getBoundingClientRect();
+  assert_equals(rtBefore.x + 100, rtAfter.x);
+}, 'position:relative on a ruby should move the annotation together');
+
+test(() => {
+  container.innerHTML = `<span style="position:relative">
+      <ruby>base<rt>annotation</ruby></span>`;
+  const rubyBefore = document.querySelector('ruby').getBoundingClientRect();
+  const rtBefore = document.querySelector('rt').getBoundingClientRect();
+  document.querySelector('span').style.left = '100px';
+  const rubyAfter = document.querySelector('ruby').getBoundingClientRect();
+  const rtAfter = document.querySelector('rt').getBoundingClientRect();
+  assert_equals(rubyBefore.x + 100, rubyAfter.x);
+  assert_equals(rtBefore.x + 100, rtAfter.x);
+}, 'position:relative on a ruby parent should move the ruby and the annotation');
+
+test(() => {
+  container.innerHTML = `b<ruby style="position:relative">base
+      <rt style="position:relative">annotation</ruby>`;
+  const rtBefore = document.querySelector('rt').getBoundingClientRect();
+  document.querySelector('ruby').style.left = '100px';
+  document.querySelector('rt').style.left = '10px';
+  document.querySelector('rt').style.top = '-50px';
+  const rtAfter = document.querySelector('rt').getBoundingClientRect();
+  assert_equals(rtBefore.x + 110, rtAfter.x);
+  assert_equals(rtBefore.y - 50, rtAfter.y);
+}, 'Accumulate position:relative offsets');
+</script>
+</body>

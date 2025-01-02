@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<title>Ideal value in required constraint in getUserMedia</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#dfn-fitness-distance">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that setting a required constraint
+with an ideal value in getUserMedia works</p>
+<div id='log'></div>
+<script>
+promise_test(async t => {
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video: {width: {ideal: 320, min: 160}}});
+  assert_equals(stream.getVideoTracks().length, 1, "the media stream has exactly one video track");
+  assert_equals(stream.getVideoTracks()[0].getSettings().width, 320, 'ideal width is selected for getUserMedia() video tracks');
+  const video = document.createElement('video');
+  video.srcObject = stream;
+  await video.play();
+  assert_equals(video.videoWidth, 320, 'video width equals to track width');
+  stream.getVideoTracks()[0].stop();
+}, "Tests that setting a required constraint with an ideal value in getUserMedia works");
+</script>
+</body>
+</html>

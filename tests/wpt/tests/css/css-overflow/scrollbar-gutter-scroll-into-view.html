@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: scrollIntoView with scrollbar gutter on root frame viewport</title>
+<link rel="author" href="mailto:sakhapov@chromium.org">
+<link rel="match" href="scrollbar-gutter-scroll-into-view-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#scrollbar-gutter-property">
+<link rel="help" href="https://crbug.com/355460994">
+<style>
+  :root {
+    scrollbar-gutter: stable both-edges;
+    writing-mode: vertical-lr;
+    overflow: hidden;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  #target {
+    width: 100px;
+    height: 100px;
+    border: 4px solid black;
+    position: absolute;
+    left: 10px;
+    top: 150vh;
+    background-color: lightgreen;
+  }
+  #bg {
+    background-color: khaki;
+    width: 200vw;
+    height: 400vh;
+  }
+</style>
+<div id="bg"></div>
+<div id="target"></div>
+<script>
+target.scrollIntoView({ inline: "start" });
+</script>

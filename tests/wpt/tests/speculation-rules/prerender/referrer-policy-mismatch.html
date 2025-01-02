@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>Referrer policy mismatches must be allowed between prerendering and activation</title>
+<meta name="timeout" content="long">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: "noopener" });
+  await setReferrerPolicy(referrerRC, "strict-origin-when-cross-origin");
+  const prerenderedRC = await addPrerenderRC(referrerRC);
+
+  const referrerURL = await referrerRC.executeScript(() => location.href);
+
+  assert_equals(await prerenderedRC.executeScript(() => document.prerendering), true);
+  assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerURL);
+
+  await activatePrerenderRC(referrerRC, prerenderedRC, url => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.referrerPolicy = "no-referrer";
+    a.click();
+  });
+
+  assert_equals(await prerenderedRC.executeScript(() => document.prerendering), false);
+  assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerURL);
+}, 'prerendered with "strict-origin-when-cross-origin", activated with "no-referrer"');
+
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: "noopener" });
+  await setReferrerPolicy(referrerRC, "strict-origin-when-cross-origin");
+  const prerenderedRC = await addPrerenderRC(referrerRC);
+
+  const referrerURL = await referrerRC.executeScript(() => location.href);
+
+  assert_equals(await prerenderedRC.executeScript(() => document.prerendering), true);
+  assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerURL);
+
+  await activatePrerenderRC(referrerRC, prerenderedRC, url => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.referrerPolicy = "strict-origin";
+    a.click();
+  });
+
+  assert_equals(await prerenderedRC.executeScript(() => document.prerendering), false);
+  assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerURL);
+}, 'prerendered with "strict-origin-when-cross-origin", activated with "strict-origin"');
+
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: "noopener" });
+  await setReferrerPolicy(referrerRC, "strict-origin");
+  const prerenderedRC = await addPrerenderRC(referrerRC);
+
+  const referrerURL = await referrerRC.executeScript(() => location.href);
+  const referrerOrigin = (new URL(referrerURL)).origin + "/";
+
+  assert_equals(await prerenderedRC.executeScript(() => document.prerendering), true);
+  assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerOrigin);
+
+  await activatePrerenderRC(referrerRC, prerenderedRC, url => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.referrerPolicy = "unsafe-url";
+    a.click();
+  });
+
+  assert_equals(await prerenderedRC.executeScript(() => document.prerendering), false);
+  assert_equals(await prerenderedRC.executeScript(() => document.referrer), referrerOrigin);
+}, 'prerendered with "strict-origin", activated with "unsafe-url"');
+
+function setReferrerPolicy(referrerRC, referrerPolicy) {
+  return referrerRC.executeScript(referrerPolicy => {
+    const meta = document.createElement("meta");
+    meta.name = "referrer";
+    meta.content = referrerPolicy;
+    document.head.append(meta);
+  }, [referrerPolicy]);
+}
+</script>

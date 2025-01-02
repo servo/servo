@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<title>DOM Parts: parseparts on body</title>
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
+
+<body parseparts>
+<div>{{#}}Parts{{/}}</div>
+
+<script>
+  test(() => {
+    const target = document.currentScript.previousElementSibling;
+    assert_true(document.body.hasAttribute('parseparts'));
+    const root = document.getPartRoot();
+    const expectedRootParts = [{type:'ChildNodePart',metadata:[]}];
+    assertEqualParts(root.getParts(),expectedRootParts,0,'declarative syntax should be recognized');
+    target.remove();
+  }, 'It is possible to put parseparts on the body element');
+</script>

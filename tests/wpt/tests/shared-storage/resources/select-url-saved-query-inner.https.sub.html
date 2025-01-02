@@ -1,0 +1,76 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+async function init() {
+  const url = new URL(location.href);
+  const queryName = url.searchParams.get("query") ?
+        url.searchParams.get("query") : "";
+  const mockResult = url.searchParams.get("mockresult") ?
+        parseInt(url.searchParams.get("mockresult")) : 1;
+  const numUrls = url.searchParams.get("urlcount") ?
+        parseInt(url.searchParams.get("urlcount")) : 8;
+  const moduleName = url.searchParams.get("module") ?
+        url.searchParams.get("module") : "simple-module";
+  const operationName = url.searchParams.get("operation") ?
+        url.searchParams.get("operation") : "test-url-selection-operation";
+  const expectSaved = url.searchParams.get("expectsaved") ?
+        (url.searchParams.get("expectsaved") !== "false") : false;
+  const expectSuccess = url.searchParams.get("expectsuccess") ?
+        (url.searchParams.get("expectsuccess") !== "false") : true;
+  const innerKey = token();
+  let parentOrOpener = window.opener || window.parent;
+
+  // Note that we have set the site page bit limit to 6 and the overall page
+  // bit limit to 12.
+  const urls = generateUrls(numUrls, "/shared-storage/resources/frame",
+                            [innerKey]);
+
+  await sharedStorage.worklet.addModule(
+      `/shared-storage/resources/${moduleName}.js`);
+
+  function processSavedQuery(optionalData) {
+    return sharedStorage.selectURL(
+        operationName, urls,
+        {data: optionalData, resolveToConfig: true, savedQuery: queryName});
+  }
+
+  const expected_result = expectSuccess ? `frame${mockResult}_loaded` :
+      `frame0_loaded`;
+  let frameMessage = {selectURLStatus: `success`, origin: `${location.origin}`,
+                      query: queryName, mockResultIndex: mockResult,
+                      module: moduleName, operation: operationName,
+                      urlCount: numUrls, savedExpected: expectSaved,
+                      successExpected: expectSuccess};
+
+  // When we expect the query to be saved, omit specfying the index to return
+  // in the data passed to `selectURL`, so that we can see that this data is
+  // not relevant in the saved case.
+  const queryData = expectSaved ? {} : {'mockResult': mockResult};
+  let config0 = await processSavedQuery(queryData);
+  assert_true(config0 instanceof FencedFrameConfig);
+  attachFencedFrame(config0, 'opaque-ads');
+  try {
+    const result0 = await nextValueFromServer(innerKey);
+    assert_equals(result0, expected_result);
+  } catch (error) {
+    frameMessage.selectURLStatus = `${error}`;
+    parentOrOpener.postMessage(frameMessage, "*");
+    return;
+  }
+
+  // No errors were caught, so this portion of the test succeeded.
+  parentOrOpener.postMessage(frameMessage, "*");
+}
+
+init();
+</script>
+</body>

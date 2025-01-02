@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#invoke-an-intrinsic-sizes-callback">
+<link rel="match" href="fallback-ref.html">
+<meta name="assert" content="This test checks that a layout() class with an intrinsicSizes function that doesn't return a promise will fallback to block layout." />
+<style>
+.test {
+  background: red;
+  border: solid 2px;
+  width: min-content;
+}
+
+.child {
+  height: 100px;
+}
+
+@supports (display: layout(unresolved-promise)) {
+  .test {
+    display: layout(unresolved-promise);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('unresolved-promise', class {
+  intrinsicSizes() { return new Promise(() => { /* never resolves */ }); }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

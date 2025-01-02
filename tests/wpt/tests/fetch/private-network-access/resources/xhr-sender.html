@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XHR Sender</title>
+<script>
+  window.addEventListener("message", function (event) {
+    let { url, method } = event.data;
+    if (!method) {
+      method = "GET";
+    }
+
+    const xhr = new XMLHttpRequest;
+
+    xhr.addEventListener("load", (evt) => {
+      const message = {
+        loaded: true,
+        status: xhr.status,
+        body: xhr.responseText,
+      };
+      parent.postMessage(message, "*");
+    });
+
+    xhr.addEventListener("error", (evt) => {
+      const message = {
+        loaded: false,
+        status: xhr.status,
+      };
+      parent.postMessage(message, "*");
+    });
+
+    xhr.open(method, url);
+    xhr.send();
+  });
+</script>

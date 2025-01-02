@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: shared element with overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="content-with-overflow-zoomed-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.target {
+  width: 80px;
+  height: 80px;
+  contain: paint;
+  background: blue;
+  overflow-clip-margin: 50px;
+  view-transition-name: target;
+  zoom: 1.5;
+}
+.child {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  background: green;
+  zoom: 1.2;
+}
+
+html::view-transition-group(target) { animation-duration: 300s; }
+html::view-transition-old(target) { animation: unset; opacity: 0; }
+html::view-transition-new(target) {
+  animation: unset;
+  opacity: 1;
+  border: 3px solid black;
+}
+
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+
+<div class=ancestor>
+  <div class=target>
+    <div class=child>
+    </div>
+  </div>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() =>
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

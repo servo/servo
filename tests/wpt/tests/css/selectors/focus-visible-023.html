@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Test (Selectors): Element doesn't match :focus-visiblel after blur</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  :focus-visible {
+    outline: green solid 5px;
+  }
+</style>
+
+<div id="target" tabindex="0">Target</div>
+<script>
+  // Check that :focus-visible is supported.
+  test_valid_selector(':focus-visible');
+
+  async_test(function(t) {
+    target.addEventListener("focus", t.step_func(function() {
+      assert_equals(getComputedStyle(target).outlineStyle, "solid", `outline-style for ${target.tagName}#${target.id} should be solid`);
+      assert_equals(getComputedStyle(target).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${target.tagName}#${target.id} should be green`);
+      target.blur();
+    }));
+    target.addEventListener("blur", t.step_func(function() {
+      assert_equals(getComputedStyle(target).outlineStyle, "none", `outline-style for ${target.tagName}#${target.id} should be none`);
+      t.done();
+    }));
+    target.focus();
+  }, ":focus-visible stop matching after blur");
+</script>
+

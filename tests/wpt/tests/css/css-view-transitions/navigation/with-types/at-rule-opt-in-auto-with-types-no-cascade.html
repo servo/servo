@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: @view-transition types don't cascade</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="../at-rule-opt-in-auto-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  /* This should be ignored, because the following rule has the default "none" types */
+  @view-transition {
+    types: old-type;
+  }
+
+  @view-transition {
+    navigation: auto;
+  }
+
+  html:active-view-transition {
+    background: blue;
+  }
+
+  html:active-view-transition-type(old-type) {
+    background: red;
+  }
+</style>
+<script>
+  function runTest() {
+    const url = "../resources/at-rule-opt-in-auto-with-types.html";
+    window.location.replace(new URL(url, window.location));
+  }
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</html>

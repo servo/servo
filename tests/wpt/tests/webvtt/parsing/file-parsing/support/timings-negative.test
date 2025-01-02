@@ -1,0 +1,33 @@
+timings, negative
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-timestamp">
+
+assert_equals(cues.length, 4);
+
+[
+    [0, 0],
+    [1, 0.999],
+    [60, 59.999],
+    [3600, 3599.999],
+].forEach(function(pair, index) {
+    var startTime = pair[0];
+    var endTime = pair[1];
+
+    assert_equals(cues[index].text, 'text' + index, 'Failed with cue ' + index);
+    assert_equals(cues[index].startTime, startTime, 'Failed with cue ' + index);
+    assert_equals(cues[index].endTime, endTime, 'Failed with cue ' + index);
+});
+
+===
+WEBVTT
+
+00:00:00.000 --> 00:00:00.000
+text0
+
+00:00:01.000 --> 00:00:00.999
+text1
+
+00:01:00.000 --> 00:00:59.999
+text2
+
+01:00:00.000 --> 00:59:59.999
+text3

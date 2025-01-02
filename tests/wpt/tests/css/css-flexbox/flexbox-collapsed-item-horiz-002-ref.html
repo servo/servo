@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      flex-wrap: wrap;
+
+      /* These let us show where each flex line begins (and hence, how tall
+         the flex lines end up) */
+      align-content: flex-start;
+      align-items: flex-start;
+
+      width: 30px;
+      background: yellow;
+      border: 1px dotted black;
+      float: left;
+      margin: 5px;
+    }
+    .collapsedItem {
+      width: 0;
+      height: 25px;
+    }
+    .halfWidthItem {
+      width: 15px;
+      height: 15px;
+      background: teal;
+    }
+    .fullWidthItem {
+      width: 30px;
+      height: 20px;
+      background: purple;
+    }
+    .veryTallItem {
+      width: 15px;
+      height: 40px;
+      background: olive;
+    }
+  </style>
+</head>
+<body>
+  <!-- FIRST ROW: -->
+  <!-- One collapsed flex item, at the beginning of a flex line, which
+       ends up establishing its flex line's cross size: -->
+  <div class="flexContainer">
+    <div class="collapsedItem"></div>
+    <div class="halfWidthItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+  <!-- ...and now with it being at the end of that flex line: -->
+  <div class="flexContainer">
+    <div class="halfWidthItem"></div>
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  <!-- SECOND ROW: -->
+  <!-- One collapsed flex item, initially in its own line. It ends
+       up being merged into another line after it collapses, due to its
+       (post-collapse) zero main-size. -->
+  <div class="flexContainer">
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+  <div class="flexContainer">
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+  <div class="flexContainer">
+    <div class="fullWidthItem"></div>
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  <!-- THIRD ROW: -->
+  <!-- One collapsed flex item, initially in a line with an even-taller item.
+       The collapsed item ends up shifting into another line after it
+       collapses, but it carries the taller item's cross size with it, as its
+       strut size. -->
+  <div class="flexContainer">
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem" style="height: 40px"></div>
+    <div class="veryTallItem"></div>
+  </div>
+  <!-- ...and now with two (differently-sized) struts in first line:
+       (the one that's taller - due to being initially grouped with the tall
+       item - wins out.) -->
+  <div class="flexContainer">
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem" style="height: 40px"></div>
+    <div class="veryTallItem"></div>
+  </div>
+</body>
+</html>

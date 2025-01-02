@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: FLAC WebCodecs Registration (https://w3c.github.io/webcodecs/flac_codec_registration.html)
+
+partial dictionary AudioEncoderConfig {
+  FlacEncoderConfig flac;
+};
+
+dictionary FlacEncoderConfig {
+  [EnforceRange] unsigned long blockSize = 0;
+  [EnforceRange] unsigned long compressLevel = 5;
+};

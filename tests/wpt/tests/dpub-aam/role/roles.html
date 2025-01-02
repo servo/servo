@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+  <title>Simple DPUB-AAM Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>DPUB-AAM changed expectations for role description and other details since the initial v1.0 implementations, many of which are not yet testable via WPT, but this tests the new <a href="https://w3c.github.io/dpub-aam/#mapping_role_table">DPUB `computedrole` mapping</a> expectations. Additional rationale in <a href="https://github.com/w3c/aria/issues/1887">ARIA #1887</a>.</p>
+
+<script>
+
+AriaUtils.assignAndVerifyRolesByRoleNames([
+  "doc-abstract",
+  "doc-acknowledgments",
+  "doc-afterword",
+  "doc-appendix",
+  "doc-backlink",
+  // "doc-biblioentry", // deprecated
+  "doc-bibliography",
+  "doc-biblioref",
+  "doc-chapter",
+  "doc-colophon",
+  "doc-conclusion",
+  "doc-cover",
+  "doc-credit",
+  "doc-credits",
+  "doc-dedication",
+  // "doc-endnote", // deprecated
+  "doc-endnotes",
+  "doc-epigraph",
+  "doc-epilogue",
+  "doc-errata",
+  "doc-example",
+  "doc-footnote",
+  "doc-foreword",
+  "doc-glossary",
+  "doc-glossref",
+  "doc-index",
+  "doc-introduction",
+  "doc-noteref",
+  "doc-notice",
+  "doc-pagebreak",
+  "doc-pagelist",
+  "doc-pagefooter",
+  "doc-pageheader",
+  "doc-part",
+  "doc-preface",
+  "doc-prologue",
+  "doc-pullquote",
+  "doc-qna",
+  "doc-subtitle",
+  "doc-tip",
+  "doc-toc"
+]);
+
+</script>
+</body>
+</html>
+

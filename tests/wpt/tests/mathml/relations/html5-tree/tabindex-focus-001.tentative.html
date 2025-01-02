@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<title>Invalid tabindex</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1128054">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Test default focusability -->
+<math></math>
+<math href="#" data-focusable=true></math>
+<!-- Test tabindex=0 focusability -->
+<math tabindex="0" data-focusable=true></math>
+<!-- Test tabindex=-1 focusability -->
+<math tabindex="-1" data-focusable=true></math>
+<!-- Test tabindex=invalid focusability -->
+<math tabindex="invalid"></math>
+<math href="#" tabindex="invalid" data-focusable=true></math>
+
+<script>
+  test(() => {
+    for (let element of document.querySelectorAll("math")) {
+      let focusable = element.dataset && element.dataset.focusable;
+      let desc = "<math";
+      for (let attr of ["href", "tabindex"]) {
+        if (element.hasAttribute(attr)) {
+          desc += ` ${attr}=${element.getAttribute(attr)}`;
+        }
+      }
+      desc += ">";
+      element.focus();
+      focusable ? assert_equals(document.activeElement, element, desc + " should be focusable")
+                : assert_not_equals(document.activeElement, element, desc + " should not be focusable");
+    }
+  }, "invalid tabindex attribute does not make the element focusable");
+</script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS will-change contents: Chrome crash with partial cache hit</title>
+  <link rel="author" href="mailto:sesse@chromium.org">
+  <link rel="help" href="https://crbug.com/1469858">
+</head>
+<body>
+  <div style="color: blue;"><div style="will-change: contents;">Test passes</div></div>
+  <div style="color: fuchsia;"><div style="will-change: contents;">if it does not crash.</div></div>
+</body>
+</html>

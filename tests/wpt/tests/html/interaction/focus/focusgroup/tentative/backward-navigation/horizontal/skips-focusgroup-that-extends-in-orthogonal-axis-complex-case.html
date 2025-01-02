@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus moves to previous item, skipping the focusgroup that extends in the orthogonal axis (complex case).</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<div focusgroup=wrap>
+  <span id=item1 tabindex=0>item1</span>
+  <div>
+    <div focusgroup="extend block">
+      <div id=item2 tabindex=-1>
+        <div focusgroup=extend>
+          <span id=item3 tabindex=-1>item3</span>
+          <span id=item4 tabindex=-1>item4</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span id=item5 tabindex=-1>item5</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item5 = document.getElementById("item5");
+
+    await focusAndKeyPress(item5, kArrowLeft);
+    assert_equals(document.activeElement, item1);
+  }, "When the focus is set on the last item of a focusgroup and the previous item is located past an extending focusgroup that only supports the orthogonal axis, a backward arrow key press should move the focus to that previous item without getting stuck in the inner focusgroup that doesn't support the axis. The same should still be true when inside a focusgroup that extends another extending focusgroup that supports only the orthogonal axis within the original focusgroup.");
+
+</script>

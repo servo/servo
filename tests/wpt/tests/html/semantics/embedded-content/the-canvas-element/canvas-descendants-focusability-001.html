@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Canvas descendants focusability</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#being-used-as-relevant-canvas-fallback-content">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focusable-area">
+<meta name="assert" content="Checks that elements being used as relevant canvas
+    fallback content can be focusable even if not rendered.">
+<div id="log"></div>
+<canvas>
+  <button data-focusable="true"></button>
+  <section data-focusable="false">
+    <div data-focusable="false"></div>
+    <span data-focusable="false"></span>
+    <a data-focusable="false"></a>
+  </section>
+  <section tabindex="-1" data-focusable="true">
+    <div tabindex="-1" data-focusable="true"></div>
+    <span tabindex="-1" data-focusable="true"></span>
+    <a href="#" data-focusable="true"></a>
+  </section>
+</canvas>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+for (let element of document.querySelectorAll("[data-focusable]")) {
+  let title = element.cloneNode(false).outerHTML.toLowerCase();
+  title = title.slice(0, title.lastIndexOf("<"));
+  test(function() {
+    assert_true(document.activeElement !== element, "Not initially focused");
+    element.focus();
+    if (JSON.parse(element.dataset.focusable)) {
+      assert_true(document.activeElement === element, "Should be focused");
+    } else {
+      assert_true(document.activeElement !== element, "Shouldn't be focused");
+    }
+  }, title);
+}
+</script>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta name="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<meta name="assert" content="Custom element constructors can re-enter with different definitions">
+<link rel="help" href="https://wicg.github.io/webcomponents/proposals/Scoped-Custom-Element-Registries">
+<link rel="help" href="https://github.com/WICG/webcomponents/issues/969">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="testdiv"></div>
+
+<script>
+class GloballyScopedElement extends HTMLElement {};
+customElements.define('globally-scoped', GloballyScopedElement);
+
+class TestAutonomous extends HTMLElement {};
+class TestCustomizedBuiltIn extends HTMLParagraphElement {};
+
+function attachShadowForTest(t, registry) {
+  const host = document.createElement('div');
+  const shadow = host.attachShadow({mode: 'open', registry});
+  document.body.appendChild(host);
+  t.add_cleanup(() => host.remove());
+  return shadow;
+}
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  registry.define('test-element', TestAutonomous);
+
+  const shadow = attachShadowForTest(t, registry);
+  shadow.innerHTML = '<test-element></test-element>';
+  assert_true(shadow.firstChild instanceof TestAutonomous, 'target tree scope');
+
+  // Verify that it doesn't pollute other tree scopes.
+  const shadow2 = attachShadowForTest(t);
+  shadow2.innerHTML = '<test-element></test-element>';
+  assert_false(shadow2.firstChild instanceof TestAutonomous, 'tree scope without registry');
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  shadow3.innerHTML = '<test-element></test-element>';
+  assert_false(shadow3.firstChild instanceof TestAutonomous, 'tree scope with different registry');
+
+  t.add_cleanup(() => testdiv.firstChild.remove());
+  testdiv.innerHTML = '<test-element></test-element>';
+  assert_false(testdiv.firstChild instanceof TestAutonomous, 'main document');
+}, 'Upgrade into autonomous custom element when inserted via innerHTML');
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  const shadow = attachShadowForTest(t, registry);
+  shadow.innerHTML = '<test-element></test-element>';
+
+  const shadow2 = attachShadowForTest(t);
+  shadow2.innerHTML = '<test-element></test-element>';
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  shadow3.innerHTML = '<test-element></test-element>';
+
+  t.add_cleanup(() => testdiv.firstChild.remove());
+  testdiv.innerHTML = '<test-element></test-element>';
+
+  registry.define('test-element', TestAutonomous);
+
+  // Elements in the target tree scope should be upgraded.
+  assert_true(shadow.firstChild instanceof TestAutonomous, 'target tree scope');
+
+  // Verify that it doesn't pollute other tree scopes.
+  assert_false(shadow2.firstChild instanceof TestAutonomous, 'tree scope without registry');
+  assert_false(shadow3.firstChild instanceof TestAutonomous, 'tree scope with different registry');
+  assert_false(testdiv.firstChild instanceof TestAutonomous, 'main document');
+}, 'Upgrade into autonomous custom element when definition is added');
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  registry.define('test-element', TestCustomizedBuiltIn, {extends: 'p'});
+
+  const shadow = attachShadowForTest(t, registry);
+  shadow.innerHTML = '<p is="test-element"></p>';
+  assert_true(shadow.firstChild instanceof TestCustomizedBuiltIn, 'target tree scope');
+
+  // Verify that it doesn't pollute other tree scopes.
+  const shadow2 = attachShadowForTest(t);
+  shadow2.innerHTML = '<p is="test-element"></p>';
+  assert_false(shadow2.firstChild instanceof TestCustomizedBuiltIn, 'tree scope without registry');
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  shadow3.innerHTML = '<p is="test-element"></p>';
+  assert_false(shadow3.firstChild instanceof TestCustomizedBuiltIn, 'tree scope with different registry');
+
+  t.add_cleanup(() => testdiv.firstChild.remove());
+  testdiv.innerHTML = '<p is="test-element"></p>';
+  assert_false(testdiv.firstChild instanceof TestCustomizedBuiltIn, 'main document');
+}, 'Upgrade into customized built-in element when inserted via innerHTML');
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  const shadow = attachShadowForTest(t, registry);
+  shadow.innerHTML = '<p is="test-element"></p>';
+
+  const shadow2 = attachShadowForTest(t);
+  shadow2.innerHTML = '<p is="test-element"></p>';
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  shadow3.innerHTML = '<p is="test-element"></p>';
+
+  t.add_cleanup(() => testdiv.firstChild.remove());
+  testdiv.innerHTML = '<p is="test-element"></p>';
+
+  registry.define('test-element', TestCustomizedBuiltIn, {extends: 'p'});
+
+  // Elements in the target tree scope should be upgraded.
+  assert_true(shadow.firstChild instanceof TestCustomizedBuiltIn, 'target tree scope');
+
+  // Verify that it doesn't pollute other tree scopes.
+  assert_false(shadow2.firstChild instanceof TestCustomizedBuiltIn, 'tree scope without registry');
+  assert_false(shadow3.firstChild instanceof TestCustomizedBuiltIn, 'tree scope with different registry');
+  assert_false(testdiv.firstChild instanceof TestCustomizedBuiltIn, 'main document');
+}, 'Upgrade into customized built-in element when definition is added');
+
+test(t => {
+  const registry = new CustomElementRegistry;
+
+  const shadow = attachShadowForTest(t, registry);
+  shadow.innerHTML = '<globally-scoped></globally-scoped>';
+  assert_false(shadow.firstChild instanceof GloballyScopedElement, 'is not GloballyScoped');
+
+}, 'Upgrade into autonomous custom element should not inherit from global registry for missing values');
+</script>

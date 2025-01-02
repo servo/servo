@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverentry-intersectionratio">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1581876">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  block {
+    display: block;
+    width: 50vw;
+    height: 50vh;
+    background: green;
+  }
+</style>
+<inline>
+  <block></block>
+</inline>
+<script>
+
+// Account for rounding differences when viewport sizes can't cleanly divide.
+const epsilon = 1;
+
+promise_test(async function() {
+  for (let element of document.querySelectorAll("inline, block")) {
+    let entries = await new Promise(resolve => {
+      new IntersectionObserver(resolve).observe(element);
+    });
+    assert_equals(entries.length, 1, element.nodeName + ": Should get an entry");
+    assert_true(entries[0].isIntersecting, element.nodeName + ": Should be intersecting");
+    assert_equals(entries[0].intersectionRatio, 1, element.nodeName + ": Should be fully intersecting");
+
+    function assert_rects_equal(r1, r2, label) {
+      assert_approx_equals(r1.top, r2.top, epsilon, label + ": top should be equal");
+      assert_approx_equals(r1.right, r2.right, epsilon, label + ": right should be equal");
+      assert_approx_equals(r1.bottom, r2.bottom, epsilon, label + ": bottom should be equal");
+      assert_approx_equals(r1.left, r2.left, epsilon, label + ": left should be equal");
+    }
+
+    assert_rects_equal(entries[0].boundingClientRect, element.getBoundingClientRect(), element.nodeName + ": boundingClientRect should match");
+    assert_rects_equal(entries[0].intersectionRect, entries[0].boundingClientRect, element.nodeName + ": intersectionRect should match entry.boundingClientRect");
+  }
+}, "IntersectionObserver on an IB split gets the right intersection ratio");
+</script>

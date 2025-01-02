@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Navigation from unload whilst traversing cross-origin history</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="004-1.html"></iframe>
+<script>
+var t = async_test();
+
+var pages = [];
+var iframe = document.getElementsByTagName("iframe")[0];
+
+
+onmessage = t.step_func(function(e) {
+  pages.push(e.data);
+  if(pages.length == 3) {
+    assert_array_equals(pages, ["004-1", "004-2", "004-1"]);
+    t.done();
+    iframe.parentNode.removeChild(iframe);
+  }
+});
+</script>

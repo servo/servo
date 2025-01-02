@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='mix_blend_mode_ref.html'>
+<style>
+html {
+    background: #ffffff;
+}
+section {
+    position: absolute;
+    left: 0;
+}
+#a {
+    top: 0;
+    mix-blend-mode: difference;
+}
+#b {
+    top: 100px;
+    mix-blend-mode: exclusion;
+}
+div {
+    position: absolute;
+    top: 0;
+    width: 100px;
+    height: 100px;
+}
+.red {
+    left: 0;
+    background-color: #ff0000;
+}
+.green {
+    left: 100px;
+    background: #00ff00;
+}
+.blue {
+    left: 200px;
+    background: #0000ff;
+}
+</style>
+</head>
+<body>
+<section id=a>
+<div class=red></div>
+<div class=green></div>
+<div class=blue></div>
+</section>
+<section id=b>
+<div class=red></div>
+<div class=green></div>
+<div class=blue></div>
+</section>
+</body>
+</html>
+

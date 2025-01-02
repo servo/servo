@@ -1,0 +1,12 @@
+<!doctype html>
+<script>
+opener.history_length = history.length;
+</script>
+<form onsubmit="location = 'scripted_form_submit_assign_during_load-2.html'; return false;">
+<input type=submit value="Click Me">
+</form>
+<script>
+document.forms[0].elements[0].click()
+</script>
+<p>Filler image to keep the page loading:</p>
+<img src="/images/smiley.png?pipe=trickle(20:d1:r2)">

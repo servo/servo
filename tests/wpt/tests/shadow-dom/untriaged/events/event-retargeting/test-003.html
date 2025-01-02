@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_05_01_03</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#event-retargeting">
+<meta name="assert" content="Event Retargeting:Event retargeting for fallback content">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_05_01_03_T01 = async_test('A_05_01_03_T01');
+
+A_05_01_03_T01.step(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    d.body.innerHTML = '' +
+    '<div id="main">' +
+        '<div id="shadow-root">' +
+            '<span>1</span>' +
+            '<span>2</span>' +
+            '<span>3</span>' +
+        '</div>' +
+    '</div>';
+
+    var ul = d.querySelector('#shadow-root');
+    var s = ul.attachShadow({mode: 'open'});
+
+    //make shadow subtree
+    var div = document.createElement('div');
+    div.innerHTML = '<slot name="shadow"><span id="flbk">Fallback item</span></slot>';
+    s.appendChild(div);
+
+    d.body.addEventListener('click', A_05_01_03_T01.step_func(function (event) {
+        assert_equals(event.target.getAttribute('id'), 'shadow-root', 'Information about ' +
+                'event target crossing the shadow boundaries should be adjusted for the fallback ' +
+                'content');
+    }), false);
+
+    var event = d.createEvent('HTMLEvents');
+    event.initEvent ("click", true, false);
+    s.querySelector('#flbk').dispatchEvent(event);
+
+    A_05_01_03_T01.done();
+}));
+</script>
+</body>
+</html>

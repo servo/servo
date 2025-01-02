@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Filter Effects: Dynamic 'currentcolor' in drop-shadow(); SVG content</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#funcdef-filter-drop-shadow">
+<link rel="match" href="reference/green-100x100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+#target {
+  fill: green;
+  filter: drop-shadow(50px 0px 0px currentcolor);
+}
+.red {
+  color: red;
+}
+.green {
+  color: green;
+}
+</style>
+<svg id="container" class="red">
+  <rect id="target" width="50" height="100"/>
+</svg>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  const container = document.getElementById('container');
+  container.classList.toggle('red');
+  container.classList.toggle('green');
+  takeScreenshot();
+});
+</script>

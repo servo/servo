@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Layout Instability: opacity:0</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<div id="target" style="position: absolute; top: 0; width: 400px; height: 400px; opacity: 0; background: blue">
+  <div id="child" style="position: relative; top: 0; width: 200px; height: 200px; opacity: 0.5; background: yellow"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Shift target, for which no shift should be reported because it's not visible.
+  target.style.top = '200px';
+
+  await waitForAnimationFrames(2);
+  assert_equals(watcher.score, 0);
+
+  // Shift child, for which no shift should be reported, either.
+  child.style.top = '100px';
+
+  await waitForAnimationFrames(2);
+  assert_equals(watcher.score, 0);
+}, 'opacity:0');
+
+</script>

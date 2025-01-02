@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-collectionCreatorImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation Collection creator key not found. Annotation Collection may have zero or more creators.",
+  "title": "Implements **Annotation Collection _creator_ key** which has one or more values, each of which is a **string of format uri** or an **object** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when the Annotation Collection implements creator key (Section 3.3.1)",
+  "allOf":
+    [
+    { "$ref": "otherProperties.json#/definitions/creatorValidIfPresent"},
+    { "type": "object",
+      "required": [ "creator" ] }
+    ]
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let log = [];
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "./resources/log.js?pipe=sub&name=A": "./resources/log.js?pipe=sub&name=B",
+    "./resources/log.js?pipe=sub&name=C": "./resources/log.js?pipe=sub&name=D"
+  },
+  "integrity": {
+    "./resources/log.js?pipe=sub&name=B": "sha384-Li9vy3DqF8tnTXuiaAJuML3ky+er10rcgNR/VqsVpcw+ThHmYcwiB1pbOxEbzJr7",
+    "./resources/log.js?pipe=sub&name=D": "sha384-rxZqznFuOnvObm6JJKVmwzBXrsRG25IepqKDFHGhtitRu9YPjxPpRPMIu2hzvtxF",
+    "./resources/log.js?pipe=sub&name=X": "sha384-mCon9M46vUfNK2Wb3yjvBmpBw/3hwB+wMYS8IzDBng+7//R5Qao35E1azo4gFVzx",
+    "./resources/log.js?pipe=sub&name=Y": "sha384-u0yaFlBF39Au++qcn+MGL/Ml7UmuVfLymNJAz6Yyi4RqyUfWelcuAzVyE8Shs9xn",
+    "./resources/log.js?pipe=sub&name=Z": "sha384-u0yaFlBF39Au++qcn+MGL/Ml7UmuVfLymNJAz6Yyi4RqyUfWelcuAzVyE8Shs9xn"
+  }
+}
+</script>
+<script type="module">
+import './resources/log.js?pipe=sub&name=A';
+</script>
+<script type="module">
+test(t => {
+  assert_array_equals(log, []);
+}, 'Static script did not load as it failed its integrity check');
+log = [];
+</script>
+<script type="module">
+import './resources/log.js?pipe=sub&name=C';
+</script>
+<script type="module">
+test(t => {
+  assert_array_equals(log, ["log:D"]);
+}, 'Static script loaded as its integrity check passed');
+log = [];
+</script>
+<script type="module">
+import './resources/log.js?pipe=sub&name=X';
+</script>
+<script type="module">
+test(t => {
+  assert_array_equals(log, []);
+}, 'Static script did not load as it failed its integrity check, even' +
+   ' without an import defined');
+log = [];
+</script>
+<script type="module">
+import './resources/log.js?pipe=sub&name=Y';
+</script>
+<script type="module">
+test(t => {
+  assert_array_equals(log, ["log:Y"]);
+}, 'Static script loaded as its integrity check passed without an import' +
+   ' defined');
+log = [];
+</script>
+<script type="module" src="./resources/log.js?pipe=sub&name=Z">;
+</script>
+<script type="module">
+test(t => {
+  assert_array_equals(log, []);
+}, 'HTML-based module script did not load as its integrity check failed.');
+log = [];
+</script>

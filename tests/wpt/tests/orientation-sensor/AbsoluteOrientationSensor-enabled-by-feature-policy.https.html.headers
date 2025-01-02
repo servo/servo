@@ -1,0 +1,1 @@
+Feature-Policy: accelerometer *; gyroscope *; magnetometer *

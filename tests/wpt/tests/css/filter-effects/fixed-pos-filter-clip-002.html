@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>filter + fixed pos clipping</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://bugzil.la/1661147">
+<link rel="match"  href="fixed-pos-filter-clip-002-ref.html">
+<style>
+  :root { overflow: hidden }
+  div {
+    width: calc(100vw + 100px);
+    height: calc(100vh + 100px);
+    background:green;
+    filter: blur(10px);
+    position: fixed;
+    top: -50px;
+    left: -50px;
+  }
+</style>
+<div></div>

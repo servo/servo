@@ -1,0 +1,144 @@
+<!doctype html>
+<title>Table minmax tricks</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="stylesheet" type="text/css" href="./support/table-tentative.css">
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/" />
+<style>
+  main table {
+    background: gray;
+    border-spacing: 10px 10px;
+    table-layout: auto;
+  }
+  main td {
+    background: #BFB;
+    font-size: 10px;
+    box-sizing: border-box;
+  }
+  main td > div {
+    display: inline-block;
+    background: rgba(56,162,56,0.3);
+    line-height: 2;
+  }
+  .container {
+    border: 5px solid orange;
+    margin-top: 8px;
+    box-sizing: border-box;
+    width: 600px;
+  }
+</style>
+<main>
+<h2>Table minmax</h2>
+
+<p>How do different layout algorithms deal with table with an infinite max width?`</p>
+<xmp>
+  <table>
+    <td style="width:100%"><div style="width:30px">100%</div></td>
+    <td><div style="width:100px">100px</div></td>
+  </table>
+</xmp>
+<p>Block layout clamps the max width, but  flex/grid/table layouts do not. What happens?</p>
+
+<p class="testdesc">Block layout</p>
+<div class="container">
+  <table data-expected-width=590>
+    <td style="width:100%"><div style="width:30px">100%</div></td>
+    <td><div style="width:100px">100px</div></td>
+  </table>
+  <div>sibling</div>
+</div>
+
+<p class="testdesc">Block layout with floats</p>
+<div class="container">
+  What about this?
+  <table style="float:left" data-expected-width=590>
+    <td style="width:100%"><div style="width:30px">100%</div></td>
+    <td><div style="width:100px">100px</div></td>
+  </table>
+  <div style="float:left">sibling</div>
+  <div style="clear:both"></div>
+</div>
+
+
+<p class="testdesc">Table layout</p>
+
+<table class="container" style="width:auto">
+  <td>
+    <table data-expected-width=160>
+      <td style="width:100%"><div style="width:30px">100%</div></td>
+      <td><div style="width:50px">50px</div><div style="width:50px">50px</div></td>
+    </table>
+  </td>
+  <td><div style="width:100px;">sibling</div></td>
+</table>
+
+<p class="testdesc">Flex layout 1 1 auto</p>
+<p class="error">Edge is wider than flexbox</p>
+<div class="container" style="display:flex;justify-content:center">
+  <table style="flex: 1 1 auto" data-expected-width=355>
+    <td style="width:100%"><div style="width:30px">100%</div></td>
+    <td><div style="width:50px">50px</div><div style="width:50px">50px</div></td>
+  </table>
+  <div style="background:yellow;flex:1 1 40px">40px</div>
+</div>
+
+<p class="testdesc">Flex layout 0 0 auto</p>
+
+<div  class="container" style="display:flex;justify-content:center">
+  <table style="flex: 0 0 auto" data-expected-width=160>
+    <td style="width:100%"><div style="width:30px">100%</div></td>
+    <td><div style="width:50px">50px</div><div style="width:50px">50px</div></td>
+  </table>
+  <div style="background:yellow;flex:1 1 auto">auto</div>
+</div>
+
+<h2>Empty table sizes</h2>
+<p class="testdesc">Completely empty table</p>
+<table style="border-spacing: 0px 0px;" data-expected-height=0 data-expected-width=0></table>
+
+<p class="testdesc">Completely empty table with min-content width</p>
+<table style="border-spacing: 0px 0px;width:min-content" data-expected-height=0 data-expected-width=0></table>
+
+
+<p class="testdesc">Completely empty table with max-content width</p>
+<table style="border-spacing: 0px 0px;width:max-content" data-expected-height=0 data-expected-width=0></table>
+
+<p class="testdesc">Completely empty table with width/height</p>
+<table style="border-spacing: 0px 0px;width:50px;height:50px" data-expected-height=50 data-expected-width=50></table>
+
+<p class="testdesc">Empty table with border spacing</p>
+<p class="error">Edge has width</p>
+<table style="border-spacing: 10px 10px;" data-expected-height=0 data-expected-width=0></table>
+
+<p class="testdesc">Table with just tbody and border spacing</p>
+<p class="error">Chrome Legacy has width and 1/2 height. Edge has width. Proposal: make table empty.</p>
+<table style="border-spacing: 10px 10px;" data-expected-height=0 data-expected-width=0>
+  <tbody>
+  </tbody>
+</table>
+
+<p class="testdesc">Table with tbody, tr, and border spacing</p>
+<p class="error">Edge has height, 1/2 width. Chrome Legacy has width/height. Proposal: make table empty.</p>
+<table style="border-spacing: 10px 10px;" data-expected-height=0 data-expected-width=0>
+  <tbody>
+    <tr></tr>
+  </tbody>
+</table>
+
+<p class="testdesc">Empty table with borders</p>
+<p class="error">Edge has width 30, height 20</p>
+<table style="border: 10px solid green" data-expected-height=20 data-expected-width=20></table>
+
+<p class="testdesc">Empty table with padding</p>
+<p class="error">Edge has width 30, height 20</p>
+<table style="padding: 10px" data-expected-height=20 data-expected-width=20></table>
+
+<p class="testdesc">Empty table with caption</p>
+<table data-expected-height=30 data-expected-width=100><caption><div style="width:100px;height:30px">caption</div></caption></table>
+</main>
+
+<script>
+  checkLayout("table");
+</script>

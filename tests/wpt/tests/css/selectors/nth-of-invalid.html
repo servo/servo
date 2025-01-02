@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Test nth-child selector argument</title>
+  <link rel="author" title="Mike Bremford" href="https://bfo.com"/>
+  <link rel="help" href="https://www.w3.org/TR/selectors-4/#the-nth-child-pseudo"/>
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht"/>
+  <style type="text/css">
+    div {
+        display: block;
+        width: 100px;
+        height: 20px;
+        background-color: green;
+    }
+    .container {
+        height: 100px;
+    }
+    .reference {
+        background-color: green;
+    }
+    div:nth-child(1 of) { background-color: red; }
+    div:nth-last-child(n of) { background-color: red; }
+    div:nth-child(even of) { background-color: red; }
+    div:nth-last-child(even of even) { background-color: red; } /* valid just not matching */
+    div:nth-child(even .test) { background-color: red; }
+    div:nth-last-child(of) { background-color: red; }
+    div:nth-child(of ) { background-color: red; }
+    div:nth-last-child(of .) { background-color: red; }
+    div:nth-child(of .test) { background-color: red; }
+    div:nth-last-child(n + of ) { background-color: red; }
+    div:nth-child(n - of ) { background-color: red; }
+    div:nth-last-child(n + 1of) { background-color: red; }
+    div:nth-child(+ of .test) { background-color: red; }
+    div:nth-last-child(1 + of .test) { background-color: red; }
+    div:nth-child(1 - of .test) { background-color: red; }
+    div:nth-last-child(1 n) { background-color: red }
+    div:nth-child("1" of div) { background-color: red }
+    div:nth-last-child(1 "of" div) { background-color: red }
+    div:nth-child(1 of "" div) { background-color: red }
+    div:nth-last-child(n-1of div) { background-color: red }
+    div:nth-of-type(n of div) { background-color: red } /* gotcha */
+    div:nth-last-of-type(n of div) { background-color: red }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="container">
+   <div class="test"></div>
+   <div class="test"></div>
+   <div class="test"></div>
+   <div class="test"></div>
+   <div class="test"></div>
+  </div>
+ </body>
+</html>

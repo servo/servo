@@ -1,0 +1,49 @@
+<!doctype html>
+<title>WebVTT parser test: invalid signatures</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#webvtt-parser-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+[
+    // Alphabetical order, by file
+    ['empty',              'empty.vtt'],
+    ['formfeed',           'signature-formfeed.vtt'],
+    ['invalid whitespace', 'signature-invalid-whitespace.vtt'],
+    ['invalid',            'signature-invalid.vtt'],
+    ['lowercase',          'signature-lowercase.vtt'],
+    ['missing whitespace', 'signature-missing-whitespace.vtt'],
+    ['missing',            'signature-missing.vtt'],
+    ['null',               'signature-null.vtt'],
+    ['partial',            'signature-partial.vtt'],
+    ['two boms',           'signature-two-boms.vtt'],
+    ['websrt',             'signature-websrt.vtt'],
+].forEach(function(test_data) {
+    var test_name = 'signature, ' + test_data[0];
+    var test_file = 'support/' + test_data[1];
+
+    var test = async_test(test_name);
+    test.step(function() {
+        var video = document.createElement('video');
+        var track = document.createElement('track');
+        assert_true('src' in track, 'track element not supported');
+        track.src = test_file;
+        track['default'] = true;
+        track.kind = 'subtitles';
+        track.onload = this.step_func(trackLoaded);
+        track.onerror = this.step_func(trackError);
+        video.appendChild(track);
+        document.body.appendChild(video);
+    });
+
+    function trackLoaded(event) {
+        assert_unreached('track should fail to load');
+        this.done();
+    }
+
+    function trackError(e) {
+        this.done();
+    }
+});
+done();
+</script>

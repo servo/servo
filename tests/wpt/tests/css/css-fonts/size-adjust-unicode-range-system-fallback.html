@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<link rel="author" title="ChangSeok Oh" href="mailto:changseok@webkit.org">
+<link rel="help" href="https://crbug.com/1441723">
+<link rel="match" href="size-adjust-unicode-range-system-fallback-ref.html">
+<link rel="assert" title="Tests that the size-adjust descriptor does not affect system fallback font size.">
+<title>Tests that the size-adjust descriptor does not affect system fallback font size.</title>
+<style>
+@font-face {
+  font-family: large-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  size-adjust: 1000%;
+  unicode-range: U+0020;
+}
+
+.test {
+  font-family: large-font;
+}
+</style>
+<span class="test"> あ</span>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="output" width="200" height="100"></canvas>
+<script>
+var canvas = document.getElementById('output');
+var ctx = canvas.getContext('2d');
+
+var linearGradient = ctx.createLinearGradient(0, 0, 100, 100);
+linearGradient.addColorStop(0, 'blue');
+linearGradient.addColorStop(0.5, 'red');
+linearGradient.addColorStop(1, 'white');
+ctx.fillStyle = linearGradient;
+ctx.fillRect(0, 0, 100, 100);
+
+var radialGradient = ctx.createRadialGradient(150, 50, 0, 150, 50, 50);
+radialGradient.addColorStop(0, 'blue');
+radialGradient.addColorStop(0.5, 'red');
+radialGradient.addColorStop(1, 'white');
+ctx.fillStyle = radialGradient;
+ctx.fillRect(100, 0, 100, 100);
+</script>
+</body>
+</html>
+

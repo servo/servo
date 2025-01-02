@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Historical touch events features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/touch.js"></script>
+<body>
+<script>
+[
+  "webkitRadiusX",
+  "webkitRadiusY",
+  "webkitRotationAngle",
+  "webkitForce",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in Touch.prototype,
+                 "Should not be supported on the prototype");
+
+    var touch = new Touch({identifier: 12341, target:document.body});
+    assert_false(name in touch,
+                 "Should not be supported on the instance");
+  }, "Touch::" + name);
+});
+
+test(function() {
+  assert_false("identifiedTouch" in TouchList.prototype,
+               "Should not be supported on the prototype");
+
+  var touchevent = new TouchEvent("touchstart", {});
+  var touchList = touchevent.touches;
+  assert_false("identifiedTouch" in touchList,
+               "Should not be supported on the instance");
+}, "TouchList::identifiedTouch");
+
+test(function() {
+  assert_false("initTouchEvent" in TouchEvent.prototype,
+               "Should not be supported on the prototype");
+
+  var touchEvent = new TouchEvent("touchstart");
+  assert_false("initTouchEvent" in touchEvent,
+               "Should not be supported on the instance");
+}, "TouchEvent::initTouchEvent");
+
+test(function() {
+  assert_false("createTouch" in Document.prototype,
+               "Should not be supported on the prototype");
+
+  assert_false("createTouch" in document,
+               "Should not be supported on the instance");
+}, "Document::createTouch");
+
+test(function() {
+  assert_false("createTouchList" in Document.prototype,
+               "Should not be supported on the prototype");
+
+  assert_false("createTouchList" in document,
+               "Should not be supported on the instance");
+}, "Document::createTouchList");
+</script>

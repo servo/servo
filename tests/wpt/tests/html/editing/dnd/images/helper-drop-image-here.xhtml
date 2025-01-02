@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Image drag and drop: helper file</title>
+<style type="text/css">
+div[ondragenter]
+  {width:105px;
+  min-height:105px;
+  text-align:center;
+  margin-top:20px;
+  padding:10px;
+  border:solid thin navy;}
+</style>
+<script type="application/ecmascript">
+function addImage(event)
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+  document.querySelector('div').appendChild(c);}
+</script>
+</head>
+<body>
+<div
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+  ondrop="addImage(event)"
+/>
+</body>
+</html>

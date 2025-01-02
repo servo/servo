@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      border: 50px double red;
+      border-image-slice: 20 15 10 5;
+      border-image-source: url("../support/9-colored-areas-40-30-20-10.png");
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <p>Test passes if there is an hollow square with thick borders made of 8 different colors (yellow, blue, aqua, orange, teal, fuchsia, purple and black) and if there is <strong>no red</strong>.
+
+  <div></div>

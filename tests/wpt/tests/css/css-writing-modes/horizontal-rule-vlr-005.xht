@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: horizontal rule - 'vertical-lr'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="7.1 Principles of Layout in Vertical Writing Modes" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" />
+  <link rel="match" href="horizontal-rule-vrl-004-ref.xht" />
+
+  <meta content="This test checks that an horizontal rule (&lt;hr&gt; element) with 'vertical-lr' writing-mode but inside an 'horizontal-tb' writing-mode context must be rendered as an horizontal rule." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  hr
+    {
+      background-color: green;
+      border: transparent none 0px;
+      height: 10px;
+      margin: 0px;
+      width: 100%;
+      writing-mode: vertical-lr;
+    }
+
+  div#overlapped-red
+    {
+      background-color: red;
+      bottom: 10px;
+      height: 10px;
+      position: relative;
+      width: auto;
+      z-index: -1;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is an horizontal green bar and <strong>no red</strong>.</p>
+
+  <hr></hr>
+
+  <div id="overlapped-red"></div>
+
+ </body>
+</html>

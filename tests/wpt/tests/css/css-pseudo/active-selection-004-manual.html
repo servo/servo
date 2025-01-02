@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and text-decoration (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+
+  <meta content="interact should" name="flags">
+
+  <style>
+  div
+    {
+      font-size: 300%;
+    }
+
+  div::selection
+    {
+      text-decoration: fuchsia underline dotted;
+    }
+  </style>
+
+  <p>Instructions: Select a few or all characters from the words "Text sample" using a variety of methods:
+
+  <ul>
+    <li>Select by dragging (leftwardedly or rightwardedly) the mouse across the characters.
+    <li>Select by using shift + keyboard arrows when keyboard navigation / caret browsing is enabled.
+    <li>Double click a word to select it.
+    <li>Triple click the text to select it.
+  </ul>
+
+  <p>Test passes if, in every case, the selected glyphs of "Text sample" are underlined with a fuchsia dotted line <em>and</em> if the background color and color of the selected text are the same as when selecting text from these instructions.
+
+  <div>Text sample</div>

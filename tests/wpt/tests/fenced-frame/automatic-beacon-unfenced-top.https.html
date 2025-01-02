@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Test automatic beacons sent from an '_unfencedTop' navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+// The actual test is not in this file. Instead, this file sets up a fenced
+// frame with automatic beacon data. It then causes the fenced frame to do an
+// '_unfencedTop' navigation, which will cause the automatic beacon to send. The
+// page that's navigated through '_unfencedTop' hosts the test, which simply
+// checks that the automatic beacon was sent when the navigation happened.
+//
+// The reason we do this is because an '_unfencedTop' navigation replaces this
+// page, so any test running here will stop. Other tests get around this by
+// loading the test in a pop-up, but that doesn't allow the page to receive
+// click events through test_driver.Actions().
+async function init() {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext(
+    {generator_api: 'fledge', register_beacon: true,
+     origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+
+  const beacon_event = {
+    eventType: "reserved.top_navigation_commit",
+    eventData: "This is the beacon data!",
+    destination: ["buyer"],
+    randomField: "blah",
+  }
+  await setupAutomaticBeacon(fencedframe, [beacon_event],
+      "resources/automatic-beacon-unfenced-page.html", NavigationTrigger.Click,
+      "_unfencedTop");
+
+  await actions.setContext(window)
+               .pointerMove(0, 0, {origin: fencedframe.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+
+  // After this point, the top-level frame will be navigated to
+  // 'automatic-beacon-unfenced-page.html', which will verify that the automatic
+  // beacon was sent.
+}
+
+init();
+</script>
+</body>

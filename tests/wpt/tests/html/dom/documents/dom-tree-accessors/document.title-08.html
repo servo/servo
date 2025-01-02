@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#document.title">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_equals(document.title, "");
+}, "No title element");
+
+test(function() {
+  var title = document.createElement("title");
+  title.appendChild(document.createTextNode("PASS"));
+  document.head.appendChild(title);
+  assert_equals(document.title, "PASS");
+
+  title.appendChild(document.createTextNode("PASS2"));
+  title.appendChild(document.createTextNode("PASS3"));
+  assert_equals(document.title, "PASSPASS2PASS3");
+}, "title element contains multiple child text nodes");
+</script>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Color Adjust: border-color:currentColor is responsive to color-scheme for collapsed table borders</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust">
+<link rel="help" href="https://crbug.com/1256758">
+<style>
+  :root {
+    background-color: gray;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+  table, table * {
+    border: none;
+  }
+
+  * {
+    color-scheme: initial;
+  }
+
+  #table, #col, #tr, #th, #td, #tbody {
+    border: 5px solid currentColor;
+    color: CanvasText;
+    color-scheme: dark;
+  }
+
+</style>
+
+<!-- <table> -->
+<table id=table>
+  <tr>
+    <td>X</td>
+  </tr>
+</table>
+
+<!-- <col> -->
+<table>
+  <colgroup>
+    <col id=col></col>
+  </colgroup>
+  <tr>
+    <td>X</td>
+  </tr>
+</table>
+
+<!-- <tr> -->
+<table>
+  <tr id=tr>
+    <td>X</td>
+  </tr>
+</table>
+
+<!-- <th> -->
+<table>
+  <tr>
+    <th id=th>X</th>
+  </tr>
+</table>
+
+<!-- <td> -->
+<table>
+  <tr>
+    <td id=td>X</td>
+  </tr>
+</table>
+
+<!-- <tbody> -->
+<table>
+  <tbody id=tbody>
+    <tr>
+      <td>X</td>
+    </tr>
+  </tbody>
+</table>
+
+</html>

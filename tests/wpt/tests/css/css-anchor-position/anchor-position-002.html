@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+#container {
+  position: relative;
+  transform: translate(0, 0);  /* Make it a containing block. */
+}
+#anchor1 {
+  anchor-name: --a1;
+  width: 5px;
+  height: 7px;
+  background: orange;
+}
+#anchor2 {
+  anchor-name: --a2;
+  width: 9px;
+  height: 11px;
+  background: blue;
+}
+#anchor3 {
+  anchor-name: --a3;
+  width: 13px;
+  height: 15px;
+  background: purple;
+}
+.target {
+  position: absolute;
+}
+</style>
+<!--
+  The anchors are in different containing blocks, but they still fulfill the
+  conditions:
+  * if it has a different containing block from the querying element, the last
+    containing block in its containing block chain before reaching the querying
+    element’s containing block is not, itself, positioned.
+  https://drafts.csswg.org/css-anchor-1/#determining
+
+  From the definition of the "containing block":
+  https://drafts.csswg.org/css-position/#def-cb
+  properties such as `transform` can create a containing block without setting
+  the `position` property.
+-->
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div id="container">
+    <div>
+      <div id="anchor1"></div>
+    </div>
+    <div class="target" style="left: anchor(--a1 right)" data-offset-x=5></div>
+
+    <div>
+      <div style="transform: translate(0, 0)">
+        <div style="position: absolute; left: 10px;">
+          <div id="anchor2"></div>
+        </div>
+      </div>
+    </div>
+    <div class="target" style="left: anchor(--a2 right)" data-offset-x=19></div>
+
+    <div>
+      <div style="transform: translate(0, 0)">
+        <div style="position: fixed; left: 20px">
+          <div id="anchor3"></div>
+        </div>
+      </div>
+    </div>
+    <div class="target" style="left: anchor(--a3 right)" data-offset-x=33></div>
+  </div>
+</body>

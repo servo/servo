@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case where we've swapped in actual divs (fakeBefore/fakeAfter)
+     for the testcase's ::before and ::after generated content.
+
+     fakeBefore div is always the first child; fakeAfter is always the last.
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 50px;
+      width: 300px;
+      margin-bottom: 2px;
+      background: lightgray;
+    }
+    .fakeBefore {
+      align-self: center;
+      content: 'b';
+      background: yellow;
+    }
+    .fakeAfter {
+      align-self: center;
+      content: 'a';
+      background: lightblue;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    x
+    <div>y</div>
+    z
+  </div>
+  <div class="flexContainer">
+    x
+    <div>y</div>
+    z
+    <div class="fakeAfter">a</div>
+  </div>
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    x
+    <div>y</div>
+    z
+    <div class="fakeAfter">a</div>
+  </div>
+</body>
+</html>

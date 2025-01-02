@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Test that rem units are responsive to transitioning font-size on root</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    font-size: 20px;
+  }
+  :root.change {
+    transition: font-size steps(2, start) 10s;
+    font-size: 30px;
+  }
+
+  #target1 {
+    width: 1rem;
+  }
+</style>
+<div id="target1"></div>
+<output id=output></output>
+<script>
+test(() => {
+  let unused = getComputedStyle(document.documentElement).getPropertyValue('font-size');
+  document.documentElement.className = 'change';
+  assert_equals(getComputedStyle(target1).getPropertyValue('width'), '25px');
+}, 'Transitioning font-size on root affects rem units');
+</script>

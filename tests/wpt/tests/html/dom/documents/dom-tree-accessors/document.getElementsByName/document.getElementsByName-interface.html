@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Document.getElementsByName: interfaces</title>
+<link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var collection = document.getElementsByName("name");
+  assert_class_string(collection, "NodeList");
+  assert_true(collection instanceof NodeList, "Should be a NodeList");
+  assert_false(collection instanceof HTMLCollection,
+               "Should not be a HTMLCollection");
+});
+</script>

@@ -1,0 +1,281 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compatibility mapping with touch events after removing pointerdown target</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+div {
+  min-height: 32px;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const checkEvents = [
+    "touchstart",
+    "touchmove",
+    "touchend",
+    "touchcancel",
+    "pointerdown",
+    "pointermove",
+    "pointerup",
+    "click",
+  ];
+  let events = [];
+  function log(event) {
+    events.push({type: event.type, target: event.target});
+  }
+  for (const type of checkEvents) {
+    addEventListener(type, log, {capture:  true});
+  }
+  function stringifyEvent(event) {
+    return `{ type: ${event.type}, target: ${format_value(event.target)} }`;
+  }
+  function stringifyEvents(events) {
+    if (!events.length) {
+      return "[]";
+    }
+    let result = "";
+    for (const event of events) {
+      if (result === "") {
+        result = "[ ";
+      } else {
+        result += ", ";
+      }
+      result += stringifyEvent(event);
+    }
+    result += " ]";
+    return result;
+  }
+  function ignoreEvents(events, ignoringEvents) {
+    let ret = [];
+    for (const event of events) {
+      if (!ignoringEvents.includes(event.type)) {
+        ret.push(event);
+      }
+    }
+    return ret;
+  }
+
+  /**
+   * The event target of touch events should be dispatched at dispatching the
+   * preceding `pointerdown`.  Then, even after the `pointerdown` target is
+   * removed from the DOM tree, following touch events should be fired on it.
+   * However, following pointer events should be fired at the event targets
+   * under the pointer.
+   */
+
+  for (const removerType of ["pointerdown", "touchstart"]) {
+    promise_test(
+      async t => {
+        const pointerDownTarget = document.createElement("div");
+        pointerDownTarget.id = "pointerDownTarget";
+        const pointerDownTargetParent = document.createElement("div");
+        pointerDownTargetParent.id = "pointerDownTargetParent";
+        pointerDownTargetParent.appendChild(pointerDownTarget);
+        document.body.appendChild(pointerDownTargetParent);
+        const pointerDownTargetRect = pointerDownTarget.getBoundingClientRect();
+
+        events = [];
+        pointerDownTarget.addEventListener(removerType, () => {
+          pointerDownTarget.remove();
+          // Keep listening to the events on the removed target node.
+          for (const type of ["touchstart", "touchmove", "touchend"]) {
+            pointerDownTarget.addEventListener(type, log, {capture: true});
+          }
+        }, {once: true});
+        await new test_driver.Actions()
+          .addPointer("touchPointer", "touch")
+          .setPointer("touchPointer")
+          .pointerMove(pointerDownTargetRect.left + 10, pointerDownTargetRect.top + 10)
+          .pointerDown()
+          .pointerMove(pointerDownTargetRect.left + 12, pointerDownTargetRect.top + 12)
+          .pointerUp()
+          .send();
+
+        const expectedEvents = [
+          { type: "pointerdown", target: pointerDownTarget },
+          { type: "touchstart", target: pointerDownTarget },
+          { type: "pointermove", target: pointerDownTargetParent },
+          { type: "touchmove", target: pointerDownTarget },
+          { type: "pointerup", target: pointerDownTargetParent },
+          { type: "touchend", target: pointerDownTarget },
+          { type: "click", target: pointerDownTargetParent },
+        ];
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["click", "touchmove"]))
+            )
+          },
+          `${
+            t.name
+          }, touch events should be fired on the touchstart target even though an orphan and pointer events should be fired on the parent`
+        );
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["touchmove"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["touchmove"]))
+            )
+          },
+          `${t.name}, click event should be fired on the pointerdown target parent`
+        );
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["click"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["click"]))
+            )
+          },
+          `${t.name}, touchmove event should be fired on the pointerdown target`
+        );
+        document.body.innerHTML = "";
+      },
+      `After a ${removerType} listener removes its target`
+    );
+
+    promise_test(
+      async t => {
+        const pointerDownTarget = document.createElement("div");
+        pointerDownTarget.id = "pointerDownTarget";
+        const pointerDownTargetParent = document.createElement("div");
+        pointerDownTargetParent.id = "pointerDownTargetParent";
+        pointerDownTargetParent.appendChild(pointerDownTarget);
+        document.body.appendChild(pointerDownTargetParent);
+        const pointerDownTargetRect = pointerDownTarget.getBoundingClientRect();
+
+        events = [];
+        pointerDownTarget.addEventListener(removerType, () => {
+          pointerDownTarget.remove();
+          pointerDownTargetParent.appendChild(pointerDownTarget);
+        }, {once: true});
+        await new test_driver.Actions()
+          .addPointer("touchPointer", "touch")
+          .setPointer("touchPointer")
+          .pointerMove(pointerDownTargetRect.left + 10, pointerDownTargetRect.top + 10)
+          .pointerDown()
+          .pointerMove(pointerDownTargetRect.left + 12, pointerDownTargetRect.top + 12)
+          .pointerUp()
+          .send();
+
+        const expectedEvents = [
+          { type: "pointerdown", target: pointerDownTarget },
+          { type: "touchstart", target: pointerDownTarget },
+          { type: "pointermove", target: pointerDownTarget },
+          { type: "touchmove", target: pointerDownTarget },
+          { type: "pointerup", target: pointerDownTarget },
+          { type: "touchend", target: pointerDownTarget },
+          { type: "click", target: pointerDownTarget },
+        ];
+
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
+              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
+            )
+          },
+          `${t.name}, touch events and pointer events should be fired on the pointerdown target`
+        );
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["touchmove"])),
+              stringifyEvents(ignoreEvents(events, ["touchmove"])),
+            )
+          },
+          `${t.name}, click event should be fired on the pointerdown target`
+        );
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["click"])),
+              stringifyEvents(ignoreEvents(events, ["click"])),
+            )
+          },
+          `${t.name}, touchmove event should be fired on the pointerdown target`
+        );
+        document.body.innerHTML = "";
+      },
+      `After a ${removerType} listener removes but appends the target to same position again`
+    );
+
+    promise_test(
+      async t => {
+        const pointerDownTarget = document.createElement("div");
+        pointerDownTarget.id = "pointerDownTarget";
+        const pointerDownTargetParent = document.createElement("div");
+        pointerDownTargetParent.id = "pointerDownTargetParent";
+        pointerDownTargetParent.appendChild(pointerDownTarget);
+        document.body.appendChild(pointerDownTargetParent);
+        const pointerDownTargetRect = pointerDownTarget.getBoundingClientRect();
+
+        events = [];
+        pointerDownTarget.addEventListener(removerType, () => {
+          pointerDownTarget.remove();
+          document.body.appendChild(pointerDownTarget);
+        }, {once: true});
+        await new test_driver.Actions()
+          .addPointer("touchPointer", "touch")
+          .setPointer("touchPointer")
+          .pointerMove(pointerDownTargetRect.left + 10, pointerDownTargetRect.top + 10)
+          .pointerDown()
+          .pointerMove(pointerDownTargetRect.left + 12, pointerDownTargetRect.top + 12)
+          .pointerUp()
+          .send();
+
+        const expectedEvents = [
+          { type: "pointerdown", target: pointerDownTarget },
+          { type: "touchstart", target: pointerDownTarget },
+          { type: "pointermove", target: pointerDownTargetParent },
+          { type: "touchmove", target: pointerDownTarget },
+          { type: "pointerup", target: pointerDownTargetParent },
+          { type: "touchend", target: pointerDownTarget },
+          { type: "click", target: pointerDownTargetParent },
+        ];
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["click", "touchmove"]))
+            )
+          },
+          `${
+            t.name
+          }, touch events should be fired on the pointerdown target, but pointer events should be fired on the pointerdown target parent`
+        );
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["touchmove"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["touchmove"]))
+            )
+          },
+          `${t.name}, click event should be fired on the pointerdown target parent`
+        );
+        test(
+          () => {
+            assert_equals(
+              stringifyEvents(ignoreEvents(events, ["click"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["click"]))
+            )
+          },
+          `${t.name}, touchmove event should be fired on the pointerdown target parent`
+        );
+        document.body.innerHTML = "";
+      },
+      `After a ${removerType} listener moves the target to different position`
+    );
+  }
+}, {once: true});
+</script>
+<body></body>
+</html>

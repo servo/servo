@@ -1,0 +1,138 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?editor=input&hide-target=editor">
+<meta name="variant" content="?editor=textarea&hide-target=editor">
+<meta name="variant" content="?editor=input&hide-target=parent">
+<meta name="variant" content="?editor=textarea&hide-target=parent">
+<title>Testing edit action in zombie editor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body>
+<script>
+"use strict";
+
+const params = new URLSearchParams(location.search);
+
+/**
+ * The expected results is based on Chrome 93.
+ * The behavior is reasonable because JS API which requires focus and user input
+ * does not work if it's hidden.
+ */
+
+function init() {
+  const div = document.createElement("div");
+  const editor = document.createElement(params.get("editor"));
+  const hideTarget = params.get("hide-target") == "editor" ? editor : div;
+  editor.value = "default value";
+  div.appendChild(editor);
+  document.body.appendChild(div);
+  return [ hideTarget, editor ];
+}
+
+function finalize(editor) {
+  editor.blur();
+  editor.parentNode.remove();
+  document.body.getBoundingClientRect();
+}
+
+promise_test(async () => {
+  await new Promise(resolve => addEventListener("load", resolve, {once: true}));
+}, "Wait for load event");
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.select();
+    hideTarget.style.display = "none";
+    document.execCommand("insertText", false, "typed value");
+    assert_equals(editor.value, "default value", "The value shouldn't be modified by \"insertText\" command");
+  } finally {
+    finalize(editor);
+  }
+}, `execCommand("insertText", false, "typed value") in <${params.get("editor")}>`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.select();
+    hideTarget.style.display = "none";
+    document.execCommand("delete");
+    assert_equals(editor.value, "default value", "The value shouldn't be modified by \"delete\" command");
+  } finally {
+    finalize(editor);
+  }
+}, `execCommand("delete") in <${params.get("editor")}>`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.select();
+    const waitForKeyDown = new Promise(resolve => {
+      editor.addEventListener("keydown", () => {
+        hideTarget.style.display = "none";
+        resolve();
+      });
+    });
+    await new test_driver.Actions()
+      .keyDown("a").keyUp("a")
+      .send();
+    assert_equals(
+      editor.value,
+      "default value",
+      "The value shouldn't be modified by user input if \"keydown\" event listener destroyed the editor"
+    );
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}> is hidden by "keydown" event listener`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.select();
+    const waitForKeyDown = new Promise(resolve => {
+      editor.addEventListener("keypress", () => {
+        hideTarget.style.display = "none";
+        resolve();
+      });
+    });
+    await new test_driver.Actions()
+      .keyDown("a").keyUp("a")
+      .send();
+    assert_equals(
+      editor.value,
+      "default value",
+      "The value shouldn't be modified by user input if \"keypress\" event listener destroyed the editor"
+    );
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}> is hidden by "keypress" event listener`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.select();
+    const waitForKeyDown = new Promise(resolve => {
+      editor.addEventListener("beforeinput", () => {
+        hideTarget.style.display = "none";
+        resolve();
+      });
+    });
+    await new test_driver.Actions()
+      .keyDown("a").keyUp("a")
+      .send();
+    assert_equals(
+      editor.value,
+      "default value",
+      "The value shouldn't be modified by user input if \"beforeinput\" event listener destroyed the editor"
+    );
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}> is hidden by "beforeinput" event listener`);
+</script>
+</body>

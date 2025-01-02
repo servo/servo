@@ -1,0 +1,17 @@
+<!doctype html>
+<title>WebSockets: error events</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var ws = new WebSocket('ws://example.invalid/');
+  ws.onerror = t.step_func(function(e) {
+    assert_true(e instanceof Event);
+    t.done();
+  })
+});
+</script>

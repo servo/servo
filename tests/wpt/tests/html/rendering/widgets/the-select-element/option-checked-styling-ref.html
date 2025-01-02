@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Stylability of select>option with :checked pseudo</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+
+<style>
+  option {
+    color: black;
+  }
+  #option2 {
+    background-color: red;
+  }
+  #option1 {
+    background: green;
+  }
+</style>
+
+<select id=select size=3 multiple>
+  <option id=option1>Option #1 (should be green)</option>
+  <option id=option2>Option #2 (should be red)</option>
+</select>

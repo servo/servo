@@ -1,0 +1,37 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/tex-image-and-sub-image-utils.js"></script>
+<script src="../../js/tests/tex-image-and-sub-image-2d-with-image-data.js"></script>
+<script>
+"use strict";
+function testPrologue(gl) {
+    if (!gl.getExtension("OES_texture_float")) {
+        testPassed("No OES_texture_float support -- this is legal");
+        return false;
+    }
+
+    testPassed("Successfully enabled OES_texture_float extension");
+    return true;
+}
+</script>
+</head>
+<body onload='generateTest("RGBA", "RGBA", "FLOAT", testPrologue, "../../resources/")()'>
+<canvas id="texcanvas" width="2" height="2"></canvas>
+<canvas id="example" width="2" height="2"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+</body>
+</html>

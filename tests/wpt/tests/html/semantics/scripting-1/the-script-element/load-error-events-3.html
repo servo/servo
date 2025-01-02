@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<title>load/error events for classic scripts with a style sheet that is blocking scripts and script nesting level &gt; 1</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/load-error-events-helpers.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#execute-the-script-block">
+</head>
+<script>
+"use strict";
+var test6_load = event_test('no src, parser-inserted, has style sheets blocking scripts, script nesting level == 2',
+    false, false);
+
+document.write(
+    `<link rel="stylesheet" href="/common/slow.py"></link>
+    <script onload="onLoad(test6_load);"
+        onerror="onError(test6_load);">
+    "use strict";
+    onExecute(test6_load);
+    </scr` + `ipt>`);
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Masonry: Parsing masonry-template-tracks with invalid values</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
+<link rel="help" href="https://tabatkins.github.io/specs/css-masonry/#template-tracks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_invalid_value("masonry-template-tracks", '-10px');
+  test_invalid_value("masonry-template-tracks", '-20%');
+  test_invalid_value("masonry-template-tracks", '-5fr');
+  test_invalid_value("masonry-template-tracks", 'minmax(5fr, calc(0.5em + 10px))');
+  test_invalid_value("masonry-template-tracks", 'minmax(-10px, auto)');
+  test_invalid_value("masonry-template-tracks", 'minmax(-20%, max-content)');
+  test_invalid_value("masonry-template-tracks", 'minmax(min-content, -20%)');
+  test_invalid_value("masonry-template-tracks", 'fit-content(-10px)');
+  test_invalid_value("masonry-template-tracks", 'fit-content(-20%)');
+  test_invalid_value("masonry-template-tracks", '[one] 10px [two three] repeat(20%) [four five six] 3fr [seven]');
+  test_invalid_value("masonry-template-tracks", '[one]');
+  test_invalid_value("masonry-template-tracks", '[one] 10px [two] [three]');
+  test_invalid_value("masonry-template-tracks", 'repeat(auto-fill, -10px)');
+  test_invalid_value("masonry-template-tracks", 'repeat(auto-fill, 10px) repeat(auto-fill, 20%)');
+  test_invalid_value("masonry-template-tracks", '[auto] 1px');
+</script>

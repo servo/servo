@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-based-counters">
+<meta name="assert" content="Test counter(page), increment by 2">
+<link rel="match" href="content-008-print-ref.html">
+<style>
+  @page {
+    margin: 4em;
+    counter-increment: page 2;
+
+    @bottom-center {
+      text-align: left;
+      vertical-align: top;
+      content: counter(page);
+    }
+  }
+  @page :first {
+    @top-center {
+      text-align: left;
+      vertical-align: top;
+      content: "There are " counter(pages) " pages";
+    }
+  }
+  body {
+    margin: 0;
+  }
+</style>
+Page
+<div style="page:something;">
+  Another page
+</div>
+<div>
+  Yet another page
+</div>
+<div style="break-before:page;">
+  Last page
+</div>

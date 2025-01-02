@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: align/justify-self on range INPUT items</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-self-property">
+  <link rel="match" href="grid-self-alignment-stretch-input-range-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace;
+}
+
+input {
+  margin:0;
+  padding:0;
+  border:none;
+}
+
+.grid {
+  display: inline-grid;
+  grid: 80px / 300px;
+  place-items: stretch;
+  border:1px solid;
+}
+
+.zero { grid:0/0; }
+
+.none input { -webkit-appearance:none; }
+
+    </style>
+</head>
+<body>
+
+<div class="grid"><input type=range></div>
+<br>
+<div class="grid zero"><input type=range></div>
+<br>
+<div class="grid"><input type=range style="place-self:normal"></div>
+<br>
+<div class="grid zero"><input type=range style="place-self:normal"></div>
+<br>
+
+<div class="none">
+<div class="grid"><input type=range></div>
+<br>
+<div class="grid zero"><input type=range></div>
+<br>
+<div class="grid"><input type=range style="place-self:normal"></div>
+<br>
+<div class="grid zero"><input type=range style="place-self:normal"></div>
+</div>
+
+</body>
+</html>

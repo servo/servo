@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<meta name="variant" content="?cross-origin=true">
+<meta name="variant" content="?cross-origin=false">
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  let cross_origin = Object.fromEntries(new URLSearchParams(location.search))["cross-origin"] === "true";
+  promise_test(async t => {
+    let executor = "authenticate.py";
+    let credentials = { username: "user", password: "pass" };
+    let agent = await spawnWindow(t, { executor, ...credentials });
+    let request_credentials = await agent.getRequestCredentials();
+    assert_equals(request_credentials.username, credentials.username);
+    assert_equals(request_credentials.password, credentials.password);
+
+    let host = cross_origin ? { hostname: PREFETCH_PROXY_BYPASS_HOST } : {};
+    let nextUrl = agent.getExecutorURL({ page: 2, executor, ...host });
+    await agent.forceSinglePrefetch(nextUrl, { requires: ["anonymous-client-ip-when-cross-origin"] });
+    await agent.navigate(nextUrl);
+
+    let requestHeaders = await agent.getRequestHeaders();
+    request_credentials = await agent.getRequestCredentials();
+    if (cross_origin) {
+      assert_equals(request_credentials.username, undefined);
+      assert_equals(request_credentials.password, undefined);
+
+      assert_in_array(requestHeaders.purpose, ["", "prefetch"]);
+      assert_equals(requestHeaders.sec_purpose, "prefetch;anonymous-client-ip");
+    }
+    else {
+      assert_equals(request_credentials.username, credentials.username);
+      assert_equals(request_credentials.password, credentials.password);
+
+      assert_prefetched(await agent.getRequestHeaders());
+    }
+  }, "test www-authenticate basic does not forward credentials to cross-origin pages.");
+</script>

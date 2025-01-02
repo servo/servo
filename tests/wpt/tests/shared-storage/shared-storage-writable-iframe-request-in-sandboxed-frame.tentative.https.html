@@ -1,0 +1,69 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    async function
+      test_shared_storage_writable_iframe_request_in_sandboxed_iframe(
+      test, key, value, sandbox_flags) {
+      // Create sandboxed iframe.
+      let frame = document.createElement('iframe');
+      frame.sandbox = sandbox_flags;
+      let url = new URL(
+        '/shared-storage/resources/'
+          + 'shared-storage-writable-iframe-request-'
+          + 'in-sandboxed-iframe-inner.https.sub.html',
+        location.href);
+      url = appendExpectedKeyAndValue(url, key, value);
+      frame.src = url;
+
+      // We expect a message to bubble up via the sandboxed iframe.
+      const promise = new Promise((resolve, reject) => {
+        window.addEventListener('message', async function handler(evt) {
+          if (evt.source === frame.contentWindow &&
+              evt.data.sharedStorageWritableHeader) {
+            assert_equals(evt.data.sharedStorageWritableHeader, '?1');
+            document.body.removeChild(frame);
+            window.removeEventListener('message', handler);
+            resolve();
+          }
+        });
+        window.addEventListener('error', () => {
+          reject(new Error('Navigation error'));
+        });
+      });
+
+      // Navigate and wait for notification.
+      document.body.appendChild(frame);
+      await promise;
+
+      // Verify that the value has been set.
+      await verifyKeyValueForOrigin(key, value, location.origin);
+
+      // Clean up and finish.
+      await sharedStorage.delete(key);
+      test.done();
+    }
+
+    async_test(t => {
+      test_shared_storage_writable_iframe_request_in_sandboxed_iframe(
+        t,
+        /*key=*/'a',
+        /*value=*/'b',
+        /*sandbox_flags=*/'allow-scripts allow-same-origin');
+    }, 'test sharedStorageWritable iframe request in sandboxed iframe with '
+         + '"allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_writable_iframe_request_in_sandboxed_iframe(
+        t,
+        /*key=*/'c',
+        /*value=*/'d',
+        /*sandbox_flags=*/'allow-scripts');
+    }, 'test sharedStorageWritable iframe request in sandboxed iframe without '
+         + '"allow-same-origin"');
+  </script>
+</body>

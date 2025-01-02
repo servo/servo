@@ -1,0 +1,25 @@
+<!doctype HTML>
+<html class="reftest-wait">
+  <title>CSS Test: Test for re-paint after position change</title>
+  <link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org" />
+  <link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+  <link rel="match" href="position-change-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+
+  <div style="position: relative; background: red; width: 100px; height: 100px; overflow: hidden;">
+    <div id="target" style="overflow-y: scroll; width: 400px; height: 400px; position: relative;">
+      <div style="height: 100px; width: 100px; background: green;"></div>
+      <!-- forces scrolling -->
+      <div style="height: 700px;"></div>
+    </div>
+  </div>
+
+  <script>
+    onload = function() {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        target.style.position = "";
+        takeScreenshot();
+      }));
+    }
+  </script>
+</html

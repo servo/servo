@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Should not crash when there is an exceedingly large grapheme cluster</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1255482">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+test(() => {
+  target.textContent = 'e' + '\u0301'.repeat(35000) + 'X';
+  target.offsetWidth;
+});
+</script>

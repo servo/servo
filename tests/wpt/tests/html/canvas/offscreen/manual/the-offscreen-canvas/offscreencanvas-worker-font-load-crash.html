@@ -1,0 +1,19 @@
+<!doctype html>
+<html class="test-wait reftest-wait">
+<script>
+  let url = URL.createObjectURL(new Blob([`
+    let font = new FontFace('Ahem', 'url(/fonts/Ahem.ttf)');
+    self.fonts.add(font);
+    let canvas = new OffscreenCanvas(100, 100);
+    let ctx = canvas.getContext('2d');
+    ctx.font = "10px Ahem";
+    ctx.fillText('Hello', 0, 10);
+    postMessage('done');
+  `], { type: "application/javascript" }));
+  var worker = new Worker(url);
+  worker.onmessage = function() {
+    worker.terminate();
+    URL.revokeObjectURL(url);
+    document.documentElement.className = "";
+  };
+</script>

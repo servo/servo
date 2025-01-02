@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>inert inside ShadowRoot affects slotted content</title>
+    <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div>Button 1 should be inert, and Button 2 should not be inert.</div>
+  <div id="shadow-host">
+    <button slot="slot-1" id="button-1">Button 1 (inert)</button>
+    <button slot="slot-2" id="button-2">Button 2 (not inert)</button>
+  </div>
+  <script>
+    /*
+    Eventual flattened tree structure:
+
+    <div id="shadow-host">
+      #shadow-root (open)
+      | <slot id="slot-1" inert>
+      :   <button id="button-1">Button 1</button> <!-- slotted -->
+      | </slot>
+      | <slot id="slot-2">
+      :   <button id="button-2">Button 2</button> <!-- slotted -->
+      | </slot>
+    </div>
+    */
+
+    const shadowHost = document.getElementById("shadow-host");
+    const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+
+    const slot1 = document.createElement("slot");
+    slot1.name = "slot-1";
+    slot1.inert = true;
+    shadowRoot.appendChild(slot1);
+
+    const slot2 = document.createElement("slot");
+    slot2.name = "slot-2";
+    shadowRoot.appendChild(slot2);
+
+    function testCanFocus(selector, canFocus) {
+      const element = document.querySelector(selector);
+      let focusedElement = null;
+      element.addEventListener("focus", function() { focusedElement = element; }, false);
+      element.focus();
+      assert_equals((focusedElement === element), canFocus);
+    }
+
+    test(() => {
+      testCanFocus("#button-1", false);
+      testCanFocus("#button-2", true);
+    }, "inert inside ShadowRoot affects slotted content");
+  </script>
+</body>
+</html>

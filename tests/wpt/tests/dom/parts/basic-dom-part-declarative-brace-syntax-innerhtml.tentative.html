@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>DOM Parts: Basic object structure, {{}} declarative API</title>
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
+
+<div id=context_elements>
+  <div></div>
+  <div parseparts></div>
+  <template></template>
+  <template parseparts class=expect_success></template>
+</div>
+
+<script>
+const kChildNodePartStartCommentData = "#";
+const kChildNodePartEndCommentData = "/";
+function assertIsComment(node, commentText) {
+  assert_true(node instanceof Comment);
+  // TODO(crbug.com/40271855): While developing alternative syntax, the comment might be empty or it might be "#" or "/".
+  assert_true(node.textContent === '' || node.textContent === commentText);
+}
+
+const declarativeOpenerNoParseparts  = '<h1>';
+const declarativeOpenerParseparts  = '<h1 parseparts>';
+const declarativeContent  = '{{#}}First{{#}}<span {{}}>Middle</span>{{/}}Last{{/}}</h1>';
+
+Array.from(document.querySelectorAll('#context_elements>*')).forEach(contextEl => {
+  const expectParts = contextEl.classList.contains('expect_success');
+  [false,true].forEach(addParsePartsInside => {
+    const description = `${contextEl.outerHTML.split('><')[0]}><h1${addParsePartsInside ? " parseparts" : ""}>content...`;
+    const content = (addParsePartsInside ? declarativeOpenerParseparts : declarativeOpenerNoParseparts) + declarativeContent;
+
+    test((t) => {
+      const root = contextEl.content ? contextEl.content.getPartRoot() : document.getPartRoot();
+      assert_equals(root.getParts().length,0,'Should start with no parts');
+      t.add_cleanup(() => {
+        (contextEl.content || contextEl).replaceChildren();
+        root.getParts().forEach(part => part.disconnect());
+      });
+      contextEl.innerHTML = content;
+      if (expectParts) {
+        let expectedRootParts = [{type:'ChildNodePart',metadata:[]}];
+        assertEqualParts(root.getParts(),expectedRootParts,0,'declarative root missing parts');
+        const childPart1 = root.getParts()[0];
+        assertIsComment(childPart1.previousSibling,kChildNodePartStartCommentData);
+        assertIsComment(childPart1.nextSibling,kChildNodePartEndCommentData);
+        const expectedChild1Parts = [{type:'ChildNodePart',metadata:[]}];
+        assertEqualParts(childPart1.getParts(),expectedChild1Parts,0,'First level childpart should just have one child part');
+        const childPart2 = childPart1.getParts()[0];
+        assertIsComment(childPart2.previousSibling,kChildNodePartStartCommentData);
+        assertIsComment(childPart2.nextSibling,kChildNodePartEndCommentData);
+        const expectedChild2Parts = [{type:'NodePart',metadata:[]}];
+        assertEqualParts(childPart2.getParts(),expectedChild2Parts,0,'Second level childpart should have just the node part');
+        assert_true(childPart2.getParts()[0].node instanceof HTMLSpanElement);
+        assert_equals(childPart2.getParts()[0].node.textContent,'Middle');
+      } else {
+        assert_equals(root.getParts().length,0);
+      }
+    }, `Declarative DOM Parts innerHTML ${description} (expect${expectParts ? "" : " no"} parts)`);
+  });
+});
+
+test((t) => {
+  const tmpl = document.createElement('template');
+  tmpl.parseparts = true;
+  // See crbug.com/1490375.
+  tmpl.innerHTML = '<div {{}}></div>';
+  const root = tmpl.content.getPartRoot();
+  t.add_cleanup(() => {
+    tmpl.remove();
+    root.getParts().forEach(part => part.disconnect());
+  });
+  assert_equals(root.getParts().length,1,'There should be one NodePart');
+}, `Basic NodePart parsing`);
+
+
+test((t) => {
+  const tmpl = document.createElement('template');
+  tmpl.parseparts = true;
+  tmpl.innerHTML = ' <div id={{}} class={{}} foo=baz></div>';
+  const root = tmpl.content.getPartRoot();
+  t.add_cleanup(() => {
+    tmpl.remove();
+    root.getParts().forEach(part => part.disconnect());
+  });
+  assertEqualParts(root.getParts(),[{type:'AttributePart',metadata:[]},{type:'AttributePart',metadata:[]}],0,'Declarative AttributePart should be present');
+  function checkBasics(checkContent,expectId,expectClass) {
+    const innerDiv = checkContent.firstElementChild;
+    assert_equals(innerDiv.localName,'div');
+    assert_equals(innerDiv.getAttribute('id'),expectId || '','Declarative AttributeParts id attribute');
+    assert_equals(innerDiv.getAttribute('class'),expectClass || '','Declarative AttributeParts class attribute');
+    assert_equals(innerDiv.getAttribute('foo'),'baz','Declarative AttributeParts should not touch other attributes');
+    return innerDiv;
+  }
+  checkBasics(tmpl.content);
+  const clone = root.clone();
+  const clonedDiv = checkBasics(clone.rootContainer);
+}, `Basic AttributePart parsing with multiple attributes`);
+
+</script>
+

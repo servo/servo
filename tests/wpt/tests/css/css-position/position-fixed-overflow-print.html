@@ -1,0 +1,26 @@
+<!doctype html>
+<title>position: fixed doesn't overflow the margin area</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1714513">
+<link rel="help" href="https://drafts.csswg.org/css-position/#abspos-insets">
+<link rel="match" href="position-fixed-overflow-print-ref.html">
+<style>
+  body { margin: 0 }
+
+  #outer, #inner {
+    background-color: purple;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #inner {
+    position: fixed;
+    background-color: blue;
+    top: 0;
+    left: 50%;
+  }
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>

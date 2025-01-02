@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() (sync) - send() - open()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[14]/ul/li[1] following::ol[1]/li[14]/ul/li[2] following::ol[1]/li[14]/ul/li[3] following::ol[1]/li[15]/ol/li[1] following::ol[1]/li[15]/ol/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol[1]/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetext-attribute" data-tested-assertations="following::ol[1]/li[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute" data-tested-assertations="following::ol[1]/li[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-statustext-attribute" data-tested-assertations="following::ol[1]/li[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method" data-tested-assertations="following::ol[1]/li[1]" />
+
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      test.step(function() {
+        var client = new XMLHttpRequest(),
+            result = [],
+            expected = [1]
+        client.onreadystatechange = function() {
+          test.step(function() {
+            result.push(client.readyState)
+          })
+        }
+        client.open("GET", "folder.txt")
+        client.send(null)
+        client.open("GET", "folder.txt", false)
+        assert_array_equals(result, expected)
+        assert_equals(client.responseXML, null)
+        assert_equals(client.responseText, "")
+        assert_equals(client.status, 0)
+        assert_equals(client.statusText, "")
+        assert_equals(client.getAllResponseHeaders(), "")
+        test.done()
+      })
+    </script>
+  </body>
+</html>

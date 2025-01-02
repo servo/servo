@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift offscreen with scroll anchoring and natural scroll</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+#scroller {
+  overflow: scroll;
+  left: 20px;
+  top: 20px;
+  width: 200px;
+  height: 200px;
+}
+#spacer {
+  height: 3000px;
+}
+#ch {
+  position: relative;
+  background: yellow;
+  left: 10px;
+  top: 100px;
+  width: 150px;
+  height: 150px;
+}
+#offscreenElement {
+  width: 300px;
+  height: 300px;
+  background: lightblue;
+}
+#onscreenElement {
+  width: 300px;
+  height: 300px;
+  background: lightgreen;
+}
+</style>
+<div id="scroller">
+  <div id="offscreenElement"></div>
+  <div id="spacer"></div>
+  <div id="onscreenElement"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Scroll to show #onscreenElement.
+  scroller.scrollTop = 3250;
+  await waitForAnimationFrames(1);
+
+  // Resize #offscreernElement and scroll a bit.
+  // Visually, #onscreenElement will move by 20px.
+  offscreenElement.style.height = '250px';
+  scroller.scrollBy(0, 20);
+
+  await waitForAnimationFrames(3);
+  // There should be no reported layout shift, because to the user it looks
+  // like a natural scroll by 20px.
+  assert_equals(watcher.score, 0);
+}, "Offscreen shift with scroll annchoring and natural scroll not counted.");
+
+</script>

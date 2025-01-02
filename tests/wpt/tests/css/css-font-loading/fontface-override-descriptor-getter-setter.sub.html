@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<title>Tests getters and setters of the font metrics override descriptors of FontFace</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontface-interface">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-metrics-override-desc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function rejection(promise) {
+  return new Promise((resolve, reject) => promise.then(reject, resolve));
+}
+
+// ascentOverride
+
+test(() => {
+  const face = new FontFace(
+      'ascent-override-initial',
+      'url(https://{{host}}/font.woff)');
+  assert_equals(face.ascentOverride, 'normal');
+}, "Initial value of ascentOverride should be 'normal'");
+
+test(() => {
+  const face = new FontFace(
+    'ascent-override-initialize-with-normal',
+    'url(https://{{host}}/font.woff)',
+    {ascentOverride: 'normal'});
+  assert_equals(face.ascentOverride, 'normal');
+}, "Initialize ascentOverride with 'normal' should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'ascent-override-initialize-with-percentage',
+    'url(https://{{host}}/font.woff)',
+    {ascentOverride: '50%'});
+  assert_equals(face.ascentOverride, '50%');
+}, "Initialize ascentOverride with a percentage should succeed");
+
+promise_test(async () => {
+  const face = new FontFace(
+      'ascent-override-initialize-with-negative-percentage',
+      'url(https://{{host}}/font.woff)',
+      {ascentOverride: '-50%'});
+  const error = await rejection(face.load());
+  assert_equals('error', face.status);
+  assert_throws_dom('SyntaxError', () => {throw error});
+}, "Initialize ascentOverride with a negative percentage should fail");
+
+promise_test(async () => {
+  const face = new FontFace(
+      'ascent-override-initialize-with-non-percentage',
+      'url(https://{{host}}/font.woff)',
+      {ascentOverride: '10px'});
+  const error = await rejection(face.load());
+  assert_equals('error', face.status);
+  assert_throws_dom('SyntaxError', () => {throw error});
+}, "Initialize ascentOverride with a non-percentage should fail");
+
+test(() => {
+  const face = new FontFace(
+    'ascent-override-normal-to-percentage',
+    'url(https://{{host}}/font.woff)',
+    {ascentOverride: 'normal'});
+  face.ascentOverride = '50%';
+  assert_equals(face.ascentOverride, '50%');
+}, "Changing ascentOverride from 'normal' to percentage should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'ascent-override-percentage-to-normal',
+    'url(https://{{host}}/font.woff)',
+    {ascentOverride: '50%'});
+  face.ascentOverride = 'normal';
+  assert_equals(face.ascentOverride, 'normal');
+}, "Changing ascentOverride from percentage to 'normal' should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'ascent-override-set-to-invalid',
+    'url(https://{{host}}/font.woff)');
+  assert_throws_dom('SyntaxError', () => {face.ascentOverride = '10px'});
+}, "Changing ascentOverride to invalid value should fail");
+
+// descentOverride
+
+test(() => {
+  const face = new FontFace(
+      'descent-override-initial',
+      'url(https://{{host}}/font.woff)');
+  assert_equals(face.descentOverride, 'normal');
+}, "Initial value of descentOverride should be 'normal'");
+
+test(() => {
+  const face = new FontFace(
+    'descent-override-initialize-with-normal',
+    'url(https://{{host}}/font.woff)',
+    {descentOverride: 'normal'});
+  assert_equals(face.descentOverride, 'normal');
+}, "Initialize descentOverride with 'normal' should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'descent-override-initialize-with-percentage',
+    'url(https://{{host}}/font.woff)',
+    {descentOverride: '50%'});
+  assert_equals(face.descentOverride, '50%');
+}, "Initialize descentOverride with a percentage should succeed");
+
+promise_test(async () => {
+  const face = new FontFace(
+      'descent-override-initialize-with-negative-percentage',
+      'url(https://{{host}}/font.woff)',
+      {descentOverride: '-50%'});
+  const error = await rejection(face.load());
+  assert_equals('error', face.status);
+  assert_throws_dom('SyntaxError', () => {throw error});
+}, "Initialize descentOverride with a negative percentage should fail");
+
+promise_test(async () => {
+  const face = new FontFace(
+      'descent-override-initialize-with-non-percentage',
+      'url(https://{{host}}/font.woff)',
+      {descentOverride: '10px'});
+  const error = await rejection(face.load());
+  assert_equals('error', face.status);
+  assert_throws_dom('SyntaxError', () => {throw error});
+}, "Initialize descentOverride with a non-percentage should fail");
+
+test(() => {
+  const face = new FontFace(
+    'descent-override-normal-to-percentage',
+    'url(https://{{host}}/font.woff)',
+    {descentOverride: 'normal'});
+  face.descentOverride = '50%';
+  assert_equals(face.descentOverride, '50%');
+}, "Changing descentOverride from 'normal' to percentage should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'descent-override-percentage-to-normal',
+    'url(https://{{host}}/font.woff)',
+    {descentOverride: '50%'});
+  face.descentOverride = 'normal';
+  assert_equals(face.descentOverride, 'normal');
+}, "Changing descentOverride from percentage to 'normal' should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'descent-override-set-to-invalid',
+    'url(https://{{host}}/font.woff)');
+  assert_throws_dom('SyntaxError', () => {face.descentOverride = '10px'});
+}, "Changing descentOverride to invalid value should fail");
+
+// lineGapOverride
+
+test(() => {
+  const face = new FontFace(
+      'lineGap-override-initial',
+      'url(https://{{host}}/font.woff)');
+  assert_equals(face.lineGapOverride, 'normal');
+}, "Initial value of lineGapOverride should be 'normal'");
+
+test(() => {
+  const face = new FontFace(
+    'lineGap-override-initialize-with-normal',
+    'url(https://{{host}}/font.woff)',
+    {lineGapOverride: 'normal'});
+  assert_equals(face.lineGapOverride, 'normal');
+}, "Initialize lineGapOverride with 'normal' should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'lineGap-override-initialize-with-percentage',
+    'url(https://{{host}}/font.woff)',
+    {lineGapOverride: '50%'});
+  assert_equals(face.lineGapOverride, '50%');
+}, "Initialize lineGapOverride with a percentage should succeed");
+
+promise_test(async () => {
+  const face = new FontFace(
+      'lineGap-override-initialize-with-negative-percentage',
+      'url(https://{{host}}/font.woff)',
+      {lineGapOverride: '-50%'});
+  const error = await rejection(face.load());
+  assert_equals('error', face.status);
+  assert_throws_dom('SyntaxError', () => {throw error});
+}, "Initialize lineGapOverride with a negative percentage should fail");
+
+promise_test(async () => {
+  const face = new FontFace(
+      'lineGap-override-initialize-with-non-percentage',
+      'url(https://{{host}}/font.woff)',
+      {lineGapOverride: '10px'});
+  const error = await rejection(face.load());
+  assert_equals('error', face.status);
+  assert_throws_dom('SyntaxError', () => {throw error});
+}, "Initialize lineGapOverride with a non-percentage should fail");
+
+test(() => {
+  const face = new FontFace(
+    'lineGap-override-normal-to-percentage',
+    'url(https://{{host}}/font.woff)',
+    {lineGapOverride: 'normal'});
+  face.lineGapOverride = '50%';
+  assert_equals(face.lineGapOverride, '50%');
+}, "Changing lineGapOverride from 'normal' to percentage should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'lineGap-override-percentage-to-normal',
+    'url(https://{{host}}/font.woff)',
+    {lineGapOverride: '50%'});
+  face.lineGapOverride = 'normal';
+  assert_equals(face.lineGapOverride, 'normal');
+}, "Changing lineGapOverride from percentage to 'normal' should succeed");
+
+test(() => {
+  const face = new FontFace(
+    'lineGap-override-set-to-invalid',
+    'url(https://{{host}}/font.woff)');
+  assert_throws_dom('SyntaxError', () => {face.lineGapOverride = '10px'});
+}, "Changing lineGapOverride to invalid value should fail");
+</script>

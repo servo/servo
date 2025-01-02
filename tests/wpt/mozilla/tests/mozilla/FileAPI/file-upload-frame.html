@@ -1,0 +1,8 @@
+<form id="testform" enctype="multipart/form-data" action="resource/file-submission.py" method="post">
+<input type="file" name="file-input" id="file-input" />
+</form>
+
+<script type="text/javascript">
+    var e = document.getElementById("file-input");
+    e.selectFiles(["./tests/wpt/mozilla/tests/mozilla/FileAPI/resource/upload.txt"]);
+</script>

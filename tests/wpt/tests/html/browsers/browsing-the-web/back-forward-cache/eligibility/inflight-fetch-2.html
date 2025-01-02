@@ -1,0 +1,22 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/helper.sub.js"></script>
+<script src="../resources/inflight-fetch-helper.js"></script>
+<script>
+// Check whether the page is BFCached when there are in-flight network requests
+// at the time of navigation.
+
+// Successful fetch completion with header received when in BFCache or after
+// BFCache.
+runTest(sameOriginUrl + '?delayBeforeHeader=2000', false, true,
+  'Header and body received when in BFCache');
+runTest(sameOriginUrl + '?delayBeforeHeader=2000&delayBeforeBody=1500',
+  false, true,
+  'Header received when in BFCache and body received after BFCache');
+runTest(sameOriginUrl + '?delayBeforeHeader=3500', false, true,
+  'Header and body received after BFCache');
+</script>

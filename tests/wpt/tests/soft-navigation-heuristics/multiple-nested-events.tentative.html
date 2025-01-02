@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <a id=link>Click me!</a>
+  </main>
+    <script>
+    const link = document.getElementById("link");
+    let should_navigate = true;
+    navigation.addEventListener("navigate", () => {
+      if (should_navigate) {
+        // It's the last sync navigation that determines the soft nav URL.
+        history.pushState({}, '', 'foobar.html');
+        should_navigate = false;
+      }
+    });
+    testSoftNavigation({
+      eventPrepWork: url => {
+        addTextToDivOnMain();
+        history.pushState({}, '', 'foobar1.html');
+        // Here we're bypassing the regular test's event logic, as this test is
+        // fully sync.
+        return false;
+      },
+      link: link,
+      eventName: "click",
+      eventTarget: link,
+      testName: "Test multiple nested navigate events"});
+  </script>
+</body>
+</html>
+

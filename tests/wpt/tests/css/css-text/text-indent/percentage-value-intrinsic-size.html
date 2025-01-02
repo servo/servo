@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-indent-property">
+<meta name="assert" content="Percentages should be ignored when calculating min/max intrinsic sizes.">
+<p>Test passes if there is a filled green square.</p>
+<div id="container" data-expected-width="50" style="position:relative; float:left; height:100px; background:green;">
+  <div id="foo">
+    <div data-offset-x="50" data-expected-width="50" style="display:inline-block; width:50px; height:100px; background:green;"></div>
+    <div style="width:50px;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  document.body.offsetTop;
+  foo.style.textIndent = "100%";
+  checkLayout("#container");
+</script>

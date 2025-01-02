@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-csspagerule-interface">
+<title>CSSPageRule CSSOM test for nested cssRules (CSSMarginRule)</title>
+<style id="sheet">
+  @page {}
+  @page {
+    @top-center {}
+  }
+  @page {
+    color: red;
+
+    /* This property doesn't apply, but the declaration should still be
+       included: */
+    column-count: 7;
+
+    @bottom-left {
+      margin: inherit;
+    }
+    @top-right {
+      content: "hot";
+      font-size: 2em;
+    }
+    @top-left-corner {}
+    @top-left {}
+    @top-center {}
+    @top-right {}
+    @top-right-corner {}
+
+    color: inherit;
+
+    @right-top {}
+    @right-middle {}
+    @right-bottom {}
+    @bottom-right-corner {}
+    @bottom-right {}
+    @bottom-center {}
+    @bottom-left {}
+    @bottom-left-corner {}
+    @left-bottom {}
+    @left-middle {}
+    @left-top {}
+    @herring {}
+
+    margin-left: 111px;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  var sheet = document.getElementById("sheet").sheet;
+  test(() => {
+    assert_not_equals(sheet, null);
+    assert_equals(sheet.rules.length, 3);
+  }, "There should be 3 @page rules.");
+
+  test(() => {
+    assert_equals(sheet.rules[0].cssRules.length, 0);
+  }, "Rule #0");
+
+  test(() => {
+    assert_equals(sheet.rules[1].cssRules.length, 1);
+    assert_equals(sheet.rules[1].cssRules[0].style.length, 0);
+  }, "Rule #1");
+
+  test(() => {
+    var pageRule = sheet.rules[2];
+    var style = pageRule.style;
+    assert_equals(style.length, 3);
+    assert_equals(style.color, "inherit");
+    assert_equals(style.columnCount, "7");
+    assert_equals(style.marginLeft, "111px");
+
+    assert_equals(pageRule.cssRules.length, 18);
+
+    var bottomLeft = pageRule.cssRules[0];
+    assert_equals(bottomLeft.name, "bottom-left");
+    assert_equals(bottomLeft.style.length, 4);
+    assert_equals(bottomLeft.style.marginTop, "inherit");
+    assert_equals(bottomLeft.style.marginRight, "inherit");
+    assert_equals(bottomLeft.style.marginBottom, "inherit");
+    assert_equals(bottomLeft.style.marginLeft, "inherit");
+
+    var topRight = pageRule.cssRules[1];
+    assert_equals(topRight.name, "top-right");
+    assert_equals(topRight.style.length, 2);
+    assert_equals(topRight.style.content, "\"hot\"");
+    assert_equals(topRight.style.fontSize, "2em");
+
+    assert_equals(pageRule.cssRules[2].name, "top-left-corner");
+    assert_equals(pageRule.cssRules[3].name, "top-left");
+    assert_equals(pageRule.cssRules[4].name, "top-center");
+    assert_equals(pageRule.cssRules[5].name, "top-right");
+    assert_equals(pageRule.cssRules[6].name, "top-right-corner");
+    assert_equals(pageRule.cssRules[7].name, "right-top");
+    assert_equals(pageRule.cssRules[8].name, "right-middle");
+    assert_equals(pageRule.cssRules[9].name, "right-bottom");
+    assert_equals(pageRule.cssRules[10].name, "bottom-right-corner");
+    assert_equals(pageRule.cssRules[11].name, "bottom-right");
+    assert_equals(pageRule.cssRules[12].name, "bottom-center");
+    assert_equals(pageRule.cssRules[13].name, "bottom-left");
+    assert_equals(pageRule.cssRules[14].name, "bottom-left-corner");
+    assert_equals(pageRule.cssRules[15].name, "left-bottom");
+    assert_equals(pageRule.cssRules[16].name, "left-middle");
+    assert_equals(pageRule.cssRules[17].name, "left-top");
+  }, "Rule #2");
+</script>

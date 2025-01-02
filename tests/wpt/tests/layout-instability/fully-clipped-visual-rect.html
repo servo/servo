@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Layout Instability: fully clipped visual rect</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; }
+#clip { width: 0px; height: 600px; overflow: hidden; }
+#j { position: relative; width: 300px; height: 200px; background: blue; }
+
+</style>
+<div id='clip'><div id='j'></div></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Shift an element that is fully clipped by its container.
+  document.querySelector("#j").style.top = "200px";
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Fully clipped visual rect.");
+
+</script>
+
+

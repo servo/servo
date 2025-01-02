@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Don't crash when setting viewport units on inline style</title>
+<link rel="help" href="https://crbug.com/1402548">
+<div id="div">
+  PASS if no crash
+</div>
+<script>
+  div.style.setProperty("margin-bottom", "1px");
+  div.offsetTop;
+  div.style.setProperty("margin-bottom", "1vh");
+</script>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<title>Safe vs Unsafe align-self in Grid Layout</title>
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#overflow-values">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#column-align">
+<link rel="match" href="self-align-safe-unsafe-grid-001-ref.html">
+<style>
+  /* Label things */
+  body > div {
+    display: flow-root;
+  }
+  body > div::before {
+    display: block;
+    content: attr(class);
+    font-size: 10px;
+    margin-top: 10px;
+  }
+
+  /* Test Framework */
+  .container {
+    border: solid aqua;
+    margin: 10px;
+    float: left;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    grid: 100% / 100%;
+  }
+
+  .item {
+    background: orange;
+    width: 100%;
+  }
+
+  /* Test */
+  .small .item {
+    height: 20px;
+  }
+  .large .item {
+    height: 40px;
+  }
+
+  .center     { align-self: center; }
+  .start      { align-self: start; }
+  .end        { align-self: end; }
+  .self-start { align-self: self-start; }
+  .self-end   { align-self: self-end; }
+  .flex-start { align-self: flex-start; }
+  .flex-end   { align-self: flex-end; }
+
+  .safe .center     { align-self: safe center; }
+  .safe .start      { align-self: safe start; }
+  .safe .end        { align-self: safe end; }
+  .safe .self-start { align-self: safe self-start; }
+  .safe .self-end   { align-self: safe self-end; }
+  .safe .flex-start { align-self: safe flex-start; }
+  .safe .flex-end   { align-self: safe flex-end; }
+
+  .safe .center     { align-self: safe center; }
+  .safe .start      { align-self: safe start; }
+  .safe .end        { align-self: safe end; }
+  .safe .self-start { align-self: safe self-start; }
+  .safe .self-end   { align-self: safe self-end; }
+  .safe .flex-start { align-self: safe flex-start; }
+  .safe .flex-end   { align-self: safe flex-end; }
+</style>
+
+<div class="default small">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="default large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="unsafe large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+
+<div class="safe large">
+  <div class="container">
+    <div class="item normal"></div>
+  </div>
+  <div class="container">
+    <div class="item center"></div>
+  </div>
+  <div class="container">
+    <div class="item start"></div>
+  </div>
+  <div class="container">
+    <div class="item end"></div>
+  </div>
+  <div class="container">
+    <div class="item self-start"></div>
+  </div>
+  <div class="container">
+    <div class="item self-end"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-start"></div>
+  </div>
+  <div class="container">
+    <div class="item flex-end"></div>
+  </div>
+</div>
+

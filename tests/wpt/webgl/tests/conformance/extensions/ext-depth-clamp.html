@@ -1,0 +1,170 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_depth_clamp Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_depth_clamp extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c");
+var ext;
+const w = gl.drawingBufferWidth;
+const h = gl.drawingBufferHeight;
+
+function runTestNoExtension() {
+    debug("");
+    debug("Check the parameter without the extension");
+    shouldBeNull("gl.getParameter(0x864F /* DEPTH_CLAMP_EXT */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    debug("Check the cap without the extension");
+    gl.disable(0x864F /* DEPTH_CLAMP_EXT */);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "cap unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    gl.enable(0x864F /* DEPTH_CLAMP_EXT */);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "cap unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    shouldBeFalse("gl.isEnabled(0x864F /* DEPTH_CLAMP_EXT */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "cap unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkEnums() {
+    debug("");
+    debug("Check enums");
+    shouldBe("ext.DEPTH_CLAMP_EXT", "0x864F");
+}
+
+function checkQueries() {
+    debug("");
+    debug("Check default state");
+    shouldBeFalse('gl.isEnabled(ext.DEPTH_CLAMP_EXT)');
+    shouldBeFalse('gl.getParameter(ext.DEPTH_CLAMP_EXT)');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    debug("");
+    debug("Check state update using the new capability");
+    gl.enable(ext.DEPTH_CLAMP_EXT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBeTrue('gl.isEnabled(ext.DEPTH_CLAMP_EXT)');
+    shouldBeTrue('gl.getParameter(ext.DEPTH_CLAMP_EXT)');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    gl.disable(ext.DEPTH_CLAMP_EXT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBeFalse('gl.isEnabled(ext.DEPTH_CLAMP_EXT)');
+    shouldBeFalse('gl.getParameter(ext.DEPTH_CLAMP_EXT)');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkClamping() {
+    debug("");
+    debug("Check depth clamp operation");
+
+    // Draw a red quad located beyond the clipping volume.
+    // When depth clamping is enabled, it must be drawn.
+    const vertexShader = `
+        attribute vec2 vPosition;
+        uniform float u_depth;
+        void main() {
+            gl_Position = vec4(vPosition, u_depth, 1.0);
+        }`;
+    const program = wtu.setupProgram(gl, [vertexShader,
+                                          wtu.simpleColorFragmentShader]);
+    gl.useProgram(program);
+    const colorLoc = gl.getUniformLocation(program, "u_color");
+    const depthLoc = gl.getUniformLocation(program, "u_depth");
+
+    wtu.setupUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    // Red beyond the far plane
+    gl.uniform4f(colorLoc, 1, 0, 0, 1);
+    gl.uniform1f(depthLoc, +2);
+
+    // Clipped
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h, [255, 255, 255, 255]);
+
+    // Enable depth clamping, disable depth clipping
+    gl.enable(ext.DEPTH_CLAMP_EXT);
+
+    // Not clipped
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h, [255, 0, 0, 255]);
+
+    // Green beyond the near plane
+    gl.uniform4f(colorLoc, 0, 1, 0, 1);
+    gl.uniform1f(depthLoc, -2);
+
+    // Not clipped
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h, [0, 255, 0, 255]);
+
+    // Blue beyond the near plane with clamping disabled
+    gl.disable(ext.DEPTH_CLAMP_EXT);
+    gl.uniform4f(colorLoc, 0, 0, 1, 1);
+
+    // Clipped
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h, [255, 255, 255, 255]);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function runTestExtension() {
+    checkEnums();
+    checkQueries();
+    checkClamping();
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runTestNoExtension();
+
+    ext = gl.getExtension("EXT_depth_clamp");
+
+    wtu.runExtensionSupportedTest(gl, "EXT_depth_clamp", ext !== null);
+
+    if (ext !== null) {
+        runTestExtension();
+    } else {
+        testPassed("No EXT_depth_clamp support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

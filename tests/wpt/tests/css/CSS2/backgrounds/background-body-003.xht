@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background position propagation from body element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Background-position of the body does not propagate the position to the canvas. This only applies if HTML element has nothing set for background." />
+        <style type="text/css">
+            body
+            {
+                background: url("support/green_box.png") 1in 1in;
+                margin: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the background of this entire page is green.</p>
+    </body>
+</html>

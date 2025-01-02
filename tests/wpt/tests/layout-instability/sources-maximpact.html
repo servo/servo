@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>Layout Instability: source attribution prioritization</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-adapter.js"></script>
+<script src="resources/util.js"></script>
+<style>
+body { margin: 0; }
+#a, #b, #c, #d, #e, #f {
+  display: inline-block;
+  background: gray;
+  min-width: 10px;
+  min-height: 10px;
+  vertical-align: top;
+}
+#a { width: 30px; height: 30px; }
+#b { width: 20px; height: 20px; }
+#c { height: 50px; }
+#d { width: 50px; }
+#e { width: 40px; height: 30px; }
+#f { width: 30px; height: 40px; }
+</style>
+<div id="grow"></div>
+<div id="a"></div
+><div id="b"></div
+><div id="c"></div
+><div id="d"></div
+><div id="e"></div
+><div id="f"></div>
+<script>
+
+let $ = id => document.querySelector(id);
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  $("#grow").style.height = "50px";
+  await watcher.promise;
+
+  cls_expect(watcher, {sources: [
+    {
+      node: $("#a"),
+      previousRect: [0, 0, 30, 30],
+      currentRect: [0, 50, 30, 30]
+    },
+    {
+      node: $("#f"),
+      previousRect: [150, 0, 30, 40],
+      currentRect: [150, 50, 30, 40]
+    },
+    {
+      node: $("#c"),
+      previousRect: [50, 0, 10, 50],
+      currentRect: [50, 50, 10, 50]
+    },
+    {
+      node: $("#d"),
+      previousRect: [60, 0, 50, 10],
+      currentRect: [60, 50, 50, 10]
+    },
+    {
+      node: $("#e"),
+      previousRect: [110, 0, 40, 30],
+      currentRect: [110, 50, 40, 30]
+    }
+  ]});
+}, "Source attribution prioritizes by impact.");
+
+</script>

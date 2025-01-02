@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Window object named properties: "id" attribute</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The nodes and named elements are not accessible from Window object named properties.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+function testIDAttribute(elementName) {
+    var doc = document.implementation.createHTMLDocument('Title');
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    var element = doc.createElement(elementName);
+    element.id = 'test-id';
+    shadowRoot.appendChild(element);
+    assert_false('test-id' in window);
+}
+
+var idAttributeTestParameter = HTML5_ELEMENTS.map(function (elementName) {
+    return [
+        '"' + elementName + '" element with id attribute in a shadow tree ' +
+        'should not be accessible from window object\'s named property.',
+        elementName
+    ];
+});
+
+generate_tests(testIDAttribute, idAttributeTestParameter);
+</script>
+</body>
+</html>

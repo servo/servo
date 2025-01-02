@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<input type="number" id="number_input">
+<script>
+promise_test(async function() {
+  const inputElement = document.getElementById("number_input");
+
+  let events = [];
+
+  inputElement.addEventListener("beforeinput", () => {
+    events.push("beforeinput");
+  });
+  inputElement.addEventListener("input", () => {
+    events.push("input");
+  });
+  inputElement.addEventListener("change", () => {
+    events.push("change");
+  });
+
+  // Roughly get the offset to the spin up arrow button's center point within
+  // the iframe's viewport. Note that this is fragile and might need specific
+  // coordinates for each browser and maybe platform.
+  const rect = inputElement.getBoundingClientRect();
+  const x = Math.round(rect.x + rect.width - 10);
+  const y = Math.round(rect.y + rect.height / 4);
+
+  const actions = new test_driver.Actions()
+    .pointerMove(x, y, { origin: "viewport" })
+    .pointerDown()
+    .pointerUp();
+  await actions.send();
+
+  assert_array_equals(events, ['beforeinput','input','change']);
+}, "Number input should fire beforeinput event before the input and change event");
+</script>
+</body>
+</html>

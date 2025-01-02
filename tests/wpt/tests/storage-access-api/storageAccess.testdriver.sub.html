@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+  <title>TestDriver - Set Storage Access Command Tests</title>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="helpers.js"></script>
+</head>
+<body>
+  <script>
+    "use strict";
+
+    // Use a different domain so that the cookie is cross-site.
+    const wwwAlt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
+
+    promise_test(async t => {
+      await MaybeSetStorageAccess("*", "*", "blocked");
+      t.add_cleanup(async () => {
+        await test_driver.delete_all_cookies();
+        await MaybeSetStorageAccess("*", "*", "allowed");
+      });
+
+      const responder_html = `${wwwAlt}/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js`;
+      const frame = await CreateFrame(responder_html);
+
+      assert_false(await CanFrameWriteCookies(frame), "Cross-site iframe should not be allowed to write cookies via document.cookie.");
+    });
+  </script>
+</body>

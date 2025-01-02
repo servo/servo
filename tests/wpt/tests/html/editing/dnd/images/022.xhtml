@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dropping image on vertical iframe scrollbar</title>
+<style type="text/css">
+p:first-child
+  {padding-left:1em;}
+iframe
+  {height:6em;
+  width:3em;}
+img
+  {width:5px;
+  height:5px;}
+</style>
+<script type="application/ecmascript">
+function dragImage()
+  {event.dataTransfer.effectAllowed = 'copy';}
+function dropImage(event)
+  {document.querySelector('p + p').firstChild.nodeValue = 'PASS';}
+</script>
+</head>
+<body ondragenter="event.preventDefault()" ondragover="return false">
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==" alt="PNG green pixel" ondragstart="dragImage()" ondragend="dropImage(event)"/></p>
+<p>Drag little square above and drop it on vertical scrollbar. Word PASS should appear once you drop it.</p>
+<iframe src="helper-drop-vertical-scrollbar.xhtml">XHTML document</iframe>
+</body>
+</html>

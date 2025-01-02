@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: title attribute in stylesheets not in the document tree is ignored</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/cssom/#preferred-css-style-sheet-set-name">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-style-title">
+<link rel="help" href="https://github.com/w3c/webcomponents/issues/535">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host"></div>
+<script>
+test(function() {
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      div { width: 100px; height: 100px; }
+    </style>
+    <style title="Foo">
+      div { background: purple }
+    </style>
+    <style title="Bar">
+      div { background: green }
+    </style>
+    <div></div>
+  `;
+  assert_equals(host.shadowRoot.styleSheets.length, 3);
+  for (let sheet of host.shadowRoot.styleSheets) {
+    assert_equals(sheet.title, null, "Sheet outside of the document generates no setter");
+    sheet.title = "Foo";
+    assert_equals(sheet.title, null, "Mutation doesn't change the sheet title");
+  }
+  for (let element of host.shadowRoot.querySelectorAll("style")) {
+    element.setAttribute("title", "Foo");
+    assert_equals(element.sheet.title, null, "Attribute mutation doesn't change the sheet title");
+  }
+}, "Title attribute in stylesheets not in the document tree is ignored");
+</script>

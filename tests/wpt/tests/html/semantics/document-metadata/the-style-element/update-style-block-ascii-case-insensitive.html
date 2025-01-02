@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#update-a-style-block">
+<link rel="match" href="update-style-block-ascii-case-insensitive-ref.html">
+<meta name="assert" content="style@type values are ASCII case-insensitive">
+<style>
+p:after { font-weight: bold; }
+p:after { content: "FAIL"; color: red; }
+#c:after { content: "PASS"; color: green; }
+</style>
+<style type="text/css">#a:after { content: "PASS"; color: green; }</style>
+<style type="TeXt/CsS">#b:after { content: "PASS"; color: green; }</style>
+<style type="text/cſs">#c:after { content: "FAIL"; color: red; }</style>
+<p id="a">text/css treated as CSS?
+<p id="b">TeXt/CsS treated as CSS?
+<p id="c">text/cſs ignored?

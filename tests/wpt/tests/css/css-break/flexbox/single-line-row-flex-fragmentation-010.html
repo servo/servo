@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>
+  Tests that flex-items in the same flex row *don't* get pushed down due to a
+  previous flex item expanding as a result of fragmentation.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: flex;">
+    <div style="background: green;">
+      <div style="contain: size; width: 25px; height: 80px;"></div>
+      <div style="contain: size; width: 25px; height: 30px;"></div>
+    </div>
+    <div style="height: 200px; width:25px; background: green;"></div>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: size containment on body prevents background propagation</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="size containment on body prevents background propagation">
+  <link rel="match" href="reference/contain-body-bg-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#contain-property">
+
+<style>
+html, body, p {
+    margin: 0;
+    width: 300px;
+    height: 200px;
+}
+p {
+    background: white;
+}
+body {
+    background: red;
+    contain: size;
+}
+</style>
+
+<p>Test passes if there is no red.

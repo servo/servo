@@ -1,0 +1,511 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-swizzles.js
+
+group bvec2_swizzles "bvec2 swizzles"
+
+	case mediump_bvec2_x
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bool out0 = [ true | false | false | true | false ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.x;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_xx
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.xx;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_xy
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.xy;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_yx
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(false, true) | bvec2(false, false) | bvec2(true, false) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.yx;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_yxy
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.yxy;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_xyxx
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.xyxx;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_yyyy
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.yyyy;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_s
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bool out0 = [ true | false | false | true | false ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.s;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_ss
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.ss;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_st
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.st;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_ts
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(false, true) | bvec2(false, false) | bvec2(true, false) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.ts;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_tst
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.tst;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_stss
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.stss;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_tttt
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.tttt;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_r
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bool out0 = [ true | false | false | true | false ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.r;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_rr
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.rr;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_rg
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.rg;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_gr
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec2 out0 = [ bvec2(false, true) | bvec2(false, false) | bvec2(true, false) | bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.gr;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_grg
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.grg;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_rgrr
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.rgrr;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_bvec2_gggg
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.gggg;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # bvec2_swizzles

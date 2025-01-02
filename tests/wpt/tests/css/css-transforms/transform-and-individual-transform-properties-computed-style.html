@@ -1,0 +1,17 @@
+<link rel="help" href="https://www.w3.org/TR/css-transforms-2/#individual-transforms">
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+
+<div style="scale: 2; rotate: 90deg; translate: 100px; transform: translateY(100px)">
+
+<script type="text/javascript">
+
+test(() => {
+    const style = window.getComputedStyle(document.querySelector("div"));
+    assert_equals(style.scale, "2", "The scale computed style should match the inline style.");
+    assert_equals(style.rotate, "90deg", "The rotate computed style should match the inline style.");
+    assert_equals(style.translate, "100px", "The translate computed style should match the inline style.");
+    assert_equals(style.transform, "matrix(1, 0, 0, 1, 0, 100)", "The transform computed style should match the inline style.");
+}, "The transform property should not be affected by individual transform properties.");
+
+</script>

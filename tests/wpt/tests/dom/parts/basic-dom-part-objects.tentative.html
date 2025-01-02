@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<title>DOM Parts: Basic object structure, imperative API</title>
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
+
+<body>
+<template id=imperative>
+  <div>
+    <div id=target1 style="display:none">
+      Imperative test element
+      <span id=a>A</span><span id=b>B
+        <span id=sub>B-sub1</span>
+        <span id=sub>B-sub2</span>
+      </span><span id=c>C</span></div>
+  </div>
+  <span id=direct_child_1></span>
+  <span id=direct_child_2></span>
+</template>
+
+<script>
+const template = document.getElementById('imperative');
+function addCleanup(t, part) {
+  t.add_cleanup(() => part.disconnect());
+  return part;
+}
+[false,true].forEach(useTemplate => {
+  const doc = useTemplate ? template.content : document;
+  let target,wrapper,directChildren;
+  if (useTemplate) {
+    target = doc.querySelector('#target1');
+    directChildren = [doc.querySelector('#direct_child_1'),doc.querySelector('#direct_child_2')];
+  } else {
+    wrapper = document.body.appendChild(document.createElement('div'));
+    wrapper.appendChild(template.content.cloneNode(true));
+    target = wrapper.querySelector('#target1');
+    directChildren = [doc.documentElement,doc.documentElement];
+  }
+  const a = target.querySelector('#a');
+  const b = target.querySelector('#b');
+  const c = target.querySelector('#c');
+  assert_true(!!(doc && target && target.parentElement && a && b && c));
+  const description = useTemplate ? "DocumentFragment" : "Document";
+  test((t) => {
+    const root = doc.getPartRoot();
+    assert_true(root instanceof DocumentPartRoot);
+    const parts = root.getParts();
+    assert_equals(parts.length,0,'getParts() should start out empty');
+    assert_true(root.rootContainer instanceof (useTemplate ? DocumentFragment : Document));
+
+    const nodePart = addCleanup(t,new NodePart(root,target,{metadata: ['foo']}));
+    assertEqualParts([nodePart],[{type:'NodePart',metadata:['foo']}],0,'Basic NodePart');
+    assert_equals(nodePart.node,target);
+    assert_equals(nodePart.root,root);
+    let runningPartsExpectation = [{type:'NodePart',metadata:['foo']}];
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart],'getParts() for the root should now have this nodePart');
+    assert_equals(parts.length,0,'Return value of getParts() is not live');
+
+    assert_throws_js(TypeError,() => new NodePart(nodePart,target.children[0]),'Constructing a Part with a NodePart as the PartRoot should throw');
+
+    const attributePart = addCleanup(t,new AttributePart(root,target,'attributename',{metadata: ['attribute']}));
+    assertEqualParts([attributePart],[{type:'AttributePart',metadata:['attribute']}],0,'Basic AttributePart');
+    assert_equals(attributePart.node,target);
+    assert_equals(attributePart.root,root);
+    assert_equals(attributePart.localName,'attributename');
+    runningPartsExpectation.push({type:'AttributePart',metadata:['attribute']});
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart],'getParts() for the root should now have this attributePart');
+    assert_equals(parts.length,0,'Return value of getParts() is not live');
+
+    const childNodePart = addCleanup(t,new ChildNodePart(root,target.children[0], target.children[2],{metadata:['bar','baz']}));
+    assertEqualParts([childNodePart],[{type:'ChildNodePart',metadata:['bar','baz']}],0,'Basic ChildNodePart');
+    assert_equals(childNodePart.root,root);
+    assert_equals(childNodePart.previousSibling,target.children[0]);
+    assert_equals(childNodePart.nextSibling,target.children[2]);
+    assert_equals(childNodePart.getParts().length,0,'childNodePart.getParts() should start out empty');
+    runningPartsExpectation.push({type:'ChildNodePart',metadata:['bar','baz']});
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart],'getParts() for the root should now have this childNodePart');
+
+    const nodeBefore = target.previousSibling || target.parentNode;
+    const nodePartBefore = addCleanup(t,new NodePart(root,nodeBefore));
+    runningPartsExpectation.push({type:'NodePart',metadata:[]});
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart,nodePartBefore],'getParts() for the root should now have this nodePart, in construction order');
+
+    const nodePart2 = addCleanup(t,new NodePart(childNodePart,target.children[2],{metadata:['blah']}));
+    assert_equals(nodePart2.root,childNodePart);
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart,nodePartBefore],'getParts() for the root DocumentPartRoot shouldn\'t change');
+    assertEqualParts(childNodePart.getParts(),[{type:'NodePart',metadata:['blah']}],[nodePart2],'getParts() for the childNodePart should have it');
+
+    nodePart2.disconnect();
+    assert_equals(nodePart2.root,null,'root should be null after disconnect');
+    assert_equals(nodePart2.node,null,'node should be null after disconnect');
+    assert_equals(childNodePart.getParts().length,0,'calling disconnect() should remove the part from root.getParts()');
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart,nodePartBefore],'getParts() for the root DocumentPartRoot still shouldn\'t change');
+    nodePart2.disconnect(); // Calling twice should be ok.
+
+    childNodePart.disconnect();
+    assert_equals(childNodePart.root,null,'root should be null after disconnect');
+    assert_equals(childNodePart.previousSibling,null,'previousSibling should be null after disconnect');
+    assert_equals(childNodePart.nextSibling,null,'nextSibling should be null after disconnect');
+    assert_array_equals(root.getParts(),[nodePartBefore,nodePart,attributePart]);
+  }, `Basic imperative DOM Parts object construction (${description})`);
+
+  function cloneRange(parent,previousSibling,nextSibling) {
+    const clone = parent.cloneNode(false);
+    let node = previousSibling;
+    while (node) {
+      clone.appendChild(node.cloneNode(true));
+      if (node == nextSibling) {
+        break;
+      }
+      node = node.nextSibling;
+    }
+    return clone;
+  }
+
+  test((t) => {
+    const root = doc.getPartRoot();
+    const nodePart = addCleanup(t,new NodePart(root,target,{metadata:['node1']}));
+    const attributePart = addCleanup(t,new AttributePart(root,target,'attributeName',{metadata: ['attribute']}));
+    const childNodePart = addCleanup(t,new ChildNodePart(root,target.children[0], target.children[2],{metadata:['child']}));
+    const nodePart3 = addCleanup(t,new NodePart(childNodePart,target.children[1].firstChild,{metadata: ['node 3']}));
+    const nodePart2 = addCleanup(t,new NodePart(childNodePart,target.children[1].firstChild,{metadata: ['node 2']}));
+    const childNodePart2 = addCleanup(t,new ChildNodePart(childNodePart,target.children[1].firstElementChild,target.children[1].firstElementChild.nextSibling,{metadata: ['childnodepart2']}));
+    let rootExpectations = [{type:'NodePart',metadata:['node1']},{type:'AttributePart',metadata:['attribute']},{type:'ChildNodePart',metadata:['child']}];
+    assertEqualParts(root.getParts(),rootExpectations,[nodePart,attributePart,childNodePart],'setup');
+    let childExpectations = [{type:'NodePart',metadata:['node 3']},{type:'NodePart',metadata:['node 2']},{type:'ChildNodePart',metadata:['childnodepart2']}];
+    assertEqualParts(childNodePart.getParts(),childExpectations,[nodePart3,nodePart2,childNodePart2],'setup');
+    assert_array_equals(childNodePart2.getParts(),[]);
+
+    // Test cloning of the entire DocumentPartRoot.
+    const clonedPartRoot = root.clone();
+    assertEqualParts(root.getParts(),rootExpectations,[nodePart,attributePart,childNodePart],'cloning a part root should not change the original');
+    const clonedContainer = clonedPartRoot.rootContainer;
+    assert_true(clonedPartRoot instanceof DocumentPartRoot);
+    assert_true(clonedContainer instanceof (useTemplate ? DocumentFragment : Document));
+    assert_not_equals(clonedPartRoot,root);
+    assert_not_equals(clonedContainer,doc);
+    assert_equals(doc.innerHTML,clonedContainer.innerHTML);
+    assertEqualParts(clonedPartRoot.getParts(),rootExpectations,0,'cloned PartRoot should contain identical parts');
+    assert_true(!clonedPartRoot.getParts().includes(nodePart),'Original parts should not be retained');
+    assert_true(!clonedPartRoot.getParts().includes(childNodePart));
+    const newNodePart = clonedPartRoot.getParts()[0];
+    const newAttributePart = clonedPartRoot.getParts()[1];
+    const newChildNodePart = clonedPartRoot.getParts()[2];
+    assert_not_equals(newNodePart.node,target,'Node references should not point to original nodes');
+    assert_equals(newNodePart.node.id,target.id,'New parts should point to cloned nodes');
+    assert_not_equals(newAttributePart.node,target,'Node references should not point to original nodes');
+    assert_equals(newAttributePart.node.id,target.id,'New parts should point to cloned nodes');
+    assert_equals(newAttributePart.localName,attributePart.localName,'New attribute parts should carry over localName');
+    assert_not_equals(newChildNodePart.previousSibling,a,'Node references should not point to original nodes');
+    assert_equals(newChildNodePart.previousSibling.id,'a');
+    assert_not_equals(newChildNodePart.nextSibling,c,'Node references should not point to original nodes');
+    assert_equals(newChildNodePart.nextSibling.id,'c');
+    assertEqualParts(newChildNodePart.getParts(),childExpectations,0,'cloned PartRoot should contain identical parts');
+
+    // Test cloning of ChildNodeParts.
+    const clonedChildNodePartRoot = childNodePart.clone();
+    const clonedChildContainer = clonedChildNodePartRoot.rootContainer;
+    assert_true(clonedChildNodePartRoot instanceof ChildNodePart);
+    assert_true(clonedChildContainer instanceof Element);
+    assert_not_equals(clonedChildContainer,target);
+    assert_equals(clonedChildContainer.outerHTML,cloneRange(target,a,c).outerHTML);
+    assertEqualParts(clonedChildNodePartRoot.getParts(),childExpectations,0,'clone of childNodePart should match');
+  }, `Cloning (${description})`);
+
+  ['Element','Text','Comment'].forEach(nodeType => {
+    test((t) => {
+      const root = doc.getPartRoot();
+      assert_equals(root.getParts().length,0);
+      let node;
+      switch (nodeType) {
+        case 'Element' : node = document.createElement('div'); break;
+        case 'Text' : node = document.createTextNode('hello'); break;
+        case 'Comment': node = document.createComment('comment'); break;
+      }
+      t.add_cleanup(() => node.remove());
+      doc.firstElementChild.append(node);
+      // NodePart
+      const nodePart = addCleanup(t,new NodePart(root,node,{metadata:['foobar']}));
+      assert_true(!!nodePart);
+      const clone = root.clone();
+      assert_equals(clone.getParts().length,1);
+      assertEqualParts(clone.getParts(),[{type:'NodePart',metadata:['foobar']}],0,'getParts');
+      assert_true(clone.getParts()[0].node instanceof window[nodeType]);
+
+      // ChildNodePart
+      const node2 = node.cloneNode(false);
+      node.parentElement.appendChild(node2);
+      const childNodePart = addCleanup(t,new ChildNodePart(root,node,node2,{metadata:['baz']}));
+      assert_true(!!childNodePart);
+      const clone2 = root.clone();
+      assert_equals(clone2.getParts().length,2);
+      assertEqualParts(clone2.getParts(),[{type:'NodePart',metadata:['foobar']},{type:'ChildNodePart',metadata:['baz']}],0,'getParts2');
+      assert_true(clone2.getParts()[1].previousSibling instanceof window[nodeType]);
+    }, `Cloning ${nodeType} (${description})`);
+  });
+
+  test((t) => {
+    const root = doc.getPartRoot();
+    assert_equals(root.getParts().length,0,'Test harness check: tests should clean up parts');
+
+    const nodePartB = addCleanup(t,new NodePart(root,b));
+    const nodePartA = addCleanup(t,new NodePart(root,a));
+    const nodePartC = addCleanup(t,new NodePart(root,c));
+    assert_array_equals(root.getParts(),[nodePartB,nodePartA,nodePartC],'Parts can be out of order, if added out of order');
+    b.remove();
+    assert_array_equals(root.getParts(),[nodePartB,nodePartA,nodePartC],'Removals are not tracked');
+    target.parentElement.insertBefore(b,target);
+    assert_array_equals(root.getParts(),[nodePartB,nodePartA,nodePartC],'Insertions are not tracked');
+    target.insertBefore(b,c);
+    assert_array_equals(root.getParts(),[nodePartB,nodePartA,nodePartC],'Nothing is tracked');
+    nodePartA.disconnect();
+    nodePartB.disconnect();
+    nodePartC.disconnect();
+    assert_array_equals(root.getParts(),[],'disconnections are tracked');
+
+    const childPartAC = addCleanup(t,new ChildNodePart(root,a,c));
+    assert_array_equals(root.getParts(),[childPartAC]);
+    a.remove();
+    assert_array_equals(root.getParts(),[],'Removing endpoints invalidates the part');
+    target.insertBefore(a,b); // Restore
+    assert_array_equals(root.getParts(),[],'Insertions are not tracked');
+
+    target.insertBefore(c,a);
+    assert_array_equals(root.getParts(),[],'Endpoints out of order');
+    target.appendChild(c); // Restore
+    assert_array_equals(root.getParts(),[],'Insertions are not tracked');
+
+    document.body.appendChild(c);
+    assert_array_equals(root.getParts(),[],'Parts are\'t invalidated when endpoints have different parents');
+    target.appendChild(c); // Restore
+    assert_array_equals(root.getParts(),[],'Insertions are not tracked');
+
+    const oldParent = target.parentElement;
+    target.remove();
+    assert_array_equals(root.getParts(),[],'Parts are\'t invalidated when disconnected');
+    oldParent.appendChild(target); // Restore
+    assert_array_equals(root.getParts(),[]);
+  }, `DOM mutations are not tracked (${description})`);
+
+  test((t) => {
+    const root = doc.getPartRoot();
+    assert_equals(root.getParts().length,0,'Test harness check: tests should clean up parts');
+    const otherNode = document.createElement('div');
+
+    const childPartAA = addCleanup(t,new ChildNodePart(root,a,a));
+    const childPartAB = addCleanup(t,new ChildNodePart(root,a,b));
+    const childPartAC = addCleanup(t,new ChildNodePart(root,a,c));
+    assert_throws_dom('InvalidStateError',() => childPartAA.replaceChildren(otherNode),'Can\'t replace children if part is invalid');
+    assert_array_equals(childPartAA.children,[],'Invalid parts should return empty children');
+    assert_array_equals(childPartAB.children,[],'Children should not include endpoints');
+    assert_array_equals(childPartAC.children,[b],'Children should not include endpoints');
+    childPartAB.replaceChildren(otherNode);
+    assert_array_equals(childPartAB.children,[otherNode],'Replacechildren should work');
+    assert_array_equals(childPartAC.children,[otherNode,b],'replaceChildren should leave endpoints alone');
+    childPartAC.replaceChildren(otherNode);
+    assert_array_equals(childPartAC.children,[otherNode],'Replacechildren with existing children should work');
+    assert_array_equals(childPartAB.children,[]);
+    childPartAC.replaceChildren(b);
+    assert_array_equals(target.children,[a,b,c]);
+  }, `ChildNodePart children manipulation (${description})`);
+
+  test((t) => {
+    const root = doc.getPartRoot();
+    // Make sure no crashes occur for parts with mismatched endpoint nodes.
+    const cornerCasePartsInvalid = [
+      addCleanup(t,new ChildNodePart(root,target, target.children[2],{metadata: ['different parents']})),
+      addCleanup(t,new ChildNodePart(root,target.children[0], target,{metadata: ['different parents']})),
+      addCleanup(t,new ChildNodePart(root,target.children[2], target.children[0],{metadata: ['reversed endpoints']})),
+    ];
+    const cornerCasePartsValid = [];
+    if (directChildren[0] !== directChildren[1]) {
+      cornerCasePartsValid.push(addCleanup(t,new ChildNodePart(root,directChildren[0], directChildren[1],{metadata: ['direct parent of the root container']})));
+    }
+    assert_array_equals(root.getParts(),cornerCasePartsValid);
+    assert_equals(root.clone().getParts().length,cornerCasePartsValid.length);
+  }, `Corner case ChildNodePart construction and cloning (${description})`);
+
+  wrapper?.remove(); // Cleanup
+});
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>letter-spacing as percentages</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-text-4/#letter-spacing'>
+<link rel='match' href='reference/letter-spacing-percent-001-ref.html'>
+<meta name="assert" content="Percentage values of letter-spacing are relative to the current font-size.">
+<style type='text/css'>
+	div { font-size: 20px; line-height: 1; color: blue; }
+	small { font-size: 50%; }
+</style>
+
+<p>Test passes if the pattern is identical on all four lines.
+
+<div style="letter-spacing: 0.1em">ABC123().*$いろはx x&nbsp;x፡x་x
+	<small style="letter-spacing: .1em">ABC123().*$いろはx x&nbsp;x፡x་x</small></div>
+<div style="letter-spacing: 10%">ABC123().*$いろはx x&nbsp;x፡x་x
+	<small>ABC123().*$いろはx x&nbsp;x፡x་x</small></div>
+<div style="letter-spacing: calc(0.05em + 5%)">ABC123().*$いろはx x&nbsp;x፡x་x
+	<small style="letter-spacing: calc(0.05em + 5%)">ABC123().*$いろはx x&nbsp;x፡x་x</small></div>
+<div style="letter-spacing: 10%; font-size: 0.1em"><div style="font-size: 20px">ABC123().*$いろはx x&nbsp;x፡x་x
+	<small>ABC123().*$いろはx x&nbsp;x፡x་x</small></div></div>

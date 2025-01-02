@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+
+  let oncurrententrychange_called = false;
+  let original_entry = i.contentWindow.navigation.currentEntry;
+  i.contentWindow.navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_called = true;
+    assert_equals(e.from, original_entry);
+    assert_equals(e.from.index, -1);
+    assert_equals(e.navigationType, "replace");
+    assert_equals(i.contentWindow.navigation.currentEntry.index, 0);
+  });
+  i.contentWindow.navigation.onnavigate = e => e.intercept();
+  let result = i.contentWindow.navigation.navigate("/common/blank.html?1", { history: "replace" });
+  assert_true(oncurrententrychange_called);
+  await result.committed;
+}, "currententrychange fires for navigation.navigate() with replace intercepted by intercept()");
+</script>

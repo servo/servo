@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test the before unload event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const before_unload_key = token();
+
+  const frame_url = generateURL("resources/before-unload-inner.html",
+      [before_unload_key]);
+
+  attachFencedFrame(frame_url);
+
+  const result = await nextValueFromServer(before_unload_key);
+  assert_equals(result, "Loaded the next url in a fenced frame",
+                "A fenced frame should not fire the before unload event.");
+}, "before unload event in fenced frames");
+</script>
+
+</body>

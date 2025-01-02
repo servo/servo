@@ -1,0 +1,14 @@
+[jQuery test] [15/0/15] jQuery.uniqueSort
+[jQuery test] [0/1/1] Iframe dispatch should not affect jQuery (#13936)
+[jQuery test] [4/0/4] class - jQuery only
+[jQuery test] [0/2/2] attributes - jQuery.attr
+[jQuery test] [5/0/5] name
+[jQuery test] [4/0/4] selectors with comma
+[jQuery test] [16/0/16] jQuery.contains
+[jQuery test] [27/0/27] child and adjacent
+[jQuery test] [7/0/7] element - jQuery only
+[jQuery test] [0/2/2] Sizzle cache collides with multiple Sizzles on a page
+[jQuery test] [1/0/1] disconnected nodes
+[jQuery test] [54/0/54] attributes
+[jQuery test] [3/0/3] disconnected nodes - jQuery only
+[jQuery test] [26/0/26] id

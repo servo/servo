@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - file drop prompt for data URI without inherited origin</title>
+<script>
+window.onload = function() {
+  var url = "data:text/html,"+escape(
+'<!DOCTYPE html>\
+<title>drag &amp; drop - file drop prompt for data URI with inherited origin<\/title>\
+<style>\
+  body > div {\
+    height: 200px;\
+    width: 200px;\
+    background-color: orange;\
+  }\
+<\/style>\
+<script>\
+window.onload = function() {\
+  var orange = document.getElementsByTagName("div")[0];\
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {\
+     e.preventDefault();\
+  };\
+};\
+<\/script>\
+<div><\/div>\
+<p>Drag a file from your desktop onto the orange square. A prompt should appear, either showing the server name as unknown, or otherwise identifying this URL as the target of the upload.<\/p>'
+  );
+  document.getElementsByTagName('p')[1].textContent = url;
+};
+</script>
+
+<p>Load the following URL in a new tab (copy &amp; paste it into the address bar):</p>
+<p></p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

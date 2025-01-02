@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta name="assert" content="Test `vertical-align` should not affect block-in-inline">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link ref="match" href="block-in-inline-vertical-align-001-ref.html">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+div {
+  line-height: 20px;
+}
+</style>
+<p>The numbers 1, 2 and 3 below should be in ascending order, from top to bottom, with no overlap.</p>
+<div>
+  2
+  <span style="vertical-align: 20px;">
+    1
+  </span>
+</div>
+<div>3</div>
+<div>
+  <span style="vertical-align: 20px;">
+    4
+  </span>
+</div>
+<div>5</div>
+<div>
+  <span style="vertical-align: 20px;">
+    6
+  </span>
+</div>
+<div>7</div>
+<div>
+  <span style="vertical-align: 20px;">
+    8
+  </span>
+</div>

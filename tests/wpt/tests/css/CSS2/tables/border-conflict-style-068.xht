@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border style): 'none' vs. 'outset' - border with highest priority border style should dominate</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="assert" content="The 'outset' border is the dominant border when it is collapsed with a 'none' border." />
+        <style type="text/css">
+            #table1
+            {
+                margin-bottom: 20px;
+            }
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px none red;
+                height: 3em;
+                width: 3em;
+            }
+            #center, #table1 td
+            {
+                border: 5px outset lime;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the center box in the table below has a border similar to this:</p>
+        <table id="table1">
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                <td>none</td>
+                <td>none</td>
+                <td>none</td>
+            </tr>
+            <tr>
+                <td>none</td>
+                <td id="center">outset</td>
+                <td>none</td>
+            </tr>
+            <tr>
+                <td>none</td>
+                <td>none</td>
+                <td>none</td>
+            </tr>
+        </table>
+    </body>
+</html>

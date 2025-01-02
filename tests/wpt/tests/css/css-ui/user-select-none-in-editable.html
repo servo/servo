@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test user-select: none in editable contexts</title>
+<meta charset="utf-8">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#valdef-user-select-none">
+<style>
+.user-select-none {
+    -webkit-user-select: none;
+    user-select: none;
+}
+</style>
+</head>
+<body>
+<div id="container">
+Manual step:
+<ol>
+<li>Move caret after "c"</li>
+<li>Hit right arrow key twice</li>
+<li>Caret should be after "Y"</li>
+</ol>
+<div id="outer" contenteditable="true">
+abc<span id="inner" class="user-select-none">XYZ</span>def
+</div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ single_test: true });
+const selection = window.getSelection();
+selection.collapse(document.getElementById("outer"), 1);
+selection.modify("move", "forward", "character");
+selection.modify("move", "forward", "character");
+assert_equals(selection.focusNode, document.getElementById("inner").firstChild);
+assert_equals(selection.focusOffset, 2);
+done();
+</script>
+</body>
+</html>

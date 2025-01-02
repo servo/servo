@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - html/head elements.
+  Tests that the color properties are overridden for html/head elements and not
+  just for the body.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  html {
+    color: red;
+  }
+  head {
+    color: blue;
+  }
+  div {
+    color: CanvasText;
+    forced-color-adjust: none;
+  }
+</style>
+<div>
+  The color properties for the head and html elements should get updated in
+  Forced Colors Mode.
+</div>
+<script>
+  var div_color = getComputedStyle(document.querySelector('div')).color;
+  var html_color = getComputedStyle(document.querySelector('html')).color;
+  var head_color = getComputedStyle(document.querySelector('head')).color;
+
+  test(function(){
+    assert_equals(html_color, div_color);
+    assert_equals(head_color, div_color);
+  }, "Checks that html/head color is overridden to CanvasText.");
+</script>

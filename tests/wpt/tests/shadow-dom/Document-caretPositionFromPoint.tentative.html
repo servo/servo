@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="author" title="Siye Liu" href="mailto:siliu@microsoft.com">
+<meta name="assert" content="Document's caretPositionFromPoint should return a CaretPosition inside Shadow Root which is provided as argument.">
+<link rel="help" href="https://www.w3.org/TR/cssom-view-1/#dom-document-caretpositionfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+
+test(() => {
+    assert_throws_js(TypeError, () => { document.caretPositionFromPoint(5, 5, "foo"); });
+    assert_throws_js(TypeError, () => { document.caretPositionFromPoint(5, 5, 6); });
+  }, "document.caretPositionFromPoint() throws when called without the correct parameters");
+
+test(() => {
+    container.setHTMLUnsafe(`<span>hello, world</span>`);
+    const rect = container.firstChild.getBoundingClientRect();
+    const characterWidth = rect.width / container.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `he|llo, world`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Text);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container.firstChild.firstChild);
+    assert_equals(caretPosition.offset, characterIndex);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location");
+
+test(() => {
+    container.setHTMLUnsafe(`<input value='text inside input' />`);
+    const rect = container.firstChild.getBoundingClientRect();
+    // Get x and y coordinate at left-most location inside input element.
+    const x = rect.left + 1;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container.firstChild);
+    assert_equals(caretPosition.offset, 0);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to an input element which is the offsetNode.");
+
+test(() => {
+    container.setHTMLUnsafe(`<textarea rows="2" cols="4">12345678901234567890</textarea>`);
+    const rect = container.firstChild.getBoundingClientRect();
+    // Get x and y coordinate at "1234|5678..."
+    const x = rect.left + 1;
+    const y = rect.top + rect.height * 0.75;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container.firstChild);
+    assert_equals(caretPosition.offset, 4);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to a textarea element which is the offsetNode.");
+
+test(() => {
+    container.setHTMLUnsafe(`a<div id="host"></div>b`);
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.setHTMLUnsafe(`<span>hello, world</span>`);
+    const rect = shadowRoot.firstChild.getBoundingClientRect();
+    const characterWidth = rect.width / shadowRoot.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `he|llo, world`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [shadowRoot]});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Text);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, shadowRoot.firstChild.firstChild);
+    assert_equals(caretPosition.offset, characterIndex);
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to a closed shadaw tree when the shadow tree is specified as an argument');
+
+test(() => {
+    container.setHTMLUnsafe(`
+        <span>abcd</span>
+        <div id="host">
+            <template shadowrootmode=open>
+                <span>hello, world</span>
+            </template>
+        </div>efg`);
+    const shadowRoot = host.shadowRoot;
+    const spanElement = document.querySelector("span");
+    const rect = spanElement.getBoundingClientRect();
+    const characterWidth = rect.width / spanElement.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `ab|cd`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [shadowRoot]});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Text);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, spanElement.firstChild);
+    assert_equals(caretPosition.offset, characterIndex);
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location when the non-intersecting shadow tree is specified as an argument');
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="host">
+            <template shadowrootmode=open>
+                <input value='text inside input' />
+            </template>
+        </div>efg`);
+    const shadowRoot = host.shadowRoot;
+    const shadowRootInputElement = shadowRoot.querySelector("input");
+    const rect = shadowRootInputElement.getBoundingClientRect();
+    // Get x and y coordinate at left-most location inside input element.
+    const x = rect.left + 1;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [shadowRoot]});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, shadowRootInputElement);
+    assert_equals(caretPosition.offset, 0);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to an input element when the shadow tree is specified as an argument.");
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="host">
+            <template shadowrootmode=open>
+                <input value='text inside input' />
+            </template>
+        </div>efg`);
+    const shadowRoot = host.shadowRoot;
+    const shadowRootInputElement = shadowRoot.querySelector("input");
+    const rect = shadowRootInputElement.getBoundingClientRect();
+    // Get x and y coordinate at left-most location inside input element.
+    const x = rect.left + 1;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: []});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 1);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to the input element's shadow host\'s parent when the shadow tree is not specified as an argument.");
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="host">
+            <template shadowrootmode=open>
+                <span>hello, world</span>
+            </template>
+        </div>b`);
+    const shadowRoot = host.shadowRoot;
+    const shadowRootSpanElement = shadowRoot.querySelector("span");
+    const rect = shadowRootSpanElement.getBoundingClientRect();
+    const characterWidth = rect.width / shadowRootSpanElement.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `he|llo, world`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 1);
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to the shadow host\'s parent when the shadow tree is not specified as an argument');
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="outerHost">
+            <template shadowrootmode=open>
+                <div id="innerHost">
+                    <template shadowrootmode=open>
+                        <span>some text</span>
+                    </template>
+                </div>
+                <div>world</div>
+            </template>
+        </div>b`);
+    const outerShadowRoot = outerHost.shadowRoot;
+    const innerShadowRoot = outerShadowRoot.getElementById('innerHost').shadowRoot;
+    const innerShadowRootSpanElement = innerShadowRoot.querySelector("span");
+    const rect = innerShadowRootSpanElement.getBoundingClientRect();
+    const characterWidth = rect.width / innerShadowRootSpanElement.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `so|me text`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 1);
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to the outer shadow host\'s parent when the point is in an inner shadow tree and no shadow tree is specified as an argument');
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="outerHost">
+            <template shadowrootmode=open>
+                <div id="innerHost">
+                    <template shadowrootmode=open>
+                        <span>some text</span>
+                    </template>
+                </div>
+                <div>world</div>
+            </template>
+        </div>b`);
+    const outerShadowRoot = outerHost.shadowRoot;
+    const innerShadowRoot = outerShadowRoot.getElementById('innerHost').shadowRoot;
+    const innerShadowRootSpanElement = innerShadowRoot.querySelector("span");
+    const rect = innerShadowRootSpanElement.getBoundingClientRect();
+    const characterWidth = rect.width / innerShadowRootSpanElement.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `so|me text`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [innerShadowRoot]});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Text);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, innerShadowRootSpanElement.firstChild);
+    assert_equals(caretPosition.offset, characterIndex);
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to the inner shadow tree when the point is in an inner shadow tree and the inner shadow tree is specified as an argument');
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="outerHost">
+            <template shadowrootmode=open>
+                <div id="innerHost">
+                    <template shadowrootmode=open>
+                        <span>some text</span>
+                    </template>
+                </div>
+                <div>world</div>
+            </template>
+        </div>b`);
+    const outerShadowRoot = outerHost.shadowRoot;
+    const innerShadowRoot = outerShadowRoot.getElementById('innerHost').shadowRoot;
+    const innerShadowRootSpanElement = innerShadowRoot.querySelector("span");
+    const rect = innerShadowRootSpanElement.getBoundingClientRect();
+    const characterWidth = rect.width / innerShadowRootSpanElement.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `so|me text`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [outerShadowRoot]});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, outerShadowRoot);
+    assert_equals(caretPosition.offset, 1);
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to the outer shadow tree when the point is in an inner shadow tree and the outer shadow tree is specified as an argument');
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="outerHost">
+            <template shadowrootmode=open>
+                <div id="innerHost">
+                    <template shadowrootmode=open>
+                        <span>some text</span>
+                    </template>
+                </div>
+                <div>world</div>
+            </template>
+        </div>b`);
+
+    const outerShadowRoot = outerHost.shadowRoot;
+    const innerShadowRoot = outerShadowRoot.getElementById('innerHost').shadowRoot;
+    const innerShadowRootSpanElement = innerShadowRoot.querySelector("span");
+    const rect = innerShadowRootSpanElement.getBoundingClientRect();
+    const characterWidth = rect.width / innerShadowRootSpanElement.textContent.length;
+    const characterIndex = 2
+    // Get x and y coordinate at `so|me text`.
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [innerShadowRoot, outerShadowRoot]});
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Text);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, innerShadowRootSpanElement.firstChild);
+    assert_equals(caretPosition.offset, characterIndex);
+}, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to the inner shadow tree when the point is in an inner shadow tree and the inner shadow tree and the outer shadow tree are specified as an argument');
+</script>
+</body>
+</html>

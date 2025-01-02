@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Moving script elements between documents during evaluation</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#execute-the-script-block">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script id="outerScript">
+"use strict";
+
+async_test(t => {
+  const outerScript = document.querySelector('#outerScript');
+  assert_equals(document.currentScript, outerScript);
+
+  const innerScript = document.createElement('script');
+  window.innerScript = innerScript;
+
+  window.innerScriptEvaluated = false;
+  window.anotherDocument = null;
+
+  innerScript.innerText = `
+    window.innerScriptEvaluated = true;
+    const innerScript = window.innerScript;
+    assert_equals(document.currentScript, innerScript,
+        '[1] Before move: currentScript of source Document');
+    assert_equals(innerScript.ownerDocument, document,
+        '[1] Before move: ownerDocument');
+
+    window.anotherDocument = document.implementation.createHTMLDocument();
+    window.anotherDocument.body.appendChild(innerScript);
+
+    assert_equals(innerScript.ownerDocument, anotherDocument,
+        '[2] Just after move: ownerDocument');
+    assert_equals(document.currentScript, innerScript,
+        '[2] Just after move: currentScript of source Document');
+    assert_equals(anotherDocument.currentScript, null,
+        '[2] Just after move: currentScript of destination Document');
+  `;
+
+  document.body.appendChild(innerScript);
+  assert_true(window.innerScriptEvaluated,
+      'Inner script should be evaluated synchronously');
+
+  assert_equals(document.currentScript, outerScript,
+      '[3] After inner script: currentScript of source Document');
+  assert_equals(window.anotherDocument.currentScript, null,
+      '[3] After inner script: currentScript of destination Document');
+
+  t.step_timeout(() => {
+    assert_equals(document.currentScript, null,
+        '[4] After outer script: currentScript of source Document');
+    assert_equals(anotherDocument.currentScript, null,
+        '[4] After outer script: currentScript of destination Document');
+    t.done();
+  }, 0);
+}, 'Script moved between documents during evaluation');
+</script>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#box-splitting">
+<link rel="help" href="https://www.w3.org/TR/cssom-view/#extensions-to-the-htmlelement-interface">
+<div
+  style="column-width:200px; column-gap: 0; column-fill:auto; width:70px; height:600px; background:yellow; writing-mode: vertical-lr;">
+  <div id="table" style="display:table; border-spacing:7px; border:2px solid; padding:1px;">
+    <div id="colgroup" style="display:table-column-group;">
+      <div id="col" style="display:table-column;"></div>
+      <div id="col2" style="display:table-column;"></div>
+    </div>
+    <div id="colgroup2" style="display:table-column-group;">
+      <div id="col3" style="display:table-column;"></div>
+    </div>
+    <div id="rowgroup" style="display:table-row-group;">
+      <div id="row" style="display:table-row;">
+        <div id="cell" style="display:table-cell;">
+          <div id="content" style="width:100px; height:50px; background:blue;"></div>
+        </div>
+        <div id="cell2" style="display:table-cell;">
+          <div id="content2" style="width:100px; height:50px; background:blue;"></div>
+        </div>
+        <div id="cell3" style="display:table-cell;">
+          <div id="content3" style="width:100px; height:50px; background:blue;"></div>
+        </div>
+      </div>
+      <div id="row2" style="display:table-row;">
+        <div id="cell4" style="display:table-cell;">
+          <div id="content4" style="width:50px; height: 50px; background: blue;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_equals(table.offsetTop, 8, "offsetTop");
+    assert_equals(table.offsetLeft, 8, "offsetLeft");
+    assert_equals(table.offsetWidth, 177, "offsetWidth");
+    assert_equals(table.offsetHeight, 184, "offsetHeight");
+  }, "table");
+  test(() => {
+    assert_equals(colgroup.offsetTop, 18, "offsetTop");
+    assert_equals(colgroup.offsetLeft, 18, "offsetLeft");
+    assert_equals(colgroup.offsetWidth, 157, "offsetWidth");
+    assert_equals(colgroup.offsetHeight, 107, "offsetHeight");
+  }, "colgroup");
+  test(() => {
+    assert_equals(col.offsetTop, 18, "offsetTop");
+    assert_equals(col.offsetLeft, 18, "offsetLeft");
+    assert_equals(col.offsetWidth, 157, "offsetWidth");
+    assert_equals(col.offsetHeight, 50, "offsetHeight");
+  }, "col");
+  test(() => {
+    assert_equals(col2.offsetTop, 75, "offsetTop");
+    assert_equals(col2.offsetLeft, 18, "offsetLeft");
+    assert_equals(col2.offsetWidth, 157, "offsetWidth");
+    assert_equals(col2.offsetHeight, 50, "offsetHeight");
+  }, "col2");
+  test(() => {
+    assert_equals(colgroup2.offsetTop, 132, "offsetTop");
+    assert_equals(colgroup2.offsetLeft, 18, "offsetLeft");
+    assert_equals(colgroup2.offsetWidth, 157, "offsetWidth");
+    assert_equals(colgroup2.offsetHeight, 50, "offsetHeight");
+  }, "colgroup2");
+  test(() => {
+    assert_equals(col3.offsetTop, 132, "offsetTop");
+    assert_equals(col3.offsetLeft, 18, "offsetLeft");
+    assert_equals(col3.offsetWidth, 157, "offsetWidth");
+    assert_equals(col3.offsetHeight, 50, "offsetHeight");
+  }, "col3");
+  test(() => {
+    assert_equals(rowgroup.offsetTop, 18, "offsetTop");
+    assert_equals(rowgroup.offsetLeft, 18, "offsetLeft");
+    assert_equals(rowgroup.offsetWidth, 157, "offsetWidth");
+    assert_equals(rowgroup.offsetHeight, 164, "offsetHeight");
+  }, "rowgroup");
+  test(() => {
+    assert_equals(row.offsetTop, 18, "offsetTop");
+    assert_equals(row.offsetLeft, 18, "offsetLeft");
+    assert_equals(row.offsetWidth, 100, "offsetWidth");
+    assert_equals(row.offsetHeight, 164, "offsetHeight");
+  }, "row");
+  test(() => {
+    assert_equals(cell.offsetTop, 18, "offsetTop");
+    assert_equals(cell.offsetLeft, 18, "offsetLeft");
+    assert_equals(cell.offsetWidth, 100, "offsetWidth");
+    assert_equals(cell.offsetHeight, 50, "offsetHeight");
+  }, "cell");
+  test(() => {
+    assert_equals(content.offsetTop, 18, "offsetTop");
+    assert_equals(content.offsetLeft, 18, "offsetLeft");
+    assert_equals(content.offsetWidth, 100, "offsetWidth");
+    assert_equals(content.offsetHeight, 50, "offsetHeight");
+  }, "content");
+  test(() => {
+    assert_equals(cell2.offsetTop, 75, "offsetTop");
+    assert_equals(cell2.offsetLeft, 18, "offsetLeft");
+    assert_equals(cell2.offsetWidth, 100, "offsetWidth");
+    assert_equals(cell2.offsetHeight, 50, "offsetHeight");
+  }, "cell2");
+  test(() => {
+    assert_equals(content2.offsetTop, 75, "offsetTop");
+    assert_equals(content2.offsetLeft, 18, "offsetLeft");
+    assert_equals(content2.offsetWidth, 100, "offsetWidth");
+    assert_equals(content2.offsetHeight, 50, "offsetHeight");
+  }, "content2");
+  test(() => {
+    assert_equals(cell3.offsetTop, 132, "offsetTop");
+    assert_equals(cell3.offsetLeft, 18, "offsetLeft");
+    assert_equals(cell3.offsetWidth, 100, "offsetWidth");
+    assert_equals(cell3.offsetHeight, 50, "offsetHeight");
+  }, "cell3");
+  test(() => {
+    assert_equals(content3.offsetTop, 132, "offsetTop");
+    assert_equals(content3.offsetLeft, 18, "offsetLeft");
+    assert_equals(content3.offsetWidth, 100, "offsetWidth");
+    assert_equals(content3.offsetHeight, 50, "offsetHeight");
+  }, "content3");
+  test(() => {
+    assert_equals(row2.offsetTop, 218, "offsetTop");
+    assert_equals(row2.offsetLeft, 55, "offsetLeft");
+    assert_equals(row2.offsetWidth, 50, "offsetWidth");
+    assert_equals(row2.offsetHeight, 164, "offsetHeight");
+  }, "row2");
+  test(() => {
+    assert_equals(cell4.offsetTop, 218, "offsetTop");
+    assert_equals(cell4.offsetLeft, 55, "offsetLeft");
+    assert_equals(cell4.offsetWidth, 50, "offsetWidth");
+    assert_equals(cell4.offsetHeight, 50, "offsetHeight");
+  }, "cell4");
+  test(() => {
+    assert_equals(content4.offsetTop, 218, "offsetTop");
+    assert_equals(content4.offsetLeft, 55, "offsetLeft");
+    assert_equals(content4.offsetWidth, 50, "offsetWidth");
+    assert_equals(content4.offsetHeight, 50, "offsetHeight");
+  }, "content4");
+</script>

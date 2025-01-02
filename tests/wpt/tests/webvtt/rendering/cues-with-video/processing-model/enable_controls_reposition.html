@@ -1,0 +1,32 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>WebVTT rendering, cue reposition after enabling controls</title>
+<link rel="match" href="enable_controls_reposition-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+video {
+  outline: solid;
+  width: 320px;
+  height: 240px;
+}
+::cue {
+  font-family: Ahem, sans-serif;
+  font-size: 50px;
+  color: green;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video autoplay onplaying="this.onplaying = null;
+                           this.pause();
+                           this.currentTime = 0;
+                           setTimeout(function(video){
+                             video.controls = true;
+                           }, 100, this);
+                           takeScreenshotDelayed(1000);">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src=support/foo.vtt>
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>

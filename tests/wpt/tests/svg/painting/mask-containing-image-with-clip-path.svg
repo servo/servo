@@ -1,0 +1,31 @@
+<svg class="reftest-wait" xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:script src="/common/reftest-wait.js"/>
+  <html:script src="/common/rendering-utils.js"/>
+  <html:link rel="match" href="../embedded/reference/green-rect-100x100.svg"/>
+  <script>
+<![CDATA[
+  function loadImage() {
+    waitForAtLeastOneFrame().then(() => {
+      var clip = document.getElementById('clip');
+      clip.setAttribute('width', '100');
+      clip.setAttribute('height', '100');
+      waitForAtLeastOneFrame().then(takeScreenshot);
+    });
+  }
+]]>
+  </script>
+  <defs>
+    <mask id="mask">
+      <g clip-path="url(#clip_path)">
+        <image onload="loadImage()" width="100px" height="100px" href="support/white-rect-100x100.svg"/>
+      </g>
+    </mask>
+    <clipPath id="clip_path">
+      <rect id="clip"/>
+    </clipPath>
+  </defs>
+  <g mask="url(#mask)">
+    <rect width="100" height="100" fill="green"/>
+  </g>
+</svg>

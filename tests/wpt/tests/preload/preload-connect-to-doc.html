@@ -1,0 +1,102 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+<script>
+
+['attached', 'detacted'].forEach(state =>
+    promise_test(async t => {
+        const href = '/common/square.png';
+        const sequence = [];
+        const name = `with-preload-${state}`;
+        const loaded = new Promise(resolveLoad => {
+            customElements.define(name, class extends HTMLElement {
+                constructor() {
+                    super();
+                    const shadow = this.attachShadow({ mode: "closed" });
+                    const link = document.createElement('link');
+                    link.rel = 'preload';
+                    link.as = 'image';
+                    link.href = href;
+                    if (state === 'attached')
+                        shadow.appendChild(link);
+                    sequence.push('constructed');
+                    link.addEventListener('load', () => {
+                        sequence.push('loaded');
+                        resolveLoad();
+                    });
+                }
+
+                connectedCallback() {
+                    sequence.push('connected');
+                }
+            });
+        });
+
+        const wrapper = document.createElement(name);
+        const timeout = 500;
+        await new Promise(resolve => t.step_timeout(resolve, timeout));
+        document.body.appendChild(wrapper);
+        await Promise.any([loaded, new Promise(resolve => t.step_timeout(() => {
+            sequence.push('timeout');
+            resolve();
+        }, timeout))]);
+        assert_array_equals(sequence, ['constructed', 'connected', state === 'attached' ? 'loaded' : 'timeout']);
+    }, `preload link should ${state === 'attached' ? 'be fetched when attached' : 'note fetched when detached from'} a shadow DOM`));
+
+promise_test(async t => {
+    const href = '/common/square.png';
+    const doc = document.implementation.createHTMLDocument();
+    const link = doc.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = href;
+    const loaded = new Promise(resolve => link.addEventListener('load', () => resolve('loaded')));
+    const timeoutMillis = 1000;
+    const timeout = new Promise(resolve => t.step_timeout(() => resolve('timeout'), timeoutMillis));
+    doc.head.appendChild(link);
+    const result = await Promise.any([loaded, timeout]);
+    assert_equals(result, 'timeout');
+}, 'preload links only work for documents within browsing contexts');
+
+promise_test(async t => {
+    const href = '/common/square.png';
+    const fragment = document.createDocumentFragment();
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = href;
+    fragment.appendChild(link);
+    const timeoutMillis = 1000;
+    let didLoad = false;
+    const loaded = new Promise(resolve => link.addEventListener('load', () => {
+        resolve('loaded');
+        didLoad = true;
+    }));
+
+    const timeout = () => new Promise(resolve => t.step_timeout(() => resolve('timeout'), timeoutMillis));
+    await timeout();
+    assert_false(didLoad, 'Loaded prematurely, fragment not connected to document yet');
+    document.head.appendChild(link);
+    await Promise.any([loaded, timeout()]);
+    assert_true(didLoad);
+}, 'preload links from DocumentFragment only work when attached');
+
+promise_test(async t => {
+    const href = '/common/square.png';
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = href;
+    const loaded = new Promise(resolve => link.addEventListener('load', () => resolve('loaded')));
+    const timeoutMillis = 1000;
+    const timeout = new Promise(resolve => t.step_timeout(() => resolve('timeout'), timeoutMillis));
+    const result = await Promise.any([loaded, timeout]);
+    assert_equals(result, 'timeout');
+}, 'preload links only work when attached to the document');
+
+</script>
+</body>

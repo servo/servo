@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text Test: 'white-space: break-spaces' applies to 'display: table-row-group' element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-property">
+  <link rel="match" href="reference/ws-break-spaces-applies-to-006-ref.html">
+
+  <meta content="When 'white-space' is 'break-spaces', then new lines, sequence of white spaces and tabs are preserved and text can wrap, just like pre-wrap, but sequence of preserved white space always takes up space, including at the end of the line and line breaking opportunity exists after every preserved white space character, including between white space characters. In this test, 'display: table-row-group' is tested." name="assert">
+
+  <!--
+
+  Testing of 'white-space: break-spaces':
+
+  ws-break-spaces-applies-to-001: display: inline
+
+  ws-break-spaces-applies-to-002: display: block
+
+  ws-break-spaces-applies-to-003: display: list-item
+
+  ws-break-spaces-applies-to-005: display: inline-block
+
+  ws-break-spaces-applies-to-006: display: table
+
+  ws-break-spaces-applies-to-007: display: inline-table
+
+  ws-break-spaces-applies-to-008: display: table-row-group
+
+  ws-break-spaces-applies-to-009: display: table-header-group
+
+  ws-break-spaces-applies-to-010: display: table-footer-group
+
+  ws-break-spaces-applies-to-011: display: table-row
+
+  ws-break-spaces-applies-to-012: display: table-column-group
+
+  ws-break-spaces-applies-to-013: display: table-column
+
+  ws-break-spaces-applies-to-014: display: table-cell
+
+  ws-break-spaces-applies-to-015: display: table-caption
+
+  -->
+
+  <style>
+  div#cell, td#reference
+    {
+      border: black solid 2px;
+      font-family: monospace;
+      font-size: 32px;
+      width: 4ch;
+    }
+
+  div#table
+    {
+      display: table;
+    }
+
+  div#test
+    {
+      display: table-row-group;
+      white-space: break-spaces;
+    }
+
+  div#row
+    {
+      display: table-row;
+    }
+
+  div#cell
+    {
+      display: table-cell;
+      width: 4ch;
+    }
+
+  table
+    {
+      border-spacing: 0px;
+      margin-top: 0.5em;
+    }
+
+  td#reference
+    {
+      padding: 0px;
+      white-space: pre;
+    }
+  </style>
+
+  <p>Test passes if the characters inside of each black-bordered rectangles are laid out identically.
+
+  <div id="table">
+    <div id="test">
+      <div id="row">
+        <div id="cell">123    8</div>
+        <!--              45678      -->
+       <!-- will wrap here ^         -->
+      </div>
+    </div>
+  </div>
+
+  <table><tbody><tr><td id="reference">123
+   8</table>

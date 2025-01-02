@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="trusted-types policy default 'allow-duplicates'; require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+
+// Test Trusted Types in document types other than the main document, such as
+// documents created by createHTMLDocument or XHR requests.
+
+function create_XHR_document() {
+  return new Promise(resolve => {
+    var xhr = new XMLHttpRequest();
+    xhr.onload = _ => { resolve(xhr.response); };
+    xhr.open("GET", 'data:text/html,<title>aaa</title>');
+    xhr.responseType = "document";
+    xhr.send();
+  });
+}
+
+const doc_types = {
+  "document": _ => document,
+  "createHTMLDocument": _ => document.implementation.createHTMLDocument(""),
+  "DOMParser": _ => (new DOMParser).parseFromString(trustedTypes.emptyHTML, "text/html"),
+  "XHR": create_XHR_document,
+}
+
+function doc_test(doc_type, test_fn, description) {
+  promise_test(t => {
+    return Promise.resolve(doc_types[doc_type]()).then(test_fn);
+  }, `${description} (${doc_type})`);
+}
+
+for (let doc_type in doc_types) {
+  doc_test(doc_type, doc => {
+    assert_throws_js(TypeError,
+                     _ => { doc.createElement("script").textContent = "2+2"; });
+  }, "Trusted Type assignment is blocked." );
+
+  doc_test(doc_type, doc => {
+    const policy = trustedTypes.createPolicy("policy", {createHTML: x => x });
+    const value = policy.createHTML("hello");
+    doc.body.innerHTML = value;
+    assert_equals(doc.body.textContent, "hello");
+    assert_throws_js(TypeError,
+                     _ => { doc.body.innerHTML = "world"; });
+  }, "Trusted Type instances created in the main doc can be used.");
+}
+
+// Create default policy (applies to all subsequent tests).
+// Wrapped in a promise_test so that it won't interfere with the previous tests
+// (which hanve't yet run).
+promise_test(t => {
+  return new Promise(resolve => {
+    trustedTypes.createPolicy("default", {
+      createHTML: (s, _, sink) => {
+        assert_equals(sink, 'Element innerHTML');
+        return s + " [default]";
+      }
+    });
+    resolve();
+  });
+}, "Install default policy.")
+
+for (let doc_type in doc_types) {
+  doc_test(doc_type, doc => {
+    doc.body.innerHTML = "shouldpass";
+    assert_equals(doc.body.textContent, "shouldpass [default]");
+  },  "Default policy applies.");
+}
+</script>
+</body>

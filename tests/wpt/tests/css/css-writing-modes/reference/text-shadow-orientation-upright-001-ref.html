@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      color: transparent;
+      font-family: Ahem;
+      font-size: 100px;
+      line-height: 1;
+    }
+
+  div#purple
+    {
+      text-shadow: 1em 0em purple;
+    }
+
+  div#orange-blue
+    {
+      color: yellow;
+      margin-left: 1em;
+      text-shadow: -1em 0em orange, 1em 0em blue;
+    }
+
+  div#fuchsia
+    {
+     text-shadow: 1em 0em fuchsia;
+    }
+  </style>
+
+  <div id="purple">U</div>
+
+  <div id="orange-blue">B</div>
+
+  <div id="fuchsia">F</div>
+
+  <!--
+
+                  .........
+                  .       .
+                  .       . <-purple
+                  .       .
+           .......................
+           .      .       .      .
+  orange-> .      .  yel  .      . <-blue
+           .      .  low  .      .
+           .......................
+                  .       .
+                  .       . <-fuchsia
+                  .       .
+                  .........
+
+  -->

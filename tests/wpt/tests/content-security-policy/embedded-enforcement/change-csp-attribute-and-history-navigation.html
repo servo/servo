@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  let message_from = (w, starts_with) => {
+    return new Promise(resolve => {
+      window.addEventListener('message', msg => {
+        if (msg.source == w) {
+          if (!starts_with ||
+                  (msg.data.startsWith && msg.data.startsWith(starts_with)))
+            resolve(msg.data);
+        }
+      });
+    });
+  };
+
+  const img_url = window.origin + "/content-security-policy/support/pass.png";
+
+  const function_addImage_string = `
+    function addImage() {
+      let img = document.createElement('img');
+      img.onload = () => top.postMessage('img loaded', '*');
+      img.onerror = () => top.postMessage('img blocked', '*');
+      img.src = '${img_url}';
+      document.body.appendChild(img);
+    }
+  `;
+
+  const html_test_payload = `
+    <!doctype html>
+    <script>${function_addImage_string}</scr`+`ipt>
+    <body onpageshow="addImage();"></body>
+  `;
+  let blob_url = URL.createObjectURL(
+    new Blob([html_test_payload], { type: 'text/html' }));
+
+  // A local-scheme document is loaded in an iframe with CSPEE. Then the csp
+  // attribute is changed and the iframe is navigated away and back. Since the
+  // policies are reloaded from history, the fact that the csp attribute changed
+  // is irrelevant.
+  promise_test(async t => {
+    // Create an iframe.
+    let iframe = document.createElement('iframe');
+    iframe.csp = "img-src 'none'; style-src 'none'";
+    document.body.appendChild(iframe);
+
+    let message_1 = message_from(iframe.contentWindow, "img");
+    iframe.src = blob_url;
+    assert_equals(await message_1, "img blocked",
+                  "Img should be blocked by CSP enforced via CSPEE.");
+
+    iframe.csp = "style-src 'none'";
+    let message_2 = message_from(iframe.contentWindow, "img");
+    iframe.src = "../inheritance/support/message-top-and-navigate-back.html";
+    assert_equals(await message_2, "img blocked",
+                  "Img should be blocked by CSP reloaded from history.");
+
+    let message_3 = message_from(iframe.contentWindow, "img");
+    iframe.src = "about:blank";
+    iframe.src = blob_url;
+    assert_equals(await message_3, "img loaded",
+                  "Img should be allowed by CSP enforced by new csp attribute.");
+
+  }, "Iframe csp attribute changed before history navigation of local scheme.");
+
+  // A network-scheme document is loaded in an iframe with CSPEE. Then the csp
+  // attribute is changed and the iframe is navigated away and back. Since the
+  // policies are calculated again, the new csp attribute should be enforced
+  // after the history navigation.
+  promise_test(async t => {
+    // Create an iframe.
+    let iframe = document.createElement('iframe');
+    iframe.csp = "img-src 'none'; style-src 'none'";
+    document.body.appendChild(iframe);
+
+    let message_1 = message_from(iframe.contentWindow, "img");
+    iframe.src = "./support/embed-img-and-message-top.html";
+    assert_equals(await message_1, "img blocked",
+                  "Img should be blocked by CSP enforced via CSPEE.");
+
+    iframe.csp = "style-src 'none'";
+    let message_2 = message_from(iframe.contentWindow, "img");
+    iframe.src = "../inheritance/support/message-top-and-navigate-back.html";
+    assert_equals(await message_2, "img loaded",
+                  "Img should be allowed by CSP enforced by new csp attribute.");
+
+  }, "Iframe csp attribute changed before history navigation of network scheme.");
+
+</script>
+</body>
+</html>

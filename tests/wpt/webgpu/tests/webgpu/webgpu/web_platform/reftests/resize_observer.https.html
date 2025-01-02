@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU resize_observer</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <meta name="assert" content="WebGPU canvases should return the correct ResizeObserver values" />
+  <link rel="match" href="./ref/resize_observer-ref.html" />
+  <style>
+    .outer {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+    .outer>* {
+      display: block;
+      height: 100px;
+    }
+  </style>
+  <body>
+    <div id="dpr"></div>
+    <div class="outer"></div>
+    <script type="module" src="resize_observer.html.js"></script>
+  </body>
+</html>

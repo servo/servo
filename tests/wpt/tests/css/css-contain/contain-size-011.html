@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on table-caption</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="../reference/nothing.html">
+<meta name=assert content="Size containment does apply to table-caption elements.">
+<style>
+div {
+  display: table-caption;
+  contain: size;
+  overflow: hidden;
+}
+</style>
+
+<p>There should be nothing below.</p>
+<div>FAIL</div>

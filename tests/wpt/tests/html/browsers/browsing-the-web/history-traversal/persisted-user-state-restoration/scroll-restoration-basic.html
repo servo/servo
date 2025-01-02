@@ -1,0 +1,34 @@
+<!doctype html>
+<title>Verify existence and basic read/write function of history.scrollRestoration</title>
+
+<style>
+  body {
+    height: 2000px;
+    width: 2000px;
+  }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="text/javascript">
+  'use strict';
+
+  test(function() {
+    assert_equals(history.scrollRestoration, 'auto');
+  }, 'Default value is "auto"');
+
+  test(function() {
+    history.scrollRestoration = 'manual';
+    assert_equals(history.scrollRestoration, 'manual', 'should be able to set "manual"');
+    history.scrollRestoration = 'auto';
+    assert_equals(history.scrollRestoration, 'auto', 'should be able to set "auto"');
+  }, 'It is writable');
+
+  test(function() {
+    history.scrollRestoration = 'auto';
+    for (var v of [3.1415, {}, 'bogus']) {
+      history.scrollRestoration = v;
+      assert_equals(history.scrollRestoration, 'auto', `setting to invalid value (${v}) should be ignored`);
+    }
+  }, 'Invalid values are ignored');
+</script>

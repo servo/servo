@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/9142">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog>hello</dialog>
+
+<script>
+test(() => {
+  const dialog = document.querySelector('dialog');
+
+  // calling close() on a dialog that is already closed should not throw.
+  dialog.close();
+
+  dialog.show();
+  // calling show() on a dialog that is already showing non-modal should not throw.
+  dialog.show();
+  assert_throws_dom('InvalidStateError', () => dialog.showModal(),
+    'Calling showModal() on a dialog that is already showing non-modal should throw.');
+  dialog.close();
+
+  dialog.showModal();
+  assert_throws_dom('InvalidStateError', () => dialog.show(),
+    'Calling show() on a dialog that is already showing modal should throw.');
+  // calling showModal() on a dialog that is already showing modal should not throw.
+  dialog.showModal();
+});
+</script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0
+-->
+<!--
+     Testcase for the correctness of gaps in vertical writing mode
+     multi-line flex containers.
+-->
+<html>
+<head>
+  <title>Reference: Testing row and column gaps in vertical writing mode multi-line flex containers</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      width: 220px;
+      height: 200px;
+      border: 1px solid black;
+      align-content: flex-start;
+      justify-content: flex-end;
+      float: left;
+      writing-mode: vertical-lr;
+    }
+    .rowWrap {
+      flex-flow: row wrap;
+    }
+    .columnWrap {
+      flex-flow: column wrap;
+    }
+    .item {
+      border: 1px solid blue;
+      background: lightblue;
+      width: 28px;
+      height: 28px;
+    }
+    .b20 {
+      margin-bottom: 20px;
+    }
+    .t20 {
+      margin-top: 20px;
+    }
+    .l10 {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer rowWrap">
+    <div class="item b20"></div>
+    <div class="item b20"></div>
+    <div class="item b20"></div>
+    <div class="item"></div>
+    <div class="item l10 b20"></div>
+    <div class="item l10"></div>
+  </div>
+  <div class="flexContainer columnWrap">
+    <div class="item"></div>
+    <div class="item l10"></div>
+    <div class="item l10"></div>
+    <div class="item l10"></div>
+    <div class="item l10"></div>
+    <div class="item l10 t20"></div>
+  </div>
+</body>
+</html>

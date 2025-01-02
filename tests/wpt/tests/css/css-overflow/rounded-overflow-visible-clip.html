@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Border radius should not round the clipping region when mixing overflow: visible and clip</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#corner-clipping">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7434">
+<link rel="match" href="rounded-overflow-visible-clip-ref.html">
+<style>
+.container {
+  width: 50px;
+  height: 100px;
+  overflow: visible clip;
+  background: red;
+  display: inline-block;
+}
+.border-radius {
+  border-radius: 25px;
+}
+.child {
+  width: 100px;
+  height: 200px;
+  background: green;
+  fill: green;
+}
+</style>
+
+There should be 4 100x100 green squares (no rounded corners) below.<br>
+<div class="container border-radius">
+  <div class="child"></div>
+</div>
+<br>
+<div class="container">
+  <div class="child"></div>
+</div>
+<br>
+<svg class="container border-radius">
+  <rect class="child"></rect>
+</svg>
+<br>
+<svg class="container">
+  <rect class="child"></rect>
+</svg>

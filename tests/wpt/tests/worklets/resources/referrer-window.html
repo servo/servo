@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Worklet: Referrer</title>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="worklet-test-utils.js"></script>
+</head>
+<body>
+<script>
+function createScriptURLForTopLevel(scriptOrigin) {
+  if (scriptOrigin === 'same')
+    return new URL('referrer-checker.py', location.href);
+  if (scriptOrigin === 'remote') {
+    return new URL(get_host_info().HTTPS_REMOTE_ORIGIN +
+                   '/worklets/resources/referrer-checker.py');
+  }
+  assert_unreached('scriptOrigin should be \'same\' or \'remote\'');
+}
+
+function createScriptURLForDecendant(scriptOrigins) {
+  if (scriptOrigins.topLevel === 'same' &&
+      scriptOrigins.descendant === 'same') {
+    return new URL('import-referrer-checker-worklet-script.sub.js',
+                   location.href);
+  }
+  if (scriptOrigins.topLevel === 'same' &&
+      scriptOrigins.descendant === 'remote') {
+    return new URL(
+        'import-remote-origin-referrer-checker-worklet-script.sub.js',
+        location.href);
+  }
+  if (scriptOrigins.topLevel === 'remote' &&
+      scriptOrigins.descendant === 'same') {
+    url = new URL(
+        get_host_info().HTTPS_REMOTE_ORIGIN +
+        '/worklets/resources/' +
+        'import-same-origin-referrer-checker-worklet-script-from-remote-origin.sub.js');
+    return url;
+  }
+  if (scriptOrigins.topLevel === 'remote' &&
+      scriptOrigins.descendant === 'remote') {
+    return new URL(
+        get_host_info().HTTPS_REMOTE_ORIGIN +
+        '/worklets/resources/import-referrer-checker-worklet-script.sub.js');
+  }
+  assert_unreached('scriptOrigins have an invalid origin combination.');
+}
+
+function isDestinationCrossOrigin(fetchType, scriptOrigins) {
+  if (fetchType === 'top-level')
+    return scriptOrigins.topLevel === 'remote';
+
+  // Compute a descendant's cross-origin-ness relative to the top-level script.
+  if (fetchType === 'descendant')
+    return scriptOrigins.descendant !== scriptOrigins.topLevel;
+  assert_unreached('fetchType has an invalid value.');
+}
+
+function createExpectedReferrer(
+    importerURL, fetchType, referrerPolicy, scriptOrigins) {
+  if (referrerPolicy === 'no-referrer')
+    return "";
+  if (referrerPolicy === 'same-origin') {
+    if (isDestinationCrossOrigin(fetchType, scriptOrigins))
+      return "";
+    // Delete query params to make it easier to match with an actual referrer in
+    // the referrer-checker.py.
+    const expectedReferrer = new URL(importerURL);
+    for (var key of expectedReferrer.searchParams.keys())
+      expectedReferrer.searchParams.delete(key);
+    return expectedReferrer;
+  }
+  if (referrerPolicy === 'origin')
+    return (new URL(importerURL)).origin + '/';
+  assert_unreached('referrerPolicy has an invalid value.');
+}
+
+window.onmessage = e => {
+  const workletType = e.data.workletType;
+  const fetchType = e.data.fetchType;
+  const referrerPolicy = e.data.referrerPolicy;
+  const scriptOrigins = e.data.scriptOrigins;
+
+  let scriptURL;
+  let expectedReferrer;
+  if (fetchType === 'top-level') {
+    scriptURL = createScriptURLForTopLevel(scriptOrigins.topLevel);
+    expectedReferrer = createExpectedReferrer(
+        location.href, fetchType, referrerPolicy, scriptOrigins);
+  } else if (fetchType === 'descendant') {
+    scriptURL = createScriptURLForDecendant(scriptOrigins);
+    expectedReferrer = createExpectedReferrer(
+        scriptURL, fetchType, referrerPolicy, scriptOrigins);
+  } else {
+    assert_unreached('fetchType should be \'top-level\' or \'descendant\'');
+  }
+
+  const params = new URLSearchParams;
+  params.append('requestor_origin', document.location.origin);
+  params.append('referrer_policy', referrerPolicy);
+  params.append('expected_referrer', expectedReferrer);
+
+  get_worklet(workletType).addModule(scriptURL + '?' + params)
+      .then(() => window.opener.postMessage('RESOLVED', '*'))
+      .catch(e => window.opener.postMessage(e.message, '*'));
+};
+
+window.opener.postMessage('LOADED', '*');
+</script>
+</body>
+</html>

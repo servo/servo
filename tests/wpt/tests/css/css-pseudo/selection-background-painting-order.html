@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- see “Selection regression tests” in README.md -->
+<title>CSS Pseudo-Elements Test: ::selection background always paints over unselected parts when selecting text</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-painting">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#painting">
+<link rel="help" href="https://www.w3.org/TR/CSS22/zindex.html#painting-order">
+<link rel="match" href="selection-background-painting-order-ref1.html">
+<link rel="match" href="selection-background-painting-order-ref2.html">
+<meta name="assert" value="This test verifies that when selecting text, the ::selection background always paints over unselected parts.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+    @font-face {
+        font-family: CSSTest;
+        src: url(/fonts/CSSTest/csstest-basic-italic.ttf);
+    }
+    main {
+        font: 80px/1 CSSTest;
+        margin: 0.5em;
+        width: min-content;
+    }
+    main > span {
+        background: black;
+        color: orange;
+    }
+    main > span::selection {
+        /*
+            Safari on macOS: opaque selection backgrounds are made
+            translucent in the used value, so we need to choose a
+            background color with known but non-opaque alpha.
+        */
+        background: #0000FFC0;
+        color: transparent;
+    }
+</style>
+<p>Test passes if the blue rectangle below contains no proper orange, only orange dimmed by blue.
+<main class="highlight_reftest"><span>ii∫∫∫</span></main>
+<script>
+    const target = document.querySelector("main > span");
+    selectRangeWith(range => {
+        range.selectNodeContents(target);
+        range.setStart(target.childNodes[0], 0);
+        range.setEnd(target.childNodes[0], 3);
+    });
+</script>

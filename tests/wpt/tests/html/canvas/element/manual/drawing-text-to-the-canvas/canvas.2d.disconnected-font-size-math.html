@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>font-size: math treated as medium in disconnected canvas</title>
+<link rel="match" href="canvas.2d.disconnected-font-size-math-ref.html">
+<body>
+</body>
+<script>
+var d = new Document();
+var c = d.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+var ctx = c.getContext("2d");
+ctx.font = `math serif`;
+ctx.fillText("Hello World!", 5, c.height / 2);
+c.toBlob((blob) => {
+  var img = document.createElement("img");
+  const url = URL.createObjectURL(blob);
+  img.src = url;
+  img.style.border = "3px solid cyan";
+  document.body.appendChild(img);
+});
+</script>

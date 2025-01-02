@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Scaling with viewport units</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1860338">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id=iframe width=640 height=480></iframe>
+
+<script>
+
+const doc = iframe.contentDocument;
+const win = iframe.contentWindow;
+
+function test_computed_value(value, expected) {
+  test((t) => {
+    t.add_cleanup(() => { doc.body.innerHTML = ''; });
+    doc.body.innerHTML = `
+      <!doctype html>
+      <style>
+        * { margin: 0; }
+        body { height: 100%; }
+        div { height: ${value}; }
+      </style>
+      <div></div>
+    `;
+    let div = doc.querySelector('div');
+    assert_equals(win.getComputedStyle(div).height, expected);
+  }, `${value} computes to ${expected}`);
+}
+
+// Check the basic units are as expected
+test_computed_value('100vw', '640px');
+test_computed_value('100vh', '480px');
+
+// Try some calculations involving extreme scaling
+test_computed_value('calc((1vw - 6.3999px) * 10000000)', '1000px');
+test_computed_value('calc((100vh - 479px) * 60000)', '60000px');
+
+</script>

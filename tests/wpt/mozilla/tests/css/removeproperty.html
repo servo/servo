@@ -1,0 +1,13 @@
+<link rel=match href=removeproperty_ref.html>
+<body>
+
+<div style="width:10px;height:10px;background:red;border:2px solid blue;color:green;">test</div>
+
+<script>
+  window.onload = function() {
+    var div = document.querySelector("div");
+    div.style.removeProperty("background");
+    div.style.color = "";
+  }
+</script>
+</body>

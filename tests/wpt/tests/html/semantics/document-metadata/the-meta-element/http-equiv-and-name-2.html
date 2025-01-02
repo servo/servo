@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Setting both http-equiv and name attributes on a meta element</title>
+<meta http-equiv=content-language name=color-scheme content=de-DE>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // We don't attempt to test the color-scheme here because "de-DE" is not a valid
+  // value for it.
+
+  test(() => {
+    assert_equals(document.querySelector(":root:lang(de-DE)"), document.documentElement);
+  }, "<meta> set the content-language to de-DE");
+</script>

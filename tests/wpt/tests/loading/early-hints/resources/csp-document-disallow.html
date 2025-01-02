@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+const SEARCH_PARAMS = new URLSearchParams(window.location.search);
+const POLICY = SEARCH_PARAMS.get("early-hints-policy");
+
+promise_test(async (t) => {
+    const resource_url = SEARCH_PARAMS.get("resource-url");
+
+    // Resume the delayed preload.
+    const resume_url = SEARCH_PARAMS.get("resume-url");
+    await fetch(resume_url);
+
+    // Wait for the preload to finish.
+    await new Promise(resolve => t.step_timeout(resolve, 300));
+
+    // The preload should be denied by CSP.
+    await promise_rejects_js(t, Error, fetchScript(resource_url));
+}, `Early hints preload CSP = ${POLICY}, document disallowed the preload later.`);
+</script>
+</body>

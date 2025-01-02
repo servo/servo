@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Forced writing-mode on MathML elements</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#user-agent-stylesheet">
+<meta name="assert" content="Test that writing-mode is forced to horizontal-tb on MathML elements.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<style>
+  /* selector defined in mathml-fragments.js */
+  .element {
+    writing-mode: vertical-lr;
+    padding-block-start: 10px;
+    padding-block-end: 15px;
+    padding-inline-start: 20px;
+    padding-inline-end: 25px;
+  }
+</style>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container">
+    <math class="element"></math>
+  </div>
+  <script>
+      var container = document.getElementById("container");
+      for (tag in MathMLFragments) {
+          container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
+      }
+      let unknownElement = FragmentHelper.createElement("unknown");
+      unknownElement.setAttribute("class", "element");
+      container.appendChild(unknownElement);
+      Array.from(document.getElementsByClassName("element")).forEach(element => {
+        var tag = element.tagName;
+        var style = window.getComputedStyle(element);
+        test(function () {
+          assert_equals(style["writing-mode"], "horizontal-tb");
+        }, `writing-mode is forced to horizontal-tb on <${tag}> element`);
+        test(function () {
+          assert_equals(style["padding-block-start"], style["padding-top"]);
+          assert_equals(style["padding-block-end"], style["padding-bottom"]);
+          assert_equals(style["padding-inline-start"], style["padding-left"]);
+          assert_equals(style["padding-inline-end"], style["padding-right"]);
+        }, `logical properties interpreted in horizontal-tb on <${tag}> element`);
+      });
+  </script>
+</body>
+</html>

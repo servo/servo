@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>aspect-ratio flex item</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item"
+  title="Part E">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert"
+  content="max-content block size accounts for inline max-content size of an aspect-ratio item when computing flex base size">
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id="reference-overlapped-red"></div>
+<div style="display: flex; flex-flow: column; align-items: start;">
+  <div style="aspect-ratio: 1/1; background: green; min-height: 0px;">
+    <div style="width: 100px;"></div>
+  </div>
+</div>

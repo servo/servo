@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cors/support.js?pipe=sub"></script>
+<link rel="help" href="https://html.spec.whatwg.org/#unhandled-promise-rejections">
+<link rel="help" href="https://html.spec.whatwg.org/#muted-errors">
+
+<body>
+<script>
+'use strict';
+setup({
+  allow_uncaught_exception: true
+});
+
+async_test(function(t) {
+  addEventListener('unhandledrejection', t.step_func(function(e) {
+    assert_equals(e.reason, 42, 'reason should be the one given by the script');
+    t.done();
+  }));
+}, 'Promise rejection event should be received for the cross-origin CORS script');
+
+(function() {
+  var scriptEl = document.createElement('script');
+  scriptEl.src = CROSSDOMAIN + 'support/promise-access-control.py?allow=true';
+  scriptEl.crossOrigin = 'anonymous';
+  document.body.appendChild(scriptEl);
+}());
+</script>
+</body>

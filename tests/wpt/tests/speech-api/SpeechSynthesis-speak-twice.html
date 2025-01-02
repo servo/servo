@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+// using an utterance twice on the same SpeechSynthesis instance should work
+// https://github.com/w3c/speech-api/issues/7
+async_test(t => {
+  test_driver.bless('speechSynthesis.speak', t.step_func(() => {
+    // the utterance is short to make the test faster
+    const utter = new SpeechSynthesisUtterance('1');
+    utter.onerror = t.unreached_func('error event');
+    speechSynthesis.speak(utter);
+    utter.onend = t.step_func(() => {
+      speechSynthesis.speak(utter);
+      // pass if the utterance finishes a second time
+      utter.onend = t.step_func_done();
+    });
+  }));
+}, 'Using the same SpeechSynthesisUtterance twice for speechSynthesis.speak()');
+</script>

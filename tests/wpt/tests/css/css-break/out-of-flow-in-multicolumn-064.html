@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+  Out-of-flow positioned element in multicol with vertical-rl writing mode.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    writing-mode: vertical-rl;
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    height: 100px;
+    width: 100px;
+    background: red;
+    color: red;
+  }
+  .abs {
+    position: absolute;
+    inline-size: 50px;
+    block-size: 200px;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div style="position: relative;">
+    FAIL
+    <div class="abs"></div>
+  </div>
+</div>

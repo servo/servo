@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Same-origin postMessage on the Window object</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/origin_helpers.js?pipe=sub"></script>
+<script>
+setup({
+  explicit_done: true
+});
+
+function expect_error_js(error, message, origin, description) {
+  return function(setlistener, removelistener, type) {
+    test(function(t) {
+      assert_throws_js(error, function() { postMessage(message, origin) });
+    }, description + ' (' + type + ')');
+  }
+}
+
+function expect_error_dom(error, message, origin, description) {
+  return function(setlistener, removelistener, type) {
+    test(function(t) {
+      assert_throws_dom(error, function() { postMessage(message, origin) });
+    }, description + ' (' + type + ')');
+  }
+}
+
+function expect_message(message, origin, test) {
+  return function(setlistener, removelistener, type) {
+    async_test(function(t) {
+      setlistener(t.step_func_done(function(e) {
+        removelistener(arguments.callee);
+        assert_true(e.isTrusted);
+        assert_equals(e.data, message);
+      }));
+      postMessage(message, origin);
+    }, test + ' (' + type + ')');
+  }
+}
+
+function expect_no_message(message, origin, test) {
+  return function(setlistener, removelistener, type) {
+    async_test(function(t) {
+      setlistener(t.step_func_done(function(e) {
+        removelistener(arguments.callee);
+        assert_equals(e.data, 'expected-sequencing-message');
+      }));
+      postMessage(message, origin);
+      postMessage('expected-sequencing-message', '*');
+    }, test + ' (' + type + ')');
+  }
+}
+
+var base_tests = [
+  function() { return expect_message('basic', '*', 'any origin, cloneable string message') },
+  function() { return expect_message('basic', '/', 'same origin, cloneable string message') },
+  function() { return expect_message('basic', HTTP_ORIGIN, 'explicit same origin, cloneable string message') },
+  function() { return expect_no_message('basic', HTTPS_ORIGIN, 'explicit cross origin, cloneable string message') },
+  function() { return expect_error_dom('SyntaxError', 'basic', 'not-a-url', 'explicit invalid url, cloneable string message') },
+  function() { return expect_error_dom('DATA_CLONE_ERR', window, '*', 'any origin, non-cloneable message') },
+];
+
+var tests = [];
+var add_handler = function(listener) { window.onmessage = listener; };
+var remove_handler = function(listener) { window.onmessage = null; };
+var remove_listener = function(listener) { window.removeEventListener('message', listener); }
+var add_listener = function(listener) { window.addEventListener('message', listener); };
+for (var i = 0; i < base_tests.length; i++) {
+  var f = base_tests[i]();
+  tests.push(f.bind(window, add_listener, remove_listener, "listener"));
+  tests.push(f.bind(window, add_handler, remove_handler, "handler"));
+}
+
+var current_test = 0;
+function next_test() {
+  if (current_test < tests.length) {
+    tests[current_test++]();
+  } else {
+    done();
+  }
+}
+
+add_result_callback(function() {
+  next_test();
+});
+
+next_test();
+</script>

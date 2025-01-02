@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_10_02_02_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-aware-methods">
+<meta name="assert" content="Extensions to Element Interface: attachShadow method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+<script src="../../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    host.appendChild(span);
+
+    var s = host.attachShadow({mode: 'open'});
+
+    // span should become invisible as shadow root content
+    assert_equals(span.offsetTop, 0, 'attachShadow() method should establish ' +
+            'the context object as the shadow host of the ShadowRoot object');
+
+}), 'A_10_02_02_02_T01');
+</script>
+</body>
+</html>

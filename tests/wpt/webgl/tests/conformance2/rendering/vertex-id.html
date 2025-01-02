@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 gl_VertexID Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!-- Shaders for testing instanced draws -->
+<script id="vs" type="text/plain">
+#version 300 es
+flat out highp int vVertexID;
+
+void main() {
+    vVertexID = gl_VertexID;
+    gl_PointSize = 1.0;
+    gl_Position = vec4(0,0,0,1);
+}
+</script>
+<script id="fs" type="text/plain">
+#version 300 es
+flat in highp int vVertexID;
+out highp int oVertexID;
+void main() {
+    oVertexID = vVertexID;
+}
+</script>
+
+<script>
+"use strict";
+description("Test gl_VertexID");
+
+debug("");
+
+const wtu = WebGLTestUtils;
+const canvas = document.createElement("canvas");
+canvas.width = 1;
+canvas.height = 1;
+const gl = wtu.create3DContext(canvas, null, 2);
+
+(function() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    const vs = document.getElementById("vs").innerHTML.trim();
+    const fs = document.getElementById("fs").innerHTML.trim();
+    const prog = wtu.loadProgram(gl, vs, fs);
+    gl.useProgram(prog);
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32I, 1, 1);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No errors after setup");
+
+    function shouldBeVal(prefix, expected, was) {
+        let text = prefix + "Should be " + expected;
+        let func = testPassed;
+        if (was != expected) {
+            text = text + ", was " + was;
+            func = testFailed;
+        }
+        func(text);
+    };
+
+    const readValData = new Int32Array(10000);
+    function ensureVal(prefix, expected) {
+        gl.readPixels(0, 0, 1, 1, gl.RGBA_INTEGER, gl.INT, readValData);
+        const was = readValData[0];
+        shouldBeVal(prefix, expected, was);
+    };
+
+    gl.clearBufferiv(gl.COLOR, 0, new Int32Array([42, 0, 0, 0]));
+    ensureVal("After clear", 42);
+
+    // -
+
+    debug("");
+    debug("----------------");
+    debug("drawArrays");
+
+    let test = function(first, count) {
+        debug("");
+        debug(`drawArrays(first: ${first}, count: ${count})`);
+        gl.drawArrays(gl.POINTS, first, count);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+        ensureVal("", first+count-1);
+    };
+
+    test(0, 1);
+    test(1, 1);
+    test(10000, 1);
+    test(100000, 1);
+    test(1000000, 1);
+
+    test(0, 2);
+    test(1, 2);
+    test(10000, 2);
+    test(100000, 2);
+    test(1000000, 2);
+
+    const INT32_MAX = 0x7fffffff;
+
+    test = function(first, count) {
+        debug("");
+        debug(`drawArrays(first: ${first}, count: ${count})`);
+        gl.drawArrays(gl.POINTS, first, count);
+        if (!wtu.glErrorShouldBe(gl, [gl.NO_ERROR, gl.OUT_OF_MEMORY])) {
+            ensureVal("", first+count-1);
+        }
+    };
+
+    test(INT32_MAX-2, 1);
+    test(INT32_MAX-1, 1);
+    test(INT32_MAX, 1);
+
+    // -
+
+    debug("");
+    debug("----------------");
+    debug("drawElements");
+
+    const indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    const indexData = new Uint16Array([1, 2, 5, 3, 10000]);
+    debug("indexData: " + indexData);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData, gl.STATIC_DRAW);
+
+    test = function(first, count) {
+        debug("");
+        debug(`drawElements(first: ${first}, count: ${count})`);
+        gl.drawElements(gl.POINTS, count, gl.UNSIGNED_SHORT, first*2);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+        ensureVal("", indexData[first+count-1]);
+    };
+
+    for (let f = 0; f < indexData.length; ++f) {
+        for (let c = 1; f + c <= indexData.length; ++c) {
+            test(f, c);
+        }
+    }
+
+    // -
+
+    debug("");
+    debug("----------------");
+    debug("Via transform feedback");
+
+    gl.transformFeedbackVaryings(prog, ["vVertexID"], gl.INTERLEAVED_ATTRIBS);
+    wtu.linkProgram(gl, prog);
+    gl.useProgram(prog);
+
+    const tfBuffer = gl.createBuffer();
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*10000, gl.DYNAMIC_READ);
+
+    test = function(offset, count) {
+        debug("");
+        debug("drawArrays(" + offset + ", " + count + ")");
+        gl.beginTransformFeedback(gl.POINTS);
+        gl.drawArrays(gl.POINTS, offset, count);
+        gl.endTransformFeedback();
+        gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, readValData);
+        let ok = true;
+        for (let i = 0; i < readValData.length; i++) {
+            if (i >= count)
+                break;
+            const expected = offset + i;
+            const was = readValData[i];
+            if (was != expected) {
+                testFailed("[" + i + "] expected " + expected + ", was " + was);
+                ok = false;
+                break;
+            }
+        }
+        if (ok) {
+            testPassed("ok");
+        }
+    };
+
+    test(0, 1);
+    test(1, 1);
+    test(10000, 1);
+
+    test(0, 2);
+    test(1, 2);
+    test(10000, 2);
+
+    test(10000, 10000);
+
+    // -
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "There should be no remaining errors");
+})();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->

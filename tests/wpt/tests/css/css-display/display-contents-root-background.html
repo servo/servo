@@ -1,0 +1,12 @@
+<!doctype html>
+<title>CSS Test: display:contents on root element blockified with rendered background.</title>
+<link rel="help" href="https://drafts.csswg.org/css-display/#the-display-properties">
+<link rel="help" href="https://drafts.csswg.org/css-display/#transformations">
+<link rel="match" href="display-contents-root-background-ref.html">
+<style>
+  :root {
+    display: contents;
+    background-image: url(../support/1x1-green.png);
+  }
+</style>
+<p>Pass if the background is green.</p>

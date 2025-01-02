@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <body>
+        <div id="container"></div>
+    </body>
+
+    <script>
+        function createXHTMLCase(id) {
+            const container = document.getElementById("container");
+
+            const div = document.createElement("div");
+            div.dir = "auto";
+            div.id = id;
+
+            const cdata = document.createCDATASection("foo");
+            const text = document.createTextNode("اختبر");
+            div.appendChild(cdata);
+            div.appendChild(text);
+
+            container.appendChild(div);
+
+            return [div, cdata];
+        }
+
+        window.addEventListener("message", (e) => {
+            createXHTMLCase(e.data);
+            window.top.postMessage(e.data);
+        });
+
+        window.top.postMessage("subframe-loaded");
+    </script>
+</html>

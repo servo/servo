@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animation.persist</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-persist">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+async_test(t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  animA.onremove = t.step_func_done(() => {
+    assert_equals(animA.replaceState, 'removed');
+    animA.persist();
+    assert_equals(animA.replaceState, 'persisted');
+  });
+}, 'Allows an animation to be persisted after being removed');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  animA.persist();
+
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'persisted');
+}, 'Allows an animation to be persisted before being removed');
+
+</script>
+</body>

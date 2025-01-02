@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" width="500px" height="500px" viewBox="0 0 500 500">
+<title>Drag and drop of SVG text selection from text element to textArea</title>
+<text x="10" y="30" font-size="20">Select part of this text and drag selection to</text>
+<text x="10" y="60" font-size="20">the box below. Content of selection should be</text>
+<text x="10" y="90" font-size="20">copies once it's dropped in the box.</text>
+<textArea x="10" y="110" width="480" height="380" font-size="20" editable="simple" pointer-events="boundingBox">Drop selection here</textArea>
+<rect x="10" y="110" width="480" height="380" stroke="black" stroke-width="1" fill="none"/>
+</svg>

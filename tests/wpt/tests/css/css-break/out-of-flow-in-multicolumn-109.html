@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1399313">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Check that only clipping in the inline direction doesn't prevent an OOF from generating additional fragmentainers">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:3; width:100px; column-rule:20px solid green; gap:20px; column-fill:auto; height:100px; background:red;">
+  <div style="overflow-x:clip;">
+    <div style="position:relative;">
+      <div style="position:absolute; width:100%; height:300px; background:green;"></div>
+    </div>
+  </div>
+</div>

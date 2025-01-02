@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script src=util/utils.js></script>
+  <script>
+  'use strict';
+  run_all_fp_tests_allow_self(
+      'https://{{domains[www]}}:{{ports[https][0]}}',
+      'encrypted-media',
+      'SecurityError',
+      function() {
+        return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
+            sessionTypes: [ 'temporary' ],
+            audioCapabilities: getPossibleAudioCapabilities()
+        }]);
+      });
+  </script>
+</body>

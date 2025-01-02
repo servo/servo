@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: Pointer event without render in the main frame</title>
+<meta name="timeout" content="long">
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<style>
+  * {
+    user-select: none;
+  }
+</style>
+<body>
+<h1>Test</h1>
+<script>
+promise_test(async t => {
+  document.body.addEventListener("pointerdown", () => {
+    busy_wait(60);
+  });
+  const loaf_promise = new Promise(resolve => new PerformanceObserver(entries => {
+      if (entries.getEntries().some(
+        e => e.scripts.some(script => script.invoker === "BODY.onpointerdown"))) {
+          resolve("OK");
+        }
+  }).observe({type: "long-animation-frame"}));
+
+  const actions = new test_driver.Actions();
+  await actions.pointerMove(10, 10, {origin: document.body})
+  .pointerDown()
+    .pointerUp()
+    .send();
+  assert_equals(await loaf_promise, "OK");
+}, "Input events should create a LoAF even if they don't generate a frame")
+</script>
+</body>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<style>
+:first-child {
+  display: table-header-group;
+  margin-right: 10px;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const editingHost = document.querySelector("span[contenteditable]");
+  getSelection().collapse(editingHost, 0);
+  editingHost.blur();
+});
+
+function onfocusout() {
+  const selection = getSelection();
+  const range = selection.getRangeAt(0);
+  selection.modify("move", "left", "line");
+  selection.addRange(range);
+  document.execCommand("hiliteColor", false, "#5343B4");
+}
+</script>
+<body>
+<canvas> width="7"></canvas>
+<textarea>AAA</textarea>
+<fieldset onfocusout="onfocusout()">
+<span contenteditable>
+</span>
+</fieldset>
+</body>
+</html>

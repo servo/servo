@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTMLScriptElement.supports</title>
+<link rel=help href="https://html.spec.whatwg.org/#dom-script-supports">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(typeof HTMLScriptElement.supports, 'function');
+}, 'Type of HTMLScriptElement.supports is function');
+
+test(function() {
+  assert_true(HTMLScriptElement.supports('classic'));
+}, 'HTMLScriptElement.supports resurns true for \'classic\'');
+
+test(function() {
+  assert_true(HTMLScriptElement.supports('module'));
+}, 'HTMLScriptElement.supports resurns true for \'module\'');
+
+test(function() {
+  assert_false(HTMLScriptElement.supports('application/ecmascript'));
+  assert_false(HTMLScriptElement.supports('application/javascript'));
+  assert_false(HTMLScriptElement.supports('application/x-ecmascript'));
+  assert_false(HTMLScriptElement.supports('application/x-javascript'));
+  assert_false(HTMLScriptElement.supports('text/ecmascript'));
+  assert_false(HTMLScriptElement.supports('text/javascript'));
+  assert_false(HTMLScriptElement.supports('text/javascript1.0'));
+  assert_false(HTMLScriptElement.supports('text/javascript1.1'));
+  assert_false(HTMLScriptElement.supports('text/javascript1.2'));
+  assert_false(HTMLScriptElement.supports('text/javascript1.3'));
+  assert_false(HTMLScriptElement.supports('text/javascript1.4'));
+  assert_false(HTMLScriptElement.supports('text/javascript1.5'));
+  assert_false(HTMLScriptElement.supports('text/jscript'));
+  assert_false(HTMLScriptElement.supports('text/livescript'));
+  assert_false(HTMLScriptElement.supports('text/x-ecmascript'));
+  assert_false(HTMLScriptElement.supports('text/x-javascript'));
+}, 'HTMLScriptElement.supports returns false for JavaScript MIME types');
+
+test(function() {
+  assert_false(HTMLScriptElement.supports(''));
+  assert_false(HTMLScriptElement.supports(' '));
+  assert_false(HTMLScriptElement.supports('classic '));
+  assert_false(HTMLScriptElement.supports('module '));
+  assert_false(HTMLScriptElement.supports(' classic '));
+  assert_false(HTMLScriptElement.supports(' module '));
+  assert_false(HTMLScriptElement.supports('classics'));
+  assert_false(HTMLScriptElement.supports('modules'));
+  assert_false(HTMLScriptElement.supports('Classic'));
+  assert_false(HTMLScriptElement.supports('Module'));
+  assert_false(HTMLScriptElement.supports('unsupported'));
+}, 'HTMLScriptElement.supports returns false for unsupported types');
+</script>

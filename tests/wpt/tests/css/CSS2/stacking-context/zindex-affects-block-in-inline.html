@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=764458">
+<link rel="match" href="zindex-affects-block-in-inline-ref.html">
+<div style="position: relative; z-index: 1; background: red; width: 100px; height: 100px;"></div>
+<span style="position: relative; z-index: 2; top: -100px;">
+  <div style="background: green; width: 100px; height: 100px;"></div>
+</span>

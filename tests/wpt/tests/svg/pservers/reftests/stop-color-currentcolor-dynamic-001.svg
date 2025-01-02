@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml"
+     style="color: red">
+  <title>stop-color: Dynamically changing 'color' for a gradient with a stop with 'currentcolor'</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#StopColorProperty"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <linearGradient id="g">
+    <stop stop-color="currentcolor"/>
+  </linearGradient>
+  <rect width="50" height="100" fill="url(#g)"/>
+  <rect width="50" height="100" x="50" fill="currentcolor"/>
+  <script>
+    <![CDATA[
+      let root = document.querySelector(':root');
+      root.getBoundingClientRect();  // Force layout
+      root.style.color = 'green';
+    ]]>
+  </script>
+</svg>

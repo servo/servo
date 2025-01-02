@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Network errors with iframe elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "//{{hosts[][nonexistent]}}/";
+  iframe.onload = () => t.done();
+  iframe.onerror = t.unreached_func("error event must not fire");
+  document.body.append(iframe);
+}, "new iframe: nonexistent host");
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "../resources/not-embeddable.html";
+  iframe.onload = () => t.done();
+  iframe.onerror = t.unreached_func("error event must not fire");
+  document.body.append(iframe);
+}, "new iframe: X-Frame-Options prevents embedding");
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "/common/blank.html";
+  iframe.name = "existingIframe1";
+  iframe.onload = t.step_func(() => {
+    iframe.onload = () => t.done();
+    iframe.onerror = t.unreached_func("error event must not fire 2");
+
+    frames.existingIframe1.location.href = "//{{hosts[][nonexistent]}}/";
+  });
+  iframe.onerror = t.unreached_func("error event must not fire 1");
+  document.body.append(iframe);
+}, "navigating an existing iframe: nonexistent host");
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "/common/blank.html";
+  iframe.name = "existingIframe2";
+  iframe.onload = t.step_func(() => {
+    iframe.onload = () => t.done();
+    iframe.onerror = t.unreached_func("error event must not fire 2");
+
+    frames.existingIframe2.location.href = "../resources/not-embeddable.html";
+  });
+  iframe.onerror = t.unreached_func("error event must not fire 1");
+  document.body.append(iframe);
+}, "navigating an existing iframe: X-Frame-Options prevents embedding");
+</script>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests for RTCRtpReceiver-jitterBufferTarget attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+'use strict'
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+}, 'audio jitterBufferTarget is null by default');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 500;
+  assert_equals(receiver.jitterBufferTarget, 500);
+}, 'audio jitterBufferTarget accepts posititve values');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 4000;
+  assert_throws_js(RangeError, () => {
+    receiver.jitterBufferTarget = 4001;
+  }, 'audio jitterBufferTarget doesn\'t accept values greater than 4000 milliseconds');
+  assert_equals(receiver.jitterBufferTarget, 4000);
+}, 'audio jitterBufferTarget accepts values up to 4000 milliseconds');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 700;
+  assert_throws_js(RangeError, () => {
+    receiver.jitterBufferTarget = -500;
+  }, 'audio jitterBufferTarget doesn\'t accept negative values');
+  assert_equals(receiver.jitterBufferTarget, 700);
+}, 'audio jitterBufferTarget returns last valid value on throw');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 0;
+  assert_equals(receiver.jitterBufferTarget, 0);
+}, 'audio jitterBufferTarget allows zero value');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('audio', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 500;
+  assert_equals(receiver.jitterBufferTarget, 500);
+  receiver.jitterBufferTarget = null;
+  assert_equals(receiver.jitterBufferTarget, null);
+}, 'audio jitterBufferTarget allows to reset value to null');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+}, 'video jitterBufferTarget is null by default');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 500;
+  assert_equals(receiver.jitterBufferTarget, 500);
+}, 'video jitterBufferTarget accepts posititve values');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 4000;
+  assert_throws_js(RangeError, () => {
+    receiver.jitterBufferTarget = 4001;
+  }, 'video jitterBufferTarget doesn\'t accept values greater than 4000 milliseconds');
+  assert_equals(receiver.jitterBufferTarget, 4000);
+}, 'video jitterBufferTarget accepts values up to 4000 milliseconds');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 700;
+  assert_throws_js(RangeError, () => {
+    receiver.jitterBufferTarget = -500;
+  }, 'video jitterBufferTarget doesn\'t accept negative values');
+  assert_equals(receiver.jitterBufferTarget, 700);
+}, 'video jitterBufferTarget returns last valid value');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 0;
+  assert_equals(receiver.jitterBufferTarget, 0);
+}, 'video jitterBufferTarget allows zero value');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const {receiver} = pc.addTransceiver('video', {direction:'recvonly'});
+  assert_equals(receiver.jitterBufferTarget, null);
+  receiver.jitterBufferTarget = 500;
+  assert_equals(receiver.jitterBufferTarget, 500);
+  receiver.jitterBufferTarget = null;
+  assert_equals(receiver.jitterBufferTarget, null);
+}, 'video jitterBufferTarget allows to reset value to null');
+</script>
+</body>

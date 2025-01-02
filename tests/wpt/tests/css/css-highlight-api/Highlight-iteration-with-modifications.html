@@ -1,0 +1,91 @@
+<!doctype html>
+<title>Highlight iteration with insertions and deletions inbetween</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='testDiv'>abc</div>
+<script>
+  'use strict';
+  let container = document.getElementById('testDiv');
+  let range1 = new StaticRange({startContainer: container, startOffset: 0, endContainer: container, endOffset: 1});
+  let range2 = new Range();
+
+  // Test insertions using .add
+  test(() => {
+    let customHighlight = new Highlight();
+    let iterator = customHighlight[Symbol.iterator]();
+    customHighlight.add(range1);
+    let element = iterator.next();
+    assert_true(element.done, 'The iteration ends although we added a new range after starting the iteration');
+    assert_equals(element.value, undefined, 'A range added after starting the iteration is not found during the current iteration');
+  }, 'Highlight iteration is not modified when a new range is added after starting the iteration');
+
+  test(() => {
+    let customHighlight = new Highlight(range1);
+    let iterator = customHighlight[Symbol.iterator]();
+    customHighlight.add(range2);
+    let element = iterator.next();
+    assert_false(element.done, 'The iteration doesn\'t end although there was a second range added to the Highlight after starting the iteration');
+    assert_equals(element.value, range1, 'The range that was pointed to by the iterator is returned although a second range was added after starting the iteration');
+    element = iterator.next();
+    assert_true(element.done, 'The iteration ends after going through all the ranges that were in the Highlight when the iteration started although there was a range addition after starting the iteration');
+    assert_equals(element.value, undefined, '.next() returns undefined when the iteration ends');
+  }, 'Highlight iteration is not modified when a new range is added after starting the iteration with one range in the Highlight');
+
+  // Test deletions using .delete
+  test(() => {
+    let customHighlight = new Highlight(range1);
+    let iterator = customHighlight[Symbol.iterator]();
+    customHighlight.delete(range1);
+    let element = iterator.next();
+    assert_false(element.done, 'The iteration doesn\'t end although the range that was pointed to by the iterator was deleted');
+    assert_equals(element.value, range1, 'The range that was pointed to by the iterator is returned although it was deleted after starting the iteration');
+    element = iterator.next();
+    assert_true(element.done, 'The iteration ends after going through all the ranges although the range that was pointed to by the iterator was deleted after starting the iteration');
+    assert_equals(element.value, undefined, '.next() returns undefined when the iteration ends');
+  }, 'Highlight iteration is not modified when the range that was pointed to by the iterator was deleted after starting the iteration');
+
+  test(() => {
+    let customHighlight = new Highlight(range1, range2);
+    let iterator = customHighlight[Symbol.iterator]();
+    customHighlight.delete(range2);
+    let element = iterator.next();
+    assert_false(element.done, 'The iteration doesn\'t end when the range following to the one that was pointed to by the iterator was deleted');
+    assert_equals(element.value, range1, 'The range that was pointed to by the iterator is returned as it should although the next range was deleted immediately after starting the iteration');
+    element = iterator.next();
+    assert_false(element.done, 'The iteration doesn\'t end when you call .next twice since the beginning of the iteration although the second range was deleted');
+    assert_equals(element.value, range2, 'The range that was pointed to by the iterator is returned as it should although the next range was deleted immediately after starting the iteration');
+    element = iterator.next();
+    assert_true(element.done, 'The iteration ends after going through all the ranges although the second range was deleted immediately after starting the iteration');
+    assert_equals(element.value, undefined, '.next() returns undefined when the iteration ends');
+  }, 'Highlight iteration is not modified when the range that was immediately after the one pointed to by the iterator was deleted after starting the iteration');
+
+  test(() => {
+    let customHighlight = new Highlight(range1, range2);
+    let iterator = customHighlight[Symbol.iterator]();
+    let element = iterator.next();
+    assert_false(element.done, 'The iteration doesn\'t end when there are still two ranges to visit');
+    assert_equals(element.value, range1, 'The range that was pointed to by the iterator is returned as it should');
+    customHighlight.delete(range1);
+    element = iterator.next();
+    assert_false(element.done, 'The iteration doesn\'t end when the range previously visited is deleted and there is still a range to visit');
+    assert_equals(element.value, range2, 'The range that was pointed to by the iterator is returned as it should although the previous range was deleted after calling .next');
+    element = iterator.next();
+    assert_true(element.done, 'The iteration ends after going through all the ranges although the first range was deleted after the first call to .next');
+    assert_equals(element.value, undefined, '.next() returns undefined when the iteration ends');
+  }, 'Highlight iteration is not modified when a range that was already visited is deleted and there are still ranges to visit');
+
+  // Test deletions using .clear
+  test(() => {
+    let customHighlight = new Highlight(range1);
+    let iterator = customHighlight[Symbol.iterator]();
+    customHighlight.clear();
+    let element = iterator.next();
+    assert_false(element.done, 'The iteration doesn\'t end although the range that was pointed to by the iterator was deleted using .clear()');
+    assert_equals(element.value, range1, 'The range that was pointed to by the iterator is returned although it was deleted using .clear() after starting the iteration');
+    element = iterator.next();
+    assert_true(element.done, 'The iteration ends after going through all the ranges although the range that was pointed to by the iterator was deleted using .clear() after starting the iteration');
+    assert_equals(element.value, undefined, '.next() returns undefined when the iteration ends');
+  }, 'Highlight iteration is not modified when the range that was pointed to by the iterator was deleted using .clear() after starting the iteration');
+
+</script>

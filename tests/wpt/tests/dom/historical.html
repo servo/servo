@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<title>Historical DOM features must be removed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function isInterfaceRemoved(name) {
+  test(function() {
+    assert_false(name in window)
+    assert_equals(window[name], undefined)
+  }, "Historical DOM features must be removed: " + name)
+}
+var removedInterfaces = [
+  "DOMConfiguration",
+  "DOMCursor",
+  "DOMError",
+  "DOMErrorHandler",
+  "DOMImplementationList",
+  "DOMImplementationSource",
+  "DOMLocator",
+  "DOMObject",
+  "DOMRequest",
+  "DOMSettableTokenList",
+  "DOMUserData",
+  "Entity",
+  "EntityReference",
+  "EventException", // DOM Events
+  "MutationEvent",
+  "NameList",
+  "Notation",
+  "TypeInfo",
+  "UserDataHandler",
+  "RangeException", // DOM Range
+  "SVGPathSegList"
+]
+removedInterfaces.forEach(isInterfaceRemoved)
+
+function isRemovedFromDocument(name) {
+  test(function() {
+    var doc = document.implementation.createDocument(null,null,null)
+    assert_false(name in document)
+    assert_equals(document[name], undefined)
+    assert_false(name in doc)
+    assert_equals(doc[name], undefined)
+  }, "Historical DOM features must be removed: " + name)
+}
+var documentRemoved = [
+  "createEntityReference",
+  "xmlEncoding",
+  "xmlStandalone",
+  "xmlVersion",
+  "strictErrorChecking",
+  "domConfig",
+  "normalizeDocument",
+  "renameNode",
+  "defaultCharset",
+  "height",
+  "width",
+  // https://github.com/whatwg/html/commit/a64aea7fdb221bba027d95dc3cabda09e0b3e5dc
+  "commands",
+  // https://github.com/whatwg/html/commit/797b4d273955a0fe3cc2e2d0ca5d578f37c0f126
+  "cssElementMap",
+  // https://github.com/whatwg/html/commit/e236f46820b93d6fe2e2caae0363331075c6c4fb
+  "async",
+  // https://github.com/whatwg/dom/pull/815
+  "origin",
+]
+documentRemoved.forEach(isRemovedFromDocument)
+
+test(function() {
+  // https://github.com/whatwg/html/commit/e236f46820b93d6fe2e2caae0363331075c6c4fb
+  assert_false("load" in document);
+  assert_equals(document["load"], undefined)
+}, "document.load");
+
+test(function() {
+  // https://github.com/whatwg/html/commit/523f7a8773d2ab8a1eb0da6510651e8c5d2a7531
+  var doc = document.implementation.createDocument(null, null, null);
+  assert_false("load" in doc);
+  assert_equals(doc["load"], undefined)
+}, "XMLDocument.load");
+
+test(function() {
+  assert_false("getFeature" in document.implementation)
+  assert_equals(document.implementation["getFeature"], undefined)
+}, "DOMImplementation.getFeature() must be removed.")
+
+function isRemovedFromElement(name) {
+  test(function() {
+    var ele = document.createElementNS("test", "test")
+    assert_false(name in document.body)
+    assert_equals(document.body[name], undefined)
+    assert_false(name in ele)
+    assert_equals(ele[name], undefined)
+  }, "Historical DOM features must be removed: " + name)
+}
+var elementRemoved = [
+  "schemaTypeInfo",
+  "setIdAttribute",
+  "setIdAttributeNS",
+  "setIdAttributeNode"
+]
+elementRemoved.forEach(isRemovedFromElement)
+
+function isRemovedFromAttr(name) {
+  test(function() {
+    var attr = document.createAttribute("test")
+    assert_false(name in attr)
+    assert_equals(attr[name], undefined)
+  }, "Attr member must be removed: " + name)
+}
+var attrRemoved = [
+  "schemaTypeInfo",
+  "isId"
+]
+attrRemoved.forEach(isRemovedFromAttr)
+
+function isRemovedFromDoctype(name) {
+  test(function() {
+    var doctype = document.implementation.createDocumentType("test", "", "")
+    assert_false(name in doctype)
+    assert_equals(doctype[name], undefined)
+  }, "DocumentType member must be removed: " + name)
+}
+var doctypeRemoved = [
+  "entities",
+  "notations",
+  "internalSubset"
+]
+doctypeRemoved.forEach(isRemovedFromDoctype)
+
+function isRemovedFromText(name) {
+  test(function() {
+    var text = document.createTextNode("test")
+    assert_false(name in text)
+    assert_equals(text[name], undefined)
+  }, "Text member must be removed: " + name)
+}
+var textRemoved = [
+  "isElementContentWhitespace",
+  "replaceWholeText"
+]
+textRemoved.forEach(isRemovedFromText)
+
+function isRemovedFromNode(name) {
+  test(function() {
+    var doc = document.implementation.createDocument(null,null,null)
+    var doctype = document.implementation.createDocumentType("test", "", "")
+    var text = document.createTextNode("test")
+    assert_false(name in doc)
+    assert_equals(doc[name], undefined)
+    assert_false(name in doctype)
+    assert_equals(doctype[name], undefined)
+    assert_false(name in text)
+    assert_equals(text[name], undefined)
+  }, "Node member must be removed: " + name)
+}
+var nodeRemoved = [
+  "hasAttributes",
+  "attributes",
+  "namespaceURI",
+  "prefix",
+  "localName",
+  "isSupported",
+  "getFeature",
+  "getUserData",
+  "setUserData",
+  "rootNode",
+]
+nodeRemoved.forEach(isRemovedFromNode)
+
+function isRemovedFromWindow(name) {
+  test(function() {
+    assert_false(name in window)
+    assert_equals(window[name], undefined)
+  }, "Window member must be removed: " + name)
+}
+var windowRemoved = [
+  "attachEvent",
+  "content",
+  "sidebar",
+]
+windowRemoved.forEach(isRemovedFromWindow)
+
+function isRemovedFromEvent(name) {
+  test(() => {
+    assert_false(name in Event)
+    assert_equals(Event[name], undefined)
+  }, "Event should not have this constant: " + name)
+}
+var EventRemoved = [
+  "MOUSEDOWN",
+  "MOUSEUP",
+  "MOUSEOVER",
+  "MOUSEOUT",
+  "MOUSEMOVE",
+  "MOUSEDRAG",
+  "CLICK",
+  "DBLCLICK",
+  "KEYDOWN",
+  "KEYUP",
+  "KEYPRESS",
+  "DRAGDROP",
+  "FOCUS",
+  "BLUR",
+  "SELECT",
+  "CHANGE"
+]
+EventRemoved.forEach(isRemovedFromEvent)
+
+var EventPrototypeRemoved = [
+  "getPreventDefault",
+  "path"
+]
+EventPrototypeRemoved.forEach(name => {
+  test(() => {
+    assert_false(name in Event.prototype)
+    assert_equals(Event.prototype[name], undefined)
+    assert_false(name in new Event("test"))
+    assert_equals((new Event("test"))[name], undefined)
+  }, "Event.prototype should not have this property: " + name)
+})
+
+// For reference, these events were defined in
+// https://www.w3.org/TR/2003/NOTE-DOM-Level-3-Events-20031107/DOM3-Events.html#events-Events-EventTypes-complete
+const mutationEvents = [
+  'DOMSubtreeModified',
+  'DOMNodeInserted',
+  'DOMNodeRemoved',
+  'DOMNodeRemovedFromDocument',
+  'DOMNodeInsertedIntoDocument',
+  'DOMCharacterDataModified',
+  'DOMAttrModified',
+  'DOMAttributeNameChanged',
+  'DOMElementNameChanged',
+];
+mutationEvents.forEach(evt => {
+  promise_test(async (t) => {
+    const target = document.createElement('div');
+    let fired = false;
+    function listener(event) {
+      fired = true;
+    }
+    target.addEventListener(evt,listener);
+    document.body.addEventListener(evt,listener);
+    target.append('here');
+    t.add_cleanup(() => target.remove());
+    document.body.appendChild(target);
+
+    // Trigger all mutation types except DOMElementNameChanged, which could
+    // only be triggered by a call to the (deprecated, removed)
+    // Document.renameNode() API.
+    target.remove();
+    document.body.appendChild(target);
+    target.setAttribute('test','foo');
+    target.attributes[0].value='bar';
+    target.attributes[0].name='baz';
+    target.firstChild.textContent = "bar";
+    // Mutation events were synchronous, but ensure even async versions
+    // would fail this test.
+    await new Promise(resolve=>t.step_timeout(resolve,0));
+    assert_false(fired,'Event was fired');
+  }, `The ${evt} mutation event must not be fired.`);
+});
+</script>

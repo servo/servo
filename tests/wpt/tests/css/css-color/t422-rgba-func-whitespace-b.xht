@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: whitespace in rgba() values</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#rgba-color" />
+		<link rel="match" href="t422-rgba-func-whitespace-b-ref.html" />
+		<meta name="assert" content="Test that whitespace is allowed within rgba() functions." />
+		<style type="text/css"><![CDATA[
+		html, body { background: black; }
+		#one { color: rgba(  0,
+255		,0          ,1.0   ); }
+		#two { color: rgba(0
+,255
+,0
+,          1.0); }
+		#three { color: rgba(     0   ,   255    	  , 			0 ,              1.0); }
+
+		#four { color: rgba(  0%,
+100%		,0%                   ,1.0    ); }
+		#five { color: rgba(0%
+,100%
+,0%
+,          1.0); }
+		#six { color: rgba(     0%   ,   100%    	  , 			0% ,
+     1.0); }
+		]]></style>
+	</head>
+	<body>
+		<p id="one">This text should be green.</p>
+		<p id="two">This text should be green.</p>
+		<p id="three">This text should be green.</p>
+		<p id="four">This text should be green.</p>
+		<p id="five">This text should be green.</p>
+		<p id="six">This text should be green.</p>
+	</body>
+</html>

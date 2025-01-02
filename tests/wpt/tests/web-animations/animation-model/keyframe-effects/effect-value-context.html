@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: Property values that depend on
+  their context (target element)</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#calculating-computed-keyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  div.style.fontSize = '10px';
+  const animation = div.animate([ { marginLeft: '10em' },
+                                  { marginLeft: '20em' } ], 1000);
+  animation.currentTime = 500;
+  assert_equals(getComputedStyle(div).marginLeft, '150px',
+                'Effect value before updating font-size');
+  div.style.fontSize = '20px';
+  assert_equals(getComputedStyle(div).marginLeft, '300px',
+                'Effect value after updating font-size');
+}, 'Effect values reflect changes to font-size on element');
+
+test(t => {
+  const parentDiv = createDiv(t);
+  const div = createDiv(t);
+  parentDiv.appendChild(div);
+  parentDiv.style.fontSize = '10px';
+
+  const animation = div.animate([ { marginLeft: '10em' },
+                                  { marginLeft: '20em' } ], 1000);
+  animation.currentTime = 500;
+  assert_equals(getComputedStyle(div).marginLeft, '150px',
+                'Effect value before updating font-size on parent element');
+  parentDiv.style.fontSize = '20px';
+  assert_equals(getComputedStyle(div).marginLeft, '300px',
+                'Effect value after updating font-size on parent element');
+}, 'Effect values reflect changes to font-size on parent element');
+
+promise_test(t => {
+  const parentDiv = createDiv(t);
+  const div = createDiv(t);
+  parentDiv.appendChild(div);
+  parentDiv.style.fontSize = '10px';
+  const animation = div.animate([ { marginLeft: '10em' },
+                                  { marginLeft: '20em' } ], 1000);
+
+  animation.pause();
+  animation.currentTime = 500;
+  parentDiv.style.fontSize = '20px';
+
+  return animation.ready.then(() => {
+    assert_equals(getComputedStyle(div).marginLeft, '300px',
+                  'Effect value after updating font-size on parent element');
+  });
+}, 'Effect values reflect changes to font-size when computed style is not'
+   + ' immediately flushed');
+
+promise_test(t => {
+  const divWith10pxFontSize = createDiv(t);
+  divWith10pxFontSize.style.fontSize = '10px';
+  const divWith20pxFontSize = createDiv(t);
+  divWith20pxFontSize.style.fontSize = '20px';
+
+  const div = createDiv(t);
+  div.remove(); // Detach
+  const animation = div.animate([ { marginLeft: '10em' },
+                                  { marginLeft: '20em' } ], 1000);
+  animation.pause();
+
+  return animation.ready.then(() => {
+    animation.currentTime = 500;
+
+    divWith10pxFontSize.appendChild(div);
+    assert_equals(getComputedStyle(div).marginLeft, '150px',
+                  'Effect value after attaching to font-size:10px parent');
+    divWith20pxFontSize.appendChild(div);
+    assert_equals(getComputedStyle(div).marginLeft, '300px',
+                  'Effect value after attaching to font-size:20px parent');
+  });
+}, 'Effect values reflect changes to font-size from reparenting');
+
+test(t => {
+  const divA = createDiv(t);
+  divA.style.fontSize = '10px';
+
+  const divB = createDiv(t);
+  divB.style.fontSize = '20px';
+
+  const animation = divA.animate([ { marginLeft: '10em' },
+                                   { marginLeft: '20em' } ], 1000);
+  animation.currentTime = 500;
+  assert_equals(getComputedStyle(divA).marginLeft, '150px',
+                'Effect value before updating target element');
+
+  animation.effect.target = divB;
+  assert_equals(getComputedStyle(divB).marginLeft, '300px',
+                'Effect value after updating target element');
+}, 'Effect values reflect changes to target element');
+
+</script>
+</body>

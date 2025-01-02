@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>SignedHTTPExchange's fallback url must not have UTF-8 BOM</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  try {
+    const sxgUrl = get_host_info().HTTP_ORIGIN + '/signed-exchange/resources/sxg/sxg-inner-url-bom.sxg';
+    const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
+    if (message.is_fallback) {
+        assert_unreached('Fallback redirect should not have happened');
+    } else {
+        assert_unreached('SXG should not have loaded');
+    }
+  } catch (e) {
+    assert_equals(e, 'timeout');
+  }
+}, "SignedHTTPExchange's fallback url must not have UTF-8 BOM");
+
+</script>
+</body>

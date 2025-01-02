@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page breaks: clearing bottom margin</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#allowed-page-breaks" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#allowed-pg-brk" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="When an element would span a page break solely to satisfy a descendant's bottom margin, that margin is instead truncated and the element does not span pages." />
+  <style type="text/css">
+
+    p {
+        margin-bottom: 12in;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div>
+     <p>This test produces only one page on paged media, containing only this paragraph.</p>
+   </div>
+ </body>
+</html>

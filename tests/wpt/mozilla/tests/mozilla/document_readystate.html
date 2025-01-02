@@ -1,0 +1,21 @@
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+  async_test(function() {
+    var numChanges = 0;
+    document.addEventListener('readystatechange', this.step_func(function() {
+      numChanges++;
+    }), true);
+    window.onload = this.step_func_done(function() {
+      assert_equals(document.readyState, 'complete');
+      assert_equals(numChanges, 2);
+    });
+    assert_equals(document.readyState, "loading");
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Canvas test: unclosed-layers</title>
+<h1>unclosed-layers</h1>
+<p class="desc">Check that unclosed layers aren't rendered.</p>
+<canvas id="canvas" width="200" height="200">
+  <p class="fallback">FAIL (fallback content)</p>
+</canvas>
+<script>
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = 'purple';
+  ctx.fillRect(60, 60, 75, 50);
+</script>

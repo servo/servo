@@ -1,0 +1,245 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>BrowserCaptureMediaStreamTrack restrictTo()</title>
+  <link rel="help" href="https://screen-share.github.io/element-capture/">
+</head>
+
+<body>
+  <p class="instructions">
+    When prompted, accept to give permission to use your audio, video devices.
+  </p>
+  <h1 class="instructions">Description</h1>
+  <p class="instructions">
+    This test checks that restricting BrowserCaptureMediaStreamTrack works as
+    expected.
+  </p>
+
+  <style>
+    div {
+      height: 100px;
+    }
+    .stacking {
+      opacity: 0.9;
+    }
+    #container {
+      columns:4;
+      column-fill:auto;
+    }
+    .fragmentize {
+      height: 50px;
+    }
+    #target {
+      background: linear-gradient(red, blue);
+    }
+  </style>
+
+
+  <div id='container'>
+    <div id='target'></div>
+  </div>
+  <video id="video"
+         style="border: 2px blue dotted; width: 250px; height: 250px;"
+         autoplay playsinline muted></video>
+
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+
+  <script>
+    "use strict";
+
+    // For more information, see:
+    // https://screen-share.github.io/element-capture/#elements-eligible-for-restriction
+    const EligibilityRequirement = {
+      StackingContext: "StackingContext",
+      OnlyOneBoxFragment: "OnlyOneBoxFragment",
+      FlattenedIn3D: "FlattenedIn3D",
+    };
+
+    // The target div.
+    const div = document.getElementById('target');
+
+    // Returns a promise that, if successful, will resolve to a media stream.
+    async function getDisplayMedia() {
+      return test_driver.bless('getDisplayMedia', () =>
+        navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: "browser" },
+          selfBrowserSurface: "include",
+        }));
+    }
+
+    // Returns a promise that will resolve successfully if at least one frame is
+    // read before the timeout.
+    function assertFrameRead(t, state, message) {
+      const last_frame_count = state.frame_count;
+      return t.step_wait(() => state.frame_count > last_frame_count,
+        message, 5000, 10);
+    }
+
+    // Returns a promise that will resolve successfully if there are no frames
+    // produced for an entire second after being called.
+    function assertStopsProducingFrames(t, state, message) {
+      let last_frame_count = state.frame_count;
+
+      return t.step_timeout(() => {
+        assert_equals(state.frame_count, last_frame_count);
+      }, 1000);
+    }
+
+    function makeDivEligible() {
+      // Must always have a stacking context to be eligible.
+      div.classList.add("stacking");
+      div.parentElement.classList.remove("fragmented");
+      div.style.transform = "";
+    }
+
+    function makeDivIneligible(state) {
+      switch(state.eligibilityParam) {
+        case EligibilityRequirement.StackingContext:
+          div.classList.remove("stacking");
+          break;
+
+        case EligibilityRequirement.OnlyOneBoxFragment:
+          div.parentElement.classList.add("fragmented");
+          break;
+
+        case EligibilityRequirement.FlattenedIn3D:
+          div.style.transform = "rotateY(90deg)";
+          break;
+      }
+    }
+
+    // Restore element state after each test.
+    function cleanupDiv() {
+      div.classList.remove("stacking");
+      div.parentElement.classList.remove("fragmented");
+      div.style.transform = "";
+    }
+
+    function startAnimation(t, state) {
+      let count = 0;
+      function animate() {
+        if (!state.running) {
+          return;
+        }
+        count += 1;
+        div.innerText = count;
+        window.requestAnimationFrame(animate);
+      }
+      window.requestAnimationFrame(animate);
+
+      // Stop animation as part of cleanup.
+      t.add_cleanup(() => { state.running = false; });
+    }
+
+    // Updates the state.frame_count value whenever a new frame is received on
+    // the passed in media stream track.
+    async function readFromTrack(state, track) {
+      while (state.running) {
+        const reader = new MediaStreamTrackProcessor(track).readable.getReader();
+        while (true) {
+          const frameOrDone = await reader.read();
+          if (frameOrDone.done) {
+            break;
+          }
+          frameOrDone.value.close();
+          state.frame_count += 1;
+        }
+      }
+    }
+
+    // Parameterized test method. Note that this returns a Promise that will be
+    // resolved to represent success of the entire promise test.
+    async function runTest(t, eligibilityParam) {
+      let state = {
+        eligibilityParam: eligibilityParam,
+        frame_count: 0,
+        running: true,
+        reading: false,
+      };
+      startAnimation(t, state);
+
+      let videoTrack = undefined;
+      return getDisplayMedia().then(stream => {
+        t.add_cleanup(() => {
+          stream.getTracks().forEach(track => track.stop());
+        });
+        assert_true(!!stream, "should have resolved to a stream.");
+        assert_true(stream.active, "stream should be active.");
+        assert_equals(stream.getVideoTracks().length, 1);
+
+        [videoTrack] = stream.getVideoTracks();
+        assert_true(videoTrack instanceof MediaStreamTrack,
+          "track should be either MediaStreamTrack or a subclass thereof.");
+        assert_equals(videoTrack.readyState, "live", "track should be live.");
+
+        // Consume the stream in a video element.
+        const video = document.querySelector('video');
+        video.srcObject = stream;
+
+        // Remove the video source, so that the stream object can be released.
+        t.add_cleanup(() => {video.srcObject = null});
+
+        // Keep track of the number of frames used.
+        const readPromise = readFromTrack(state, videoTrack);
+        t.add_cleanup(() => readPromise);
+
+        return assertFrameRead(t, state, "Track should produce frames.");
+      }).then(() => {
+        assert_true(!!RestrictionTarget, "RestrictionTarget exposed.");
+        assert_true(!!RestrictionTarget.fromElement,
+          "RestrictionTarget.fromElement exposed.");
+
+        return RestrictionTarget.fromElement(div);
+      }).then(restrictionTarget => {
+        assert_true(!!videoTrack.restrictTo, "restrictTo exposed.");
+        assert_true(typeof videoTrack.restrictTo === 'function',
+          "restrictTo is a function.");
+
+        return videoTrack.restrictTo(restrictionTarget);
+      }).then(() => {
+        // By default, elements are not eligible for restriction due to not being
+        // placed in their own stacking context.
+        return assertStopsProducingFrames(t, state,
+          "No new frames after restriction.");
+      });
+
+    // TODO(crbug.com/333770107): once the issue with the
+    // --disable-threaded-compositing flag is resolved on Chrome's check in bots
+    // the rest of this test should be enabled.
+    //   ).then(() => {
+    //     // Should be unpaused now that the element is eligible.
+    //     makeDivEligible();
+
+    //     // Make sure the element state is restored to default between tests.
+    //     t.add_cleanup(() => { cleanupDiv(); });
+
+    //     // Restart the reader now that the stream is producing frames again.
+    //     return assertFrameRead(t, state,
+    //       "Received at least one frame after becoming eligible.");
+    //   }).then(() => {
+
+    //     // Should pause if it becomes ineligible again.
+    //     makeDivIneligible(state);
+    //     return assertStopsProducingFrames(t, state,
+    //       "No new frames after becoming ineligible again.");
+    //   });
+    }
+
+    // Test parameterizations.
+    [
+      EligibilityRequirement.StackingContext,
+      EligibilityRequirement.OnlyOneBoxFragment,
+      EligibilityRequirement.FlattenedIn3D,
+    ].forEach(param =>
+      promise_test(t => runTest(t, param),
+        `Tests that restricting MediaStreamTrack objects works as expected (${param}).`
+    ));
+
+  </script>
+</body>
+
+</html>

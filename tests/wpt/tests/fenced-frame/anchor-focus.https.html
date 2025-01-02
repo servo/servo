@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Anchor based focusing across a fenced frame boundary</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+function attemptAutofocus(frame) {
+  return frame.execute(async () => {
+    let autofocusInput = document.createElement('input');
+    autofocusInput.id = "myinput";
+    document.body.appendChild(autofocusInput);
+    document.location.href = document.location.href + "#myinput";
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return document.activeElement == autofocusInput;
+  });
+}
+
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  let autofocusIsFocused = await attemptAutofocus(frame);
+  assert_false(autofocusIsFocused,
+      "element should not get focus through anchor focusing");
+}, "Anchor focusing is blocked on an element in a fenced frame " +
+    "without user activation.");
+
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  const actions = new test_driver.Actions();
+  await actions.pointerMove(0, 0, {origin: frame.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+  let autofocusIsFocused = await attemptAutofocus(frame);
+  assert_true(autofocusIsFocused,
+      "element should get focus through anchor focusing");
+}, "Anchor focusing is allowed on an element in a fenced frame " +
+    "with user activation.");
+</script>
+</body>
+</html>

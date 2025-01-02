@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#line-height">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 16px/1 Ahem;
+}
+
+body > div {
+  border: 1px solid lime;
+}
+
+.over_emp {
+  -webkit-text-emphasis: 'x';
+  -webkit-text-emphasis-position: over left;
+  text-emphasis: 'x';
+  text-emphasis-position: over left;
+}
+
+.under_emp {
+  -webkit-text-emphasis: 'x';
+  -webkit-text-emphasis-position: under left;
+  text-emphasis: 'x';
+  text-emphasis-position: under left;
+}
+</style>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function renderRuby(source) {
+  document.body.insertAdjacentHTML('afterbegin', source);
+  const firstChild = document.body.firstChild;
+  const container = firstChild.tagName == 'RUBY' ? null : firstChild;
+  const ruby = firstChild.tagName == 'RUBY' ? firstChild : firstChild.querySelector('ruby');
+  return {container: container, ruby: ruby, rt: ruby.querySelector('rt')}
+}
+
+function renderRubyAndGetBoxes(source) {
+  const {container, ruby, rt} = renderRuby(source);
+  return {
+      container: container ? container.getBoundingClientRect() : null,
+      ruby: ruby ? ruby.getBoundingClientRect() : null,
+      rt: rt ? rt.getBoundingClientRect() : null
+  };
+}
+
+test(() => {
+  const {container, ruby, rt} = renderRubyAndGetBoxes(
+      '<div><ruby>base<rt>annotation</rt></ruby></div>');
+  assert_true(container.top <= rt.top);
+  assert_true(rt.top < ruby.top);
+}, 'Over ruby doesn\'t overflow the block');
+
+test(() => {
+  const {container, ruby, rt} = renderRubyAndGetBoxes(
+      '<div>before <span style="vertical-align:32px;">' +
+      '<ruby>base<rt>annotation</rt></ruby>' +
+       '</span> after</div>');
+  assert_true(container.top <= rt.top);
+  assert_true(rt.top < ruby.top);
+}, 'Over ruby + vertical-align doesn\'t overflow the block');
+
+test(() => {
+  const {container, ruby, rt} = renderRubyAndGetBoxes(
+      '<div><ruby style="ruby-position:under">base<rt>annotation</rt></ruby></div>');
+  assert_true(container.bottom >= rt.bottom);
+  assert_true(rt.bottom > ruby.bottom);
+}, 'Under ruby doesn\'t overflow the block');
+
+test(() => {
+  const {container, ruby, rt} = renderRubyAndGetBoxes(
+      '<div>before <ruby style="vertical-align:-32px; ruby-position:under">' +
+      'base<rt>annotation</rt></ruby> after</div>');
+  assert_true(container.bottom >= rt.bottom);
+  assert_true(rt.bottom > ruby.bottom);
+}, 'Under ruby + vertical-align doesn\'t overflow the block');
+
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div><ruby style="ruby-position:under">base<rt>annotation</rt></ruby>' +
+      '<div>n</div></div>');
+  const nextBlockBox = container.querySelector('div').getBoundingClientRect();
+  const rtBox = rt.getBoundingClientRect();
+  assert_greater_than_equal(nextBlockBox.top, rtBox.bottom);
+}, 'Under ruby doesn\'t overwrap with the next block');
+
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div><span>before</span><br><ruby>base<rt style="font-size:16px"' +
+      '>annotation</rt></ruby></div>');
+  const firstLine = container.querySelector('span').getBoundingClientRect();
+  assert_true(ruby.getBoundingClientRect().top - firstLine.bottom > 1);
+}, 'Expand inter-lines spacing');
+
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div style="line-height:1.5;">' +
+      '<span>First line</span><br>' +
+      '<span>Second line</span><br>' +
+      '<ruby>base<rt style="font-size:50%">' +
+      'annotation</rt></ruby></div>');
+  const firstLine = container.querySelector('span').getBoundingClientRect();
+  const secondLine = container.querySelectorAll('span')[1].getBoundingClientRect();
+  const rubyLine = ruby.getBoundingClientRect();
+  assert_approx_equals(secondLine.top - firstLine.top, rubyLine.top - secondLine.top, 1);
+}, 'Consume half-leading of the previous line');
+
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div style="line-height:1.5;">' +
+      '<span>First line</span><br>' +
+      '<span class="under_emp">Second line</span><br>' +
+      '<ruby>base<rt style="font-size:50%">' +
+      'annotation</rt></ruby></div>');
+  const firstLine = container.querySelector('span').getBoundingClientRect();
+  const secondLine = container.querySelectorAll('span')[1].getBoundingClientRect();
+  const rubyLine = ruby.getBoundingClientRect();
+  const RUBY_EMPHASIS_SIZE = 8;
+  assert_greater_than_equal(rubyLine.top - secondLine.top,
+                            secondLine.top - firstLine.top + RUBY_EMPHASIS_SIZE);
+}, 'Don\'t Consume half-leading of the previous line with text-emphasis');
+
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div style="line-height:1.5;">' +
+      '<span>First line</span><br>' +
+      '<ruby style="ruby-position:under">base<rt style="font-size:50%">' +
+      'annotation</rt></ruby><br>' +
+      '<span>Third line</span></div>');
+  const firstLine = container.querySelector('span').getBoundingClientRect();
+  const rubyLine = ruby.getBoundingClientRect();
+  const thirdLine = container.querySelectorAll('span')[1].getBoundingClientRect();
+  assert_approx_equals(rubyLine.top - firstLine.top, thirdLine.top - rubyLine.top, 1);
+}, 'Consume half-leading of the next line');
+
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div style="line-height:1.5;">' +
+      '<span>First line</span><br>' +
+      '<ruby style="ruby-position:under">base<rt style="font-size:50%">' +
+      'annotation</rt></ruby><br>' +
+      '<span class="over_emp">Third line</span>' +
+      '</div>');
+  const firstLine = container.querySelector('span').getBoundingClientRect();
+  const rubyLine = ruby.getBoundingClientRect();
+  const thirdLine = container.querySelectorAll('span')[1].getBoundingClientRect();
+  const RUBY_EMPHASIS_SIZE = 8;
+  assert_greater_than_equal(thirdLine.top - rubyLine.top,
+                            rubyLine.top - firstLine.top + RUBY_EMPHASIS_SIZE);
+}, 'Don\'t Consume half-leading of the next line with text-emphasis');
+
+// crbug.com/336592423
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div style="line-height:1;">' +
+      '<span style="display:inline-block; width:1em; height:4em; vertical-align:top"></span><br>' +
+      '<ruby>base<rt>annotation</rt></ruby></div>');
+  const firstLine = container.querySelector('span').getBoundingClientRect();
+  const rtBox = rt.getBoundingClientRect();
+  assert_greater_than_equal(rtBox.top, firstLine.bottom);
+}, 'An atomic-inline should not overlap with an annotation in the next line');
+</script>
+</body>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tiled gradient with spaces is repeated behind the border.</title>
+<link rel="match" href="reference/gradient-repeat-spaced-with-borders.html">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#valdef-background-repeat-space">
+<style>
+    #foo {
+        width: 65px;
+        height: 65px;
+        border: solid 35px transparent;
+        background: radial-gradient(transparent 50%, #36c 50%);
+        background-size: 30px 30px;
+        background-repeat: space;
+    }
+</style>
+<body>
+    <div id="foo"></div>
+</body>

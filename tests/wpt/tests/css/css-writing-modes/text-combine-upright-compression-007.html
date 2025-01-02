@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>CSS Test: text-combine-upright: all, fit any number of characters</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-compression">
+<link rel="match" href="text-combine-upright-compression-007-ref.html">
+<meta name="assert" content="text-combine-upright: all should allow any amount of text to be compressed in a 1em square">
+<link rel="stylesheet" href="support/width-test.css">
+<link rel="stylesheet" href="support/tcy.css">
+<style>
+.test { writing-mode: vertical-rl; height: 3.5em; }
+.test > p { border: 1px solid black; }
+.tcy { color: transparent; }
+</style>
+</head>
+<body>
+<p>Test passes if the contents in the two blocks are identical.</p>
+<div class="test">
+  <p>一<span class="tcy">ニ三四五六七八九</span>十</p>
+  <p>一<span class="fake-tcy"></span>十</p>
+</div>
+</body>
+</html>

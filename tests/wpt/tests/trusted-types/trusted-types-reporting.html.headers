@@ -1,0 +1,6 @@
+Content-Security-Policy: trusted-types one
+Content-Security-Policy-Report-Only: trusted-types two; report-uri /content-security-policy/resources/dummy-report.php
+Content-Security-Policy: object-src 'none'
+Content-Security-Policy: default-src * 'unsafe-inline'
+Content-Security-Policy: require-trusted-types-for 'script'
+

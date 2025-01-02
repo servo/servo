@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: Border collapsed table with a dynamic &lt;col&gt; insertion</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapsing">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1652384">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="border-collapse-dynamic-col-001-ref.html">
+<style>
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+  td {
+    padding: 10px;
+    border: 1px solid;
+  }
+</style>
+<table>
+  <colgroup>
+    <col>
+    <col>
+    <col>
+  </colgroup>
+  <tbody>
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+<script>
+  document.querySelector("table").getBoundingClientRect();
+  // Insert a column at the second position.
+  var trs = document.querySelectorAll("tr");
+  var col = document.querySelector("col");
+  col.parentNode.insertBefore(col.cloneNode(true), col.nextSibling);
+  for (var i = 0; i < trs.length; ++i) {
+    var row = trs[i];
+    var firstCell = row.querySelector("td");
+    firstCell.parentNode.insertBefore(firstCell.cloneNode(true), firstCell.nextSibling);
+  }
+</script>

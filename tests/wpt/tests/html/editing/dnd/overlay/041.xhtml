@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cursor position and drag image after new element is added to dragstore</title>
+<script type="application/ecmascript">
+function start(event,element)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.addElement(document.querySelectorAll('canvas')[element]);}
+</script>
+</head>
+<body>
+<p>
+  <canvas width="100" height="100" draggable="true" ondragstart="start(event,1)">Canvas</canvas>
+  <canvas width="100" height="100" draggable="true" ondragstart="start(event,0)">Canvas</canvas>
+</p>
+<p>Try to drag canvas above. Feedback overlay should include both canvases and mouse pointer should be anchored in dragged ones center.</p>
+<script type="application/ecmascript">
+var canvases = document.querySelectorAll('canvas');
+paintCanvas(canvases[0],'navy');
+paintCanvas(canvases[1],'green');
+function paintCanvas(canvas,color)
+  {var c = canvas.getContext('2d');
+  for(var x = 0; x != 50; x++)
+    {c.fillStyle = (x%2 == 0)?color:'white';
+    c.beginPath();
+    c.moveTo(x,x);
+    c.lineTo(100-x,x);
+    c.lineTo(100-x,100-x);
+    c.lineTo(x,100-x);
+    c.closePath();
+    c.fill();}
+  }
+</script>
+</body>
+</html>

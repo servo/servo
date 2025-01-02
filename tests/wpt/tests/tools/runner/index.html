@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset=UTF-8>
+<title>web-platform-tests Runner</title>
+<link rel='stylesheet' href='css/bootstrap.min.css'>
+<link rel='stylesheet' href='css/bootstrap-theme.min.css'>
+<link rel='stylesheet' href='runner.css'>
+<script src='/common/get-host-info.sub.js'></script>
+<script src='runner.js'></script>
+
+<header class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">
+        <img src='/images/wpt-logo/wpt-logo-lightblue-bg.svg' width='50' height='50' style='border-radius: 50%' alt='WPT Logo'>
+        web-platform-tests Runner
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="alert alert-warning">
+        This runner does not fully support all test types and has a number of
+        <a href="https://github.com/web-platform-tests/wpt/labels/runner">known issues</a>.
+        <span id="runner-contact-info"></span>
+        <code>./wpt run</code> is a more well-supported runner, see the documentation on
+        <a href="https://web-platform-tests.org/running-tests/">running tests</a>.
+        <script>
+        if (location.host == "w3c-test.org") {
+            document.getElementById("runner-contact-info")
+                .innerHTML = ' If this runner isn’t working, contact'
+                    + ' <a href="mailto:mike@w3.org">mike@w3.org</a>. '
+        }
+        </script>
+  </div>
+
+  <div id="testControl" class="panel panel-default">
+    <div class="panel-body">
+      <form id='options' class='horizontal-form' onsubmit='return false;'>
+
+        <div class="form-group">
+          <label class="col-sm-3 control-label">Test types to include</label>
+          <div class="col-sm-9">
+            <label>
+              <input type=checkbox checked value="testharness" id='th' class='test-type'>
+              JavaScript tests
+            </label>
+            <label>
+              <input type=checkbox checked value="reftest" id='ref' class='test-type'>
+              Reftests
+            </label>
+            <label>
+              <input type=checkbox checked value="manual" id='man' class='test-type'>
+              Manual tests
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="path" class="col-sm-3 control-label">Run tests under path</label>
+          <div class="col-sm-9">
+            <input value="/" id='path' class='path form-control' disabled>
+            <label>
+              <input type=checkbox id='use_regex'>
+              Use regular expression
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="timeout_multiplier" class="col-sm-3 control-label">Timeout multiplier</label>
+          <div class="col-sm-9">
+            <input type=number value="1" id='timeout_multiplier' class='timeout_multiplier form-control'>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-sm-3 control-label">Debug options</label>
+          <div class="col-sm-9">
+            <label>
+              <input type=checkbox id='render' value='render' class='render'>
+              Show output
+            </label>
+            <label>
+              <input type=checkbox id='dumpit'>
+              Dump JSON
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-sm-3 control-label">Count of matching tests</label>
+          <div class="col-sm-9" id="testcount">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="col-sm-offset-3 col-sm-9">
+            <button type="submit" class="btn btn-success toggleStart" disabled>Start</button>
+            <button type='submit' class="btn btn-info togglePause" disabled>Pause</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <p>
+      To run a set of
+      <a href="https://github.com/web-platform-tests/wpt/blob/master/README.md">web-platform-tests</a>
+      tests, specify a path value in the <b>Run tests under path</b> field above. Example paths:
+    </p>
+    <ul>
+      <li><code>/</code> - runs all of the tests from the root down</li>
+      <li><code>/websockets</code> - runs all of the
+          <a href="http://w3c-test.org/websockets/">websockets</a> tests</li>
+      <li><code>/websockets/constructor</code> - runs all of the
+          <a href="http://w3c-test.org/websockets/constructor/">websockets/constructor</a> tests</li>
+      <li><code>/html/syntax/parsing</code> - runs all of the
+          <a href="http://w3c-test.org/html/syntax/parsing/">html/syntax/parsing</a> tests</li>
+    </ul>
+    <p>
+      Multiple test paths can be specified by separating them with comma or whitespace. For example,
+      <code>/js, /html</code> will run the <a href="http://w3c-test.org/js/">js</a> <em>and</em> <a href="http://w3c-test.org/html/">html</a>
+      tests.
+    </p>
+    <p>
+      <a href="http://www.w3schools.com/jsref/jsref_obj_regexp.asp" target="_blank">Javascript regular expressions</a> are also supported for filtering. When the option is checked,
+      only a test path matching the regex pattern will run. For example, you can specify <code>^/js/|^/html/</code>
+      to run the <a href="http://w3c-test.org/js/">js</a> <em>and</em> <a href="http://w3c-test.org/html/">html</a>
+      tests.
+    </p>
+    <p>
+      If the test runner is run online, the set of tests available to run can be found in the
+      <a href="http://w3c-test.org/">w3c-test.org</a> test repository.
+    </p>
+    <p>
+      Tests will run in a new window. For reftests and manual tests it’s best
+      to put that window side-by-side with this one.
+    </p>
+  </div>
+
+  <div id="output">
+    <div class="summary clearfix">
+      <h4>Progress</h4>
+      <div class="progress">
+        <div class="progress-bar" role="progressbar"
+             aria-valuenow="0" aria-valuemin="0" aria-valuemax="0" style="width: 0">
+          0%
+        </div>
+      </div>
+      <div id="current_test">
+        <label>Current test:</label><a></a>
+      </div>
+      <table class='table'>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Passed</th>
+            <th>Failed</th>
+            <th>Timeouts</th>
+            <th>Errors</th>
+            <th>Not Run</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td></td>
+            <td class='PASS'>0</td>
+            <td class='FAIL'>0</td>
+            <td class='TIMEOUT'>0</td>
+            <td class='ERROR'>0</td>
+            <td class='NOTRUN'>0</td>
+          </tr>
+           <tr>
+            <td>
+              <label>
+                Display:
+              </label>
+              </td>
+            <td><input type=checkbox class="result-display-filter" value="PASS" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="FAIL" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="TIMEOUT" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="ERROR" checked></td>
+            <td><input type=checkbox class="result-display-filter" value="NOTRUN" checked></td>
+          </tr>
+        </tbody>
+      </table>
+      <a class="jsonResults btn btn-primary pull-right">Download JSON results</a>
+    </div>
+
+    <div class="results">
+      <div id="manualUI">
+        <div class='panel panel-primary'>
+          <div class='panel-heading'>
+            <h4 class='panel-title'>Manual Testing</h4>
+          </div>
+          <div class="panel-body reftestUI">
+            <p>
+              The current test requires manual result marking.
+              Test and ref should compare <strong class="refType text-primary"></strong>
+            </p>
+            <p>
+              <button class="btn btn-info test">Show Test</button>
+              <button class="btn btn-info ref">Show Reference</button>
+              <span class="reftestWarn"></span>
+            </p>
+          </div>
+          <div class="panel-footer">
+            The test has:
+            <button class="btn btn-success pass">Passed</button>
+            <button class="btn btn-info skip">Not Run</button>
+            <button class="btn btn-danger fail">Failed</button>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+      <h4>Details</h4>
+      <table class='table'>
+        <thead>
+          <tr>
+            <th>Test
+            <th>Status
+            <th>Message
+            <th>Subtest Pass Rate
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

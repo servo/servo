@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+    </head>
+    <body>
+        <video id="video1" autoplay></video>
+        <video id="video2" autoplay></video>
+        <script src ="routines.js"></script>
+        <script>
+
+promise_test(async (test) => {
+  const worker = await createWorker('script-transform-worker.js');
+  const transform = await createTransform(worker);
+  transform.port.postMessage("ping");
+  assert_equals(await getNextMessage(transform.port), "pong");
+}, "transform messaging");
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-worker.js', {audio: true});
+
+  const sender2 = senderPc.addTransceiver('video').sender;
+  const receiver2 = senderPc.getReceivers()[1];
+
+  assert_throws_dom("InvalidStateError", () => sender2.transform = sender.transform);
+  assert_throws_dom("InvalidStateError", () => receiver2.transform = receiver.transform);
+
+  sender.transform = sender.transform;
+  receiver.transform = receiver.transform;
+
+  sender.transform = null;
+  receiver.transform = null;
+}, "Cannot reuse attached transforms");
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-worker.js', {audio: true});
+  assert_equals(await getNextMessage(sender.transform.port), "audio chunk");
+
+  video1.srcObject = new MediaStream([receiver.track]);
+  await video1.play();
+}, "audio exchange with transform");
+
+promise_test(async (test) => {
+  const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-worker.js', {video: true});
+
+  assert_equals(await getNextMessage(sender.transform.port), "video chunk");
+  // First frame should be a keyframe
+  assert_equals(await getNextMessage(sender.transform.port), "video keyframe");
+
+  video1.srcObject = new MediaStream([receiver.track]);
+  await video1.play();
+}, "video exchange with transform");
+        </script>
+    </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      font-size: 300%;
+    }
+
+  span
+    {
+      color: maroon;
+      text-decoration: underline dotted fuchsia;
+    }
+  </style>
+
+  <p>PREREQUISITE: User agent needs to have an enabled and capable grammar error module. If it does not, then this test does not apply to such user agent.
+
+  <p>Test passes if each glyph of "thing" is maroon and if "thing" is underlined with a fuchsia dotted line.
+
+  <div contenteditable="true">Many <span>thing</span> can happen.</div>

@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: :first-line</title>
+    <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+    <link rel="match" href="first-line-floats-001-ref.xht"/>
+    <meta name="flags" content="dom" />
+    <style type="text/css">
+      div { color: green }
+      div:first-line { color: red }
+    </style>
+    <script type="text/javascript">
+      function runTest() {
+        var s = document.createElement("span");
+        s.setAttribute("style", "float: left");
+        s.appendChild(document.createTextNode("This should be green"));
+        var i = document.getElementById("i");
+        i.parentNode.insertBefore(s, i);
+      }
+    </script>
+  </head>
+  <body onload="runTest()">
+    <div><span id="i"></span></div>
+
+
+
+</body></html>

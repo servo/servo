@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#valdef-position-fixed">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<link rel="match" href="fixedpos-011-print-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .cover-me {
+    position: absolute;
+    z-index: -1;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  .text {
+    margin-right: 110px;
+  }
+</style>
+<div class="cover-me"></div>
+<div style="position:fixed; right:0; top:0; columns:4; gap:0; column-fill:auto; width:100px; height:100px; background:red;">
+  <div style="height:400px; background:green;"></div>
+</div>
+<div class="text">
+  There should be three pages. All pages should have a green square in the top
+  right corner.
+</div>
+<div style="break-before:page;">
+  <div class="cover-me"></div>
+  <div class="text">Second page</div>
+</div>
+<div style="break-before:page;">
+  <div class="cover-me"></div>
+  <div class="text">Third page</div>
+</div>

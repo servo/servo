@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Tyler Wilcock" href="mailto:twilco.o@protonmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image-width">
+
+<!-- Editorial of the spec.
+ > Since by default a border image is only drawn in the border area, by default a border-style of none will make
+ > it disappear. However, the border-image-outset and border-image-width values can alter the “border” area into
+ > which the border image is drawn, extending it into the padding area (in the case of border-image-widths greater
+ > than the border-width) or extending it outside the border edge (in the case of border-image-outset greater than zero).
+-->
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/655#issuecomment-331059128">
+<link rel="match" href="border-image-width-should-extend-to-padding-ref.html">
+<title>
+  `border-image-width` should extend into padding given an empty border area via `border-style: none`
+</title>
+<style>
+    div {
+        width: 200px;
+        height: 200px;
+        margin: 20px;
+        background-color: silver;
+        border-image-source: linear-gradient(blue, orange);
+        border-image-slice: 32;
+        border-image-repeat: repeat;
+        border-image-width: 32px;
+        border-style: none;
+    }
+</style>
+
+Test passes if a 200x200px (content + padding + border) box with a 32px border-image is rendered.
+<div></div>
+

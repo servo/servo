@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Browsing context - Default name</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="/common/blank.html" style="display:none"></iframe>
+<object id="obj" type="text/html" data="about:blank"></object>
+<embed id="embedded" type="image/svg+xml" src="/images/green.svg" width="0" height="0" />
+<script>
+test(t => {
+  assert_equals(window.frames[0].name, "");
+  assert_equals(document.getElementById("embedded").name, "");
+  assert_equals(window["obj"].name, "");
+}, "A embedded browsing context has empty-string default name");
+
+test(t => {
+  var win = window.open("about:blank", "_blank");
+  assert_equals(win.name, "");
+  win.close();
+}, "A browsing context which is opened by window.open() method with '_blank' parameter has empty-string default name");
+</script>

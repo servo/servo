@@ -1,0 +1,380 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+const wtu = WebGLTestUtils;
+description();
+
+const gl = wtu.create3DContext();
+gl.canvas.width = gl.canvas.height = 1;
+
+function makeTexImage(format, unpackFormat, unpackType, data) {
+    data = data || null;
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl[format], 2, 2, 0,
+                gl[unpackFormat], gl[unpackType], null);
+    return tex;
+}
+
+const DUMMY_COLOR = makeTexImage('RGBA', 'RGBA', 'UNSIGNED_BYTE');
+
+function makeProgram(gl, vsSrc, fsSrc) {
+  function makeShader(prog, type, src) {
+    const shader = gl.createShader(gl[type]);
+    gl.shaderSource(shader, src.trim());
+    gl.compileShader(shader);
+    gl.attachShader(prog, shader);
+    gl.deleteShader(shader);
+  };
+
+  const prog = gl.createProgram();
+  makeShader(prog, 'VERTEX_SHADER', vsSrc);
+  makeShader(prog, 'FRAGMENT_SHADER', fsSrc);
+  gl.linkProgram(prog);
+
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    throw 'Program linking failed' + fsSrc;
+  }
+  return prog;
+}
+
+const TEX_FILTER_PROG_T = (version, samplerT) => makeProgram(gl, `\
+    ${version}
+    void main() {
+        gl_PointSize = 1.0;
+        gl_Position = vec4(0.5,0.5,0,1);
+    }`,`\
+    ${version}
+    precision mediump float;
+    uniform ${samplerT} u_tex0;
+    #if __VERSION__ == 300
+    out vec4 o_FragColor;
+    #else
+    #define o_FragColor gl_FragColor
+    #define texture texture2D
+    #endif
+    void main() {
+        o_FragColor = vec4(texture(u_tex0, vec2(0.8)));
+    }`);
+const TEX_FILTER_PROG_BY_TYPEISH = {
+    'float': TEX_FILTER_PROG_T('', 'sampler2D'),
+};
+if (wtu.isWebGL2(gl)) {
+    TEX_FILTER_PROG_BY_TYPEISH['int'] =
+        TEX_FILTER_PROG_T('#version 300 es', 'highp isampler2D');
+    TEX_FILTER_PROG_BY_TYPEISH['uint'] =
+        TEX_FILTER_PROG_T('#version 300 es', 'highp usampler2D');
+}
+
+function runPixelProgram(gl, prog) {
+    gl.useProgram(prog);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.POINTS, 0, 1);
+    const bytes = new Uint8Array(4);
+    gl.readPixels(0,0,1,1,gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+    return [].map.call(bytes, x => x/255.0);
+}
+
+// GLES 2.0.25 p63
+const FORMAT_INFO_WEBGL1 = {
+    RGBA8  : { filter: true, render: true     , unpack: ['RGBA', 'UNSIGNED_BYTE'] },
+    RGB8   : { filter: true, render: undefined, unpack: ['RGB', 'UNSIGNED_BYTE'] },
+    RGBA4  : { filter: true, render: undefined, unpack: ['RGBA', 'UNSIGNED_SHORT_4_4_4_4'] },
+    RGB5_A1: { filter: true, render: undefined, unpack: ['RGBA', 'UNSIGNED_SHORT_5_5_5_1'] },
+    RGB565 : { filter: true, render: undefined, unpack: ['RGB', 'UNSIGNED_SHORT_5_6_5'] },
+    LA8    : { filter: true, render: false    , unpack: ['LUMINANCE_ALPHA', 'UNSIGNED_BYTE'] },
+    L8     : { filter: true, render: false    , unpack: ['LUMINANCE', 'UNSIGNED_BYTE'] },
+    A8     : { filter: true, render: false    , unpack: ['ALPHA', 'UNSIGNED_BYTE'] },
+};
+
+// GLES 3.0.6 p130-132
+const FORMAT_INFO_WEBGL2 = {
+    R8            : { render: true , filter: true , unpack: ['RED', 'UNSIGNED_BYTE'] },
+    R8_SNORM      : { render: false, filter: true , unpack: ['RED', 'BYTE'] },
+    RG8           : { render: true , filter: true , unpack: ['RG', 'UNSIGNED_BYTE'] },
+    RG8_SNORM     : { render: false, filter: true , unpack: ['RG', 'BYTE'] },
+    RGB8          : { render: true , filter: true , unpack: ['RGB', 'UNSIGNED_BYTE'] },
+    RGB8_SNORM    : { render: false, filter: true , unpack: ['RGB', 'BYTE'] },
+    RGB565        : { render: true , filter: true , unpack: ['RGB', 'UNSIGNED_SHORT_5_6_5'] },
+    RGBA4         : { render: true , filter: true , unpack: ['RGBA', 'UNSIGNED_SHORT_4_4_4_4'] },
+    RGB5_A1       : { render: true , filter: true , unpack: ['RGBA', 'UNSIGNED_SHORT_5_5_5_1'] },
+    RGBA8         : { render: true , filter: true , unpack: ['RGBA', 'UNSIGNED_BYTE'] },
+    RGBA8_SNORM   : { render: false, filter: true , unpack: ['RGBA', 'BYTE'] },
+    RGB10_A2      : { render: true , filter: true , unpack: ['RGBA', 'UNSIGNED_INT_10_10_10_2'] },
+    RGB10_A2UI    : { render: true , filter: false, unpack: ['RGBA', 'UNSIGNED_INT_10_10_10_2'] },
+    SRGB8         : { render: false, filter: true , unpack: ['RGB', 'UNSIGNED_BYTE'] },
+    SRGB8_ALPHA8  : { render: true , filter: true , unpack: ['RGBA', 'UNSIGNED_BYTE'] },
+    R16F          : { render: false, filter: true , unpack: ['RED', 'FLOAT'] },
+    RG16F         : { render: false, filter: true , unpack: ['RG', 'FLOAT'] },
+    RGB16F        : { render: false, filter: true , unpack: ['RGB', 'FLOAT'] },
+    RGBA16F       : { render: false, filter: true , unpack: ['RGBA', 'FLOAT'] },
+    R32F          : { render: false, filter: false, unpack: ['RED', 'FLOAT'] },
+    RG32F         : { render: false, filter: false, unpack: ['RG', 'FLOAT'] },
+    RGB32F        : { render: false, filter: false, unpack: ['RGB', 'FLOAT'] },
+    RGBA32F       : { render: false, filter: false, unpack: ['RGBA', 'FLOAT'] },
+    R11F_G11F_B10F: { render: false, filter: true , unpack: ['RGB', 'FLOAT'] },
+    RGB9_E5       : { render: false, filter: true , unpack: ['RGB', 'FLOAT'] },
+    R8I           : { render: true , filter: false, unpack: ['RED', 'BYTE'] },
+    R8UI          : { render: true , filter: false, unpack: ['RED', 'UNSIGNED_BYTE'] },
+    R16I          : { render: true , filter: false, unpack: ['RED', 'BYTE'] },
+    R16UI         : { render: true , filter: false, unpack: ['RED', 'UNSIGNED_BYTE'] },
+    R32I          : { render: true , filter: false, unpack: ['RED', 'BYTE'] },
+    R32UI         : { render: true , filter: false, unpack: ['RED', 'UNSIGNED_BYTE'] },
+    RG8I          : { render: true , filter: false, unpack: ['RG', 'BYTE'] },
+    RG8UI         : { render: true , filter: false, unpack: ['RG', 'UNSIGNED_BYTE'] },
+    RG16I         : { render: true , filter: false, unpack: ['RG', 'SHORT'] },
+    RG16UI        : { render: true , filter: false, unpack: ['RG', 'UNSIGNED_SHORT'] },
+    RG32I         : { render: true , filter: false, unpack: ['RG', 'INT'] },
+    RG32UI        : { render: true , filter: false, unpack: ['RG', 'UNSIGNED_INT'] },
+    RGB8I         : { render: false, filter: false, unpack: ['RGB', 'BYTE'] },
+    RGB8UI        : { render: false, filter: false, unpack: ['RGB', 'UNSIGNED_BYTE'] },
+    RGB16I        : { render: false, filter: false, unpack: ['RGB', 'SHORT'] },
+    RGB16UI       : { render: false, filter: false, unpack: ['RGB', 'UNSIGNED_SHORT'] },
+    RGB32I        : { render: false, filter: false, unpack: ['RGB', 'INT'] },
+    RGB32UI       : { render: false, filter: false, unpack: ['RGB', 'UNSIGNED_INT'] },
+    RGBA8I        : { render: true , filter: false, unpack: ['RGBA', 'BYTE'] },
+    RGBA8UI       : { render: true , filter: false, unpack: ['RGBA', 'UNSIGNED_BYTE'] },
+    RGBA16I       : { render: true , filter: false, unpack: ['RGBA', 'SHORT'] },
+    RGBA16UI      : { render: true , filter: false, unpack: ['RGBA', 'UNSIGNED_SHORT'] },
+    RGBA32I       : { render: true , filter: false, unpack: ['RGBA', 'INT'] },
+    RGBA32UI      : { render: true , filter: false, unpack: ['RGBA', 'UNSIGNED_INT'] },
+
+    DEPTH_COMPONENT16:  { render: 'DEPTH_ATTACHMENT', filter: false },
+    DEPTH_COMPONENT24:  { render: 'DEPTH_ATTACHMENT', filter: false },
+    DEPTH_COMPONENT32F: { render: 'DEPTH_ATTACHMENT', filter: false },
+    DEPTH24_STENCIL8:   { render: 'DEPTH_STENCIL_ATTACHMENT', filter: false },
+    DEPTH32F_STENCIL8:  { render: 'DEPTH_STENCIL_ATTACHMENT', filter: false },
+};
+
+const ONE_BY_TYPE = {
+    'BYTE': (1<<7)-1,
+    'UNSIGNED_BYTE': (1<<8)-1,
+    'SHORT': (1<<15)-1,
+    'UNSIGNED_SHORT': (1<<16)-1,
+    'INT': (1<<31)-1,
+    'UNSIGNED_INT': Math.pow(2,32)-1,
+    'FLOAT': 1,
+};
+
+const ABV_BY_TYPE = {
+    'BYTE': Int8Array,
+    'UNSIGNED_BYTE': Uint8Array,
+    'SHORT': Int16Array,
+    'UNSIGNED_SHORT': Uint16Array,
+    'INT': Int32Array,
+    'UNSIGNED_INT': Uint32Array,
+    'FLOAT': Float32Array,
+};
+
+function pushBitsUnorm(prev, bitCount, floatVal) {
+    let ret = prev << bitCount;
+    ret |= floatVal * ((1 << bitCount)-1);
+    return ret;
+}
+
+const CHANNELS_BY_FORMAT = {
+    'RED': 1,
+    'LUMINANCE': 1,
+    'ALPHA': 1,
+    'LUMINANCE_ALPHA': 2,
+    'RG': 2,
+    'RGB': 3,
+    'RGBA': 4,
+};
+
+function throwv(val) {
+    throw val;
+}
+
+function pixelDataForUnpack(format, type, floatVal) {
+    switch (type) {
+        case 'UNSIGNED_SHORT_5_6_5': {
+            let bits = 0;
+            bits = pushBitsUnorm(bits, 5, floatVal);
+            bits = pushBitsUnorm(bits, 6, floatVal);
+            bits = pushBitsUnorm(bits, 5, floatVal);
+            return new Uint16Array([bits]);
+        }
+        case 'UNSIGNED_SHORT_4_4_4_4': {
+            let bits = 0;
+            bits = pushBitsUnorm(bits, 4, floatVal);
+            bits = pushBitsUnorm(bits, 4, floatVal);
+            bits = pushBitsUnorm(bits, 4, floatVal);
+            bits = pushBitsUnorm(bits, 4, floatVal);
+            return new Uint16Array([bits]);
+        }
+        case 'UNSIGNED_SHORT_5_5_5_1': {
+            let bits = 0;
+            bits = pushBitsUnorm(bits, 5, floatVal);
+            bits = pushBitsUnorm(bits, 5, floatVal);
+            bits = pushBitsUnorm(bits, 5, floatVal);
+            bits = pushBitsUnorm(bits, 1, floatVal); // Ok, silly for 1 bit here.
+            return new Uint16Array([bits]);
+        }
+        case 'UNSIGNED_INT_10_10_10_2': {
+            let bits = 0;
+            bits = pushBitsUnorm(bits, 10, floatVal);
+            bits = pushBitsUnorm(bits, 10, floatVal);
+            bits = pushBitsUnorm(bits, 10, floatVal);
+            bits = pushBitsUnorm(bits, 2, floatVal); // 2 bits isn't much more useful
+            return new Uint32Array([bits]);
+        }
+    }
+
+    const channels = CHANNELS_BY_FORMAT[format] || throwv(format);
+    const one = ONE_BY_TYPE[type] || throwv('240', type);
+    const abvType = ABV_BY_TYPE[type] || throwv('241', type);
+
+    const val = floatVal * one;
+    const arr = [];
+    for (const i of range(channels)) {
+        arr.push(val);
+    }
+    return new abvType(arr);
+}
+
+function expect(name, was, expected) {
+    let text = `${name} was ${was}`;
+    const cond = was == expected;
+    if (!cond) {
+        text += `, but expected ${expected}`;
+    }
+    expectTrue(cond, text);
+}
+
+function toTypeish(sizedFormat) {
+    if (sizedFormat.endsWith('UI')) {
+        return 'int';
+    } else if (sizedFormat.endsWith('I')) {
+        return 'uint';
+    }
+    return 'float';
+}
+
+call(async () => {
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+    let formatList = FORMAT_INFO_WEBGL1;
+    if (wtu.isWebGL2(gl)) {
+        formatList = FORMAT_INFO_WEBGL2;
+    }
+    for (const [sizedFormat, info] of Object.entries(formatList)) {
+        await wtu.dispatchPromise();
+        debug(``);
+        debug(`${sizedFormat}: ${JSON.stringify(info)}`);
+
+        const typeish = toTypeish(sizedFormat);
+
+        //  |---|---|
+        //  | 0 | 1 |
+        //  |---|---|
+        // 0| 0 | 0 |
+        //  |---|---|
+        //    0
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+        if (gl.texStorage2D) {
+            gl.texStorage2D(gl.TEXTURE_2D, 1, gl[sizedFormat], 2, 2);
+        } else {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl[info.unpack[0]],
+                2, 2, 0, gl[info.unpack[0]], gl[info.unpack[1]], null);
+        }
+
+        if (info.unpack) {
+            const one = pixelDataForUnpack(...info.unpack, 1.0);
+            const data = new one.constructor(one.length*4);
+            data.set(one, one.length*3);
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0,
+                2,2, gl[info.unpack[0]], gl[info.unpack[1]], data);
+        } else {
+            info.render || throwv(`${sizedFormat} without unpack or render`);
+        }
+
+        // -
+        // color-renderable test
+
+        {
+            const fb = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+            let attach = info.render || true;
+            const isColor = (attach === true);
+            if (isColor) {
+                attach = 'COLOR_ATTACHMENT0';
+            } else {
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+                                        gl.TEXTURE_2D, DUMMY_COLOR, 0);
+            }
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl[attach],
+                                    gl.TEXTURE_2D, tex, 0);
+            const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+            const wasRenderable = (status == gl.FRAMEBUFFER_COMPLETE);
+            if (info.render === undefined) {
+                debug(`Non-normative: color-renderable was ${wasRenderable}`);
+            } else {
+                expect('color-renderable', wasRenderable, !!info.render);
+            }
+            if (wasRenderable) {
+                gl.clearColor(0,0,0,0);
+                gl.clearDepth(0);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                gl.enable(gl.SCISSOR_TEST);
+                gl.scissor(1,1,1,1);
+                gl.clearColor(1,1,1,1);
+                gl.clearDepth(1);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                gl.disable(gl.SCISSOR_TEST);
+            }
+            gl.deleteFramebuffer(fb);
+            if (!wasRenderable && !info.unpack) {
+                testFailed('No unpack provided and !wasRenderable, skipping filtering subtest...');
+                continue;
+            }
+        }
+
+        // -
+        // filterable test
+
+        const prog = TEX_FILTER_PROG_BY_TYPEISH[typeish];
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.clearColor(0,0,0,0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0,0,1,1);
+        const v = runPixelProgram(gl, prog);
+        if (sizedFormat != 'A8') {
+            v[3] = 0; // Incomplete no-alpha formats put 1 in alpha.
+        }
+        const wasFilterable = v.some(x => !!x);
+        expect('filterable', wasFilterable, info.filter);
+    }
+
+    finishTest();
+});
+
+</script>
+</body>
+</html>

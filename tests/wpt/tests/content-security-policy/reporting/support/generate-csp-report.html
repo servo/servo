@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script nonce='abc'>
+      top.postMessage('cookie set', '*');
+    </script>
+    <script>
+        // This script block will trigger a violation report.
+        alert('FAIL');
+    </script>
+</body>
+</html>

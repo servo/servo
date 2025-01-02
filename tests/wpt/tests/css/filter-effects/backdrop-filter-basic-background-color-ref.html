@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Basic operation of filter with background color</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+
+
+
+<div>
+  <p>Expected: A green box and an overlapping blue box, with a purple<br>
+  overlapping region.</p>
+</div>
+<div class="colorbox"></div>
+<div class="box2outside"></div>
+<div class="box2inside"></div>
+
+<style>
+.colorbox {
+    position: absolute;
+    background: green;
+    width: 100px;
+    height: 100px;
+    left: 10px;
+    top: 100px;
+}
+.box2outside {
+    background: #000088;
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    left: 60px;
+    top: 150px;
+}
+.box2inside {
+    background: #773bff;
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    left: 60px;
+    top: 150px;
+}
+</style>
+

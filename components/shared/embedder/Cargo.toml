@@ -1,0 +1,29 @@
+[package]
+name = "embedder_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "embedder_traits"
+path = "lib.rs"
+
+[features]
+webxr = ["dep:webxr-api"]
+
+[dependencies]
+base = { workspace = true }
+cfg-if = { workspace = true }
+crossbeam-channel = { workspace = true }
+ipc-channel = { workspace = true }
+keyboard-types = { workspace = true }
+log = { workspace = true }
+num-derive = "0.4"
+num-traits = { workspace = true }
+serde = { workspace = true }
+servo_url = { path = "../../url" }
+webrender_api = { workspace = true }
+webxr-api = { workspace = true, features = ["ipc"], optional = true }

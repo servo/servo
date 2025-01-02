@@ -1,0 +1,64 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='../support/base.css' />
+
+<link rel="author" title="Greg Whitworth" href="gwhit@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#width-distribution" />
+
+<style>
+    x-td {
+        background: blue;
+    }
+
+    x-table span {
+        display: inline-block;
+        background: green;
+        height: 100px;
+    }
+</style>
+<main>
+    <h1>Width Distribution</h1>
+    <h4>"Distribution Algorithm - min-content-percent guess"</h4>
+    <p>Tests that the size of the column is given the max(%width, min-content width)
+         <a href="https://drafts.csswg.org/css-tables-3/#width-distribution-algorithm">Spec Text</a>
+    </p>
+    <x-table id="one" style="width: 400px;">
+        <x-tr>
+            <x-td id="two" style="width: 50%">
+                <span style="width: 100%">Cell 1</span>
+            </x-td>
+            <x-td id="three">
+                <span style="width: 100%">Cell 2</span>
+            </x-td>
+        </x-tr>
+    </x-table>
+</main>
+
+<script>
+    while(true) {
+        var xtd = document.querySelector('x-td[rowspan], x-td[colspan]'); if(!xtd) break;
+        var td = document.createElement('td'); for(var i = xtd.attributes.length; i--;) { td.setAttribute(xtd.attributes[i].name,xtd.attributes[i].value) }
+        xtd.parentNode.replaceChild(td,xtd);
+    }
+
+    var i = 1;
+    generate_tests(assert_equals, [
+        [
+            'The box should be 400px since that is the size of the content',
+            document.getElementById('one').offsetWidth,
+            400
+        ],
+        [
+            'The first cell is 200px due to its 50% specified width is greater than ',
+            document.getElementById('two').offsetWidth,
+            200
+        ],
+        [
+            'The second cell is 200px due to the 50% set on the first cell and the second gets distributed the remaining space since its auto',
+            document.getElementById('three').offsetWidth,
+            200
+        ]
+    ]);
+</script>
+</html>

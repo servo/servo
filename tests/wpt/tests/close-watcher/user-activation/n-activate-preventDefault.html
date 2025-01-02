@@ -1,0 +1,31 @@
+<!doctype html>
+<meta name=variant content="?dialog">
+<meta name=variant content="?CloseWatcher">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+const type = location.search.substring(1);
+
+promise_test(async t => {
+  const events = [];
+  const watcher = createRecordingCloseWatcher(t, events, undefined, type);
+  watcher.addEventListener("cancel", e => e.preventDefault());
+
+  await maybeTopLayerBless(watcher);
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+
+  assert_array_equals(events, ["cancel[cancelable=true]"]);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["cancel[cancelable=true]", "cancel[cancelable=false]", "close"]);
+}, "Create a close watcher without user activation that preventDefault()s cancel; send user activation");
+</script>

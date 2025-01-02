@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset=windows-1252> <!-- intentionally not UTF-8 to test that the javascript: frames are forced to UTF-8 -->
+<title>Test javascript URL string return values in direct and indirect (target) frame contexts.</title>
+<!-- Waiting on https://github.com/whatwg/html/pull/6781 to be non-tentative. -->
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+const testCases = [
+  [[0x41]],
+  [[0x80,0xFF]],
+  [[0x80,0xFF,0x100]],
+  [[0xD83D,0xDE0D]],
+  [[0xDE0D,0x41], [0xFFFD,0x41]]
+];
+
+function formatCharCodes(charCodes) {
+  return charCodes.map(code => code.toString(16).toUpperCase().padStart(4, '0')).join(" ");
+}
+
+for (const [input, expected = input] of testCases) {
+  const javascriptURL = `javascript:String.fromCharCode(${input})`;
+  const output = String.fromCharCode(...expected);
+
+  async_test(t => {
+    const frame = document.createElement("iframe");
+    t.add_cleanup(() => frame.remove());
+    frame.src = javascriptURL;
+
+    t.step_timeout(() => {
+      assert_equals(frame.contentDocument.body.textContent, output);
+      assert_equals(frame.contentDocument.charset, "UTF-8");
+      t.done();
+    }, 200);
+
+    document.body.appendChild(frame);
+  }, `${formatCharCodes(input)} set in src=""`);
+
+  async_test(t => {
+    const frame = document.createElement("iframe");
+    const href = document.createElement("a");
+    t.add_cleanup(() => { frame.remove(); href.remove(); });
+    frame.name = "hi" + input;
+    href.target = "hi" + input;
+    href.href = javascriptURL;
+
+    t.step_timeout(() => {
+      assert_equals(frame.contentDocument.body.textContent, output);
+      assert_equals(frame.contentDocument.charset, "UTF-8");
+      t.done();
+    }, 200)
+
+    document.body.appendChild(frame);
+    document.body.appendChild(href);
+    href.click();
+  }, `${formatCharCodes(input)} set in href="" targeting a frame and clicked`);
+}
+</script>

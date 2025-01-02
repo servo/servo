@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Ruby Layout: parsing ruby-align with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-align-property">
+<meta name="assert" content="ruby-align supports only the grammar 'start | center | space-between | space-around'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("ruby-align", "auto");
+test_invalid_value("ruby-align", "left");
+test_invalid_value("ruby-align", "10px");
+
+test_invalid_value("ruby-align", "center start");
+</script>
+</body>
+</html>

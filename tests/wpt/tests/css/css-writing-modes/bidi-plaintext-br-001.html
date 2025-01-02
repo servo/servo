@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>unicode-bidi: plaintext with forced breaks</title>
+<link rel="help" href='https://drafts.csswg.org/css-writing-modes-3/#valdef-unicode-bidi-plaintext'/>
+<link rel="match" href='reference/bidi-plaintext-br-001-ref.html'/>
+<link rel="author" title="Koji Ishii" href='mailto:kojii@chromium.org'/>
+<style>
+div.test {
+  font-family: Arial;
+  line-height: 1;
+  width: 10ch;
+  border: 1px solid blue;
+  unicode-bidi: plaintext;
+}
+</style>
+<body>
+  <div class="test">
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+    MMMMM
+  </div>
+  <div class="test">
+    MMMMM
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+  </div>
+  <div class="test">
+    a<br>
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+    MMMMM
+  </div>
+  <div class="test">
+    a<br>
+    MMMMM
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+  </div>
+  <div class="test">
+    &#x5D0;<br>
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+    MMMMM
+  </div>
+  <div class="test">
+    &#x5D0;<br>
+    MMMMM
+    &#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;&#x5D0;
+  </div>
+</body>

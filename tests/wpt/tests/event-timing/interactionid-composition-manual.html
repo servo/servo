@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+
+<head>
+    <style>
+        table,
+        td {
+            padding: 8px;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <title>Event Timing: interactionId composition events.</title>
+    <form>
+        <b> Select your Operating System from the list</b>
+        <select id="option" onchange="dropdownMenu()">
+            <option> ---Choose OS--- </option>
+            <option> Linux </option>
+            <option> Windows </option>
+        </select>
+        <p> Your selected OS is:
+            <input type="text" id="os" size="20">
+        </p>
+    </form>
+    <pre>
+    Steps:
+    1) Open <b id = "IMEtype"></b> IME and select Hiragana input method.
+    2) Click at the above textbox and then type 'a' using keyboard.
+    3) Press the '{Enter}' key to complete the IME composition.
+    4) <a href="interactionid-composition-manual.html">Click here</a> to test again if not following the steps exactly.
+
+    <textarea id='test' placeholder="enter 'a'"></textarea>
+
+Expected Result:
+    The test is successful when the sentence "PASS Event Timing: interactionId composition events" is displayed
+    at the bottom of the page after completing all the steps. If there is an indicated Harness Error next to the sentence, the test failed.
+    Moreover, the event log table below provides a summary of the keyboard events processed throughout the test.
+    Here is a breakdown of the columns in the table:
+
+    1. <strong>InteractionId</strong>: Identifies the specific interaction to which an event belongs.
+    2. <strong>EventType</strong>: Specifies the type of event that occurred during a particular interaction. There are
+    seven possible event types:
+    - 'keydown'
+    - 'keypress'
+    - 'input'
+    - 'keyup'
+    - 'compositionupdate'
+    - 'compositionstart'
+    - 'compositionend'
+    3. <strong>NumberOfEvents</strong>: Indicates the number of times a particular type of event was recorded in a single interaction.
+
+</pre>
+
+    <table id="eventLogTable">
+        <tr>
+            <td>InteractionId</td>
+            <td>Event Type</td>
+            <td>Number of Events</td>
+        </tr>
+    </table>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src=resources/event-timing-test-utils.js></script>
+    <script>
+        setup({ explicit_timeout: true, explicit_done: true });
+
+        function dropdownMenu() {
+            var list = document.getElementById("option");
+            document.getElementById("os").value = list.options[list.selectedIndex].text;
+            if (document.getElementById("os").value == "Linux") {
+                document.getElementById("IMEtype").textContent = "Japanese - Mozc";
+            }
+            else if (document.getElementById("os").value == "Windows") {
+                document.getElementById("IMEtype").textContent = "Japanese Microsoft";
+            }
+        }
+
+        function logEventSummary(interactionId, eventType, nrOfEvents) {
+
+            var table = document.getElementById("eventLogTable");
+            var row = table.insertRow();
+
+            // Add values to the table
+            var cell = row.insertCell();
+            cell.innerHTML = interactionId;
+            cell = row.insertCell();
+            cell.innerHTML = eventType;
+            cell = row.insertCell();
+            cell.innerHTML = nrOfEvents;
+        }
+
+        let observedEntries = [];
+        let map = new Map();
+        const events = ['keydown', 'keypress', 'input', 'keyup', 'compositionupdate', 'compositionstart', 'compositionend'];
+
+
+        function eventsForCheck(entry) {
+            if (events.includes(entry.name)) {
+                if (map.has(entry.name)) {
+                    map.get(entry.name).push({ interactionId: entry.interactionId, startTime: entry.startTime });
+                    return true;
+                } else {
+                    map.set(entry.name, [{ interactionId: entry.interactionId, startTime: entry.startTime }]);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        test(function () {
+            assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+            new PerformanceObserver(entryList => {
+                observedEntries = observedEntries.concat(entryList.getEntries().filter(eventsForCheck));
+
+                if (!observedEntries.find(entry => entry.name === "compositionend"))
+                    return;
+
+                assert_equals(map.get('compositionstart')[0].interactionId, 0, 'Compositionstart should not have an interactionId');
+                logEventSummary(map.get('compositionstart')[0].interactionId, "compositionstart", 1);
+                assert_equals(map.get("input").length, map.get("compositionupdate").length, "For every input there should be exactly one compositionupdate");
+
+                // Create a Set to track seen input values
+                const seenInteractionIds = new Set();
+
+                map.get("input").forEach(value => {
+                    assert_false(seenInteractionIds.has(value.interactionId), "All Inputs shall have unique InteractionIds.");
+                    seenInteractionIds.add(value);
+                    assert_greater_than(value.interactionId, 0, 'Input should have an interactionId greater than 0');
+                    const filteredArrayKeydowns = map.get('keydown').filter(interactionId => interactionId === value.interactionId);
+                    const countKeydowns = filteredArrayKeydowns.length;
+                    logEventSummary(value.interactionId, "keydown", countKeydowns);
+                    assert_true((countKeydowns <= 1), "For each input there should be no more than 1 keydown.");
+
+                    logEventSummary(value.interactionId, "compositionupdate", 1);
+                    logEventSummary(value.interactionId, "input", 1);
+
+                    const filteredArrayKeyups = map.get('keyup').filter(interactionId => interactionId === value.interactionId);
+                    const countKeyups = filteredArrayKeyups.length;
+                    logEventSummary(value.interactionId, "keyup", countKeyups);
+
+                    filteredArrayKeyups.forEach(keyupEntry => {
+                        assert_true(keyupEntry.startTime > value.startTime, 'Keyup start time should be greater than input start time');
+                    });
+
+                });
+
+                assert_equals(map.get('compositionend')[0].interactionId, 0, 'Compositionend should not have an interactionId');
+                logEventSummary(map.get('compositionstart')[0].interactionId, "compositionend", 1);
+                done();
+                observedEntries = [];
+            }).observe({ type: "event" });
+
+            addListeners(document.getElementById('test'), events);
+        });
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+[package]
+name = "servo_geometry"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_geometry"
+path = "lib.rs"
+
+[dependencies]
+app_units = { workspace = true }
+euclid = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+webrender_api = { workspace = true }

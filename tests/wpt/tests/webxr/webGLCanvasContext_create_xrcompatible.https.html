@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+
+    function testNoDevice(t, gl) {
+      assert_false(gl.getContextAttributes().xrCompatible);
+      return promise_rejects_dom(t, "InvalidStateError", gl.makeXRCompatible());
+    }
+
+    xr_promise_test("Creating a webgl context with no device",
+      testNoDevice, null, 'webgl');
+
+    xr_promise_test("Creating a webgl2 context with no device",
+      testNoDevice, null, 'webgl2');
+
+    function testOffscreenCanvas(canvas, glContextType) {
+      let gl = canvas.getContext('webgl');
+
+      return gl.makeXRCompatible().then(() => {
+        assert_true(gl.getContextAttributes().xrCompatible);
+      });
+    }
+
+    function testXrCompatible(t, gl) {
+      return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+        .then( (controller) => {
+          return gl.makeXRCompatible();
+        }).then( () => {
+          assert_true(gl.getContextAttributes().xrCompatible);
+
+          return testOffscreenCanvas(document.createElement('canvas'), 'webgl');
+        }).then( () => {
+          return testOffscreenCanvas(document.createElement('canvas'), 'webgl2');
+        }).then( () => {
+          return testOffscreenCanvas(new OffscreenCanvas(1, 1), 'webgl');
+        }).then( () => {
+          return testOffscreenCanvas(new OffscreenCanvas(1, 1), 'webgl2');
+      });
+    }
+
+    xr_promise_test("An XR-compatible webgl context can be created",
+      testXrCompatible, null, 'webgl');
+
+    xr_promise_test("An XR-compatible webgl2 context can be created",
+      testXrCompatible, null, 'webgl2');
+
+  </script>
+</body>

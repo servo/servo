@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selector Invalidation: :has() invalidation should not be O(n^2)</title>
+<link rel="author" title="Antti Koivisto" href="mailto:antti@apple.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<style>
+div, main { color: grey }
+main:has(span) .subject { color: red }
+main:has(span + span) .subject { color: green }
+main:has(span + final) .subject { color: blue }
+main:has(nonexistent + span) .subject { color: black }
+main:has(span) span { color: black }
+main:has(nonexistent) span { color: black }
+main:has(div div span) .subject { color: purple }
+</style>
+<main>
+    <div id=container>
+        <span></span>
+    </div>
+    <div id=subject class=subject></div>
+</main>
+<script>
+const grey = 'rgb(128, 128, 128)';
+const red = 'rgb(255, 0, 0)';
+const green = 'rgb(0, 128, 0)';
+const blue = 'rgb(0, 0, 255)';
+const purple = 'rgb(128, 0, 128)';
+
+function testColor(test_name, color) {
+    test(function() {
+        assert_equals(getComputedStyle(subject).color, color);
+    }, test_name);
+}
+
+const count = 25000;
+
+testColor(`Before appending ${count} elements`, red);
+
+for (let i = 0; i < count; ++i) {
+    const span = document.createElement("span");
+    container.appendChild(span);
+}
+
+testColor(`After appending ${count} elements. This should not time out.`, green);
+
+for (let i = 0; i < count - 1; ++i) {
+    const span = document.createElement("span");
+    container.appendChild(span);
+}
+
+const final = document.createElement("final");
+container.appendChild(final);
+
+testColor(`After appending another ${count} elements. This should not time out.`, blue);
+
+const div = document.createElement("div");
+for (let i = 0; i < count; ++i) {
+    const span = document.createElement("span");
+    div.appendChild(span);
+}
+container.appendChild(div);
+
+testColor(`After appending div with ${count} elements. This should not time out.`, purple);
+
+div.remove();
+
+testColor(`After removing div with ${count} elements. This should not time out.`, blue);
+
+for (let i = 0; i < count; ++i)
+    container.lastChild.remove();
+
+testColor(`After removing ${count} elements one-by-one. This should not time out.`, green);
+
+container.replaceChildren();
+
+testColor(`After removing the remaining elements. This should not time out.`, grey);
+
+</script>

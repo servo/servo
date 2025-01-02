@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: skipTransition() invoked before a synchronous updateDOM callback is invoked</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+}
+</style>
+
+<div id=first></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    let transition = document.startViewTransition(() => {
+      first.style.viewTransitionName = "target";
+    });
+    transition.skipTransition();
+    await transition.finished;
+
+    if (window.getComputedStyle(first).viewTransitionName == "target")
+      resolve();
+    else
+      reject();
+  });
+}, "finished promise should be resolved if skipTransition() is invoked before a synchronous updateCallbackDone callback is dispatched");
+</script>

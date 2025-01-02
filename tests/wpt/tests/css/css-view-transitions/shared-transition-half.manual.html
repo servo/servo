@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions of different elements and shapes</title>
+<link rel="help" href="https://github.com/vmpstr/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+body {
+  background: lightpink;
+  overflow: hidden;
+}
+
+input {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 10;
+}
+
+.top {
+  top: 0px;
+}
+.bottom {
+  bottom: 0px;
+}
+
+div {
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  height: 40vh;
+  background: green;
+  contain: paint;
+}
+</style>
+
+<input id=toggle type=button value="Toggle!"></input>
+<div id=target class=top>
+The green div should alternate being at the bottom and at the top.
+Other than green and pink background no other colors should appear.
+</div>
+
+<script>
+let classes = ["top", "bottom"]
+let i = 0;
+async function runAnimation() {
+  target.style.viewTransitionName = "target";
+  let t = document.startViewTransition(() => {
+    target.classList.remove(classes[i]);
+    i = (i + 1) % classes.length;
+    target.classList.add(classes[i]);
+  });
+  await t.finished;
+}
+
+function init() {
+  toggle.addEventListener("click", runAnimation);
+}
+onload = init;
+</script>

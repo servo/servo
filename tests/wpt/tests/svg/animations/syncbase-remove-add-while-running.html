@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Remove/Add syncbase while animation is running</title>
+<link rel="help" href="https://www.w3.org/TR/SMIL3/smil-timing.html#q26">
+<link rel="author" title="Edvard Thörnros" href="mailto:edvardt@opera.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+  <animate id="anim" attributeName="visibility" to="visible" begin="10s" dur="2s"/>
+  <rect x="0" y="0" width="0" height="100" fill="#0F0">
+    <set attributeName="width" fill="freeze" to="100" begin="anim.begin"/>
+  </rect>
+</svg>
+
+<script>
+  async_test(function(t) {
+    window.onload = t.step_func(function() {
+      let svg = document.querySelector("svg");
+      let rect = document.querySelector("rect");
+
+      window.requestAnimationFrame(t.step_func(function() {
+        window.requestAnimationFrame(t.step_func(function() {
+          var anim1 = document.getElementById("anim");
+          anim1.parentNode.removeChild(anim1);
+
+          var anim2 = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+          anim2.setAttribute("id", "anim");
+          anim2.setAttribute("attributeName", "visibility");
+          anim2.setAttribute("to", "visible");
+          anim2.setAttribute("begin", "0s");
+          anim2.setAttribute("dur", "2s");
+          svg.appendChild(anim2);
+
+          window.requestAnimationFrame(t.step_func(function() {
+            window.requestAnimationFrame(t.step_func_done(function() {
+              svg.pauseAnimations();
+              assert_equals(rect.width.animVal.value, 100, "Sync base triggered");
+            }));
+          }));
+        }));
+      }));
+    });
+  });
+</script>

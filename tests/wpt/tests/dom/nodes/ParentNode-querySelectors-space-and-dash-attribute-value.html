@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector(All) must work for attribute values that contain spaces and dashes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2542 -->
+
+<a title="test with - dash and space" id="testme">Test One</a>
+
+<script>
+"use strict";
+const el = document.getElementById("testme");
+
+test(() => {
+  assert_equals(document.querySelector("a[title='test with - dash and space']"), el);
+}, "querySelector");
+
+test(() => {
+  assert_equals(document.querySelector("a[title='test with - dash and space']"), el);
+}, "querySelectorAll");
+</script>

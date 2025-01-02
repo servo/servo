@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>sibling-index() within Shadow DOM</title>
+  <link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="host">
+    <div>Some element.</div>
+    <div>Some other element.</div>
+    <div slot="unknown">This should be ignored.</div>
+    <div id="target">Some third element.</div>
+  </div>
+  <script>
+    test(() => {
+      host.attachShadow({mode: 'open'}).innerHTML = `
+       <style>slot::slotted(*) { z-index: sibling-index(); }</style>
+       <div>
+         <div>Some text before the slot.</div>
+         <slot></slot>
+       </div>
+      `;
+
+      // The originating element for slot::slotted(*)
+      // is the <slot>, not the <div>. Note that there is
+      // a proposal to change this; see
+      // https://github.com/w3c/csswg-drafts/issues/9573.
+      // This should probably become '3' after that is fixed.
+      assert_equals(getComputedStyle(target).zIndex, '2');
+    }, 'originating element in Shadow DOM');
+</script>

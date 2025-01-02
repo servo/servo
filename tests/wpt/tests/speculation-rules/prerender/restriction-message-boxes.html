@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+function runTest(test_file, expectation, description) {
+  promise_test(async t => {
+    const uid = token();
+    const bc = new PrerenderChannel('prerender-channel', uid);
+    t.add_cleanup(_ => bc.close());
+
+    const gotMessage = new Promise(resolve => {
+      bc.addEventListener('message', e => {
+        resolve(e.data);
+      }, {
+        once: true
+      });
+    });
+
+    // Open a new window to test the message box.
+    window.open(`${test_file}&uid=${uid}`, '_blank', 'noopener');
+
+    // Wait for the message from the prerendering page.
+    assert_equals(await gotMessage, expectation);
+  }, description);
+}
+
+// Test that a page invokes the alert modal during prerendering.
+runTest(
+    'resources/message-boxes.html?alert',
+    'no block',
+    'alert() does not display the modal and returns immediately');
+
+// Test that a page invokes the confirm modal during prerendering.
+runTest(
+    'resources/message-boxes.html?confirm',
+    'the return value is no',
+    'confirm() does not display the modal and returns immediately');
+
+// Test that a page invokes the prompt modal during prerendering.
+runTest(
+    'resources/message-boxes.html?prompt',
+    'the return value is null',
+    'prompt() does not display the modal and returns immediately');
+</script>

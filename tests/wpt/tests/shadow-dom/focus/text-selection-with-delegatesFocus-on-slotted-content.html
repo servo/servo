@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="help" href="https://issues.chromium.org/issues/40622041">
+
+<body>
+  <p>Try to select the text in the dialog...</p>
+  <div id="host">
+    <span id="slotted">Slotted content</span>
+  </div>
+</body>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  host.attachShadow({mode: 'open', delegatesFocus: true});
+  host.shadowRoot.innerHTML = `
+    <dialog>
+      <slot></slot>
+      <div>Content</div>
+    </dialog>`;
+  host.shadowRoot.firstElementChild.show();
+
+  const selection = getSelection();
+  selection.empty();
+
+  const slotted = document.getElementById('slotted');
+
+  // Mouse down and drag to select text
+  const actions = new test_driver.Actions();
+  actions.pointerMove(0, 0, {origin: slotted});
+  actions.pointerDown();
+  actions.pointerMove(30, 0, {origin: slotted});
+  actions.pointerUp();
+  await actions.send();
+
+  assert_greater_than(selection.toString().length, 0);
+}, 'select slotted text in shadow root with delegatesFocus.');
+
+</script>

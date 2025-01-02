@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: cross-document navigation to a prerender cancelled before commit</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="prerender-removed-during-navigation-ref.html">
+<script src="/common/utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+html {
+  background-color: red;
+}
+html.outgoing {
+  background-color: cornflowerblue;
+}
+html.incoming {
+  background-color: hotpink;
+}
+::view-transition {
+  background-color: limegreen;
+}
+::view-transition-new(root) {
+  transform: translateY(55vh);
+  animation: none;
+  opacity: 1;
+}
+::view-transition-old(root) {
+  transform: translateY(-55vh);
+  animation: none;
+  opacity: 1;
+}
+::view-transition-group(root) {
+  animation-duration: 300s;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const uid = params.has('uid') ? params.get('uid') : token();
+const ready_channel = new PrerenderChannel('ready-to-activate', uid);
+
+if (!implementsSpeculationRules()) {
+  onload = () => {
+    document.body.innerText = 'This test requires speculation rules.';
+    takeScreenshot();
+  }
+} else {
+  if (!params.has('next')) {
+    onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+  } else if (document.prerendering) {
+    onload = prerenderedPage;
+  } else {
+    onload = incomingPage;
+  }
+}
+
+async function runTest() {
+  document.documentElement.classList.add('outgoing');
+  const next_url =
+      new URL(`prerender-removed-during-navigation.html?next&uid=${uid}`, window.location).href;
+
+  const ready_to_activate = new Promise(resolve => {
+    ready_channel.addEventListener('message', resolve, {once: true});
+  });
+
+  let prerender_script = startPrerendering(next_url);
+
+  await ready_to_activate;
+
+  onpageswap = () => {
+    prerender_script.remove();
+  }
+
+  window.location.replace(new URL(next_url, window.location));
+}
+
+function prerenderedPage() {
+  ready_channel.postMessage('readyToActivateMessage');
+  ready_channel.close();
+}
+
+function incomingPage() {
+  document.documentElement.classList.add('incoming');
+  requestAnimationFrame(takeScreenshot);
+}
+
+function implementsSpeculationRules() {
+  return ('supports' in HTMLScriptElement) &&
+      HTMLScriptElement.supports('speculationrules');
+}
+</script>
+</html>

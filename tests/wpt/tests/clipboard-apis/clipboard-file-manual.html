@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Clipboard: DataTransfer File manual test</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#to-fire-a-clipboard-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#pastewrapper {
+  display: block;
+  width: 400px;
+  height: 200px;
+  position: relative;
+  padding: 50px 0 0 100px;
+}
+#pastezone {
+  display: block;
+  border: 1px solid black;
+  width: 200px;
+  height: 100px;
+}
+</style>
+<p>
+  Please download <a download href="resources/copied-file.txt">this file</a>,
+  and copy and paste it into the box below.
+</p>
+
+<div id="pastewrapper">
+  <div id="pastezone">
+    Paste Here
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const pasteWrapper = document.querySelector('#pastewrapper');
+const pasteZone = document.querySelector('#pastezone');
+
+const pastePromise = new Promise((resolve, reject) => {
+  pasteZone.onpaste = event => {
+    event.preventDefault();
+
+    // Copy the information out of the DataTransfer instance before it is
+    // neutered when the event handler exits.
+    const dataTransfer = event.clipboardData;
+    const items = Array.from(dataTransfer.items).map(item => {
+      return {kind: item.kind, type: item.type, file: item.getAsFile() };
+    });
+    resolve({ types: dataTransfer.types, files: dataTransfer.files, items });
+  };
+});
+
+promise_test(async () => {
+  const dataTransfer = await pastePromise;
+  assert_true(dataTransfer.types.includes('Files'));
+}, 'DataTransfer.types in paste file');
+
+promise_test(async () => {
+  const dataTransfer = await pastePromise;
+  assert_equals(
+      dataTransfer.files.length, 1,
+      'DataTransfer.files should have one element');
+  const file = dataTransfer.files[0];
+  assert_true(
+      file instanceof File,
+      'DataTransfer.files[0] should be a File instance');
+  assert_equals(file.name, 'copied-file.txt');
+  assert_equals(file.type, 'text/plain');
+  assert_equals(file.size, 21);
+  assert_equals(await file.text(), 'copied-file-contents\n');
+}, 'DataTransfer.files in paste');
+
+promise_test(async () => {
+  const dataTransfer = await pastePromise;
+  const items = dataTransfer.items.filter(i => i.kind === 'file');
+  assert_equals(items.length, 1,
+      'DataTransfer.items[kind="file"] should have 1 element');
+  const item = items[0];
+  assert_true(
+      item.file instanceof File,
+      'DataTransfer.items[0] should be a File instance');
+  assert_equals(item.file.name, 'copied-file.txt');
+  assert_equals(item.file.type, 'text/plain');
+  assert_equals(item.file.size, 21);
+  assert_equals(await item.file.text(), 'copied-file-contents\n');
+}, 'DataTransfer.items in paste');
+</script>

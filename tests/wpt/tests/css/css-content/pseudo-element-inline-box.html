@@ -1,0 +1,15 @@
+<!doctype html>
+<title>CSS Test: content: url() on pseudo-elements is under a non-replaced box.</title>
+<link rel="match" href="pseudo-element-inline-box-ref.html">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-content/#typedef-content-content-list">
+<style>
+  div::before {
+    border: 10px solid blue;
+    content: url(resources/rect.svg);
+    display: inline;
+  }
+</style>
+<p>Should see a green image with a blue border</p>
+<div></div>

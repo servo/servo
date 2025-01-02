@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: fractional translation from CSS transform</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="fractional-translation-from-transform-ref.html">
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-100">
+<script src="/common/reftest-wait.js"></script>
+<style>
+body {
+  width: 100vw;
+  height: 100vh;
+  background: grey;
+}
+
+#target {
+  width: 100px;
+  height: 100px;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  transform: translate(100.52px, 100.37px);
+
+  view-transition-name: target;
+  contain: layout;
+}
+
+/* Keep the animation running for 30s to screenshot pseudo DOM */
+::view-transition-new(root), ::view-transition-old(root) {
+  animation-duration: 30s;
+}
+
+::view-transition-new(target) {
+  opacity: 1;
+  animation: unset;
+}
+::view-transition-old(target) {
+  opacity: 0;
+  animation: unset;
+}
+</style>
+
+<div id=target>
+  Here is some text which should not be blurry.
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

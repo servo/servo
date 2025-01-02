@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Transparent IFrames</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/iframes/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+  <meta name="assert" content="An IFRAME's canvas is transparent."/>
+  <style type="text/css">
+   * { background: transparent; margin: 0; padding: 0; }
+   body { padding: 1em; }
+   p { margin: 1em; color: green; }
+   iframe { position: absolute; top: 0; left: 0; z-index: 1; margin: 0; }
+  </style>
+ </head>
+ <body>
+  <p>PASS</p>
+  <iframe src="support/background-iframes-001.html"><p>XXXX FAIL</p></iframe>
+ </body>
+</html>

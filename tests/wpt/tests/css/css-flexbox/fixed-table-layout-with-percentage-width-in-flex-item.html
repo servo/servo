@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexbox Test: Test flex items containing table-layout:fixed with percentage width</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1469649">
+  <link rel="match" href="fixed-table-layout-with-percentage-width-in-flex-item-ref.html">
+  <meta name="assert" content="This test verifies that each flex item with a table descendant should have the the same definite post-flexing main size.">
+
+  <style>
+  .container {
+    display: flex;
+    width: 300px;
+    margin-bottom: 5px;
+    border: 1px solid black;
+    background: red;
+  }
+  .tbl {
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+    height: 30px;
+    border: 1px solid blue;
+    box-sizing: border-box;
+    background: lightgray;
+  }
+  </style>
+
+  <div class="container">
+    <div><div class="tbl"></div></div>
+  </div>
+
+  <div class="container">
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+  </div>
+
+  <div class="container">
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+  </div>
+
+  <div class="container">
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+  </div>
+
+  <div class="container">
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+  </div>
+
+  <div class="container">
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+    <div><div class="tbl"></div></div>
+  </div>
+</html>

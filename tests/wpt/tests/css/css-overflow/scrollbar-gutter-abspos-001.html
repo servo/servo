@@ -1,0 +1,25 @@
+<!doctype html>
+<title>CSS Overflow Test: scrollbar-gutter is accounted for in abspos sizing</title>
+<link rel="help" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1756826">
+<link rel="match" href="scrollbar-gutter-abspos-001-ref.html">
+<style>
+.container {
+  scrollbar-gutter: stable;
+  overflow-y: auto;
+  width: 100px;
+  height: 200px;
+  position: relative;
+}
+.abspos {
+  width: 100%;
+  height: 100px;
+  background: green;
+  position: absolute;
+  left: 0;
+}
+</style>
+<div class="container">
+  <div class="abspos"></div>
+</div>

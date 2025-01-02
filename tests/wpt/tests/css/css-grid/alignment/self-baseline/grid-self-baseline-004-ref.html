@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+body { margin: 0; }
+.block {
+   background: grey;
+   float: left;
+   margin: 5px;
+   text-orientation: sideways;
+   font-family: Ahem;
+   line-height: 1;
+}
+.block > :nth-child(1) { font-size:24px; }
+.block > :nth-child(2) { font-size:32px; }
+.block > :nth-child(3) { font-size:48px; }
+.block > :nth-child(4) { font-size:64px; }
+.item {
+   display: inline-block;
+   border-width: 2px 5px 3px 4px;
+   border-style: solid;
+   padding: 6px 3px 7px 8px;
+   margin: 10px 6px 4px 12px;
+}
+.area.verticalLR > .item { margin: 10px 6px 0px 12px; }
+.area.horizontalTB > .item { margin: 10px 6px 4px 0px; }
+.extraTopPadding { padding-top: 30px; }
+.extraBottomPadding { padding-bottom: 30px; }
+.extraLeftPadding { padding-left: 30px; }
+.extraRightPadding { padding-right: 30px; }
+.area { display: inline-block; }
+.area:nth-child(1) { width: 60px;  }
+.area:nth-child(2) { width: 75px;  }
+.area:nth-child(3) { width: 75px;  }
+.area:nth-child(4) { width: 125px; }
+.verticalLR > .area, .verticalRL > .area { width: auto; }
+.verticalLR > .area:nth-child(1), .verticalRL > .area:nth-child(1) { height: 60px; }
+.verticalLR > .area:nth-child(2), .verticalRL > .area:nth-child(2) { height: 75px; }
+.verticalLR > .area:nth-child(3), .verticalRL > .area:nth-child(3) { height: 75px; }
+.verticalLR > .area:nth-child(4), .verticalRL > .area:nth-child(4) { height: 125px; }
+.block { height: 125px; }
+.block.verticalLR, .block.verticalRL {
+   width: 150px;
+   height: auto;
+}
+</style>
+
+<p>1x4 with parallel and orthogonal items.</p>
+<div class="block"><div class="area"><div class="item">É</div></div><div class="area verticalLR"><div class="item">É</div></div><div class="area"><div class="item">É</div></div><div class="area verticalLR"><div class="item">É</div></div></div>
+<div class="block"><div class="area"><div class="item extraBottomPadding">É</div></div><div class="area verticalLR"><div class="item extraTopPadding">É</div></div><div class="area"><div class="item">É</div></div><div class="area verticalLR top"><div class="item">É</div></div></div>
+
+<br clear="all">
+
+<div class="block verticalLR"><div class="area"><div class="item">É</div></div><div class="area horizontalTB"><div class="item">É</div></div><div class="area"><div class="item">É</div></div><div class="area horizontalTB"><div class="item">É</div></div></div>
+<div class="block verticalLR"><div class="area"><div class="item extraLeftPadding">É</div></div><div class="area horizontalTB"><div class="item extraRightPadding">É</div></div><div class="area"><div class="item">É</div></div><div class="area horizontalTB"><div class="item">É</div></div></div>
+<div class="block verticalRL"><div class="area"><div class="item">É</div></div><div class="area horizontalTB"><div class="item">É</div></div><div class="area"><div class="item">É</div></div><div class="area horizontalTB"><div class="item">É</div></div></div>
+<div class="block verticalRL"><div class="area"><div class="item extraRightPadding">É</div></div><div class="area horizontalTB"><div class="item extraLeftPadding">É</div></div><div class="area"><div class="item">É</div></div><div class="area horizontalTB"><div class="item">É</div></div></div>

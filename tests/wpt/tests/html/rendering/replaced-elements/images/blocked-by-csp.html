@@ -1,0 +1,8 @@
+<!doctype html>
+<title>Images behave the same when blocked by CSP as when failing to load/broken</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1664156">
+<link rel="match" href="blocked-by-csp-ref.html">
+<meta http-equiv=content-security-policy content="img-src 'none'">
+<style>img { border: solid; }</style>
+It should say PASS below:<br>
+<img src=image alt="PASS">

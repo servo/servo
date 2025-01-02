@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test: x & y on foreignObject don't transform a clipPath with clipPathUnits="objectBoundingBox"</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement">
+<link rel="match" href="foreign-object-size-ref.html">
+<svg>
+  <defs>
+    <clipPath id="clip" clipPathUnits="objectBoundingBox">
+      <rect width="1" height="0.5" />
+    </clipPath>
+  </defs>
+  <g transform="translate(-50 -50)">
+    <foreignObject x="50" y="50" width="100" height="200" clip-path="url(#clip)">
+      <html xmlns="http://www.w3.org/1999/xhtml">
+      <body>
+        <div style="background: green; height: 100px;"></div>
+        <div style="background: red; height: 100px;"></div>
+      </body>
+      </html>
+    </foreignObject>
+  </g>
+</svg>

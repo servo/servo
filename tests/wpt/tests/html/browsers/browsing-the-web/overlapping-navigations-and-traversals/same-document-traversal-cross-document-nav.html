@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cross-document navigations during same-document traversals</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  The spec says that navigations are ignored if there is an ongoing traversal.
+-->
+
+<body>
+<script type="module">
+import { createIframe, delay, waitForPotentialNetworkLoads } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.location.hash = "#1";
+  await delay(t, 0);
+  iframe.contentWindow.location.hash = "#2";
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not go back synchronously");
+
+  iframe.contentWindow.location.search = "?1";
+  assert_equals(iframe.contentWindow.location.search, "", "must not navigate synchronously (search)");
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not navigate synchronously (hash)");
+
+  // Eventually ends up on #1.
+  await t.step_wait(() => iframe.contentWindow.location.hash === "#1", "traversal");
+
+  // Never loads a different document.
+  iframe.onload = t.unreached_func("load event");
+  await waitForPotentialNetworkLoads(t);
+  assert_equals(iframe.contentWindow.location.search, "", "must stay on #2 (search)");
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must stay on #2 (hash)");
+}, "same-document traversals are not canceled by cross-document navigations");
+</script>

@@ -1,0 +1,204 @@
+<!doctype html>
+<title>RTCConfiguration rtcpMuxPolicy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCConfiguration-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper function is called from RTCConfiguration-helper.js:
+  //   config_test
+
+  /*
+    [Constructor(optional RTCConfiguration configuration)]
+    interface RTCPeerConnection : EventTarget {
+      RTCConfiguration                   getConfiguration();
+      void                               setConfiguration(RTCConfiguration configuration);
+      ...
+    };
+
+    dictionary RTCConfiguration {
+      RTCRtcpMuxPolicy         rtcpMuxPolicy = "require";
+      ...
+    };
+
+    enum RTCRtcpMuxPolicy {
+      "negotiate",
+      "require"
+    };
+  */
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `new RTCPeerConnection() should have default rtcpMuxPolicy require`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ rtcpMuxPolicy: undefined });
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `new RTCPeerConnection({ rtcpMuxPolicy: undefined }) should have default rtcpMuxPolicy require`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ rtcpMuxPolicy: 'require' });
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `new RTCPeerConnection({ rtcpMuxPolicy: 'require' }) should succeed`);
+
+  /*
+    4.3.1.1.  Constructor
+      3.  If configuration.rtcpMuxPolicy is negotiate, and the user agent does not
+          implement non-muxed RTCP, throw a NotSupportedError.
+   */
+  test(() => {
+    let pc;
+    try {
+      pc = new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' });
+    } catch(err) {
+      // NotSupportedError is a DOMException with code 9
+      if(err.code === 9 && err.name === 'NotSupportedError') {
+        // ignore error and pass test if negotiate is not supported
+        return;
+      } else {
+        throw err;
+      }
+    }
+
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'negotiate');
+
+  }, `new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' }) may succeed or throw NotSupportedError`);
+
+  config_test(makePc => {
+    assert_throws_js(TypeError, () =>
+      makePc({ rtcpMuxPolicy: null }));
+  }, `with { rtcpMuxPolicy: null } should throw TypeError`);
+
+  config_test(makePc => {
+    assert_throws_js(TypeError, () =>
+      makePc({ rtcpMuxPolicy: 'invalid' }));
+  }, `with { rtcpMuxPolicy: 'invalid' } should throw TypeError`);
+
+  /*
+    4.3.2.  Set a configuration
+      6.  If configuration.rtcpMuxPolicy is set and its value differs from the
+          connection's rtcpMux policy, throw an InvalidModificationError.
+   */
+
+  test(() => {
+    const pc = new RTCPeerConnection({ rtcpMuxPolicy: 'require' });
+    assert_idl_attribute(pc, 'setConfiguration');
+    assert_throws_dom('InvalidModificationError', () =>
+      pc.setConfiguration({ rtcpMuxPolicy: 'negotiate' }));
+
+  }, `setConfiguration({ rtcpMuxPolicy: 'negotiate' }) with initial rtcpMuxPolicy require should throw InvalidModificationError`);
+
+  test(() => {
+    let pc;
+    try {
+      pc = new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' });
+    } catch(err) {
+      // NotSupportedError is a DOMException with code 9
+      if(err.code === 9 && err.name === 'NotSupportedError') {
+        // ignore error and pass test if negotiate is not supported
+        return;
+      } else {
+        throw err;
+      }
+    }
+
+    assert_idl_attribute(pc, 'setConfiguration');
+    assert_throws_dom('InvalidModificationError', () =>
+      pc.setConfiguration({ rtcpMuxPolicy: 'require' }));
+
+  }, `setConfiguration({ rtcpMuxPolicy: 'require' }) with initial rtcpMuxPolicy negotiate should throw InvalidModificationError`);
+
+  test(() => {
+    let pc;
+    pc = new RTCPeerConnection({ rtcpMuxPolicy: 'require' });
+    // default rtcpMuxPolicy is 'require', so this is allowed
+    pc.setConfiguration({});
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `setConfiguration({}) with initial rtcpMuxPolicy require should leave rtcpMuxPolicy to require`);
+
+  test(() => {
+    let pc;
+    try {
+      pc = new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' });
+    } catch(err) {
+      // NotSupportedError is a DOMException with code 9
+      if(err.code === 9 && err.name === 'NotSupportedError') {
+        // ignore error and pass test if negotiate is not supported
+        return;
+      } else {
+        throw err;
+      }
+    }
+
+    assert_idl_attribute(pc, 'setConfiguration');
+    // default value for rtcpMuxPolicy is require
+    assert_throws_dom('InvalidModificationError', () =>
+      pc.setConfiguration({}));
+
+  }, `setConfiguration({}) with initial rtcpMuxPolicy negotiate should throw InvalidModificationError`);
+
+  /*
+    Coverage Report
+
+      Tested    2
+      Total     2
+   */
+  const FINGERPRINT_SHA256 = '00:00:00:00:00:00:00:00:00:00:00:00:00' +
+      ':00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00';
+  const ICEUFRAG = 'someufrag';
+  const ICEPWD = 'somelongpwdwithenoughrandomness';
+
+  promise_test(async t => {
+    // audio-only SDP offer without BUNDLE and rtcp-mux.
+    const sdp = 'v=0\r\n' +
+        'o=- 166855176514521964 2 IN IP4 127.0.0.1\r\n' +
+        's=-\r\n' +
+        't=0 0\r\n' +
+        'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' +
+        'c=IN IP4 0.0.0.0\r\n' +
+        'a=rtcp:9 IN IP4 0.0.0.0\r\n' +
+        'a=ice-ufrag:' + ICEUFRAG + '\r\n' +
+        'a=ice-pwd:' + ICEPWD + '\r\n' +
+        'a=fingerprint:sha-256 ' + FINGERPRINT_SHA256 + '\r\n' +
+        'a=setup:actpass\r\n' +
+        'a=mid:audio1\r\n' +
+        'a=sendonly\r\n' +
+        'a=rtcp-rsize\r\n' +
+        'a=rtpmap:111 opus/48000/2\r\n';
+    const pc = new RTCPeerConnection({rtcpMuxPolicy: 'require'});
+    t.add_cleanup(() => pc.close());
+
+    return promise_rejects_dom(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'offer', sdp}));
+  }, 'setRemoteDescription throws InvalidAccessError when called with an offer without rtcp-mux and rtcpMuxPolicy is set to require');
+
+  promise_test(async t => {
+    // audio-only SDP answer without BUNDLE and rtcp-mux.
+    // Also omitting a=mid in order to avoid parsing it from the offer as this needs to match.
+    const sdp = 'v=0\r\n' +
+        'o=- 166855176514521964 2 IN IP4 127.0.0.1\r\n' +
+        's=-\r\n' +
+        't=0 0\r\n' +
+        'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' +
+        'c=IN IP4 0.0.0.0\r\n' +
+        'a=rtcp:9 IN IP4 0.0.0.0\r\n' +
+        'a=ice-ufrag:' + ICEUFRAG + '\r\n' +
+        'a=ice-pwd:' + ICEPWD + '\r\n' +
+        'a=fingerprint:sha-256 ' + FINGERPRINT_SHA256 + '\r\n' +
+        'a=setup:active\r\n' +
+        'a=sendonly\r\n' +
+        'a=rtcp-rsize\r\n' +
+        'a=rtpmap:111 opus/48000/2\r\n';
+    const pc = new RTCPeerConnection({rtcpMuxPolicy: 'require'});
+    t.add_cleanup(() => pc.close());
+
+    const offer = await generateAudioReceiveOnlyOffer(pc);
+    await pc.setLocalDescription(offer);
+    return promise_rejects_dom(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'answer', sdp}));
+  }, 'setRemoteDescription throws InvalidAccessError when called with an answer without rtcp-mux and rtcpMuxPolicy is set to require');
+</script>

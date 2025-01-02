@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Masking: Test clip-path interpolation from shape() to path()</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+  <link rel="match" href="clip-path-path-interpolation-001-ref.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'shape()' for clipping. Test the interpolation of nonzero
+        shape and path function.">
+  <style>
+    @keyframes anim {
+      from {
+        clip-path: shape(nonzero from 20px 20px,
+          hline by 60px, vline by 60px, hline by -60%, close,
+          move to 30% 30px, hline by 40px, vline by 40px, hline by -40px, close);
+      }
+      to {
+        clip-path: path(nonzero, "M50 50 h50 v50 h-50 z M20 20 h50 v50 h-50 z");
+      }
+    }
+    #rect {
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      animation: anim 10s -5s paused linear;
+    }
+  </style>
+</head>
+<body>
+  <div id="rect"></div>
+</body>
+<script>
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</html>

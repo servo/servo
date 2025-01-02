@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Hit testing ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that hit-testing a ::marker, the APIs provide the nearest element ancestor." />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+ol {
+  display: inline-block;
+  padding-left: 100px;
+}
+li {
+  font: 50px/100px Ahem;
+  width: 50px;
+}
+.inside {
+  list-style-position: inside;
+}
+.image {
+  list-style-image: url("/images/green-100x50.png");
+}
+.string {
+  list-style-type: "X";
+}
+.marker::marker {
+  content: "X";
+}
+.nested {
+  display: block;
+}
+.nested::before {
+  content: '';
+  display: list-item;
+}
+</style>
+<!-- The <li> are 50px wide, and the ::marker are at least 50px wide.
+     Since they are outside, try to locate them at -40px to the left of
+     the <li>, i.e. -65px from the center of the <li> -->
+<ol class="outside" data-x="-65">
+  <li class="image"></li>
+  <li class="string"></li>
+  <li class="marker"></li>
+  <li class="nested image"></li>
+  <li class="nested string"></li>
+</ol>
+<!-- The <li> are 50px wide, and the inside ::marker are at least 50px,
+     so locate them at the horizontal center of the <li> -->
+<ol class="inside" data-x="0">
+  <li class="image"></li>
+  <li class="string"></li>
+  <li class="marker"></li>
+  <li class="nested image"></li>
+  <li class="nested string"></li>
+</ol>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+function check(event, li) {
+  assert_equals(event.target, li, "event.target");
+  if (event.path) {
+    assert_equals(event.path[0], li, "event.path");
+  }
+  const el = document.elementFromPoint(event.clientX, event.clientY);
+  assert_equals(el, li, "elementFromPoint");
+}
+setup({ explicit_done: true });
+addEventListener("load", async function() {
+  for (let list of document.querySelectorAll("ol")) {
+    for (let li of list.querySelectorAll("li")) {
+      const listener = e => check(e, li);
+      async_test(function(t) {
+        document.addEventListener("mousedown", t.step_func_done(listener));
+      }, list.className + " " + li.className + " ::marker's content");
+      async_test(function(t) {
+        document.addEventListener("mouseup", t.step_func_done(listener));
+      }, list.className + " " + li.className + " ::marker");
+      await new test_driver.Actions()
+        // Send an event at the vertical middle of the <li>, this should
+        // hit the contents of the ::marker
+        .pointerMove(+list.dataset.x, 0, {origin: li})
+        .pointerDown()
+        // The ::marker is 100px tall but its contents only 50px tall.
+        // Send an event inside the ::marker but above its contents.
+        .pointerMove(+list.dataset.x, -40, {origin: li})
+        .pointerUp()
+        .send();
+    }
+  }
+  done();
+});
+</script>
+

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-break:auto-phrase mistagged</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-fallback-001-ref.html">
+<meta name="assert" content="word-break:auto-phrase, does the same as normal (insert soft wraps for south east asian) on SA content tagged with the wrong language: soft wrap opportunities within each phrase are to be suppressed, but a run of Thai characters is not a phrase in Japanese.">
+<style>
+div {
+  font-size: 2em;
+  border: solid orange;
+  margin: 5px;
+  width: min-content; /*not 0, to avoid falling into overflow fallback behavior */
+  word-break: normal;
+}
+#test {
+  word-break: auto-phrase;
+}
+</style>
+
+<p>Test passes if the two boxes below are identical.
+
+<div id=test lang=ja>กรุงเทพคือสวยงาม</div>
+
+<!-- keeping the lang=ja because it may affects font selection-->
+<div id=ref lang=ja>กรุงเทพคือสวยงาม</div>

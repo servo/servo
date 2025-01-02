@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: content: counters(c, ".", upper-roman)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counter-styles"/>
+  <meta http-equiv="Content-Style-Type" content="text/css"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  body, #test span:first-child { counter-reset: c; }
+  p, #test span { counter-increment: c; }
+  #test span:before { content: counters(c, ".", upper-roman); }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following two lines should look the same:</p>
+
+ <div id="test">
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span style="counter-reset: c 48"></span>
+   <span></span>
+   <span style="counter-reset: c 388"></span>
+   <span></span>
+   <span style="counter-reset: c 3488"></span>
+   <span></span>
+   <span></span>
+ </div>
+
+ <div>
+   I.I
+   I.II
+   I.III
+   I.IV
+   I.V
+   I.VI
+   I.VII
+   I.VIII
+   I.IX
+   I.X
+   I.XI
+   I.XII
+   I.XLIX
+   I.L
+   I.CCCLXXXIX
+   I.CCCXC
+   I.MMMCDLXXXIX
+   I.MMMCDXC
+   I.MMMCDXCI
+ </div>
+
+ </body>
+</html>

@@ -1,0 +1,31 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Ink API (https://wicg.github.io/ink-enhancement/)
+
+[Exposed=Window]
+interface Ink {
+    Promise<DelegatedInkTrailPresenter> requestPresenter(
+        optional InkPresenterParam param = {});
+};
+
+dictionary InkPresenterParam {
+    Element? presentationArea = null;
+};
+
+[Exposed=Window]
+interface DelegatedInkTrailPresenter {
+    readonly attribute Element? presentationArea;
+
+    undefined updateInkTrailStartPoint(PointerEvent event, InkTrailStyle style);
+};
+
+dictionary InkTrailStyle {
+    required DOMString color;
+    required unrestricted double diameter;
+};
+
+[Exposed=Window]
+partial interface Navigator {
+    [SameObject] readonly attribute Ink ink;
+};

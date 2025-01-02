@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ImageCapture track</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://w3c.github.io/mediacapture-image/#dom-imagecapture-track">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id='canvas' width=10 height=10></canvas>
+<script>
+
+test(t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+
+  let stream = canvas.captureStream();
+  let videoTrack = stream.getVideoTracks()[0];
+
+  let capturer = new ImageCapture(videoTrack);
+  assert_true(capturer.track instanceof MediaStreamTrack);
+  assert_equals(capturer.track, videoTrack);
+
+  let cloneTrack = videoTrack.clone();
+  assert_not_equals(videoTrack, cloneTrack);
+
+  capturer.track = cloneTrack;
+  assert_equals(capturer.track, videoTrack);
+}, "ImageCapture track attribute is readonly")
+
+</script>

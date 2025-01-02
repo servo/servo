@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;var&gt;</title>
+</head>
+<body>
+  <!-- not a block -->
+  <var>text</var>
+
+  <!-- cannot contain structured inline -->
+  <p><var><ul><li>text</li></ul></var></p>
+
+  <!-- cannot contain interactive if parent forbids interactive -->
+  <p><a><var><a>text</a></var></a></p>
+  <p><a><dfn><var><a>text</a></var></dfn></a></p>
+</body>
+</html>

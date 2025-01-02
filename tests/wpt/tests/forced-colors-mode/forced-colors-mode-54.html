@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - scrollbar-color
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    scrollbar-color: green red;
+  }
+</style>
+<div id="div"></div>
+
+<script>
+  test(function() {
+    let value = window.getComputedStyle(document.getElementById("div")).getPropertyValue("scrollbar-color");
+    assert_equals(value, "auto")
+  }, "Forced colors forces scrollbar-color to auto");
+</script>

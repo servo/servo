@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script type="module">
+  import { attachIframe, getOppositeOrientation } from "./resources/orientation-utils.js";
+
+  promise_test(async (t) => {
+    const iframe = await attachIframe();
+    const { orientation } = iframe.contentWindow.screen;
+
+    const frameDOMException = iframe.contentWindow.DOMException;
+    iframe.remove();
+
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      frameDOMException,
+      orientation.lock(getOppositeOrientation())
+    );
+  }, "Attempting to lock non-fully active documents results in a InvalidStateError");
+
+  promise_test(async (t) => {
+    const iframe = await attachIframe();
+    const { orientation } = iframe.contentWindow.screen;
+
+    const frameDOMException = iframe.contentWindow.DOMException;
+    iframe.remove();
+
+    assert_throws_dom("InvalidStateError", frameDOMException, () => { orientation.unlock() });
+  }, "Attempting to unlock non-fully active documents results in a InvalidStateError");
+
+  promise_test(async (t) => {
+    const iframe = await attachIframe();
+    const { orientation } = iframe.contentWindow.screen;
+
+    await test_driver.bless("request full screen", null, iframe.contentWindow);
+    await iframe.contentDocument.documentElement.requestFullscreen();
+
+    const p = orientation.lock(getOppositeOrientation());
+
+    const frameDOMException = iframe.contentWindow.DOMException;
+    iframe.remove();
+
+    await promise_rejects_dom(t, "AbortError", frameDOMException, p);
+    assert_throws_dom("InvalidStateError", frameDOMException, () => { orientation.unlock() });
+  }, "Making a document non-fully active while locking results in an AbortError");
+</script>
+</body>

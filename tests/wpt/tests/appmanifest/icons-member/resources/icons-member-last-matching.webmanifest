@@ -1,0 +1,14 @@
+{
+    "name": "Icons member WPT",
+    "icons": [{
+        "src": "fail.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }, {
+        "src": "pass.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }],
+    "start_url": "../icons-member-last-matching-manual.html",
+    "display": "fullscreen"
+}

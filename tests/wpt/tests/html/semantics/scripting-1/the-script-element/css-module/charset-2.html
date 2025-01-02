@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="windows-1250">
+<title>CSS modules: UTF-8 decoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script type="module">
+  import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/utf-8.css" with { type: "css"};
+  test(() => {
+    assert_equals(styleSheet.rules[0].style.content, "\"�湿�\"");
+  }, "CSS module should be loaded as utf-8 even though document's encoding is windows-1250");
+</script>
+<script type="module">
+  import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/windows-1250.css&ct=text/css%3Bcharset=windows-1250" with { type: "css"};
+  test(() => {
+    assert_not_equals(styleSheet.rules[0].style.content, "\"�湿�\"",
+                    'Should be decoded as UTF-8');
+  }, "CSS module should be loaded as utf-8 even if it is encoded in windows-1250 and served with a windows-1250 charset response header, and this document's encoding is windows-1250");
+</script>

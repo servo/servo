@@ -1,0 +1,13 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno35",
+  "type": "Annotation",
+  "body": "http://example.org/description1",
+  "target": {
+    "source": "http://example.org/resource1",
+    "state": {
+      "type": "HttpRequestState",
+      "value": "Accept: application/pdf"
+    }
+  }
+}

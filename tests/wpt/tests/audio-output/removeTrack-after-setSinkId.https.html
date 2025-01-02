@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test source track removal after setSinkId does not crash</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/gc.js"></script>
+<script>
+'use strict';
+// This could be a crashtest, except that testdriver.bless() is not functional
+// in crashtests.  promise_test() is more elegant than class="test-wait" anyway.
+promise_test(async t => {
+  await test_driver.bless('transient activation');
+  const {deviceId, label} = await navigator.mediaDevices.selectAudioOutput();
+  const audio = new Audio();
+  await audio.setSinkId(deviceId);
+  audio.srcObject = new AudioContext().createMediaStreamDestination().stream;
+  audio.play();
+  await new Promise(r => t.step_timeout(r, 0));
+  audio.srcObject.removeTrack(audio.srcObject.getTracks()[0]);
+  await garbageCollect();
+});
+</script>
+</html>

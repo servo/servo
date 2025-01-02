@@ -1,0 +1,75 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: text-intro-04-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#Introduction">
+        <p>
+          Test basic aspect of internationalized text.
+        </p>
+        <p>
+          Various text strings in various languages appear. The main
+          purpose of the test is to verify that the correct characters
+          appear and that they appear in the correct order and orientation.
+        </p>
+        <p>
+          A future version of this test
+          might include all necessary glyphs as an SVG font.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Correct rendering requires that each character is rendered. It is not required that a given character
+        be rendered with any particular font; just that it is rendered.
+        It may be rendered with the 'missing glyph' if no
+        glyphs are found in the fonts listed in the content, or in any fallback font that is available.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-intro-04-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-family="Arial" font-size="16" fill="blue" x="10" y="20">Test horizontal text.</text>
+    <g font-size="17" font-family="'Arial Hebrew', 'Arial Unicode MS', 'LucidaSansUnicode','MS-Gothic'">
+      <text x="10" y="60">Polish: Mogę jeść szkło, i mi nie szkodzi.</text>
+      <text x="10" y="90">Russian: Я могу есть стекло, это мне не вредит.</text>
+      <text x="10" y="120" font-size="15">Greek: Μπορώ να φάω σπασμένα γυαλιά χωρίς να πάθω τίποτα.</text>
+      <!-- Greek and japanese smaller just to make it fit on the line -->
+      <text x="10" y="150">Text "אני יכול לאכול זכוכית וזה לא מזיק לי" is in Hebrew</text>
+      <text x="10" y="180">Yiddish: איך קען עסן גלאָז און עס טוט מיר נישט װײ.</text>
+      <text x="10" y="210">Chinese:我能吞下玻璃而不伤身体。</text>
+      <text x="10" y="240" font-size="15">Japanese: 私はガラスを食べられます。それは私を傷つけません。</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

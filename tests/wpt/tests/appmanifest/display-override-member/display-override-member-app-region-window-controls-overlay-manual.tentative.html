@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Test app-region CSS property when "window-controls-overlay" in display-override member</title>
+  <link rel="manifest" href="resources/display-override-member-app-region-window-controls-overlay.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <h1>Test app-region CSS property when "window-controls-overlay" in display-override member</h1>
+  <style>
+    #draggableRectangle {
+      app-region: drag;
+      background-color: blue;
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      width: 250px;
+      height: 250px;
+      color: white;
+    }
+
+    #outerRectangle {
+      background-color: green;
+      position: relative;
+      width: 300px;
+      height: 300px;
+      text-align: center;
+    }
+
+    #innerRectangle {
+      app-region: no-drag;
+      background-color: red;
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      width: 150px;
+      height: 150px;
+    }
+  </style>
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/display-override-member-media-feature-manual.js"></script>
+
+  <script>
+    setup({ explicit_timeout: true })
+    var manual_test = async_test("app-region element drags window");
+
+    window.addEventListener('DOMContentLoaded', function () {
+      document.getElementById('outerRectangle').addEventListener('click', manual_test.unreached_func('click event fired on outer rectangle'));
+      document.getElementById('innerRectangle').addEventListener('click', (e) => {e.stopPropagation();}, true);
+    });
+  </script>
+</head>
+
+<body>
+  <h1>Description</h1>
+  <p>This test validates that an element will drag the window around when running in "window-controls-overlay" mode.</p>
+  <h1>Manual Test Steps:</h1>
+  <p>
+    <ol>
+      <li> Install this app, and toggle into "window-controls-overlay" mode.</li>
+      <li> Click and drag the blue rectangle containing the text "Drag Me". This element has the app-region:drag CSS property set.</li>
+      <li> If the app window moves around as you drag the blue rectangle, <button onclick="manual_test.done()">Click Here</button>.</li>
+    </ol>
+  </p>
+  <div id="outerRectangle">
+    <div id="draggableRectangle">
+      Drag Me
+      <div id="innerRectangle">Not Draggable</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scrolltimeline-interface">
+<style>
+.scroller {
+  overflow: auto;
+  height: 100px;
+  width: 100px;
+  will-change: transform;
+}
+
+.contents {
+  height: 1000px;
+  width: 100%;
+}
+</style>
+<div class="scroller">
+  <div class="contents"></div>
+</div>
+<script>
+  // Test passes if it does not crash.
+  // Scroll timeline animations are progress-based and not compatible with
+  // delays specified in milliseconds.
+  const scroller = document.querySelector('.scroller');
+  const animation = new Animation();
+  const timeline = animation.timeline;
+  const duration = timeline.duration;
+  const options = {
+    source: scroller,
+    scrollOffsets: [new CSSMathInvert(duration)]
+  };
+  const scroll_timeline = new ScrollTimeline(options);
+</script>

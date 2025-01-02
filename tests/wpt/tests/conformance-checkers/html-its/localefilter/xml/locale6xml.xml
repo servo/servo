@@ -1,0 +1,14 @@
+<book>
+ <info>
+ <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+   <its:param name="localeParam">Germany</its:param>
+   <its:localeFilterRule selector="//legalnotice[@role='Germany']" localeFilterList="de-DE"/>
+</its:rules>
+  <legalnotice role="Canada">
+   <para>This legal notice is only for Canadian locales.</para>
+  </legalnotice>
+  <legalnotice role="Germany">
+   <para>This legal notice is only for German locales.</para>
+  </legalnotice>
+ </info>
+</book>

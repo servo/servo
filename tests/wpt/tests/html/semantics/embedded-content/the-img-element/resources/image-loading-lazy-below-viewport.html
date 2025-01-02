@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<div style="height:1000vh;"></div>
+
+<img id="img" loading="lazy" src="image.png?lazy-below-viewport">
+
+<script>
+  const img = document.querySelector('#img');
+
+  img.addEventListener("load", () => {
+    parent.postMessage("image_loaded", "*");
+  });
+
+  window.addEventListener("load", () => {
+    parent.postMessage("window_loaded", "*");
+  });
+
+  window.addEventListener("message", event => {
+    if (event.data == "scroll") {
+      img.scrollIntoView();
+    }
+  });
+</script>

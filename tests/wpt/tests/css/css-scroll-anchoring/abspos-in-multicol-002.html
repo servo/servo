@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#candidate-examination">
+<meta name="assert" content="The candidate examination algorithm iterates abspos descendants of the containing block. Being inside a fully clipped element and inside a fragmentainer shouldn't break that.">
+<style>
+html {
+  column-count: 1; /* Fragmentainer */
+}
+
+body {
+  position: relative; /* Containing block */
+  height: 4000px;
+}
+
+main {
+  height: 0px; /* Fully clipped */
+}
+
+div {
+  position: absolute; /* Abspos */
+  font-size: 100px;
+  width: 200px;
+  height: 100%;
+  line-height: 100px;
+}
+</style>
+<main><div>abc <b id=b>def</b> ghi</div></main>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Tests anchoring to a text node that is moved by preceding text,
+// where the text is inside an absolutely positioned element,
+// there is a fully clippped element between the abspos and its contaning block,
+// and the containing block is inside a multi-column fragmentainer.
+test(() => {
+  var b = document.querySelector("#b");
+  var preText = b.previousSibling;
+  document.scrollingElement.scrollTop = 150;
+  preText.nodeValue = "abcd efg ";
+  assert_equals(document.scrollingElement.scrollTop, 250);
+}, "Anchoring with text wrapping changes.");
+</script>

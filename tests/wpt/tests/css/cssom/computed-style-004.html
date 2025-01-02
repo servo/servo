@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Test: getComputedStyle - resolved width in nested iframes dynamic width</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="outer" width="100" scrolling="no" frameborder="0"></iframe>
+<script>
+  const outerDoc = outer.contentWindow.document;
+  outerDoc.open();
+  outerDoc.write('<body style="margin:0"><iframe id="inner" scrolling="no" frameborder="0" style="width:100%"></iframe>');
+  outerDoc.close();
+
+  const innerWindow = outerDoc.querySelector("#inner").contentWindow;
+  const innerDoc = innerWindow.document;
+  innerDoc.open();
+  innerDoc.write('<body style="margin:0"><div style="width:100%"></div>');
+  innerDoc.close();
+  innerDoc.body.offsetWidth; // Make sure we layout the top document.
+
+  test(() => {
+    assert_equals(innerWindow.getComputedStyle(innerDoc.querySelector("div")).width, "100px");
+  }, "Check that the initial width is 100px.");
+
+  test(() => {
+    outer.setAttribute("width", "200");
+    assert_equals(innerWindow.getComputedStyle(innerDoc.querySelector("div")).width, "200px");
+  }, "Check that the resolved width of the inner div is affected by changing the width of outer iframe.");
+</script>

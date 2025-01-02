@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>List items that are not being rendered do not participate in numbering</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#list-owner">
+
+<p>This test matches if the list displays similar to the following</p>
+
+<pre>1. A
+2. B
+3. D
+4. E
+5. G</pre>
+
+<hr>
+
+<ol>
+  <li value="1">A</li>
+  <li value="2">B</li>
+  <li value="3">D</li>
+  <li value="4">E</li>
+  <li value="5">G</li>
+</ol>

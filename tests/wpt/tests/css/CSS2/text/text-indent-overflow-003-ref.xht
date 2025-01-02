@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>test reference</title>
+        <meta name="flags" content="ahem" />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #div1
+            {
+                font-family: Ahem;
+                line-height: 1em;
+                width: 40em;
+            }
+            #div2
+            {
+                margin-left: 10em;
+                width: 5em;
+            }
+            #div3
+            {
+                background: blue;
+                height: 1em;
+                margin-left: 10em;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is directly above the blue box.</p>
+        <div id="div1">
+            <div id="div2">XXXXX</div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+<div style="position: fixed; top: 0; left: 0">
+  <iframe id="iframe" style="width: 300px; height: 300px; border: none"
+          srcdoc="<style>body {margin: 0}</style>
+                  <div id='target' style='width: 100px; height: 100px'></div>">
+  </iframe>
+</div>
+<div id="log" style="height: 2000px"></div>
+<script>
+var entries = [];
+
+iframe.onload = () => {
+  runTestCycle(function() {
+    var observer = new IntersectionObserver(function(changes) {
+      entries = entries.concat(changes)
+    });
+    observer.observe(iframe.contentDocument.getElementById('target'));
+    entries = entries.concat(observer.takeRecords());
+    assert_equals(entries.length, 0, 'No initial notifications.');
+    runTestCycle(step0, 'First rAF.');
+  }, 'Fixed-position intersection observer on scroll');
+};
+
+function step0() {
+  window.scrollTo(0, 1000);
+  runTestCycle(step1, 'scrollTo(0, 1000)');
+  checkLastEntry(entries, 0,
+                 [0, 100, 0, 100, 0, 100, 0, 100, 0,
+                  document.documentElement.clientWidth, 0, document.documentElement.clientHeight,
+                  true]);
+}
+
+function step1() {
+  window.scrollTo(0, 0);
+  checkLastEntry(entries, 0,
+                 [0, 100, 0, 100, 0, 100, 0, 100, 0,
+                  document.documentElement.clientWidth, 0, document.documentElement.clientHeight,
+                  true]);
+}
+</script>

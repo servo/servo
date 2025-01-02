@@ -1,0 +1,25 @@
+<doc>
+<head>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+<its:param name="withinTextParam">footnote</its:param>
+<its:withinTextRule withinText="yes" selector="//b|//u|//i"/>
+<its:withinTextRule withinText="nested" selector="//fn[@id=$withinTextParam]"/>
+</its:rules>
+</head>
+<body>
+<p>
+This is a paragraph with
+<b>bold</b>
+,
+<i>italic</i>
+, and
+<u>underlined</u>
+.
+</p>
+<p>
+This is a paragraph with a footnote
+<fn id="footnote">This is the text of the footnote</fn>
+at the middle.
+</p>
+</body>
+</doc>

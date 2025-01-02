@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+    async_test(t => {
+      // opaque-origin1.html navigates itself to opaque-origin2.html onload.
+      // The 'src' shorthand in allow="fullscreen 'src'" should only match
+      // the initial src of opaque-origin1.html. opaque-origin2.html
+      // should not get access to fullscreen.
+      const iframe = document.createElement('iframe');
+      iframe.sandbox = 'allow-scripts';
+      iframe.src = 'resources/opaque-origin1.sub.https.html';
+      iframe.allow = "fullscreen 'src'";
+
+      window.addEventListener('message', t.step_func_done(e => {
+        assert_equals(e.data, "fullscreen disabled in opaque-origin2.html");
+      }));
+
+      document.body.appendChild(iframe);
+    });
+  </script>
+</body>

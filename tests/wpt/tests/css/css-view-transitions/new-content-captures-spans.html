@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: capture span elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="new-content-captures-spans-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-400">
+<script src="/common/reftest-wait.js"></script>
+<style>
+:root {
+  font: 20px/1 Ahem;
+}
+
+span {
+  background: lightblue;
+  view-transition-name: span;
+}
+span.dst { background: lightgreen; }
+/* We're verifying what we capture, so just display the new contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+<span id=target>This is a span</span>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let t = document.startViewTransition(() => {
+    target.classList.add("dst");
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

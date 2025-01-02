@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { margin: 0; }
+#scroller {
+  overflow: scroll;
+  height: 100px;
+}
+#multicol {
+  margin-top: 20px;
+  height: 200px;
+  columns: 2;
+  column-fill: auto;
+}
+#before {
+  margin-top: 100px;
+  height: 100px;
+}
+#content {
+  height: 10px;
+}
+</style>
+<div id="scroller">
+  <div id="multicol">
+    <div id="fragmented">
+      <div id="before"></div>
+      <div id="content">content</div>
+    </div>
+  </div>
+</div>
+<script>
+
+// Tests a scroll anchor inside of a div fragmented across multicol
+
+test(() => {
+  let scroller = document.querySelector("#scroller");
+  let before = document.querySelector("#before");
+  let content = document.querySelector("#content");
+
+  // Scroll down so that we select a scroll anchor. We should select #content
+  // and not #before, as #before is positioned offscreen in the first column
+  scroller.scrollTop = 10;
+
+  // Increase the height of #before so that it fragments into the second
+  // column and pushes #content down.
+  before.style.height = "110px";
+
+  // We should have anchored to #content and have done an adjustment of 10px
+  assert_equals(scroller.scrollTop, 20);
+}, "An element in a fragmented div should be able to be selected as an anchor node.");
+
+</script>

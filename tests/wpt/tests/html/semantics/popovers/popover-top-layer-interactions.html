@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Interactions between top layer element types</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<body>
+<script>
+const types = Object.freeze({
+  popover: Symbol("Popover"),
+  modalDialog: Symbol("Modal Dialog"),
+  fullscreen: Symbol("Fullscreen Element"),
+});
+const examples = [
+  {
+    type: types.popover,
+    closes: [types.popover],
+    createElement: () => Object.assign(document.createElement('div'), {popover: 'auto'}),
+    trigger: function() {this.element.showPopover()},
+    close: function() {this.element.hidePopover()},
+    isTopLayer: function() {return this.element.matches(':popover-open')},
+  },
+  {
+    type: types.modalDialog,
+    closes: [types.popover],
+    createElement: () => document.createElement('dialog'),
+    trigger: function() {this.element.showModal()},
+    close: function() {this.element.close()},
+    isTopLayer: function() {return this.element.matches(':modal')},
+  },
+  {
+    type: types.fullscreen,
+    closes: [types.popover],
+    createElement: () => document.createElement('div'),
+    trigger: async function(visibleElement) {assert_false(this.isTopLayer());await blessTopLayer(visibleElement);await this.element.requestFullscreen();},
+    close: async function() {await document.exitFullscreen();},
+    isTopLayer: function() {return this.element.matches(':fullscreen')},
+  },
+];
+
+function createElement(ex) {
+  assert_true(!ex.element);
+  const element = ex.element = ex.createElement();
+  assert_true(!!element);
+  element.appendChild(document.createTextNode(`This is a ${ex.type.description}`));
+  document.body.appendChild(element);
+  assert_false(ex.isTopLayer(),'Element should start out not in the top layer');
+  return element;
+}
+async function doneWithExample(ex) {
+  assert_true(!!ex.element);
+  if (ex.isTopLayer())
+    await ex.close();
+  ex.element.remove();
+  ex.element = null;
+}
+// Test interactions between top layer elements
+for(let i=0;i<examples.length;++i) {
+  for(let j=0;j<examples.length;++j) {
+    const example1 = Object.assign([],examples[i]);
+    const example2 = Object.assign([],examples[j]);
+    const shouldClose = example2.closes.includes(example1.type);
+    const desc = `A ${example2.type.description} should${shouldClose ? "" : " *not*"} close a ${example1.type.description}.`;
+    promise_test(async t => {
+      const element1 = createElement(example1);
+      const element2 = createElement(example2);
+      t.add_cleanup(() => {
+        return Promise.all([
+          doneWithExample(example1),
+          doneWithExample(example2),
+        ]);
+      });
+      await example1.trigger(document.body); // Open the 1st top layer element
+      assert_true(example1.isTopLayer()); // Make sure it is top layer
+      await example2.trigger(element1); // Open the 2nd top layer element
+      assert_true(example2.isTopLayer()); // Make sure it is top layer
+      assert_equals(shouldClose,!example1.isTopLayer(),desc);
+    },desc);
+  }
+}
+
+</script>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html class="reftest-wait foo">
+<title>View transitions: ensure :only-child is supported on view-transition-group</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+::view-transition {
+  background-color: black;
+}
+html:only-child {
+  background-color: black;
+}
+:root:only-child {
+  background-color: black;
+}
+:only-child {
+  background-color: black;
+}
+.foo:only-child {
+  background-color: black;
+}
+
+::view-transition-group(root) {
+  background-color: blue;
+}
+::view-transition-group(target) {
+  background-color: blue;
+}
+::view-transition-group(*) {
+  color: blue;
+}
+
+::view-transition-group(root):only-child {
+  background-color: red;
+}
+::view-transition-group(target):only-child {
+  background-color: red;
+}
+::view-transition-group(*):only-child {
+  color: red;
+}
+
+</style>
+<div id="target"></div>
+<div id="target2"></div>
+
+<script>
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    let transition = document.startViewTransition();
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-group(root)");
+      if (style.backgroundColor == "rgb(255, 0, 0)" && style.color == "rgb(255, 0, 0)")
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should match because ::view-transition-group is generated for root element only");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    target.style.viewTransitionName = "target";
+    let transition = document.startViewTransition();
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-group(root)");
+      if (style.backgroundColor == "rgb(0, 0, 255)" && style.color == "rgb(0, 0, 255)")
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should not match because ::view-transition-group is generated for multiple elements");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    document.documentElement.style.viewTransitionName = "none";
+    target.style.viewTransitionName = "target";
+    let transition = document.startViewTransition();
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-group(target)");
+      if (style.backgroundColor == "rgb(255, 0, 0)" && style.color == "rgb(255, 0, 0)")
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should match because ::view-transition-group is generated for sub element only");
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    document.documentElement.style.viewTransitionName = "none";
+    target.style.viewTransitionName = "target";
+    target2.style.viewTransitionName = "target2";
+    let transition = document.startViewTransition();
+    transition.ready.then(() => {
+      let style = getComputedStyle(document.documentElement, "::view-transition-group(target)");
+      if (style.backgroundColor == "rgb(0, 0, 255)" && style.color == "rgb(0, 0, 255)")
+        resolve();
+      else
+        reject(style.backgroundColor + " and " + style.color);
+    });
+  });
+}, ":only-child should not match because ::view-transition-group is generated for multiple sub elements");
+</script>

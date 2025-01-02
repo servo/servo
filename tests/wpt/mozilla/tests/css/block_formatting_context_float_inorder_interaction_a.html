@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<link rel="match" href="block_formatting_context_float_inorder_interaction_ref.html">
+<!-- Tests that the speculation of block formatting context inline sizes in the presence of floats
+     respects the inorder traversal. -->
+<style>
+* {
+    margin: 0;
+    color: white;
+}
+html {
+    width: 300px;
+    border-right: solid skyblue 10px;
+}
+#a {
+    float: left;
+    background: forestgreen;
+}
+#b {
+    padding-bottom: 12px;
+    background: firebrick;
+    overflow: hidden;
+}
+</style>
+<body>
+<div>
+    <div id=a>Mimi</div>
+</div>
+<div>
+    <div id=b>Mimi</div>
+</div>
+</body>
+</html>
+
+

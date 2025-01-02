@@ -1,0 +1,61 @@
+<!DOCTYPE html><html><head><title>javascript: URL creating a document in an about:blank iframe</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-iframe-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log">FAILED (test did not run)</div>
+
+<iframe src="about:blank" name="ifr1"></iframe>
+<iframe src="" name="ifr2"></iframe>
+<iframe src="./" name="ifr3"></iframe>
+
+<script>
+var test = async_test();
+var results = {};
+var expected = {
+    ifr1:{url:"about:blank", sameDom: true},
+    ifr2:{url:"about:blank", sameDom: true},
+    ifr3:{url: location.href.replace(/\/[^\/]*$/, '/'), sameDom: true },
+    ifr4:{url:"about:blank", sameDom: true},
+    ifr5:{url:"about:blank", sameDom: true}
+}
+
+var js_url = 'javascript:"<html><script>var sameDom = false; try{var cn = top.document.body.className;sameDom = true;}catch(e){}; parent.postMessage( {url: document.URL, name: name, sameDom: sameDom}, \'*\')<\/script><body><p>JS-generated document</p></body></<html>";'
+window.addEventListener('message', function(e){
+    var ifr = e.data.name;
+    results[ifr] = e.data;
+    test.step(function(){
+        assert_equals(results[ifr].url, expected[ifr].url);
+        assert_equals(results[ifr].sameDom, expected[ifr].sameDom);
+    }, 'Testing URL and details of IFRAME ' + ifr);
+    if(Object.keys(results).length === Object.keys(expected).length){
+        test.done();
+    }
+}, false);
+
+var ifr = document.createElement('iframe');
+ifr.name = 'ifr4';
+document.body.appendChild(ifr);
+
+window.onload = function () {
+    for (var i = 0, frame, frames = document.getElementsByTagName('iframe'); frame = frames[i]; i++) {
+        try{
+            frame.src = js_url;
+        }catch(e){
+            results[frame.name] = 'Exception on setting!';
+        }
+    };
+
+    // An iframe with an initial src of a javascript: URL should also have a
+    // document URL of about:blank.
+    var ifr = document.createElement('iframe');
+    ifr.name = 'ifr5';
+    ifr.src = js_url;
+    document.body.appendChild(ifr);
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/">
+<link rel="match" href="basic-pagination-003-print-ref.html">
+<style>
+  @page {
+    size: 293px;
+    margin: 5px;
+  }
+  body {
+    margin: 0;
+    background: yellow;
+  }
+  div {
+    /* Forced breaks defeat break avoidance hints. */
+    break-before: page;
+    break-after: avoid;
+  }
+</style>
+<div>Page one</div>
+<div>Page two</div>

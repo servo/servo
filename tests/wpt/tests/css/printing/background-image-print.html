@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>test-case.html</title>
+<link rel="match" href="background-image-print-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1769429">
+<meta name="fuzzy" content="maxDifference=0-3;totalPixels=0-400">
+<style>
+  body {
+    font-family: century;
+    font-weight: bold;
+    color: black;
+    print-color-adjust: exact;
+  }
+  .tile {
+    width: 16px;
+    height: 16px;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5gcMEDohgdlcwAAAAL1JREFUeNrt29ENgCAMRdFi2Ns6eR1CkxfjuQtAegJfsGZmKtmq7PKT3cBRAgBAAAAIAAABACAAAAQAgAAAEAAAAgBAAAAIAAABACAAAAQAgAAA0OP2+vkAwt8DnABXEAABACAAAAQAgAAAEAAAAgBAAAAIAAABACAAAAQAgAAAEAAAAgBAb7Tryj6Q7+7sBE4nwBUkAAAEAIAAABAAAAIAQAAACAAAAQAgAAAEAIAAABAAAAIAQAAACMDnuwGcQwlEUW+eJgAAAABJRU5ErkJggg==");
+    background-repeat: no-repeat;
+  }
+  .white   { background-position:   -2px   -2px }
+  .magenta { background-position: -34px   -2px }
+  .lime    { background-position: -66px   -2px }
+  .cyan    { background-position:   -2px -34px }
+  .blue    { background-position: -34px -34px }
+  .red     { background-position: -66px -34px }
+  .green   { background-position:   -2px -66px }
+  .gray    { background-position: -34px -66px }
+  .yellow  { background-position: -66px -66px }
+</style>
+</head>
+<body>
+  <div class="tile white"></div>
+  <div class="tile magenta"></div>
+  <div class="tile lime"></div>
+  <div class="tile cyan"></div>
+  <div class="tile blue"></div>
+  <div class="tile red"></div>
+  <div class="tile green"></div>
+  <div class="tile gray"></div>
+  <div class="tile yellow"></div>
+</body>
+</html>

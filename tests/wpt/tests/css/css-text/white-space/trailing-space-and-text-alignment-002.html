@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="fuzzy" content="1;0-100">
+<title>CSS Text level 3 Test: preserved trailing white space that hang in a textarea</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" title="3. White Space and Wrapping: the white-space property" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="help" title="4.1.2. Phase II: Trimming and Positioning" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" title="6.1. Text Alignment: the text-align shorthand" href="https://drafts.csswg.org/css-text-3/#text-align-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre">
+<link rel="match" href="reference/trailing-space-and-text-alignment-002-ref.html">
+<meta name="assert" content="preserved trailing spaces under 'white-space: pre' shouldn't hang and may cause overflow and activate the scrollbars.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="support/trailing-space-and-text-alignment.css">
+<style>
+textarea {
+    white-space: pre;
+}
+</style>
+<textarea class="left">XXX &#10;X</textarea>
+<textarea class="center">XXX &#10;X</textarea>
+<textarea class="right">XXX &#10;X</textarea>
+<textarea class="start">XXX &#10;X</textarea>
+<textarea class="end">XXX &#10;X</textarea>

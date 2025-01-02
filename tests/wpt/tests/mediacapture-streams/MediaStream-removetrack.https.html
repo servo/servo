@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<title>Removing a track from a MediaStream</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrackList-remove-void-MediaStreamTrack-track">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#event-mediastream-removetrack">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your audio stream, then your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that removinging a track from a MediaStream works as expected.</p>
+<video id="video" height="120" width="160" autoplay muted></video>
+<audio id="audio" autoplay muted></audio>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+
+promise_test(async t => {
+  await setMediaPermission();
+  const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+  const tracks = stream.getTracks();
+  t.add_cleanup(() => tracks.forEach(track => track.stop()));
+  const stream2 = await navigator.mediaDevices.getUserMedia({audio: true});
+  tracks.push(...stream2.getTracks());
+
+  stream.onremovetrack = stream2.onremovetrack = t.step_func(() =>
+    assert_unreached("onremovetrack is not triggered by script itself"));
+
+  assert_equals(stream.getTracks().length, 2, "mediastream starts with 2 tracks");
+  stream.removeTrack(stream.getVideoTracks()[0]);
+  assert_equals(stream.getTracks().length, 1, "mediastream has 1 track left");
+  stream.removeTrack(stream.getAudioTracks()[0]);
+  assert_equals(stream.getTracks().length, 0, "mediastream has no tracks left");
+  stream.removeTrack(stream2.getTracks()[0]); // should not throw
+
+  // Allow time to verify no events fire.
+  await new Promise(r => t.step_timeout(r, 1));
+
+}, "Tests that a removal from a MediaStream works as expected");
+
+async function doesEventFire(t, target, name, ms = 1) {
+  const cookie = {};
+  const value = await Promise.race([
+    new Promise(r => target.addEventListener(name, r, {once: true})),
+    new Promise(r => t.step_timeout(r, ms)).then(() => cookie)
+  ]);
+  return value !== cookie;
+}
+
+const doEventsFire = (t, target1, target2, name, ms = 1) => Promise.all([
+  doesEventFire(t, target1, "ended", ms),
+  doesEventFire(t, target2, "ended", ms)
+]);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+  const tracks = stream.getTracks();
+
+  audio.srcObject = video.srcObject = stream;
+
+  t.add_cleanup(() => {
+    for (const track of tracks) {
+      track.stop();
+    }
+    audio.srcObject = video.srcObject = null;
+  });
+
+  await Promise.all([
+    new Promise(r => audio.onloadedmetadata = r),
+    new Promise(r => video.onloadedmetadata = r)
+  ]);
+
+  assert_equals(audio.ended, false, "audio element starts out not ended");
+  assert_equals(video.ended, false, "video element starts out not ended");
+
+  stream.removeTrack(stream.getVideoTracks()[0]);
+  {
+    const [audioDidEnd, videoDidEnd] = await doEventsFire(t, audio, video, "ended");
+    assert_equals(audio.ended, false, "audio element unaffected");
+    assert_equals(audioDidEnd, false, "no audio ended event should fire yet");
+    assert_equals(video.ended, false, "video element keeps going with audio track");
+    assert_equals(videoDidEnd, false, "no video ended event should fire yet");
+  }
+  stream.removeTrack(stream.getAudioTracks()[0]);
+  {
+    const [audioDidEnd, videoDidEnd] = await doEventsFire(t, audio, video, "ended");
+    assert_equals(audio.ended, true, "audio element ended because no more audio tracks");
+    assert_equals(audioDidEnd, true, "go audio ended event");
+    assert_equals(video.ended, true, "video element ended because no more tracks");
+    assert_equals(videoDidEnd, true, "got video ended event");
+  }
+}, "Test that removal from a MediaStream fires ended on media elements (video first)");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+  const tracks = stream.getTracks();
+
+  audio.srcObject = video.srcObject = stream;
+
+  t.add_cleanup(() => {
+    for (const track of tracks) {
+      track.stop();
+    }
+    audio.srcObject = video.srcObject = null;
+  });
+
+  await Promise.all([
+    new Promise(r => audio.onloadedmetadata = r),
+    new Promise(r => video.onloadedmetadata = r)
+  ]);
+
+  assert_equals(audio.ended, false, "audio element starts out not ended");
+  assert_equals(video.ended, false, "video element starts out not ended");
+
+  stream.removeTrack(stream.getAudioTracks()[0]);
+  {
+    const [audioDidEnd, videoDidEnd] = await doEventsFire(t, audio, video, "ended");
+    assert_equals(audio.ended, true, "audio element ended because no more audio tracks");
+    assert_equals(audioDidEnd, true, "got audio ended event");
+    assert_equals(video.ended, false, "video element keeps going with video track");
+    assert_equals(videoDidEnd, false, "no video ended event should fire yet");
+  }
+  stream.removeTrack(stream.getVideoTracks()[0]);
+  {
+    const [audioDidEnd, videoDidEnd] = await doEventsFire(t, audio, video, "ended");
+    assert_equals(audio.ended, true, "audio element remains ended from before");
+    assert_equals(audioDidEnd, false, "no second audio ended event should fire");
+    assert_equals(video.ended, true, "video element ended because no more tracks");
+    assert_equals(videoDidEnd, true, "got video ended event");
+  }
+}, "Test that removal from a MediaStream fires ended on media elements (audio first)");
+
+</script>
+</body>
+</html>

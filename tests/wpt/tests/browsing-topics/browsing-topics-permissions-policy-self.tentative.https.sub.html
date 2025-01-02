@@ -1,0 +1,66 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
+  <script src=/browsing-topics/resources/permissions-policy-util.sub.js></script>
+  <script>
+    'use strict';
+    const header = 'permissions policy header browsing-topics=(self)';
+
+    promise_test(async t => {
+      let topics = await document.browsingTopics();
+      assert_equals(topics.length, 0);
+    }, header + ' allows document.browsingTopics() in the current page.');
+
+    async_test(t => {
+      test_topics_feature_availability_in_subframe(t, /*is_same_origin=*/true,
+          expect_topics_feature_available);
+    }, header + ' allows document.browsingTopics() in same-origin iframes.');
+
+    async_test(t => {
+      test_topics_feature_availability_in_subframe(t, /*is_same_origin=*/false,
+          expect_topics_feature_unavailable);
+    }, header + ' disallows document.browsingTopics() in cross-origin iframes.');
+
+    const same_origin_url = '/browsing-topics/resources/check-topics-request-header.py';
+    const cross_origin_url = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_url;
+
+    promise_test(async t => {
+      let response = await fetch(same_origin_url, {browsingTopics: true});
+      let topics_header = await response.text();
+      assert_equals(topics_header, EMPTY_TOPICS_HEADER);
+    }, header + 'allows the \'Sec-Browsing-Topics\' header to be sent for the same-origin topics fetch request.');
+
+    promise_test(async t => {
+      let response = await fetch(cross_origin_url, {browsingTopics: true});
+      let topics_header = await response.text();
+      assert_equals(topics_header, "NO_TOPICS_HEADER");
+    }, header + 'disallows the \'Sec-Browsing-Topics\' header to be sent for the cross-origin topics fetch request.');
+
+    promise_test(async t => {
+      let response = await fetch('/common/redirect.py?location=' + same_origin_url, {browsingTopics: true});
+      let topics_header = await response.text();
+      assert_equals(topics_header, EMPTY_TOPICS_HEADER);
+    }, header + 'allows the \'Sec-Browsing-Topics\' header to be sent for the redirect of a topics fetch request, where the redirect has a same-origin URL.');
+
+    promise_test(async t => {
+      let response = await fetch('/common/redirect.py?location=' + cross_origin_url, {browsingTopics: true});
+      let topics_header = await response.text();
+      assert_equals(topics_header, "NO_TOPICS_HEADER");
+    }, header + 'disallows the \'Sec-Browsing-Topics\' header to be sent for the redirect of a topics fetch request, where the redirect has a cross-origin URL.');
+
+    async_test(t => {
+      test_topics_iframe_navigation_header(
+          t, /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/true,
+          expect_topics_header_available);
+    }, header + ' allows the \'Sec-Browsing-Topics\' header to be sent for the same-origin iframe navigation request.');
+
+    async_test(t => {
+      test_topics_iframe_navigation_header(
+          t, /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/false,
+          expect_topics_header_unavailable);
+    }, header + ' disallows the \'Sec-Browsing-Topics\' header to be sent for the cross-origin iframe navigation request.');
+  </script>
+</body>

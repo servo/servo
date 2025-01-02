@@ -1,0 +1,17 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Classes: XHTML global class attribute</title>
+  <style type="text/css"><![CDATA[
+ p { color: green; }
+ .fail { color: red; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+   <p xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <span xhtml:class="fail">This should be green.</span>
+   </p>
+</body>
+</html>

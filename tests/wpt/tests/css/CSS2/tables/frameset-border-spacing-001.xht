@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Applying the 'border-spacing' property to a 'frameset' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="The user agent may allow the 'border-spacing' property to be applied to an HTML/XHTML 'frameset' element (non-normative rule)." />
+        <style type="text/css">
+            frameset
+            {
+                border: 2px solid blue;
+                border-spacing: 2em;
+            }
+        </style>
+    </head>
+    <frameset cols="33%, 33%, *">
+        <frame src="" />
+        <frame src="support/frameset-border-spacing-001.htm" />
+        <frame src="" />
+        <noframes>
+            <body>
+                <p>Test passes if this text is visible.</p>
+            </body>
+        </noframes>
+    </frameset>
+</html>

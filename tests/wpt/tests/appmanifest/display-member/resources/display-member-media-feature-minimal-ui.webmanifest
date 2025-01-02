@@ -1,0 +1,11 @@
+{
+    "name": "Display member media feature WPT",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../display-member-media-feature-minimal-ui-manual.html",
+    "display": "minimal-ui"
+}

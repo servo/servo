@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#dependency-cycles-via-relative-units" />
+<meta name="assert" content="This test verifies that reference cycles via units are detected" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    function register_property(name, syntax, inherits) {
+        CSS.registerProperty({
+            name: name,
+            syntax: syntax,
+            initialValue: '0px',
+            inherits: inherits
+        });
+    }
+
+    function register_length(name, inherits=false) {
+        register_property(name, '<length>', inherits);
+    }
+
+    function register_universal(name) {
+        register_property(name, '*', false);
+    }
+
+    register_length('--font-size-em');
+    register_length('--font-size-rem');
+    register_length('--font-size-ex');
+    register_length('--font-size-ch');
+    register_length('--font-size-px');
+    register_length('--font-size-lh');
+    register_length('--font-size-em-via-var');
+    register_length('--font-size-rem-via-var');
+    register_length('--font-size-ex-via-var');
+    register_length('--font-size-ch-via-var');
+    register_length('--font-size-em-inherited', true);
+    register_length('--font-size-ex-inherited', true);
+    register_length('--font-size-ch-inherited', true);
+    register_length('--line-height-lh');
+    register_length('--line-height-lh-via-var');
+    register_length('--line-height-lh-inherited', true);
+    register_universal('--font-size-em-universal');
+    register_universal('--font-size-rem-universal');
+    register_universal('--font-size-ex-universal');
+    register_universal('--font-size-ch-universal');
+    register_universal('--font-size-px-universal');
+    register_universal('--font-size-lh-universal');
+</script>
+<style>
+    :root {
+        --unregistered-em: 10em;
+        --unregistered-rem: 10rem;
+        --unregistered-ex: 10ex;
+        --unregistered-ch: 10ch;
+        --unregistered-lh: 10lh;
+        --unregistered-em-env: calc(10em + env(test, 0px));
+        --unregistered-rem-env: calc(10rem + env(test, 0px));
+        --unregistered-ex-env: calc(10ex + env(test, 0px));
+        --unregistered-ch-env: calc(10ch + env(test, 0px));
+        --unregistered-lh-env: calc(10lh + env(test, 0px));
+    }
+
+    :root, #target {
+        --font-size-em: 2em;
+        --font-size-rem: 2rem;
+        --font-size-ex: 2ex;
+        --font-size-ch: 2ch;
+        --font-size-px: 42px;
+        --font-size-lh: 2lh;
+        --line-height-lh: 2lh;
+        --font-size-em-via-var: var(--unregistered-em);
+        --font-size-rem-via-var: var(--unregistered-rem);
+        --font-size-ex-via-var: var(--unregistered-ex);
+        --font-size-ch-via-var: var(--unregistered-ch);
+        --line-height-lh-via-var: var(--unregistered-lh);
+        --font-size-em-universal: 2em;
+        --font-size-rem-universal: 2rem;
+        --font-size-ex-universal: 2ex;
+        --font-size-ch-universal: 2ch;
+        --font-size-px-universal: 42px;
+        --font-size-lh-universal: 2lh;
+    }
+
+    #parent {
+        --font-size-em-inherited: 4em;
+        --font-size-ex-inherited: 4ex;
+        --font-size-ch-inherited: 4ch;
+        --line-height-lh-inherited: 4lh;
+    }
+
+    #target {
+        font-size: 11px;
+        line-height: 13px;
+    }
+</style>
+
+<div id=parent>
+    <div id=target></div>
+</div>
+<div id=ref></div>
+
+<script>
+
+    function unset_dimension(element = ref) {
+        element.style.fontSize = '';
+        element.style.marginBottom = '';
+    }
+
+    function compute_margin_bottom(dimension, element) {
+        try {
+            element.style.marginBottom = dimension;
+            return getComputedStyle(element).marginBottom;
+        } finally {
+            element.style.marginBottom = '';
+        }
+    }
+
+    // Compute a dimension (e.g. 1em) given a certain fontSize.
+    function compute_dimension(dimension, fontSize, element = ref) {
+        try {
+            element.style.fontSize = fontSize;
+            return compute_margin_bottom(dimension, element);
+        } finally {
+            element.style.fontSize = '';
+        }
+    }
+
+    function assert_property_equals(name, value, element = target) {
+        var computedStyle = getComputedStyle(element);
+        assert_equals(computedStyle.getPropertyValue(name), value);
+    }
+
+    let unsetFontSize = compute_dimension('1em', 'unset');
+    const unsetLineHeight = "normal";
+
+    add_result_callback(function(){
+        unset_dimension(target);
+        unset_dimension(document.documentElement);
+    });
+
+    test(function() {
+        // Unregistered variables behave as if they're copy & paste, so
+        // follow the regular font-relative size resolution.
+        const unregistered_variables = {
+            'unregistered-em': target.parentElement,
+            'unregistered-ex': target.parentElement,
+            'unregistered-ch': target.parentElement,
+            'unregistered-lh': target.parentElement,
+            'unregistered-rem': document.documentElement,
+        };
+
+        for (let variable in unregistered_variables) {
+            const e = unregistered_variables[variable];
+            const v = `var(--${variable})`;
+            target.style = `font-size: ${v};`;
+            assert_property_equals('font-size', compute_margin_bottom(v, e));
+        }
+    }, 'Font-dependent unregistered variables can be used in font-size');
+
+    test(function() {
+        const universal_variables = {
+            'font-size-em-universal': (v) => compute_dimension(v, 'unset', target),
+            'font-size-ex-universal': (v) => compute_dimension(v, 'unset', target),
+            'font-size-ch-universal': (v) => compute_dimension(v, 'unset', target),
+            'font-size-lh-universal': (v) => compute_margin_bottom('2lh', target.parentElement),
+            'font-size-rem-universal': (v) => compute_dimension(v, 'unset', target),
+        };
+        for (let variable in universal_variables) {
+            const v = `var(--${variable})`;
+            const expected = universal_variables[variable](v);
+            target.style = `font-size: ${v};`;
+            assert_property_equals('font-size', expected);
+        }
+    }, 'Registered universal variables referencing font-dependent units can be used in font-size');
+
+
+    test(function() {
+        // Unregistered variables behave as if they're copy & paste, so
+        // follow the regular font-relative size resolution.
+        const unregistered_variables = {
+            'unregistered-em-env': target.parentElement,
+            'unregistered-ex-env': target.parentElement,
+            'unregistered-ch-env': target.parentElement,
+            'unregistered-lh-env': target.parentElement,
+            'unregistered-rem-env': document.documentElement,
+        };
+
+        for (let variable in unregistered_variables) {
+            const e = unregistered_variables[variable];
+            const v = `var(--${variable})`;
+            target.style = `font-size: ${v};`;
+            assert_property_equals('font-size', compute_margin_bottom(v, e));
+        }
+    }, 'Font-dependent unregistered variables referencing env() can be used in font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-px);';
+        assert_property_equals('font-size', '42px');
+        assert_property_equals('--font-size-px', '42px');
+    }, 'Non-font-dependent variables can be used in font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-em);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-em', '0px');
+    }, 'Lengths with em units may not be referenced from font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ex);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ex', '0px');
+    }, 'Lengths with ex units may not be referenced from font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ch);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ch', '0px');
+    }, 'Lengths with ch units may not be referenced from font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-lh);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-lh', '0px');
+    }, 'Lengths with lh units may not be referenced from font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-rem);';
+        let expected = compute_dimension('2rem', 'unset', document.documentElement);
+        assert_property_equals('--font-size-rem', expected);
+        assert_property_equals('font-size', expected);
+    }, 'Lengths with rem units may be referenced from font-size on non-root element');
+
+    test(function() {
+        let root = document.documentElement;
+        root.style = 'font-size: var(--font-size-rem);';
+        assert_property_equals('font-size', unsetFontSize, root);
+        assert_property_equals('--font-size-rem', '0px', root);
+    }, 'Lengths with rem units may not be referenced from font-size on root element');
+
+    test(function() {
+        target.style = 'line-height: var(--line-height-lh);';
+        assert_property_equals('line-height', unsetLineHeight);
+        assert_property_equals('--line-height-lh', '0px');
+    }, 'Lengths with lh units may not be referenced from line-height');
+
+    test(function() {
+        target.style = 'font-size: var(--noexist, var(--font-size-em));';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback may not use font-relative units');
+
+    test(function() {
+        target.style = 'line-height: var(--noexist, var(--line-height-lh));';
+        assert_property_equals('line-height', unsetLineHeight);
+    }, 'Fallback may not use line-height-relative units');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-em, 42px);';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside em unit cycle');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ex, 42px);';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside ex unit cycle');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ch, 42px);';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside ch unit cycle');
+
+    test(function() {
+        let root = document.documentElement;
+        root.style = 'font-size: var(--font-size-rem, 42px);';
+        assert_property_equals('font-size', unsetFontSize, root);
+        root.style = 'font-size: unset;';
+    }, 'Fallback not triggered while inside rem unit cycle on root element');
+
+    test(function() {
+        target.style = 'line-height: var(--line-height-lh, 42px);';
+        assert_property_equals('line-height', unsetLineHeight);
+    }, 'Fallback not triggered while inside lh unit cycle');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-em-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-em-via-var', '0px');
+    }, 'Lengths with em units are detected via var references');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ex-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ex-via-var', '0px');
+    }, 'Lengths with ex units are detected via var references');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ch-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ch-via-var', '0px');
+    }, 'Lengths with ch units are detected via var references');
+
+    test(function() {
+        let root = document.documentElement;
+        root.style = 'font-size: var(--font-size-rem-via-var);';
+        assert_property_equals('font-size', unsetFontSize, root);
+        assert_property_equals('--font-size-rem-via-var', '0px', root);
+        root.style = 'font-size: unset';
+    }, 'Lengths with rem units are detected via var references');
+
+    test(function() {
+        target.style = 'line-height: var(--line-height-lh-via-var);';
+        assert_property_equals('line-height', unsetLineHeight);
+        assert_property_equals('--line-height-lh-via-var', '0px');
+    }, 'Lengths with lh units are detected via var references');
+
+    test(function() {
+        let expected4em = compute_dimension('4em', 'unset');
+        target.style = 'font-size: var(--font-size-em-inherited);';
+        assert_property_equals('font-size', expected4em);
+        assert_property_equals('--font-size-em-inherited', expected4em);
+    }, 'Inherited lengths with em units may be used');
+
+    test(function() {
+        let expected4ex = compute_dimension('4ex', 'unset');
+        target.style = 'font-size: var(--font-size-ex-inherited);';
+        assert_property_equals('font-size', expected4ex);
+        assert_property_equals('--font-size-ex-inherited', expected4ex);
+    }, 'Inherited lengths with ex units may be used');
+
+    test(function() {
+        let expected4ch = compute_dimension('4ch', 'unset');
+        target.style = 'font-size: var(--font-size-ch-inherited);';
+        assert_property_equals('font-size', expected4ch);
+        assert_property_equals('--font-size-ch-inherited', expected4ch);
+    }, 'Inherited lengths with ch units may be used');
+
+    test(function() {
+        let expected4lh = compute_dimension('4lh', 'unset');
+        target.style = 'line-height: var(--line-height-lh-inherited);';
+        assert_property_equals('line-height', expected4lh);
+        assert_property_equals('--line-height-lh-inherited', expected4lh);
+    }, 'Inherited lengths with lh units may be used');
+
+</script>

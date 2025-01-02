@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="dgrogan@chromium.org" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-wrap-property" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html" />
+<meta name="assert" content="Inner column flexbox wraps its items when they don't fit in the vertical available space.">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: flex; flex-direction: column; width: 100px;">
+  <!-- min-height is min(200, 70) = 70 -->
+  <!-- Final height is 70px. Items each have height 100px. They won't both fit, so they need to be wrapped. -->
+  <div style="display: flex; flex-direction: column; flex-wrap: wrap; flex: 1 0 0px; height: 70px">
+    <!-- min-height is 100 -->
+    <div style="flex: 1 0 0px; width: 50px; background: green;">
+      <div style="height: 100px;"></div>
+    </div>
+    <!-- min-height is 100 -->
+    <div style="flex: 1 0 0px; width: 50px; background: green;">
+      <div style="height: 100px;"></div>
+    </div>
+  </div>
+</div>

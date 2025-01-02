@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  {%- if subtests|length > 10 %}
+  <meta name="timeout" content="long">
+  {%- endif %}
+  <title>HTTP headers on request for HTML "area" element navigation</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  {%- if subtests|selectattr('userActivated')|list %}
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  {%- endif %}
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, {test, userActivated, attributes}) {
+    const win = window.open();
+    const area = win.document.createElement('area');
+    area.setAttribute('href', url);
+
+    for (const [ name, value ] of Object.entries(attributes)) {
+      area.setAttribute(name, value);
+    }
+
+    win.document.body.appendChild(area);
+
+    test.add_cleanup(() => win.close());
+
+    if (userActivated) {
+      test_driver.bless('enable user activation', () => area.click());
+    } else {
+      area.click();
+    }
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      makeRequestURL(key, [% subtest.origins %], {mime: 'text/html'}),
+      {
+        test: t,
+        userActivated: [%subtest.userActivated | default(false) | tojson%],
+        attributes: [%subtest.elementAttrs | default({}) | tojson%]
+      }
+    );
+
+    // `induceRequest` does not necessarily trigger a navigation, so the Python
+    // handler must be polled until it has received the initial request.
+    return retrieve(key, {poll: true})
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%] - [%subtest.elementAttrs | collection("attributes")%][% " with user activation" if subtest.userActivated%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

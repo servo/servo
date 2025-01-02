@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: Test column-span:all when the body tag is the multi-column container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  body {
+    column-count: 1;
+    column-rule: 6px solid;
+    width: 400px;
+    outline: 1px solid black;
+  }
+  h3 {
+    /* column-count: 1 makes this behave like a real spanner. */
+    outline: 1px solid blue;
+  }
+  </style>
+
+  <body>
+    <div>block1</div>
+    <div>
+      <h3>spanner</h3>
+    </div>
+    <div>block2</div>
+  </body>
+</html>

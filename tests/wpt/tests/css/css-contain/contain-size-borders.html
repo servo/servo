@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>contain:size on auto-height block width vertical borders</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="contain:size; width:100px; border:50px solid green; border-left:none; border-right:none; background:red;">
+  <div style="height:200px;"></div>
+</div>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cross page drag and drop: helper file</title>
+<style type="text/css">
+div[ondragenter]
+  {margin:200px 0 0 200px;
+  width:200px;
+  height:100px;
+  color:white;
+  background-color:navy;}
+div[ondragenter]:before
+  {display:block;
+  content:"";
+  border-style:solid;
+  position:relative;
+  top:-50px;
+  left:-200px;
+  border-width:100px;
+  border-color:transparent navy transparent transparent;}
+</style>
+</head>
+<body>
+<p>Drag link to the blue arrow but don't drop it yet. You should be returned back to start page.</p>
+<div ondragenter="event.preventDefault()" ondragover="history.go(-1)"/>
+</body>
+</html>

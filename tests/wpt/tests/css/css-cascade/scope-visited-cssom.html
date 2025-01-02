@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<title>@scope - :visited and CSSOM</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#link">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<main id=main></main>
+
+<style>
+  :where(:visited, :link), :where(div) {
+    background-color: white;
+  }
+</style>
+
+<!--
+  Both #visited and #unvisited should appear to be in an unvisited state
+  through getComputedStyle.
+-->
+
+<!-- :visited/:link in scoped selector -->
+
+<template id=test_link>
+  <style>
+    @scope (main) {
+      :link { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_link.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+}, ':link as scoped selector');
+</script>
+
+<template id=test_visited>
+  <style>
+    @scope (main) {
+      :visited { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_visited.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+}, ':visited as scoped selector');
+</script>
+
+<template id=test_not_link>
+  <style>
+    @scope (main) {
+      :not(:link) { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_link.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+}, ':not(:link) as scoped selector');
+</script>
+
+<template id=test_not_visited>
+  <style>
+    @scope (main) {
+      :not(:visited) { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_visited.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+}, ':not(:visited) as scoped selector');
+</script>
+
+<!-- :visited/:link in root -->
+
+<template id=test_link_root>
+  <style>
+    @scope (main :link) {
+      div { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""><div></div></a>
+  <a id=unvisited href="x"><div></div></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_link_root.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
+}, ':link as scoping root');
+</script>
+
+<template id=test_visited_root>
+  <style>
+    @scope (main :visited) {
+      div { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""><div></div></a>
+  <a id=unvisited href="x"><div></div></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_visited_root.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
+}, ':visited as scoping root');
+</script>
+
+<template id=test_not_visited_root>
+  <style>
+    @scope (main :not(:visited)) {
+      div { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""><div></div></a>
+  <a id=unvisited href="x"><div></div></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_visited_root.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(0, 128, 0)');
+}, ':not(:visited) as scoping root');
+</script>
+
+<template id=test_not_link_root>
+  <style>
+    @scope (main :not(:link)) {
+      div { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""><div></div></a>
+  <a id=unvisited href="x"><div></div></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_link_root.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited.firstElementChild).backgroundColor, 'rgb(255, 255, 255)');
+}, ':not(:link) as scoping root');
+</script>
+
+<!-- :visited/:link in scoping root, with inner :scope -->
+
+<template id=test_link_root_scope>
+  <style>
+    @scope (main :link) {
+      :scope { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_link_root_scope.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+}, ':link as scoping root, :scope');
+</script>
+
+<template id=test_visited_root_scope>
+  <style>
+    @scope (main :visited) {
+      :scope { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_visited_root_scope.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+}, ':visited as scoping root, :scope');
+</script>
+
+<template id=test_not_visited_root_scope>
+  <style>
+    @scope (main :not(:visited)) {
+      :scope { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_visited_root_scope.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+}, ':not(:visited) as scoping root, :scope');
+</script>
+
+<template id=test_not_link_root_scope>
+  <style>
+    @scope (main :not(:link)) {
+      :scope { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_link_root_scope.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+}, ':not(:link) as scoping root, :scope');
+</script>
+
+<!-- :visited/:link in scoping limit -->
+
+<template id=test_link_scoping_limit>
+  <style>
+    @scope (main) to (:link) {
+      * { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_link_scoping_limit.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+}, ':link as scoping limit');
+</script>
+
+<template id=test_visited_scoping_limit>
+  <style>
+    @scope (main) to (:visited) {
+      * { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_visited_scoping_limit.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+}, ':visited as scoping limit');
+</script>
+
+<template id=test_not_link_scoping_limit>
+  <style>
+    @scope (main) to (:not(:link)) {
+      * { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_link_scoping_limit.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(0, 128, 0)');
+}, ':not(:link) as scoping limit');
+</script>
+
+<template id=test_not_visited_scoping_limit>
+  <style>
+    @scope (main) to (:not(:visited)) {
+      * { background-color: green; }
+    }
+  </style>
+  <a id=visited href=""></a>
+  <a id=unvisited href="x"></a>
+</template>
+<script>
+test((t) => {
+  main.append(test_not_visited_scoping_limit.content.cloneNode(true));
+  t.add_cleanup(() => main.replaceChildren());
+  assert_equals(getComputedStyle(visited).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(unvisited).backgroundColor, 'rgb(255, 255, 255)');
+}, ':not(:visited) as scoping limit');
+</script>

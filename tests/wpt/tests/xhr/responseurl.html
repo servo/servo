@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: responseURL test</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responseurl-attribute"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        assert_equals(client.responseURL, "")
+
+        client.open("GET", "foo.html", false)
+        client.send()
+
+        expected = location.href.replace(/[^/]*$/, 'foo.html')
+        assert_equals(client.status, 404)
+        assert_equals(client.responseURL, expected)
+      }, "404 response has proper responseURL")
+      test(function() {
+        var client = new XMLHttpRequest()
+        assert_equals(client.responseURL, "")
+
+        target = "image.gif"
+        client.open("GET", "resources/redirect.py?location=" + target, false)
+        client.send()
+
+        expected = location.href.replace(/[^/]*$/, "resources/" + target)
+        assert_equals(client.status, 200)
+        assert_equals(client.responseURL, expected)
+      }, "Redirected response has proper responseURL")
+    </script>
+  </body>
+</html>

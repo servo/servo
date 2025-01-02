@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>setTransform with DOMMatrix behaves correctly</title>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="setTransform-ref.html">
+<style>
+.container {
+  width: 200px;
+  height: 200px;
+}
+
+#foo {
+  background: paint(foo);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="foo" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('foo', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.setTransform({a: 2, d: 2});
+        ctx.fillRect(0, 0, 50, 50);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

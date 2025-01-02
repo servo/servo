@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<title>CSS Test: breaking of a multicolumn</title>
+<meta charset="utf-8">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/#column-gaps-and-rules">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/#cf">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2309">
+<link rel="match" href="multicol-breaking-nobackground-005-ref.html">
+<style>
+
+.outer {
+  height: 200px;
+  width: 800px;
+  column-fill: balance;
+  column-count: 3;
+  column-gap: 16px;
+  background: rgba(0, 0, 255, 0.3);
+}
+
+.inner {
+  column-count: 2;
+  column-fill: balance;
+  column-rule: 2px solid fuchsia;
+  column-gap: 16px;
+  font: 16px/1.25 sans-serif;
+}
+
+</style>
+
+<!-- This test is similar to multicol-breaking-nobackground-002.html,
+     but both outer and inner columns are balancing. The outer multi-column is
+     made explicitly taller than the inner columns' optimal balance height. -->
+<div class="outer">
+  <div class="inner" style="height: 300px">
+    AAAAA<br>
+    BBBBB<br>
+    CCCCC<br>
+    DDDDD<br>
+    EEEEE<br>
+    FFFFF<br>
+    GGGGG<br>
+    HHHHH<br>
+    IIIII<br>
+    JJJJJ<br>
+    KKKKK<br>
+    LLLLL<br>
+    MMMMM<br>
+    NNNNN<br>
+    OOOOO<br>
+    PPPPP<br>
+    QQQQQ<br>
+    RRRRR<br>
+    SSSSS<br>
+    TTTTT<br>
+    UUUUU<br>
+    VVVVV<br>
+    WWWWW<br>
+    XXXXX<br>
+    YYYYY<br>
+    ZZZZZ<br>
+    aaaaa<br>
+    bbbbb<br>
+    ccccc<br>
+    ddddd
+  </div>
+</div>

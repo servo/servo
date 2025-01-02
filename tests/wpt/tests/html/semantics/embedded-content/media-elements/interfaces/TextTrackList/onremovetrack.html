@@ -1,0 +1,33 @@
+<!doctype html>
+<title>TextTrackList.onremovetrack</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.tracks = document.createElement('video').textTracks;
+    window.ev = new Event('removetrack');
+    window.ran = false;
+    window.cb = function() { ran = true; };
+});
+test(function(){
+    assert_equals(tracks.onremovetrack, null);
+    tracks.onremovetrack = cb;
+    assert_equals(tracks.onremovetrack, cb);
+    tracks.dispatchEvent(ev);
+    assert_true(ran);
+    tracks.onremovetrack = null;
+    ran = false;
+    tracks.dispatchEvent(ev);
+    assert_false(ran);
+});
+test(function(){
+    tracks.addEventListener('removetrack', cb, false);
+    tracks.dispatchEvent(ev);
+    assert_true(ran);
+    tracks.removeEventListener('removetrack', cb, false);
+    ran = false;
+    tracks.dispatchEvent(ev);
+    assert_false(ran);
+}, 'TextTrackList.addEventListener/removeEventListener');
+</script>

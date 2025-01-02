@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#styling-PresentationAttributes"/>
+    <h:meta name="assert" content="x y width height are presentation attributes of foreignObject"/>
+  </metadata>
+  <style>
+    .c {
+      x: 10px;
+      y: 20px;
+      width: 30px;
+      height: 40px;
+    }
+  </style>
+  <foreignObject id="first"></foreignObject>
+  <foreignObject id="second" class="c"></foreignObject>
+  <foreignObject id="third" x="50" y="60" width="70" height="80"></foreignObject>
+  <foreignObject id="fourth" x="50" y="60" width="70" height="80" class="c"></foreignObject>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+  test(function() {
+    var first = document.getElementById('first');
+    assert_equals(getComputedStyle(first).x, "0px");
+    assert_equals(getComputedStyle(first).y, "0px");
+    assert_equals(getComputedStyle(first).width, "0px");
+    assert_equals(getComputedStyle(first).height, "0px");
+  }, 'width and height default to auto (which computes to "0px")');
+
+  test(function() {
+    var second = document.getElementById('second');
+    assert_equals(getComputedStyle(second).x, "10px");
+    assert_equals(getComputedStyle(second).y, "20px");
+    assert_equals(getComputedStyle(second).width, "30px");
+    assert_equals(getComputedStyle(second).height, "40px");
+  }, 'style rules are applied');
+
+  test(function() {
+    var third = document.getElementById('third');
+    assert_equals(getComputedStyle(third).x, "50px");
+    assert_equals(getComputedStyle(third).y, "60px");
+    assert_equals(getComputedStyle(third).width, "70px");
+    assert_equals(getComputedStyle(third).height, "80px");
+  }, 'attributes set properties');
+
+  test(function() {
+    var fourth = document.getElementById('fourth');
+    assert_equals(getComputedStyle(fourth).x, "10px");
+    assert_equals(getComputedStyle(fourth).y, "20px");
+    assert_equals(getComputedStyle(fourth).width, "30px");
+    assert_equals(getComputedStyle(fourth).height, "40px");
+  }, 'style rules override attributes');
+  ]]></script>
+</svg>

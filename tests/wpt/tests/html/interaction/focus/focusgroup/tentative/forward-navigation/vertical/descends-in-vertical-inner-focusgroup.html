@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus descends from horizontal focusgroup into vertical focusgroup.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<div id=fg1 focusgroup=inline>
+  <span id=item1 tabindex=0>item1</span>
+  <div id=fg2 tabindex=-1 focusgroup="extend block">
+    <span id=item2 tabindex=-1>item2</span>
+  </div>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var fg2 = document.getElementById("fg2");
+    var item2 = document.getElementById("item2");
+
+    await focusAndKeyPress(fg2, kArrowDown);
+    assert_equals(document.activeElement, item2);
+  }, "When the focus is set on the root of an extending focusgroup that supports an orthogonal axis to the outer focusgroup, an arrow key press aligned with the inner focusgroup axis should move the focus within that inner focusgroup.");
+
+</script>

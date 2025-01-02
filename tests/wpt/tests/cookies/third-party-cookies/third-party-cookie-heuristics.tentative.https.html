@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>Test third-party cookie heuristics</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/third-party-cookies/resources/test-helpers.js"></script>
+
+<body>
+  <script>
+    document.body.onload = async () => {
+      // Set SameSite=None cookie in a 1P context using HTTP.
+      const attributes = "Secure;Path=/;SameSite=None";
+      const httpCookieName = "1P_http";
+      await credFetch(
+        `${self.origin}/cookies/resources/set.py?${httpCookieName}=foobar;${attributes}`);
+
+      // Set another cookie using document.cookie.
+      const domCookieName = "1P_dom";
+      document.cookie = `${domCookieName}=foobar;${attributes}`;
+
+      const cookieNames = [httpCookieName, domCookieName];
+
+      // Set another cookie using the CookieStore API, if supported.
+      if (window.cookieStore) {
+        const cookieStoreCookieName = "1P_cs";
+        await cookieStore.set({
+          name: cookieStoreCookieName,
+          value: "foobar",
+          path: "/",
+          sameSite: "none",
+        });
+        cookieNames.push(cookieStoreCookieName);
+      }
+
+      // Open a cross-site window which will open a popup with the current origin.
+      const crossSiteUrl = new URL(
+        `./resources/third-party-cookies-cross-site-popup-opener.html?origin=${encodeURIComponent(self.origin)}`,
+        get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
+      const popup = window.open(crossSiteUrl);
+      fetch_tests_from_window(popup);
+    };
+
+  </script>
+</body>

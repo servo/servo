@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html dir="ltr">
+<head>
+<link rel="match" href="dir-pseudo-update-document-element-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-dir-pseudo">
+<script>
+document.documentElement.setAttribute('dir', 'rtl');
+</script>
+<style>
+div {
+    width: 100px;
+    height: 100px;
+    float: left;
+}
+
+div:dir(rtl) {
+    background-color: green;
+}
+
+div:dir(ltr) {
+    background-color: red;
+}
+</style>
+</head>
+<body>
+<div></div>
+</body>
+</html>

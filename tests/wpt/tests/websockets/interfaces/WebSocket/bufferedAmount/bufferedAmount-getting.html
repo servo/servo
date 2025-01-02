@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>WebSockets: bufferedAmount after send()ing</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+async_test(function(t){
+  // bufferedAmount should increase sync in the send() method and decrease between
+  // events in the event loop (so never while script is running).
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+  ws.onopen = t.step_func(function(e) {
+    ws.send('x');
+    assert_equals(ws.bufferedAmount, 1, 'bufferedAmount after sent "x"');
+    ws.send('\u00E5');
+    assert_equals(ws.bufferedAmount, 1+2, 'bufferedAmount after sent "x", "\u00E5"');
+    ws.send('\u5336');
+    assert_equals(ws.bufferedAmount, 1+2+3, 'bufferedAmount after sent "x", "\u00E5", "\u5336"');
+    ws.send('\uD801\uDC7E');
+    assert_equals(ws.bufferedAmount, 1+2+3+4, 'bufferedAmount after sent "x", "\u00E5", "\u5336", "\uD801\uDC7E"');
+  })
+  var i = 0;
+  ws.onmessage = t.step_func(function(e) {
+    i++;
+    switch(i) {
+      case 1:
+        assert_equals(e.data, 'x');
+        assert_true(ws.bufferedAmount < 2+3+4 + 1, 'bufferedAmount after received "x"');
+        break;
+      case 2:
+        assert_equals(e.data, '\u00E5');
+        assert_true(ws.bufferedAmount < 3+4 + 1, 'bufferedAmount after received "x", "\u00E5"');
+        break;
+      case 3:
+        assert_equals(e.data, '\u5336');
+        assert_true(ws.bufferedAmount < 4 + 1, 'bufferedAmount after received "x", "\u00E5", "\u5336"');
+        break;
+      case 4:
+        assert_equals(e.data, '\uD801\uDC7E');
+        assert_equals(ws.bufferedAmount, 0, 'bufferedAmount after received "x", "\u00E5", "\u5336", "\uD801\uDC7E"');
+        t.done();
+        break;
+      default:
+        assert_unreached(i);
+    }
+  })
+  ws.onerror = ws.onclose = t.step_func(function() {assert_unreached()});
+});
+</script>
+

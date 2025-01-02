@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help"
+  href="https://drafts.csswg.org/css-flexbox/#intrinsic-cross-sizes">
+<link rel="help" href="https://webkit.org/b/253922">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="A table's max-content width is used for its parent flexbox's max-content calculation. Safari 16.4 uses min-content width.">
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+  .inline-block {
+    float: left;
+    width: 50px;
+  }
+
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id=reference-overlapped-red></div>
+<div
+  style="display: flex; flex-direction: column; height: 100px; width: max-content; background-color: green;">
+  <div style="display: table">
+    <div style="display: table-cell">
+      <div class="inline-block"></div>
+      <div class="inline-block"></div>
+    </div>
+  </div>
+</div>

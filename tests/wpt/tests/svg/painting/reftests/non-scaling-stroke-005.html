@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>non-scaling-stroke with scaling from viewBox</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/painting.html#PaintingVectorEffects">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="match" href="non-scaling-stroke-005-ref.html">
+<style>
+  svg {
+    border: 1px solid black;
+  }
+  svg.wide {
+    width: 150px;
+    height: 100px;
+  }
+  svg.thin {
+    width: 100px;
+    height: 150px;
+  }
+  rect {
+   fill: transparent;
+   stroke: blue;
+   stroke-width: 10px;
+   vector-effect: non-scaling-stroke;
+ }
+</style>
+<!-- These only vary in the viewBox's size. This variability shouldn't result
+     in them rendering any differently from each other, because the rect
+     geometry attributes are all relative to the viewBox size, and we have a
+     non-scaling stroke which should be the same thickness regardless of
+     viewBox-imposed scaling factor. -->
+<svg class="wide" preserveAspectRatio="xMinYMin" viewBox="0 0 10 10">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>
+<svg class="wide" preserveAspectRatio="xMinYMin" viewBox="0 0 50 50">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>
+<svg class="wide" preserveAspectRatio="xMinYMin" viewBox="0 0 100 100">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>
+<svg class="wide" preserveAspectRatio="xMinYMin" viewBox="0 0 500 500">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>
+<br>
+<!-- Same setup as above, but now with a tall-and-thin css box.  These
+     should all render the same as each other:-->
+<svg class="thin" preserveAspectRatio="xMinYMin" viewBox="0 0 10 10">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>
+<svg class="thin" preserveAspectRatio="xMinYMin" viewBox="0 0 50 50">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>
+<svg class="thin" preserveAspectRatio="xMinYMin" viewBox="0 0 100 100">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>
+<svg class="thin" preserveAspectRatio="xMinYMin" viewBox="0 0 500 500">
+  <rect x="10%" y="20%" width="50%" height="60%"></rect>
+</svg>

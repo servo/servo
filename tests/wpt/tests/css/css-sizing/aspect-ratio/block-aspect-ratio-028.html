@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: abspos div inline size with max-height</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5257">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A min-height constraint should be transferred through the aspect-ratio to apply to the inline size">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="target" style="height: 50px; width: min-content; background: green;">
+  <div style="height: 100%;">
+    <div style="min-height: 100%; aspect-ratio: 1/1;"></div>
+  </div>
+</div>
+
+<script>
+document.body.offsetTop;
+document.getElementById("target").style.height = "100px";
+</script>

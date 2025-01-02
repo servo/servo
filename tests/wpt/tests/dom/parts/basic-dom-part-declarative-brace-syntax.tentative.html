@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<title>DOM Parts: Basic object structure, {{}} declarative API</title>
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
+
+<div>
+  <!-- Note - the test will remove this chunk of DOM once the test completes -->
+  <div id=target2>
+    Declarative syntax - The *two* templates below should have IDENTICAL STRUCTURE
+    to this one. There are four cases to test:
+      1. Main document parsing (this chunk)
+      2. Template parsing (the template below with id=declarative)
+      3. Template/fragment cloning (a clone of the template with id=declarative)
+      4. Declarative Shadow DOM parsing (template with id=declarative_shadow_dom and shadowrootmode attribute)
+    <h1 id="name" parseparts>
+      {{#}}
+        First
+        {{#}} <span {{}} id={{}}>Middle</span> {{/}}
+        Last
+      {{/}}
+      <a foo {{}} id=nodepart1>content</a>
+      <a {{}} id=nodepart2>content</a>
+      <a {{}}id=nodepart3>content</a>
+      <a id=nodepart4 {{}}>content</a>
+      <a id=nodepart5 foo {{}}>content</a>
+      <a id=nodepart6 foo {{}} >content</a>
+    </h1>
+  </div>
+</div>
+<template id=declarative>
+  <div>
+    <div id=target3>Declarative syntax
+      <h1 id="name" parseparts>
+        {{#}}
+          First
+          {{#}} <span {{}} id={{}}>Middle</span> {{/}}
+          Last
+        {{/}}
+        <a foo {{}} id=nodepart1>content</a>
+        <a {{}} id=nodepart2>content</a>
+        <a {{}}id=nodepart3>content</a>
+        <a id=nodepart4 {{}}>content</a>
+        <a id=nodepart5 foo {{}}>content</a>
+        <a id=nodepart6 foo {{}} >content</a>
+      </h1>
+    </div>
+  </div>
+</template>
+
+<!-- TODO: This test should look at declarative shadow DOM behavior. -->
+
+<script> {
+function addPartsCleanup(t,partRoot) {
+  t.add_cleanup(() => partRoot.getParts().forEach(part => part.disconnect()));
+}
+const kChildNodePartStartCommentData = "#";
+const kChildNodePartEndCommentData = "/";
+function assertIsComment(node, commentText) {
+  assert_true(node instanceof Comment);
+  // TODO(crbug.com/40271855): While developing alternative syntax, the comment might be empty or it might be "#" or "/".
+  assert_true(node.textContent === '' || node.textContent === commentText);
+}
+
+const template = document.getElementById('declarative');
+['Main Document','Template','Clone','PartClone'].forEach(testCase => {
+  test((t) => {
+    let doc,target,wrapper,cleanup;
+    let expectDOMParts = true;
+    switch (testCase) {
+      case 'Main Document':
+        doc = document;
+        target = doc.querySelector('#target2');
+        cleanup = [target.parentElement];
+        break;
+      case 'Template':
+        doc = template.content;
+        target = doc.querySelector('#target3');
+        cleanup = [];
+        break;
+      case 'Clone':
+        doc = document;
+        wrapper = document.body.appendChild(document.createElement('div'));
+        wrapper.appendChild(template.content.cloneNode(true));
+        target = wrapper.querySelector('#target3');
+        // A "normal" tree clone should not keep DOM Parts:
+        expectDOMParts = false;
+        cleanup = [wrapper];
+        break;
+      case 'PartClone':
+        doc = document;
+        wrapper = document.body.appendChild(document.createElement('div'));
+        wrapper.appendChild(template.content.getPartRoot().clone().rootContainer);
+        target = wrapper.querySelector('#target3');
+        // Even a PartRoot clone should not add parts to the document, when that
+        // clone is appendChilded to the document.
+        expectDOMParts = false;
+        cleanup = [wrapper];
+        break;
+      default:
+        assert_unreached('Invalid test case');
+    }
+    assert_true(!!(doc && target && target.parentElement));
+
+    const root = doc.getPartRoot();
+    t.add_cleanup(() => cleanup.forEach(el => el.remove())); // Cleanup
+    addPartsCleanup(t,root); // Clean up all Parts when this test ends.
+
+    assert_true(root instanceof DocumentPartRoot);
+    if (expectDOMParts) {
+      let expectedRootParts = [{type:'ChildNodePart',metadata:[]}];
+      for(let i=0;i<6;++i) {
+        expectedRootParts.push({type:'NodePart',metadata:[]});
+      }
+      assertEqualParts(root.getParts(),expectedRootParts,0,'declarative root missing parts');
+      for(let i=1;i<=6;++i) {
+        assert_equals(root.getParts()[i].node,target.querySelector(`#nodepart${i}`));
+      }
+      const childPart1 = root.getParts()[0];
+      assertIsComment(childPart1.previousSibling,kChildNodePartStartCommentData);
+      assertIsComment(childPart1.nextSibling,kChildNodePartEndCommentData);
+      const expectedChild1Parts = [{type:'ChildNodePart',metadata:[]}];
+      assertEqualParts(childPart1.getParts(),expectedChild1Parts,0,'First level childpart should just have one child part');
+      const childPart2 = childPart1.getParts()[0];
+      assertIsComment(childPart2.previousSibling,kChildNodePartStartCommentData);
+      assertIsComment(childPart2.nextSibling,kChildNodePartEndCommentData);
+      const expectedChild2Parts = [{type:'NodePart',metadata:[]},{type:'AttributePart',metadata:[]}];
+      assertEqualParts(childPart2.getParts(),expectedChild2Parts,0,'Second level childpart should have NodePart and AttributePart');
+      assert_true(childPart2.getParts()[0].node instanceof HTMLSpanElement);
+      assert_equals(childPart2.getParts()[0].node.textContent,'Middle');
+      assert_true(childPart2.getParts()[1].node instanceof HTMLSpanElement);
+      assert_equals(childPart2.getParts()[1].node.textContent,'Middle');
+    } else {
+      assertEqualParts(root.getParts(),[],[]);
+    }
+  }, `Basic declarative DOM Parts (${testCase})`);
+});
+
+}</script>
+
+<div parseparts>Before {{#}}Parts{{/}} After</div>
+<script>
+  test((t) => {
+    const target = document.currentScript.previousElementSibling;
+    t.add_cleanup(() => target.remove());
+    const root = document.getPartRoot();
+    addPartsCleanup(t,root);
+    assert_equals(root.getParts().length,1);
+    assert_equals(target.innerHTML,'Before <!---->Parts<!----> After');
+
+    // Verify that removing the parseparts attribute does nothing.
+    target.removeAttribute('parseparts');
+    assert_equals(root.getParts().length,1);
+    assert_equals(target.innerHTML,'Before <!---->Parts<!----> After');
+  }, 'Post-parsing structure of child parts, and stickiness');
+</script>
+
+<div>Before {{#}}Parts{{/}} After</div>
+<script>{
+  test((t) => {
+    const target = document.currentScript.previousElementSibling;
+    t.add_cleanup(() => target.remove());
+    const root = document.getPartRoot();
+    addPartsCleanup(t,root);
+    assert_equals(root.getParts().length,0);
+    assert_equals(target.innerHTML,'Before {{#}}Parts{{/}} After');
+    target.setAttribute('parseparts','');
+    assert_equals(root.getParts().length,0);
+    assert_equals(target.innerHTML,'Before {{#}}Parts{{/}} After');
+  }, 'Parser only behavior - adding parseparts does nothing');
+}</script>
+
+<div parseparts>{{#}}{{/}}</div>
+<script>{
+  test((t) => {
+    const target = document.currentScript.previousElementSibling;
+    t.add_cleanup(() => target.remove());
+    const root = document.getPartRoot();
+    addPartsCleanup(t,root);
+    assert_equals(root.getParts().length,1);
+    assert_equals(target.innerHTML,'<!----><!---->');
+  }, 'Just parts, no text before');
+}</script>
+
+<div><input parseparts>{{#}}{{/}}</input></div>
+<script>{
+  test((t) => {
+    const target = document.currentScript.previousElementSibling;
+    t.add_cleanup(() => target.remove());
+    const root = document.getPartRoot();
+    addPartsCleanup(t,root);
+    assert_equals(root.getParts().length,0);
+    assert_equals(target.innerHTML,'<input parseparts=\"\">{{#}}{{/}}');
+  }, 'Self closing elements can\'t use parseparts');
+}</script>
+
+<div><head parseparts>{{#}}{{/}}</head></div>
+<script>{
+  test((t) => {
+    const target = document.currentScript.previousElementSibling;
+    t.add_cleanup(() => target.remove());
+    const root = document.getPartRoot();
+    addPartsCleanup(t,root);
+    assert_equals(root.getParts().length,0);
+    assert_equals(target.innerHTML,'{{#}}{{/}}');
+  }, 'Second head element can\'t use parseparts');
+}</script>
+
+<div parseparts><svg>{{#}}<circle/>{{/}}</svg></div>
+
+<script>{
+  test((t) => {
+    const target = document.currentScript.previousElementSibling;
+    t.add_cleanup(() => target.remove());
+    const root = document.getPartRoot();
+    addPartsCleanup(t,root);
+    assert_equals(root.getParts().length,1);
+    assert_equals(target.innerHTML,'<svg><!----><circle/><!----></svg>');
+  }, 'Foreign content should support Parts');
+}</script>
+
+<div>
+  <div parseparts>{{}}{{ }}{{ #}}{{ /}}{{{}}}</div>
+  <div>{{}}{{ }}{{ #}}{{ /}}{{{}}}</div>
+</div>
+<script>{
+  test((t) => {
+    const target = document.currentScript.previousElementSibling;
+    t.add_cleanup(() => target.remove());
+    const root = document.getPartRoot();
+    addPartsCleanup(t,root);
+    assert_equals(root.getParts().length,0);
+    assert_equals(target.childElementCount,2);
+    Array.from(target.children).forEach(el => {
+      assert_equals(el.innerHTML,'{{}}{{ }}{{ #}}{{ /}}{{{}}}');
+    })
+  }, 'Not quite parts syntax - none should become parts, and nothing should crash');
+}</script>

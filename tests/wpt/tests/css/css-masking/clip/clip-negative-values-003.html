@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Masking: Test clip property does not clip on with negative values - 3</title>
+    <link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clip-property">
+    <link rel="match" href="reference/clip-vertical-stripe-ref.html">
+    <meta name="assert" content="Negative values are permited on rect function
+    for clip. Test that left edge can be negative. On pass you should see a
+    vertical blue stripe.">
+</head>
+<body>
+    <p>The test passes if there is only a vertical blue stripe.</p>
+    <div style="width: 100px; height: 100px; border: solid blue 50px; background-color: green; position: absolute; clip: rect(0, 50px, 200px, -50px);"></div>
+</body>
+</html>

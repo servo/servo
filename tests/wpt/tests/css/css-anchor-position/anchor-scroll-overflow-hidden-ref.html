@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 20px/1 Ahem;
+  margin: 0;
+}
+
+#placefiller-above-anchor {
+  height: 200px;
+}
+
+#placefiller-before-anchor {
+  display: inline-block;
+  width: 50px;
+}
+
+#inner-anchored {
+  color: green;
+  position: fixed;
+  left: 70px;
+  top: 180px;
+}
+
+#outer-anchored {
+  color: yellow;
+  position: fixed;
+  left: 70px;
+  top: 220px;
+}
+</style>
+
+<div id="placefiller-above-anchor"></div>
+<div id="placefiller-before-anchor"></div>
+<span id="anchor">anchor</span>
+<div id="inner-anchored">inner-anchored</div>
+<div id="outer-anchored">outer-anchored</div>

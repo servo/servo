@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>HTML Rendering: slot element has unicode-bidi: isolate</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#bidi-rendering">
+<link rel="help" href="https://github.com/whatwg/html/pull/9880">
+<link rel="match" href="slot-no-isolate-001-ref.html">
+
+<div>&#x5D0;-<span id="e">&#x5D1;</span></div>
+
+<div id="v"></div>
+
+<script>
+
+let e = document.getElementById("e");
+let root = e.attachShadow({mode: "open"});
+// use display:inline to override default display:contents
+root.innerHTML = "<slot style='display:inline'>\u05D2</slot>";
+let val = getComputedStyle(root.querySelector("slot")).unicodeBidi;
+document.getElementById("v").innerText = val;
+
+</script>

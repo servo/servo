@@ -1,0 +1,63 @@
+<!doctype html>
+<title>CSS Test Reference: ::scroll-button(inline-end) supports :disabled with rtl direction</title>
+<style>
+  * {
+    margin: 0;
+  }
+  button {
+    appearance: none;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    scroll-marker-group: after;
+    white-space: nowrap;
+    direction: rtl;
+  }
+
+  #scroller div {
+    background: green;
+    display: inline-block;
+    width: 600px;
+    height: 270px;
+  }
+
+  #scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    display: flex;
+    height: 20px;
+    width: 40px;
+    direction: rtl;
+  }
+
+  #scroll-button-inline-end {
+    background: gray;
+    display: flex;
+    height: 20px;
+    width: 20px;
+    direction: rtl;
+  }
+
+  .scroll-marker {
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    border-radius: 100%;
+    display: inline-block;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div></div>
+</div>
+<button id="scroll-button-inline-end" disabled>></button>
+<div id="scroll-marker-group">
+  <div class="scroll-marker"></div>
+  <div class="scroll-marker"></div>
+</div>
+<script>
+  scroller.scrollLeft = -610;
+</script>

@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-after: right</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="assert" content="The 'right' value of the 'page-break-after' property forces one or two page breaks before the box so that the page after the break is formatted as a right page"/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	@page {margin: 7%;}
+	@page :left {
+		@top-center
+		{
+			content: "[This page intentionally left blank]";
+		}
+	}
+	p {
+		page-break-after: right;
+	}
+</style>
+</head>
+<body>
+	<p>When printed, this test requires two or three pages. There may be a blank page after this sentence.</p>
+	<p>If there was a blank page, this content should appear on the third page.</p>
+</body>
+</html>

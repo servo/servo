@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin Collapsing with Clearance</title>
+        <link rel="author" title="Microsoft" href="http://microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#flow-control" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <meta name="flags" content="may" />
+        <style type="text/css">
+            .target1, .target2, .target3, .target4, .target5, .target6, .target7
+            {
+                position: absolute;
+                width: 0;
+            }
+            .target1, .target2, .target3, .target4
+            {
+                left: -155px;
+            }
+            .target5, .target6, .target7
+            {
+                left: 155px;
+            }
+            .target1, .target5
+            {
+                border-left: 150px solid yellow;
+                height: 50px;
+                top: 0px;
+            }
+            .target2, .target6
+            {
+                border-left: 20px solid aqua;
+                border-right: 130px solid silver;
+                height: 20px;
+                top: 50px;
+            }
+            .target3, .target7
+            {
+                border-left: 140px solid orange;
+                border-right: 10px solid silver;
+                height: 50px;
+                top: 100px;
+            }
+            .target4
+            {
+                border-left: 150px solid silver;
+                height: 30px;
+                top: 70px;
+            }
+            .target7
+            {
+                top: 70px;
+            }
+            .container
+            {
+                border: solid thin;
+                margin-left: 150px;
+                position: relative;
+                width: 150px;
+            }
+            .box1
+            {
+                background-color: yellow;
+                height: 50px;
+            }
+            .parentof2and3
+            {
+                background-color: silver;
+                padding-right: 10px;
+            }
+            .box2
+            {
+                background-color: aqua;
+                float: left;
+                height: 20px;
+                width: 20px;
+            }
+            .box3
+            {
+                background-color: orange;
+                clear: left;
+                height: 50px;
+                margin-top: 50px;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the layout of the boxes within the black box matches either the left or the right reference boxes.</p>
+        <div class="container">
+            <div class="target1"></div>
+            <div class="target2"></div>
+            <div class="target3"></div>
+            <div class="target4"></div>
+            <div class="target5"></div>
+            <div class="target6"></div>
+            <div class="target7"></div>
+            <div class="box1"></div>
+            <div class="parentof2and3">
+                <div class="box2"></div>
+                <div class="box3"></div>
+            </div>
+        </div>
+    </body>
+</html>

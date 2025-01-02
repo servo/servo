@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>display:none on root should produce a blank page</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#page-properties">
+<link rel="match" href="reference/blank-print-ref.html">
+<style>
+  @page {
+    border: solid red;
+    background: hotpink;
+  }
+  html {
+    display: none;
+  }
+</style>
+FAIL, this page should be blank.

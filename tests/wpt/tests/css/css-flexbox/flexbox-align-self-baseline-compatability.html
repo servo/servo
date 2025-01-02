@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+    <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+    <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht"/>
+    <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-baselines"/>
+    <meta name="assert" content="Test checks that item baselines orthogonal to the flex container's main axis do not affect baseline alignment.">
+
+    <style>
+        .flex  {
+            display: flex;
+            background: red;
+            width: 100px;
+            flex-direction: column;
+            flex-wrap: wrap;
+        }
+
+        .flex > div {
+            width: 100px;
+            height: 50px;
+            background: green;
+            color: transparent;
+            align-self: baseline;
+        }
+    </style>
+
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+    <div class="flex">
+        <div>A</div>
+        <!--The baseline of this child is different from the first, but because it
+            is orthogonal to the main axis of the flexbox, it does not affect the
+            positioning of the item, even with `baseline` alignment -->
+        <div style="font-size: 200%">A</div>
+    </div>
+</html>

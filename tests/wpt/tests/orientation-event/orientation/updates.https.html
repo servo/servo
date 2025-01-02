@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const orientationData1 = generateOrientationData(1.1, 2.2, 3.3, false);
+  await helper.setData(orientationData1);
+  await waitForEvent(getExpectedOrientationEvent(orientationData1));
+
+  const orientationData2 = generateOrientationData(11.1, 22.2, 33.3, false);
+  await helper.setData(orientationData2);
+  await waitForEvent(getExpectedOrientationEvent(orientationData2));
+}, 'Tests that updates to the relative orientation causes new events to fire.');
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientationabsolute');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const orientationData1 = generateOrientationData(1.1, 2.2, 3.3, true);
+  await helper.setData(orientationData1);
+  await waitForEvent(getExpectedAbsoluteOrientationEvent(orientationData1));
+
+  const orientationData2 = generateOrientationData(11.1, 22.2, 33.3, true);
+  await helper.setData(orientationData2);
+  await waitForEvent(getExpectedAbsoluteOrientationEvent(orientationData2));
+}, 'Tests that updates to the absolute orientation causes new events to fire.');
+</script>

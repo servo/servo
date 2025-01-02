@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: mask with userSpaceOnUse gets clipped 1</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
+	<html:link rel="match" href="reference/mask-content-clip-002-ref.svg" />
+	<html:meta name="fuzzy" content="0-38; 0-268"/>
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">The mask element with
+	maskContentUnits="userSpaceOnUse" gets clipped. The clipping path has a
+	transform that scales the content down. You should see a full green circle.
+	</desc>
+</g>
+<clipPath id="clip" clipPathUnits="userSpaceOnUse">
+	<circle cx="50" cy="50" r="25" transform="scale(0.01 0.01)"/>
+</clipPath>
+<mask id="mask" x="0" y="0" width="200" height="200" maskUnits="userSpaceOnUse" maskContentUnits="objectBoundingBox">
+	<rect x="0.25" y="0.25" width="0.5" height="0.5" fill="white" clip-path="url(#clip)"/>
+</mask>
+<rect x="0" y="0" height="200" width="200" fill="green" mask="url(#mask)"/>
+</svg>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popstate/hashchange/load event ordering</title>
+
+<script>
+// Set these up super-early before we hit the network for the test harness, just in case.
+window.eventOrder = [];
+window.onhashchange = () => window.eventOrder.push("hashchange");
+window.onpopstate = () => window.eventOrder.push("popstate");
+window.onload = () => window.eventOrder.push("load");
+</script>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test(t => {
+  assert_array_equals(window.eventOrder, []);
+
+  window.addEventListener("load", t.step_func_done(() => {
+    assert_array_equals(window.eventOrder, ["popstate", "popstate", "hashchange", "hashchange", "load"]);
+  }));
+
+  location.hash = "#1";
+  assert_array_equals(window.eventOrder, ["popstate"]);
+  location.hash = "#2";
+  assert_array_equals(window.eventOrder, ["popstate", "popstate"]);
+}, "when changing hash twice, before load");
+</script>

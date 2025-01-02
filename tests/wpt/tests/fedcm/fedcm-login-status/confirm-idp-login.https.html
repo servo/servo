@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FedCM IDP log-in status API tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_dialog_type_promise,
+        select_manifest,
+        mark_signed_in} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+
+  let test_options = request_options_with_mediation_required("manifest_with_variable_accounts.json");
+  await select_manifest(t, test_options);
+
+  let cred_promise = navigator.credentials.get(test_options);
+  let type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "ConfirmIdpLogin");
+
+  // Manifest selection only persists for a single fetch, so we need to set it
+  // again because Chrome's implementation re-fetches the manifest as well, not
+  // just the accounts endpoint.
+  // (This is not technically spec-compliant)
+  await select_manifest(t, test_options);
+  await window.test_driver.click_fedcm_dialog_button("ConfirmIdpLoginContinue");
+
+  // Now wait for the account chooser.
+  type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "AccountChooser");
+  window.test_driver.select_fedcm_account(0);
+
+  let cred = await cred_promise;
+  assert_equals(cred.token, "account_id=1234");
+}, 'Tests the IDP login dialog and subsequent account chooser.');
+</script>

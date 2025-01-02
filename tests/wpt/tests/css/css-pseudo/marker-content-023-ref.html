@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+.disc {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "3. ";
+}
+.content::marker {
+  content: "4. ";
+}
+.rtl-marker ::marker {
+  direction: rtl;
+}
+</style>
+<ol>
+  <li class="disc"><div>disc</div></li>
+  <li class="decimal"><div>decimal</div></li>
+  <li class="string"><div>string</div></li>
+  <li class="content"><div>content</div></li>
+</ol>
+<ol class="rtl-marker">
+  <li class="disc"><div>disc</div></li>
+  <li class="decimal"><div>decimal</div></li>
+  <li class="string"><div>string</div></li>
+  <li class="content"><div>content</div></li>
+</ol>

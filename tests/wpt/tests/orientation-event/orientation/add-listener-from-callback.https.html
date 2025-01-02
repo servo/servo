@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const orientationData1 = generateOrientationData(1.1, 2.2, 3.3, false);
+  const orientationData2 = generateOrientationData(11.1, 22.2, 33.3, false);
+
+  let firstListener = null;
+  let secondListener = null;
+  let firstEventCount = 0;
+  let firstPromise = new Promise(resolve => {
+    firstListener = async (event) => {
+      assert_true(event instanceof DeviceOrientationEvent, 'event is DeviceOrientationEvent');
+      assert_equals(event.type, 'deviceorientation', 'event.type is devicemotion');
+      assert_true(event.target instanceof Window, 'event is fired on the window object');
+      assertEventEquals(event, getExpectedOrientationEvent(orientationData1));
+      window.removeEventListener('deviceorientation', firstListener);
+      // Some implementations (e.g. Chromium) work without the call below
+      // because they disconnect from the virtual sensor in the
+      // removeEventListener() call above before connecting again, and in this
+      // case the same orientation data is still considered a significant
+      // change. This is an implementation detail though, so we explicitly pass
+      // different data here.
+      await helper.setData(orientationData2);
+      if (++firstEventCount == 1) {
+        window.addEventListener('deviceorientation', secondListener);
+      }
+      resolve(event);
+    };
+  });
+
+  let secondEventCount = 0;
+  let secondPromise = new Promise(resolve => {
+    secondListener = (event) => {
+      assertEventEquals(event, getExpectedOrientationEvent(orientationData2));
+      window.removeEventListener('deviceorientation', secondListener);
+      ++secondEventCount;
+      resolve(event);
+    };
+  });
+
+  await helper.setData(orientationData1);
+  window.addEventListener('deviceorientation', firstListener);
+  await firstPromise;
+  await secondPromise;
+  assert_equals(firstEventCount, 1, "Too many events fired for the first listener");
+  assert_equals(secondEventCount, 1, "Too many events fired for the second listener");
+}, 'Tests that adding a new deviceorientation event listener from a callback works as expected.');
+</script>

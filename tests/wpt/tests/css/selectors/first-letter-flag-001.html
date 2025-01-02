@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>::first-letter with a Regional-Indicator flag symbol</title>
+<meta name="assert" content="::first-letter should apply to symbol characters">
+<link rel=help href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/5099#issuecomment-759612015">
+<link rel=match href=first-letter-flag-001-ref.html>
+<style>
+  p {
+    font: 24px/3 serif;
+  }
+  p::first-letter {
+    font-size: 2em;
+  }
+</style>
+<p>&#x1F1EC;&#x1F1E7; UK flag

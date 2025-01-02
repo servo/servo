@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<title>Tests position fallback with rtl scroller and vertical-rl OOF</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-apply">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 100px;
+  height: 100px;
+  margin-right: 200px;
+  background: orange;
+}
+
+#spacer {
+  width: 1000vw;
+  height: 1px;
+}
+
+#anchored {
+  writing-mode: vertical-rl;
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background: green;
+  position-anchor: --a;
+  top: anchor(top);
+  left: anchor(right);
+  position-try-fallbacks: --pf;
+}
+
+@position-try --pf {
+  left: auto;
+  right: anchor(left);
+}
+</style>
+
+<div id="anchor"></div>
+<div id="spacer"></div>
+<div id="anchored"></div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Should use the first fallback position at the initial scroll offset');
+
+promise_test(async () => {
+  document.documentElement.scrollLeft = -101;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Should use the second fallback position after scrolling left');
+</script>
+
+</html>

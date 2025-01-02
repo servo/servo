@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  .modal {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    position: fixed;
+  }
+
+  .modal-dialog {
+    position: relative;
+    overflow: auto;
+    max-height: 400px;
+    transform: translateY(0);
+  }
+
+  .modal-content {
+    background-color: purple;
+    height: 300px;
+  }
+
+  .modal-footer {
+    height: 100px;
+    background-color: blue;
+  }
+
+  .additional-content {
+    height: 100px;
+    background-color: purple;
+  }
+</style>
+<div class="modal">
+  <div class="modal-dialog">
+    <div class="modal-content"></div>
+    <div class="modal-footer"></div>
+    <div class="additional-content"></div>
+  </div>
+</div>

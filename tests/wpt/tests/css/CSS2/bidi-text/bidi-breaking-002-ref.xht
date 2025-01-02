@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p + .set {border-top: solid orange;}
+
+  .set
+  {
+  border-bottom: solid orange;
+  clear: both;
+  float: left;
+  }
+
+  .control
+  {
+  border: silver solid;
+  color: blue;
+  float: left;
+  font: bold larger monospace;
+  margin: 1em;
+  padding: 0.25em;
+  }
+
+  /* ensure BDO processing */
+  bdo
+  {
+  direction: ltr;
+  unicode-bidi: bidi-override;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>In each pair of silver boxes below, the two patterns must be identical.</p>
+
+  <!--
+  &#x05D0; א is hebrew letter alef
+  &#x05EA; ת is hebrew letter tav
+  -->
+
+  <!-- control for bidi support -->
+  <div class="set">
+    <div class="control">
+      <div><bdo dir="ltr">&#x05D0; &divide; &times; - + &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; &divide; &times; - + &#x05EA;</bdo></div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">&#x05D0; &divide; &times; - + &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; &divide; &times; - + &#x05EA;</bdo></div>
+    </div>
+  </div>
+
+  <!-- preserved source line break breaks bidi paragraph -->
+  <div class="set">
+    <div class="control">
+      <div><bdo dir="ltr">&#x05D0; + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; &#x05EA;</bdo></div>
+    </div>
+    <div class="control">
+      <div><bdo dir="ltr">&#x05D0; + - &times; &divide; &nbsp;</bdo></div>
+      <div><bdo dir="ltr">&nbsp; + - &times; &divide; &#x05EA;</bdo></div>
+    </div>
+  </div>
+
+ </body>
+</html>

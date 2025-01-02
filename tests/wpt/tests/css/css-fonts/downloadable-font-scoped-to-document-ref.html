@@ -1,0 +1,17 @@
+ <!DOCTYPE html>
+
+<html>
+    <head>
+        <title>CSS fonts: Web fonts loaded in a document are not available in other documents</title>
+        <link rel="author" title="Martin Robinson" href="mrobinson@igalia.com">
+        <link rel="author" title="Mukilan Thiyagarajan" href="mukilan@igalia.com">
+    </head>
+
+    <body>
+        <p>Test passes if Ahem is only used in the first iframe.</p>
+        <iframe src="support/iframe-using-ahem-as-web-font.html"></iframe>
+        <iframe src="support/iframe-without-web-font.html"></iframe>
+    </body>
+
+</html>
+

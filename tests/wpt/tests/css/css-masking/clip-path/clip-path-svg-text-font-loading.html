@@ -1,0 +1,30 @@
+<!doctype html>
+<html class="reftest-wait">
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-load">
+<link rel="help" href="https://crbug.com/1222734">
+<link rel="match" href="reference/green-100x100.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    border-right: 100px solid red;
+    clip-path: url(#clip);
+    background: green;
+  }
+</style>
+<div id="target"></div>
+<svg height="0">
+  <clipPath id="clip">
+    <text y="80" font-size="100" font-family="DelayedAhem, serif">X</text>
+  </clipPath>
+</svg>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    let font = new FontFace('DelayedAhem', 'url("/fonts/Ahem.ttf")');
+    document.fonts.add(font);
+    font.load().then(takeScreenshot);
+  });
+</script>

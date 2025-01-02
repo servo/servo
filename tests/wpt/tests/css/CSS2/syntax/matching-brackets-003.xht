@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Matching brackets and quotes for selectors</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/media.html#at-media-rule"/>
+  <link rel="match" href="matching-brackets-001-ref.xht"/>
+  <meta name="flags" content="invalid"/>
+  <meta name="assert" content="User agents must handle unexpected tokens
+    encountered while parsing a declaration by reading until the end of the
+    statement, while observing the rules for matching pairs of brackets
+    and quotes, and correctly handling escapes. "/>
+ <!-- simple -->
+ <style type="text/css"><![CDATA[
+  p { color: green; }
+  p ( { border: solid red; } p { background: red; } )
+  p { color: red; }
+ ]]></style>
+  <!-- complex -->
+  <style type="text/css"><![CDATA[
+    div {
+      background: red;
+      color: green;
+    }
+    ] ) test-token \
+       ~ ` ! @ # $ % ^ & * - _ + = | : > < ? / , .
+       [\]\5D ']' "]"; background: red; } div { color: red; } ]
+       (\)\29 ')' ")"; background: red; } div { color: red; } )
+       '\'; background: red; } div { color: red; }',
+       "\"; background: red; } div { color: red; }' div { color: red; } "
+    div { color: red; }
+    div { background: white; }
+  ]]></style>
+ </head>
+ <body>
+  <p>This sentence must be green.</p>
+  <div>This sentence must be green.</div>
+ </body>
+</html>

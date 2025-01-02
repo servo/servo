@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="help" href="https://github.com/w3c/web-share/pull/113" />
+    <title>WebShare Test: only one share at a time</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <button>
+    <script>
+      setup({ allow_uncaught_exception:true });
+      promise_test(async t => {
+        const button = document.querySelector("button");
+        const p = new Promise(r => {
+          button.onclick = () => {
+            const promises = [];
+            promises.push(
+              navigator.share({ title: "should be pending" }),
+              navigator.share({ title: "should reject" }),
+              navigator.share({ title: "should also reject" })
+            );
+            r(promises);
+          };
+        });
+        test_driver.click(button);
+        const [, promise2, promise3] = await p;
+        await Promise.all([
+          promise_rejects_dom(t, "InvalidStateError", promise2),
+          promise_rejects_dom(t, "InvalidStateError", promise3)
+        ]);
+      }, "Only allow one share call at a time, which is controlled by the [[sharePromise]] internal slot.");
+    </script>
+  </body>
+</html>

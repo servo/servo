@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>SDP munging is a bad idea</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const sdp = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+m=video 9 UDP/TLS/RTP/SAVPF 100
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:video
+a=rtpmap:100 VP8/90000
+a=fmtp:100 max-fr=30;max-fs=3600
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+a=ice-ufrag:ETEn
+a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l
+`;
+const candidateString = 'candidate:1905690388 1 udp 2113937151 192.168.0.1 58041 typ host generation 0 ufrag thC8';
+
+// See https://bugs.chromium.org/p/chromium/issues/detail?id=662898
+// and https://bugs.chromium.org/p/chromium/issues/detail?id=823036
+// for why neither of these is feasible to enforce.
+
+// Note that this does not restrict creating a
+// new RTCSessionDescription with a modified copy.
+test(() => {
+  const desc = new RTCSessionDescription({
+    type: 'offer',
+    sdp,
+  });
+  assert_throws_js(TypeError, () => {
+    desc.type = 'answer';
+  });
+}, 'RTCSessionDescription.type is read-only');
+
+test(() => {
+  const desc = new RTCSessionDescription({
+    type: 'offer',
+    sdp,
+  });
+  assert_throws_js(TypeError, () => {
+    desc.sdp += 'a=dont-modify-me\r\n';
+  });
+}, 'RTCSessionDescription.sdp is read-only');
+
+test(() => {
+  const candidate = new RTCIceCandidate({
+    sdpMid: '0',
+    candidate: candidateString,
+  });
+  assert_throws_js(TypeError, () => {
+    candidate.candidate += ' myattribute value';
+  });
+}, 'RTCIceCandidate.candidate is read-only');
+
+// https://w3c.github.io/webrtc-pc/#dom-peerconnection-setlocaldescription
+// If type is "offer", and sdp is not the empty string and not equal to
+// connection.[[LastCreatedOffer]], then return a promise rejected with a
+// newly created InvalidModificationError and abort these steps.
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.addTransceiver('audio');
+  const offer = await pc.createOffer();
+  return promise_rejects_dom(t, 'InvalidModificationError',
+      pc.setLocalDescription({type: 'offer', sdp: offer.sdp + 'a=munging-is-not-good\r\n'}));
+}, 'Rejects SDP munging between createOffer and setLocalDescription');
+
+// If type is "answer" or "pranswer", and sdp is not the empty string and not equal to
+// connection.[[LastCreatedAnswer]], then return a promise rejected with a
+// newly created InvalidModificationError and abort these steps.
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  await pc.setRemoteDescription({type: 'offer', sdp});
+
+  const answer = await pc.createAnswer();
+  return promise_rejects_dom(t, 'InvalidModificationError',
+      pc.setLocalDescription({type: 'answer', sdp: answer.sdp + 'a=munging-is-not-good\r\n'}));
+}, 'Rejects SDP munging between createAnswer and setLocalDescription');
+</script>

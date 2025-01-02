@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver click method with multiple windows and nested iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<iframe src="about:blank"></iframe>
+
+<script>
+setup({single_test: true});
+
+window.open("about:blank")
+var child = window.open("https://{{host}}:{{ports[https][0]}}/infrastructure/testdriver/click_outer_child.sub.html")
+window.open("about:blank")
+
+addEventListener("message", (msg) => {
+    if (msg.data === "PASS") {
+        done();
+    } else if (msg.data === "FAIL") {
+        assert_unreached("click failed");
+    } else {
+        assert_unreached("testdriver.js-internal messages should not be exposed to tests");
+    }
+});
+</script>

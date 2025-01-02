@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver get_named_cookie method HTTPS</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  t.add_cleanup(test_driver.delete_all_cookies);
+  const kTenDaysFromNow = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+  document.cookie = "test0=0";
+  document.cookie = `test1=1; Expires=${kTenDaysFromNow.toUTCString()}`;
+  document.cookie = "test2=2; Path=/";
+  // document.cookie = "test3=3; HttpOnly"; This is set in the headers file.
+  document.cookie = "test4=4; Secure";
+  document.cookie = "test5=5; SameSite=Strict";
+  document.cookie = "test6=6; SameSite=None; Secure";
+  document.cookie = "test7=7; SameSite=Lax";
+
+  // test0
+  let cookie = await test_driver.get_named_cookie("test0");
+  assert_equals(cookie["name"], "test0");
+  assert_equals(cookie["value"], "0");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], false);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], undefined);
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookie["sameSite"], "Lax");
+
+  // test1 [Expires in 10 days]
+  cookie = await test_driver.get_named_cookie("test1");
+  assert_equals(cookie["name"], "test1");
+  assert_equals(cookie["value"], "1");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], false);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], Math.floor(kTenDaysFromNow.getTime()/1000));
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookie["sameSite"], "Lax");
+
+  // test2 [Path /]
+  cookie = await test_driver.get_named_cookie("test2");
+  assert_equals(cookie["name"], "test2");
+  assert_equals(cookie["value"], "2");
+  assert_equals(cookie["path"], "/");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], false);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], undefined);
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookie["sameSite"], "Lax");
+
+  // test3 [HttpOnly]
+  cookie = await test_driver.get_named_cookie("test3");
+  assert_equals(cookie["name"], "test3");
+  assert_equals(cookie["value"], "3");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], false);
+  assert_equals(cookie["httpOnly"], true);
+  assert_equals(cookie["expiry"], undefined);
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookie["sameSite"], "Lax");
+
+  // test4 [Secure]
+  cookie = await test_driver.get_named_cookie("test4");
+  assert_equals(cookie["name"], "test4");
+  assert_equals(cookie["value"], "4");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], true);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], undefined);
+  // The 'default lax' behavior varies by browser.
+  // assert_equals(cookie["sameSite"], "Lax");
+
+  // test5 [SameSite Strict]
+  cookie = await test_driver.get_named_cookie("test5");
+  assert_equals(cookie["name"], "test5");
+  assert_equals(cookie["value"], "5");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], false);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], undefined);
+  assert_equals(cookie["sameSite"], "Strict");
+
+  // test6 [SameSite None]
+  cookie = await test_driver.get_named_cookie("test6");
+  assert_equals(cookie["name"], "test6");
+  assert_equals(cookie["value"], "6");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], true);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], undefined);
+  assert_equals(cookie["sameSite"], "None");
+
+  // test7 [SameSite Strict]
+  cookie = await test_driver.get_named_cookie("test7");
+  assert_equals(cookie["name"], "test7");
+  assert_equals(cookie["value"], "7");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], false);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], undefined);
+  assert_equals(cookie["sameSite"], "Lax");
+}, "Get Named HTTPS cookie");
+</script>

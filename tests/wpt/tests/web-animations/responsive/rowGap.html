@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{rowGap: '3em'}, {rowGap: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).rowGap, '80px');
+}, 'row-gap responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{rowGap: '40px'}, {rowGap: 'calc(40px - 2em)'}], 10);
+    player.pause();
+
+    player.currentTime = 5;
+    element.style.fontSize = '40px';
+    assert_equals(getComputedStyle(element).rowGap, '20px');
+
+    player.currentTime = 7.5;
+    assert_equals(getComputedStyle(element).rowGap, '10px');
+}, 'row-gap clamped to 0px on keyframes');
+
+test(function() {
+    container.style.rowGap = 'normal';
+    var player = element.animate([{rowGap: 'inherit'}, {rowGap: '20px'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    assert_equals(getComputedStyle(element).rowGap, 'normal');
+
+    container.style.rowGap = '100px';
+    assert_equals(getComputedStyle(element).rowGap, '80px');
+
+    container.style.rowGap = 'normal';
+    assert_equals(getComputedStyle(element).rowGap, 'normal');
+}, 'row-gap responsive to inherited changes');
+</script>

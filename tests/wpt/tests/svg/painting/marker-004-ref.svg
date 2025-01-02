@@ -1,0 +1,10 @@
+<svg width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg">
+    <text font-size="20" x="240" y="28" text-anchor="middle">'marker' attribute test</text>
+    <g fill="gold" stroke="black" fill-rule="evenodd" transform="translate(50,20)">
+      <path d="M10,60 Q90,60 90,140 Q10,140 10,60 Z M10,140 Q10,60 90,60 Q90,140 10,140 Z M50,70 L80,100 50,130 20,100 Z"/>
+      <polygon points="100,60 120,140 140,60 160,140 180,60 180,100 100,100"/>
+      <polyline points="190,60 210,140 230,60 250,140 270,60 270,100 190,100"/>
+      <line x1="280" x2="370" y1="60" y2="140"/>
+      <line x1="370" x2="280" y1="60" y2="140"/>
+    </g>
+</svg>

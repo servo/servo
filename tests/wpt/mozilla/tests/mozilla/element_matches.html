@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="foo"></div>
+
+  <script>
+  test(function() {
+    var test = document.getElementById("foo");
+
+    assert_equals(test.matches("#foo"), true, "test-1");
+    assert_equals(test.matches("#not-foo"), false, "test-2");
+  });
+  </script>
+</body>
+</html>

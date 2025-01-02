@@ -1,0 +1,48 @@
+<button onclick="void_method()">measure void method</button>
+<button onclick="int_getter()">measure int getter</button>
+<button onclick="firstChild_getter()">measure firstChild getter</button>
+<button onclick="proxy_firstChild_getter()">measure proxy firstChild getter</button>
+<script>
+var t = 'TestBinding' in window ? (new TestBinding()) : (new TextEncoder());
+function void_method() {
+  var start = new Date();
+  var count = 1000000;
+  for (var i = 0; i < count; i++) {
+    var a = t.receiveVoid();
+  }
+  var stop = new Date();
+  console.log('void method: ' + ((stop - start) / count * 1e6) + 'ns');
+}
+
+function int_getter() {
+  var start = new Date();
+  var count = 1000000;
+  for (var i = 0; i < count; i++) {
+    var a = t.longAttribute;
+  }
+  var stop = new Date();
+  console.log('int getter: ' + ((stop - start) / count * 1e6) + 'ns');
+}
+
+function firstChild_getter() {
+  var n = document.documentElement;
+  var start = new Date();
+  var count = 100000000;
+  for (var i = 0; i < count; i++) {
+    var a = n.firstChild;
+  }
+  var stop = new Date();
+  console.log('firstChild getter: ' + ((stop - start) / count * 1e6) + 'ns');
+}
+
+function proxy_firstChild_getter() {
+  var n = document;
+  var start = new Date();
+  var count = 1000000;
+  for (var i = 0; i < count; i++) {
+    var a = n.firstChild;
+  }
+  var stop = new Date();
+  console.log('proxy firstChild getter: ' + ((stop - start) / count * 1e6) + 'ns');
+}
+</script>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- This test is adapted from https://bugzilla.mozilla.org/show_bug.cgi?id=1744363#c9 -->
+<html>
+  <meta charset="utf-8">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1744363">
+  <link rel="match" href="single-line-column-flex-fragmentation-065-print-ref.html">
+
+  <style>
+  @page { size: 5in 3in; margin: 0.5in; }
+  body {
+    margin: 0;
+  }
+  .flexbox {
+    display: flex; /* This triggers the bug. */
+    display: column;
+    border: 0.25in solid black;
+  }
+  .flexbox table {
+    border-spacing: 0;
+  }
+  .flexbox thead, .flexbox tfoot {
+    background: gold;
+  }
+  .text, tr {
+    block-size: 0.25in;
+  }
+  </style>
+
+  <div class="text">Before Flexbox</div>
+  <div class="flexbox">
+    <table>
+      <thead><tr><td>Header</td></tr></thead>
+      <tfoot><tr><td>Footer</td></tr></tfoot>
+      <tbody>
+        <tr><td>1</td></tr>
+        <tr><td>2</td></tr>
+        <tr><td>3</td></tr>
+        <tr><td>4</td></tr>
+        <tr><td>5</td></tr>
+        <tr><td>6</td></tr>
+        <tr><td>7</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="text">After Flexbox</div>
+</html>

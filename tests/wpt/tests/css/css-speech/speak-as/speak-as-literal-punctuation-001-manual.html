@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: speak-as literal-punctuation</title>
+        <link rel="author" title="Alexander Lehner" href="mailto:alexlehner86@gmail.com">
+        <link rel="help" href="https://www.w3.org/TR/css-speech-1/#speaking-props-speak-as">
+        <meta
+            name="flags"
+            content="speech"
+        >
+        <meta
+            name="assert"
+            content="The literal-punctuation value of speak-as makes screen readers announce punctuation."
+        >
+        <style>
+            p.speak-as-literal-punctuation { speak-as: literal-punctuation; }
+        </style>
+    </head>
+    <body>
+        <h1>Test Case</h1>
+        <p>
+            The punctuation in the following text should be announced by screen readers:
+        </p>
+        <p class="speak-as-literal-punctuation">class MyClass { myProperty = 1; }</p>
+        <h2>Instructions for Manual Test</h2>
+        <ol>
+            <li>Open the website in your browser.</li>
+            <li>
+                Activate your screen reader (NVDA, VoiceOver, TalkBack etc.).
+            </li>
+            <li>
+                Set verbosity preferences of the screen reader to default setting, which ignores most punctuation (e.g. comma, period, parentheses).
+            </li>
+            <li>In the screen reader's browse mode, navigate to the paragraph following the first heading.</li>
+            <li>
+                The screen reader should still announce all punctuation (parentheses, semicolon etc.) in the paragraph.
+            </li>
+        </ol>
+    </body>
+</html>

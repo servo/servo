@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Navigations on iframe without src attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<body></body>
+<script>
+/*
+  When an iframe is created it will contain the initial empty document. If the
+  src and srcdoc attribute is not set, it will stay on the initial empty
+  document.
+  These tests verifies the behavior of navigations that happen on the initial
+  empty document in that situation. They should all be converted to do a
+  replacement.
+*/
+"use strict";
+const url1 = "/common/blank.html?1";
+const url2 = "/common/blank.html?2";
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src not set, which will stay on the initial empty
+  // document.
+  const iframe = insertIframe(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with no src must not change history.length");
+
+  // Navigate away from the initial empty document through iframe.src. This
+  // should do a replacement.
+  iframe.src = url1;
+  await waitForLoad(t, iframe, url1);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation on document loaded by iframe with no src");
+
+  // Navigate again using the same method, but this time it shouldn't do a
+  // replacement since it's no longer on the initial empty document.
+  iframe.src = url2;
+  await waitForLoad(t, iframe, url2);
+  assert_equals(history.length, startingHistoryLength + 1,
+    "history.length increases after normal navigation from  non-initial empty document");
+}, "src");
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src not set, which will stay on the initial empty
+  // document.
+  const iframe = insertIframe(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with no src must not change history.length");
+
+  // Navigate away from the initial empty document through setting
+  // location.href. This should do a replacement.
+  iframe.contentWindow.location.href = url1;
+  await waitForLoad(t, iframe, url1);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation on document loaded by iframe with no src");
+
+  // Navigate again using the same method, but this time it shouldn't do a
+  // replacement since it's no longer on the initial empty document.
+  iframe.contentWindow.location.href = url2;
+  await waitForLoad(t, iframe, url2);
+  assert_equals(history.length, startingHistoryLength + 1,
+    "history.length increases after normal navigation from  non-initial empty document");
+}, "location.href");
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src not set, which will stay on the initial empty
+  // document.
+  const iframe = insertIframe(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with no src must not change history.length");
+
+  // Navigate away from the initial empty document through location.assign().
+  // This should do a replacement.
+  iframe.contentWindow.location.assign(url1);
+  await waitForLoad(t, iframe, url1);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation on document loaded by iframe with no src");
+
+  // Navigate again using the same method, but this time it shouldn't do a
+  // replacement since it's no longer on the initial empty document.
+  iframe.contentWindow.location.assign(url2);
+  await waitForLoad(t, iframe, url2);
+  assert_equals(history.length, startingHistoryLength + 1,
+    "history.length increases after normal navigation from  non-initial empty document");
+}, "location.assign");
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src not set, which will stay on the initial empty
+  // document.
+  const iframe = insertIframe(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with no src must not change history.length");
+
+  // Navigate away from the initial empty document through window.open().
+  // This should do a replacement.
+  iframe.contentWindow.open(url1, "_self");
+  await waitForLoad(t, iframe, url1);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation on document loaded by iframe with no src");
+
+  // Navigate again using the same method, but this time it shouldn't do a
+  // replacement since it's no longer on the initial empty document.
+  iframe.contentWindow.open(url2, "_self");
+  await waitForLoad(t, iframe, url2);
+  assert_equals(history.length, startingHistoryLength + 1,
+    "history.length increases after normal navigation from  non-initial empty document");
+}, "window.open");
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src not set, which will stay on the initial empty
+  // document.
+  const iframe = insertIframe(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with no src must not change history.length");
+
+  // Navigate away from the initial empty document through clicking an <a>
+  // element. This should do a replacement.
+  const a1 = iframe.contentDocument.createElement("a");
+  a1.href = url1;
+  iframe.contentDocument.body.appendChild(a1);
+  a1.click();
+  await waitForLoad(t, iframe, url1);
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation on document loaded by iframe with no src");
+
+  // Navigate again using the same method, but this time it shouldn't do a
+  // replacement since it's no longer on the initial empty document.
+  const a2 = iframe.contentDocument.createElement("a");
+  a2.href = url2;
+  iframe.contentDocument.body.appendChild(a2);
+  a2.click();
+  await waitForLoad(t, iframe, url2);
+  assert_equals(history.length, startingHistoryLength + 1,
+    "history.length increases after normal navigation from  non-initial empty document");
+}, "link click");
+
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+  // Create an iframe with src not set, which will stay on the initial empty
+  // document.
+  const iframe = insertIframe(t);
+  assert_equals(history.length, startingHistoryLength,
+    "Inserting iframe with no src must not change history.length");
+
+  // Navigate away from the initial empty document through form submission.
+  // This should do a replacement.
+  const form1 = iframe.contentDocument.createElement("form");
+  form1.action = "/common/blank.html";
+  iframe.contentDocument.body.appendChild(form1);
+  const input1 = iframe.contentDocument.createElement("input");
+  input1.type = "hidden";
+  input1.name = "1";
+  form1.append(input1);
+  form1.submit();
+  await waitForLoad(t, iframe, url1 + "=");
+  assert_equals(history.length, startingHistoryLength,
+    "history.length must not change after normal navigation on document loaded by iframe with no src");
+
+  // Navigate again using the same method, but this time it shouldn't do a
+  // replacement since it's no longer on the initial empty document.
+  const form2 = iframe.contentDocument.createElement("form");
+  form2.action = "/common/blank.html";
+  iframe.contentDocument.body.appendChild(form2);
+  const input2 = iframe.contentDocument.createElement("input");
+  input2.type = "hidden";
+  input2.name = "2";
+  form2.append(input2);
+  form2.submit();
+  await waitForLoad(t, iframe, url2 + "=");
+  assert_equals(history.length, startingHistoryLength + 1,
+    "history.length increases after normal navigation from  non-initial empty document");
+}, "form submission");
+</script>

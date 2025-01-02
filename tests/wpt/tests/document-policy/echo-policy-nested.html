@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<body>
+<script>
+// This document will contain an iframe which will either host echo-policy.py,
+// or will host another copy of this document, with the nesting level reduced
+// by one. This way, an arbitrary nesting depth can be achieved, with the
+// final inner-most frame reporting back the advertised required policy.
+
+// The 'id' URL parameter will be passed to the nested document.
+// The 'level' URL paramater will be reduced by 1 and passed to the nested
+// document if it was at least 1. (If it was 0, then echo-policy.py will be
+// nested instead, and the level parameter will not be passed.)
+
+// This document is served with a Document Policy header that should satisfy
+// any requests that include a required policy for the
+// 'lossless-images-max-bpp' feature.
+const params = new URLSearchParams(window.location.search);
+const id = params.get('id');
+const level = params.get('level');
+
+const iframe = document.createElement('iframe');
+var hostname;
+if (level >= 1) {
+  params.set('level',level-1);
+  hostname = document.location.pathname + "?" + params.toString();
+} else {
+  params.delete('level');
+  hostname = "/document-policy/echo-policy.py?" + params.toString();
+}
+iframe.src = hostname;
+document.body.appendChild(iframe);
+</script>

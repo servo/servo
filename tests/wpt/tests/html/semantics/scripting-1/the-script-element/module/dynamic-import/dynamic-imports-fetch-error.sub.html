@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>import(): error cases occuring during fetching</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script type="module">
+const cases = [
+  ["wrong MIME type", "../errorhandling-wrongMimetype.js?pipe=header(Content-Type,text/plain)"],
+  ["wrong MIME type of a dependency", "../errorhandling-wrongMimetype-import.js"],
+  ["404", "../resources/404-but-js.asis"],
+  ["404 of a dependency", "../resources/imports-404-but-js.js"],
+  ["500", "../resources/500-but-js.asis"],
+  ["500 of a dependency", "../resources/imports-500-but-js.js"],
+  ["cross-origin module (without CORS)", "http://{{domains[www2]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/module/imports-a.js"],
+  ["cross-origin module dependency (without CORS)", "../resources/imports-b-cross-origin.sub.js"]
+];
+
+for (const [label, specifier] of cases) {
+  promise_test(t => {
+    return promise_rejects_js(t, TypeError, import(specifier));
+  }, "import() must reject when there is a " + label);
+
+  promise_test(async t => {
+    // The use of ?x is used to separate tests so they don't interfere with each other.
+    // (However, it shouldn't matter anyway, in a spec-compliant implementation.)
+    const suffix = (specifier.includes("?") ? "&" : "?") + "x";
+    const promise1 = import(specifier + suffix);
+    const promise2 = import(specifier + suffix);
+
+    await promise_rejects_js(t, TypeError, promise1, "It must reject the first time");
+    await promise_rejects_js(t, TypeError, promise2, "It must reject the second time");
+
+    const error1 = await promise1.catch(e => e);
+    const error2 = await promise2.catch(e => e);
+
+    assert_not_equals(error1, error2, "The error objects must be different");
+  }, "import() must reject with a different error object for each import when there is a " + label);
+}
+
+promise_test(async t => {
+  const id = token();
+  const url = `./resources/status-changing-script.py?id=${id}`;
+
+  // Serve HTTP 404 for the first import().
+  await fetch(url + '&newStatus=404');
+  const promise1 = import(url);
+  await promise_rejects_js(t, TypeError, promise1,
+      "First import() must be rejected due to 404");
+
+  // Serve HTTP 200 after the first import() completes.
+  await fetch(url + '&newStatus=200');
+  const r = await fetch(url, { cache: 'no-cache' });
+  assert_equals(r.status, 200);
+
+  const promise2 = import(url);
+  await promise_rejects_js(t, TypeError, promise2,
+      "Second import() must be rejected, because the result of " +
+      "the first import() is cached in the module map");
+}, "import() fetch errors must be cached");
+</script>

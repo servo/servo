@@ -1,0 +1,41 @@
+﻿<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8"/>
+    <title>CSS Text level 3 Test: letter spacing is between letters, with bidi</title>
+    <link rel="author" title="Mike Bremford" href="http://bfo.com" />
+    <link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property" />
+    <link rel="match" href="reference/letter-spacing-bidi-004-ref.xht" />
+    <meta name="assert" content="letter spacing should be applied between letters, not after letters. The latter will cause the colored backgrounds of the span elements to expand."/>
+    <style>
+      .test, .control {
+          font: 50px/1 monospace;
+          font-kerning: none;
+      }
+      .control {
+          position: absolute;
+          color: red;
+          z-index: -1;
+          white-space: pre;
+      }
+      .control span {
+          /* to ensure both background and text must overlay */
+          background: linear-gradient(to bottom, red 50%, green 50%, green 100%);
+      }
+      .test span {
+          background: linear-gradient(to bottom, green 50%, transparent 50%, transparent 100%);
+      }
+      .wide {
+          letter-spacing: 2ch;
+      }
+      .narrow {
+          letter-spacing: 1ch;
+      }
+    </style>
+ </head>
+ <body>
+  <p>Test passes if no red is visible except for anti-aliasing differences, and the green boxes are the width of a single letter.</p>
+  <!-- A <ls> B <ls> <bg>C</bg> <ls> gimel <ls> bet <ls> <bg>alef</bg> <gap> -->
+  <div class="control">A B <span>C</span> &#x5d1; &#x5d2; <span style="unicode-bidi:embed">&#x5d0;</span></div>
+  <div class="test narrow">AB<span class="wide">C&#x5d0;</span>&#x5d1;&#x5d2;</div>
+  </body>
+</html>

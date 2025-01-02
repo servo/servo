@@ -1,0 +1,14 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_draw_instanced_base_vertex_base_instance Extension Draft Specification (https://registry.khronos.org/webgl/extensions/WEBGL_draw_instanced_base_vertex_base_instance/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_draw_instanced_base_vertex_base_instance {
+  undefined drawArraysInstancedBaseInstanceWEBGL(
+      GLenum mode, GLint first, GLsizei count,
+      GLsizei instanceCount, GLuint baseInstance);
+  undefined drawElementsInstancedBaseVertexBaseInstanceWEBGL(
+      GLenum mode, GLsizei count, GLenum type, GLintptr offset,
+      GLsizei instanceCount, GLint baseVertex, GLuint baseInstance);
+};

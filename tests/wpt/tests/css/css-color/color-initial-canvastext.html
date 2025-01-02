@@ -1,0 +1,22 @@
+<!doctype html>
+<title>CSS Color 4: Initial value of the color property</title>
+<link rel="help" href="https://drafts.csswg.org/css-color/#the-color-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #ref { color: canvastext }
+  #initial { color: initial }
+</style>
+<div id="ref"></div>
+<div id="initial"></div>
+<script>
+  const canvastext = getComputedStyle(ref).color;
+
+  test(() => {
+    assert_equals(getComputedStyle(document.documentElement).color, canvastext);
+  }, "Check that the resolved value for the initial color on the root element matches canvastext.");
+
+  test(() => {
+    assert_equals(getComputedStyle(initial).color, canvastext);
+  }, "Check that the resolved value of an explicit color:initial matches canvastext.");
+</script>

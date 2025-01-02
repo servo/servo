@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    div.flexbox {
+      border: 1px dashed black;
+      min-width: 100px;
+      height: 12px;
+      float: left;
+      clear: both;
+      margin-bottom: 2px;
+    }
+    div.smallItem {
+      width: 30px;
+      border: 1px solid blue;
+      background: lightblue;
+      float: left;
+    }
+    div.fullCrossSize {
+      height: 10px;
+    }
+    div.halfCrossSize {
+      height: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- No flex items -->
+  <div class="flexbox">
+  </div>
+
+  <!-- Single small flex item -->
+  <div class="flexbox">
+    <div class="smallItem fullCrossSize"></div>
+  </div>
+
+  <!-- Multiple flex items, larger than flex container's min-size: -->
+  <div class="flexbox">
+    <div class="smallItem fullCrossSize"></div>
+    <div class="smallItem fullCrossSize"></div>
+    <div class="smallItem fullCrossSize"></div>
+    <div class="smallItem fullCrossSize"></div>
+    <div class="smallItem fullCrossSize"></div>
+  </div>
+
+  <!--- ...and now with flex container constrained by both min and max-size -->
+  <div class="flexbox" style="max-width: 120px">
+    <div class="smallItem halfCrossSize"></div>
+    <div class="smallItem halfCrossSize"></div>
+    <div class="smallItem halfCrossSize"></div>
+    <div class="smallItem halfCrossSize"></div>
+    <div class="smallItem halfCrossSize"></div>
+  </div>
+
+</body>
+</html>

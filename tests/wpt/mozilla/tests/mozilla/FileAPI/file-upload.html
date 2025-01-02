@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function run_test() {
+  var t = async_test("form submission of uploaded file");
+
+  var testframe = document.getElementById("testframe");
+  var testdocument = testframe.contentWindow.document;
+
+  testframe.onload = function() {
+    t.step(function () {
+      var response = testframe.contentDocument.documentElement.textContent;
+      assert_equals(response, "OK");
+    });
+    t.done();
+  };
+  testdocument.getElementById("testform").submit();
+}
+</script>
+<iframe id=testframe src="file-upload-frame.html" onload="run_test();"></iframe>

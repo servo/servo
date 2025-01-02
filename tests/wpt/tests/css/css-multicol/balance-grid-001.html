@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1474979">
+<div id="container" data-expected-height="83" style="columns:2; width:10em; line-height:20px;">
+  1<br>2<br>
+  <div style="display:grid; break-inside:avoid;">
+    <div style="padding-bottom:3px;">3</div>
+    <div>4</div>
+  </div>
+  5
+  <div style="display:grid;">6</div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("#container");
+</script>

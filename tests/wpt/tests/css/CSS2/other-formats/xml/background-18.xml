@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE generic>
+
+<?xml-stylesheet type="text/css" href="18.css" ?>
+
+<generic xmlns:xlink="http://www.w3.org/1999/xlink">
+
+   <!-->CSS Test: Background: Test Eighteen</-->
+
+   <generic>
+
+  <link xmlns="http://www.w3.org/1999/xhtml" rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/21.xml" type="application/xhtml+xml"/>
+  <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/CSS2/colors.html#background"/> <!-- I have no real idea of what this is trying to test -->
+
+      <p> This is an XML document. This paragraph and the links below
+      should have two lime borders surrounding them, and the
+      background EVERYWHERE should be green. Including the canvas. THE
+      ROOT ELEMENT SHOULD NOT STRETCH TO FIT THE VIEWPORT! </p>
+
+   </generic>
+
+</generic>

@@ -1,0 +1,45 @@
+<!doctype html>
+<title>Test for rejected promise from getDisplayMedia() in a discarded browsing
+  context</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<body></body>
+<script>
+// https://w3c.github.io/mediacapture-screen-share/#dom-mediadevices-getdisplaymedia
+// If the current settings object's responsible document is NOT fully active,
+// return a promise rejected with a DOMException object whose name attribute
+// has the value "InvalidStateError".
+promise_test(async () => {
+  const frame = document.createElement('iframe');
+  document.body.appendChild(frame);
+  frame.srcdoc = '<html></html>';
+  await new Promise(resolve => frame.onload = resolve);
+  const child_window = frame.contentWindow;
+  const devices = child_window.navigator.mediaDevices;
+  const child_DOMException = child_window.DOMException;
+  // transient activation of iframe content
+  await test_driver.bless('getDisplayMedia()', undefined, child_window);
+  frame.remove();
+  // `catch()` is used rather than static Promise methods because microtasks
+  // for `PromiseResolve()` do not run when Promises in inactive Documents are
+  // involved.  Whether microtasks for `catch()` run depends on the realm of
+  // the handler rather than the realm of the Promise.
+  // See https://github.com/whatwg/html/issues/5319.
+  let promise_already_rejected = false;
+  let rejected_reason;
+  devices.getDisplayMedia({video:true}).catch(reason => {
+    promise_already_rejected = true;
+    rejected_reason = reason;
+  });
+  // Race a settled promise to check that the returned promise is already
+  // rejected.
+  await Promise.reject().catch(() => {
+    assert_true(promise_already_rejected,
+                'should have returned an already-rejected promise.');
+    assert_throws_dom('InvalidStateError', child_DOMException,
+                      () => { throw rejected_reason });
+  });
+}, 'getDisplayMedia() in a discarded browsing context');
+</script>

@@ -1,0 +1,120 @@
+name: OpenHarmony
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
+      upload:
+        required: false
+        default: false
+        type: boolean
+      github-release-id:
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: choice
+        description: "Cargo build profile"
+        options: [ "release", "debug", "production"]
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: OpenHarmony Build
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 2
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+      - name: Install crown
+        run: cargo install --path support/crown
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        run: sudo apt update && ./mach bootstrap --skip-lints
+      - name: Setup OpenHarmony SDK
+        id: setup_sdk
+        uses: openharmony-rs/setup-ohos-sdk@v0.1
+        with:
+          version: "5.0.0"
+          fixup-path: true
+      - name: Install node for hvigor
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install hvigor modules
+        run: |
+          mkdir ~/hvigor-installation
+          cd ~/hvigor-installation
+          echo "@ohos:registry=https://repo.harmonyos.com/npm/" > .npmrc
+          npm install "@ohos/hvigor@5" "@ohos/hvigor-ohos-plugin@5"
+          echo "HVIGOR_PATH=$PWD" >> $GITHUB_ENV
+      - name: "Setup HAP signing config"
+        env:
+          SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
+        if: ${{ inputs.upload || env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
+        run: |
+          cd ~
+          echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
+          unzip servo-ohos-material.zip
+          echo "SERVO_OHOS_SIGNING_CONFIG=${PWD}/servo-ohos-material/signing-configs.json" >> $GITHUB_ENV
+      - name: Build (arch ${{ matrix.target }} profile ${{ inputs.profile }})
+        env:
+          OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
+          OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
+        run: |
+          ./mach build --locked --target ${{ matrix.target }} --${{ inputs.profile }}
+          cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
+      - name: Archive build timing
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-timings-ohos-${{ matrix.target }}
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*
+      - name: Upload nightly
+        if: ${{ inputs.upload && contains(matrix.target, 'aarch64') }}
+        run: |
+          ./mach upload-nightly ohos \
+            --secret-from-environment \
+            --github-release-id ${{ inputs.github-release-id }}
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      - name: Generate artifact attestation for HAP
+        if: ${{ inputs.upload }}
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
+      - name: Upload signed HAP artifact
+        if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
+          path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
+      - name: Upload unsigned HAP artifact
+        if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
+          path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <title>"Captured in view transition" flag should be cleaned up on error</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#capture-old-state-algorithm">
+    <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+    <style>
+        #a,
+        #b {
+            width: 100px;
+            height: 50px;
+            background-color: green;
+            view-transition-name: foo;
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="a"></div>
+    <div id="b"></div>
+    <script src="/common/reftest-wait.js"></script>
+    <script>
+        failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+        document.startViewTransition().finished.then(takeScreenshot);
+    </script>
+</body>
+</html>

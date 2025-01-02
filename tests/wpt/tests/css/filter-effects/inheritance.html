@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of Filter Effects properties</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#property-index">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#property-index">
+<meta name="assert" content="Properties inherit according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_not_inherited('backdrop-filter', 'none', 'blur(10px)');
+assert_inherited('color-interpolation-filters', 'linearrgb', 'srgb');
+assert_not_inherited('filter', 'none', 'blur(10px)');
+assert_not_inherited('flood-color', 'rgb(0, 0, 0)', 'rgb(42, 53, 64)');
+assert_not_inherited('flood-opacity', '1', '0.5');
+assert_not_inherited('lighting-color', 'rgb(255, 255, 255)', 'rgb(42, 53, 64)');
+</script>
+</body>
+</html>

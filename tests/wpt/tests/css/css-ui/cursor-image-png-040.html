@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Cursor property, PNG</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that gamma correction on PNG image cursor is correct.">
+<style>
+	.test{background: #ffe5b4; border: 2px solid #555;
+	cursor:url(support/PTS/g04n3p04.png), help; width :128px; height: 224px; font-size: 32px; line-height:32px}
+
+</style>
+<body>
+  <p>The test passes if all the reference images look the same, AND when moved inside the peach rectangle,  the cursor looks like the reference images (ignoring the small numeric values in each image).</p>
+
+  <p class="test">
+  <img src="support/PTS/g03n3p04.png"><br />
+  <img src="support/PTS/g04n3p04.png"><br />
+  <img src="support/PTS/g05n3p04.png"><br />
+  <img src="support/PTS/g07n3p04.png"><br />
+  <img src="support/PTS/g10n3p04.png"><br />
+  <img src="support/PTS/g25n3p04.png"><br /> </p>
+  <p>Indexed PNG images with various gamma values, 4 bit/pixel. Pixel values adjusted so that, when gamma corrected, the images look the same.
+</body>

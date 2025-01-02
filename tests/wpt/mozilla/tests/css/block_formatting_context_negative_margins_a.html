@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html><head>
+<!-- Original URL: http://fvsch.com/code/bugs/servo-negative-margins-width/ -->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <title>Servo test case: wrong block width with negative margins and overflow</title>
+    <link rel="match" href="block_formatting_context_negative_margins_ref.html">
+    <style>
+    main {
+        border: solid 5px red;
+        margin: 20px;
+        padding: 5px 35px;
+    }
+    section {
+        margin: 0;
+    }
+    p {
+        margin: 0;
+    }
+    .test {
+        color: blue;
+        border: solid 5px;
+        padding: 5px;
+        margin: 5px -40px;
+        background-color: #00f1;
+    }
+    .w100 {
+        box-sizing: border-box;
+        width: 100%;
+    }
+    .test code {
+        visibility: hidden;
+    }
+    </style>
+</head>
+<body>
+
+<main>
+    <h1>Servo test case: wrong block width with negative margins and overflow</h1>
+
+    <section>
+        <h2>With <code>width: auto</code></h2>
+        <p>The following blocks have negative margins on the sides. They
+ should end up being as large as the red container, with their left and
+right borders should overlap the container’s border.</p>
+        <p>In Servo Nightly 0.0.1-e3d946b (2016-09-16), when the value of <code>overflow</code> is not <code>visible</code>, the rendered width is wrong (as if a <code>box-sizing: border-box; width: 100%;</code> had been applied).</p>
+        <div class="test" style="overflow: visible;"></div>
+        <div class="test" style="overflow: scroll;"></div>
+        <div class="test" style="overflow: auto;"></div>
+        <div class="test" style="overflow-y: auto;"></div>
+        <div class="test" style="overflow: hidden;"></div>
+    </section>
+
+    <section>
+        <h2>With <code>box-sizing: border-box; width: 100%</code></h2>
+        <p>If we do use <code>box-sizing: border-box; width: 100%;</code>, for the <code>overflow: visible</code> block we get the expected rendering, but for the other values the width is wrong once again.</p>
+        <div class="test w100" style="overflow: visible;"></div>
+        <div class="test w100" style="overflow: scroll;"></div>
+        <div class="test w100" style="overflow: auto;"></div>
+        <div class="test w100" style="overflow-y: auto;"></div>
+        <div class="test w100" style="overflow: hidden;"></div>
+    </section>
+
+</main>
+
+
+
+
+</body></html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-align application on a 'display: list-item' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-align-property"/>
+        <meta name="assert" content="The 'text-align' property is applied to 'display: list-item' elements." />
+        <style type="text/css">
+            div
+            {
+                margin-left: 2em;
+            }
+            span
+            {
+                border: solid;
+                display: list-item;
+                text-align: right;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is aligned to the right side of the box and there is a marker bullet on the left-hand side of the box.</p>
+        <div>
+            <span>Filler Text Filler Text Filler Text Filler Text</span>
+        </div>
+    </body>
+</html>

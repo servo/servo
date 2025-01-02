@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: rch invalidation</title>
+<link rel="author" title="Daniil Sakhapov" href="sakhapov@google.com">
+<link rel="help" href="https://drafts.csswg.org/css-values/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="assert" content="test rch invalidation">
+<style>
+  @import url("/fonts/ahem.css");
+  html {
+    font-family: 'Ahem';
+    font-size: 40px;
+  }
+  body {
+    font-family: monospace;
+    font-size: 20px;
+  }
+  div {
+    width: 10rch;
+  }
+</style>
+
+<html>
+  <body>
+    <div id="div"></div>
+  </body>
+</html>
+
+<script>
+  setup({ single_test: true });
+  let old_width = div.getBoundingClientRect().width;
+  document.documentElement.style.fontFamily = "sans-serif";
+  let new_width = div.getBoundingClientRect().width;
+  assert_not_equals(old_width, new_width, "expect the width of zero of Ahem and sans-serif to be different");
+  done();
+</script>

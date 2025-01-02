@@ -1,0 +1,76 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            test(function() {
+                assert_not_equals(document.implementation, null, "test1-0, basic test");
+                assert_true(document.implementation instanceof DOMImplementation, "test1-1, basic test: should be DOMImplementation");
+
+                var implementation = document.implementation;
+                assert_equals(document.implementation, implementation, "test1-2, basic test");
+            }, "basic test");
+
+            test(function() {
+                assert_equals(document.doctype, null, "test2-0, createDocumentType");
+
+                var doctype = document.implementation.createDocumentType("html", null, null);
+                assert_true(doctype && doctype instanceof DocumentType, "test2-1, createDocumentType: should be DocumentType");
+
+                doctype = document.implementation.createDocumentType("html:html", null, null);
+                assert_true(doctype && doctype instanceof DocumentType, "test2-2, createDocumentType: should be DocumentType");
+            }, "createDocumentType");
+
+            test(function() {
+                var htmldoc = document.implementation.createHTMLDocument("example title");
+                assert_not_equals(htmldoc, null, "test3-0, createHTMLDocument");
+                assert_true(htmldoc instanceof Document, "test3-1, createHTMLDocument: should be Document");
+                assert_equals(htmldoc.childNodes.length, 2, "test3-3, createHTMLDocument");
+
+                assert_true(htmldoc.doctype && htmldoc.doctype instanceof DocumentType, "test3-4, createHTMLDocument: should be DocumentType");
+                assert_equals(htmldoc.doctype.name, "html", "test3-5, createHTMLDocument");
+
+                assert_true(htmldoc.documentElement && htmldoc.documentElement instanceof HTMLHtmlElement, "test3-6, createHTMLDocument: should be HTMLHtmlElement");
+                assert_equals(htmldoc.documentElement.childNodes.length, 2, "test3-7, createHTMLDocument");
+                assert_equals(htmldoc.documentElement.tagName, "HTML", "test3-8, createHTMLDocument");
+
+                assert_true(htmldoc.head && htmldoc.head instanceof HTMLHeadElement, "test3-9, createHTMLDocument: should be HTMLHeadElement");
+                assert_equals(htmldoc.head.tagName, "HEAD", "test3-10, createHTMLDocument");
+                assert_equals(htmldoc.head, htmldoc.documentElement.childNodes[0], "test3-11, createHTMLDocument");
+                assert_equals(htmldoc.head.childNodes.length, 1, "test3-12, createHTMLDocument");
+
+                assert_true(htmldoc.head.childNodes[0] instanceof HTMLTitleElement, "test3-13, createHTMLDocument: should be HTMLTitleElement");
+                assert_equals(htmldoc.head.childNodes[0].tagName, "TITLE", "test3-14, createHTMLDocument");
+                assert_equals(htmldoc.title, "example title", "test3-15, createHTMLDocument");
+
+                assert_true(htmldoc.body && htmldoc.body instanceof HTMLBodyElement, "test3-16, createHTMLDocument: should be HTMLBodyElement");
+                assert_equals(htmldoc.body.tagName, "BODY", "test3-17, createHTMLDocument");
+                assert_equals(htmldoc.body, htmldoc.documentElement.childNodes[1], "test3-18, createHTMLDocument");
+                assert_equals(htmldoc.body.childNodes.length, 0, "test3-19, createHTMLDocument");
+            }, "createHTMLDocument");
+
+            test(function() {
+                var doc = document.implementation.createDocument('http://www.w3.org/1999/xhtml', 'html', null);
+                assert_not_equals(doc, null, "test4-0, createDocument");
+                assert_true(doc instanceof Document, "test4-1, createDocument: should be Document");
+                assert_equals(doc.childNodes.length, 1, "test4-2, createDocument");
+                assert_equals(doc.doctype, null, "test4-3, createDocument");
+                assert_true(doc.documentElement instanceof HTMLHtmlElement, "test4-4, createDocument: should be HTMLHtmlElement");
+
+                var doctype = document.implementation.createDocumentType("html", null, null);
+                doc = document.implementation.createDocument('http://www.w3.org/1999/xhtml', 'html', doctype);
+                assert_equals(doc.childNodes.length, 2, "test4-5, createDocument");
+                assert_equals(doc.doctype, doctype, "test4-6, createDocument");
+                assert_true(doc.documentElement instanceof HTMLHtmlElement, "test4-7, createDocument: should be HTMLHtmlElement");
+
+                doctype = document.implementation.createDocumentType(
+                    'svg:svg', '-//W3C//DTD SVG 1.1//EN',
+                    'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd');
+                doc = document.implementation.createDocument('http://www.w3.org/2000/svg', 'svg:svg', doctype);
+                assert_equals(doc.childNodes.length, 2, "test4-8, createDocument");
+                assert_equals(doc.doctype, doctype, "test4-9, createDocument");
+                assert_true(doc.documentElement instanceof Element, "test4-10, createDocument: should be Element");
+            }, "createDocument");
+        </script>
+    </head>
+</html>

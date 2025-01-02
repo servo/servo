@@ -1,0 +1,1 @@
+import '{{GET[moduleId]}}';

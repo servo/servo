@@ -1,0 +1,165 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<meta name="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id="buttonInvoker" interesttarget="interestee"></button>
+<a id="aInvoker" interesttarget="interestee"></a>
+<input type="button" id="inputInvoker" interesttarget="interestee" />
+<div id="interestee"></div>
+
+<script>
+  test(function () {
+    assert_equals(buttonInvoker.interestTargetElement, interestee);
+    assert_equals(aInvoker.interestTargetElement, interestee);
+    assert_equals(inputInvoker.interestTargetElement, interestee);
+  }, "interestTargetElement reflects interestee HTML element");
+
+  test(function () {
+    const div = document.body.appendChild(document.createElement("div"));
+    buttonInvoker.interestTargetElement = div;
+    aInvoker.interestTargetElement = div;
+    inputInvoker.interestTargetElement = div;
+    assert_equals(buttonInvoker.interestTargetElement, div);
+    assert_equals(buttonInvoker.getAttribute("interesttarget"), "");
+    assert_equals(aInvoker.interestTargetElement, div);
+    assert_equals(aInvoker.getAttribute("interesttarget"), "");
+    assert_equals(inputInvoker.interestTargetElement, div);
+    assert_equals(inputInvoker.getAttribute("interesttarget"), "");
+  }, "interestTargetElement reflects set value");
+
+  test(function () {
+    const host = document.body.appendChild(document.createElement("div"));
+    const shadow = host.attachShadow({ mode: "open" });
+    const button = shadow.appendChild(document.createElement("button"));
+    button.interestTargetElement = interestee;
+    assert_equals(button.interestTargetElement, interestee);
+    assert_equals(buttonInvoker.getAttribute("interesttarget"), "");
+  }, "interestTargetElement reflects set value across shadow root into light dom");
+
+  test(function () {
+    const host = document.body.appendChild(document.createElement("div"));
+    const shadow = host.attachShadow({ mode: "open" });
+    const div = shadow.appendChild(document.createElement("div"));
+    buttonInvoker.interestTargetElement = div;
+    assert_equals(buttonInvoker.interestTargetElement, null);
+    assert_equals(buttonInvoker.getAttribute("interesttarget"), "");
+  }, "interestTargetElement does not reflect set value inside shadowroot");
+
+  test(function () {
+    buttonInvoker.setAttribute('interesttarget', 'invalid');
+    assert_equals(buttonInvoker.interestTargetElement, null);
+    assert_equals(buttonInvoker.getAttribute("interesttarget"), "invalid");
+    aInvoker.setAttribute('interesttarget', 'invalid');
+    assert_equals(aInvoker.interestTargetElement, null);
+    assert_equals(aInvoker.getAttribute("interesttarget"), "invalid");
+    inputInvoker.setAttribute('interesttarget', 'invalid');
+    assert_equals(inputInvoker.interestTargetElement, null);
+    assert_equals(inputInvoker.getAttribute("interesttarget"), "invalid");
+  }, "interestTargetElement does not reflect invalid value");
+
+  test(function () {
+    assert_throws_js(
+      TypeError,
+      function () {
+        buttonInvoker.interestTargetElement = {};
+      },
+      "interestTargetElement attribute value must be an instance of Element",
+    );
+    assert_throws_js(
+      TypeError,
+      function () {
+        aInvoker.interestTargetElement = {};
+      },
+      "interestTargetElement attribute value must be an instance of Element",
+    );
+    assert_throws_js(
+      TypeError,
+      function () {
+        inputInvoker.interestTargetElement = {};
+      },
+      "interestTargetElement attribute value must be an instance of Element",
+    );
+  }, "interestTargetElement throws error on assignment of non Element");
+
+  test(function () {
+    assert_false(buttonInvoker.hasAttribute("interestaction"));
+    assert_equals(buttonInvoker.interestAction, "");
+    assert_false(aInvoker.hasAttribute("interestaction"));
+    assert_equals(aInvoker.interestAction, "");
+    assert_false(inputInvoker.hasAttribute("interestaction"));
+    assert_equals(inputInvoker.interestAction, "");
+  }, "interestAction reflects '' when attribute not present");
+
+  test(function () {
+    buttonInvoker.setAttribute("interestaction", "");
+    assert_equals(buttonInvoker.getAttribute("interestaction"), "");
+    assert_equals(buttonInvoker.interestAction, "");
+    aInvoker.setAttribute("interestaction", "");
+    assert_equals(aInvoker.getAttribute("interestaction"), "");
+    assert_equals(aInvoker.interestAction, "");
+    inputInvoker.setAttribute("interestaction", "");
+    assert_equals(inputInvoker.getAttribute("interestaction"), "");
+    assert_equals(inputInvoker.interestAction, "");
+  }, "interestAction reflects '' when attribute empty, setAttribute version");
+
+  test(function () {
+      buttonInvoker.interestAction = "";
+      assert_equals(buttonInvoker.getAttribute("interestaction"), "");
+      assert_equals(buttonInvoker.interestAction, "");
+      aInvoker.interestAction = "";
+      assert_equals(aInvoker.getAttribute("interestaction"), "");
+      assert_equals(aInvoker.interestAction, "");
+      inputInvoker.interestAction = "";
+      assert_equals(inputInvoker.getAttribute("interestaction"), "");
+      assert_equals(inputInvoker.interestAction, "");
+  }, "interestAction reflects '' when attribute empty, IDL setter version");
+
+  test(function () {
+      buttonInvoker.interestAction = "fooBarBaz";
+      assert_equals(buttonInvoker.getAttribute("interestaction"), "fooBarBaz");
+      assert_equals(buttonInvoker.interestAction, "fooBarBaz");
+      aInvoker.interestAction = "fooBarBaz";
+      assert_equals(aInvoker.getAttribute("interestaction"), "fooBarBaz");
+      assert_equals(aInvoker.interestAction, "fooBarBaz");
+      inputInvoker.interestAction = "fooBarBaz";
+      assert_equals(inputInvoker.getAttribute("interestaction"), "fooBarBaz");
+      assert_equals(inputInvoker.interestAction, "fooBarBaz");
+  }, "interestAction reflects same casing");
+
+  test(function () {
+      buttonInvoker.interestAction = [];
+      assert_equals(buttonInvoker.getAttribute("interestaction"), "");
+      assert_equals(buttonInvoker.interestAction, "");
+      aInvoker.interestAction = [];
+      assert_equals(aInvoker.getAttribute("interestaction"), "");
+      assert_equals(aInvoker.interestAction, "");
+      inputInvoker.interestAction = [];
+      assert_equals(inputInvoker.getAttribute("interestaction"), "");
+      assert_equals(inputInvoker.interestAction, "");
+  }, "interestAction reflects '' when attribute set to []");
+
+  test(function () {
+      buttonInvoker.interestAction = [1, 2, 3];
+      assert_equals(buttonInvoker.getAttribute("interestaction"), "1,2,3");
+      assert_equals(buttonInvoker.interestAction, "1,2,3");
+      aInvoker.interestAction = [1, 2, 3];
+      assert_equals(aInvoker.getAttribute("interestaction"), "1,2,3");
+      assert_equals(aInvoker.interestAction, "1,2,3");
+      inputInvoker.interestAction = [1, 2, 3];
+      assert_equals(inputInvoker.getAttribute("interestaction"), "1,2,3");
+      assert_equals(inputInvoker.interestAction, "1,2,3");
+  }, "interestAction reflects tostring value");
+
+  test(function () {
+      buttonInvoker.interestAction = {};
+      assert_equals(buttonInvoker.interestAction, "[object Object]");
+      aInvoker.interestAction = {};
+      assert_equals(aInvoker.interestAction, "[object Object]");
+      inputInvoker.interestAction = {};
+      assert_equals(inputInvoker.interestAction, "[object Object]");
+  }, "interestAction reflects tostring value 2");
+</script>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>HTMLVideoElement.getVideoPlaybackQuality() test cases.</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var previousQuality = mediaElement.getVideoPlaybackQuality();
+              var timeUpdateCount = 0;
+              mediaElement.addEventListener("timeupdate", test.step_func(function (e)
+              {
+                  var videoElement = e.target;
+                  var newQuality = videoElement.getVideoPlaybackQuality();
+                  var now = window.performance.now();
+
+                  assert_not_equals(previousQuality, newQuality,
+                    "New quality object is different from the previous one");
+                  assert_greater_than(newQuality.creationTime, previousQuality.creationTime,
+                    "creationTime increases monotonically");
+                  assert_approx_equals(newQuality.creationTime, now, 100,
+                    "creationTime roughly equals current time");
+
+                  assert_greater_than_equal(newQuality.totalVideoFrames, 0, "totalVideoFrames >= 0");
+                  assert_greater_than_equal(newQuality.totalVideoFrames, previousQuality.totalVideoFrames,
+                    "totalVideoFrames increases monotonically");
+                  assert_less_than(newQuality.totalVideoFrames, 300,
+                    "totalVideoFrames should remain low as duration is less than 10s and framerate less than 30fps");
+
+                  assert_greater_than_equal(newQuality.droppedVideoFrames, 0, "droppedVideoFrames >= 0");
+                  assert_greater_than_equal(newQuality.droppedVideoFrames, previousQuality.droppedVideoFrames,
+                    "droppedVideoFrames increases monotonically");
+                  assert_less_than_equal(newQuality.droppedVideoFrames, newQuality.totalVideoFrames,
+                    "droppedVideoFrames is only a portion of totalVideoFrames");
+
+                  previousQuality = newQuality;
+                  timeUpdateCount++;
+              }));
+
+              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+
+              sourceBuffer.appendBuffer(mediaData);
+              test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, "updating");
+                  mediaSource.endOfStream();
+                  assert_less_than(mediaSource.duration, 10, "duration");
+                  mediaElement.play().catch(test.unreached_func("Unexpected promise rejection"));;
+                  test.expectEvent(mediaElement, 'ended', 'mediaElement');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_greater_than(timeUpdateCount, 2, "timeUpdateCount");
+                  test.done();
+              });
+          }, "Test HTMLVideoElement.getVideoPlaybackQuality() with MediaSource API");
+        </script>
+    </body>
+</html>

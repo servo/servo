@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Combining characters and styling</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#ctrlchars" />
+        <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo"/>
+        <meta name="assert" content="The combined characters are styled as one character.
+        (according to css3, the styling of a typographical ccharacter unit split by an element boundary is undefined.
+        However, this test is still fine because ::first-letter selects the whole character unit.)" />
+        <style type="text/css">
+            div:first-letter
+            {
+                text-transform: uppercase;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the character below is an uppercase 'o' with an accent above it.</p>
+        <div>o<span>&#x301;</span></div>
+    </body>
+</html>

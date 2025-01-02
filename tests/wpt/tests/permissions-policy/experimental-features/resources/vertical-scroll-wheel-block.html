@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<style>
+  body, html {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+</style>
+<body>
+  <p>This page blocks all 'mouse-wheel'.</p>
+<script>
+  function defaultScroll() {
+    window.scrollTo(0, 0);
+  }
+
+  document.body.addEventListener(
+      "wheel",
+      (e) => { e.preventDefault(); defaultScroll(); }, {passive: false});
+
+  defaultScroll();
+</script>
+</body>

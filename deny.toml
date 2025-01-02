@@ -1,0 +1,160 @@
+[graph]
+all-features = false
+no-default-features = false
+#features = []
+
+# The output table provides options for how/if diagnostics are outputted
+[output]
+feature-depth = 1
+
+# This section is considered when running `cargo deny check advisories`
+# More documentation for the advisories section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
+[advisories]
+ignore = [
+    # This is for the usage of time@0.1.45 in WebRender, which should be removed soon.
+    "RUSTSEC-2020-0071",
+    # This is for glib < 0.20 which is pulled in by gstreamer
+    "RUSTSEC-2024-0429",
+    # This has been yanked, but upgrading to the next version breaks some WPT tests.
+    # It needs investigation.
+    "url@2.5.3",
+]
+
+# This section is considered when running `cargo deny check licenses`
+# More documentation for the licenses section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
+[licenses]
+# List of explicitly allowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+allow = [
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "ISC",
+    "LicenseRef-UFL-1.0", # No official SPDX, see https://github.com/emilk/egui/issues/2321.
+    "MIT",
+    "MPL-2.0",
+    "OpenSSL",
+    "OFL-1.1",
+    "Unicode-3.0",
+    "Zlib",
+    "zlib-acknowledgement",
+]
+# The confidence threshold for detecting a license from license text.
+# The higher the value, the more closely the license text must be to the
+# canonical license text of a valid SPDX license file.
+# [possible values: any between 0.0 and 1.0].
+confidence-threshold = 0.8
+# Allow 1 or more licenses on a per-crate basis, so that particular licenses
+# aren't accepted for every possible crate as with the normal allow list
+exceptions = [
+]
+
+# Some crates don't have (easily) machine readable licensing information,
+# adding a clarification entry for it allows you to manually specify the
+# licensing information
+[[licenses.clarify]]
+crate = "ring"
+# The SPDX expression for the license requirements of the crate
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [
+    # Each entry is a crate relative path, and the (opaque) hash of its contents
+    { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+
+# This section is considered when running `cargo deny check bans`.
+# More documentation about the 'bans' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
+[bans]
+external-default-features = "allow"
+highlight = "all"
+multiple-versions = "deny"
+wildcards = "allow"
+workspace-default-features = "allow"
+
+# List of crates that are allowed. Use with care!
+allow = []
+
+# List of crates to deny:
+deny = [
+    "num",
+    { crate = "rand", wrappers = [
+        "ipc-channel",
+        "phf_generator",
+        "quickcheck",
+        "servo_rand",
+        "tracing-perfetto",
+        "tungstenite",
+    ] },
+]
+
+# List of crates to skip for the duplicate check:
+skip = [
+    "bitflags",
+    "cookie",
+    "futures",
+    "hermit-abi",
+    "redox_syscall",
+    "time",
+    "wasi",
+    "wayland-sys",
+
+    # New versions of these dependencies is pulled in by GStreamer / GLib.
+    "itertools",
+    "toml",
+
+    # Duplicated by winit.
+    "windows-sys",
+    "windows-targets",
+    "windows_aarch64_gnullvm",
+    "windows_aarch64_msvc",
+    "windows_i686_gnu",
+    "windows_i686_msvc",
+    "windows_x86_64_gnu",
+    "windows_x86_64_gnullvm",
+    "windows_x86_64_msvc",
+
+    # wgpu has the latest and greatest.
+    "foreign-types",
+    "foreign-types-shared",
+    "metal",
+    "windows-core",
+
+    # wgpu-hal depends on 0.5.0.
+    "ndk-sys",
+
+    # Required until a new version of string-cache is released.
+    "phf_generator",
+    "phf_shared",
+
+    # icu (from mozjs) uses old version
+    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
+    # regex -> regex-automata 0.4.7
+    # icu_list -> regex-automata 0.2.0
+    # tracing-subscriber -> matchers -> regex-automata 0.1.0
+    "regex-automata",
+
+    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
+    # regex [-> regex-automata 0.4.7] -> regex-syntax 0.8.4
+    # tracing-subscriber -> matchers -> regex-automata 0.1.0 -> regex-syntax 0.6.29
+    "regex-syntax",
+
+    # rust-content-security-policy uses newest base64.
+    "base64",
+
+    # gilrs is on 0.10.0, but Servo is still on 0.9.4
+    "core-foundation",
+
+    # wgpu crates still depend on 1.1.0
+    "rustc-hash",
+]
+
+# github.com organizations to allow git sources for
+[sources.allow-org]
+github = ["pcwalton", "servo", "gfx-rs"]

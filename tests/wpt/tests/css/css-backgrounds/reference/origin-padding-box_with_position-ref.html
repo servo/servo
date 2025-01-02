@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  body
+    {
+      height: 568px;
+      overflow-y: hidden;
+      width: 584px;
+    }
+
+  div
+    {
+      display: inline-block;
+      position: relative;
+      vertical-align: bottom;
+    }
+
+  div.image
+    {
+      height: 288px;
+      width: 514px;
+    }
+
+  img
+    {
+      left: 1px;
+      position: absolute;
+      top: 1px;
+    }
+
+  div.light-blue-border
+    {
+      border: 16px solid rgba(60, 150, 255, 0.4);
+      bottom: 288px;
+      height: 256px;
+      width: 482px;
+    }
+  </style>
+
+<div class="image"><img src="../background-origin/support/yellow-orange-blue-160x160.png" alt="Image download support must be enabled"></div><div class="light-blue-border"></div>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Resource timing entries present for uuid-in-package resources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+<body>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    promise_test(async (t) => {
+      const script_id = "uuid-in-package:020111b3-437a-4c5c-ae07-adb6bbffb720";
+      const element = createWebBundleElement(
+        "../resources/wbn/uuid-in-package.wbn",
+        /*resources=*/ [script_id]
+      );
+      document.body.appendChild(element);
+      let script_entries = 0;
+      // Declare the report_result function as outputting into stderr
+      // because it is used in the WebBundle script to report the script load.
+      window.report_result = console.error;
+      const promise = new Promise((resolve) => {
+        new PerformanceObserver(
+          t.step_func((entryList) => {
+            let entries = entryList.getEntriesByType("resource");
+            for (let i = 0; i < entries.length; ++i) {
+              // Ignore any entries for the test harness files if present.
+              if (/testharness(report)?\.js/.test(entries[i].name)) {
+                continue;
+              }
+
+              if (entries[i].name === script_id) ++script_entries;
+            }
+            if (script_entries == 1) {
+              resolve();
+            }
+          })
+        ).observe({ entryTypes: ["resource"] });
+      });
+      // Add the script so we get the ResourceTiming
+      const script = document.createElement("script");
+      script.src = script_id;
+      document.body.appendChild(script);
+      return promise;
+    }, "Each uuid-in-package resource should have exactly 1 ResourceTiming entry.");
+  </script>
+</body>

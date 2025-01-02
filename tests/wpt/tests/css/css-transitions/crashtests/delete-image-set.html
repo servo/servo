@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/363567">
+<link rel="help" href="https://issues.chromium.org/issues/40360947">
+<style>
+  div { background: url(#); }
+  div { background: -webkit-image-set(url(#) 1x); }
+  div { background: image-set(url(#) 1x); }
+</style>
+<body>
+  <div style="transition: 1s">This test passes if it does not crash.</div>
+</body>
+<script>
+window.onload = () => {
+  document.styleSheets[0].deleteRule(2);
+  document.styleSheets[0].deleteRule(1);
+};
+</script>

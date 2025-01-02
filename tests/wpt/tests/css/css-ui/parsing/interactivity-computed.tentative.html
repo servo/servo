@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: interactivity - computed values</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10711#issuecomment-2379913684">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test_computed_value("interactivity", "auto");
+  test_computed_value("interactivity", "inert");
+
+  assert_inherited("interactivity", "auto", "inert");
+
+  test_no_interpolation({
+    property: "interactivity",
+    from: "auto",
+    to: "inert"
+  });
+</script>

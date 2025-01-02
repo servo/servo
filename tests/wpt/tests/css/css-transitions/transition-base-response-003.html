@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Tests that identical elements in the base style responds to font-size transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    font-size: 10px;
+    min-width: 1em;
+    transition: font-size steps(2, start) 10s;
+  }
+  .change {
+    font-size: 20px;
+  }
+</style>
+<div></div>
+<div></div>
+<div></div>
+<script>
+test(() => {
+  let divs = document.querySelectorAll('div');
+  for (let div of divs) {
+    let unused = getComputedStyle(div).getPropertyValue('min-width');
+    div.className = 'change';
+    assert_equals(getComputedStyle(div).getPropertyValue('min-width'), '15px');
+  }
+}, 'Identical elements are all responsive to font-size transition');
+</script>

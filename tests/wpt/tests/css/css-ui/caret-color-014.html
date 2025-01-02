@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: caret-color links</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#caret-color">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that caret-color can be set on a contenteditable link">
+<style>
+  a {
+    font-size: 3em;
+    font-weight: bold;
+    width: 10em;
+    padding: 10px;
+    background: black; /* the color of a thin object like the caret is easier to see on a black background. */
+
+    color: white;
+    caret-color: lime;
+  }
+</style>
+<body>
+  <p>Test passes if, when the link is focused for editing, the text insertion caret is green.</p>
+  <p>The shape of the caret, and whether it flashes, are not part of the test.</p>
+  <a id="link" contenteditable href="#">link</a>
+  <script>
+    window.onload = function() {
+      document.getElementById("link").focus();
+    }
+  </script>
+</body>

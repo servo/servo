@@ -1,0 +1,91 @@
+<!doctype html>
+<title>ResizeObserver for SVG elements with CSS box.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<div id="container" style="width: 500px; height: 500px;">
+<svg id="svg" width="100%" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="45" style="fill:orange;stroke:black;stroke-width:1" />
+  <foreignObject id="foreign" x="0" y="0" width="100" height="100">
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="100%" height="100%"
+         viewBox="0 0 100 100"
+         id="foreign-svg">
+      <circle cx="50" cy="50" r="45" style="fill:orange;stroke:black;stroke-width:1" />
+    </svg>
+  </foreignObject>
+</svg>
+<script>
+'use strict';
+
+function test0() {
+  let targetWidth = 150;
+  let target = document.getElementById('foreign-svg');
+  let container = document.getElementById('foreign');
+  let helper = new ResizeTestHelper(
+    "test0: observe `foreignObject` SVG in HTML document",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true; // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('width', targetWidth);
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1);
+        const entry = entries[0];
+        assert_equals(entry.target, target);
+        assert_equals(entry.contentBoxSize[0].inlineSize, targetWidth);
+      },
+    }
+  ]);
+  return helper.start();
+}
+
+function test1() {
+  let targetWidth = 400;
+  let target = document.getElementById('svg');
+  let container = document.getElementById('container');
+  let helper = new ResizeTestHelper(
+    "test1: observe inline SVG in HTML",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true; // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.style.width = targetWidth + 'px';
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        const entry = entries[0];
+        assert_equals(entry.target, target);
+        assert_equals(entry.contentBoxSize[0].inlineSize, targetWidth);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+let guard;
+test(_ => {
+  assert_implements(window.ResizeObserver);
+  guard = async_test('guard');
+}, "ResizeObserver implemented")
+
+test0()
+  .then(() => { test1(); })
+  .then(() => { guard.done(); });
+
+</script>

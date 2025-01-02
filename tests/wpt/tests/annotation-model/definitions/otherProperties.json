@@ -1,0 +1,1472 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "otherProperties.json",
+  "title": "Definitions: Other Properties.",
+  "description": "Schemas in #/definitions detect or validate keys, objects or constraints variously applicable to Annotations, Bodies, Targets, Specific Resources, Textual Bodies, Items, and/or Sources (Section 3.3).",
+  "definitions": {
+
+    "createdValidIfPresent": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: created value",
+      "description": "True when the object being tested (annotation, body, target...) has no created or has a single created of format date-time (Section 3.3.1)",
+      "type": "object",
+      "properties": {"created": {"oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      ]}}
+    },
+
+    "createdPropertyFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: created key with qualifying body/target classes",
+      "description": "Supports implementation check of created (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"$ref": "#/definitions/createdValidIfPresent"},
+      {"required": ["created"]}
+      ]
+    },
+
+    "itemCreatedPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having created key with qualifying body/target classes",
+      "description": "Supports implementation check of items having created (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/createdPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceCreatedPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having created key",
+      "description": "Supports implementation check of created (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["created"] ,
+              "$ref": "#/definitions/createdValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "generatedValidIfPresent": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: generated value",
+      "description": "True when the annotation, body or target has no generated or has a single generated of format date-time (Section 3.3.1)",
+      "type": "object",
+      "properties": {"generated": {"oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      ]}}
+    },
+
+    "generatedPropertyFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: generated key with qualifying body/target classes",
+      "description": "Supports implementation check of generated (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "oneOf": [
+        {"$ref": "annotations.json#/definitions/annotationTypeValueFound"}
+      ],
+      "allOf": [
+      {"$ref": "#/definitions/generatedValidIfPresent"},
+      {"required": ["generated"]}
+      ]
+    },
+
+    "modifiedValidIfPresent": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: modified value",
+      "description": "True when the annotation, body or target has no modified or has a single modified of format date-time (Section 3.3.1)",
+      "type": "object",
+      "properties": {"modified": {"oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      ]}}
+    },
+
+    "modifiedPropertyFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: modified key with qualifying body/target classes",
+      "description": "Supports implementation check of modified (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"$ref": "#/definitions/modifiedValidIfPresent"},
+      {"required": ["modified"]}
+      ]
+    },
+
+    "itemModifiedPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having modified key with qualifying body/target classes",
+      "description": "Supports implementation check of items having modified (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/modifiedPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceModifiedPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having modified key",
+      "description": "Supports implementation check of modified (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["modified"] ,
+              "$ref": "#/definitions/modifiedValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "creatorValidIfPresent": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: creator value",
+      "description": "True when the annotation, body or target has one or more creators (Section 3.3.1)",
+      "type": "object",
+      "properties": {"creator":
+        {"oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "object" },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items":
+            { "oneOf": [
+              { "$ref": "id.json#/definitions/stringUri" },
+              { "type": "object" }
+            ]
+            }
+          }
+        ]
+        }
+      }
+    },
+
+    "creatorSingularIfPresent": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: creator value",
+      "description": "True when the annotation, body or target has exactly 1 creator (Section 3.3.1)",
+      "type": "object",
+      "properties": {"creator":
+        {"oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "object" },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items":
+            { "oneOf": [
+              { "$ref": "id.json#/definitions/stringUri" },
+              { "type": "object" }
+            ]
+            }
+          }
+        ]
+        }
+      }
+    },
+
+    "creatorPropertyFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: creator key with qualifying body/target classes",
+      "description": "Supports implementation check of creator (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Section 3.3.1)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["creator"]},
+      {"$ref": "#/definitions/creatorValidIfPresent"}
+      ]
+    },
+
+    "itemCreatorPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having creator key with qualifying body/target classes",
+      "description": "Supports implementation check of items having creator (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceCreatorPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having creator key",
+      "description": "Supports implementation check of creator (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["creator"] ,
+              "$ref": "#/definitions/creatorValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "singleCreatorPropertyFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: creator key with qualifying body/target classes",
+      "description": "Supports implementation check of creator being singular (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Section 3.3.1)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["creator"]},
+      {"$ref": "#/definitions/creatorSingularIfPresent"}
+      ]
+    },
+
+    "itemSingleCreatorPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having singular creator key with qualifying body/target classes",
+      "description": "Supports implementation check of items having singular creator (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/singleCreatorPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceSingleCreatorPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having singular creator key",
+      "description": "Supports implementation check of singular creator (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["creator"] ,
+              "$ref": "#/definitions/creatorSingularIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "generatorValidIfPresent": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: generator value",
+      "description": "True when the annotation, body or target has a single generator (Section 3.3.1)",
+      "type": "object",
+      "properties": {"generator":
+        {"oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "object" },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items":
+            { "oneOf": [
+              { "$ref": "id.json#/definitions/stringUri" },
+              { "type": "object" }
+            ]
+            }
+          }
+        ]
+        }
+      }
+    },
+
+    "generatorPropertyFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: generator key with qualifying body/target classes",
+      "description": "Supports implementation check of generator (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Section 3.3.1)",
+      "oneOf": [
+         {"$ref": "annotations.json#/definitions/annotationTypeValueFound"}
+      ],
+      "allOf": [
+      {"required": ["generator"]},
+      {"$ref": "#/definitions/generatorValidIfPresent"}
+      ]
+    },
+
+    "audienceDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: audience object",
+      "description": "True when object meets our requirements for audience value (Section 3.3.3)",
+      "type": "object",
+      "properties": {
+        "id":  {"$ref": "id.json#/definitions/arraySingleStringUri"} ,
+        "type": {
+          "oneOf": [
+          { "type": "string",
+            "pattern": "^(schema:)"},
+          { "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^(schema:)"
+            }
+          }
+          ]
+        }
+      },
+      "patternProperties": {
+        "^(schema:)": { "type": ["string", "object", "array"] }
+      },
+      "additionalProperties": false
+    },
+
+    "audienceValidIfPresent":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: audience value",
+      "description": "True when no audience or audience property of the annotation, body, target, ... is valid (Section 3.3.3)",
+      "type": "object",
+      "properties": {
+        "audience":
+        { "oneOf":
+          [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "$ref": "#/definitions/audienceDefinition" },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "oneOf": [
+              { "$ref": "id.json#/definitions/stringUri" },
+              { "$ref": "#/definitions/audienceDefinition" }
+              ]
+            }
+          }
+          ]
+        }
+      }
+    },
+
+    "audiencePropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: audience key with qualifying body/target classes",
+      "description": "Supports implementation check of audience (if/when) used on Annotation, External Web Resources, Specific Resources, Textual Body Resources (Section 3.3.3)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["audience"]},
+      {"$ref": "#/definitions/audienceValidIfPresent"}
+      ]
+    },
+
+    "itemAudiencePropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having audience key with qualifying body/target classes",
+      "description": "Supports implementation check of items having audience (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/audiencePropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceAudiencePropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having audience key",
+      "description": "Supports implementation check of audience (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["audience"] ,
+              "$ref": "#/definitions/audienceValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "accessibilityValidIfPresent":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: accessibility value",
+      "description": "True when no accessibility or accessibility property of the body, target, ... is valid (Section 3.3.4)",
+      "type": "object",
+      "properties": {
+        "accessibility" : {
+          "oneOf": [
+          { "type": "string" },
+          { "type": "array" ,
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+          ]
+        }
+      }
+    },
+
+    "accessibilityPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: accessibility key with qualifying body/target classes",
+      "description": "Supports implementation check of accessibility (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Section 3.3.4)",
+      "oneOf": [
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["accessibility"]},
+      {"$ref": "#/definitions/accessibilityValidIfPresent"}
+      ]
+    },
+
+    "itemAccessibilityPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having accessibility key with qualifying body/target classes",
+      "description": "Supports implementation check of items having accessibility (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/accessibilityPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceAccessibilityPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having audience key",
+      "description": "Supports implementation check of audience (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["accessibility"] ,
+              "$ref": "#/definitions/accessibilityValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "rightsValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: rights value",
+      "description": "True when the annotation, body or target has 0 or more rights properties that are strings of format uri (Section 3.3.6)",
+      "type": "object",
+      "properties": {"rights":
+        { "oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "id.json#/definitions/stringUri" } }
+        ]
+        }
+      }
+    },
+
+    "rightsPropertyFound":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: rights key with qualifying annotation/body/target classes",
+      "description": "Supports implementation check of rights (if/when) used on Annotation, External Web Resources, Specific Resources, Textual Body Resources (Sections 3.3.6)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["rights"]},
+      {"$ref": "#/definitions/rightsValidIfPresent"}
+      ]
+    },
+
+    "itemRightsPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having rights key with qualifying body/target classes",
+      "description": "Supports implementation check of items having rights (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/rightsPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceRightsPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having rights key",
+      "description": "Supports implementation check of rights (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["rights"] ,
+              "$ref": "#/definitions/rightsValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "canonicalValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: canonical value",
+      "description": "True when the annotation, body or target has 0 or 1 canonical properties that are strings of format uri (Section 3.3.7)",
+      "type": "object",
+      "properties": {
+        "canonical": { "$ref": "id.json#/definitions/arraySingleStringUri" }
+      }
+    },
+
+    "canonicalPropertyFound":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: canonical key with qualifying annotation/body/target classes",
+      "description": "Supports implementation check of canonical (if/when) used on Annotation, External Web Resources, Specific Resources, Textual Body Resources (Sections 3.3.7)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["canonical"]},
+      {"$ref": "#/definitions/canonicalValidIfPresent"}
+      ]
+    },
+
+    "itemCanonicalPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having canonical key with qualifying body/target classes",
+      "description": "Supports implementation check of items having canonical (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/canonicalPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceCanonicalPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having canonical key",
+      "description": "Supports implementation check of canonical (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["canonical"] ,
+              "$ref": "#/definitions/canonicalValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "viaValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: via value",
+      "description": "True when the annotation, body or target has 0 or more via properties that are strings of format uri (Section 3.3.7)",
+      "type": "object",
+      "properties": {"via":
+        { "oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "id.json#/definitions/stringUri" } }
+        ]
+        }
+      }
+    },
+
+    "viaPropertyFound":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: via key with qualifying annotation/body/target classes",
+      "description": "Supports implementation check of via (if/when) used on Annotation, External Web Resources, Specific Resources, Textual Body Resources (Sections 3.3.7)",
+      "oneOf": [
+      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"},
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"},
+        {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["via"]},
+      {"$ref": "#/definitions/viaValidIfPresent"}
+      ]
+    },
+
+    "itemViaPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having via key with qualifying body/target classes",
+      "description": "Supports implementation check of items having via (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/viaPropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "sourceViaPropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: Specific Resource source having via key",
+      "description": "Supports implementation check of via (if/when) used on Specific Resource source (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "source":
+          {
+              "type": "object",
+              "required": ["via"] ,
+              "$ref": "#/definitions/viaValidIfPresent"
+          }
+      },
+      "required": ["source"]
+    },
+
+    "purposeRecognizedIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: purpose value",
+      "description": "True when the body has 0 or more purpose property values (Section 3.3.5)",
+      "type": "object",
+      "properties": {"purpose":
+        { "oneOf": [
+          { "$ref": "annotations.json#/definitions/motivationList" },
+          { "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "annotations.json#/definitions/motivationList" } }
+        ]
+        }
+      }
+    },
+
+    "purposePropertyFound":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: purpose key with qualifying body classes",
+      "description": "Supports implementation check of purpose (if/when) used on Specific Resource Body or Textual Body (Sections 3.3.5)",
+      "oneOf": [
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected"},
+      {"$ref": "bodyTarget.json#/definitions/textualBodyFound"}
+      ],
+      "allOf": [
+      {"required": ["purpose"]},
+      {"$ref": "#/definitions/purposeRecognizedIfPresent"}
+      ]
+    },
+
+    "itemPurposePropertyFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: items having purpose key with qualifying body/target classes",
+      "description": "Supports implementation check of items having purpose (if/when) used on Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/purposePropertyFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "creatorAgentWithIdFound":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "id.json#/definitions/idValueFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "id.json#/definitions/idValueFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithIdFound":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithIdFound" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithIdFound":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithIdFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "agentTypeDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Agent type value",
+      "description": "True when the object (creator or generator agent) has no type or has at least one recognized Agent type value (Section 3.3.2)",
+      "type": "object",
+      "properties":
+      {
+        "type":
+        {
+          "oneOf":
+            [
+            {"type": "string",
+              "enum": ["Person", "Organization", "Software"] },
+            {"type": "array",
+              "minItems": 1,
+              "not":
+              {
+                "items" :
+                { "not":
+                  { "type": "string",
+                    "enum": ["Person", "Organization", "Software"] }
+                }
+              }
+            }
+            ]
+        }
+      }
+    },
+
+    "agentTypeFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Agent type value",
+      "description": "True when the object (creator or generator agent) has at least one recognized Agent type value (Section 3.3.2)",
+      "allOf": [
+      {"required": ["type"]},
+      {"$ref": "#/definitions/agentTypeDefinition"}
+      ]
+    },
+
+    "creatorAgentWithTypeFound":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "#/definitions/agentTypeFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "#/definitions/agentTypeFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithTypeFound":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithTypeFound" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithTypeFound":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithTypeFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "agentNameDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Agent name value",
+      "description": "True when the object (creator or generator agent) has no name or has Agent name(s) of type string (Section 3.3.2)",
+      "type": "object",
+      "properties":
+      {
+        "name":
+        {
+          "oneOf":
+            [
+            {"type": "string" },
+            {"type": "array",
+              "minItems": 1,
+              "items": {"type": "string"}
+            }
+            ]
+        }
+      }
+    },
+
+    "agentSingularNameDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Agent name value",
+      "description": "True when the object (creator or generator agent) has no name or has exactly one Agent name that is a string (Section 3.3.2)",
+      "type": "object",
+      "properties":
+      {
+        "name":
+        {
+          "oneOf":
+            [
+            {"type": "string" },
+            {"type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": {"type": "string"}
+            }
+            ]
+        }
+      }
+    },
+
+    "agentNameFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Agent name value",
+      "description": "True when the object (creator or generator agent) has Agent name value(s) (Section 3.3.2)",
+      "allOf": [
+      {"required": ["name"]},
+      {"$ref": "#/definitions/agentNameDefinition"}
+      ]
+    },
+
+    "creatorAgentWithNameFound":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "#/definitions/agentNameFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "#/definitions/agentNameFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithNameFound":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithNameFound" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithNameFound":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithNameFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "agentSingularNameFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Agent name value",
+      "description": "True when the object (creator or generator agent) has exactly one Agent name value (Section 3.3.2)",
+      "allOf": [
+      {"required": ["name"]},
+      {"$ref": "#/definitions/agentSingularNameDefinition"}
+      ]
+    },
+
+    "creatorAgentWithSingularNameFound":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "#/definitions/agentSingularNameFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "#/definitions/agentSingularNameFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithSingularNameFound":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithSingularNameFound" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithSingularNameFound":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithSingularNameFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "agentSingularNicknameDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Agent nickname value",
+      "description": "True when the object (creator or generator agent) has no nickname or has exacly one Agent nickname that is a string (Section 3.3.2)",
+      "type": "object",
+      "properties":
+      {
+        "nickname":
+        {
+          "oneOf":
+            [
+            {"type": "string" },
+            {"type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": {"type": "string"}
+            }
+            ]
+        }
+      }
+    },
+
+    "agentSingularNicknameFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Agent nickname value",
+      "description": "True when the object (creator or generator agent) has an Agent nickname value (Section 3.3.2)",
+      "allOf": [
+      {"required": ["nickname"]},
+      {"$ref": "#/definitions/agentSingularNicknameDefinition"}
+      ]
+    },
+
+    "creatorAgentWithSingularNicknameFound":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "#/definitions/agentSingularNicknameFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "#/definitions/agentSingularNicknameFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithSingularNicknameFound":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithSingularNicknameFound" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithSingularNicknameFound":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithSingularNicknameFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "agentEmailDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Agent email value",
+      "description": "True when the object (creator or generator agent) has no email or has Agent one or more email addresses that start(s) mailto: and is format uri (Section 3.3.2)",
+      "type": "object",
+      "properties":
+      {
+        "email":
+        {
+          "oneOf":
+            [
+            { "type": "string",
+              "pattern": "^(mailto)",
+              "format": "uri" },
+            {"type": "array",
+              "minItems": 1,
+              "items": {"type": "string",
+                "pattern": "^(mailto)",
+                "format": "uri" }
+            }
+            ]
+        }
+      }
+    },
+
+    "agentEmailFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Agent email value",
+      "description": "True when the object (creator or generator agent) has Agent email value(s) (Section 3.3.2)",
+      "allOf": [
+      {"required": ["email"]},
+      {"$ref": "#/definitions/agentEmailDefinition"}
+      ]
+    },
+
+    "creatorAgentWithEmailFound":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "#/definitions/agentEmailFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "#/definitions/agentEmailFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithEmailFound":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithEmailFound" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithEmailFound":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithEmailFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "agentEmail_sha1Definition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Agent email_sha1 value",
+      "description": "True when the object (creator or generator agent) has no email_sha1 or has one or more email_sha1 that is/are a string (Section 3.3.2)",
+      "type": "object",
+      "properties":
+      {
+        "email_sha1":
+        {
+          "oneOf":
+            [
+            {"type": "string" },
+            {"type": "array",
+              "minItems": 1,
+              "items": {"type": "string"}
+            }
+            ]
+        }
+      }
+    },
+
+    "agentEmail_sha1Found":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Agent email_sha1 value",
+      "description": "True when the object (creator or generator agent) has has one or more email_sha1 that is/are a string (Section 3.3.2)",
+      "allOf": [
+      {"required": ["email_sha1"]},
+      {"$ref": "#/definitions/agentEmail_sha1Definition"}
+      ]
+    },
+
+    "creatorAgentWithEmail_sha1Found":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "#/definitions/agentEmail_sha1Found" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "#/definitions/agentEmail_sha1Found" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithEmail_sha1Found":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithEmail_sha1Found" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithEmail_sha1Found":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithEmail_sha1Found" } }
+              }
+          }
+      },
+      "required": ["items"]
+    },
+
+    "agentHomepageDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Agent homepage value",
+      "description": "True when the object (creator or generator agent) has no homempage or has one or more agent homepage addresses of format uri (Section 3.3.2)",
+      "type": "object",
+      "properties":
+      {
+        "email":
+        {
+          "oneOf":
+            [
+            { "type": "string",
+              "format": "uri" },
+            {"type": "array",
+              "minItems": 1,
+              "items": {"type": "string",
+                "format": "uri" }
+            }
+            ]
+        }
+      }
+    },
+
+    "agentHomepageFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Agent homepage value",
+      "description": "True when the object (creator or generator agent) has Agent homepage value(s) (Section 3.3.2)",
+      "allOf": [
+      {"required": ["homepage"]},
+      {"$ref": "#/definitions/agentHomepageDefinition"}
+      ]
+    },
+
+    "creatorAgentWithHomepageFound":
+    { "type": "object",
+      "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "#/definitions/agentHomepageFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "#/definitions/agentHomepageFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+    },
+
+    "sourceCreatorAgentWithHomepageFound":
+    { "type": "object",
+      "properties":
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithHomepageFound" }
+        },
+       "required": ["source"]
+    },
+
+    "itemCreatorAgentWithHomepageFound":
+    {
+      "type": "object",
+      "properties":
+      {
+          "items":
+          {
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithHomepageFound" } }
+              }
+          }
+      },
+      "required": ["items"]
+    }
+
+  }
+}

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Node-manipulation-adopted</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument">
+<link rel=help href="https://dom.spec.whatwg.org/#mutation-algorithms">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(() => {
+  const old = document.implementation.createHTMLDocument("");
+  const div = old.createElement("div");
+  div.appendChild(old.createTextNode("text"));
+  assert_equals(div.ownerDocument, old);
+  assert_equals(div.firstChild.ownerDocument, old);
+  document.body.appendChild(div);
+  assert_equals(div.ownerDocument, document);
+  assert_equals(div.firstChild.ownerDocument, document);
+}, "simple append of foreign div with text");
+
+</script>

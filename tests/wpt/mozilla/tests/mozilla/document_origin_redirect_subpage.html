@@ -1,0 +1,32 @@
+<script src="/common/get-host-info.sub.js"></script>
+<canvas></canvas>
+<canvas></canvas>
+<img src="2x2.png" onload="dotest()">
+<script>
+  function dotest() {
+    var c = document.querySelector('canvas');
+    var ctx = c.getContext('2d');
+
+    var i = document.querySelector('img');
+    ctx.drawImage(i, 0, 0);
+    var sameorigin2d = false;
+    try {
+      c.toDataURL();
+      sameorigin2d = true;
+    } catch (x) {
+    }
+
+    var c = document.querySelectorAll('canvas')[1];
+    var gl = c.getContext('webgl');
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    var sameorigin3d = false;
+    try {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, i);
+      sameorigin3d = true;
+    } catch(x) {
+    }
+
+    parent.postMessage([sameorigin2d, sameorigin3d], '*');
+  }
+</script>

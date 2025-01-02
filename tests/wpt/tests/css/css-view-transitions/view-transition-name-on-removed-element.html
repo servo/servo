@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: ensures view-transition-name is not tracked on element removed by script</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#first {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  view-transition-name: first;
+}
+</style>
+<body>
+  <div>
+    <div id=first></div>
+  </div>
+</body>
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    // Remove an uncontained element. Because this element is not visited when
+    // discovering named elements, the transition is not skipped.
+    first.remove();
+
+    let transition = document.startViewTransition();
+    await transition.ready;
+    transition.finished.then(resolve, reject);
+  });
+}, "view-transition-name on an element removed by script should not be visited when discovering named elements");
+</script>

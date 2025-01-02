@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<title>Test toggling style a range which starts from or ends by a child of a void element</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<div contenteditable></div>
+<script>
+"use strict";
+
+/**
+ * The expected behavior is based on Chromium, but this is edge case tests.
+ * So, failures of this are not important unless crash.
+ */
+
+const editor = document.querySelector("div[contenteditable]");
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener("load", () => {
+      assert_true(true, "The document is loaded");
+      resolve();
+    }, { once: true });
+  });
+}, "Waiting for load...");
+
+promise_test(async () => {
+  editor.innerHTML = "<meta>bar";
+  const meta = editor.querySelector("meta");
+  const text = document.createTextNode("foo");
+  meta.append(text);
+  assert_equals(meta.firstChild, text);
+  getSelection().setBaseAndExtent(meta.firstChild, 1, meta.nextSibling, 1);
+  document.execCommand("bold");
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "<meta><b>b</b>ar",
+      "<meta><b>b</b>ar<br>",
+    ]
+  );
+}, "Try to apply style from void element child");
+
+promise_test(async () => {
+  editor.innerHTML = "foo<meta>";
+  const meta = editor.querySelector("meta");
+  const text = document.createTextNode("bar");
+  meta.append(text);
+  assert_equals(meta.firstChild, text);
+  getSelection().setBaseAndExtent(editor.firstChild, 1, meta.firstChild, 2);
+  document.execCommand("bold");
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "f<b>oo</b><meta>",
+      "f<b>oo</b><meta><br>",
+    ]
+  );
+}, "Try to apply style by void element child");
+
+promise_test(async () => {
+  editor.innerHTML = "<meta>";
+  const meta = editor.querySelector("meta");
+  const text = document.createTextNode("foo");
+  meta.append(text);
+  assert_equals(meta.firstChild, text);
+  getSelection().setBaseAndExtent(meta.firstChild, 1, meta.firstChild, 2);
+  document.execCommand("bold");
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "<meta>",
+      "<meta><br>",
+    ]
+  );
+}, "Try to apply style in void element child");
+
+promise_test(async () => {
+  editor.innerHTML = "<meta>bar";
+  const meta = editor.querySelector("meta");
+  meta.setAttribute("style", "font-weight: bold");
+  const text = document.createTextNode("foo");
+  meta.append(text);
+  assert_equals(meta.firstChild, text);
+  getSelection().setBaseAndExtent(meta.firstChild, 1, meta.nextSibling, 1);
+  document.execCommand("bold");
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "<meta><b>b</b>ar",
+      "<meta><b>b</b>ar<br>",
+      "<meta style=\"\"><b>b</b>ar",
+      "<meta style=\"\"><b>b</b>ar<br>",
+    ]
+  );
+}, "Try to remove style from void element child");
+
+promise_test(async () => {
+  editor.innerHTML = "<meta>bar";
+  const meta = editor.querySelector("meta");
+  meta.setAttribute("style", "font-weight: bold");
+  const text = document.createTextNode("foo");
+  meta.append(text);
+  assert_equals(meta.firstChild, text);
+  getSelection().setBaseAndExtent(meta.firstChild, meta.firstChild.length, meta.nextSibling, 1);
+  document.execCommand("bold");
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "<meta><b>b</b>ar",
+      "<meta><b>b</b>ar<br>",
+      "<meta style=\"\"><b>b</b>ar",
+      "<meta style=\"\"><b>b</b>ar<br>",
+    ]
+  );
+}, "Try to remove style from end of void element child");
+
+promise_test(async () => {
+  editor.innerHTML = "foo<meta>";
+  const meta = editor.querySelector("meta");
+  const text = document.createTextNode("bar");
+  meta.append(text);
+  assert_equals(meta.firstChild, text);
+  getSelection().setBaseAndExtent(editor.firstChild, 1, meta.firstChild, 2);
+  document.execCommand("bold");
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "f<b>oo</b><meta>",
+      "f<b>oo</b><meta><br>",
+      "f<b>oo</b><meta style=\"\">",
+      "f<b>oo</b><meta style=\"\"><br>",
+    ]
+  );
+}, "Try to remove style by void element child");
+
+promise_test(async () => {
+  editor.innerHTML = "foo<meta>";
+  const meta = editor.querySelector("meta");
+  const text = document.createTextNode("bar");
+  meta.append(text);
+  assert_equals(meta.firstChild, text);
+  getSelection().setBaseAndExtent(editor.firstChild, 1, meta.firstChild, 0);
+  document.execCommand("bold");
+  assert_in_array(
+    editor.innerHTML,
+    [
+      "f<b>oo</b><meta>",
+      "f<b>oo</b><meta><br>",
+      "f<b>oo</b><meta style=\"\">",
+      "f<b>oo</b><meta style=\"\"><br>",
+    ]
+  );
+}, "Try to remove style by start of void element child");
+</script>
+</body>

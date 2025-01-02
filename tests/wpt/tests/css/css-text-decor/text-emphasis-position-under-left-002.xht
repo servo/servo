@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-position - under left - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+		<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-position-property" />
+		<link rel="match" href="reference/text-emphasis-position-under-left-002-ref.xht"/>
+		<meta name="flags" content="ahem" />
+		<meta name="assert" content="This property describes where emphasis marks are drawn at." />
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+		<style type="text/css"><![CDATA[
+			.test
+			{
+				text-emphasis-style: filled circle;
+				text-emphasis-position: under left;
+			}
+			.vertical
+			{
+				writing-mode: vertical-rl;
+			}
+			/* the CSS below is not part of the test */
+			.displayarea
+			{
+				border: solid 1px gray;
+				padding: 10px;
+				width: 10em;
+			}
+			.floatright
+			{
+				float: right;
+			}
+			.ref {
+				ruby-position: under;  /* to match emphasis position 'left' */
+			}
+			.parent
+			{
+				background: yellow;
+				border: solid 1px gray;
+				color: blue;
+				font: 20px/1em ahem;
+				height: 6em;
+				width: 2em;
+			}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of left and right block in the square box is identical.</p>
+			<p>vertical</p>
+			<div class="displayarea">
+				<div class="parent vertical floatright ref">
+					<div>
+						<ruby><rb>a</rb><rt>&#x25CF;</rt><rb>b</rb><rt>&#x25CF;</rt><rb>c</rb><rt>&#x25CF;</rt></ruby>
+						 de<br />
+						<br />
+					</div>
+				</div>
+				<div class="parent vertical">
+					<span class="test">abc</span> de
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

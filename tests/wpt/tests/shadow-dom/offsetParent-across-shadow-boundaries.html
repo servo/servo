@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="offsetParent should only return nodes that are shadow including ancestor">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/event-path-test-helpers.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div id="container" style="position: relative"></div>
+<script>
+
+const container = document.getElementById('container');
+
+function testOffsetParentInShadowTree(mode) {
+    test(function () {
+        const host = document.createElement('div');
+        container.appendChild(host);
+        this.add_cleanup(() => host.remove());
+        const shadowRoot = host.attachShadow({mode});
+        shadowRoot.innerHTML = '<div id="relativeParent" style="position: relative; padding-left: 100px; padding-top: 70px;"><div id="target"></div></div>';
+        const relativeParent = shadowRoot.getElementById('relativeParent');
+
+        assert_true(relativeParent instanceof HTMLDivElement);
+        const target = shadowRoot.getElementById('target');
+        assert_equals(target.offsetParent, relativeParent);
+        assert_equals(target.offsetLeft, 100);
+        assert_equals(target.offsetTop, 70);
+    }, `offsetParent must return the offset parent in the same shadow tree of ${mode} mode`);
+}
+
+testOffsetParentInShadowTree('open');
+testOffsetParentInShadowTree('closed');
+
+function testOffsetParentInNestedShadowTrees(mode) {
+    test(function () {
+        const outerHost = document.createElement('section');
+        container.appendChild(outerHost);
+        this.add_cleanup(() => outerHost.remove());
+        const outerShadow = outerHost.attachShadow({mode});
+        outerShadow.innerHTML = '<section id="outerParent" style="position: absolute; top: 50px; left: 50px;"></section>';
+
+        const innerHost = document.createElement('div');
+        outerShadow.firstChild.appendChild(innerHost);
+        const innerShadow = innerHost.attachShadow({mode});
+        innerShadow.innerHTML = '<div id="innerParent" style="position: relative; padding-left: 60px; padding-top: 40px;"><div id="target"></div></div>';
+        const innerParent = innerShadow.getElementById('innerParent');
+
+        const target = innerShadow.getElementById('target');
+        assert_true(innerParent instanceof HTMLDivElement);
+        assert_equals(target.offsetParent, innerParent);
+        assert_equals(target.offsetLeft, 60);
+        assert_equals(target.offsetTop, 40);
+
+        outerHost.remove();
+    }, `offsetParent must return the offset parent in the same shadow tree of ${mode} mode even when nested`);
+}
+
+testOffsetParentInNestedShadowTrees('open');
+testOffsetParentInNestedShadowTrees('closed');
+
+function testOffsetParentOnElementAssignedToSlotInsideOffsetParent(mode) {
+    test(function () {
+        const host = document.createElement('div');
+        host.innerHTML = '<div id="target"></div>'
+        container.appendChild(host);
+        this.add_cleanup(() => host.remove());
+        const shadowRoot = host.attachShadow({mode});
+        shadowRoot.innerHTML = '<div style="position: relative; padding-left: 85px; padding-top: 45px;"><slot></slot></div>';
+        const target = host.querySelector('#target');
+        assert_equals(target.offsetParent, container);
+        assert_equals(target.offsetLeft, 85);
+        assert_equals(target.offsetTop, 45);
+    }, `offsetParent must skip offset parents of an element when the context object is assigned to a slot in a shadow tree of ${mode} mode`);
+}
+
+testOffsetParentOnElementAssignedToSlotInsideOffsetParent('open');
+testOffsetParentOnElementAssignedToSlotInsideOffsetParent('closed');
+
+function testOffsetParentOnElementAssignedToSlotInsideNestedOffsetParents(mode) {
+    test(function () {
+        const host = document.createElement('div');
+        host.innerHTML = '<div id="target" style="border:solid 1px blue;">hi</div>';
+        const previousBlock = document.createElement('div');
+        previousBlock.style.height = '12px';
+        container.append(previousBlock, host);
+        this.add_cleanup(() => { container.innerHTML = ''; });
+        const shadowRoot = host.attachShadow({mode});
+        shadowRoot.innerHTML = '<section style="position: relative; margin-left: 20px; margin-top: 100px; background: #ccc"><div style="position: absolute; top: 10px; left: 10px;"><slot></slot></div></section>';
+        const target = host.querySelector('#target');
+        assert_equals(target.offsetParent, container);
+        assert_equals(target.offsetLeft, 30);
+        assert_equals(target.offsetTop, 122);
+    }, `offsetParent must skip multiple offset parents of an element when the context object is assigned to a slot in a shadow tree of ${mode} mode`);
+}
+
+testOffsetParentOnElementAssignedToSlotInsideNestedOffsetParents('open');
+testOffsetParentOnElementAssignedToSlotInsideNestedOffsetParents('closed');
+
+function testOffsetParentOnElementAssignedToSlotInsideNestedShadowTrees(mode) {
+    test(function () {
+        const outerHost = document.createElement('section');
+        outerHost.innerHTML = '<div id="target"></div>';
+        container.appendChild(outerHost);
+        this.add_cleanup(() => outerHost.remove());
+        const outerShadow = outerHost.attachShadow({mode});
+        outerShadow.innerHTML = '<section style="position: absolute; top: 40px; left: 50px;"><div id="innerHost"><slot></slot></div></section>';
+
+        const innerShadow = outerShadow.getElementById('innerHost').attachShadow({mode});
+        innerShadow.innerHTML = '<div style="position: absolute; top: 200px; margin-left: 100px;"><slot></slot></div>';
+
+        const target = outerHost.querySelector('#target');
+        assert_equals(target.offsetParent, container);
+        assert_equals(target.offsetLeft, 150);
+        assert_equals(target.offsetTop, 240);
+        outerHost.remove();
+    }, `offsetParent must skip offset parents of an element when the context object is assigned to a slot in nested shadow trees of ${mode} mode`);
+}
+
+testOffsetParentOnElementAssignedToSlotInsideNestedShadowTrees('open');
+testOffsetParentOnElementAssignedToSlotInsideNestedShadowTrees('closed');
+
+function testOffsetParentOnElementInsideShadowTreeWithoutOffsetParent(mode) {
+    test(function () {
+        const outerHost = document.createElement('section');
+        container.appendChild(outerHost);
+        this.add_cleanup(() => outerHost.remove());
+        const outerShadow = outerHost.attachShadow({mode});
+        outerShadow.innerHTML = '<div id="innerHost"><div id="target"></div></div>';
+
+        const innerShadow = outerShadow.getElementById('innerHost').attachShadow({mode});
+        innerShadow.innerHTML = '<div style="position: absolute; top: 23px; left: 24px;"><slot></slot></div>';
+
+        const target = outerShadow.querySelector('#target');
+        assert_equals(target.offsetParent, container);
+        assert_equals(target.offsetLeft, 24);
+        assert_equals(target.offsetTop, 23);
+    }, `offsetParent must find the first offset parent which is a shadow-including ancestor of the context object even some shadow tree of ${mode} mode did not have any offset parent`);
+}
+
+testOffsetParentOnElementInsideShadowTreeWithoutOffsetParent('open');
+testOffsetParentOnElementInsideShadowTreeWithoutOffsetParent('closed');
+
+function testOffsetParentOnUnassignedChild(mode) {
+    test(function () {
+        const host = document.createElement('section');
+        host.innerHTML = '<div id="target"></div>';
+        this.add_cleanup(() => host.remove());
+        container.appendChild(host);
+        const shadowRoot = host.attachShadow({mode});
+        shadowRoot.innerHTML = '<section style="position: absolute; top: 50px; left: 50px;">content</section>';
+        const target = host.querySelector('#target');
+        assert_equals(target.offsetParent, null);
+        assert_equals(target.offsetLeft, 0);
+        assert_equals(target.offsetTop, 0);
+    }, `offsetParent must return null on a child element of a shadow host for the shadow tree in ${mode} mode which is not assigned to any slot`);
+}
+
+testOffsetParentOnUnassignedChild('open');
+testOffsetParentOnUnassignedChild('closed');
+
+function testOffsetParentOnAssignedChildNotInFlatTree(mode) {
+    test(function () {
+        const outerHost = document.createElement('section');
+        outerHost.innerHTML = '<div id="target"></div>';
+        container.appendChild(outerHost);
+        this.add_cleanup(() => outerHost.remove());
+        const outerShadow = outerHost.attachShadow({mode});
+        outerShadow.innerHTML = '<div id="innerHost"><div style="position: absolute; top: 50px; left: 50px;"><slot></slot></div></div>';
+
+        const innerShadow = outerShadow.getElementById('innerHost').attachShadow({mode});
+        innerShadow.innerHTML = '<div>content</div>';
+
+        const target = outerHost.querySelector('#target');
+        assert_equals(target.offsetParent, null);
+        assert_equals(target.offsetLeft, 0);
+        assert_equals(target.offsetTop, 0);
+    }, `offsetParent must return null on a child element of a shadow host for the shadow tree in ${mode} mode which is not in the flat tree`);
+}
+
+testOffsetParentOnAssignedChildNotInFlatTree('open');
+testOffsetParentOnAssignedChildNotInFlatTree('closed');
+
+</script>
+</body>
+</html>

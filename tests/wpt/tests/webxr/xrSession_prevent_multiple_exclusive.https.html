@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <canvas></canvas>
+
+  <script>
+    xr_promise_test(
+      "Test prevention of multiple simultaneous immersive sessions",
+      (t) => {
+      return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+        .then( (controller) => new Promise((resolve) => {
+          navigator.xr.test.simulateUserActivation( () => {
+            resolve(navigator.xr.requestSession('immersive-vr')
+              .then( (session) => new Promise((resolve) => {
+                navigator.xr.test.simulateUserActivation( () => {
+                  // Requesting a second immersive session when another immersive
+                  // session is active should fail. Immersive sessions
+                  // should take up the users entire view, and therefore it should
+                  // be impossible for a user to be engaged with more than one.
+                  resolve(promise_rejects_dom(
+                    t,
+                    "InvalidStateError",
+                    navigator.xr.requestSession('immersive-vr')
+                  ).then( () => {
+                      // End the immersive session and try again. Now the immersive
+                      // session creation should succeed.
+                      return session.end().then( () => new Promise((resolve) => {
+                        navigator.xr.test.simulateUserActivation( () => {
+                          resolve(navigator.xr.requestSession('immersive-vr'));
+                        });
+                      }));
+                    }));
+                });
+            })));
+          });
+        }));
+    });
+
+  </script>
+</body>

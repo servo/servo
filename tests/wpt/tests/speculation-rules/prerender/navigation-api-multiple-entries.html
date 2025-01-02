@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+
+  const referrerRC1 = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const referrerRC2 = await referrerRC1.navigateToNew();
+  const referrerRC3 = await referrerRC2.navigateToNew();
+  assert_equals(await referrerRC3.executeScript(() => navigation.entries().length), 3);
+
+  let referrerRC3CurrentId = await referrerRC3.executeScript(() => navigation.currentEntry.id);
+
+  const prerenderedRC = await addPrerenderRC(referrerRC3);
+  let activationStateBeforeActivation = await prerenderedRC.executeScript(() => {
+    return {
+     entries: navigation.entries().map(e => ({ id: e.id, })),
+     activationEntryId: navigation.activation.entry?.id,
+     activationFromId: navigation.activation.from?.id,
+     activationNavigationType : navigation.activation.navigationType,
+    }
+  });
+  assert_equals(activationStateBeforeActivation.entries.length, 1);
+  assert_equals(activationStateBeforeActivation.activationFromId, referrerRC3CurrentId);
+  assert_equals(activationStateBeforeActivation.activationEntryId, activationStateBeforeActivation.entries[0].id);
+  assert_equals(activationStateBeforeActivation.activationNavigationType, "push");
+
+  await activatePrerenderRC(referrerRC3, prerenderedRC);
+
+  let activationStateAfterActivation = await prerenderedRC.executeScript(() => {
+    return {
+     entries: navigation.entries().map(e => ({ id: e.id, })),
+     activationEntryId: navigation.activation.entry?.id,
+     activationFromId: navigation.activation.from?.id,
+     activationNavigationType : navigation.activation.navigationType,
+    }
+  });
+  assert_equals(activationStateAfterActivation.entries.length, 4);
+  assert_equals(activationStateAfterActivation.activationFromId, activationStateAfterActivation.entries[2].id);
+  assert_equals(activationStateAfterActivation.activationEntryId, activationStateAfterActivation.entries[3].id);
+  assert_equals(activationStateAfterActivation.activationNavigationType, "push");
+},`navigation.entries() and navigation.activation should be updated on activation - multiple entries`);
+</script>

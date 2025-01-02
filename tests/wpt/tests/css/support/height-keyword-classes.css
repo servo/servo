@@ -1,0 +1,39 @@
+/* In the current spec for heights, min-content, max-content and fit-content are
+ * equivalent.
+ */
+
+.min-content {
+    height: min-content;
+}
+
+.max-content {
+    height: max-content;
+}
+
+.fit-content {
+    height: fit-content;
+}
+
+.max-height-min-content {
+    max-height: min-content;
+}
+
+.max-height-max-content {
+    max-height: max-content;
+}
+
+.max-height-fit-content {
+    max-height: fit-content;
+}
+
+.min-height-min-content {
+    min-height: min-content;
+}
+
+.min-height-max-content {
+    min-height: max-content;
+}
+
+.min-height-fit-content {
+    min-height: fit-content;
+}

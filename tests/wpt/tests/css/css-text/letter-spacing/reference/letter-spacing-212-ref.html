@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .contain {
+    font: 20px/1 Ahem;
+    margin: 1em; }
+  .control p {
+    white-space: pre-wrap;
+  }
+  p {
+    letter-spacing: 0;
+    margin: 0;
+  }
+</style>
+
+<div id='instructions'>Test passes if the blue pattern is identical to the black one.</div>
+
+<div class="contain control">
+  <p><ruby>A<rt>a</rt></ruby> <ruby>B B<rt>b</rt></ruby></p>
+</div>
+
+<div class="contain control" style="color: blue">
+  <p><ruby>A<rt>a</rt></ruby> <ruby>B B<rt>b</rt></ruby></p>
+</div>

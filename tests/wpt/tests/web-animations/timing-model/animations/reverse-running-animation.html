@@ -1,0 +1,50 @@
+
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>reverse running animation</title>
+<link rel="match" href="reverse-running-animation-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="../../testcommon.js"></script>
+<style>
+  #box {
+    background: green;
+    height: 40px;
+    width: 40px;
+  }
+</style>
+<body>
+  <div id="box"></div>
+  <p id="notes">
+    This test animates the box color from green to red and reverses the play
+    direction shortly after the midpoint. If the box remains red, the test
+    failed.
+  </p>
+</body>
+<script>
+  onload = async function() {
+    const box = document.getElementById('box');
+    const duration = 10000;
+    const anim =
+        box.animate({ bacground: [ 'green', 'red' ] },
+                    { duration: duration, easing: 'steps(2, jump-none)' });
+    anim.currentTime = duration / 2;
+    anim.ready.then(() => {
+      const startTime = anim.timeline.currentTime;
+      waitForAnimationFrames(2).then(() => {
+        anim.reverse();
+        anim.ready.then(() => {
+          const reversalTime = anim.timeline.currentTime;
+          const forwardPlayingTime = reversalTime - startTime;
+          const checkIfDone = () => {
+            if (anim.timeline.currentTime - reversalTime > forwardPlayingTime)
+              takeScreenshot();
+            else
+              requestAnimationFrame(checkIfDone);
+          };
+          requestAnimationFrame(checkIfDone);
+        });
+      });
+    });
+  };
+</script>

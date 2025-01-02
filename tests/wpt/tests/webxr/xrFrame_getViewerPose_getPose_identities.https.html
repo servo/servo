@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script src="resources/webxr_test_asserts.js"></script>
+
+  <script>
+
+    let testName = "XRFrame getViewerPose(viewerSpace) & getPose(space, space) return identity even during tracking loss";
+
+    // Use the same device as tracked immersive device, but modify the viewer origin.
+    const deviceInitParams = Object.assign({}, TRACKED_IMMERSIVE_DEVICE, {viewerOrigin: null});
+
+    // Used when creating a reference space that is offset from local space.
+    // Actual values should not matter for the test.
+    const offsetSpaceTransform = new XRRigidTransform(
+      { x: 1.00, y: -1.50, z: 10.00, w: 1.0 },
+      { x: 0.27, y:  0.00, z:  0.27, w: 0.92},  // 45 degrees around [1, 0, 1] axis
+    );
+
+    const expectMatrix = function(pose, expectedMatrix, poseName) {
+      assert_not_equals(pose, null,
+                        poseName + " should not be null!");
+      assert_matrix_approx_equals(pose.transform.matrix, expectedMatrix,
+                                  poseName + "'s matrix should match expectations!");
+      assert_false(pose.emulatedPosition,
+                   poseName + ".emulatedPosition should be false!");
+    }
+
+    const expectIdentity = function(pose, poseName) {
+      assert_not_equals(pose, null,
+                        poseName + " should not be null!");
+      assert_matrix_approx_equals(pose.transform.matrix, IDENTITY_MATRIX,
+                                  poseName + "'s matrix should equal identity!");
+      assert_false(pose.emulatedPosition,
+                   poseName + ".emulatedPosition should be false!");
+    }
+
+    const testFunction = function(session, fakeDeviceController, t) {
+      return Promise.all([
+        session.requestReferenceSpace('local'),
+        session.requestReferenceSpace('viewer'),
+        session.requestReferenceSpace('local-floor'),
+        session.requestReferenceSpace('bounded-floor'),
+        session.requestReferenceSpace('unbounded'),
+        session.requestReferenceSpace('local'),
+      ]).then((allSpaces) => new Promise((resolve, reject) => {
+        const [
+          localSpace1,
+          viewerSpace,
+          localFloorSpace,
+          boundedFloorSpace,
+          unboundedSpace,
+          localSpace2] = allSpaces;
+
+        const offsetLocalSpace1 = localSpace1.getOffsetReferenceSpace(offsetSpaceTransform);
+        const offsetLocalSpace2 = localSpace2.getOffsetReferenceSpace(offsetSpaceTransform);
+        const offsetViewerSpace = viewerSpace.getOffsetReferenceSpace(offsetSpaceTransform);
+
+        // Throw in an offset space:
+        allSpaces.push(offsetLocalSpace1);
+
+        function onFrame(time, frame) {
+          // Expect identities:
+          const viewerFromViewer1 = frame.getViewerPose(viewerSpace);
+
+          const localFromLocalDifferentAddress = frame.getPose(localSpace1, localSpace2);
+          const offsetFromOffsetDifferentAddress = frame.getPose(offsetLocalSpace1, offsetLocalSpace2);
+
+          t.step(() => {
+            expectIdentity(viewerFromViewer1, "viewerFromViewer1");
+            expectIdentity(localFromLocalDifferentAddress, "localFromLocalDifferentAddress");
+            expectIdentity(offsetFromOffsetDifferentAddress, "offsetFromOffsetDifferentAddress");
+          });
+
+          // Expect offsetSpaceTransform:
+          const viewerFromViewer2 = frame.getViewerPose(offsetViewerSpace);
+
+          const viewerFromOffset2 = frame.getPose(offsetViewerSpace, viewerSpace);
+          const localFromOffset1 = frame.getPose(offsetLocalSpace1, localSpace1);
+          const localFromOffset2 = frame.getPose(offsetLocalSpace2, localSpace1);
+
+          t.step(() => {
+            expectMatrix(viewerFromViewer2, offsetSpaceTransform.matrix, "viewerFromViewer2");
+            expectMatrix(viewerFromOffset2, offsetSpaceTransform.matrix, "viewerFromOffset2");
+            expectMatrix(localFromOffset1, offsetSpaceTransform.matrix, "localFromOffset1");
+            expectMatrix(localFromOffset2, offsetSpaceTransform.matrix, "localFromOffset2");
+          });
+
+          // Expect identities:
+          allSpaces.forEach((space, index) => {
+            const pose = frame.getPose(space, space);
+            t.step(() => {
+              expectIdentity(pose, "pose[" + index +"]");
+            });
+          });
+
+          resolve();
+        }
+
+        session.requestAnimationFrame(onFrame);
+      }));
+    };
+
+    xr_session_promise_test(testName, testFunction,
+      deviceInitParams, 'immersive-vr', {
+        requiredFeatures: ["local", "local-floor", "bounded-floor", "unbounded"]
+      });
+
+  </script>
+</body>

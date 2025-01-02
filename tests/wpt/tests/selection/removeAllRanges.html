@@ -1,0 +1,55 @@
+<!doctype html>
+<title>Selection.removeAllRanges()/empty() tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+// Also test a selection with no ranges
+testRanges.unshift("[]");
+
+var range = rangeFromEndpoints([paras[0].firstChild, 0, paras[0].firstChild, 1]);
+
+function testRange(rangeDesc, method) {
+    var endpoints = eval(testRanges[i]);
+    if (endpoints.length && (!isSelectableNode(endpoints[0]) ||
+                             !isSelectableNode(endpoints[2]))) {
+      return;
+    }
+    test(function() {
+        setSelectionForwards(endpoints);
+        selection[method]();
+        assert_equals(selection.rangeCount, 0,
+            "After " + method + "(), rangeCount must be 0");
+        // Test that it's forwards
+        selection.addRange(range);
+        assert_equals(selection.anchorOffset, selection.getRangeAt(0).startOffset,
+            "After " + method + "(), addRange() must be forwards, so anchorOffset must equal startOffset rather than endOffset");
+        assert_equals(selection.focusOffset, selection.getRangeAt(0).endOffset,
+            "After " + method + "(), addRange() must be forwards, so focusOffset must equal endOffset rather than startOffset");
+    }, method + " on " + rangeDesc + " forwards");
+
+    // Copy-pasted from above
+    test(function() {
+        setSelectionBackwards(endpoints);
+        selection[method]();
+        assert_equals(selection.rangeCount, 0,
+            "After " + method + "(), rangeCount must be 0");
+        // Test that it's forwards
+        selection.addRange(range);
+        assert_equals(selection.anchorOffset, selection.getRangeAt(0).startOffset,
+            "After " + method + "(), addRange() must be forwards, so anchorOffset must equal startOffset rather than endOffset");
+        assert_equals(selection.focusOffset, selection.getRangeAt(0).endOffset,
+            "After " + method + "(), addRange() must be forwards, so focusOffset must equal endOffset rather than startOffset");
+    }, method + " on " + rangeDesc + " backwards");
+}
+
+for (var i = 0; i < testRanges.length; i++) {
+  testRange(testRanges[i], "removeAllRanges");
+  testRange(testRanges[i], "empty");
+}
+
+testDiv.style.display = "none";
+</script>

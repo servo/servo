@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.js"></script>
+</head>
+<body>
+<script>
+
+function addLinkRelCompressionDictionaryElement(url, crossOrigin) {
+  const link = document.createElement('link');
+  link.rel = 'compression-dictionary';
+  link.href = url;
+  if (crossOrigin) {
+    link.crossOrigin = crossOrigin;
+  }
+  document.head.appendChild(link);
+}
+
+test(t => {
+    const link_element = document.createElement('link');
+    assert_true(link_element.relList.supports('compression-dictionary'));
+  }, "Browser supports link element with compression-dictionary rel.");
+
+compression_dictionary_promise_test(async (t) => {
+  const dict_token = token();
+  const url = `${kRegisterDictionaryPath}?save_header=${dict_token}`;
+  addLinkRelCompressionDictionaryElement(url);
+  // Wait for a while to ensure that the dictionary is fetched.
+  await new Promise(resolve => window.requestIdleCallback(resolve));
+  const headers = await waitUntilPreviousRequestHeaders(t, dict_token);
+  assert_true(headers !== undefined, 'Headers should be available');
+  assert_equals(headers['sec-fetch-mode'], 'cors');
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'Fetch same origin dictionary using link element');
+
+compression_dictionary_promise_test(async (t) => {
+  const dict_token = token();
+  const url =
+      getRemoteHostUrl(`${kRegisterDictionaryPath}?save_header=${dict_token}`);
+  addLinkRelCompressionDictionaryElement(url, 'anonymous');
+  // Wait for a while to ensure that the dictionary is fetched.
+  await new Promise(resolve => window.requestIdleCallback(resolve));
+  const headers = await waitUntilPreviousRequestHeaders(
+      t, dict_token, /*check_remote=*/ true);
+  assert_true(headers !== undefined, 'Headers should be available');
+  assert_equals(headers['sec-fetch-mode'], 'cors');
+
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {check_remote: true}),
+      kDefaultDictionaryHashBase64);
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url =
+      getRemoteHostUrl(`${kCompressedDataPath}?content_encoding=dcb`);
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'Fetch cross origin dictionary using link element');
+
+</script>
+</body>

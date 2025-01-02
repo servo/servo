@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>HTMLAnchorElement stringifier</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://webidl.spec.whatwg.org/#es-stringifier">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/stringifiers.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  test_stringifier_attribute(document.createElement("a"), "href", false);
+  var a = document.createElement("a");
+  a.setAttribute("href", "foo");
+  test_stringifier_attribute(a, "href", false);
+});
+</script>

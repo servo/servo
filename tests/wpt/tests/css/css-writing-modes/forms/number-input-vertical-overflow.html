@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Number input in vertical writing mode with long value does not cause ink overflow</title>
+<meta charset="utf-8">
+<link rel="match" href="number-input-vertical-overflow-ref.html">
+<style>
+    input {
+        writing-mode: vertical-lr;
+        color: transparent;
+        appearance: none;
+        inline-size: 10em;
+    }
+</style>
+<p>Number input with long value does not cause ink overflow</p>
+<input type="number" value="11111111111111111111111111111111111">

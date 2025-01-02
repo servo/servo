@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' http://{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-eventsource-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["allowed"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("blocked");
+        });
+
+        try {
+            var es = new EventSource("http://{{host}}:{{ports[http][0]}}/content-security-policy/connect-src/resources/simple-event-stream");
+            // Firefox and Chrome don't throw an exception.
+            es.onopen = function () {
+                log("allowed");
+            };
+            es.onerror = function () {
+                log("blocked");
+            };
+        } catch (e) {
+            log("blocked");
+        }
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

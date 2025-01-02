@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Scoping: Dynamically overriding nested slot display value</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slots-in-shadow-tree">
+<link rel="match" href="reference/green-box.html"/>
+<style>
+  #outerHost {
+      width: 100px;
+      height: 100px;
+      background: red;
+  }
+</style>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="outerHost"> </div>
+<script>
+  let outerRoot = outerHost.attachShadow({mode:"open"});
+  outerRoot.innerHTML = '<div id="innerHost"><slot></slot></div>';
+  let innerHost = outerRoot.querySelector("#innerHost");
+  let innerRoot = innerHost.attachShadow({mode:"open"});
+  innerRoot.innerHTML = '<slot style="display:none; border:solid 50px green"></slot>';
+  document.body.offsetTop;
+  innerRoot.querySelector("slot").style.display = "block";
+</script>

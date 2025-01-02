@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Logical Properties Cascading Reference</title>
+  <link rel="author" title="Manish Goregaokar" href="mailto:manishearth@gmail.com">
+  <style>
+    div {
+      writing-mode: horizontal-tb;
+      direction: ltr;
+      background-color: blue;
+    }
+    .horizontal {
+      width: 100px;
+      height: 10px;
+    }
+    #horizontal {
+      width: 100px;
+      height: 10px;
+    }
+    .vertical {
+      width: 10px;
+      height: 100px;
+    }
+    #vertical {
+      width: 10px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there are two vertical blue boxes followed by two horizontal blue boxes.</p>
+
+<div class="horizontal" id="vertical"></div><br>
+<div class="horizontal" id="vertical"></div><br>
+<div class="vertical" id="horizontal"></div><br>
+<div class="vertical" id="horizontal"></div><br>
+</body>
+</html>

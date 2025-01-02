@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Tests anchor positioning with nested scroll containers</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<link rel="match" href="reference/anchor-scroll-nested-ref.html">
+<style>
+body {
+  margin: 0;
+  width: 1500px;
+  height: 1500px;
+  position: relative;
+}
+
+#outer-scroller {
+  margin: 500px;
+  width: 350px;
+  height: 350px;
+  outline: 1px solid black;
+  overflow: scroll;
+}
+
+#inner-scroller {
+  margin: 100px;
+  width: 250px;
+  height: 250px;
+  outline: 1px solid black;
+  overflow: scroll;
+}
+
+#anchor {
+  margin: 200px;
+  width: 50px;
+  height: 50px;
+  background-color: green;
+  anchor-name: --anchor;
+}
+
+.anchored {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  left: anchor(left);
+  position-anchor: --anchor;
+}
+
+.above {
+  bottom: anchor(top);
+  background-color: red;
+}
+
+.below {
+  top: anchor(bottom);
+  background-color: yellow;
+}
+</style>
+
+<div id="outer-scroller">
+  <div id="inner-scroller">
+    <div id="anchor"></div>
+    <div class="anchored above"></div>
+  </div>
+</div>
+
+<div class="anchored below"></div>
+
+<script>
+function raf() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+async function runTest() {
+  await raf();
+  await raf();
+
+  document.documentElement.scrollTop = 400;
+  document.documentElement.scrollLeft = 400;
+
+  let outerScroller = document.getElementById('outer-scroller');
+  outerScroller.scrollTop = 50;
+  outerScroller.scrollLeft = 50;
+
+  let innerScroller = document.getElementById('inner-scroller');
+  innerScroller.scrollTop = 100;
+  innerScroller.scrollLeft = 100;
+
+  document.documentElement.classList.remove('reftest-wait');
+}
+runTest();
+</script>

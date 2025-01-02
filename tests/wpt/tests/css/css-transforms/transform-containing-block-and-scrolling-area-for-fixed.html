@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS transforms: Transformed elements with overflow: hidden create scrolling areas for fixed descendants</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-rendering">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="match" href="transform-containing-block-and-scrolling-area-for-fixed-ref.html">
+<meta name="assert" content="For elements whose layout is governed by the CSS box model, any value other than none for the transform results in the creation of both a stacking context and a containing block. The object acts as a containing block for fixed positioned descendants.">
+<meta name="assert" content="The object acts as a containing block for fixed positioned descendants, but also creates scrolling areas for them."
+<meta name="flags" content="dom">
+<style>
+  html, body { margin: 0; padding: 0 }
+  #transformed {
+    transform: translateX(10px) translateY(10px);
+    width: 200px;
+    height: 200px;
+    background: grey;
+    overflow: hidden;
+  }
+
+  #fixed {
+    position: fixed;
+    width: 50px;
+    height: 50px;
+    top: 50px;
+    left: 50px;
+    background: green;
+  }
+
+  #spacer {
+    height: 10000px;
+    width: 10000px;
+  }
+</style>
+<body>
+  <div id="transformed">
+    <div id="fixed"></div>
+    <div id="spacer"></div>
+  </div>
+  <script>
+    document.getElementById('transformed').scrollTo(50, 50);
+  </script>
+</body>

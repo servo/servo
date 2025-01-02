@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width" />
+<link rel="match" href="vlr-ref.html">
+<meta name="assert" content="This test checks the static position of an out of flow absolute positioned element, under various conditions." />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body { writing-mode: vertical-lr; }
+.container {
+  position: relative;
+  background: green;
+  color: green;
+  font: 16px/1 Ahem;
+  border: solid black 3px;
+  height: 400px;
+  margin: 0 16px;
+  padding: 2px;
+}
+.red { color: red; }
+.cb {
+  position: relative;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+}
+.rtl { direction: rtl; }
+.ltr { direction: ltr; }
+.inline { display: inline; }
+.abs { position: absolute; }
+
+.indent { text-indent: 20px; }
+* { text-indent: initial; }
+</style>
+
+There should be no red.
+<div class="container ltr">
+  XXX<span class="rtl">XX<div class="abs inline">XXXXX</div><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr indent">
+  XXX<span class="rtl">XX<div class="abs inline">XXXXX</div><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr">
+  XXX<span class="rtl">XX<div class="abs block">XXXXX</div><br><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr indent">
+  XXX<span class="rtl">XX<div class="abs block">XXXXX</div><br><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr">
+  XXX<span class="rtl cb">XX<div class="abs inline">XXXXX</div><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr indent">
+  XXX<span class="rtl cb">XX<div class="abs inline">XXXXX</div><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr">
+  XXX<span class="rtl cb">XX<div class="abs block">XXXXX</div><br><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr indent">
+  XXX<span class="rtl cb">XX<div class="abs block">XXXXX</div><br><span class="red">XXXXX</span></span>
+</div>
+
+<div class="container ltr">
+  <span class="cb">XXX<span class="rtl">XX<div class="abs inline">XXXXX</div><span class="red">XXXXX</span></span></span>
+</div>
+
+<div class="container ltr indent">
+  <span class="cb">XXX<span class="rtl">XX<div class="abs inline">XXXXX</div><span class="red">XXXXX</span></span></span>
+</div>
+
+<div class="container ltr">
+  <span class="cb">XXX<span class="rtl">XX<div class="abs block">XXXXX</div><br><span class="red">XXXXX</span></span></span>
+</div>
+
+<div class="container ltr indent">
+  <span class="cb">XXX<span class="rtl">XX<div class="abs block">XXXXX</div><br><span class="red">XXXXX</span></span></span>
+</div>

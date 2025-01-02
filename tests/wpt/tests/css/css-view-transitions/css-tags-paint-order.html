@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: css tags generate pseudo elements in paint order</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="css-tags-paint-order-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+#one {
+  background: green;
+  width: 100px;
+  height: 100px;
+  position: relative;
+  z-index: 1;
+  view-transition-name: one;
+}
+#two {
+  background: yellow;
+  width: 100px;
+  height: 100px;
+  view-transition-name: two;
+}
+#three {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  view-transition-name: three;
+}
+
+.hidden {
+  background: pink;
+  width: 10px;
+  height: 10px;
+  view-transition-name: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-group(one) {
+  animation: unset;
+  transform: unset;
+  position: absolute;
+  top: 50px;
+  left: 50px;
+}
+html::view-transition-group(two) {
+  animation: unset;
+  transform: unset;
+  position: absolute;
+  top: 50px;
+  left: 125px;
+}
+html::view-transition-group(three) {
+  animation: unset;
+  transform: unset;
+  position: absolute;
+  top: 50px;
+  left: 200px;
+}
+
+html::view-transition-new(one),
+html::view-transition-new(two),
+html::view-transition-new(three) { animation: unset; opacity: 0; }
+
+html::view-transition-old(one),
+html::view-transition-old(two),
+html::view-transition-old(three) { animation: unset; opacity: 1; }
+
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+
+</style>
+
+<div id=one></div>
+<div id=two></div>
+<div id=three></div>
+
+<div id=hidden class=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

@@ -1,0 +1,24 @@
+<!doctype html>
+<title>&lt;mask> on &lt;foreignObject> in zoomed SVG</title>
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#svg-masks">
+<style>
+  svg {
+    zoom: 2;
+  }
+  .inner {
+    width: 100%;
+    height: 100%;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<svg>
+  <rect width="50" height="50" fill="red"/>
+  <mask id="m">
+    <rect width="50" height="50" fill="white"/>
+  </mask>
+  <foreignObject width="50" height="50" mask="url(#m)">
+    <div class="inner"></div>
+  </foreignObject>
+</svg>

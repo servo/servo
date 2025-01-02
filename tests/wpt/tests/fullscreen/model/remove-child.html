@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Remove the child of the fullscreen element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="parent">
+  <div></div>
+</div>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    const parent = document.getElementById("parent");
+    await Promise.all([trusted_request(parent), fullScreenChange()]);
+
+    assert_equals(document.fullscreenElement, parent);
+    parent.textContent = ""; // removes all children
+    // The fullscreen element should not be affected.
+    assert_equals(document.fullscreenElement, parent);
+    document.onfullscreenchange = t.unreached_func("fullscreenchange event");
+    // A fullscreenchange event would be fired after an async section
+    // and an animation frame task, so wait until after that.
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+  });
+</script>

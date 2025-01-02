@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "4.3-stateValidIfPresent.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation contains one or more Specific Resources states having value(s) which is(are) not of format uri, nor an object having a type key with a single value which is one of 'TimeState' or 'HttpRequestState'.",
+  "title": "If present **Specific Resource _state_ key** has one or more values each of which is of **format uri** or an object having a **_type_ key** with a **single value** which is one of **'TimeState' or 'HttpRequestState'** - [model 4.3](https://www.w3.org/TR/annotation-model/#states)",
+  "description": "True when no Specific Resources state present or all Specific Resource state values included in the Annotation (if any) are of format uri or or are objects having a type key with a single value which is one of 'TimeState' or 'HttpRequestState'. (Section 4.3)",
+  "type": "object",
+  "patternProperties":
+  {
+    "^(body|target)$":
+    {"oneOf":
+     [
+      { "$ref": "id.json#/definitions/stringUri" },
+      { "type": "object",
+        "allOf":
+        [
+          { "$ref": "specificResource.json#/definitions/stateDefined" },
+          { "$ref": "specificResource.json#/definitions/itemStateValidIfPresent" }
+        ]
+      },
+         { "type": "array",
+           "minItems": 1,
+           "items":
+            {"oneOf":
+              [
+                { "$ref": "id.json#/definitions/stringUri" },
+                { "type": "object",
+                  "allOf":
+                  [
+                   { "$ref": "specificResource.json#/definitions/stateDefined" },
+                   { "$ref": "specificResource.json#/definitions/itemStateValidIfPresent" }
+                  ]
+                }
+              ]
+           }
+         }
+    ]
+   }
+  }
+}

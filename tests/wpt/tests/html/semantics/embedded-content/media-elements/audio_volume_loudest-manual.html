@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Audio Test: audio_volume_loudest</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-media-volume" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="Check if the volume attribute is set to 1.0 as loudest in the audio element that expecting the user hears sound loudly" />
+    <script src="/common/media.js"></script>
+  </head>
+  <body>
+    <p>Test passes if the audio is playing with sound heard and the text 'The user agent doesn't support media element.' does not appear anywhere on this page</p>
+    <audio id="m" controls>The user agent doesn't support media element.</audio>
+    <script type="text/javascript">
+        var media = document.getElementById("m");
+        media.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
+        media.volume = 1.0;
+        media.play();
+    </script>
+  </body>
+</html>

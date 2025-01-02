@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.1-targCreator.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a target may include creator key with one or more values.",
+    "title": "Implements **target _creator_ key** with one or more values - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+    "description": "True when Annotation includes one or more targets, one or more of which include creator key with one or more values. (Section 3.3.1)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/creatorPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemCreatorPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceCreatorPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/creatorPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemCreatorPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceCreatorPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     },
+     "required": [ "target" ]
+}

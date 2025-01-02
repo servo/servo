@@ -1,0 +1,118 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCRtpReceiver.prototype.getStats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    callee.addTrack(track, stream);
+
+    const { receiver } = caller.addTransceiver('audio');
+
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
+    await listenToConnected(callee);
+    await waitForTrackUnmuted(receiver.track);
+    const statsReport = await receiver.getStats();
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'inbound-rtp'));
+  }, 'receiver.getStats() via addTransceiver should return stats report containing inbound-rtp stats');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
+    const receiver = callee.getReceivers()[0];
+    await listenToConnected(callee);
+    await waitForTrackUnmuted(receiver.track);
+    const statsReport = await receiver.getStats();
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'inbound-rtp'));
+  }, 'receiver.getStats() via addTrack should return stats report containing inbound-rtp stats');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
+    const [receiver] = callee.getReceivers();
+    await listenToConnected(callee);
+    await waitForTrackUnmuted(receiver.track);
+    const [transceiver] = callee.getTransceivers();
+    const statsPromiseFirst = receiver.getStats();
+    transceiver.stop();
+    const statsReportFirst = await statsPromiseFirst;
+    const statsReportSecond = await receiver.getStats();
+    assert_true(!![...statsReportFirst.values()].find(({type}) => type === 'inbound-rtp'));
+    assert_false(!![...statsReportSecond.values()].find(({type}) => type === 'inbound-rtp'));
+  }, 'receiver.getStats() should work on a stopped transceiver but not have inbound-rtp objects');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
+    const [receiver] = callee.getReceivers();
+    await listenToConnected(callee);
+    await waitForTrackUnmuted(receiver.track);
+    const statsReportFirst = await receiver.getStats();
+    callee.close();
+    const statsReportSecond = await receiver.getStats();
+    assert_true(!![...statsReportFirst.values()].find(({type}) => type === 'inbound-rtp'));
+    assert_false(!![...statsReportSecond.values()].find(({type}) => type === 'inbound-rtp'));
+  }, 'receiver.getStats() should work with a closed PeerConnection but not have inbound-rtp objects');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
+    const receiver = callee.getReceivers()[0];
+    await listenToConnected(callee);
+    await waitForTrackUnmuted(receiver.track);
+    const statsReport = await receiver.getStats();
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'candidate-pair'));
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'local-candidate'));
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'remote-candidate'));
+  }, 'receiver.getStats() should return stats report containing ICE candidate stats');
+
+</script>

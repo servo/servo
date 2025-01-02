@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+<style>
+div.box {
+  margin: 10px;
+  padding: 50px;
+  float: left;
+}
+</style>
+<h1>Verifies that pointerup/down are fired correctly for corresponding mouse events</h1>
+<div id="lightgreen" class="box" style="background-color:lightgreen">
+  <div id="green" class="box" style="background-color:green">
+  </div>
+</div>
+
+<div id="console"></div>
+
+<script>
+var eventsReceived = [];
+function init() {
+  var eventList = ["mousedown", "mouseup", "pointerdown", "pointerup"];
+
+  ["green", "lightgreen"].forEach(function(id) {
+    var targetDiv = document.getElementById(id);
+
+    eventList.forEach(function(eventName) {
+      targetDiv.addEventListener(eventName, function(event) {
+        eventsReceived.push(`${event.type}@${id}`);
+      });
+    });
+  });
+}
+
+function performActions() {
+  var rect = document.getElementById("green").getBoundingClientRect();
+  var x1 = Math.ceil(rect.left + 5);
+  var y1 = Math.ceil(rect.top + 5);
+
+  var rect = document.getElementById("lightgreen").getBoundingClientRect();
+  var x2 = Math.ceil(rect.left + 5);
+  var y2 = Math.ceil(rect.top + 5);
+
+  return new test_driver.Actions()
+            .pointerMove(x1, y1)
+            .pointerDown()
+            .pointerUp()
+            .pointerDown()
+
+            .pointerMove(x2, y2)
+            .pointerUp()
+            .pointerDown()
+
+            .pointerMove(x1, y1)
+            .pointerUp()
+            .send()
+            .then(()=>resolveWhen(()=>eventsExpected.length === eventsReceived.length));
+}
+var eventsExpected = ["pointerdown@green", "pointerdown@lightgreen",
+              "mousedown@green", "mousedown@lightgreen",
+              "pointerup@green", "pointerup@lightgreen",
+              "mouseup@green", "mouseup@lightgreen",
+              "pointerdown@green", "pointerdown@lightgreen",
+              "mousedown@green", "mousedown@lightgreen",
+              "pointerup@lightgreen", "mouseup@lightgreen",
+              "pointerdown@lightgreen", "mousedown@lightgreen",
+              "pointerup@green", "pointerup@lightgreen",
+              "mouseup@green", "mouseup@lightgreen"];
+function runTests(){
+  promise_test((test) => {
+    return new Promise(async (resolve)=>{
+      await performActions();
+      test.step(()=>{
+        assert_array_equals(eventsExpected, eventsReceived);
+      });
+      resolve();
+    });
+  }, "pointerup/down events are fired correctly for corresponding mouse events");
+}
+
+init();
+runTests();
+</script>

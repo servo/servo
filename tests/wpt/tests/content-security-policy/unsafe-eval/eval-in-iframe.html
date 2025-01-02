@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>eval-in-iframe</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+</head>
+
+<body>
+    <p>This test checks that the CSP of calleeRealm only (and not of
+    the callerRealm) is checked for allowing eval.</p>
+    <script>
+      let tests = [
+        { "directive": "script-src", "csp": "script-src 'unsafe-inline'" },
+        { "directive": "default-src", "csp": "default-src 'unsafe-inline'" },
+      ];
+
+      tests.forEach(test => {
+        let child = document.createElement('iframe');
+        child.src = '/content-security-policy/unsafe-eval/support' +
+          '/echo-eval-with-policy.py?policy=' + encodeURIComponent(test.csp);
+        document.body.appendChild(child);
+        let msg = new Promise(resolve => {
+          window.addEventListener('message', e => {
+            if (e.source == child.contentWindow)
+              resolve(e.data);
+          });
+        });
+
+        promise_test(async t => {
+          assert_equals((await msg).evalInIframe, "blocked");
+        }, `(${test.directive}) Eval code should not execute ` +
+                     `from iframe in iframe`);
+        promise_test(async t => {
+          assert_equals((await msg).evalInParent, "allowed");
+        }, `(${test.directive}) Eval code should execute ` +
+                     `from iframe in parent`);
+        promise_test(async t => {
+          assert_throws_js(child.contentWindow.EvalError, _ =>
+            child.contentWindow.eval('1+1'));
+        }, `(${test.directive}) Eval code should not execute ` +
+                     `from parent in iframe`);
+      });
+    </script>
+</body>
+
+</html>

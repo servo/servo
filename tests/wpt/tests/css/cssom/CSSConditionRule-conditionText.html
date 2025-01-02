@@ -1,0 +1,23 @@
+<!doctype html>
+<title>CSSConditionRule.conditionText</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-3/#cssconditionrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@media not all {
+  :root { color: lime }
+}
+</style>
+<script>
+test(function(t) {
+  let rule = document.styleSheets[0].cssRules[0];
+  assert_true(rule instanceof CSSConditionRule);
+  assert_equals(rule.conditionText, "not all");
+  rule.conditionText = 1;
+  assert_equals(rule.conditionText, "not all");
+  rule.conditionText = "all";
+  assert_equals(rule.conditionText, "not all");
+  assert_not_equals(getComputedStyle(document.documentElement).color, "rgb(0, 255, 0)");
+});
+</script>

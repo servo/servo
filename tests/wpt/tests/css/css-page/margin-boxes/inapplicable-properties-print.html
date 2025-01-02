@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-property-list">
+<meta name="assert" content="Test that inapplicable properties are ignored.">
+<link rel="match" href="inapplicable-properties-print-ref.html">
+<style>
+  @page {
+    size: 400px;
+    margin: 100px;
+
+    @top-left-corner {
+      text-align: left;
+      vertical-align: top;
+      white-space: pre-wrap;
+      content: "Line 1\aLine 2";
+      position: relative;
+      display: none;
+      columns: 2;
+      column-rule: solid red;
+      orphans: 1;
+      widows: 1;
+      rotate: 45deg;
+      top: 50px;
+      left: 90px;
+      width: 100px;
+      height:100px;
+      background: green;
+    }
+  }
+  body {
+    margin: 0;
+  }
+</style>
+In the top left corner there should be a green square with two lines inside.

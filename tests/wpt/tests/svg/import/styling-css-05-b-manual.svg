@@ -1,0 +1,74 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CL" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: styling-css-05-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/styling.html#StylingWithCSS">
+        <p>
+          Tests the language selectors, :lang(c).
+        </p>
+        <p>
+          Note that a less specific language (such as fr) also matches a more specific
+          language (such as fr-CA) but a more specific language (such as en-GB) does not match a less specific language (such as en).
+          Also note that language tags,and thus language selectors are case-insensitive.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The phrase "Good morning!" should be in green. The phrase "Bon avant-midi!"
+        should be in blue; in addition, the "avant-midi" should be italic because its Canadian French.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: styling-css-05-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans-ISO-8859-1.svg#iso_8859_1"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F" font-style="oblique">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSansOblique-Lat1.svg#FreeSansOblique"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <style type="text/css">
+      :lang(en) { fill: green}
+      :lang(fr) { fill: blue }
+      :lang(fr-ca) {font-style: italic}
+    </style>
+    <g text-anchor="middle" font-size="30">
+      <text x="240" y="100" xml:lang="en">Good morning!</text>
+      <text x="240" y="200" xml:lang="fr">
+        Bon <tspan xml:lang="fr-CA">avant-midi</tspan>!
+      </text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

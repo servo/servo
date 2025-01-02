@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Overview - Web Platform Test</title>
+    <link rel="stylesheet" href="css/bulma-0.7.5/bulma.min.css" />
+    <link rel="stylesheet" href="css/fontawesome-5.7.2.min.css" />
+    <script src="lib/utils.js"></script>
+    <script src="lib/wave-service.js"></script>
+    <script src="lib/ui.js"></script>
+    <style>
+      .site-logo {
+        max-width: 300px;
+        margin: 0 0 30px -15px;
+      }
+
+      .disabled-row {
+        color: gray;
+        background: lightgray;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.onload = () => {
+        const query = utils.parseQuery(location.search);
+        if (query.token) {
+          location.href = WEB_ROOT + "results.html" + location.search;
+        }
+        resultsUi.render();
+        resultsUi.loadData();
+      };
+      var sortDetail = {};
+      const defaultSortDetail = { sortColumn: "dateStarted", ascending: true };
+      sortDetail["recentSessions"] = defaultSortDetail;
+      sortDetail["pinnedSessions"] = defaultSortDetail;
+      sortDetail["publicSessions"] = defaultSortDetail;
+
+      const resultsUi = {
+        state: {
+          comparison: [],
+          recentSessions: null,
+          importResultsEnabled: false,
+          filterLabels: []
+        },
+        loadData() {
+          const pinnedSessions = WaveService.getPinnedSessions().filter(
+            token => !!token
+          );
+          const recentSessions = WaveService.getRecentSessions().filter(
+            token => !!token
+          );
+
+          pinnedSessions.forEach(token => {
+            const index = recentSessions.indexOf(token);
+            if (index !== -1) recentSessions.splice(index, 1);
+          });
+          WaveService.setRecentSessions(recentSessions);
+
+          let allSessions = [];
+          allSessions = allSessions.concat(pinnedSessions);
+          allSessions = allSessions.concat(recentSessions);
+
+          WaveService.readPublicSessions(publicSessions => {
+            publicSessions.forEach(token => {
+              const index = recentSessions.indexOf(token);
+              if (index !== -1) recentSessions.splice(index, 1);
+            });
+            WaveService.setRecentSessions(recentSessions);
+            allSessions = allSessions.concat(publicSessions);
+            WaveService.readMultipleSessions(allSessions, configurations =>
+              WaveService.readMultipleSessionStatuses(allSessions, statuses => {
+                configurations.forEach(configuration => {
+                  const status = statuses.find(
+                    status => status.token === configuration.token
+                  );
+                  configuration.dateStarted = status.dateStarted;
+                  configuration.dateFinished = status.dateFinished;
+                  configuration.status = status.status;
+                });
+
+                configurations = configurations.filter(
+                  configuration => !!configuration
+                );
+                allSessions
+                  .filter(
+                    token =>
+                      !configurations.some(
+                        configuration => configuration.token === token
+                      )
+                  )
+                  .forEach(token => {
+                    WaveService.removePinnedSession(token);
+                    WaveService.removeRecentSession(token);
+                  });
+                resultsUi.state.publicSessions = publicSessions;
+                resultsUi.state.pinnedSessions = WaveService.getPinnedSessions();
+                resultsUi.state.recentSessions = WaveService.getRecentSessions();
+
+                const sessions = {};
+                configurations.forEach(
+                  configuration =>
+                    (sessions[configuration.token] = configuration)
+                );
+                resultsUi.state.sessions = sessions;
+
+                const referenceTokens = [];
+                const loadedSessionsTokens = Object.keys(sessions);
+                configurations.forEach(configuration =>
+                  configuration.referenceTokens
+                    .filter(token => loadedSessionsTokens.indexOf(token) === -1)
+                    .forEach(token => referenceTokens.push(token))
+                );
+                WaveService.readMultipleSessions(
+                  referenceTokens,
+                  configurations => {
+                    const { sessions } = resultsUi.state;
+                    configurations.forEach(
+                      configuration =>
+                        (sessions[configuration.token] = configuration)
+                    );
+                    resultsUi.renderPublicSessions();
+                    resultsUi.renderPinnedSessions();
+                    resultsUi.renderRecentSessions();
+                  }
+                );
+              })
+            );
+          });
+          WaveService.readStatus(function(config) {
+            resultsUi.state.importResultsEnabled = config.importResultsEnabled;
+            resultsUi.state.reportsEnabled = config.reportsEnabled;
+            resultsUi.renderManageSessions();
+          });
+        },
+        findSession(fragment, callback) {
+          if (!fragment || fragment.length < 8) return;
+          WaveService.findToken(
+            fragment,
+            token => {
+              WaveService.readSession(token, session => {
+                WaveService.readSessionStatus(token, status => {
+                  session.status = status.status;
+                  session.dateStarted = status.dateStarted;
+                  session.dateFinished = status.dateFinished;
+                  callback(session);
+                });
+              });
+            },
+            () => callback(null)
+          );
+        },
+        addSession(session) {
+          const token = session.token;
+          if (resultsUi.state.sessions[token]) return;
+          resultsUi.state.sessions[token] = session;
+          resultsUi.pinSession(token);
+        },
+        removeSession(token) {
+          delete resultsUi.state.sessions[token];
+          WaveService.removeRecentSession(token);
+          WaveService.removePinnedSession(token);
+          resultsUi.updateSessionState();
+        },
+        showAddSessionError() {
+          const errorBox = UI.getElement("find-error");
+          errorBox.setAttribute("style", "display: block");
+        },
+        hideAddSessionError() {
+          const errorBox = UI.getElement("find-error");
+          errorBox.setAttribute("style", "display: none");
+        },
+        pinSession(token) {
+          WaveService.addPinnedSession(token);
+          WaveService.removeRecentSession(token);
+          resultsUi.updateSessionState();
+        },
+        unpinSession(token) {
+          WaveService.removePinnedSession(token);
+          WaveService.addRecentSession(token);
+          resultsUi.updateSessionState();
+        },
+        updateSessionState() {
+          resultsUi.state.pinnedSessions = WaveService.getPinnedSessions();
+          resultsUi.state.recentSessions = WaveService.getRecentSessions();
+          resultsUi.renderPinnedSessions();
+          resultsUi.renderRecentSessions();
+        },
+        openSessionResult(token) {
+					location.href = `${WEB_ROOT}results.html?token=${token}`;
+        },
+        sortSessions(tableType, column) {
+          if (tableType in sortDetail) {
+            if (sortDetail[tableType].sortColumn == column) {
+              sortDetail[tableType].ascending = !sortDetail[tableType]
+                .ascending;
+            } else {
+              sortDetail[tableType].sortColumn = column;
+              sortDetail[tableType].ascending = true;
+            }
+            switch (tableType) {
+              case "recentSessions":
+                resultsUi.renderRecentSessions();
+                break;
+              case "pinnedSessions":
+                resultsUi.renderPinnedSessions();
+                break;
+              case "publicSessions":
+                resultsUi.renderPublicSessions();
+                break;
+            }
+          }
+        },
+        sortSessionsByColumn(sessions, recentSessions, column, ascending) {
+          var resultArray = recentSessions
+            .map(token => sessions[token])
+            .sort(function(sessionA, sessionB) {
+              let columnA = sessionA[column];
+              if (column === "browser")
+                columnA = sessionA[column].name + sessionA[column].version;
+              if (column === "dateStarted" && !columnA) {
+                columnA = Date.now();
+              }
+              let columnB = sessionB[column];
+              if (column === "browser")
+                columnB = sessionB[column].name + sessionA[column].version;
+              if (column === "dateStarted" && !columnB) {
+                columnB = Date.now();
+              }
+              if (columnA < columnB) {
+                return -1;
+              }
+              if (columnA > columnB) {
+                return 1;
+              }
+              return 0;
+            });
+          if (ascending) {
+            resultArray.reverse();
+          }
+          return resultArray;
+        },
+        compareSessions(reftokens) {
+          if (!resultsUi.isComparisonValid()) return;
+          const tokens = resultsUi.state.comparison;
+          if (!tokens || tokens.length === 0) return;
+          const refQuery = reftokens ? `&reftokens=${reftokens}` : "";
+					location.href = `${WEB_ROOT}comparison.html?tokens=${tokens.join(
+            ","
+          )}${refQuery}`;
+        },
+        isComparisonValid() {
+          const { comparison, sessions } = resultsUi.state;
+          if (!comparison) return false;
+          if (comparison.length <= 1) return false;
+          const comparingSessions = comparison.map(token => sessions[token]);
+          const referenceTokens = comparingSessions[0].referenceTokens;
+          for (let comparingSession of comparingSessions) {
+            const comparingReferenceTokens = comparingSession.referenceTokens;
+            if (referenceTokens.length !== comparingReferenceTokens.length)
+              return false;
+            for (let token of comparingReferenceTokens) {
+              if (referenceTokens.indexOf(token) === -1) return false;
+            }
+          }
+          return true;
+        },
+        isSessionValidForComparison(session) {
+          if (!session) return false;
+          if (session.status !== "completed" && session.status !== "aborted")
+            return false;
+          const sessionRefTokens = session.reference_tokens;
+          const comparisonSession =
+            resultsUi.state.sessions[resultsUi.state.comparison[0]];
+          if (!comparisonSession) return true;
+          const comparisonRefTokens = comparisonSession.reference_tokens;
+          if (!comparisonRefTokens) return true;
+          if (sessionRefTokens.length !== comparisonRefTokens.length)
+            return false;
+          if (
+            sessionRefTokens.some(
+              token => comparisonRefTokens.indexOf(token) === -1
+            )
+          )
+            return false;
+          return true;
+        },
+        isSessionSelectedForComparison(session) {
+          return resultsUi.state.comparison.indexOf(session.token) !== -1;
+        },
+        isSessionDisabled(session) {
+          return (
+            resultsUi.state.comparison.length > 0 &&
+            !resultsUi.isSessionValidForComparison(session)
+          );
+        },
+        addSessionToComparison(token) {
+          if (resultsUi.state.comparison.indexOf(token) !== -1) return;
+          resultsUi.state.comparison.push(token);
+          resultsUi.updateCompareButton();
+          resultsUi.renderSessions();
+        },
+        removeSessionFromComparison(token) {
+          const index = resultsUi.state.comparison.indexOf(token);
+          if (index === -1) return;
+          resultsUi.state.comparison.splice(index, 1);
+          resultsUi.updateCompareButton();
+          resultsUi.renderSessions();
+        },
+        handleAddSession() {
+          const tokenFragmentInput = UI.getElement("token-fragment");
+          const fragment = tokenFragmentInput.value;
+          resultsUi.findSession(fragment, session => {
+            if (!session) {
+              resultsUi.showAddSessionError();
+              return;
+            }
+            tokenFragmentInput.value = "";
+            resultsUi.hideAddSessionError();
+            resultsUi.addSession(session);
+          });
+        },
+        handleImportSession() {
+          resultsUi.state.importError = null;
+          resultsUi.state.importInProgress = true;
+          resultsUi.renderManageSessions();
+          const { importSessionFile: file } = resultsUi.state;
+          const reader = new FileReader();
+          reader.readAsArrayBuffer(file);
+          reader.onload = () => {
+            const data = reader.result;
+            WaveService.importResults(
+              data,
+              function(token) {
+                location.href = WEB_ROOT + "results.html?token=" + token;
+              },
+              function(error) {
+                resultsUi.state.importError = error;
+                resultsUi.state.importInProgress = false;
+                resultsUi.renderManageSessions();
+              }
+            );
+          };
+        },
+        handleImportSessionSelection() {
+          const file = UI.getElement("import-session-file").files[0];
+          resultsUi.state.importSessionFile = file;
+          resultsUi.renderManageSessions();
+        },
+        addFilterLabel() {
+          const label = UI.getElement("filter-label-input").value;
+          if (!label) return;
+          const { filterLabels } = resultsUi.state;
+          if (filterLabels.indexOf(label) !== -1) return;
+          filterLabels.push(label);
+          resultsUi.renderSessions();
+          UI.getElement("filter-label-input").focus();
+        },
+        removeFilterLabel(index) {
+          resultsUi.state.filterLabels.splice(index, 1);
+          resultsUi.renderSessions();
+        },
+        showAddFilterLabel() {
+          resultsUi.state.addFilterLabelVisible = true;
+          resultsUi.renderSessions();
+          UI.getElement("filter-label-input").focus();
+        },
+        hideAddFilterLabel() {
+          resultsUi.state.addFilterLabelVisible = false;
+          resultsUi.renderSessions();
+        },
+        render() {
+          const { getRoot, createElement, getElement } = UI;
+          const resultsView = UI.createElement({
+            className: "section",
+            children: [
+              {
+                className: "container",
+                style: "margin-bottom: 2em",
+                children: [
+                  {
+                    element: "img",
+                    src: "res/wavelogo_2016.jpg",
+                    className: "site-logo"
+                  },
+                  { text: "Results Overview", className: "title" }
+                ]
+              },
+              {
+                id: "manage-sessions",
+                className: "container",
+                style: "margin-bottom: 2em"
+              },
+              { id: "sessions", className: "container" }
+            ]
+          });
+
+          const root = UI.getRoot();
+          root.innerHTML = "";
+          root.appendChild(resultsView);
+
+          resultsUi.renderManageSessions();
+          resultsUi.renderSessions();
+        },
+        renderManageSessions() {
+          const manageSessionsView = UI.getElement("manage-sessions");
+          manageSessionsView.innerHTML = "";
+          const heading = { text: "Manage Sessions", className: "title is-4" };
+          const addCompareSessions = {
+            className: "columns",
+            children: [
+              {
+                className: "column",
+                children: [
+                  { text: "Add Sessions", className: "title is-5" },
+                  {
+                    element: "article",
+                    className: "message is-danger",
+                    id: "find-error",
+                    children: [
+                      {
+                        text:
+                          "Could not find any sessions! Try adding more characters of the token.",
+                        className: "message-body"
+                      }
+                    ],
+                    style: "display: none"
+                  },
+                  {
+                    className: "field",
+                    children: [
+                      {
+                        className: "label has-text-weight-normal",
+                        text: "Session token:"
+                      },
+                      {
+                        className: "field-body",
+                        children: {
+                          className: "field",
+                          children: {
+                            className: "control",
+                            children: {
+                              style: "display: flex; margin-bottom: 10px;",
+                              children: [
+                                {
+                                  element: "input",
+                                  inputType: "text",
+                                  className: "input is-family-monospace",
+                                  id: "token-fragment",
+                                  placeholder:
+                                    "First 8 characters or more of session token",
+                                  onKeyDown: event =>
+                                    event.key === "Enter"
+                                      ? resultsUi.handleAddSession()
+                                      : null
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        className: "field is-grouped is-grouped-right",
+                        children: {
+                          className: "control",
+                          children: {
+                            className: "button is-dark is-outlined",
+                            children: [
+                              {
+                                element: "span",
+                                className: "icon",
+                                children: [
+                                  {
+                                    element: "i",
+                                    className: "fas fa-plus"
+                                  }
+                                ]
+                              },
+                              { text: "Add Session", element: "span" }
+                            ],
+                            onclick: resultsUi.handleAddSession
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                className: "column",
+                children: [
+                  { text: "Compare Sessions", className: "title is-5" },
+                  {
+                    element: "label",
+                    text:
+                      "Compare sessions by selecting them in the list below. " +
+                      "Only sessions with the same set of reference sessions can be compared. " +
+                      "Sessions have to be finished."
+                  },
+                  {
+                    style: "text-align: right",
+                    children: [
+                      {
+                        className: "button is-dark is-outlined",
+                        disabled: true,
+                        id: "compare-button",
+                        children: [
+                          {
+                            element: "span",
+                            className: "icon",
+                            children: [
+                              {
+                                element: "i",
+                                className: "fas fa-balance-scale"
+                              }
+                            ]
+                          },
+                          { text: "Compare Selected", element: "span" }
+                        ],
+                        onClick: () => resultsUi.compareSessions()
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          };
+          const {
+            importSessionFile,
+            importError,
+            importInProgress
+          } = resultsUi.state;
+          const importSessions = {
+            className: "columns",
+            style: "margin-bottom: 2em",
+            children: [
+              {
+                className: "column is-half",
+                children: [
+                  { text: "Import Sessions", className: "title is-5" },
+                  {
+                    element: "article",
+                    className: "message is-danger",
+                    children: [
+                      {
+                        className: "message-body",
+                        text: "Could not import session: " + importError
+                      }
+                    ],
+                    style: importError ? "" : "display: none"
+                  },
+                  {
+                    className: "field file has-name",
+                    children: [
+                      {
+                        element: "label",
+                        className: "file-label",
+                        style: "width: 100%",
+                        children: [
+                          {
+                            element: "input",
+                            className: "file-input",
+                            type: "file",
+                            accept: ".zip",
+                            id: "import-session-file",
+                            onChange: resultsUi.handleImportSessionSelection
+                          },
+                          {
+                            element: "span",
+                            className: "file-cta",
+                            children: [
+                              {
+                                element: "span",
+                                className: "file-icon",
+                                children: [
+                                  {
+                                    element: "i",
+                                    className: "fas fa-upload"
+                                  }
+                                ]
+                              },
+                              {
+                                element: "span",
+                                className: "file-label",
+                                text: "Choose ZIP file"
+                              }
+                            ]
+                          },
+                          {
+                            element: "span",
+                            className: "file-name",
+                            style: "width: 100%; max-width: unset",
+                            text: importSessionFile
+                              ? importSessionFile.name
+                              : ""
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    className: "field is-grouped is-grouped-right",
+                    children: {
+                      className: "control",
+                      children: {
+                        className: "button is-dark is-outlined",
+                        disabled: !importSessionFile,
+                        children: [
+                          {
+                            element: "span",
+                            className: "icon",
+                            children: [
+                              {
+                                element: "i",
+                                className: importInProgress
+                                  ? "fas fa-spinner fa-pulse"
+                                  : "fas fa-plus"
+                              }
+                            ]
+                          },
+                          { text: "Import Session", element: "span" }
+                        ],
+                        onclick: resultsUi.handleImportSession
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                className: "column",
+                children: []
+              }
+            ]
+          };
+          const { importResultsEnabled } = resultsUi.state;
+          manageSessionsView.appendChild(UI.createElement(heading));
+          manageSessionsView.appendChild(UI.createElement(addCompareSessions));
+          if (!importResultsEnabled) return;
+          manageSessionsView.appendChild(UI.createElement(importSessions));
+        },
+        renderSessions() {
+          const sessionsView = UI.getElement("sessions");
+          sessionsView.innerHTML = "";
+          sessionsView.appendChild(
+            UI.createElement({ text: "Sessions", className: "title is-4" })
+          );
+
+          const sessionFilters = resultsUi.createSessionFilters();
+          sessionsView.appendChild(sessionFilters);
+
+          sessionsView.appendChild(UI.createElement({ id: "public-sessions" }));
+          sessionsView.appendChild(UI.createElement({ id: "pinned-sessions" }));
+          sessionsView.appendChild(UI.createElement({ id: "recent-sessions" }));
+          sessionsView.appendChild(UI.createElement({ id: "session-status" }));
+          resultsUi.renderPublicSessions();
+          resultsUi.renderPinnedSessions();
+          resultsUi.renderRecentSessions();
+        },
+        renderPublicSessions() {
+          resultsUi.renderSessionStatus();
+          const { sessions, publicSessions, filterLabels } = resultsUi.state;
+
+          UI.saveScrollPosition("public-sessions-overflow");
+
+          const publicSessionsView = UI.getElement("public-sessions");
+          publicSessionsView.innerHTML = "";
+
+          if (!publicSessions || publicSessions.length === 0) return;
+          const sortedPublicSessions = resultsUi.sortSessionsByColumn(
+            sessions,
+            publicSessions,
+            sortDetail["publicSessions"].sortColumn,
+            sortDetail["publicSessions"].ascending
+          );
+
+          const filteredPublicSessions = sortedPublicSessions.filter(
+            session =>
+              filterLabels.length === 0 ||
+              filterLabels.reduce(
+                (match, label) =>
+                  match &&
+                  session.labels
+                    .map(label => label.toLowerCase())
+                    .indexOf(label.toLowerCase()) !== -1,
+                true
+              )
+          );
+
+          if (filteredPublicSessions.length === 0) return;
+
+          publicSessionsView.appendChild(
+            UI.createElement({
+              text: "Reference Browsers",
+              className: "title is-5"
+            })
+          );
+
+          const sessionsTable = UI.createElement({
+            style: "overflow-x: auto",
+            id: "public-sessions-overflow",
+            children: resultsUi.createSessionsTable(
+              "publicSessions",
+              filteredPublicSessions,
+              { static: true }
+            )
+          });
+          publicSessionsView.appendChild(sessionsTable);
+
+          publicSessionsView.appendChild(
+            UI.createElement({ style: "content: ''; margin-bottom: 40px" })
+          );
+
+          UI.loadScrollPosition("public-sessions-overflow")
+        },
+        renderPinnedSessions() {
+          resultsUi.renderSessionStatus();
+          const { sessions, pinnedSessions, filterLabels } = resultsUi.state;
+
+          UI.saveScrollPosition("pinned-sessions-overflow");
+          const pinnedSessionsView = UI.getElement("pinned-sessions");
+          pinnedSessionsView.innerHTML = "";
+          if (!pinnedSessions || pinnedSessions.length === 0) return;
+          const sortedPinnedSessions = resultsUi.sortSessionsByColumn(
+            sessions,
+            pinnedSessions,
+            sortDetail["pinnedSessions"].sortColumn,
+            sortDetail["pinnedSessions"].ascending
+          );
+          const filteredPinnedSessions = sortedPinnedSessions.filter(
+            session =>
+              filterLabels.length === 0 ||
+              filterLabels.reduce(
+                (match, label) =>
+                  match &&
+                  session.labels
+                    .map(label => label.toLowerCase())
+                    .indexOf(label.toLowerCase()) !== -1,
+                true
+              )
+          );
+
+          if (filteredPinnedSessions.length === 0) return;
+
+          pinnedSessionsView.appendChild(
+            UI.createElement({ text: "Pinned", className: "title is-5" })
+          );
+
+          const sessionsTable = UI.createElement({
+            style: "overflow-x: auto",
+            id: "pinned-sessions-overflow",
+            children: resultsUi.createSessionsTable(
+              "pinnedSessions",
+              filteredPinnedSessions,
+              { pinned: true }
+            )
+          });
+          pinnedSessionsView.appendChild(sessionsTable);
+
+          pinnedSessionsView.appendChild(
+            UI.createElement({ style: "content: ''; margin-bottom: 40px" })
+          );
+          UI.loadScrollPosition("pinned-sessions-overflow");
+        },
+        renderRecentSessions() {
+          resultsUi.renderSessionStatus();
+          const {
+            sessions,
+            recentSessions,
+            pinnedSessions,
+            filterLabels
+          } = resultsUi.state;
+          UI.saveScrollPosition("recent-sessions-overflow");
+          const recentSessionsView = UI.getElement("recent-sessions");
+          recentSessionsView.innerHTML = "";
+          if (!recentSessions || recentSessions.length === 0) return;
+
+          const sortedRecentSessions = resultsUi.sortSessionsByColumn(
+            sessions,
+            recentSessions,
+            sortDetail["recentSessions"].sortColumn,
+            sortDetail["recentSessions"].ascending
+          );
+          const filteredRecentSessions = sortedRecentSessions.filter(
+            session =>
+              filterLabels.length === 0 ||
+              filterLabels.reduce(
+                (match, label) =>
+                  match &&
+                  session.labels
+                    .map(label => label.toLowerCase())
+                    .indexOf(label.toLowerCase()) !== -1,
+                true
+              )
+          );
+
+          if (filteredRecentSessions.length === 0) return;
+
+          recentSessionsView.appendChild(
+            UI.createElement({ text: "Recent", className: "title is-5" })
+          );
+
+          const sessionsTable = UI.createElement({
+            style: "overflow-x: auto",
+            id: "recent-sessions-overflow",
+            children: resultsUi.createSessionsTable(
+              "recentSessions",
+              filteredRecentSessions,
+              { pinned: false }
+            )
+          });
+          recentSessionsView.appendChild(sessionsTable);
+
+          recentSessionsView.appendChild(
+            UI.createElement({ style: "content: ''; margin-bottom: 40px" })
+          );
+          UI.loadScrollPosition("recent-sessions-overflow");
+        },
+        renderSessionStatus() {
+          const {
+            recentSessions,
+            pinnedSessions,
+            publicSessions
+          } = resultsUi.state;
+          const sessionStatusView = UI.getElement("session-status");
+          sessionStatusView.innerHTML = "";
+          if (!recentSessions && !pinnedSessions && !publicSessions) {
+            sessionStatusView.appendChild(
+              UI.createElement({
+                className: "level",
+                children: {
+                  element: "span",
+                  className: "level-item",
+                  children: [
+                    {
+                      element: "i",
+                      className: "fas fa-spinner fa-pulse"
+                    },
+                    {
+                      style: "margin-left: 0.4em;",
+                      text: "Loading sessions ..."
+                    }
+                  ]
+                }
+              })
+            );
+            return;
+          } else if (
+            (!recentSessions || recentSessions.length === 0) &&
+            (!pinnedSessions || pinnedSessions.length === 0) &&
+            (!publicSessions || publicSessions.length === 0)
+          ) {
+            sessionStatusView.appendChild(
+              UI.createElement({
+                className: "level",
+                children: {
+                  element: "span",
+                  className: "level-item",
+                  text: "No sessions available."
+                }
+              })
+            );
+            return;
+          }
+        },
+        createSessionFilters() {
+          const { filterLabels, addFilterLabelVisible } = resultsUi.state;
+
+          const filters = UI.createElement({
+            className: "field is-horizontal",
+            style: "margin-bottom: 2em",
+            children: [
+              {
+                className: "field-label",
+                style: "flex: unset",
+                children: {
+                  className: "label has-text-weight-normal",
+                  text: "Filter by labels:"
+                }
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "control",
+                  children: {
+                    className: "field is-grouped is-grouped-multiline",
+                    children: filterLabels
+                      .map((label, index) => ({
+                        className: "control",
+                        children: {
+                          className: "tags has-addons",
+                          children: [
+                            {
+                              element: "span",
+                              className: "tag is-info",
+                              text: label
+                            },
+                            {
+                              element: "a",
+                              className: "tag is-delete",
+                              onClick: () => resultsUi.removeFilterLabel(index)
+                            }
+                          ]
+                        }
+                      }))
+                      .concat(
+                        addFilterLabelVisible
+                          ? [
+                              {
+                                className: "control field is-grouped",
+                                children: [
+                                  {
+                                    element: "input",
+                                    className: "input is-small control",
+                                    style: "width: 10rem",
+                                    id: "filter-label-input",
+                                    type: "text",
+                                    onKeyUp: event =>
+                                      event.keyCode === 13
+                                        ? resultsUi.addFilterLabel()
+                                        : null
+                                  },
+                                  {
+                                    className:
+                                      "button is-dark is-outlined is-small is-rounded control",
+                                    text: "save",
+                                    onClick: resultsUi.addFilterLabel
+                                  },
+                                  {
+                                    className:
+                                      "button is-dark is-outlined is-small is-rounded control",
+                                    text: "cancel",
+                                    onClick: resultsUi.hideAddFilterLabel
+                                  }
+                                ]
+                              }
+                            ]
+                          : [
+                              {
+                                className: "button is-rounded is-small",
+                                text: "Add",
+                                onClick: resultsUi.showAddFilterLabel
+                              }
+                            ]
+                      )
+                  }
+                }
+              }
+            ]
+          });
+          return filters;
+        },
+        createSessionsTable(
+          tableType,
+          sessions,
+          { pinned = false, static = false } = {}
+        ) {
+          const getTagStyle = status => {
+            switch (status) {
+              case "completed":
+                return "is-success";
+              case "running":
+                return "is-info";
+              case "aborted":
+                return "is-danger";
+              case "paused":
+                return "is-warning";
+              case "pending":
+                return "is-primary";
+            }
+          };
+          var sortIcon = null;
+          if (tableType in sortDetail) {
+            sortIcon = sortDetail[tableType].ascending
+              ? "fas fa-sort-down"
+              : "fas fa-sort-up";
+          }
+          return UI.createElement({
+            element: "table",
+            className: "table is-bordered is-hoverable is-fullwidth",
+            children: [
+              {
+                element: "thead",
+                children: {
+                  element: "tr",
+                  children: [
+                    {
+                      element: "td",
+                      style: "text-decoration: underline dotted;",
+                      text: "Cp",
+                      className: "is-narrow",
+                      title: "Select for comparison"
+                    },
+                    {
+                      element: "td",
+                      text: "Token",
+                      className: "is-narrow",
+                      onclick: () => resultsUi.sortSessions(tableType, "token"),
+                      style: "cursor: pointer;",
+                      children: [
+                        {
+                          element: "i",
+                          className: sortIcon,
+                          style:
+                            "padding-left: 20px; visibility:" +
+                            (sortIcon &&
+                            sortDetail[tableType].sortColumn == "token"
+                              ? "visible;"
+                              : "hidden;")
+                        }
+                      ]
+                    },
+                    {
+                      element: "td",
+                      text: "Browser",
+                      onclick: () =>
+                        resultsUi.sortSessions(tableType, "browser"),
+                      style: "cursor: pointer;",
+                      className: "is-narrow",
+                      children: [
+                        {
+                          element: "i",
+                          className: sortIcon,
+                          style:
+                            "padding-left: 20px; visibility:" +
+                            (sortIcon &&
+                            sortDetail[tableType].sortColumn == "browser"
+                              ? "visible;"
+                              : "hidden;")
+                        }
+                      ]
+                    },
+                    {
+                      element: "td",
+                      text: "Status",
+                      onclick: () =>
+                        resultsUi.sortSessions(tableType, "status"),
+                      style: "cursor: pointer",
+                      className: "is-narrow",
+                      children: [
+                        {
+                          element: "i",
+                          className: sortIcon,
+                          style:
+                            "padding-left: 20px; visibility:" +
+                            (sortIcon &&
+                            sortDetail[tableType].sortColumn == "status"
+                              ? "visible;"
+                              : "hidden;")
+                        }
+                      ]
+                    },
+                    {
+                      element: "td",
+                      text: "Date Started",
+                      onclick: () =>
+                        resultsUi.sortSessions(tableType, "dateStarted"),
+                      style: "cursor: pointer;",
+                      className: "is-narrow",
+                      children: [
+                        {
+                          element: "i",
+                          className: sortIcon,
+                          style:
+                            "padding-left: 20px; visibility:" +
+                            (sortIcon &&
+                            sortDetail[tableType].sortColumn == "dateStarted"
+                              ? "visible;"
+                              : "hidden;")
+                        }
+                      ]
+                    },
+                    {
+                      element: "td",
+                      text: "Labels",
+                      style: "cursor: pointer; width: 18rem"
+                    },
+                    static
+                      ? null
+                      : {
+                          element: "td",
+                          text: "RefS",
+                          title: "Reference Sessions",
+                          style: "text-decoration: underline dotted;",
+                          className: "is-narrow"
+                        },
+                    static
+                      ? null
+                      : {
+                          element: "td",
+                          colspan: 2,
+                          text: "Options",
+                          className: "is-narrow"
+                        }
+                  ]
+                }
+              },
+              {
+                element: "tbody",
+                children: sessions.map(session => ({
+                  element: "tr",
+                  className: resultsUi.isSessionDisabled(session)
+                    ? "disabled-row"
+                    : "",
+                  style: "cursor: pointer",
+                  onclick: () => resultsUi.openSessionResult(session.token),
+                  children: [
+                    {
+                      element: "td",
+                      onclick: event => event.stopPropagation(),
+                      style: "vertical-align: middle;",
+                      children: [
+                        {
+                          element: "input",
+                          className: "checkbox",
+                          style:
+                            "width: 18px; height: 18px; margin-top: 0.55em",
+                          type: "checkbox",
+                          disabled: !resultsUi.isSessionValidForComparison(
+                            session
+                          ),
+                          checked: resultsUi.isSessionSelectedForComparison(
+                            session
+                          ),
+                          onchange: event =>
+                            event.target.checked
+                              ? resultsUi.addSessionToComparison(session.token)
+                              : resultsUi.removeSessionFromComparison(
+                                  session.token
+                                )
+                        }
+                      ]
+                    },
+                    {
+                      element: "td",
+                      className: "is-family-monospace",
+                      style: "vertical-align: middle;",
+                      text: session.token.split("-").shift()
+                    },
+                    {
+                      element: "td",
+                      style: "vertical-align: middle; white-space: nowrap",
+                      text: session.browser.name + " " + session.browser.version
+                    },
+                    {
+                      element: "td",
+                      style: "vertical-align: middle; text-align: center",
+                      children: [
+                        {
+                          className: `tag ${getTagStyle(session.status)}`,
+                          text: session.status
+                        }
+                      ]
+                    },
+                    {
+                      element: "td",
+                      style: "vertical-align: middle; white-space: nowrap",
+                      text: session.dateStarted
+                        ? new Date(session.dateStarted).toLocaleString()
+                        : "not started"
+                    },
+                    {
+                      element: "td",
+                      children: {
+                        className: "tags field is-grouped isgrouped-multiline",
+                        style: "min-width: 10em",
+                        children: session.labels.map(label => ({
+                          className: "control",
+                          children: {
+                            element: "span",
+                            className: "tag is-info",
+                            text: label
+                          }
+                        }))
+                      }
+                    },
+                    static
+                      ? null
+                      : {
+                          element: "td",
+                          title: session.referenceTokens
+                            .map(token => token.split("-").shift())
+                            .sort((tokenA, tokenB) => tokenA - tokenB)
+                            .join("\n"),
+                          style: "white-space:nowrap",
+                          children: (() => {
+                            const tokens = session.referenceTokens.slice();
+                            let overflow = 0;
+                            if (tokens.length > 3) {
+                              overflow = tokens.length - 2;
+                            }
+                            if (overflow > 0) tokens.splice(2, overflow + 2);
+                            const children = tokens.map(token => {
+                              let icon = "";
+                              const session = resultsUi.state.sessions[token];
+                              switch (session.browser.name.toLowerCase()) {
+                                case "firefox":
+                                  icon = "fab fa-firefox";
+                                  break;
+                                case "edge":
+                                  icon = "fab fa-edge";
+                                  break;
+                                case "chrome":
+                                case "chromium":
+                                  icon = "fab fa-chrome";
+                                  break;
+                                case "safari":
+                                case "webkit":
+                                  icon = "fab fa-safari";
+                                  break;
+                              }
+                              return {
+                                element: "span",
+                                style:
+                                  "margin-right: 5px; vertical-align: middle;",
+                                children: { element: "i", className: icon }
+                              };
+                            });
+
+                            if (overflow > 0)
+                              children.push({
+                                element: "span",
+                                style: "vertical-align: middle",
+                                className: "is-size-7",
+                                text: `+${overflow}`
+                              });
+
+                            return children;
+                          })()
+                        },
+                    static
+                      ? null
+                      : {
+                          element: "td",
+                          style: "vertical-align: middle; text-align: center",
+                          className: "is-paddingless",
+                          children: [
+                            {
+                              className: "button is-dark is-outlined is-small",
+                              title: pinned ? "Unpin session" : "Pin session",
+                              style: "margin: 5px",
+                              children: [
+                                {
+                                  element: "span",
+                                  className: "icon",
+                                  children: [
+                                    {
+                                      element: "i",
+                                      className: "fas fa-thumbtack",
+                                      style: pinned
+                                        ? ""
+                                        : "transform: rotate(45deg)"
+                                    }
+                                  ]
+                                }
+                              ],
+                              onclick: event => {
+                                event.stopPropagation();
+                                if (pinned) {
+                                  resultsUi.unpinSession(session.token);
+                                } else {
+                                  resultsUi.pinSession(session.token);
+                                }
+                              }
+                            }
+                          ]
+                        },
+                    static
+                      ? null
+                      : {
+                          element: "td",
+                          style: "vertical-align: middle; text-align: center",
+                          className: "is-paddingless",
+                          children: [
+                            {
+                              className: "button is-dark is-outlined is-small",
+                              title: "Remove session from list",
+                              style: "margin: 5px",
+                              children: [
+                                {
+                                  element: "span",
+                                  className: "icon",
+                                  children: [
+                                    {
+                                      element: "i",
+                                      className: "fas fa-trash-alt"
+                                    }
+                                  ]
+                                }
+                              ],
+                              onclick: event => {
+                                event.stopPropagation();
+                                resultsUi.removeSession(session.token);
+                              }
+                            }
+                          ]
+                        }
+                  ]
+                }))
+              }
+            ]
+          });
+        },
+        updateCompareButton: () => {
+          const compareButton = UI.getElement("compare-button");
+          if (resultsUi.isComparisonValid()) {
+            compareButton.removeAttribute("disabled");
+          } else {
+            compareButton.setAttribute("disabled", true);
+          }
+        }
+      };
+    </script>
+  </body>
+</html>

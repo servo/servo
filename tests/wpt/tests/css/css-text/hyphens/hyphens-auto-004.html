@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text: 'hyphens: auto' with a valid 'lang' attribute specification</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" title="5.4. Hyphenation: the hyphens property" href="https://drafts.csswg.org/css-text-3/#hyphenation">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-hyphens-auto">
+<link rel="match" href="reference/hyphens-auto-004M-ref.html">
+<link rel="match" href="reference/hyphens-auto-004H-ref.html">
+<meta name="flags" content="ahem">
+<meta name="assert" content="When 'hyphens' is set to 'auto' and when 'lang' attribute is also set to a valid value, then words may be broken at hyphenation opportunities determined automatically by an hyphenation resource appropriate to the language of the text involved.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.test {
+    border: solid 1px;
+    font: 32px/1 monospace;
+    width: 6ch;
+
+    hyphens: auto;
+}
+</style>
+<body lang="en">
+    <div class="test">regulation &#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000; implementation now</div>
+</body>

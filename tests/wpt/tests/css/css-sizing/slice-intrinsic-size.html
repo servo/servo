@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Test: min/max-content size on box-decoration-break:slice inline box</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-min-content">
+  <link rel="help" href="https://drafts.csswg.org/css-break-3/#break-decoration">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1552357">
+  <link rel="match" href="slice-intrinsic-size-ref.html">
+<style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+
+div {
+  border: 5px solid blue;
+}
+.max > div {
+  width: max-content;
+}
+.min > div {
+  width: min-content;
+}
+
+span {
+  border: 2px solid gray;
+  padding: 0 10px 0 6px;
+  border-width: 0 8px 0 5px;
+  margin: 0 4px 0 3px;
+  background: yellow;
+  /* for clarity: */
+  -webkit-box-decoration-break: slice;
+  box-decoration-break: slice;
+}
+
+f { margin-right: 30px; float: left; }
+</style>
+<body>
+<f class="max">
+<div>
+  <span>aaa</span><span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa<span>aaa</span>
+</div>
+<div>
+  <span>aaa</span> <span>aaa</span>
+</div>
+<div>
+  <span>aaa </span><span>aaa</span>
+</div>
+<div>
+  <span>aaa</span><span> aaa</span>
+</div>
+<div>
+  <span>aaa</span> aa<span>aaa</span>
+</div>
+<div>
+  <span>aaa </span>aa<span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa<span> aaa</span>
+</div>
+<div>
+  <span>aaa</span> aa <span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa <span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa </div>
+</f>
+
+<f class="min">
+<div>
+  <span>aaa</span><span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa<span>aaa</span>
+</div>
+<div>
+  <span>aaa</span> <span>aaa</span>
+</div>
+<div>
+  <span>aaa </span><span>aaa</span>
+</div>
+<div>
+  <span>aaa</span><span> aaa</span>
+</div>
+<div>
+  <span>aaa</span> aa<span>aaa</span>
+</div>
+<div>
+  <span>aaa </span>aa<span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa<span> aaa</span>
+</div>
+<div>
+  <span>aaa</span> aa <span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa <span>aaa</span>
+</div>
+<div>
+  <span>aaa</span>aa </div>
+</f>

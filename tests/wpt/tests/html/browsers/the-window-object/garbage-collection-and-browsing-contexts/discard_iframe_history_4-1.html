@@ -1,0 +1,21 @@
+<script>
+history_lengths = [];
+
+var t = opener.t;
+
+push_length = t.step_func(function () {
+  history_lengths.push(history.length)
+});
+
+do_test = t.step_func(function () {
+  try {
+    var start_length = history_lengths[0];
+    expected = [start_length, start_length + 1, start_length];
+    opener.assert_array_equals(history_lengths, expected);
+    t.done();
+  } finally {
+    window.close();
+  }
+});
+</script>
+<iframe src="discard_iframe_history_4-2.html"></iframe>

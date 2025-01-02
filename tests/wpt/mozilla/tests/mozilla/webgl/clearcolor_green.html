@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>WebGL ClearColor Test</title>
+</head>
+<style>
+
+html, body {
+  margin: 0;
+}
+
+</style>
+<body>
+<canvas id="canvas" width="640" height="480"></canvas>
+<!-- Dummy canvas that is only used to create a GL context that will be garbage collected -->
+<canvas id="canvas2" width="640" height="480"></canvas>
+<script type="text/javascript">
+
+var gl = document.getElementById("canvas").getContext("webgl");
+var gl2 = document.getElementById("canvas2").getContext("webgl");
+gl2 = null;
+document.getElementById('canvas2').remove();
+
+function draw() {
+gl.clearColor(0.0, 1.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
+draw();
+</script>
+</body>
+</html>

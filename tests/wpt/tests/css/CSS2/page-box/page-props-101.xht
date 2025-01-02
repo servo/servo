@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Right and Left Pages (page area equal)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#left-right-first" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The right and left pages of a document may use differing margin styles that yield equivalent page area heights." />
+  <style type="text/css">
+
+    @page :right {
+        margin-left: 33%;
+        margin-right: 7%;
+    }
+    @page :left {
+        margin-right: 33%;
+        margin-left: 7%;
+    }
+    span {
+        color: gray;
+    }
+    div {
+        margin-bottom: 2em;
+        width: 98%
+    }
+    .bordered {
+        border: medium solid blue;
+        background: #ececff;
+        padding: 1%;
+        page-break-after: always;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div>
+   This test produces three pages on paged media.
+   </div>
+   <div class="bordered">
+   This page has a wide left margin and a narrow right margin.  This content is completely enclosed by a blue border and has a pale blue background. A page break follows.
+   </div>
+   <div class="bordered">
+   This page has a wide right margin and a narrow left margin. This content is completely enclosed by a blue border and has a pale blue background. A page break follows.
+   </div>
+   <div class="bordered">
+   This page again has a wide left margin and narrow right margin. This content has a blue border on all sides and a pale blue background.
+   </div>
+ </body>
+</html>

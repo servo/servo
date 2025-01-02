@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Test: Support for sign function in @font-face</title>
+<link rel="match" href="font-face-weight-auto-static-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-prop-desc" />
+<style>
+  :root {
+    font-size: 16px;
+  }
+  @font-face {
+    font-family: "Lato";
+    src: url('support/fonts/Lato-Medium.ttf') format('truetype');
+    font-display: swap;
+    font-weight: calc(sign(1rem - 1px) * 400);
+    font-width: calc(sign(1rem - 1px) * 100%);
+  }
+
+  .test {
+    font-family: "Lato";
+    font-size: 3em;
+    font-weight: bold;
+  }
+</style>
+
+<p class="test">text</p>

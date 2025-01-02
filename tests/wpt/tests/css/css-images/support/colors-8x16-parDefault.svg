@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- This SVG file has the default preserveAspectRatio (xMidyMid meet).
+
+     If it's rendered via e.g. a square <img> element with 'object-fit: fill',
+     the SVG will receive the <img>'s full content-box to use as its viewport.
+     But, importantly, its viewBox-region should NOT be stretched/squashed to
+     fill this viewport; instead, the viewBox will scale *proportionally* until
+     it *just* fits inside the viewport (the <img>), without overflowing, and
+     it'll be centered inside the viewport in whichever dimension has extra
+     space available. (This is what "xMidYMid meet" requires.)
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="8" height="16" viewBox="0 0 8 16">
+  <rect x="0" y="0" width="4px" height="8px" style="fill: blue"/>
+  <rect x="4" y="0" width="4px" height="8px" style="fill: black"/>
+  <rect x="0" y="8" width="4px" height="8px" style="fill: rgb(255,128,128)"/>
+  <rect x="4" y="8" width="4px" height="8px" style="fill: lime"/>
+</svg>

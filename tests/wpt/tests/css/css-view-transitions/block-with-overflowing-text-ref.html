@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: block with overflowing text is rendered correctly (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+:root {
+  font: 20px/1 Ahem;
+}
+
+#target {
+  text-shadow: red -20px -50px;
+  position: relative;
+  top: 100px;
+  left: 100px;
+}
+
+body {
+  background: pink;
+}
+</style>
+
+<div id="target">This text should render correctly</div>
+

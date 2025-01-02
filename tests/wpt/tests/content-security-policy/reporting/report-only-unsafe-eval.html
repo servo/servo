@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script nonce='abc' src="/resources/testharness.js"></script>
+    <script nonce='abc' src="/resources/testharnessreport.js"></script>
+    <!-- CSP headers
+Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'nonce-abc'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+-->
+</head>
+<body>
+    <script nonce='abc'>
+      var t = async_test("Eval is allowed because the CSP is report-only");
+
+      var t_spv = async_test("SPV event is still raised");
+      t_spv.step_timeout(t_spv.unreached_func("SPV event has not been received"), 3000);
+      document.addEventListener('securitypolicyviolation', t_spv.step_func(e => {
+        assert_equals(e.violatedDirective, "script-src");
+        assert_equals(e.blockedURI, "eval");
+        t_spv.done();
+      }));
+
+      try {
+        eval("t.done()");
+      } catch {
+        t.step(t.unreached_func("The eval should have executed succesfully"));
+        t_spv.step(t_spv.unreached_func("The eval execution should have triggered a securitypolicyviolation event"));
+      }
+    </script>
+    <script nonce='abc' async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27unsafe-inline%27'></script>
+</body>
+</html>

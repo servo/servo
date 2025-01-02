@@ -1,0 +1,143 @@
+<!-- This is an autogen file. Run support/generate_object_view_box_tests.py to update -->
+<!DOCTYPE html>
+<title>CSS object-view-box with object-fit:fill (ref)</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="support/testHelper.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+div {
+  margin: 5px;
+}
+
+video {
+  object-fit: fill;
+}
+
+.container_view_box_subset {
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+  display: inline-block;
+  clip-path: inset(1px 0px 0px 0px);
+}
+.view_box_subset {
+  position: relative;
+  top: -50px;
+}
+
+.container_view_box_subset_with_position {
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+  background-color: grey;
+  display: inline-block;
+}
+.view_box_subset_with_position {
+  position: relative;
+  top: -40px;
+  left: 10px;
+}
+
+.container_view_box_subset_with_scaling {
+  width: 50px;
+  height: 100px;
+  overflow: hidden;
+  display: inline-block;
+  clip-path: inset(1px 0px 0px 0px);
+}
+.view_box_subset_with_scaling {
+  position: relative;
+  top: -100px;
+  width: 50px;
+  height: 200px;
+}
+
+.container_view_box_superset {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+}
+
+.container_view_box_superset_with_position {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+}
+.view_box_superset_with_position {
+  position: relative;
+  top: 10px;
+  left: 10px;
+}
+
+.container_view_box_superset_with_scaling {
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+}
+.view_box_superset_with_scaling {
+  width: 25px;
+  height: 50px;
+  object-fit: fill;
+}
+
+.container_view_box_intersection {
+  width: 25px;
+  height: 100px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+  clip-path: inset(0px 0px 1px 0px);
+}
+.view_box_intersection {
+  width: 50px;
+  height: 100px;
+  position: relative;
+  top: 50px;
+}
+
+.container_view_box_no_intersection {
+  width: 25px;
+  height: 50px;
+  overflow: hidden;
+  display: inline-block;
+  background-color: grey;
+}
+</style>
+<div class="container_view_box_subset">
+  <img class="view_box_subset"></img>
+</div>
+<div class="container_view_box_subset_with_position">
+  <img class="view_box_subset_with_position"></img>
+</div>
+<div class="container_view_box_subset_with_scaling">
+  <img class="view_box_subset_with_scaling"></img>
+</div>
+
+<div class="container_view_box_superset">
+  <img></img>
+</div>
+<div class="container_view_box_superset_with_position">
+  <img class="view_box_superset_with_position"></img>
+</div>
+<div class="container_view_box_superset_with_scaling">
+  <img class="view_box_superset_with_scaling"></img>
+</div>
+
+<div class="container_view_box_intersection">
+  <img class="view_box_intersection"></img>
+</div>
+
+<div class="container_view_box_no_intersection">
+</div>
+</body>
+<script>
+  populateElements("support/blue-green-red-yellow-50x100.svg");
+</script>

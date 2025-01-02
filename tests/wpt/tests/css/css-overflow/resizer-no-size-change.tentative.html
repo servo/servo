@@ -1,0 +1,107 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Resizer should not set the width/height properties when size doesn't change</title>
+<link rel=author href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel=author href="https://mozilla.org" title="Mozilla">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1795536">
+<style>
+body {
+  margin: 0;
+}
+#resizeme {
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  resize: both;
+  background-color: green;
+}
+#parent {
+  background-color: purple;
+  position: relative;
+}
+</style>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="parent" style="width: 400px; height: 400px">
+  <div id="resizeme" style="width: 100px; height: 100px;"></div>
+</div>
+<script>
+function tick() {
+  return new Promise(r => {
+    requestAnimationFrame(() => requestAnimationFrame(r));
+  });
+}
+
+promise_test(async function test() {
+  const element = document.getElementById("resizeme");
+
+  {
+    // Set up the observer.
+    const observer = new ResizeObserver(entries => {
+      const rect = entries[0].contentRect;
+      if (rect.width && rect.height) {
+        const style = element.style;
+        const { height, width } = style;
+        const widthPercent = width.endsWith("%");
+        const heightPercent = height.endsWith("%");
+        if (widthPercent && heightPercent) {
+          return;
+        }
+
+        const parent = element.parentElement;
+        const parentWidth = parseFloat(parent.style.width);
+        const parentHeight = parseFloat(parent.style.height);
+        if (!widthPercent) {
+          style.width = `${(100 * parseFloat(width)) / parentWidth}%`;
+        }
+        if (!heightPercent) {
+          style.height = `${(100 * parseFloat(height)) / parentHeight}%`;
+        }
+      }
+    });
+    observer.observe(element);
+  }
+
+  {
+    // Resize to the smallest horizontal dimension possible.
+    const rect = element.getBoundingClientRect();
+
+    await new test_driver.Actions()
+      .pointerMove(rect.right - 1, rect.bottom - 1)
+      .pointerDown()
+      .pointerMove(rect.left, rect.bottom - 1)
+      .pointerUp()
+      .send();
+  }
+
+  await tick();
+
+  assert_true(element.style.width.endsWith("%"), "Width is in percent");
+  assert_true(element.style.height.endsWith("%"), "Height is in percent");
+
+  const oldRect = element.getBoundingClientRect();
+  {
+    // Try to shrink again (we shouldn't be able to).
+    await new test_driver.Actions()
+      .pointerMove(oldRect.right - 1, oldRect.bottom - 1)
+      .pointerDown()
+      .pointerMove(oldRect.left, oldRect.bottom - 1)
+      .pointerUp()
+      .send();
+  }
+
+  assert_true(element.style.width.endsWith("%"), "Width is still in percent");
+  assert_true(element.style.height.endsWith("%"), "Height is still in percent");
+
+  await tick();
+
+  assert_true(element.style.width.endsWith("%"), "Width is still in percent");
+  assert_true(element.style.height.endsWith("%"), "Height is still in percent");
+});
+</script>

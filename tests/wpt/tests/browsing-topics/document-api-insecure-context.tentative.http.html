@@ -1,0 +1,17 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+    promise_test(async t => {
+      try {
+        await document.browsingTopics();
+      } catch (e) {
+        assert_equals(e.name, 'TypeError');
+        assert_equals(e.message, 'document.browsingTopics is not a function');
+        return;
+      }
+      assert_unreached("did not reject");
+    }, 'test document.browsingTopics() in insecure context');
+  </script>
+</body>

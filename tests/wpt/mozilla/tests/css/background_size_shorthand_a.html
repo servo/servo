@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=match href=background_size_shorthand_ref.html>
+<!-- Tests that the `background-size` shorthand works. -->
+<style>
+section {
+    width: 100px;
+    height: 100px;
+    border: solid black 1px;
+}
+#a {
+    background: 10px 10px / 80px 80px url(rust_logo.png) no-repeat;
+}
+#b {
+    background: url(rust_logo.png) 10px 10px / 80px 80px no-repeat;
+}
+#c {
+    background: no-repeat url(rust_logo.png) 10px 10px / 80px 80px;
+}
+</style>
+</head>
+<body>
+<section id=a>&nbsp;</section>
+<section id=b>&nbsp;</section>
+<section id=c>&nbsp;</section>
+</body>
+</html>
+

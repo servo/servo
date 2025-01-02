@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>pagereveal event fires and in correct order on prerender activation (popup)</title>
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+const is_prerender_step = params.has('prerendering');
+
+const ready_channel = new PrerenderChannel('ready-to-activate', uid);
+
+function finish(result) {
+  const result_channel = new PrerenderChannel('result', uid);
+  result_channel.postMessage(result);
+  result_channel.close();
+  window.close();
+}
+
+// testharness.js assertions don't work inside this popup so this small helper
+// sends a failure signal back to the test page which will cause test failure.
+function assert(cond, desc) {
+  if (!cond) {
+    finish({fail: desc});
+  }
+}
+
+// The first load of this page should be without 'prerendering' and is used
+// to setup the prerender and then activate it when it's ready.
+if (!is_prerender_step) {
+  assert(!document.prerendering, 'initiator page must not be prerendered');
+
+  const ready_to_activate = new Promise(resolve => {
+    ready_channel.addEventListener('message', resolve, {once: true});
+  });
+
+  const prerendering_url = location.href + '&prerendering';
+  startPrerendering(prerendering_url);
+
+  ready_to_activate.then(() => {
+    location.replace(prerendering_url);
+  });
+} else {
+  assert(document.prerendering, 'prerendering step must be initially prerendered');
+
+  const result = {
+    events: []
+  };
+
+  document.addEventListener('prerenderingchange', () => {
+    result.events.push('prerenderingchange');
+  });
+
+  addEventListener('pageshow', () => {
+    result.events.push('pageshow');
+  });
+
+  // A second rAF will end the test.
+  requestAnimationFrame(() => {
+    result.events.push('raf');
+    requestAnimationFrame(() => finish(result));
+  });
+
+  addEventListener('pagereveal', () => {
+    result.events.push('pagereveal');
+  });
+
+  addEventListener('load', () => {
+    ready_channel.postMessage('unused-readyToActivateMessage');
+    ready_channel.close();
+  });
+}
+</script>

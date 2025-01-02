@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <meta charset=utf-8>
+        <title>SSL Failure</title>
+        <link rel=match href=sslfail-ref.html>
+        <script src="resources/origin_helpers.js?pipe=sub"></script>
+    </head>
+    <body>
+        <script>
+var iframe = document.createElement('iframe');
+document.body.appendChild(iframe);
+iframe.src = location.href
+                     .replace(HTTP_ORIGIN, HTTPS_ORIGIN)
+                     .replace('sslfail.html', 'resources/ssl.https.html');
+        </script>
+    </body>
+</html>

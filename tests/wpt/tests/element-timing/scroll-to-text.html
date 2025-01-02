@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe text that is initially not visible</title>
+<body>
+<style>
+.big {
+  width: 100%;
+  height: 100vh;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<div class='big'></div>
+<p elementtiming='observeMe'>Test text</p>
+<script>
+  async_test((t) => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(t.step_func_done(() => {}));
+    observer.observe({type: 'element', buffered: true});
+    window.onload = () => {
+      // The div occupies the whole screen because it occupies 100% of the height.
+      // We scroll to the end of the document so that the paragraph becomes visible.
+      // A user agent could paint the text before or after scrolling, but either way
+      // it must produce an entry for it.
+      window.scrollTo(0,document.scrollingElement.scrollHeight);
+    };
+  }, 'Paragraph with elementtiming attribute is observed even when not initially visible.');
+</script>
+</body>

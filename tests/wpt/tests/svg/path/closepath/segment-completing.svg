@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="300" height="200">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#paths-PathDataClosePathCommand"/>
+    <h:link rel="match" href="segment-completing-ref.svg"/>
+    <h:meta name="assert" content="initial subpath point used to complete segment."/>
+  </metadata>
+  <style>
+    path {
+      stroke: blue;
+    }
+  </style>
+  <path d="M 10 10 z m 20 70 h 10 v 10 h -10 l z M 70 30 q 20 0 20 20 t -20 20 t -20 -20 T z" />
+</svg>

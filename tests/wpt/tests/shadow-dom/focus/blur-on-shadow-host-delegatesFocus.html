@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Blur on shadow host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="host">
+  <input id="slotted">
+</div>
+
+<script>
+const host = document.getElementById("host");
+
+const shadowRoot = host.attachShadow({ mode: "open", delegatesFocus: true });
+
+shadowRoot.innerHTML = "<input><slot>"
+
+test(function() {
+  host.focus();
+  assert_equals(document.activeElement, host);
+  assert_equals(shadowRoot.activeElement, shadowRoot.querySelector("input"));
+  host.blur();
+  assert_equals(document.activeElement, document.body);
+  assert_equals(shadowRoot.activeElement, null);
+}, "Calling blur() on shadow host with delegatesFocus should remove the focus.");
+
+test(function() {
+  const slotted = document.getElementById("slotted");
+  slotted.focus();
+  assert_equals(document.activeElement, slotted);
+  assert_equals(shadowRoot.activeElement, null)
+  host.blur();
+  assert_equals(document.activeElement, slotted);
+  assert_equals(shadowRoot.activeElement, null)
+}, "Calling blur() on shadow host with delegatesFocus when the focus is on a slotted element should not remove the focus.");
+</script>

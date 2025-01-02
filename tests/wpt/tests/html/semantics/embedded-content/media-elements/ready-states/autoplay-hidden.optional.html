@@ -1,0 +1,37 @@
+<!doctype html>
+<title>autoplay hidden</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#ready-states"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id="log"></div>
+<script>
+
+// https://html.spec.whatwg.org/multipage/media.html#ready-states:eligible-for-autoplay-2
+
+promise_test(async t => {
+  let video = document.createElement("video");
+  video.src = getVideoURI("/media/movie_5");
+  video.autoplay = true;
+  // In Safari, Chrome and Firefox, the video needs to be muted in order to be
+  // paused when hidden. They decided to do this in order to save resources when
+  // a video goes out of view and isn't expected to make any sound.
+  video.muted = true;
+  video.loop = true;
+  let watcher = new EventWatcher(t, video, ["playing", "pause"]);
+  document.body.appendChild(video);
+
+  await watcher.wait_for("playing");
+  assert_false(video.paused, "paused when video is display");
+  video.hidden = true;
+
+  await watcher.wait_for("pause");
+  assert_true(video.paused, "paused when video is hidden");
+  video.hidden = false;
+
+  await watcher.wait_for("playing");
+  assert_false(video.paused, "paused when video is display");
+}, "Allow delaying autoplay until video elements become visible");
+
+</script>

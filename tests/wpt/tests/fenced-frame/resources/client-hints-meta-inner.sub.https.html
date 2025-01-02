@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta http-equiv="Accept-CH"
+      content="sec-ch-viewport-width, sec-ch-ua-reduced"/>
+<meta http-equiv="Feature-Policy"
+      content="ch-viewport-width *, ch-ua-reduced *"/>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Client Hints Helper</title>
+<body>
+<script type="module">
+const [key] = parseKeylist();
+let iframe = document.createElement('iframe');
+let p = new Promise((resolve, reject) => {
+  window.addEventListener('message', e => {
+    resolve(e.data);
+  });
+});
+iframe.src = 'client-hints-meta-iframe-inner.sub.https.html';
+document.body.appendChild(iframe);
+const response = await p;
+const result = {
+  'root-fenced-frame-headers': {
+    'sec-ch-viewport-width': '{{header_or_default(sec-ch-viewport-width, )}}',
+    'sec-ch-ua-reduced': '{{header_or_default(sec-ch-ua-reduced, )}}',
+    'sec-ch-ua-mobile': '{{header_or_default(sec-ch-ua-mobile, )}}',
+  },
+  'iframe-headers': response.headers,
+};
+writeValueToServer(key, JSON.stringify(result));
+</script>
+</body>

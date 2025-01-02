@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - forced-colors media query.
+  Tests that styles defined inside or outside a forced-colors media query are
+  overridden in forced colors mode.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @media (forced-colors) {
+    p {
+      color: rgb(0, 0, 255);
+    }
+  }
+  p {
+    color: rgb(0, 0, 255);
+  }
+</style>
+<body>
+  <p id="p">
+    This text should NOT be blue forced colors mode.
+  </p>
+</body>
+
+<script>
+  test(function() {
+    assert_not_equals(getComputedStyle(p).color, "rgb(0, 0, 255)");
+  }, "Checks that styles defined inside/outside forced-colors are overridden in forced colors mode.");
+</script>

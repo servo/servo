@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-align - end (basic)</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. Text Alignment: the 'text-align' property" href="http://www.w3.org/TR/css-text-3/#text-align">
+<link rel="match" href="text-align-007-ref.html">
+<meta name="assert" content="The 'text-align' property set to 'end' on a block element aligns the text to the end edge.">
+<style>
+  div {
+    border: 1px solid blue;
+    text-align: end;
+  }
+</style>
+<body>
+  <p>Test passes if the words "Filler Text" below are aligned to the right, inside the blue box.</p>
+  <div>Filler Text</div>
+</body>

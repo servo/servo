@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline-style set to 'hidden'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="Outline style does not support the 'border-style' value of 'hidden'." />
+        <style type="text/css">
+            div
+            {
+                height: 100px;
+                margin-left: 40px;
+                margin-top: 40px;
+                outline-color: green;
+                outline-width: 15px;
+                outline-style: solid;
+                outline-style: hidden;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is an empty green square below.</p>
+        <div></div>
+    </body>
+</html>

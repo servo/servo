@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Transform Feedback Conformance Test - Default Transform Feedback</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in float in_value;
+out float out_value;
+
+void main() {
+   out_value = in_value * 2.;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 dummy;
+void main() {
+  dummy = vec4(1);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies using the default transform feedback object");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runDefaultTransformFeedbackTest();
+    finishTest();
+}
+
+function runDefaultTransformFeedbackTest() {
+  const prog = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+      ["out_value"], gl.SEPARATE_ATTRIBS,
+      ["in_value"]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "linking transform feedback shader should not set an error");
+
+  const inLoc = 0;
+  const outLoc = 0;
+
+  const srcBuffer1 = createBuffer(gl, new Float32Array([1, 2, 3]));
+  const srcVAO1 = createVAO(gl, srcBuffer1, inLoc);
+
+  const dstBuffer = createBuffer(gl, Float32Array.BYTES_PER_ELEMENT * 3);
+
+  const tf = null; // use the default transform feedback gl.createTransformFeedback();
+  gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+  gl.useProgram(prog);
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, outLoc, dstBuffer);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors binding a buffer to the default transform feedback");
+
+  runFeedback(gl, prog, srcVAO1, tf);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors having drawn with the default transform feedback");
+
+  const expected = [2, 4, 6];
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, dstBuffer);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, expected);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors after readback");
+}
+
+function runFeedback(gl, prog, srcVAO, tf, dstBufferInfo) {
+  gl.enable(gl.RASTERIZER_DISCARD);
+
+  gl.useProgram(prog);
+  gl.bindVertexArray(srcVAO);
+
+  gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+  gl.beginTransformFeedback(gl.TRIANGLES);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors setting up to draw with the default transform feedback");
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.endTransformFeedback();
+
+  gl.disable(gl.RASTERIZER_DISCARD);
+}
+
+function createBuffer(gl, dataOrSize) {
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, dataOrSize, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null); // Clear this or we'll have tfo/non-tfo simultaneous usage.
+  return buf;
+}
+
+function createVAO(gl, buf, inLoc) {
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.enableVertexAttribArray(inLoc);
+  gl.vertexAttribPointer(inLoc, 1, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+  return vao;
+}
+</script>
+</body>
+</html>
+
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->

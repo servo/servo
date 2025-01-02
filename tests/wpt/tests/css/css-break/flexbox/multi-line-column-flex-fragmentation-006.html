@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation with items that stretch.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 5;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    position: relative;
+    height: 500px;
+    width: 20px;
+  }
+  .flex > div {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex">
+    <div style="height: 250px;"></div>
+    <div style="height: 250px;"></div>
+    <div style="height: 500px;"></div>
+  </div>
+</div>

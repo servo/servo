@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>attr() with HTML attributes</title>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#attr-notation">
+<link rel="help" href="https://www.w3.org/TR/css-content-3/#content-property">
+<link rel=match href="/css/css-content/attr-case-sensitivity-ref-001.html">
+<meta name="assert" content="This test checks that names specified in attr() for a content property are case-insensitive in HTML documents.">
+<style type="text/css">
+div#gencon:before { content: attr(foo) attr(Foo) attr(fOO)
+                             attr(bar) attr(Bar) attr(bAR)
+                             attr(baz) attr(Baz) attr(BAZ) }
+</style>
+<body>
+<div id="gencon" foo="a" Bar="b" bAZ="c"></div>
+</body>

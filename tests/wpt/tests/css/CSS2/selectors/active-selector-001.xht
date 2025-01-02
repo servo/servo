@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Active pseudo-class matching</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="Active pseudo-class selector matches any element which has been activated until it has been deactivated." />
+        <style type="text/css">
+            div:active
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is initially black, when it is activated it turns green, and it returns to black when it is deactivated.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

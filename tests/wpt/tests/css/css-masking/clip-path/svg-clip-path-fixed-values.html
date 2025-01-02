@@ -1,0 +1,24 @@
+<!doctype html>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#supported-basic-shapes">
+<link rel="match" href="svg-clip-path-fixed-values-ref.html">
+<meta name="fuzzy" content="maxDifference=0-62; totalPixels=0-608">
+<meta name="assert" content="clip-path clips correctly">
+<style>
+svg {
+  width: 300px;
+  height: 300px;
+}
+.bg1 { fill: green; }
+.cp1 { clip-path: polygon(0px 0px, 100px 0px, 0px 100px); }
+.cp2 { clip-path: circle(50px); }
+.cp3 { clip-path: ellipse(50px 30px); }
+.cp4 { clip-path: inset(10px 20px 30px 40px); }
+</style>
+<svg>
+  <rect class="bg1" x="100" y="100" width="100" height="100"/>
+  <rect class="bg1 cp1" x="0" y="0" width="100" height="100"/>
+  <rect class="bg1 cp2" x="0" y="200" width="100" height="100" />
+  <rect class="bg1 cp3" x="200" y="200" width="100" height="100" />
+  <rect class="bg1 cp4" x="200" y="0" width="100" height="100" />
+</svg>

@@ -1,0 +1,139 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>legend block-axis margins</title>
+  <link rel="match" href="legend-block-margins-2-ref.html">
+<style>
+fieldset {
+  width: 40px;
+  border: 2px solid blue;
+  padding: 4px;
+  margin: 0;
+}
+legend {
+  width: 10px;
+  height: 20px;
+  padding: 0;
+  background: grey;
+
+}
+
+.t2 fieldset { border-top-width: 12px; }
+.t3 fieldset { border-top-width: 12px; }
+.t3 legend { height: 6px; }
+
+div { border: 1px solid;  margin: 0 2px 10px 0; }
+c { display:block; height:10px; background: lightgrey; }
+f { float: left; }
+</style>
+</head>
+<body>
+
+<f>
+<div>
+  <fieldset><legend></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: 10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -20px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -30px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: 10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: 20px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: -20px"></legend><c></c></fieldset>
+</div>
+</f>
+
+<f class=t2>
+<div>
+  <fieldset><legend></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: 10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -20px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -30px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: 10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: 20px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: -20px"></legend><c></c></fieldset>
+</div>
+</f>
+
+<f class=t3>
+<div>
+  <fieldset><legend></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: 10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -20px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-top: -30px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: 10px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: 20px"></legend><c></c></fieldset>
+</div>
+
+<div>
+  <fieldset><legend style="margin-bottom: -20px"></legend><c></c></fieldset>
+</div>
+</f>
+
+</body>
+</html>

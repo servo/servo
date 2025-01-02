@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?Backspace">
+<meta name="variant" content="?Delete">
+<title>InputEvent.getTargetRanges() at deleting in/around/across list item elements</title>
+<div contenteditable></div>
+<script src="input-events-get-target-ranges.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+const action = location.search.substring(1);
+function run() {
+  switch (action) {
+    case "Backspace":
+      return sendBackspaceKey();
+    case "Delete":
+      return sendDeleteKey();
+    default:
+      throw "Unhandled variant";
+  }
+}
+
+/**
+ * @param innerHTML     Initial `innerHTML` value of the editor.
+ * @param data
+ *          expectedInnerHTML
+ *                      Expected `innerHTML` of the editor after calling
+ *                      `run()`.  This can be array of string if there are
+ *                      some acceptable differences like whether there is
+ *                      an invisible `<br>` element at end of list item.
+ *          expectedTargetRanges
+ *                      `null` or `unspecified` if `beforeinput` event shouldn't
+ *                      be fired.
+ *                      Otherwise, function returning an array of objects
+ *                      which have `startContainer`, `startOffset`,
+ *                      `endContainer`, `endOffset`.  This will be called
+ *                      before calling `run()` and compared with
+ *                      `getTargetRanges()` after that.
+ *          expectInputEvent:
+ *                      `true` if it should cause an `input` event.
+ */
+function addPromiseTest(innerHTML, data) {
+  promise_test(async (t) => {
+    initializeTest(innerHTML);
+    let expectedTargetRanges =
+      typeof data.expectedTargetRanges === "function"
+        ? data.expectedTargetRanges()
+        : null;
+    await run();
+    checkEditorContentResultAsSubTest(data.expectedInnerHTML, t.name);
+    if (expectedTargetRanges !== null) {
+      checkGetTargetRangesOfBeforeinputOnDeleteSomething(expectedTargetRanges);
+      if (data.expectInputEvent) {
+        checkGetTargetRangesOfInputOnDeleteSomething();
+      } else {
+        checkGetTargetRangesOfInputOnDoNothing();
+      }
+    } else {
+      checkBeforeinputAndInputEventsOnNOOP();
+    }
+  }, `${action} at "${innerHTML}"`);
+}
+
+// Join left list element and right list element, both have one item.
+function test_join_1_1(leftItem, rightItem) {
+  addPromiseTest(
+    action === "Backspace"
+      ? `<dl><${leftItem}>list-item1</${leftItem}></dl><dl><${rightItem}>[]list-item2</${rightItem}></dl>`
+      : `<dl><${leftItem}>list-item1[]</${leftItem}></dl><dl><${rightItem}>list-item2</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItem}>list-item1list-item2</${leftItem}></dl>`,
+        `<dl><${leftItem}>list-item1list-item2<br></${leftItem}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItem}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild,
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>list-item1[</${leftItem}></dl><dl><${rightItem}>}list-item2</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItem}>list-item1list-item2</${leftItem}></dl>`,
+        `<dl><${leftItem}>list-item1list-item2<br></${leftItem}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItem}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>[list-item1</${leftItem}></dl><dl><${rightItem}>}list-item2</${rightItem}></dl>`,
+    {
+      expectedInnerHTML:
+        leftItem === "dt" && rightItem === "dd"
+          ? [
+              `<dl><${rightItem}>list-item2</${rightItem}></dl>`,
+              `<dl><${rightItem}>list-item2<br></${rightItem}></dl>`,
+            ]
+          : [
+              `<dl><${leftItem}>list-item2</${leftItem}></dl>`,
+              `<dl><${leftItem}>list-item2<br></${leftItem}></dl>`,
+            ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>list-item1[</${leftItem}></dl><dl><${rightItem}>list-item2]</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItem}>list-item1</${leftItem}></dl>`,
+        `<dl><${leftItem}>list-item1<br></${leftItem}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>[list-item1</${leftItem}></dl><dl><${rightItem}>list-item2]</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: `<dl><${leftItem}><br></${leftItem}></dl>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+}
+
+// Join left list element which has 2 items and right list element which has one item.
+function test_join_2_1(leftItems, rightItem) {
+  addPromiseTest(
+    action === "Backspace"
+      ? `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2</${leftItems[1]}></dl><dl><${rightItem}>[]list-item3</${rightItem}></dl>`
+      : `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2[]</${leftItems[1]}></dl><dl><${rightItem}>list-item3</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3</${leftItems[1]}></dl>`,
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3<br></${leftItems[1]}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild,
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2[</${leftItems[1]}></dl><dl><${rightItem}>}list-item3</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3</${leftItems[1]}></dl>`,
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3<br></${leftItems[1]}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>[list-item2</${leftItems[1]}></dl><dl><${rightItem}>}list-item3</${rightItem}></dl>`,
+    {
+      expectedInnerHTML:
+        leftItems[1] === "dt" && rightItem === "dd"
+          ? [
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}></dl><dl><${rightItem}>list-item3</${rightItem}></dl>`,
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}></dl><dl><${rightItem}>list-item3<br></${rightItem}></dl>`,
+            ]
+          : [
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item3</${leftItems[1]}></dl>`,
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item3<br></${leftItems[1]}></dl>`,
+            ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>[list-item1</${leftItems[0]}><${leftItems[1]}>list-item2</${leftItems[1]}></dl><dl><${rightItem}>}list-item3</${rightItem}></dl>`,
+    {
+      expectedInnerHTML:
+        leftItems[0] === "dt" && rightItem === "dd"
+          ? [
+              `<dl><${rightItem}>list-item3</${rightItem}></dl>`,
+              `<dl><${rightItem}>list-item3<br></${rightItem}></dl>`,
+            ]
+          : [
+              `<dl><${leftItems[0]}>list-item3</${leftItems[0]}></dl>`,
+              `<dl><${leftItems[0]}>list-item3<br></${leftItems[0]}></dl>`,
+            ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2[</${leftItems[1]}></dl><dl><${rightItem}>list-item3]</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2</${leftItems[1]}></dl>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>[list-item2</${leftItems[1]}></dl><dl><${rightItem}>list-item3]</${rightItem}></dl>`,
+    {
+      expectedInnerHTML: `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}><br></${leftItems[1]}></dl>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItem}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+}
+
+// Join left list element which has one item and right list element which has 2 items.
+function test_join_1_2(leftItem, rightItems) {
+  addPromiseTest(
+    action === "Backspace"
+      ? `<dl><${leftItem}>list-item1</${leftItem}></dl><dl><${rightItems[0]}>[]list-item2</${rightItems[0]}><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`
+      : `<dl><${leftItem}>list-item1[]</${leftItem}></dl><dl><${rightItems[0]}>list-item2</${rightItems[0]}><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItem}>list-item1list-item2</${leftItem}></dl><dl><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+        `<dl><${leftItem}>list-item1list-item2<br></${leftItem}></dl><dl><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItem}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild,
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>list-item1[</${leftItem}></dl><dl><${rightItems[0]}>}list-item2</${rightItems[0]}><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItem}>list-item1list-item2</${leftItem}></dl><dl><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+        `<dl><${leftItem}>list-item1list-item2<br></${leftItem}></dl><dl><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItem}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>list-item1[</${leftItem}></dl><dl><${rightItems[0]}>list-item2]</${rightItems[0]}><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItem}>list-item1</${leftItem}></dl><dl><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+        `<dl><${leftItem}>list-item1<br></${leftItem}></dl><dl><${rightItems[1]}>list-item3</${rightItems[1]}</dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItem}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>[list-item1</${leftItem}></dl><dl><${rightItems[0]}>list-item2]</${rightItems[0]}><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: `<dl><${leftItem}><br></${leftItem}></dl><dl><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItem}>[list-item1</${leftItem}></dl><dl><${rightItems[0]}>list-item2</${rightItems[0]}><${rightItems[1]}>}list-item3</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML:
+        leftItem === "dt" && rightItems[1] === "dd"
+          ? [
+              `<dl><${rightItems[1]}>list-item3</${rightItems[1]}></dl>`,
+              `<dl><${rightItems[1]}>list-item3<br></${rightItems[1]}></dl>`,
+            ]
+          : [
+              `<dl><${leftItem}>list-item3</${leftItem}></dl>`,
+              `<dl><${leftItem}>list-item3<br></${leftItem}></dl>`,
+            ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItem}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]} + ${rightItems[1]}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+}
+
+// Join left list element and right list element, both have 2 items.
+function test_join_2_2(leftItems, rightItems) {
+  addPromiseTest(
+    action === "Backspace"
+      ? `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2</${leftItems[1]}></dl><dl><${rightItems[0]}>[]list-item3</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`
+      : `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2[]</${leftItems[1]}></dl><dl><${rightItems[0]}>list-item3</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3</${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3<br></${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild,
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2[</${leftItems[1]}></dl><dl><${rightItems[0]}>}list-item3</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: [
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3</${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+        `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2list-item3<br></${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+      ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  // XXX This and next one's expectation come from Blink's behavior.
+  //     I'm not sure whether this is intentional complicated handling
+  //     or not.
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>[list-item2</${leftItems[1]}></dl><dl><${rightItems[0]}>}list-item3</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML:
+        leftItems[1] === "dt" && rightItems[0] === "dd"
+            ? [
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}></dl><dl><${rightItems[0]}>list-item3</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}></dl><dl><${rightItems[0]}>list-item3<br></${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+              ]
+            : [
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item3</${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+              `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item3<br></${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+            ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>[list-item1</${leftItems[0]}><${leftItems[1]}>list-item2</${leftItems[1]}></dl><dl><${rightItems[0]}>}list-item3</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML:
+        leftItems[0] === "dt" && rightItems[0] === "dd"
+          ? [
+              `<dl><${rightItems[0]}>list-item3</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+              `<dl><${rightItems[0]}>list-item3<br></${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+            ]
+          : [
+              `<dl><${leftItems[0]}>list-item3</${leftItems[0]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+              `<dl><${leftItems[0]}>list-item3<br></${leftItems[0]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+            ],
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`),
+            endOffset: 0,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2[</${leftItems[1]}></dl><dl><${rightItems[0]}>list-item3]</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>list-item2</${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild.length,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}>[list-item2</${leftItems[1]}></dl><dl><${rightItems[0]}>list-item3]</${rightItems[0]}><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: `<dl><${leftItems[0]}>list-item1</${leftItems[0]}><${leftItems[1]}><br></${leftItems[1]}></dl><dl><${rightItems[1]}>list-item4</${rightItems[1]}></dl>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]} + ${leftItems[1]}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItems[0]}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+
+  addPromiseTest(
+    `<dl><${leftItems[0]}>[list-item1</${leftItems[0]}><${leftItems[1]}>list-item2</${leftItems[1]}></dl><dl><${rightItems[0]}>list-item3</${rightItems[0]}><${rightItems[1]}>list-item4]</${rightItems[1]}></dl>`,
+    {
+      expectedInnerHTML: `<dl><${leftItems[0]}><br></${leftItems[0]}></dl>`,
+      expectedTargetRanges: () => {
+        return [
+          {
+            startContainer: gEditor.querySelector(`${leftItems[0]}`).firstChild,
+            startOffset: 0,
+            endContainer: gEditor.querySelector(`dl + dl > ${rightItems[0]} + ${rightItems[1]}`).firstChild,
+            endOffset: gEditor.querySelector(`dl + dl > ${rightItems[0]} + ${rightItems[1]}`).firstChild.length,
+          },
+        ];
+      },
+      expectInputEvent: true,
+    }
+  );
+}
+
+// Joining dl elements
+for (let listItem1 of ["dt", "dd"]) {
+  for (let listItem2 of ["dt", "dd"]) {
+    test_join_1_1(listItem1, listItem2);
+    for (let listItem3 of ["dt", "dd"]) {
+      test_join_2_1([listItem1, listItem2], listItem3);
+      test_join_1_2(listItem1, [listItem2, listItem3]);
+      for (let listItem4 of ["dt", "dd"]) {
+        test_join_2_2([listItem1, listItem2], [listItem3, listItem4]);
+      }
+    }
+  }
+}
+
+</script>

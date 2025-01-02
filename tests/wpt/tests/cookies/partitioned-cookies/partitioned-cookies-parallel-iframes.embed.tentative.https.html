@@ -1,0 +1,107 @@
+<!doctype html>
+<head>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<meta name="help" href="https://github.com/WICG/CHIPS#chips-cookies-having-independent-partitioned-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+<title>Test partitioned cookies behavior in parallel same-site iframes</title>
+</head>
+<body>
+<script>
+
+function waitForIframeToLoad(frame) {
+  return new Promise((resolve, reject) => {
+    frame.onload = resolve;
+    frame.onerror = reject;
+ });
+}
+
+promise_test( async() => {
+  // Set up document containing two same-site iframes.
+  const sameSiteIframeUrl = new URL(
+      "/cookies/partitioned-cookies/resources/" +
+          "partitioned-cookies-empty-embed.html",
+          get_host_info().HTTPS_ORIGIN + self.location.pathname);
+
+  const iframe = document.createElement("iframe");
+  const iframe2 = document.createElement("iframe");
+
+  iframe.src = sameSiteIframeUrl.href;
+  iframe2.src = sameSiteIframeUrl.href;
+
+  let loadCompleted = Promise.all([waitForIframeToLoad(iframe), waitForIframeToLoad(iframe2)]);
+
+  document.body.appendChild(iframe);
+  document.body.appendChild(iframe2);
+
+  await loadCompleted;
+
+  // Confirm that partitioned cookies set in iframes are made available to other same-site
+  // documents that exist before the cookie is set.
+  const partitionedCookieName = "partitionedCookie";
+  const partitionedCookie = partitionedCookieName+ "=cookie";
+  const partitionedCookieAttributes =
+        ";Secure; Path=/; SameSite=None; Partitioned";
+
+  iframe.contentWindow.document.cookie = partitionedCookie + partitionedCookieAttributes;
+
+  assert_true(document.cookie.includes(partitionedCookie), document.cookie);
+  assert_true(iframe.contentWindow.document.cookie.includes(partitionedCookie),
+      iframe.contentWindow.document.cookie);
+  assert_true(iframe2.contentWindow.document.cookie.includes(partitionedCookie),
+      iframe2.contentWindow.document.cookie);
+
+  // Confirm that partitioned cookies are available to iframes that are added after the
+  // cookie has been set.
+  const iframe3 = document.createElement("iframe");
+  loadCompleted = waitForIframeToLoad(iframe3);
+
+  iframe3.src = sameSiteIframeUrl.href;
+
+  loadCompleted = waitForIframeToLoad(iframe3);
+
+  document.body.appendChild(iframe3);
+
+  await loadCompleted;
+
+  assert_true(iframe3.contentWindow.document.cookie.includes(partitionedCookie));
+
+  // Confirm that a partitioned cookie set in one iframe, is accessible in all other same site
+  // documents.
+  const secondPartitionedCookie = "second=cookie";
+
+  iframe.contentWindow.document.cookie = secondPartitionedCookie + partitionedCookieAttributes;
+
+  assert_true(iframe.contentWindow.document.cookie.includes(secondPartitionedCookie),
+      iframe.contentWindow.document.cookie);
+  assert_true(iframe2.contentWindow.document.cookie.includes(secondPartitionedCookie),
+      iframe2.contentWindow.document.cookie);
+  assert_true(iframe3.contentWindow.document.cookie.includes(secondPartitionedCookie),
+      iframe3.contentWindow.document.cookie);
+  assert_true(document.cookie.includes(secondPartitionedCookie), document.cookie);
+
+  // Confirm that changes made to a partitioned cookie in one iframe will impact the cookie
+  // in other documents.
+  const changedPartitionedCookie = partitionedCookieName+ "=newValue";
+
+  iframe.contentWindow.document.cookie = changedPartitionedCookie + partitionedCookieAttributes;
+
+  assert_true(iframe.contentWindow.document.cookie.includes(changedPartitionedCookie),
+      iframe.contentWindow.document.cookie);
+  assert_true(iframe2.contentWindow.document.cookie.includes(changedPartitionedCookie),
+      iframe2.contentWindow.document.cookie);
+  assert_true(document.cookie.includes(changedPartitionedCookie), document.cookie);
+
+  assert_false(document.cookie.includes(partitionedCookie), document.cookie);
+  assert_false(iframe.contentWindow.document.cookie.includes(partitionedCookie),
+      iframe.contentWindow.document.cookie);
+  assert_false(iframe2.contentWindow.document.cookie.includes(partitionedCookie),
+      iframe2.contentWindow.document.cookie);
+
+}, "Partitioned cookies set in same-site contexts are available in other same-site documents.");
+</script>
+</body>

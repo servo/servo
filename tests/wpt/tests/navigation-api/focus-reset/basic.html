@@ -1,0 +1,63 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import { testFocusWasReset, testFocusWasNotReset } from "./resources/helpers.mjs";
+
+test(() => {
+  let throwAssertionHappened = false;
+
+  navigation.addEventListener("navigate", e => {
+    assert_throws_js(TypeError, () => {
+      e.intercept({ focusReset: "invalid" });
+    });
+    throwAssertionHappened = true;
+  }, { once: true });
+
+  navigation.navigate("#1");
+  assert_true(throwAssertionHappened);
+}, "Invalid values for focusReset throw");
+
+testFocusWasNotReset(() => {
+  // Intentionally left blank.
+}, "Does not reset the focus when no navigate handler is present");
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+}, "Resets the focus when no focusReset option is provided");
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+}, "Resets the focus when focusReset is explicitly set to undefined");
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler: () => new Promise(r => t.step_timeout(r, 5)) });
+  }, { once: true });
+}, "Resets the focus when no focusReset option is provided (nontrivial fulfilled promise)");
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler: () => Promise.reject() });
+  }, { once: true });
+}, "Resets the focus when no focusReset option is provided (rejected promise)");
+
+testFocusWasReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "after-transition" });
+  }, { once: true });
+}, "Resets the focus when focusReset is explicitly set to 'after-transition'");
+
+testFocusWasNotReset(t => {
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ focusReset: "manual" });
+  });
+}, "Does not reset the focus when focusReset is set to 'manual'");
+</script>

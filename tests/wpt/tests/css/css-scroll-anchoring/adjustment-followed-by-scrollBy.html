@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1874551">
+<style>
+div {
+  height: round(20vh, 1px);
+}
+</style>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div id="center" style="height: 100px; background-color: blue;"></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<div></div>
+<script>
+promise_test(async t => {
+  assert_equals(window.scrollY, 0);
+
+  // Center an element.
+  center.scrollIntoView({ block: "center", behavior: "instant" });
+  await new Promise(resolve => window.addEventListener("scroll", resolve));
+
+  const originalPosition = center.getBoundingClientRect().top;
+
+  // Given that now the element is centered, one of div elements above the
+  // centered element is used as the scroll anchor node. Hide two div elements,
+  // the first div and the div element just above the centered one to move the
+  // anchor node, thus it will trigger scroll anchoring adjustment.
+  center.previousElementSibling.style.display = "none";
+  document.querySelectorAll("div")[0].style.display = "none";
+
+  // And adjust the scroll position where the centered element is still
+  // positioned at the center of the scroll container.
+  window.scrollBy(0, center.getBoundingClientRect().top - originalPosition);
+  await new Promise(resolve => window.addEventListener("scroll", resolve));
+
+  const centeredPosition = center.getBoundingClientRect().top;
+
+  // Now try to scrollIntoView({ block: "center" }) and make sure the position
+  // is unchanged.
+  center.scrollIntoView({ block: "center", behavior: "instant" });
+
+  // Wait two frames to be able to scroll if it's possible.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(centeredPosition, center.getBoundingClientRect().top);
+}, "Scroll anchoring followed by scrollBy call");
+</script>
+</html>

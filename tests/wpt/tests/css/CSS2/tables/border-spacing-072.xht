@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing using 'em' units with a nominal value, 6em</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Border-spacing can be set to nominal length in 'em' units." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div, table
+            {
+                font: 20px/1 Ahem;
+            }
+            div
+            {
+                background: black;
+                height: 1em;
+                left: 12em;
+                position: relative;
+                top: 6em;
+                width: 6em;
+            }
+            table
+            {
+                border-spacing: 6em;
+            }
+            td
+            {
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle bar is as wide as the space between the first and last bars.</p>
+        <div></div>
+        <table>
+            <tr>
+                <td>XXXXXX</td>
+                <td>XXXXXX</td>
+            </tr>
+        </table>
+    </body>
+</html>

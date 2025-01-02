@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/webxr_util.js"></script>
+<script src="../../resources/webxr_test_asserts.js"></script>
+<script src="../../resources/webxr_test_constants.js"></script>
+<script src="../../resources/webxr_test_constants_fake_depth.js"></script>
+<script src="../inactiveFrameTests.js"></script>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+};
+
+xr_session_promise_test("Ensures getDepthInformation() throws when not run in an active frame, `gpu-optimized`",
+  testFunctionGenerator(/*isCpuOptimized=*/false),
+  fakeDeviceInitParams,
+  'immersive-ar', {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: VALID_DEPTH_CONFIG_GPU_USAGE,
+  });
+
+</script>

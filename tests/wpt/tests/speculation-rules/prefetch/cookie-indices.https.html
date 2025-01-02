@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<meta name="variant" content="?include=unchanged">
+<meta name="variant" content="?include=changed">
+<meta name="variant" content="?include=unchangedWithRedirect">
+<meta name="variant" content="?include=changedWithRedirect">
+<meta name="variant" content="?include=changedWithRedirect2">
+<meta name="variant" content="?include=changedWithRedirect3">
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+subsetTestByKey("unchanged", promise_test, async t => {
+  await test_driver.delete_all_cookies();
+  document.cookie = 'vary1=hello';
+
+  let agent = await spawnWindow(t);
+
+  let nextUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
+  await agent.forceSinglePrefetch(nextUrl);
+  await agent.navigate(nextUrl);
+
+  assert_prefetched(await agent.getRequestHeaders());
+  let request_cookies = await agent.getRequestCookies();
+  let response_cookies = await agent.getResponseCookies();
+  assert_equals(request_cookies.vary1, "hello");
+  assert_equals(request_cookies.vary2, undefined);
+  assert_equals(response_cookies.vary1, "hello");
+  assert_equals(response_cookies.vary2, undefined);
+}, "Cookie-Indices should not prevent a prefetch from succeeding if the cookie has not changed.");
+
+subsetTestByKey("changed", promise_test, async t => {
+  await test_driver.delete_all_cookies();
+  document.cookie = 'vary1=hello';
+
+  let agent = await spawnWindow(t);
+
+  let nextUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
+  await agent.forceSinglePrefetch(nextUrl);
+  document.cookie = 'vary1=two';
+  await agent.navigate(nextUrl);
+
+  assert_not_prefetched(await agent.getRequestHeaders());
+  let request_cookies = await agent.getRequestCookies();
+  let response_cookies = await agent.getResponseCookies();
+  assert_equals(request_cookies.vary1, "two");
+  assert_equals(request_cookies.vary2, undefined);
+  assert_equals(response_cookies.vary1, "two");
+  assert_equals(response_cookies.vary2, undefined);
+}, "Cookie-Indices should prevent a prefetch from being used if the cookie has changed.");
+
+subsetTestByKey("unchangedWithRedirect", promise_test, async t => {
+  await test_driver.delete_all_cookies();
+
+  document.cookie = 'vary1=hello';
+
+  let agent = await spawnWindow(t);
+
+  let finalUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
+  let nextUrl = new URL("/common/redirect.py?location=" + encodeURIComponent(finalUrl), document.baseURI);
+  await agent.forceSinglePrefetch(nextUrl);
+  await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+  assert_prefetched(await agent.getRequestHeaders());
+  let request_cookies = await agent.getRequestCookies();
+  let response_cookies = await agent.getResponseCookies();
+  assert_equals(request_cookies.vary1, "hello");
+  assert_equals(request_cookies.vary2, undefined);
+  assert_equals(response_cookies.vary1, "hello");
+  assert_equals(response_cookies.vary2, undefined);
+}, "Cookie-Indices should not prevent a prefetch from succeeding with unchanged cookies, even with redirect");
+
+subsetTestByKey("changedWithRedirect", promise_test, async t => {
+  await test_driver.delete_all_cookies();
+
+  document.cookie = 'vary1=hello';
+
+  let agent = await spawnWindow(t);
+
+  let finalUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
+  let nextUrl = new URL("/common/redirect.py?location=" + encodeURIComponent(finalUrl), document.baseURI);
+  await agent.forceSinglePrefetch(nextUrl);
+  document.cookie = 'vary1=two';
+  await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+  assert_not_prefetched(await agent.getRequestHeaders());
+  let request_cookies = await agent.getRequestCookies();
+  let response_cookies = await agent.getResponseCookies();
+  assert_equals(request_cookies.vary1, "two");
+  assert_equals(request_cookies.vary2, undefined);
+  assert_equals(response_cookies.vary1, "two");
+  assert_equals(response_cookies.vary2, undefined);
+}, "Cookie-Indices should prevent a prefetch from succeeding if the cookie changed, with a redirect");
+
+subsetTestByKey("changedWithRedirect2", promise_test, async t => {
+  await test_driver.delete_all_cookies();
+
+  document.cookie = 'vary1=hello';
+
+  let agent = await spawnWindow(t);
+
+  // One subtlety here: the wptserve pipe parser doesn't allow commas inside
+  // the header value (since that delimits the pipe arguments).
+  // There is currently no way around this, so we simply don't use a value with a comma.
+  let finalUrl = agent.getExecutorURL({ executor: "cookies.py" });
+  let pipe = "header(Cache-Control,no-store)|header(Vary,Cookie)|header(Cookie-Indices,\"vary1\")";
+  let nextUrl = new URL(`/common/redirect.py?location=${encodeURIComponent(finalUrl)}&pipe=${encodeURIComponent(pipe)}`, document.baseURI);
+  await agent.forceSinglePrefetch(nextUrl);
+  document.cookie = 'vary1=two';
+  await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+  assert_prefetched(await agent.getRequestHeaders());
+  let request_cookies = await agent.getRequestCookies();
+  let response_cookies = await agent.getResponseCookies();
+  assert_equals(request_cookies.vary1, "hello");
+  assert_equals(request_cookies.vary2, undefined);
+  assert_equals(response_cookies.vary1, "two");
+  assert_equals(response_cookies.vary2, undefined);
+}, "If the redirect needs to be rerequested but goes to the same place and that one doesn't vary, we actually can use the prefetched final response.");
+
+subsetTestByKey("changedWithRedirect3", promise_test, async t => {
+  await test_driver.delete_all_cookies();
+
+  document.cookie = 'vary1=hello';
+
+  let agent = await spawnWindow(t);
+
+  // One subtlety here: the wptserve pipe parser doesn't allow commas inside
+  // the header value (since that delimits the pipe arguments).
+  // There is currently no way around this, so we simply don't use a value with a comma.
+  let finalUrl = agent.getExecutorURL({ executor: "cookies.py" });
+  let pipe = "header(Cache-Control,no-store)|header(Vary,Cookie)|header(Cookie-Indices,\"vary1\")";
+  let nextUrl = new URL(`resources/random_redirect.py?location=${encodeURIComponent(finalUrl)}&pipe=${encodeURIComponent(pipe)}`, document.baseURI);
+  await agent.forceSinglePrefetch(nextUrl);
+  document.cookie = 'vary1=two';
+  await agent.navigate(nextUrl, {expectedDestinationUrl: null});
+
+  assert_not_prefetched(await agent.getRequestHeaders());
+  let request_cookies = await agent.getRequestCookies();
+  let response_cookies = await agent.getResponseCookies();
+  assert_equals(request_cookies.vary1, "two");
+  assert_equals(request_cookies.vary2, undefined);
+  assert_equals(response_cookies.vary1, "two");
+  assert_equals(response_cookies.vary2, undefined);
+}, "If the redirect needs to be rerequested and goes elsewhere, we cannot can use the prefetched final response.");
+</script>

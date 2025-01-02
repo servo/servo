@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>aspect-ratio flex item</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item"
+  title="Part E">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert"
+  content="max-content, not max-intrinsic, size is the flex base size of an aspect-ratio item that has an indefinite flex-basis and cross size">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div
+  style="display: flex; flex-flow: column; align-items: start; width: 0px;">
+  <div
+    style="aspect-ratio: 1/1; flex: 0 0 auto; min-height: 0px; min-width: 100px; background: green;">
+  </div>
+</div>

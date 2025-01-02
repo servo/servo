@@ -1,0 +1,19 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
+  <script>
+    async_test(t => {
+      test_topics_iframe_navigation_header(
+          t, /*has_browsing_topics_attribute=*/false, /*is_same_origin=*/false,
+          expect_topics_header_unavailable);
+    }, 'test <iframe src=[url]></iframe>');
+
+    async_test(t => {
+      test_topics_iframe_navigation_header(
+          t, /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/false,
+          expect_topics_header_available);
+    }, 'test <iframe browsingtopics src=[url]></iframe>');
+  </script>
+</body>

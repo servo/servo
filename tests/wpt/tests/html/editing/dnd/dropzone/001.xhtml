@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dropzone attribute: copy</title>
+<style type="text/css">
+div
+  {background-color:navy;
+  width:40px;
+  height:40px;
+  padding:40px;
+  color:white;}
+</style>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p>Drag me</p>
+<div dropzone="copy string:text/plain" ondrop="document.querySelector('div').appendChild(document.createTextNode((event.dataTransfer.getData('text/plain') == 'Drag me')?'PASS':'FAIL'))"/>
+<p>You should be able to drag selection to navy box below. You should see word PASS once you drop it.</p>
+</body>
+</html>

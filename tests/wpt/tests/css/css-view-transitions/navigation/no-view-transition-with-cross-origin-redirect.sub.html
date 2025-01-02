@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>navigation with a  same-origin final url with cross-origin redirects</title>
+<link rel="help" href="https://html.spec.whatwg.org/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="no-view-transition-with-cross-origin-redirect-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+
+  .new {
+    background: grey;
+  }
+
+  ::view-transition {
+    background: red;
+  }
+  ::view-transition-group(*) {
+    animation-duration: 300s;
+    opacity: 0;
+  }
+</style>
+<script>
+  function runTest() {
+    let crossOriginPath = "http://{{hosts[alt][]}}:{{ports[http][1]}}";
+    let newUrl = crossOriginPath + "/common/redirect.py?location=" + location.href.split('?')[0] + "?new";
+    location.href = newUrl;
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.has('new')) {
+    document.documentElement.classList.add('new');
+    onload = () => requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  } else {
+    onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+  }
+</script>
+</html>

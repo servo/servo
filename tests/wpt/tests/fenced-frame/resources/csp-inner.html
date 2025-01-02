@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+  <script src="utils.js"></script>
+
+  <style>
+    body {background-color: red;}
+  </style>
+
+  <title>Fenced frame content to test Content Security Policies</title>
+
+  <body>
+    <script>
+      const [csp_key] = parseKeylist();
+
+      function fail() {
+        writeValueToServer(csp_key,
+          "FAIL: img-src policy was not honored in fenced frame");
+      }
+
+      function pass() {
+        // The parent page is going to attempt to pass a
+        // style-src: 'none' CSP to the fenced frame. Make sure that
+        // the header is not honored.
+        const bgcolor = window.getComputedStyle(document.body, null)
+                        .getPropertyValue('background-color');
+
+        if (bgcolor != "rgb(255, 0, 0)") {
+          writeValueToServer(csp_key,
+            "FAIL: style-src policy was passed to fenced frame");
+          return;
+        }
+
+        writeValueToServer(csp_key, "pass");
+      }
+    </script>
+    <img src="csp.png" id="my_img" onload="fail();" onerror="pass();">
+  </body>
+</html>

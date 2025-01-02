@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Legacy maction and semantics elements</title>
+<link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.maction">
+<link rel="help" href="https://w3c.github.io/mathml-core/#enlivening-expressions">
+<link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.semantics">
+<link rel="help" href="https://w3c.github.io/mathml-core/#semantics-and-presentation">
+<meta name="assert" content="Verify that one can override the default rendering legacy maction and semantics elements using the display property">
+<link rel="match" href="legacy-mrow-like-elements-002-ref.html">
+</head>
+<body>
+  <p>This test passes if you see 4 green squares and no red.</p>
+  <p>
+    <math>
+      <semantics>
+        <mspace style="display: none; background: red;" width="50px" height="50px"></mspace>
+        <mspace style="background: red;" width="50px" height="50px"></mspace>
+        <annotation style="display: math">
+          <span style="display: inline-block; width: 50px; height: 50px; background: green;"></span>
+        </annotation>
+      </semantics>
+    </math>
+  </p>
+  <p>
+    <math>
+      <semantics>
+        <mspace style="display: none; background: red;" width="50px" height="50px"></mspace>
+        <mspace style="background: red;" width="50px" height="50px"></mspace>
+        <annotation-xml style="display: inline-block" encoding="text/html">
+          <span style="display: inline-block; width: 50px; height: 50px; background: green;"></span>
+        </annotation-xml>
+      </semantics>
+    </math>
+  </p>
+  <p>
+    <math>
+      <maction actiontype="toggle">
+        <mspace style="display: none; background: red" width="50px" height="50px"></mspace>
+        <mspace style="display: math; background: green" width="50px" height="50px"></mspace>
+      </maction>
+    </math>
+  </p>
+  <p>
+    <math>
+      <maction actiontype="toggle" selection="2">
+        <mspace style="display: none; background: red" width="50px" height="50px"></mspace>
+        <mspace style="display: math; background: green" width="50px" height="50px"></mspace>
+        <mspace style="background: red" width="50px" height="50px"></mspace>
+      </maction>
+    </math>
+  </p>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+</body>
+</html>

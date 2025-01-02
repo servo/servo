@@ -1,0 +1,13 @@
+{
+  "modelVersion": "5.0.0",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@ohos/hypium": "1.0.6"
+  },
+  "author": "",
+  "name": "servoshell",
+  "description": "Servo browser shell",
+  "main": "",
+  "version": "1.0.0",
+  "dependencies": {}
+}

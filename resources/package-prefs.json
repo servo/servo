@@ -1,0 +1,13 @@
+{
+  "_comment": "this file is used to add some specific preferences to the Servo package (nightly builds)",
+  "all": {},
+  "macosx": {},
+  "linux": {},
+  "android": {},
+  "windows": {},
+  "vr": {
+    "_comment": "settings specific to VR builds",
+    "dom.webvr.enabled": true,
+    "dom.webxr.enabled": true
+  }
+}

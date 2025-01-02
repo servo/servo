@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  main {
+    timeline-scope: --timeline;
+  }
+
+  main > div {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+  }
+  main > div > div {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  #element {
+    width: 0px;
+    height: 20px;
+    animation-name: expand;
+    /* Some of the tests in this file assume animations attached to the
+       DocumentTimeline are "stopped" without actually being paused.
+       Using 600s + steps(10, end) achieves this for one minute.*/
+    animation-duration: 600s;
+    animation-timing-function: steps(10, end);
+  }
+</style>
+<main id=main>
+  <div id=scroller1 class=scroller>
+    <div></div>
+  </div>
+  <div id=scroller2 class=scroller>
+    <div></div>
+  </div>
+  <div id=container></div>
+</main>
+<script>
+  // Force layout of scrollers.
+  scroller1.offsetTop;
+  scroller2.offsetTop;
+
+  // Note the steps(10, end) timing function and height:100px. (10px scroll
+  // resolution).
+  scroller1.scrollTop = 20;
+  scroller2.scrollTop = 40;
+
+  function insertElement() {
+    let element = document.createElement('div');
+    element.id = 'element';
+    container.append(element);
+    return element;
+  }
+
+  // Runs a test with dynamically added/removed elements or CSS rules.
+  // Each test is instantiated twice: once for the initial style resolve where
+  // the DOM change was effectuated, and once after scrolling.
+  function dynamic_rule_test(func, description) {
+    // assert_width is an async function which verifies that the computed value
+    // of 'width' is as expected.
+    const instantiate = (assert_width, description) => {
+      promise_test(async (t) => {
+        try {
+          await func(t, assert_width);
+        } finally {
+          while (container.firstChild)
+            container.firstChild.remove();
+          main.style = '';
+          scroller1.style = '';
+          scroller2.style = '';
+        }
+      }, description);
+    };
+
+    // Verify that the computed style is as expected after a full frame update
+    // following the rule change took place.
+    instantiate(async (element, expected) => {
+      await waitForCSSScrollTimelineStyle();
+      assert_equals(getComputedStyle(element).width, expected);
+    }, description + ' [immediate]');
+
+    // Verify the computed style after scrolling a bit.
+    instantiate(async (element, expected) => {
+      await waitForNextFrame();
+      scroller1.scrollTop = scroller1.scrollTop + 10;
+      scroller2.scrollTop = scroller2.scrollTop + 10;
+      await waitForNextFrame();
+      scroller1.scrollTop = scroller1.scrollTop - 10;
+      scroller2.scrollTop = scroller2.scrollTop - 10;
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element).width, expected);
+    }, description + ' [scroll]');
+  }
+
+  dynamic_rule_test(async (t, assert_width) => {
+    let element = insertElement();
+
+    // This element initially has a DocumentTimeline.
+    await assert_width(element, '100px');
+
+    // Switch to scroll timeline.
+    scroller1.style.scrollTimelineName = '--timeline';
+    element.style.animationTimeline = '--timeline';
+    await assert_width(element, '120px');
+
+    // Switching from ScrollTimeline -> DocumentTimeline should preserve
+    // current time.
+    scroller1.style = '';
+    element.style = '';
+    await assert_width(element, '120px');
+  }, 'Switching between document and scroll timelines');
+
+  dynamic_rule_test(async (t, assert_width) => {
+    let element = insertElement();
+
+    // Flush style and create the animation with play pending.
+    getComputedStyle(element).animation;
+
+    let anim = element.getAnimations()[0];
+    assert_true(anim.pending, "The animation is in play pending");
+
+    // Switch to scroll timeline for a pending animation.
+    scroller1.style.scrollTimelineName = '--timeline';
+    element.style.animationTimeline = '--timeline';
+
+    await anim.ready;
+    assert_false(anim.pending, "The animation is not pending");
+
+    await assert_width(element, '120px');
+  }, 'Switching pending animation from document to scroll timelines');
+
+  dynamic_rule_test(async (t, assert_width) => {
+    let element = insertElement();
+
+    // Note: #scroller1 is at 20%, and #scroller2 is at 40%.
+    scroller1.style.scrollTimelineName = '--timeline1';
+    scroller2.style.scrollTimelineName = '--timeline2';
+    main.style.timelineScope = "--timeline1, --timeline2";
+
+    await assert_width(element, '100px');
+
+    element.style.animationTimeline = '--timeline1';
+    await assert_width(element, '120px');
+
+    element.style.animationTimeline = '--timeline2';
+    await assert_width(element, '140px');
+
+    element.style.animationTimeline = '--timeline1';
+    await assert_width(element, '120px');
+
+    // Switching from ScrollTimeline -> DocumentTimeline should preserve
+    // current time.
+    element.style.animationTimeline = '';
+    await assert_width(element, '120px');
+
+  }, 'Changing computed value of animation-timeline changes effective timeline');
+
+  dynamic_rule_test(async (t, assert_width) => {
+    let element = insertElement();
+
+    scroller1.style.scrollTimelineName = '--timeline';
+
+    // DocumentTimeline applies by default.
+    await assert_width(element, '100px');
+
+    // Wait for the animation to be ready so that we a start time and no hold
+    // time.
+    await element.getAnimations()[0].ready;
+
+    // DocumentTimeline -> none
+    element.style.animationTimeline = '--none';
+    await assert_width(element, '0px');
+
+    // none -> DocumentTimeline
+    element.style.animationTimeline = '';
+    await assert_width(element, '100px');
+
+    // DocumentTimeline -> ScrollTimeline
+    element.style.animationTimeline = '--timeline';
+    await assert_width(element, '120px');
+
+    // ScrollTimeline -> none
+    element.style.animationTimeline = '--none';
+    await assert_width(element, '120px');
+
+    // none -> ScrollTimeline
+    element.style.animationTimeline = '--timeline';
+    await assert_width(element, '120px');
+  }, 'Changing to/from animation-timeline:none');
+
+
+  dynamic_rule_test(async (t, assert_width) => {
+    let element = insertElement();
+
+    element.style.animationDirection = 'reverse';
+    element.style.animationTimeline = '--timeline';
+
+    // Inactive animation-timeline.  Animation is inactive.
+    await assert_width(element, '0px');
+
+    // Note: #scroller1 is at 20%.
+    scroller1.style.scrollTimelineName = '--timeline';
+    await assert_width(element, '180px');
+
+    // Note: #scroller2 is at 40%.
+    scroller1.style.scrollTimelineName = '';
+    scroller2.style.scrollTimelineName = '--timeline';
+    await assert_width(element, '160px');
+
+    element.style.animationDirection = '';
+    await assert_width(element, '140px');
+  }, 'Reverse animation direction');
+
+  dynamic_rule_test(async (t, assert_width) => {
+    let element = insertElement();
+    element.style.animationTimeline = '--timeline';
+
+    // Inactive animation-timeline. Animation effect is inactive.
+    await assert_width(element, '0px');
+
+    // Note: #scroller1 is at 20%.
+    scroller1.style.scrollTimelineName = '--timeline';
+    await assert_width(element, '120px');
+
+    element.style.animationPlayState = 'paused';
+
+    // We should still be at the same position after pausing.
+    await assert_width(element, '120px');
+
+    // Note: #scroller2 is at 40%.
+    scroller1.style.scrollTimelineName = '';
+    scroller2.style.scrollTimelineName = '--timeline';
+
+    // Should be at the same position until we unpause.
+    await assert_width(element, '120px');
+
+    // Unpausing should synchronize to the scroll position.
+    element.style.animationPlayState = '';
+    await assert_width(element, '140px');
+  }, 'Change to timeline attachment while paused');
+
+  dynamic_rule_test(async (t, assert_width) => {
+    let element = insertElement();
+
+    // Note: #scroller1 is at 20%.
+    scroller1.style.scrollTimelineName = '--timeline';
+
+    await assert_width(element, '100px');
+
+    element.style.animationTimeline = '--timeline';
+    element.style.animationPlayState = 'paused';
+
+    // Pausing should happen before the timeline is modified. (Tentative).
+    // https://github.com/w3c/csswg-drafts/issues/5653
+    await assert_width(element, '100px');
+
+    element.style.animationPlayState = 'running';
+    await assert_width(element, '120px');
+  }, 'Switching timelines and pausing at the same time');
+</script>

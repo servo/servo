@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<style>
+.greenbox {
+  width: 100px;
+  height: 100px;
+  background-color: #00ff00;
+}
+</style>
+<script src="/web-animations/testcommon.js"></script>
+<script src="../common.js"></script>
+
+<script id="iframe_worklet" type="text/worklet">
+registerAnimator("iframe_animator", class {
+  animate(currentTime, effect) {
+    effect.localTime = 600;
+  }
+});
+registerAnimator("duplicate_animator", class {
+  animate(currentTime, effect) {
+    effect.localTime = 800;
+  }
+});
+</script>
+
+<div id="iframe_target" class="greenbox"></div>
+
+<script>
+runInAnimationWorklet(
+  document.getElementById('iframe_worklet').textContent
+).then(_ => {
+  const target = document.getElementById('iframe_target');
+  // Only create an animation for iframe_animator.
+  const effect = new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 });
+  const animation = new WorkletAnimation('iframe_animator', effect);
+  animation.play();
+
+  // wait until local times are synced back to the main thread.
+  waitForAnimationFrameWithCondition(_ => {
+    return getComputedStyle(target).opacity != '1';
+  }).then(_ => {
+    window.parent.postMessage(getComputedStyle(target).opacity, '*');
+  });
+ });
+</script>

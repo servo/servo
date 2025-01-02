@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Reference: Box Sizing - Border-Box with specified width</title>
+  <link rel="author" title="Scott Johnson" href="mailto:sjohnson@mozilla.com" />
+  <style type="text/css"><![CDATA[
+    .container {
+      width: 300px;
+      border: 2px solid black;
+      position: absolute;
+      left: 25px;
+      top: 25px;
+      background-color: red;
+    }
+
+    .box-sized {
+      width: 140px;
+      z-index: 1;
+      float: left;
+      border: 5px solid black;
+    }
+
+    #one {
+      background-color: green;
+    }
+
+    #two {
+      background-color: blue;
+    }
+  ]]></style>
+ </head>
+ <body>
+   The two divs should be side-by-side, not one on top of another. No red should be visible.
+   <br />
+   <div class="container">
+     <div class="box-sized" id="one">LEFT HALF</div>
+     <div class="box-sized" id="two">RIGHT HALF</div>
+   </div>
+ </body>
+</html>

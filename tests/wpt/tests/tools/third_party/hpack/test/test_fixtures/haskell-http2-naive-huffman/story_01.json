@@ -1,0 +1,57 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "0085b8824e5a4b849d29ad1f0088b83b5339ec327d7f882f91d35d055c87a70084b958d33f81630085b9495339e483c5837f0087b505b161cc5a93879eb193aac92a13008421cfd4c587f3e7cf9f3e7c870086f2b4e5a283ff84f07b2893",
+            "headers": [
+                {
+                    ":scheme": "https"
+                },
+                {
+                    ":authority": "example.com"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    ":method": "GET"
+                },
+                {
+                    "user-agent": "hpack-test"
+                },
+                {
+                    "cookie": "xxxxxxx1"
+                },
+                {
+                    "x-hello": "world"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "0085b8824e5a4b849d29ad1f0088b83b5339ec327d7f882f91d35d055c87a70084b958d33f81630085b9495339e483c5837f0087b505b161cc5a93879eb193aac92a13008421cfd4c587f3e7cf9f3e7c8b",
+            "headers": [
+                {
+                    ":scheme": "https"
+                },
+                {
+                    ":authority": "example.com"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    ":method": "GET"
+                },
+                {
+                    "user-agent": "hpack-test"
+                },
+                {
+                    "cookie": "xxxxxxx2"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: NaiveH - static table=no, header table=no, huffman=yes"
+}

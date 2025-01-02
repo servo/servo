@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>-moz-user-modify should be unsupported in author origin</title>
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/CSS/user-modify">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#modified {
+    -moz-user-modify: read-write;
+}
+</style>
+<div id="inherited"></div>
+<div id="modified"></div>
+<script>
+    test(function() {
+        for (const el of [inherited, modified]) {
+            assert_equals(el.style.MozUserModify, undefined);
+            assert_equals(el.style.mozUserModify, undefined);
+            assert_equals(getComputedStyle(el).getPropertyValue('-moz-user-modify'), '');
+        }
+    }, '-moz-user-modify is not supported');
+</script>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  function get_requests(worker, expected) {
+    return new Promise(resolve => {
+      navigator.serviceWorker.addEventListener('message', function onMsg(evt) {
+        if (evt.data.size >= expected) {
+          navigator.serviceWorker.removeEventListener('message', onMsg);
+          resolve(evt.data);
+        } else {
+          worker.postMessage("");
+        }
+      });
+      worker.postMessage("");
+    });
+  }
+
+  const resources = [
+    x=>`<link rel="stylesheet" href="404/style?${x}">`,
+    x=>`<link rel="prefetch" as="style" href="404/prefetch?${x}">`,
+    x=>`<script src="404/script?${x}"><\/script>`,
+    x=>`<iframe src="404/iframe?${x}"></iframe>`,
+    x=>`<meta http-equiv="refresh" content="0;url=404/meta?${x}">`,
+    x=>`<a href="404/a?${x}">click</a><script>document.querySelector('a').click()<\/script>`,
+    x=>`<base href="404/base?${x}"><a href>me</a><script>document.querySelector('a').click()<\/script>`,
+    x=>`<video controls poster="404/poster?${x}"></video>`,
+    x=>`<input type="image" src="404/input?${x}">`,
+    x=>`<form method="GET" action="404/form?${x}"></form><script>document.querySelector('form').submit()<\/script>`,
+    x=>`<body background="404/body?${x}"></body>`,
+  ];
+
+  async_test(t => {
+    const script = 'service-worker.js';
+    const paths = [];
+    navigator.serviceWorker.register(script);
+    t.step(async () => {
+      const registration = await navigator.serviceWorker.ready;
+      for (const html of resources) {
+        const iframe1 =
+          document.body.appendChild(document.createElement('iframe'));
+        iframe1.src = 'resources.html?html=' + html`%0A<`;
+        const iframe2 =
+          document.body.appendChild(document.createElement('iframe'));
+        iframe2.src = 'resources.html?html=' + html``;
+        const path = html`EOP`;
+        paths.push(path.substring(path.search('404\\/')+4, path.search('EOP')));
+      }
+
+      const requests = await get_requests(registration.active, resources.length);
+      paths.forEach(path => {
+        assert_true(requests.has(path),
+                    `${path} should appear in requests sent`);
+      });
+      await registration.unregister();
+      t.done();
+    });
+  }, 'Only blocks dangling markup requests');
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+td, th {
+  border: 1px solid black;
+}
+</style>
+
+<table>
+  <tr>
+    <th colspan="4">This cell must span all columns for repro in chrome</th>
+  </tr>
+  <tr>
+    <td rowspan="3" style="height:200px">A</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>2</td>
+    <td>3</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>2</td>
+    <td>3</td>
+  </tr>
+</table>

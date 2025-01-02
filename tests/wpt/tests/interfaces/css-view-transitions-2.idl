@@ -1,0 +1,29 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS View Transitions Module Level 2 (https://drafts.csswg.org/css-view-transitions-2/)
+
+[Exposed=Window]
+interface CSSViewTransitionRule : CSSRule {
+  readonly attribute CSSOMString navigation;
+  [SameObject] readonly attribute FrozenArray<CSSOMString> types;
+};
+
+[Exposed=Window]
+interface ViewTransitionTypeSet {
+  setlike<DOMString>;
+};
+
+[Exposed=Window]
+partial interface ViewTransition {
+  attribute ViewTransitionTypeSet types;
+};
+
+dictionary StartViewTransitionOptions {
+  ViewTransitionUpdateCallback? update = null;
+  sequence<DOMString>? types = null;
+};
+
+partial interface Document {
+  ViewTransition startViewTransition(optional (ViewTransitionUpdateCallback or StartViewTransitionOptions) callbackOptions = {});
+};

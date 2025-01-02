@@ -1,0 +1,60 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    promise_test(async t => {
+      const cross_origin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+      const ancestor_token = token();
+      const set_key = 'a';
+      const set_value = 'b';
+
+      // Create sandboxed iframe.
+      let frame = document.createElement('iframe');
+      frame.sandbox = 'allow-scripts';
+      frame.src = '/shared-storage/resources/' +
+        'cross-origin-worklet-in-sandboxed-frame-inner.https.sub.html' +
+        `?cross_origin=${cross_origin}` +
+        `&ancestor_token=${ancestor_token}` +
+        `&mock_select_url_result_index=0` +
+        `&set_key=${set_key}` +
+        `&set_value=${set_value}`;
+
+      let select_url_result_urn;
+
+      // We expect a message to bubble up via the sandboxed iframe.
+      const createWorkletAndSelectUrlInsideSandboxedFramePromise = new Promise((resolve, reject) => {
+        window.addEventListener('message', async function handler(evt) {
+          if (evt.source === frame.contentWindow) {
+            assert_true(evt.data.success,
+                        "createWorklet() failed inside the sandboxed iframe");
+            select_url_result_urn = evt.data.selectUrlResultUrn;
+
+            document.body.removeChild(frame);
+            window.removeEventListener('message', handler);
+            resolve();
+          }
+        });
+        window.addEventListener('error', () => {
+          reject(new Error('Navigation error'));
+        });
+      });
+
+      // Navigate and wait for notification.
+      document.body.appendChild(frame);
+      await createWorkletAndSelectUrlInsideSandboxedFramePromise;
+
+      attachFencedFrame(select_url_result_urn, 'opaque-ads');
+      const result0 = await nextValueFromServer(ancestor_token);
+      assert_equals(result0, "frame0_loaded");
+
+      await verifyKeyValueForOrigin(set_key, set_value, cross_origin);
+
+      // Clean up and finish.
+      await sharedStorage.delete(set_key);
+    }, 'test createWorklet() in sandboxed iframe and verify its data origin');
+  </script>
+</body>

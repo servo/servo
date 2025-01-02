@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<title>Simple MediaSource-in-Worker playback test case</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
+<body>
+<script>
+
+async_test(t => {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(
+      MediaSource.hasOwnProperty('canConstructInDedicatedWorker'),
+      'MediaSource hasOwnProperty \'canConstructInDedicatedWorker\'');
+  assert_true(
+      MediaSource.canConstructInDedicatedWorker,
+      'MediaSource.canConstructInDedicatedWorker');
+
+  const video = document.createElement('video');
+  document.body.appendChild(video);
+  video.onerror = t.unreached_func('video element error');
+  video.onended = t.step_func_done();
+
+  let worker = new Worker('mediasource-worker-play.js');
+  worker.onerror = t.unreached_func('worker error');
+  worker.onmessage = t.step_func(e => {
+    let subject = e.data.subject;
+    assert_true(subject != undefined, 'message must have a subject field');
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached('Worker error: ' + e.data.info);
+        break;
+      case messageSubject.HANDLE:
+        const handle = e.data.info;
+        video.srcObject = handle;
+        video.play();
+        break;
+      default:
+        assert_unreached('Unexpected message subject: ' + subject);
+    }
+  });
+}, 'Test worker MediaSource construction, attachment, buffering and basic playback');
+
+// See mediasource-worker-handle-transfer.html for a case that tests race of
+// multiple simultaneous attachments of same handle to multiple elements.
+
+</script>
+</body>
+</html>

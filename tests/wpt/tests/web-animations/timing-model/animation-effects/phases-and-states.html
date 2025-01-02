@@ -1,0 +1,149 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Phases and states</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#animation-effect-phases-and-states">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// --------------------------------------------------------------------
+//
+// Phases
+//
+// --------------------------------------------------------------------
+
+test(t => {
+  const animation = createDiv(t).animate(null, 1);
+
+  for (const test of [{ currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'active' },
+                      { currentTime:  1, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for a simple animation effect');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 1, delay: 1 });
+
+  for (const test of [{ currentTime: 0, phase: 'before' },
+                      { currentTime: 1, phase: 'active' },
+                      { currentTime: 2, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a positive start delay');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 1, delay: -1 });
+
+  for (const test of [{ currentTime: -2, phase: 'before' },
+                      { currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a negative start delay');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 1, endDelay: 1 });
+
+  for (const test of [{ currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'active' },
+                      { currentTime:  1, phase: 'after'  },
+                      { currentTime:  2, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a positive end delay');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 2, endDelay: -1 });
+
+  for (const test of [{ currentTime: -1,   phase: 'before' },
+                      { currentTime:  0,   phase: 'active' },
+                      { currentTime:  0.9, phase: 'active' },
+                      { currentTime:  1,   phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a negative end delay lesser'
+   + ' in magnitude than the active duration');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 1, endDelay: -1 });
+
+  for (const test of [{ currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'after'  },
+                      { currentTime:  1, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a negative end delay equal'
+   + ' in magnitude to the active duration');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 1, endDelay: -2 });
+
+  for (const test of [{ currentTime: -2, phase: 'before' },
+                      { currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a negative end delay'
+   + ' greater in magnitude than the active duration');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 2,
+                                                 delay: 1,
+                                                 endDelay: -1 });
+
+  for (const test of [{ currentTime: 0, phase: 'before' },
+                      { currentTime: 1, phase: 'active' },
+                      { currentTime: 2, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a positive start delay'
+   + ' and a negative end delay lesser in magnitude than the active duration');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 1,
+                                                 delay: -1,
+                                                 endDelay: -1 });
+
+  for (const test of [{ currentTime: -2, phase: 'before' },
+                      { currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a negative start delay'
+   + ' and a negative end delay equal in magnitude to the active duration');
+
+test(t => {
+  const animation = createDiv(t).animate(null, { duration: 1,
+                                                 delay: -1,
+                                                 endDelay: -2 });
+
+  for (const test of [{ currentTime: -3, phase: 'before' },
+                      { currentTime: -2, phase: 'before' },
+                      { currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for an animation effect with a negative start delay'
+   + ' and a negative end delay equal greater in magnitude than the active'
+   + ' duration');
+
+test(t => {
+  const animation = createDiv(t).animate(null, 1);
+  animation.playbackRate = -1;
+
+  for (const test of [{ currentTime: -1, phase: 'before' },
+                      { currentTime:  0, phase: 'before' },
+                      { currentTime:  1, phase: 'active' },
+                      { currentTime:  2, phase: 'after'  }]) {
+    assert_phase_at_time(animation, test.phase, test.currentTime);
+  }
+}, 'Phase calculation for a simple animation effect with negative playback'
+   + ' rate');
+
+</script>
+</body>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: mask-mode with gradient on SVG content</title>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#propdef-mask-mode">
+<link rel="match" href="mask-mode-ref.html">
+<meta name="assert" content="Test checks that a linear-gradient() image referenced by mask-image is correct with different mask modes.">
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-11800">
+<style type="text/css">
+  body {
+    padding: 0;
+    margin: 0;
+  }
+
+  rect {
+    fill: blue;
+    width: 100px;
+    height: 100px;
+    y: 10px;
+  }
+
+  rect.auto {
+    x: 10px;
+    mask-mode: match-source;
+    mask-image: linear-gradient(blue 0%, blue 100%);
+  }
+
+  rect.alpha {
+    x: 120px;
+    mask-mode: alpha;
+    mask-image: linear-gradient(blue 0%, blue 100%);
+  }
+
+  rect.luminance1 {
+    x: 230px;
+    mask-mode: luminance;
+    mask-image: linear-gradient(blue 0%, blue 100%);
+  }
+
+  rect.luminance2 {
+    x: 340px;
+    mask-mode: luminance;
+    mask-image: linear-gradient(red 0%, red 100%);
+  }
+
+  rect.luminance3 {
+    x: 450px;
+    mask-mode: luminance;
+    mask-image: linear-gradient(lime 0%, lime 100%);
+  }
+</style>
+<svg width="600">
+  <rect class="auto"/>
+  <rect class="alpha"/>
+  <rect class="luminance1"/>
+  <rect class="luminance2"/>
+  <rect class="luminance3"/>
+</svg>

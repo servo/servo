@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: vertical-lr, float right, circle(50% at right 40px bottom 40px)</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#supported-basic-shapes">
+  <link rel="match" href="reference/shape-outside-circle-051-ref.html">
+  <meta name="assert" content="Test the boxes are wrapping around the right float shape defined by circle(50% at right 40px bottom 40px) value under vertical-lr writing-mode.">
+  <style>
+  .container {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    inline-size: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    shape-outside: circle(50% at right 40px bottom 40px) border-box;
+    clip-path: circle(50% at right 40px bottom 40px) border-box;
+    box-sizing: content-box;
+    block-size: 40px;
+    inline-size: 40px;
+    padding: 20px;
+    border: 20px solid lightgreen;
+    margin-inline-start: 20px;
+    margin-inline-end: 20px;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    inline-size: 60px;
+    background-color: blue;
+  }
+
+  .long {
+    inline-size: 200px;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="long box" style="block-size: 20px;"></div> <!-- Fill the border area due to the circle shifted -->
+    <div class="box" style="block-size: 12px;"></div> <!-- Box at corner -->
+    <div class="box" style="block-size: 12px;"></div> <!-- Box at corner -->
+    <div class="box" style="block-size: 36px;"></div>
+    <div class="box" style="block-size: 36px;"></div>
+    <div class="box" style="block-size: 12px;"></div> <!-- Box at corner -->
+    <div class="long box" style="block-size: 20px;"></div>
+  </main>
+</html>

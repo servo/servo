@@ -1,0 +1,33 @@
+
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  let w = window.open("resources/opener-postMessage-onload.html");
+  await new Promise(resolve => window.onmessage = resolve);
+  // Navigate to a url that will notify us when the navigation is complete.
+  w.navigation.navigate("opener-postMessage-onload.html?1");
+
+  await new Promise(resolve => window.onmessage = resolve);
+  assert_equals(w.navigation.entries().length, 2);
+  assert_equals(w.navigation.currentEntry.index, 1);
+  let navigate_called = false;
+  w.navigation.onnavigate = t.step_func(e => {
+    navigate_called = true;
+    assert_false(e.destination.sameDocument);
+    assert_false(e.cancelable);
+    // Should do nothing.
+    e.preventDefault();
+  });
+  w.navigation.back();
+  await new Promise(resolve => window.onmessage = resolve);
+  assert_equals(w.navigation.currentEntry.index, 0);
+  assert_true(navigate_called);
+}, "navigation.back() cross-document cannot be cancelled with the navigate event");
+</script>
+

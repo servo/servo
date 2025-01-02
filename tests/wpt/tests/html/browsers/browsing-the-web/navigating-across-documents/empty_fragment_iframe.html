@@ -1,0 +1,11 @@
+<script>
+var timeout;
+onload = function() {
+  location.hash = "";
+  timeout = setTimeout(function() { parent.child_succeeded() }, 2000);
+};
+
+onbeforeunload = function() {
+  clearTimeout(timeout);
+}
+</script>

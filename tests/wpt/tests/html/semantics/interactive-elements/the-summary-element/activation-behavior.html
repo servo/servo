@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>summary element: activation behavior</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-summary-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<details id="happy-path-starts-closed">
+  <summary id="happy-path-starts-closed-summary">Summary</summary>
+  <p>Contents</p>
+</details>
+
+<details id="happy-path-starts-open" open>
+  <summary id="happy-path-starts-open-summary">Summary</summary>
+  <p>Contents</p>
+</details>
+
+<details id="details-not-being-rendered" style="display: none">
+  <summary id="details-not-being-rendered-summary">Summary</summary>
+  <p>Contents</p>
+</details>
+
+<details id="summary-not-being-rendered">
+  <summary id="summary-not-being-rendered-summary" style="display: none">Summary</summary>
+  <p>Contents</p>
+</details>
+
+<details id="has-preceding-element">
+  <span></span>
+  <summary id="has-preceding-element-summary">Summary</summary>
+  <p>Contents</p>
+</details>
+
+<details id="has-preceding-summary">
+  <summary>Summary 1</summary>
+  <summary id="has-preceding-summary-summary">Summary 2</summary>
+  <p>Contents</p>
+</details>
+
+<details id="has-preceding-summary-descendant">
+  <span><summary>Summary 1</summary></span>
+  <summary id="has-preceding-summary-descendant-summary">Summary 2</summary>
+  <p>Contents</p>
+</details>
+
+<details id="summary-nested">
+  <span><summary id="summary-nested-summary">Summary</summary></span>
+  <p>Contents</p>
+</details>
+
+<details id="toggle-tester">
+  <summary>Summary</summary>
+  <p>Contents</p>
+</details>
+
+<script>
+"use strict";
+
+testSummary(
+  "happy-path-starts-closed", false, true,
+  "Should open a closed details if all conditions are met"
+);
+
+testSummary(
+  "happy-path-starts-open", true, false,
+  "Should close an open details if all conditions are met"
+);
+
+testSummary(
+  "details-not-being-rendered", false, true,
+  "Should open a closed details even if the details is not being rendered"
+);
+
+testSummary(
+  "summary-not-being-rendered", false, true,
+  "Should open a closed details even if the summary is not being rendered"
+);
+
+testSummary(
+  "has-preceding-element", false, true,
+  "Should open a closed details if a span element precedes the summary"
+);
+
+testSummary(
+  "has-preceding-summary", false, false,
+  "Should stay closed if another summary element precedes the summary"
+);
+
+testSummary(
+  "has-preceding-summary-descendant", false, true,
+  "Should open a closed details if another summary element *nested inside a span* precedes the summary"
+);
+
+testSummary(
+  "summary-nested", false, false,
+  "Should stay closed if the summary element is nested inside a span element"
+);
+
+async_test(t => {
+  const details = document.getElementById("toggle-tester");
+  const summary = details.firstElementChild;
+
+  let timesToggleFired = 0;
+  details.addEventListener("toggle", t.step_func(() => {
+    ++timesToggleFired;
+  }));
+
+  t.step_timeout(() => {
+    assert_equals(timesToggleFired, 1, "Expected toggle to fire exactly once");
+    t.done();
+  }, 200);
+
+  summary.click();
+  summary.click();
+  summary.click();
+  summary.click();
+  Promise.resolve().then(() => summary.click());
+
+}, "toggle events should be coalesced even when using the activation behavior of a summary");
+
+function testSummary(detailsId, expectedBefore, expectedAfter, name) {
+  test(() => {
+    const details = document.getElementById(detailsId);
+    const summary = document.getElementById(detailsId + "-summary");
+
+    assert_equals(details.open, expectedBefore, "Before activation: expected open to be " + expectedBefore);
+    summary.click();
+    assert_equals(details.open, expectedAfter, "After activation: expected open to be " + expectedAfter);
+  }, name);
+}
+</script>

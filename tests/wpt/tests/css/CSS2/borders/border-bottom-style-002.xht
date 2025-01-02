@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-bottom-style set to 'hidden'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-22 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-bottom-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties" />
+        <link rel="match" href="../reference/ref-nothing-below.xht" />
+
+        <meta name="assert" content="The 'border-bottom-style' property set to 'hidden' computes to 'none' and does not render any border for non-table elements. However, for tables elements borders can be rendered based on border resolution." />
+        <style type="text/css">
+            div
+            {
+                border-bottom-style: solid;
+                border-bottom-style: hidden;
+                border-bottom-width: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is nothing below.</p>
+        <div></div>
+    </body>
+</html>

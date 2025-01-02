@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: getComputedStyle - resolved width in iframe</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="frm" width="100"></iframe>
+<script>
+  test(() => {
+    const frmDoc = frm.contentWindow.document;
+    frmDoc.open();
+    frmDoc.write('<body style="margin:0"><div style="width:100%"></div>');
+    frmDoc.close();
+
+    assert_equals(frm.contentWindow.getComputedStyle(frmDoc.querySelector("div")).width, "100px");
+  }, "Check that a percent width in an iframe is resolved against iframe width for getComputedStyle.");
+</script>

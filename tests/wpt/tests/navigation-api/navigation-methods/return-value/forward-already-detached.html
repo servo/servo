@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  assert_equals(i.contentWindow.navigation.entries().length, 1);
+  let key = i.contentWindow.navigation.currentEntry.key;
+
+  i.contentWindow.navigation.navigate("?1");
+  await new Promise(resolve => i.onload = resolve);
+
+  i.contentWindow.navigation.back();
+  await new Promise(resolve => i.onload = resolve);
+
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+  assert_equals(i.contentWindow.navigation.currentEntry, i.contentWindow.navigation.entries()[0]);
+
+  const iWindow = i.contentWindow;
+  const iDOMException = iWindow.DOMException;
+
+  i.remove();
+
+  await assertBothRejectDOM(t, iWindow.navigation.forward(), "InvalidStateError", iWindow, iDOMException);
+}, "forward() in a detached window");
+</script>

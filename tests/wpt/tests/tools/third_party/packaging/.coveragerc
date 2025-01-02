@@ -1,0 +1,9 @@
+[run]
+branch = True
+omit = packaging/_compat.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    @abc.abstractmethod
+    @abc.abstractproperty

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>Padding/border/margin on msqrt</title>
+<link rel="match" href="padding-border-margin-005-ref.html"/>
+<meta name="assert" content="Verify visual how padding/border/margin on an msqrt element affect the position of the painted radical symbol.">
+<style>
+  @font-face {
+    font-family: RadicalFont;
+    src: url("/fonts/math/radical-kernafterdegreeminus5000-rulethickness1000.woff");
+  }
+  msqrt {
+    font-family: RadicalFont;
+  }
+</style>
+<math>
+  <mrow>
+    <msqrt style="border: 30px solid blue; padding: 20px; color: gray">
+      <mspace width="100px" height="50px" depth="50px" style="margin: 10px"></mspace>
+    </msqrt>
+  </mrow>
+</math>

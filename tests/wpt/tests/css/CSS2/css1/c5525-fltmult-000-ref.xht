@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border-spacing: 20px 0px;
+  margin: 10px 0px 10px -20px;
+  }
+
+  table#top {padding: 10px 0px 0px;}
+
+  table#top td
+  {
+  border: black solid 20px;
+  padding: 36px 0px;
+  text-align: center;
+  width: 100px;
+  }
+
+  table#bottom td
+  {
+  border-left: black solid 20px;
+  border-right: black solid 20px;
+  padding: 0px;
+  width: 100px;
+  }
+
+  .black {background-color: black;}
+
+  .yellow {background-color: yellow;}
+
+  .blue
+  {
+  background-color: blue;
+  color: white;
+  }
+
+  .silver {background-color: silver;}
+
+  .green
+  {
+  background-color: green;
+  color: white;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Below you should see four blocks side by side followed by a
+   matching cross section of the four blocks.</p>
+
+  <table id="top">
+    <tr>
+      <td class="yellow">Yellow</td> <td class="blue">Blue</td> <td class="silver">Silver</td> <td class="green">Green</td>
+    </tr>
+  </table>
+
+  <table id="bottom">
+    <tr>
+      <td class="yellow">&nbsp;</td> <td class="blue">&nbsp;</td> <td class="silver">&nbsp;</td> <td class="green">&nbsp;</td>
+    </tr>
+  </table>
+
+ </body>
+</html>

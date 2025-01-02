@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10></canvas>
+</body>
+<script>
+
+// This test verifies that MediaStreamTrack.applyConstraints() exists and that,
+// when called with no parameters, returns a Promise that is resolved. This
+// might not make sense: https://github.com/w3c/mediacapture-main/issues/438 .
+// Other tests go deeper.
+promise_test(function(t) {
+  var canvas = document.getElementById('canvas');
+  var context = canvas.getContext("2d");
+  context.fillStyle = "red";
+  context.fillRect(0, 0, 10, 10);
+
+  var stream = canvas.captureStream();
+  assert_equals(stream.getAudioTracks().length, 0);
+  assert_equals(stream.getVideoTracks().length, 1);
+
+  var videoTrack = stream.getVideoTracks()[0];
+  return videoTrack.applyConstraints();
+}, 'MediaStreamTrack.applyConstraints()');
+
+// This test verifies that MediaStreamTrack.applyConstraints() exists and that,
+// when called with an empty advanced constraint set, returns a Promise that is
+// resolved.
+promise_test(function(t) {
+  var canvas = document.getElementById('canvas');
+  var context = canvas.getContext("2d");
+  context.fillStyle = "red";
+  context.fillRect(0, 0, 10, 10);
+
+  var stream = canvas.captureStream();
+  assert_equals(stream.getAudioTracks().length, 0);
+  assert_equals(stream.getVideoTracks().length, 1);
+
+  var videoTrack = stream.getVideoTracks()[0];
+  return videoTrack.applyConstraints({advanced: []});
+}, 'MediaStreamTrack.applyConstraints({advanced: []})');
+
+// This test verifies that applyConstraints() rejects the returned Promise if
+// passed a non-supported image-capture constraint (https://crbug.com/711694).
+promise_test(async function(t) {
+  var canvas = document.getElementById('canvas');
+  var context = canvas.getContext("2d");
+  context.fillStyle = "red";
+  context.fillRect(0, 0, 10, 10);
+
+  var stream = canvas.captureStream();
+  var videoTrack = stream.getVideoTracks()[0];
+
+  // Use e.g. |torch| as an example of unsupported constraint.
+  assert_false("torch" in videoTrack.getCapabilities());
+  try {
+    await videoTrack.applyConstraints({torch: {exact: true}});
+  } catch (error) {
+    assert_equals(error.name, 'OverconstrainedError');
+    assert_equals(error.constraint, 'torch');
+    return;
+  }
+  assert_unreached('expected applyConstraints to reject');
+}, 'MediaStreamTrack.applyConstraints() with unsupported constraint');
+
+</script>

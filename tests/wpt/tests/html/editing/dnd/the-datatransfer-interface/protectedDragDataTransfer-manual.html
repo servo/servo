@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>HTML Test: drag DataTransfer protected status</title>
+    <link rel='author' title='Nika Layzell' href='mailto:nika@thelayzells.com'>
+    <link rel='help' href='https://html.spec.whatwg.org/multipage/#the-datatransfer-interface'>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      #drag {
+        width: 100px;
+        height: 100px;
+        display: inline-block;
+        color: #fff;
+        background-color: #f00;
+      }
+      #drop {
+        width: 100px;
+        height: 100px;
+        display: inline-block;
+        color: #fff;
+        background-color: #00f;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h3>Instructions</h3>
+    <p>
+      Drag the box labeled "drag" to the box labeled "drop" and release.
+    </p>
+
+    <div id="drag" draggable="true">drag</div>
+    <div id="drop">drop</div>
+
+    <div id="log"> </div>
+
+    <script>
+      var MIME = "text/plain";
+
+      var drop;
+      setup(function() {
+        drop = document.querySelector("#drop");
+      }, {explicit_done: true, explicit_timeout: true});
+
+      var STATUS_PROTECTED = "protected";
+      var STATUS_READONLY = "readonly";
+      var STATUS_READWRITE = "readwrite";
+      var STATUS_DISCONNECTED = "disconnected";
+      function status(dt) {
+        // Check if we can write to it.
+        try {
+          dt.setData("text/html", "_test");
+
+          if (dt.getData("text/html") == "_test") {
+            dt.clearData("text/html");
+            assert_true(!dt.getData("text/html"), "ClearData should work...");
+            return STATUS_READWRITE;
+          }
+        } catch(e) {}
+
+        // If we can read the data then we're readonly
+        if (dt.getData(MIME)) {
+          return STATUS_READONLY;
+        }
+
+        // If we can see that items exist (and read types) then we're protected
+        if (dt.items.length > 0) {
+          return STATUS_PROTECTED;
+        }
+
+        // Otherwise we've been disconnected.
+        return STATUS_DISCONNECTED;
+      };
+
+      var drag_dt = null;
+      var over_dt = null;
+      var drop_dt = null;
+      on_event(document.body, "dragstart", function(e) {
+        drag_dt = e.dataTransfer;
+        over_dt = null;
+        drop_dt = null;
+        drag_dt.setData(MIME, "b");
+        test(function() {
+          assert_equals(status(drag_dt), STATUS_READWRITE,
+                        "drag_dt must be readwrite during dragstart");
+        }, "dragstart event status");
+      });
+      on_event(drop, "dragover", function(e) {
+        if (!over_dt) {
+          over_dt = e.dataTransfer;
+          test(function() {
+            assert_equals(status(drag_dt), STATUS_DISCONNECTED,
+                          "drag_dt mustbe disconnected during dragover");
+            assert_equals(status(over_dt), STATUS_PROTECTED,
+                          "over_dt mustbe protected during dragover");
+          }, "dragover event status");
+          test(function() {
+            assert_not_equals(drag_dt, over_dt,
+                        "drag_dt must be a different DataTransfer object than over_dt");
+          }, "dragover event identity");
+        }
+        e.preventDefault();
+      });
+      on_event(drop, "drop", function(e) {
+        drop_dt = e.dataTransfer;
+        test(function() {
+          assert_equals(status(drag_dt), STATUS_DISCONNECTED,
+                        "drag_dt mustbe disconnected during drop");
+          assert_equals(status(over_dt), STATUS_DISCONNECTED,
+                        "over_dt mustbe disconnected during drop");
+          assert_equals(status(drop_dt), STATUS_READONLY,
+                        "drop_dt mustbe readonly during drop");
+        }, "drop event status");
+        test(function() {
+          assert_not_equals(drop_dt, over_dt,
+                            "drop_dt must be a different DataTransfer object than over_dt");
+          assert_not_equals(drop_dt, drag_dt,
+                            "drop_dt must be a different DataTransfer object than drag_dt");
+        }, "drop event identity");
+        test(function() {
+          assert_equals(drop_dt.getData(MIME), "b",
+                        "the data should have been persisted");
+        }, "drop event data");
+        e.preventDefault();
+
+        setTimeout(function() {
+          test(function() {
+            assert_equals(status(drag_dt), STATUS_DISCONNECTED,
+                          "drag_dt mustbe disconnected after drop");
+            assert_equals(status(over_dt), STATUS_DISCONNECTED,
+                          "over_dt mustbe disconnected after drop");
+            assert_equals(status(drop_dt), STATUS_DISCONNECTED,
+                          "drop_dt mustbe disconnected after drop");
+          }, "after drop event status");
+          done();
+        }, 0);
+      });
+    </script>
+  </body>
+</html>

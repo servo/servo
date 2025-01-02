@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Nested fenced frame named navigation helper</title>
+
+<body>
+<script>
+(async () => {
+  // We need to wait for the window's `load` event to fire, because client-side
+  // redirect navigations that take place before a document is "completely
+  // loaded" [1] are carried out with replacement, as specified in [2]. Just
+  // waiting for `load` is not enough though! After the `load` event is fired
+  // (but before a document is marked "completely loaded"), a microtask
+  // checkpoint is performed, which is where the below `Promise`'s `then`
+  // handler is invoked (i.e., the rest of the script). So if we just resolve
+  // the promise and continue, the whole script continues in the next immediate
+  // microtask before the document is completely loaded. So we have to queue
+  // another task so that we only continue executing once the document is
+  // considered completely loaded, and then `location.href` assignments will not
+  // be made with replacement history handling.
+  //
+  // [1]: https://html.spec.whatwg.org/C#the-end:completely-finish-loading
+  // [2]: https://html.spec.whatwg.org/#the-location-interface:completely-loaded
+  await new Promise(resolve => {
+    window.onload = e => {
+      setTimeout(resolve, 0);
+    };
+  });
+
+  const kNavigationLimit = 5;
+  // This is a helper file meant to be loaded inside a fenced frame. It performs
+  // various navigations inside of the "fence" defined by this document, and
+  // ensures that they are all done in a replace-only fashion [1].
+  // Once we ensure that they are all done with replacement, we report back to
+  // the outermost page via the server stash, and it ensures that there was no
+  // impact on the joint session history as observed from beyond the fence.
+  //
+  // [1]: https://html.spec.whatwg.org/C/#hh-replace
+
+  // See documentation in the outer page.
+  const [fenced_navigation_complete_key,
+         outer_page_ready_for_next_fenced_navigation_key,
+         level] = parseKeylist();
+
+  const url = new URL(location.href);
+  const is_top_level_fenced_frame = (level == "top-level-fenced-frame");
+
+  ////////////// Navigation code that may impact `history.length` should go here
+  // The code in this block performs navigations that will run inside:
+  //   - The top-level fenced frame
+  //   - The nested fenced frame
+  //   - The nested iframe
+
+  // First, perform some real navigations to this same page. Normally this would
+  // increase `history.length`.
+  if (url.searchParams.get("navigationNumber") == null)
+    url.searchParams.append("navigationNumber", 0);
+
+  let navigationNumber = parseInt(url.searchParams.get("navigationNumber"));
+
+  if (navigationNumber <= kNavigationLimit) {
+    url.searchParams.set('navigationNumber', navigationNumber + 1);
+    location.href = url;
+    return;
+  }
+
+  // At this point we're done performing 5 subsequent navigations...
+
+  // Next, perform `history.pushState()`s.
+  history.pushState({} , "");
+  history.pushState({} , "");
+  history.pushState({} , "");
+  ////////////// END
+
+  // Finally observe `history.length` from within the fenced frame, and report
+  // the results back to the outermost page.
+  if (history.length == 1) {
+    writeValueToServer(fenced_navigation_complete_key, "PASS > " +
+        level);
+  } else {
+    writeValueToServer(fenced_navigation_complete_key,
+        "FAIL > " + level + " history.length: " +
+        history.length);
+  }
+
+  // We're only testing fenced frames, nested fenced frames, and iframes nested
+  // within fenced frames. The below code adds a nested fenced frame and a
+  // nested iframe, so it should only be reached by the top-level fenced frame.
+  if (level != "top-level-fenced-frame")
+    return;
+
+  // Only top-level fenced frames will attach a nested fenced frame and run the
+  // same tests there.
+  await nextValueFromServer(outer_page_ready_for_next_fenced_navigation_key);
+  const nested_fenced_frame_level = "nested-fenced-frame";
+  attachFencedFrame(generateURL(
+      "history-length-fenced-navigations-replace-do-not-" +
+      "contribute-to-joint-inner.html",
+      [fenced_navigation_complete_key,
+      outer_page_ready_for_next_fenced_navigation_key,
+      nested_fenced_frame_level]));
+
+  await nextValueFromServer(outer_page_ready_for_next_fenced_navigation_key);
+  const iframe = document.createElement('iframe');
+  const nested_iframe_level = "nested-iframe";
+  iframe.src = generateURL(
+      "history-length-fenced-navigations-replace-do-not-contribute-to-joint-" +
+      "inner.html",
+      [fenced_navigation_complete_key,
+      outer_page_ready_for_next_fenced_navigation_key,
+      nested_iframe_level]);
+  document.body.append(iframe);
+})();
+</script>
+</body>

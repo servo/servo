@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS Content Visibility: dialog shows under c-v auto (ref)</title>
+<style>
+.box { width: 100px; height: 100px; border: 1px solid black; }
+.spacer { width: 10px; height: 3000px; background: lightblue; }
+
+</style>
+
+<div class=spacer></div>
+<div id=container class=box>
+content
+<dialog id=dialog>PASS<div id=inner></div></dialog>
+</div>
+
+<script>
+dialog.showModal();
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<a target="_blank" id="a_click_target">Click me</a>
+<map id="map">
+<area coords="0,0,50,50" target="_blank">
+</map>
+<img src="/images/blue.png" usemap="#map" style="width: 50px; height: 50px" id="area_click_target">
+<script>
+let channel = new BroadcastChannel(window.location.search.substring(1));
+channel.addEventListener("message", (e) => {
+  if (e.data == "close") {
+    window.close();
+  }
+});
+channel.postMessage("ready");
+</script>

@@ -1,0 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Animations Level 2 (https://drafts.csswg.org/css-animations-2/)
+
+[Exposed=Window]
+interface CSSAnimation : Animation {
+  readonly attribute CSSOMString animationName;
+};

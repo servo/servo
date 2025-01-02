@@ -1,0 +1,61 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sequence operator returns non-constant test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+Sequence operator and non-constant expressions are detailed in the ESSL 3.00 spec section 12.43
+-->
+<script id="fshader-non-const-expression" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+void main() {
+    const float a = (0.0, 1.0);
+}
+</script>
+<script id="fshader-non-const-expression-as-array-size" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+void main() {
+    float a[(2, 3)];
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Checks sequence operators returning non-constants and cannot be used as an array size.");
+debug("");
+
+GLSLConformanceTester.runTests([
+{
+  fShaderId: 'fshader-non-const-expression',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: 'Sequence operator cannot return a constant expression'
+},
+{
+  fShaderId: 'fshader-non-const-expression-as-array-size',
+  fShaderSuccess: false,
+  linkSuccess: false,
+  passMsg: 'Sequence operator return value cannot be used as an array size'
+},
+], 2);
+</script>
+</body>
+</html>
+

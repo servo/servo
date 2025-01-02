@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Positioning, Overflow, and Stacking: 'overflow:auto' as an in-flow sibling of a positioned element</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/overflow/011.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow-clipping" />
+  <link rel="match" href="abspos-overflow-011-ref.xht" />
+
+  <style type="text/css">
+   #outer {
+    position: relative;
+   }
+   #inner {
+    position: absolute; /* positioned relative to the containing block of the div that follows it */
+    top: 0;
+    background: white;
+    color: green;
+    width: 20em;
+   }
+   #content {
+    overflow: auto; /* this should have no effect on the stacking context calculations or painting order */
+    background: red;
+    color: yellow;
+    width: 20em;
+   }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <div id="outer">
+   <div id="inner"> This text should be green. </div>
+   <div id="content"> FAIL </div>
+ </div>
+ </body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Creating a receiving browsing context</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="https://w3c.github.io/presentation-api/#creating-a-receiving-browsing-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+<script>
+add_completion_callback((tests, status) => {
+    const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+    const log = document.getElementById('log');
+    stash.send(JSON.stringify({ test: tests[0], status: status, log: log.innerHTML }));
+});
+
+test(() => {
+    assert_unreached('Top-level navigation is disabled.');
+});
+</script>

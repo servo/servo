@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+  <title>CSS Masking: mask with rotation transform</title>
+  <html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
+  <html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
+  <html:link rel="match" href="reference/mask-green-square-001-ref.svg"/>
+  <metadata class="flags">svg</metadata>
+</g>
+<mask id="mask">
+  <rect x="50" y="50" width="100" height="100" fill="white"/>
+</mask>
+<g transform="rotate(0.0001)" mask="url(#mask)">
+  <rect transform="rotate(0.0001)" style="will-change: transform"
+        width="200" height="200" fill="green"/>
+</g>
+</svg>

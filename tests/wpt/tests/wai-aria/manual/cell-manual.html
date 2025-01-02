@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+  <head>
+    <title>cell</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "foo",
+         "test" : {
+            "ATK" : [
+               [
+                  "result",
+                  "atk_table_get_n_columns()",
+                  "is",
+                  "8"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "colcount:8"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXTable"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "table"
+               ],
+               [
+                  "property",
+                  "AXARIAColumnCount",
+                  "is",
+                  "8"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Grid.ColumnCount",
+                  "is",
+                  "8"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_TABLE_CELL"
+               ],
+               [
+                  "result",
+                  "atk_table_cell_get_position()",
+                  "contains",
+                  "column=3"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "TableCell"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "colindex:4"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXCell"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "cell"
+               ],
+               [
+                  "property",
+                  "AXARIAColumnIndex",
+                  "is",
+                  "4"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "colindex:4"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "colcount:8"
+               ],
+               [
+                  "property",
+                  "groupPosition",
+                  "contains",
+                  "similarItemsInGroup:8"
+               ],
+               [
+                  "property",
+                  "groupPosition",
+                  "contains",
+                  "positionInGroup:4"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_CELL"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControlType",
+                  "is",
+                  "DataItem"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "GridItem pattern"
+               ],
+               [
+                  "property",
+                  "GridItem.Column",
+                  "is",
+                  "3"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "selection pattern"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "MUST NOT contain",
+                  "invoke pattern"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "cell"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for cell.</p>
+    <div id="foo" role="table" aria-colcount="8">
+    <div role="row">
+       <span id="test" role="cell" aria-colindex="4" >test cell</span>
+    </div>
+  </div>
+ then role: cell, aria-colindex: 4, aria-colcount:8
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

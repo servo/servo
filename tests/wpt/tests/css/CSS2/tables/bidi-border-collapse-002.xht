@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders"/>
+    <meta name="assert" content="Collapsed borders should behave the same way in ltr and rtl contexts"/>
+    <title>CSS Test: border-collapse in bidi context - border-left</title>
+    <style type="text/css"><![CDATA[
+      table {
+      border-collapse:collapse;
+      margin-bottom: 1em;
+      }
+      tr {
+      border-left: 5px solid fuchsia;
+      border-right: 5px solid purple;
+      }
+      td.right {
+      background-color: yellow;
+      border-left: 5px solid orange;
+      }
+      td.left {
+      background-color: aqua;
+      border-left: 5px solid teal;
+      }
+    ]]></style>
+  </head>
+
+  <body>
+
+    <p>The two tables should be identical:</p>
+
+    <table dir="rtl">
+      <tr>
+	<td class="right">XX XX XX</td>
+	<td class="left">XX</td>
+      </tr>
+    </table>
+
+    <table dir="ltr">
+      <tr>
+	<td class="left">XX</td>
+	<td class="right">XX XX XX</td>
+      </tr>
+    </table>
+
+  </body>
+</html>

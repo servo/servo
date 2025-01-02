@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 3: parsing color with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-color-3/#foreground">
+<meta name="assert" content="color supports only the '<color>' grammar defined in CSS Color Level 3.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("color", "auto");
+test_invalid_value("color", "123");
+test_invalid_value("color", "#12");
+test_invalid_value("color", "#123456789");
+test_invalid_value("color", "rgb");
+test_invalid_value("color", "rgb(1)");
+test_invalid_value("color", "rgb(1,2,3,4,5)");
+test_invalid_value("color", "hsla(1,2,3,4,5)");
+test_invalid_value("color", "rgb(10%, 20, 30%)");
+test_invalid_value("color", "rgba(-2, 300, 400%, -0.5)");
+</script>
+</body>
+</html>

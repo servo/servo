@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>is windows-1252 late</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+window.onmessage = function(e) {
+    test(function() {
+        assert_equals(e.data, "windows-1252", 'Expected windows-1252');
+    }, "Check detection result");
+    w.close();
+    done();
+};
+var w = window.open("support/is-windows-1252-late.sub.html");
+</script>

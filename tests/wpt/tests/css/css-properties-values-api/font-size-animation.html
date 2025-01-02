@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3751">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    CSS.registerProperty({
+        name: '--length',
+        syntax: '<length>',
+        initialValue: '0px',
+        inherits: false
+    });
+</script>
+<style>
+    @keyframes font_size_animation {
+        from {
+            font-size: 10px;
+            width: 10em;
+            --length: 10em;
+        }
+        to {
+            font-size: 20px;
+            width: 20em;
+            --length: 20em;
+        }
+    }
+    #target1 {
+        font-size: 1px;
+        animation: font_size_animation 10s -5s linear paused;
+    }
+</style>
+<div id=target1></div>
+<script>
+    test(function() {
+        // At the time of writing, the correct (absolute) answer is not
+        // yet defined. However, whatever the correct answer is, there should
+        // be no difference in 'width' and a custom property registered with
+        // "<length>".
+        //
+        // See https://github.com/w3c/csswg-drafts/issues/3751
+        assert_equals(getComputedStyle(target1).getPropertyValue('width'),
+                      getComputedStyle(target1).getPropertyValue('--length'));
+    }, 'Animating font-size handled identically for standard and custom properties');
+</script>

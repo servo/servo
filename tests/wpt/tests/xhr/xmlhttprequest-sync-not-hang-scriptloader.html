@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Ensure that an async script added during a defer script that then does a
+  sync XHR still runs</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<!--
+  We run the test in a subframe, because something in the testharness stuff
+  interferes with defer scripts -->
+<script>
+  var t = async_test();
+  onmessage = t.step_func_done(function(e) {
+    assert_equals(e.data, "done");
+  });
+</script>
+<iframe src="xmlhttprequest-sync-not-hang-scriptloader-subframe.html"></iframe>

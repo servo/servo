@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: URLs in style attributes (with &lt;base&gt;)</title>
+  <base href="support/"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Arron Eicholz" href="mailto:Arron.Eicholz@microsoft.com"/>
+  <link rel="match" href="reference/ref-green-on-green.xht"/>
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#interpret"/>
+  <link rel="help" href="http://www.w3.org/TR/html5/the-base-element.html#the-base-element"/>
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="flags" content="image" />
+  <meta name="assert" content="In the presence of &lt;base&gt; URL manipulation, URLs in style attributes are relative to the specified base."/>
+  <style type="text/css"><![CDATA[
+    p { background: red; color: green; }
+  ]]></style>
+ </head>
+ <body>
+  <p style="background-image: url(swatch-lime.png)">
+    This sentence must be green on a green background.</p>
+ </body>
+</html>

@@ -1,0 +1,20 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script>
+function boom()
+{
+  document.getElementById("mo").appendChild(document.getElementById("mo2"));
+  document.body.offsetWidth;
+  document.getElementById("span").appendChild(document.createTextNode("baz"));
+}
+</script>
+</head>
+
+<body onload="boom();">
+
+<p>Foo <math xmlns="http://www.w3.org/1998/Math/MathML"><mo id="mo2">-</mo></math></p>
+
+<p><math xmlns="http://www.w3.org/1998/Math/MathML"><msub id="msub"><mo id="mo">+</mo></msub></math> <span id="span">bar</span></p>
+
+</body>
+</html>

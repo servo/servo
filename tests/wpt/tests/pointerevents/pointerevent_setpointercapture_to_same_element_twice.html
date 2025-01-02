@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+    <head>
+        <title>setPointerCapture() to the element which already captured the pointer</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var actions_promise;
+            var detected_pointertypes = {};
+            add_completion_callback(showPointerTypes);
+            var test_setPointerCapture = async_test("setPointerCapture: set to the element which already captured the pointer");
+            var got_pointer_capture = false;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var target1 = document.getElementById("target1");
+
+                on_event(target0, "pointerdown", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    target0.setPointerCapture(event.pointerId);
+                });
+
+                on_event(target0, "gotpointercapture", function (event) {
+                    test_setPointerCapture.step(function () {
+                        assert_equals(got_pointer_capture, false, "Target0 should receive gotpointercapture at the first time it captured the pointer");
+                        assert_equals(target0.hasPointerCapture(event.pointerId), true, "Target 0 received gotpointercapture, target0.hasPointerCapture should be true");
+                    });
+                    got_pointer_capture = true;
+
+                    target0.setPointerCapture(event.pointerId);
+                    test_setPointerCapture.step(function () {
+                        assert_equals(target0.hasPointerCapture(event.pointerId), true, "Set capture to target0, target0.hasPointerCapture should be true");
+                        assert_equals(target1.hasPointerCapture(event.pointerId), false, "Set capture to target0, target1.hasPointerCapture should be false");
+                    });
+                });
+
+                on_event(target0, "pointerup", function (event) {
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_setPointerCapture.done();
+                    });
+                });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerDown()
+                    .pointerMove(10, 10, {origin: target0})
+                    .pointerUp()
+                    .send();
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: setPointerCapture to the element which already captured the pointer</h1>
+        <h4>Test Description:
+            When the setPointerCapture method is invoked, if the target element had already captured the pointer, it should not trigger any gotpointercapture or lostpointercapture event
+            <ol>
+                <li>Press and hold left mouse button over black box
+                <li>Move mouse and release mouse button
+            </ol>
+        </h4>
+        <br>
+        <div id="target0" touch-action:none></div>
+        <div id="target1" touch-action:none></div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

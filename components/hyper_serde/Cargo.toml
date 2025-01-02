@@ -1,0 +1,28 @@
+[package]
+name = "hyper_serde"
+version = "0.13.2"
+edition.workspace = true
+authors = ["The Servo Project Developers"]
+description = "Serde support for hyper types."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/servo/servo"
+documentation = "https://docs.rs/hyper_serde"
+categories = ["encoding", "web-programming"]
+keywords = ["serde", "serialization", "hyper", "cookie", "mime"]
+
+[lib]
+path = "lib.rs"
+doctest = false
+test = false
+
+[dependencies]
+cookie = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+hyper = { workspace = true }
+mime = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+
+[dev-dependencies]
+serde_test = "1.0"

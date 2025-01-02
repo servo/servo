@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="color-mix-currentcolor-visited-ref.html">
+<title>currentcolor is taken from :visited pseudo-class correctly in color-mix()</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="author" title="Matthieu Dubet" href="https://github.com/mdubet">
+<style>
+a:link { color: red; }
+a:visited { color: green; }
+span {
+    background-color: color-mix(in srgb, currentcolor, white 75%);
+}
+</style>
+<a href=""><span>This background should be green and not red</span></a>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html class=reftest-wait>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="">
+<meta name="assert" content="Flex items with contain: layout size are sized properly.">
+<link rel="bookmark" href="https://crbug.com/1108675">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+#flex {
+  display: flex;
+  width: 100px;
+  height: 100px;
+}
+#grid {
+  background-color: green;
+  display: grid;
+  flex: 1;
+  contain: layout size;
+}
+.item {
+  height: 50px;
+  width: 50px;
+}
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+
+<div id="flex">
+  <div id="grid" data-expected-height=100 data-expected-width=100>
+    <div class="item"></div>
+  </div>
+</div>
+
+<script>
+  document.body.offsetTop;
+  let item = document.querySelector(".item");
+  let cloned = item.cloneNode(true);
+  let parent = item.parentElement;
+  parent.appendChild(cloned);
+  document.documentElement.classList.remove("reftest-wait");
+</script>

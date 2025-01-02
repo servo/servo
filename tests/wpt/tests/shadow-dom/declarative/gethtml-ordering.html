@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>getHTML ordering behavior</title>
+<link rel='author' href='mailto:masonf@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/html/pull/10139'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+
+<div id=tests>
+  <div data-name="base">
+    <template shadowrootmode=open shadowrootdelegatesfocus shadowrootserializable shadowrootclonable>
+      <slot></slot>
+    </template>
+    <span class=content>Content 1</span>
+    <span class=content>Content 2</span>
+  </div>
+
+  <div data-name="template position">
+    <span class=content>Content 1</span>
+    <template shadowrootmode=open shadowrootdelegatesfocus shadowrootserializable shadowrootclonable>
+      <slot></slot>
+    </template>
+    <span class=content>Content 2</span>
+  </div>
+
+  <div data-name="attribute position">
+    <template shadowrootclonable shadowrootserializable shadowrootdelegatesfocus shadowrootmode=open>
+      <slot></slot>
+    </template>
+    <span class=content>Content 1</span>
+    <span class=content>Content 2</span>
+  </div>
+
+  <div data-name="both template and attribute position">
+    <span class=content>Content 1</span>
+    <span class=content>Content 2</span>
+    <template shadowrootclonable shadowrootserializable shadowrootdelegatesfocus shadowrootmode=open>
+      <slot></slot>
+    </template>
+  </div>
+</div>
+
+<script>
+  function removeWhitespaceNodes(el) {
+    el.shadowRoot && removeWhitespaceNodes(el.shadowRoot);
+    var iter = document.createNodeIterator(el, NodeFilter.SHOW_TEXT,
+        (node) => (node.data.replace(/\s/g,'').length === 0) ?
+        NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT);
+    let node;
+    while (node = iter.nextNode()) {
+      node.remove();
+    }
+    return el;
+  }
+  const serialize = (host) => host.getHTML({shadowRoots: [host.shadowRoot]});
+
+  const testCases = Array.from(document.querySelectorAll('#tests>div'));
+  assert_true(testCases.length > 1);
+  const baseHost = removeWhitespaceNodes(testCases[0]);
+  const correctSerialization = serialize(baseHost);
+  baseHost.remove();
+  for(let i=1;i<testCases.length;++i) {
+    const thisHost = removeWhitespaceNodes(testCases[i]);
+    test(t => {
+      assert_equals(serialize(thisHost),correctSerialization,'Serialization should be identical');
+      thisHost.remove();
+    },thisHost.dataset.name);
+  }
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Fenced frames loading tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script>
+  for (const resolve_to_config of [true, false]) {
+    promise_test(async (t) => {
+      const key = token();
+
+      attachFencedFrame(await runSelectURL("resources/embeddee.html", [key],
+        resolve_to_config));
+      const result = await nextValueFromServer(key);
+
+      assert_equals(result, "PASS",
+        "The fenced frame with src=urn:uuid should load");
+    }, "fenced frame loading " +
+       (resolve_to_config ? "a config." : "an urn:uuid."));
+  }
+</script>
+</body>
+
+</html>

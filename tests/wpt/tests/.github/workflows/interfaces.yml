@@ -1,0 +1,32 @@
+name: interfaces
+on:
+  # Trigger at every UTC noon, or manually.
+  schedule:
+    - cron: 0 12 * * *
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Run interfaces_update.sh
+      run: ./tools/ci/interfaces_update.sh
+    - name: Create pull request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        author: wpt-pr-bot <wpt-pr-bot@users.noreply.github.com>
+        # env.webref_idl_version is set by interfaces_update.sh
+        title: "Sync interfaces/ with @webref/idl ${{ env.webref_idl_version }}"
+        commit-message: "Sync interfaces/ with @webref/idl ${{ env.webref_idl_version }}"
+        body: |
+          This automated pull request updates interfaces/*.idl from [@webref/idl ${{ env.webref_idl_version }}](https://www.npmjs.com/package/@webref/idl/v/${{ env.webref_idl_version }}).
+
+          Before merging, please check that any tests that depend on the updated IDL files still work. In particular, check for **gray boxes as the wpt.fyi check status**, which usually means that some tests have regressed.
+
+          If additional changes are needed, please manually create another PR based on this one.
+
+          See the [workflow](https://github.com/web-platform-tests/wpt/blob/master/.github/workflows/interfaces.yml) for how this pull request was created, and the [README](https://github.com/web-platform-tests/wpt/blob/master/interfaces/README.md) for how the IDL files in this directory are used.
+        branch: actions/update-idl

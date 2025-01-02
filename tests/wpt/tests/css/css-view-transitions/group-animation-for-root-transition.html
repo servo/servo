@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: group pseudo for the root transition has animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    let transition = document.startViewTransition();
+    transition.ready.then(() => {
+      let groupAnimationCount = 0;
+      let oldAnimationCount = 0;
+      let newAnimationCount = 0;
+
+      document.getAnimations().forEach((animation) => {
+        let pseudo = animation.effect.pseudoElement;
+        if (pseudo == "::view-transition-group(root)") {
+          groupAnimationCount++;
+        } else if (pseudo == "::view-transition-new(root)") {
+          newAnimationCount++;
+        } else if (pseudo == "::view-transition-old(root)") {
+          oldAnimationCount++;
+        } else {
+          reject();
+        }
+      });
+
+      let total =
+        groupAnimationCount + oldAnimationCount + newAnimationCount;
+      // Old/new images have 2 animations : opacity and mix-blend-mode.
+      if (total == 5) {
+        assert_equals(groupAnimationCount, 1);
+        assert_equals(oldAnimationCount, 2);
+        assert_equals(newAnimationCount, 2);
+        resolve();
+      } else {
+        reject();
+      }
+    });
+  });
+}, "incorrect UA animations for root transition");
+</script>

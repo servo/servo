@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test the properties of a session history entry's document state</title>
+<link rel="help" href="https://html.spec.whatwg.org/#document-state">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+// In this test, we create an auxiliary window with a session history A -> B,
+// where the document on site B is the current active document. Bf-cache is
+// disabled via `Cache-Control: no-store` headers. We then `history.back()` to
+// site A, and perform `location.replace(B)`. This makes the first document in
+// the session history now same-origin/site with the URL in the subsequent
+// session history entry's document state.
+//
+// We then perform `history.forward()` in the first document, which loads the
+// second document (from network). We confirm that the resulting navigation
+// request was made with the expected state, stored on the history entry's
+// document state. The consequences of this are:
+//  - The navigation is made with the `Sec-Fetch-Site: cross-site` header,
+//    indicating that the *original* document state's initiator origin was
+//    preserved
+//  - The navigation is made with a cross-origin `Referer` header, indicating
+//    that the *original* document state's referrer was preserved
+//  - The resulting document has a cross-origin `document.referrer`, indicating
+//    the same as above
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const A = await rcHelper.addWindow();
+
+  // Create B on a new origin (with bf-cache disabled).
+  const B = await A.navigateToNew({
+    origin: 'HTTPS_NOTSAMESITE_ORIGIN',
+    headers: [['Cache-Control', 'no-store']],
+  });
+
+  // This is the origin we're going to navigate A to, so that it becomes
+  // same-origin with B.
+  const originB = new URL(await B.executeScript(() => location.href)).origin;
+  await B.historyBack();
+
+  // Make A navigate to the same document but in origin B:
+  const urlA = await A.executeScript(() => location.href);
+  const originA = new URL(urlA).origin;
+  assert_not_equals(originA, originB, 'Contexts A and B are cross-origin');
+
+  // Load A's current document but on origin B.
+  const newUrlOnOriginB = urlA.replace(originA, originB);
+  await A.navigate((url) => {
+    location.replace(url);
+  }, [newUrlOnOriginB]);
+
+  // Assert that A and B are now same-origin:
+  const newUrlA = await A.executeScript(() => {
+    return location.href;
+  });
+
+  // Now the session history looks like:
+  // B -> B (initiator origin: A)
+  assert_equals(new URL(newUrlA).origin, originB);
+
+  // This means that when we navigate forward, we should request the second
+  // document with the history entry's document state, which mostly preserves
+  // parameters from the original initiator (a cross-site document), despite a
+  // now-same-origin document initiating this navigation via history.
+  await A.historyForward();
+
+  const requestHeaders = await B.getRequestHeaders();
+  const documentReferrer = await B.executeScript(() => document.referrer);
+
+  assert_equals(requestHeaders.get('sec-fetch-site'), 'cross-site',
+      'Same-origin forward history navigation to a document whose original ' +
+      'initiator was cross-site, ends up with Sec-Fetch-Dest: cross-site ' +
+      'header');
+  assert_equals(requestHeaders.get('referer'), originA + '/',
+      'Same-origin forward history navigation to a document whose original ' +
+      'initiator was cross-site ends up with the Referer header that is the ' +
+      'original cross-site initiator');
+  assert_equals(documentReferrer, originA + '/',
+      'Same-origin forward history navigation to a document whose original ' +
+      'initiator was cross-site ends up with document.referrer that is the ' +
+      'original cross-site initiator');
+}, "A navigation's initiator origin and referrer are stored in the document " +
+   "state and used in the document repopulation case");
+
+// This test is similar to the above, but instead of testing for the true
+// history entry -> document state -> document repopulation case, we stay on [B]
+// (the document who was navigated to from [A]) and run `location.reload()` to
+// confirm that the initiator information from the [A] -> [B] navigation is used
+// when reloading [B], not [B]'s own same-origin information.
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const A = await rcHelper.addWindow();
+
+  const originA = new URL(await A.executeScript(() => location.href)).origin;
+
+  // Create B on a new origin.
+  const B = await A.navigateToNew({
+    origin: 'HTTPS_NOTSAMESITE_ORIGIN',
+  });
+
+  const originB = new URL(await B.executeScript(() => location.href)).origin;
+  assert_not_equals(originA, originB, 'Contexts A and B are cross-origin');
+
+  // Reload B.
+  await B.navigate(() => {
+    location.reload();
+  }, []);
+
+  const requestHeaders = await B.getRequestHeaders();
+  const documentReferrer = await B.executeScript(() => document.referrer);
+
+  assert_equals(requestHeaders.get('sec-fetch-site'), 'cross-site',
+      'Same-origin forward history navigation to a document whose original ' +
+      'initiator was cross-site, ends up with Sec-Fetch-Dest: cross-site ' +
+      'header');
+  assert_equals(requestHeaders.get('referer'), originA + '/',
+      'Same-origin forward history navigation to a document whose original ' +
+      'initiator was cross-site ends up with the Referer header that is the ' +
+      'original cross-site initiator');
+  assert_equals(documentReferrer, originA + '/',
+      'Same-origin forward history navigation to a document whose original ' +
+      'initiator was cross-site ends up with document.referrer that is the ' +
+      'original cross-site initiator');
+}, "A navigation's initiator origin and referrer are stored in the document " +
+   "state and used on location.reload()");
+</script>
+</body>

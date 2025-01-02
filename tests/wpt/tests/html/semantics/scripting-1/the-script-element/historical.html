@@ -1,0 +1,53 @@
+<!doctype html>
+<title>Historical script element features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function t(property) {
+  test(function() {
+    assert_false(property in document.createElement('script'));
+  }, 'script.' + property + ' should not be supported');
+}
+// added in https://github.com/whatwg/html/commit/69f83cf2eacf4543860ccb7abab0ff5bb1e8b594
+// removed in https://github.com/whatwg/html/commit/1a0b5e8377d59462e05a5cffda4b8592324a2785
+t('onbeforescriptexecute');
+t('onafterscriptexecute');
+
+var t_onbeforescriptexecute_attr = async_test('onbeforescriptexecute content attribute should not be supported');
+var t_onafterscriptexecute_attr = async_test('onafterscriptexecute content attribute should not be supported');
+var t_beforescriptexecute_event = async_test(function() {
+  addEventListener('beforescriptexecute', this.step_func(function() {
+    assert_unreached();
+  }), true);
+}, 'beforescriptexecute event should not be supported');
+var t_afterscriptexecute_event = async_test(function() {
+  addEventListener('afterscriptexecute', this.step_func(function() {
+    assert_unreached();
+  }), true);
+}, 'afterscriptexecute event should not be supported');
+
+var a = false;
+
+onload = function() {
+  t_onbeforescriptexecute_attr.step(function() {
+    assert_true(a);
+    this.done();
+  });
+  t_onafterscriptexecute_attr.step(function() {
+    assert_true(a);
+    this.done();
+  });
+  t_beforescriptexecute_event.step(function() {
+    assert_true(a);
+    this.done();
+  });
+  t_afterscriptexecute_event.step(function() {
+    assert_true(a);
+    this.done();
+  });
+};
+</script>
+<script onbeforescriptexecute="t_onbeforescriptexecute_attr.step(function() { assert_unreached(); });"
+        onafterscriptexecute="t_onafterscriptexecute_attr.step(function() { assert_unreached(); });">
+a = true;
+</script>

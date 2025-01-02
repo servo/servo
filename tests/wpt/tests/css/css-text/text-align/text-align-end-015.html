@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>text-align: end, pre, dir=ltr inherited</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel='match' href='reference/text-align-end-ref-015.html'>
+<meta name="assert" content="text-align:end aligns inline-level content to the end edge of the line box – ie. right when base direction is ltr.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style type='text/css'>
+.test { text-align: end; }
+.ref { text-align: right; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange; margin: 20px; width: 300px; color: orange; font: 25px/1 Ahem; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if shading in both orange boxes is identical.</div>
+<div dir="ltr">
+<pre class="test">TES
+&rlm;ING</pre>
+</div>
+<div class="ref">REF<br>ERE</div>
+<!-- Notes:
+The &rlm isn't in the Ahem font, so it may cause a spurious effect, such as a thin white line in the middle of a block in IE. This should be ignored. The test needs a RTL character in the Ahem font, so that the &RLM can be removed.
+-->
+</body>
+</html>

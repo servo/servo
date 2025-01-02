@@ -1,0 +1,19 @@
+<!doctype html>
+<title>CSS Color Adjustment Test: iframe element with light color-scheme, frame document with dark color-scheme, :root background with alpha</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="match" href="support/dark-frame-alpha.html">
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+  iframe {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+<iframe src="support/dark-frame-alpha.html"></iframe>

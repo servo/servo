@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: min-height: auto with flex items containing percentage-sized children</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=981481" />
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=984606" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+.flexbox {
+  display: flex;
+  width: 100px;
+  flex-direction: column;
+}
+.item {
+  flex-basis: 0;
+  background: green;
+}
+.percentage {
+  height: 100%;
+}
+.fixed {
+  height: 100px;
+}
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="flexbox">
+    <div class="item">
+        <div class="percentage"></div>
+        <div class="fixed"></div>
+    </div>
+</div>

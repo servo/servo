@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS counter order and scope with Shadow DOM and SLOT</title>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+    <link rel="help" href="https://www.w3.org/TR/css-lists-3/#inheriting-counters">
+    <style>
+      .counted {
+        counter-increment: section;
+      }
+
+      .reset {
+        counter-reset: section;
+      }
+
+      .counted::before {
+        content: "C=" counter(section) " ";
+      }
+    </style>
+  </head>
+
+  <body>
+
+  <div>
+    <div class="counted">One</div>
+    <div class="counted">Two</div>
+    <div class="counted">Three</div>
+    <div class="reset">Reset1</div>
+    <div class="counted">Four</div>
+    <div class="counted">Five</div>
+    <div class="counted">Six</div>
+    <div class="reset">Reset2</div>
+    <div class="counted">Seven</div>
+    <div class="counted">Eight</div>
+    <div class="counted">Nine</div>
+  </div>
+
+  </body>
+</html>

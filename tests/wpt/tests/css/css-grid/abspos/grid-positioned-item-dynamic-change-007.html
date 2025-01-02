@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang=en class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned item dynamic change</title>
+<link rel="author" title="Filipp Riabchun" href="mailto:talpa@yandex.ru">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="match" href="grid-positioned-item-dynamic-change-007-ref.html">
+<meta name="assert" content="This test checks that positioned items react to grid track size changes.">
+<style>
+.grid {
+  display: inline-grid;
+  grid-gap: 8px;
+  position: relative;
+}
+
+.green {
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+
+.blue {
+  position: absolute;
+  border: 3px solid blue;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  grid-column: 1 / 2;
+  grid-row: 2 / 3;
+}
+
+</style>
+
+<p>Test passes if there is a filled green rectangle on top and a green square with blue border on bottom.</p>
+
+<div class="grid">
+  <div class="green" id="item"></div>
+  <div class="green"></div>
+  <div class="blue"></div>
+</div>
+
+<script>
+  document.body.offsetLeft;
+
+  var item = document.getElementById("item");
+  item.style.height = '50px';
+
+  document.documentElement.classList.remove('reftest-wait');
+</script>
+
+</html>

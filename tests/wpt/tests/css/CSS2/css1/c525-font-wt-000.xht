@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: font-weight</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#font-weight"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+  p { margin: 0.5em 0; }
+   p, h4 { color: navy; }
+   .bold {font-weight: bold;}
+   .bolder {font-weight: bolder;}
+   b {font-weight: lighter;}
+   .normal { font-weight: normal; }
+
+   .one { font-weight: 100; }
+   .two { font-weight: 200; }
+   .three { font-weight: 300; }
+   .four { font-weight: 400; }
+   .five { font-weight: 500; }
+   .six { font-weight: 600; }
+   .seven { font-weight: 700; }
+   .eight { font-weight: 800; }
+   .nine { font-weight: 900; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" title="15.6 Font boldness: the 'font-weight' property"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop" />
+ </head>
+ <body>
+  <p>This sentence is normal. </p>
+  <p class="normal">This sentence should also be normal.</p>
+  <p class="four">This sentence should also be normal.</p>
+  <p class="bolder"> This sentence should be bolder than normal. </p>
+  <p class="bold"> This sentence should be bold. </p>
+  <h4> Whatever this line looks like... </h4>
+  <h4 class="bolder"> ...this line should look bolder (or the same).</h4>
+  <p> <b>This sentence should be lighter than normal (or the same).</b> </p>
+  <p class="bold">
+   This sentence should be bold.
+   <span class="normal"> This sentence should be normal.</span>
+  </p>
+
+  <hr/>
+
+  <p>For the following nine lines, each must be bolder or the same as the previous:</p>
+  <p class="one">Line 1 (Lightest)</p>
+  <p class="two">Line 2</p>
+  <p class="three">Line 3</p>
+  <p class="four">Line 4 (Normal)</p>
+  <p class="five">Line 5</p>
+  <p class="six">Line 6</p>
+  <p class="seven">Line 7</p>
+  <p class="eight">Line 8</p>
+  <p class="nine">Line 9 (Boldest)</p>
+ </body>
+</html>

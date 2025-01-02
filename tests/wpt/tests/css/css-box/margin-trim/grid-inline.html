@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: grid-inline</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-grid">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="inline should trim inline-start margin of items on first column and inline-end margins of items on last column">
+<style>
+grid {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    margin-trim: inline;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+}
+item:nth-child(odd) {
+    margin-inline-start: 10px;
+}
+item:nth-child(even) {
+    margin-inline-end: 20px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<grid>
+<item></item>
+<item></item>
+<item></item>
+<item></item>
+</grid>
+</body>
+</html>

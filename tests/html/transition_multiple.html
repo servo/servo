@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+section {
+    position: absolute;
+    display: block;
+    left: 0;
+    width: 64px;
+    height: 64px;
+    background: cadetblue;
+    transition: left 3s ease, top 1500ms ease;
+}
+</style>
+</head>
+<body>
+<section></section>
+<script>
+var sections = document.getElementsByTagName('section');
+sections[0].setAttribute('style', "left: 0; top: 0");
+setTimeout(function() {
+    sections[0].setAttribute('style', "left: 512px; top: 512px");
+}, 0);
+</script>
+</body>
+</html>
+
+

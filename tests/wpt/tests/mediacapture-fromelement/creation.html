@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<script>
+
+// Run captureStream() on <video>/<audio>s and inspect the generated Stream.
+
+var makeAsyncTest = function(filename, numTracks) {
+  async_test(function() {
+    var video = document.createElement('video');
+    video.src = "/media/" + filename;
+    video.onerror = this.unreached_func("<video> error");
+
+    assert_true('captureStream' in video);
+
+    var stream = video.captureStream();
+    assert_not_equals(stream, null, "error generating stream");
+
+    stream.onaddtrack = this.step_func_done(function() {
+      var tracks = stream.getTracks();
+      var idx;
+
+      for (idx = 0; idx < tracks.length; idx += 1) {
+        assert_equals(tracks[idx].readyState, 'live')
+      }
+
+      // The stream got a (number of) MediaStreamTracks added.
+      assert_equals(stream.getVideoTracks().length, numTracks['vid'], 'video');
+      assert_equals(stream.getAudioTracks().length, numTracks['aud'], 'audio');
+    });
+  }), "<video>.captureStream()";
+};
+
+generate_tests(makeAsyncTest, [
+  [ "video-only", "test-v-128k-320x240-24fps-8kfr.webm", {vid : 1, aud : 0} ],
+  [ "audio-only", "test-a-128k-44100Hz-1ch.webm", {vid : 0, aud : 1} ],
+  [ "video+audio", "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm", {vid : 1, aud : 1} ]
+]);
+
+</script>
+</body>
+</html>

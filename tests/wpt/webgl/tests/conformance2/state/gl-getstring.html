@@ -1,0 +1,62 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL gl.getParameter Strings Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("This test checks getParameter returns strings in the correct format");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas", null, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  checkPrefix("WebGL 2.0", "VERSION");
+  checkPrefix("WebGL GLSL ES 3.00", "SHADING_LANGUAGE_VERSION");
+  shouldBeNonNull("gl.getParameter(gl.VENDOR)");
+  shouldBeNonNull("gl.getParameter(gl.RENDERER)");
+  shouldBe("gl.getError()", "gl.NO_ERROR");
+}
+
+function checkPrefix(expected, enum_val) {
+  var s = gl.getParameter(gl[enum_val]);
+  if (s != null &&
+      s.length >= expected.length &&
+      s.substring(0, expected.length) == expected) {
+    testPassed("getParameter(gl." + enum_val + ") correctly started with " + expected);
+  } else {
+    testFailed("getParameter(gl." + enum_val + ") did not start with " + expected);
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

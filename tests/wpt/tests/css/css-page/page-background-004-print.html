@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#painting">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-clip">
+<meta name="assert" content="The root element has a different background painting area and thus the background-clip property has no effect when specified on it.">
+<link rel="match" href="page-background-004-print-ref.html">
+<style>
+  @page {
+    size: 500px 300px;
+    margin: 50px;
+    border: 10px solid;
+    padding: 50px;
+    background-color: yellow;
+  }
+  @page border {
+    background-clip: border-box;
+  }
+  @page padding {
+    background-clip: padding-box;
+  }
+  @page content {
+    background-clip: content-box;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="page:border;">
+  This page should be completely yellow (with a border).
+</div>
+<div style="page:padding;">
+  This page should be completely yellow (with a border).
+</div>
+<div style="page:content;">
+  This page should be completely yellow (with a border).
+</div>

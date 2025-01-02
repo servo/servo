@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(t.step_func_done(async () => {
+    let start_length = navigation.entries().length;
+    let start_history_length = history.length;
+    let key1 = navigation.currentEntry.key;
+    await navigation.navigate("#1").committed;
+    let key2 = navigation.currentEntry.key;
+    assert_not_equals(key1, key2);
+    await navigation.navigate("#2", { history: "replace" }).committed;
+    let key3 = navigation.currentEntry.key;
+    assert_equals(key2, key3);
+    assert_equals(navigation.entries().length, start_length + 1);
+    assert_equals(history.length, start_history_length + 1);
+  }), 0);
+}, "navigate() with history: 'replace' option");
+</script>

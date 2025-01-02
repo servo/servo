@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+    <head>
+        <title>setPointerCapture + inactive button state</title>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h1>setPointerCapture</h1>
+        <h4>
+            Test Description: This test checks if setPointerCapture works properly.
+            <ol>
+                <li>Put your mouse over the black rectangle
+                <li>Move you mouse out to complete the test
+            </ol>
+        </h4>
+        <p>
+        <div id="target0" style="background:black; color:white;"></div>
+        <script>
+            var detected_pointertypes = {};
+
+            var captureGot = false;
+
+            setup({ single_test: true });
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var actions_promise;
+
+                on_event(target0, "pointerover", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    target0.setPointerCapture(event.pointerId);
+                    // After we receive a pointerover event, dispatch a pointer move to move out of target0.
+                    // https://github.com/w3c/webdriver/issues/1545
+                    actions_promise.then(function() {
+                        return new test_driver.Actions().pointerMove(1, 1).send();
+                    });
+                });
+
+                // First dispatch a pointer move to target0.
+                actions_promise = new test_driver.Actions().pointerMove(0, 0, {origin: target0}).send();
+
+                 // When the setPointerCapture method is invoked, if the specified pointer is not in active button state, then the method must have no effect on subsequent pointer events.
+                 // TA: 13.2
+                on_event(target0, "pointerout", function (event) {
+                    assert_false(captureGot, "pointer capture is not set while button state is inactive")
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        done();
+                    });
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    captureGot = true;
+                });
+            }
+        </script>
+        <h1>Pointer Events setPointerCapture Tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

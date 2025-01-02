@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Layout Instability: no shift in pointerdown becoming dragging</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; }
+#draggable {
+  top:50px;
+  left:50px;
+  width:50px;
+  height:50px;
+  background-color:blue;
+  position:absolute
+}
+
+</style>
+<div id="draggable" ></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+const draggable = document.getElementById("draggable");
+draggable.addEventListener('touchmove', function(event) {
+  let touch = event.targetTouches[0];
+
+  // Move the element when the finger moves.
+  draggable.style.top = touch.pageY - 25 + 'px';
+  event.preventDefault();
+}, false);
+
+generateTouchDragSequence = () => new test_driver.Actions()
+    .addPointer("touch1", "touch")
+    .pointerMove(0, 0, {origin: draggable})
+    .pointerDown()
+    .pointerMove(0, 15, {origin: draggable})
+    .pause(100)
+    .pointerMove(0, 30, {origin: draggable})
+    .pause(100)
+    .pointerMove(0, 45, {origin: draggable})
+    .pause(100)
+    .pointerUp()
+    .pause(100);
+
+promise_test(async(test) => {
+  const watcher = new ScoreWatcher;
+  let eventWatcher = new EventWatcher(test, draggable, ["pointerup"]);
+  let donePromise = eventWatcher.wait_for(["pointerup"], { record: 'all' });
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Send pointer events for a touch drag.
+  await generateTouchDragSequence().send();
+
+  // wait for pointerUp before running the test
+  await donePromise;
+
+  // Touch moves which drag the objects should be counted as the excluding inputs
+  // for the layout shift.
+  assert_greater_than(watcher.score, 0);
+  assert_equals(watcher.scoreWithInputExclusion, 0);
+
+}, "No Shift in pointerdown reported when it becomes a touch drag.");
+
+</script>

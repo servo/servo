@@ -1,0 +1,9 @@
+# The first line here should be the "servo" argument (without quotes) and the
+# last should be the URL to load.
+# Blank lines and those beginning with a '#' are ignored.
+# Each line should be a separate parameter as would be parsed by the shell.
+# For example, "servo -p 10 http://en.wikipedia.org/wiki/Rust" would take 4
+# lines (the "-p" and "10" are separate even though they are related).
+
+servo
+http://en.wikipedia.org/wiki/Rust

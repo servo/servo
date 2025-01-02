@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: Grid tracks changes recomputed child positions.</title>
+<link rel="author" title="Julien Chaffraix" href="mailto:jchaffraix@chromium.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#placement"/>
+<meta name="assert" content="Checks that grid-template-{rows|columns} dynamic updates recomputes the positions of automatically placed grid items."/>
+<link rel="issue" href="https://crbug.com/248151"/>
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+<style>
+.grid {
+    grid-auto-flow: row dense;
+    grid-auto-rows: 5px;
+    grid-auto-columns: 5px;
+}
+#firstGridItem {
+    grid-row: auto;
+    grid-column: 1;
+}
+
+#secondGridItem {
+    grid-row: 1;
+    grid-column: auto;
+}
+
+#thirdGridItem {
+    grid-row: auto;
+    grid-column: auto;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+function testGridDefinitions(gridTemplateRows, gridTemplateColumns, gridTemplateAreas, firstGridItemData, secondGridItemData, thirdGridItemData)
+{
+    var gridElement = document.getElementsByClassName("grid")[0];
+    gridElement.style.gridTemplateRows = gridTemplateRows;
+    gridElement.style.gridTemplateColumns = gridTemplateColumns;
+    gridElement.style.gridTemplateAreas = gridTemplateAreas;
+
+    var firstGridItem = document.getElementById("firstGridItem");
+    firstGridItem.setAttribute("data-expected-width", firstGridItemData.width);
+    firstGridItem.setAttribute("data-expected-height", firstGridItemData.height);
+    firstGridItem.setAttribute("data-offset-x", firstGridItemData.x);
+    firstGridItem.setAttribute("data-offset-y", firstGridItemData.y);
+
+    var secondGridItem = document.getElementById("secondGridItem");
+    secondGridItem.setAttribute("data-expected-width", secondGridItemData.width);
+    secondGridItem.setAttribute("data-expected-height", secondGridItemData.height);
+    secondGridItem.setAttribute("data-offset-x", secondGridItemData.x);
+    secondGridItem.setAttribute("data-offset-y", secondGridItemData.y);
+
+    var thirdGridItem = document.getElementById("thirdGridItem");
+    thirdGridItem.setAttribute("data-expected-width", thirdGridItemData.width);
+    thirdGridItem.setAttribute("data-expected-height", thirdGridItemData.height);
+    thirdGridItem.setAttribute("data-offset-x", thirdGridItemData.x);
+    thirdGridItem.setAttribute("data-offset-y", thirdGridItemData.y);
+
+    checkLayout(".grid", false);
+}
+
+function testChangingGridDefinitions()
+{
+    testGridDefinitions('10px 20px', '10px', '', { 'width': '10', 'height': '20', 'x': '0', 'y': '10' }, { 'width': '10', 'height': '10', 'x': '0', 'y': '0' }, { 'width': '10', 'height': '5', 'x': '0', 'y': '30' });
+    testGridDefinitions('10px', '10px', '"a"', { 'width': '10', 'height': '5', 'x': '0', 'y': '10' }, { 'width': '10', 'height': '10', 'x': '0', 'y': '0' }, { 'width': '10', 'height': '5', 'x': '0', 'y': '15' });
+    testGridDefinitions('10px', '10px', '"a ."', { 'width': '10', 'height': '5', 'x': '0', 'y': '10' }, { 'width': '10', 'height': '10', 'x': '0', 'y': '0' }, { 'width': '5', 'height': '10', 'x': '10', 'y': '0' });
+    testGridDefinitions('50px', '30px 40px', '', { 'width': '30', 'height': '5', 'x': '0', 'y': '50' }, { 'width': '30', 'height': '50', 'x': '0', 'y': '0' }, { 'width': '40', 'height': '50', 'x': '30', 'y': '0' });
+    testGridDefinitions('50px', '60px', '', { 'width': '60', 'height': '5', 'x': '0', 'y': '50' }, { 'width': '60', 'height': '50', 'x': '0', 'y': '0' }, { 'width': '60', 'height': '5', 'x': '0', 'y': '55' });
+    testGridDefinitions('50px 100px 150px', '60px', '', { 'width': '60', 'height': '100', 'x': '0', 'y': '50' }, { 'width': '60', 'height': '50', 'x': '0', 'y': '0' }, { 'width': '60', 'height': '150', 'x': '0', 'y': '150' });
+
+    done();
+}
+
+</script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { testChangingGridDefinitions(); })">
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea" id="firstGridItem"></div>
+        <div class="sizedToGridArea" id="secondGridItem"></div>
+        <div class="sizedToGridArea" id="thirdGridItem"></div>
+    </div>
+</div>
+</body>
+</html>

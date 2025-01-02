@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div.horizontal-edges
+  {
+  background-color: green;
+  height: 4px;
+  width: 104px;
+  }
+
+  div#vertical-edges
+  {
+  background-color: white;
+  width: 104px;
+  }
+
+  img {vertical-align: bottom;}
+
+  img + img {padding-left: 96px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a hollow green square.</p>
+
+  <div class="horizontal-edges"></div>
+
+  <div id="vertical-edges"><img src="support/1x1-green.png" width="4" height="96" alt="Image download support must be enabled" /><img src="support/1x1-green.png" width="4" height="96" alt="Image download support must be enabled" /></div>
+
+  <div class="horizontal-edges"></div>
+
+ </body>
+</html>

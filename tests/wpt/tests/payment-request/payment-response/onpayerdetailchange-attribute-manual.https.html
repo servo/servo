@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>PaymentResponse.prototype.onpayerdetailchange attribute</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="helpers.js"></script>
+<script>
+function runTest(button, options, expected){
+  button.disabled = true;
+  promise_test(async () => {
+    const response = await getPaymentResponse(options);
+    const eventPromise = new Promise(resolve => {
+      response.addEventListener("payerdetailchange", resolve);
+    });
+    const error = button.previousElementSibling.textContent.trim();
+    await response.retry({ error });
+    const event = await eventPromise;
+    assert_true(event instanceof PaymentRequestUpdateEvent);
+    for([prop, value] of Object.entries(expected)){
+      if (prop === 'payerPhone') {
+        // |payerPhone| may optionally adhere to E164 structure, which does not
+        // contain formatting, e.g. +180000000 instead of +1-800-000-0000.
+        // Strip out the formatting in case the user agent implements E164.
+        // https://w3c.github.io/payment-request/#addressinit-dictionary
+        value = value.replace(/[-\(\) ]/g, '');
+      }
+      assert_equals(response[prop], value);
+    }
+    await response.complete("success");
+  }, button.textContent.trim());
+}
+</script>
+<h2>Handling PaymentResponse.prototype.onpayerdetailchange events</h2>
+<p>
+  Each button will bring up the Payment Request UI window.
+  When shown the payment sheet, use any details and hit pay.
+</p>
+<p>
+  When asked to retry the payment:
+</p>
+<ol>
+  <li>
+    <p>
+      Change payer's name to "pass".
+    </p>
+    <button onclick="runTest(this, { requestPayerName: true }, { payerName: 'pass' });">
+      PaymentRequestUpdateEvent is dispatched when payer name changes.
+    </button>
+  </li>
+  <li>
+    <p>
+      Change payer's email to "pass@pass.pass".
+    </p>
+    <button onclick="runTest(this, {requestPayerEmail: true}, { payerEmail: 'pass@pass.pass' });">
+      PaymentRequestUpdateEvent is dispatched when payer email changes.
+    </button>
+  </li>
+  <li>
+    <p>
+      Change payer's phone to "+1-800-000-0000".
+    </p>
+    <button onclick="runTest(this, {requestPayerPhone: true}, { payerPhone: '+18000000000' })">
+      PaymentRequestUpdateEvent is dispatched when payer phone changes.
+    </button>
+  </li>
+  <li>
+    <button onclick="done();">DONE!</button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">owners</a>.
+</small>

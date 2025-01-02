@@ -1,0 +1,46 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<title>Table grid items with min-height should shrink after setting a smaller min-height</title>
+<link rel="author" href="mailto:mats@mozilla.com">
+<link rel="author" href="mailto:emilio@crisal.io">
+<link rel="author" href="mailto:tlin@mozilla.com">
+<link rel="author" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1527734">
+<link rel="match" href="table-grid-item-dynamic-002-ref.html">
+<style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+div {
+  display: grid;
+  background-color: lime;
+}
+
+table {
+  min-height: 500px;
+}
+</style>
+
+<div>
+  <table>
+    <caption>Table caption</caption>
+    <thead>
+      <tr>
+        <th>This table should shrink after setting a smaller min-height</th>
+      </tr>
+    </thead>
+  </table>
+</div>
+<script>
+onload = function() {
+  let grid = document.querySelector("div");
+  let table = grid.querySelector("table");
+  grid.getBoundingClientRect();
+  table.style.minHeight = "100px";
+}
+</script>

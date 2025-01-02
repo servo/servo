@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Visited links may return to unvisited</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#link-pseudo-classes" />
+        <meta name="flags" content="interact may" />
+        <meta name="assert" content="A user agent may treat all links as unvisited." />
+        <style type="text/css">
+            :visited
+            {
+                color: green;
+            }
+            :link
+            {
+                color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is blue or green.</p>
+        <div>
+            <a href="./link-visited-selector-005.htm">Filler Text</a>
+        </div>
+    </body>
+</html>

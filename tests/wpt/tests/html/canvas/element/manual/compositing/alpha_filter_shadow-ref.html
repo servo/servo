@@ -1,0 +1,15 @@
+<body>
+<script>
+var canvas, ctx;
+canvas = document.createElement("canvas");
+canvas.width = 100;
+canvas.height = 100;
+document.body.appendChild(canvas);
+
+ctx = canvas.getContext("2d");
+ctx.globalAlpha = 0.5;
+ctx.shadowOffsetX = -canvas.width;
+ctx.shadowColor = 'red';
+ctx.fillRect(canvas.width,0,canvas.width,canvas.height);
+</script>
+</body>

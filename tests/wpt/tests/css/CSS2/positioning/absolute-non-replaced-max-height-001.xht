@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Max-height on absolutely positioned, non-replaced elements, static position of fixed element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height" />
+        <meta name="assert" content="The calculation of static position is based on initial containing block when there is a fixed positioned element." />
+        <style type="text/css">
+            html, body, p
+            {
+                margin: 0;
+                padding: 0;
+            }
+            #div1
+            {
+                border: solid black;
+                height: 2in;
+                position: absolute;
+                width: 2in;
+            }
+            div div
+            {
+                background: blue;
+                height: 1in;
+                max-height: 0.5in;
+                position: fixed;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes a blue rectangle is in the upper-left corner of a hollow black square.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-link-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link id=style_link rel=stylesheet>
+<script>
+  async_test(t => {
+    const link = document.querySelector('#style_link');
+    link.onload = t.unreached_func('Sheet should fail to load');
+    link.onerror = t.step_func(() => {
+      link.onerror = t.step_func_done(() => {});
+      link.href = 'nonexistent.css?second';
+    });
+
+    link.href = 'nonexistent.css?first';
+  }, "Check if the <link>'s error event fires for each stylesheet it fails to load");
+
+  </script>
+</head>
+</html>

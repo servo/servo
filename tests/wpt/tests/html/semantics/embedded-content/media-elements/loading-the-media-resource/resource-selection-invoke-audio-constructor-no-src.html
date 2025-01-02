@@ -1,0 +1,13 @@
+<!doctype html>
+<title>NOT invoking resource selection with new Audio() sans src</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var a = new Audio();
+  assert_equals(a.networkState, a.NETWORK_EMPTY);
+  a.onloadstart = t.step_func(function() { assert_unreached(); });
+  window.onload = t.step_func(function() { t.done(); });
+});
+</script>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::scroll-button() depending on size container query crash</title>
+<link rel="help" href="https://crbug.com/375973472">
+<style>
+  #scroller {
+    overflow: hidden;
+    container-type: size;
+  }
+  #scroller::scroll-button(right) {
+    content: ">";
+  }
+  @container (width) {
+    #scroller::scroll-button(right) {
+      display: block;
+    }
+  }
+</style>
+<div id="scroller"></div>

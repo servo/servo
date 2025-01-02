@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: text-transform - Armenian, uppercase</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/text.html#caps-prop' />
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property"/>
+<link rel="match" href="text-transform-bicameral-013-ref.xht"/>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-text-transform/generate?test=13' />
+<meta name="assert" content="The UA will uppercase Unicode Armenian when text-transform is set to uppercase." />
+<style type='text/css'>
+.test span { text-transform: uppercase; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the right-hand character in each pair matches the left-hand one.</p>
+
+
+<div class="test">
+<div>Ա <span>ա</span></div>
+<div>Բ <span>բ</span></div>
+<div>Գ <span>գ</span></div>
+<div>Դ <span>դ</span></div>
+<div>Ե <span>ե</span></div>
+<div>Զ <span>զ</span></div>
+<div>Է <span>է</span></div>
+<div>Ը <span>ը</span></div>
+<div>Թ <span>թ</span></div>
+<div>Ժ <span>ժ</span></div>
+<div>Ի <span>ի</span></div>
+<div>Լ <span>լ</span></div>
+<div>Խ <span>խ</span></div>
+<div>Ծ <span>ծ</span></div>
+<div>Կ <span>կ</span></div>
+<div>Հ <span>հ</span></div>
+<div>Ձ <span>ձ</span></div>
+<div>Ղ <span>ղ</span></div>
+<div>Ճ <span>ճ</span></div>
+<div>Մ <span>մ</span></div>
+<div>Յ <span>յ</span></div>
+<div>Ն <span>ն</span></div>
+<div>Շ <span>շ</span></div>
+<div>Ո <span>ո</span></div>
+<div>Չ <span>չ</span></div>
+<div>Պ <span>պ</span></div>
+<div>Ջ <span>ջ</span></div>
+<div>Ռ <span>ռ</span></div>
+<div>Ս <span>ս</span></div>
+<div>Վ <span>վ</span></div>
+<div>Տ <span>տ</span></div>
+<div>Ր <span>ր</span></div>
+<div>Ց <span>ց</span></div>
+<div>Ւ <span>ւ</span></div>
+<div>Փ <span>փ</span></div>
+<div>Ք <span>ք</span></div>
+<div>Օ <span>օ</span></div>
+<div>Ֆ <span>ֆ</span></div>
+</div>
+
+
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#the-input-element">
+<link rel="match" href="range-setattribute-value-ref.html">
+<title>range input element setAttribute value appearance</title>
+
+<p>Test passes if the range element below visually has its slider at 2/10 from the left</p>
+
+<script>
+window.onload = () => {
+
+  const input = document.createElement('input');
+  input.type = 'range';
+  input.min = 0;
+  input.max = 10;
+  document.body.appendChild(input);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      input.setAttribute('value', 2);
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+};
+</script>

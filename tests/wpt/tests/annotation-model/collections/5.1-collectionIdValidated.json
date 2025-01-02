@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.1-collectionIdValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Collection is missing id key or value of id key is not a single string of format uri.",
+  "title": "Implements **Annotation Collection _id_ key** which has a **single value** that is a **string of format uri** - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
+  "description": "True when the Annotation Collection has a single id that is a string of format uri (Section 5.1)",
+  "$ref": "id.json#/definitions/idValueFound"
+}

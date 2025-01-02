@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="no-op-animation-ref.html">
+<style>
+#container {
+}
+.animate {
+  background-image: paint(foo);
+  animation: anim 1s;
+}
+@keyframes anim {
+  0% { --foo: rgb(200, 0, 0); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body "lightyellow" contenteditable="true"="0">
+<div id="container">=</div>
+
+<script id="code" type="text/worklet">
+registerPaint('foo', class {
+  static get inputProperties() { return ['--foo']; }
+  paint() {}
+});
+</script>
+
+<script>
+CSS.registerProperty({
+  name: '--foo',
+  syntax: '<color>',
+  initialValue: 'rgb(0, 0, 0)',
+  inherits: false
+});
+var code = document.getElementById('code').textContent;
+var blob = new Blob([code], {type: 'text/javascript'});
+CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+  document.getElementById('container').classList.add('animate');
+  edit();
+});
+function edit() {
+  document.execCommand("selectAll");
+  document.execCommand("InsertHTML",false,"<pre></pre>");
+  document.execCommand("InsertHTML",false,"<div>i</div>");
+  document.execCommand("indent");
+  document.execCommand("selectAll");
+  takeScreenshot();
+}
+</script>
+</body>
+</html>

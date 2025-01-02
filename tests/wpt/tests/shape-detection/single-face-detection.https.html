@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/single-detection-helpers.js"></script>
+<body>
+</body>
+<script>
+const imageTests = {
+    center: {
+        name: "face-center.jpg",
+        face: {boundingBox: {left: 312, right: 512, top: 238, bottom: 438}, fuzziness: 25},
+        mouth: {position: {x: 414, y: 379}, fuzzinessX: 30, fuzzinessY: 20},
+        leftEye: {position: {x: 378, y: 293}, fuzzinessX: 20, fuzzinessY: 10},
+        rightEye: {position: {x: 448, y: 292}, fuzzinessX: 20, fuzzinessY: 10},
+        nose: {position:  {x: 412, y: 335}, fuzzinessX: 20, fuzzinessY: 35}},
+    bottomLeft: {
+        name: "face-bottom-left.jpg",
+        face: {boundingBox: {left: 96, right: 387, top: 281, bottom: 572}, fuzziness: 15},
+        mouth: {position: {x: 248, y: 483}, fuzzinessX: 45, fuzzinessY: 25},
+        leftEye: {position: {x: 196, y: 359}, fuzzinessX: 25, fuzzinessY: 10},
+        rightEye: {position: {x: 296, y: 357}, fuzzinessX: 25, fuzzinessY: 10},
+        nose: {position:  {x: 244, y: 419}, fuzzinessX: 30, fuzzinessY: 50}},
+    bottomRight: {
+        name: "face-bottom-right.jpg",
+        face: {boundingBox: {left: 445, right: 733, top: 284, bottom: 572}, fuzziness: 10},
+        mouth: {position: {x: 593, y: 487}, fuzzinessX: 45, fuzzinessY: 25},
+        leftEye: {position: {x: 542, y: 363}, fuzzinessX: 25, fuzzinessY: 10},
+        rightEye: {position: {x: 641, y: 361}, fuzzinessX: 25, fuzzinessY: 10},
+        nose: {position:  {x: 590, y: 423}, fuzzinessX: 30, fuzzinessY: 50}},
+    topLeft: {
+        name: "face-top-left.jpg",
+        face: {boundingBox: {left: 101, right: 387, top: 119, bottom: 405}, fuzziness: 10},
+        mouth: {position: {x: 246, y: 322}, fuzzinessX: 45, fuzzinessY: 25},
+        leftEye: {position: {x: 194, y: 198}, fuzzinessX: 25, fuzzinessY: 10},
+        rightEye: {position: {x: 295, y: 196}, fuzzinessX: 25, fuzzinessY: 10},
+        nose: {position:  {x: 243, y: 258}, fuzzinessX: 30, fuzzinessY: 50}},
+    topRight: {
+        name: "face-top-right.jpg",
+        face: {boundingBox: {left: 451, right: 735, top: 124, bottom: 408}, fuzziness: 10},
+        mouth: {position: {x: 594, y: 326}, fuzzinessX: 45, fuzzinessY: 25},
+        leftEye: {position: {x: 542, y: 202}, fuzzinessX: 25, fuzzinessY: 10},
+        rightEye: {position: {x: 642, y: 200}, fuzzinessX: 25, fuzzinessY: 10},
+        nose: {position:  {x: 591, y: 261}, fuzzinessX: 30, fuzzinessY: 50}}};
+
+const videoTests = {
+    "faces.mov": [
+        {time: 0.5, test: imageTests.center},
+        {time: 1.5, test: imageTests.bottomLeft},
+        {time: 2.5, test: imageTests.bottomRight},
+        {time: 3.5, test: imageTests.topLeft},
+        {time: 4.5, test: imageTests.topRight}]};
+
+// All the fields in FaceDetectorOptions are hints, so they can't be tested.
+const faceDetector = new FaceDetector();
+
+async function testImage(imageBitmapSource, test) {
+    const detectedFaces = await faceDetector.detect(imageBitmapSource);
+    assert_equals(detectedFaces.length, 1);
+    const detectedFace = detectedFaces[0];
+    checkBoundingBox(detectedFace.boundingBox, test.face.boundingBox, test.face.fuzziness);
+    if (detectedFace.landmarks) {
+        var mouthCount = 0;
+        var eyeCount = 0;
+        var noseCount = 0;
+        for (landmark of detectedFace.landmarks) {
+            checkPointsLieWithinBoundingBox(landmark.locations, detectedFace.boundingBox);
+            switch (landmark.type) {
+            case "mouth":
+                checkPointsAreNear(landmark.locations, test.mouth.position, test.mouth.fuzzinessX, test.mouth.fuzzinessY);
+                ++mouthCount;
+                break;
+            case "eye":
+                // handled below
+                ++eyeCount;
+                break;
+            case "nose":
+                checkPointsAreNear(landmark.locations, test.nose.position, test.nose.fuzzinessX, test.nose.fuzzinessY);
+                ++noseCount;
+                break;
+            default:
+                assert(false);
+            }
+        }
+        assert_less_than_equal(mouthCount, 1);
+        assert_true(eyeCount == 0 || eyeCount == 2, "There should be 2 eyes (or the implementation doesn't support detecting eyes)");
+        assert_less_than_equal(noseCount, 1);
+
+        const [leftEye, rightEye] = detectedFace.landmarks.filter(landmark => landmark.type == "eye").toSorted(function(landmarkA, landmarkB) {
+            // The left eye has a smaller X coordinate than the right eye.
+            const locationsA = landmarkA.locations.map(location => location.x);
+            const locationsB = landmarkB.locations.map(location => location.x);
+            const locationA = locationsA.reduce((a, b) => a + b) / locationsA.length;
+            const locationB = locationsB.reduce((a, b) => a + b) / locationsB.length;
+            return locationA - locationB;
+        });
+        checkPointsAreNear(leftEye.locations, test.leftEye.position, test.leftEye.fuzzinessX, test.leftEye.fuzzinessY);
+        checkPointsAreNear(rightEye.locations, test.rightEye.position, test.rightEye.fuzzinessX, test.rightEye.fuzzinessY);
+    }
+}
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        await testImage(imageElement, imageTest);
+    }
+}, "HTMLImageElement");
+
+// Intentionally don't test SVGImageElement. The spec https://html.spec.whatwg.org/multipage/canvas.html#canvasimagesource says it's supposed to be
+// a CanvasImageSource, but neither WebKit nor Blink actually seem to implement that.
+
+promise_test(async t => {
+    for (const [name, tests] of Object.entries(videoTests)) {
+        const videoElement = document.createElement("video");
+        document.body.appendChild(videoElement);
+        videoElement.src = `resources/${name}`;
+        const loadedPromise = videoLoadedPromise(videoElement);
+        videoElement.load();
+        await loadedPromise;
+        for (const test of tests) {
+            await seekTo(videoElement, test.time);
+            await testImage(videoElement, test.test);
+        }
+        document.body.removeChild(videoElement);
+    }
+}, "HTMLVideoElement");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = imageElement.width;
+        canvasElement.height = imageElement.height;
+        const context = canvasElement.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        await testImage(canvasElement, imageTest);
+    }
+}, "HTMLCanvasElement");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const imageBitmap = await createImageBitmap(imageElement);
+        await testImage(imageBitmap, imageTest);
+    }
+}, "ImageBitmap");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const offscreenCanvas = new OffscreenCanvas(imageElement.width, imageElement.height);
+        const context = offscreenCanvas.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        await testImage(offscreenCanvas, imageTest);
+    }
+}, "OffscreenCanvas");
+
+promise_test(async t => {
+    for (const [name, tests] of Object.entries(videoTests)) {
+        const videoElement = document.createElement("video");
+        document.body.appendChild(videoElement);
+        videoElement.src = `resources/${name}`;
+        const loadedPromise = videoLoadedPromise(videoElement);
+        videoElement.load();
+        await loadedPromise;
+        for (const test of tests) {
+            await seekTo(videoElement, test.time);
+            const videoFrame = new VideoFrame(videoElement);
+            await testImage(videoFrame, test.test);
+            videoFrame.close();
+        }
+        document.body.removeChild(videoElement);
+    }
+}, "VideoFrame");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = imageElement.width;
+        canvasElement.height = imageElement.height;
+        const context = canvasElement.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        const blob = await new Promise(function(resolve, reject) {
+            canvasElement.toBlob(function(blob) {
+                return resolve(blob);
+            });
+        });
+        await testImage(blob, imageTest);
+    }
+}, "Blob");
+
+promise_test(async t => {
+    for (const [key, imageTest] of Object.entries(imageTests)) {
+        const imageElement = document.createElement("img");
+        imageElement.src = `resources/${imageTest.name}`;
+        await imageLoadedPromise(imageElement);
+        assert_true(imageElement.complete, "Image element should have loaded successfully");
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = imageElement.width;
+        canvasElement.height = imageElement.height;
+        const context = canvasElement.getContext("2d");
+        context.drawImage(imageElement, 0, 0);
+        const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+        await testImage(imageData, imageTest);
+    }
+}, "ImageData");
+
+</script>

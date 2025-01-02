@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>window.requestIdleCallback max idle period deadline.</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/ric-utils.js"></script>
+<script>
+
+promise_test(async done => {
+  for (let i = 0; i < getRICRetryCount(); ++i)
+    assert_less_than_equal(await getDeadlineForNextIdleCallback(), 50)
+
+}, 'Check that the deadline is less than 50ms.');
+</script>
+<h1>Test of requestIdleCallback deadline behavior</h1>
+<p>This test validates that deadlines returned for requestIdleCallback are less than 50ms.</p>
+<p>The test can pass accidentally as idle deadlines have a maximum but they can always be shorter.
+It runs multiple times to expose potential failures.</p>
+<div id="log"></div>

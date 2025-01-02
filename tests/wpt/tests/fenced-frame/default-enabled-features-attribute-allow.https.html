@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Test default permission policy features with allow="" attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/default-enabled-features-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().ORIGIN,
+      generator_api="fledge",
+      allow="shared-storage *; attribution-reporting *");
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().ORIGIN,
+      generator_api="sharedstorage",
+      allow="shared-storage *; attribution-reporting *");
+}, 'Same-origin fenced frame with allow attribute enabling required features');
+
+promise_test(async(t) => {
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().REMOTE_ORIGIN,
+      generator_api="fledge",
+      allow="shared-storage *; attribution-reporting *");
+  await runDefaultEnabledFeaturesTest(t, /*should_load=*/true,
+      get_host_info().REMOTE_ORIGIN,
+      generator_api="sharedstorage",
+      allow="shared-storage *; attribution-reporting *");
+}, 'Cross-origin fenced frame with allow attribute enabling required features');
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+        generator_api: "fledge",
+        headers: [["Permissions-Policy", "attribution-reporting=()"]],
+        origin: get_host_info().ORIGIN});
+
+  await fencedframe.execute(async () => {
+    assert_false(document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should NOT be allowed in the fenced frame.");
+  }, []);
+}, 'Delivered policies can further restrict permissions of a fixed ' +
+   'permissions fenced frame');
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+      headers: [["Permissions-Policy", "shared-storage=()"]],
+      origin: get_host_info().ORIGIN});
+
+  await fencedframe.execute(async () => {
+    assert_false(
+        document.featurePolicy.allowsFeature('shared-storage'),
+        "Shared storage should not be allowed in the fenced frame.");
+    assert_true(
+        document.featurePolicy.allowsFeature('private-aggregation'),
+        "Private aggregation should be allowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('sync-xhr'),
+        "USB access should be disallowed in the fenced frame.");
+  }, []);
+}, 'Delivered policies can further restrict permissions of a non-opaque ' +
+   'fenced frame');
+
+</script>
+</body>
+</html>

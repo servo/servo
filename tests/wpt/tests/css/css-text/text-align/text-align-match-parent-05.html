@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text 3 tests: match parent on text-align-last</title>
+<link rel="author" title="Florian RIvoal" href="https://florian.rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#text-align-property">
+<meta name="assert" content="Check that setting text-align to match parent has the correct effect on text-align-last (even if text-align-all is overridden).">
+<link rel="match" href="text-align-match-parent-05-ref.html">
+<style>
+section {
+    font-family: monospace;
+    width: 3ch;
+}
+div {
+    text-align: match-parent;
+    text-align-all: left;
+}
+</style>
+
+<p>Test passes if the two “2” are vertically aligned.
+<section dir=rtl>
+  <div dir=ltr>1 2 2</div>
+</section>

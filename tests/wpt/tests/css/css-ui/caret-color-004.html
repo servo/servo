@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: caret-color auto, black on white</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#caret-color">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that caret-color:auto provides good contrast in black on white">
+<style>
+  textarea {
+    font-size: 3em;
+    font-weight: bold;
+    width: 10em;
+    padding: 10px;
+
+    background: white;
+    color: black;
+    caret-color: auto; /*initial value, but to be sure in case the UA stylesheet sets something else */
+  }
+</style>
+<body>
+  <p>Test passes if, when the text area below is focused for editing, the text insertion caret is either black
+  or some other color that contrasts well with the background.</p>
+  <p>The shape of the caret, and whether it flashes, are not part of the test.</p>
+  <textarea id="test"></textarea>
+  <script>
+    window.onload = function() {
+      document.getElementById("test").focus();
+    }
+  </script>
+</body>

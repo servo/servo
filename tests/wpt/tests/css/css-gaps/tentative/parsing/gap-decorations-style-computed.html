@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decoration: column-rule-style getComputedStyle()</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-style">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="column-rule-style computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("column-rule-style", "none");
+test_computed_value("column-rule-style", "hidden");
+test_computed_value("column-rule-style", "dotted");
+test_computed_value("column-rule-style", "dashed");
+test_computed_value("column-rule-style", "solid");
+test_computed_value("column-rule-style", "double");
+test_computed_value("column-rule-style", "groove");
+test_computed_value("column-rule-style", "ridge");
+test_computed_value("column-rule-style", "inset");
+
+test_computed_value("column-rule-style", "dotted dashed solid");
+test_computed_value("column-rule-style", "repeat(10, double)");
+test_computed_value("column-rule-style", "repeat(3, groove) repeat(4, ridge)");
+test_computed_value("column-rule-style", "repeat(auto, solid)");
+test_computed_value("column-rule-style", "repeat(auto, dotted solid inset)");
+test_computed_value("column-rule-style", "repeat(4, none ridge solid) repeat(auto, hidden)");
+test_computed_value("column-rule-style", "inset repeat(auto, solid ridge) repeat(4, none groove hidden)");
+test_computed_value("column-rule-style", "repeat(calc(5 + 3), ridge)", "repeat(8, ridge)");
+test_computed_value("column-rule-style", "repeat(4, dotted double dashed) repeat(auto, solid) ridge");
+test_computed_value("column-rule-style", "repeat(4, dotted double dashed) repeat(auto, solid) repeat(4, none groove hidden)");
+test_computed_value("column-rule-style", "ridge repeat(auto, solid)");
+test_computed_value("column-rule-style", "ridge repeat(auto, solid) ridge");
+
+</script>
+</body>
+</html>

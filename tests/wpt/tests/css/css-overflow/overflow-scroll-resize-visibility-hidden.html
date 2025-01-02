@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+<title>CSS Overflow: overflow: scroll with resize: both and visibility: hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3#propdef-overflow">
+<link rel="match" href="overflow-scroll-resize-visibility-hidden-ref.html">
+<style>
+.scroller {
+  overflow: scroll;
+  width: 100px;
+  height: 100px;
+  resize: both;
+  visibility: hidden;
+}
+.content {
+  width: 1000px;
+  height: 1000px;
+  background: green;
+  visibility: visible;
+}
+</style>
+<div class="scroller">
+  <div class="content"></div>
+</div>
+<div class="scroller" style="will-change: transform">
+  <div class="content"></div>
+</div>

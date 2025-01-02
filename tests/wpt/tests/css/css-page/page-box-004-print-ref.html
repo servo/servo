@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 500px;
+    margin: 0;
+  }
+  @page larger {
+    size: 500px 800px;
+  }
+  @page smaller {
+    size: 400px 300px;
+  }
+  body {
+    margin: 0;
+  }
+  .pagebox {
+    display: flow-root;
+  }
+  .pagebox > div {
+    border: 10px solid lightblue;
+  }
+  .pagebox > div > div {
+    background: yellow;
+  }
+  .normalpage {
+    page: normal;
+    height: 500px;
+  }
+  .normalpage > div {
+    margin: 25px 50px 75px 100px;
+    padding: 100px 75px 50px 25px;
+  }
+  .normalpage > div > div {
+    height: 230px;
+  }
+  .largerpage {
+    page: larger;
+    height: 800px;
+  }
+  .largerpage > div {
+    margin: 40px 50px 120px 100px;
+    padding: 160px 75px 80px 25px;
+  }
+  .largerpage > div > div {
+    height: 380px;
+  }
+  .smallerpage {
+    page: smaller;
+    height: 300px;
+  }
+  .smallerpage > div {
+    margin: 15px 40px 45px 80px;
+    padding: 60px 60px 30px 20px;
+  }
+  .smallerpage > div > div {
+    height: 130px;
+  }
+</style>
+<div class="pagebox normalpage">
+  <div>
+    <div>
+      On every page, the yellow rectangle should be centered within the page box
+      (the white area). (The lightblue rectangle should not be centered.)
+    </div>
+  </div>
+</div>
+<div class="pagebox normalpage">
+  <div>
+    <div></div>
+  </div>
+</div>
+<div class="pagebox largerpage">
+  <div>
+    <div></div>
+  </div>
+</div>
+<div class="pagebox largerpage">
+  <div>
+    <div></div>
+  </div>
+</div>
+<div class="pagebox smallerpage">
+  <div>
+    <div></div>
+  </div>
+</div>
+<div class="pagebox smallerpage">
+  <div>
+    <div></div>
+  </div>
+</div>

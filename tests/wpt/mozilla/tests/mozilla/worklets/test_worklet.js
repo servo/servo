@@ -1,0 +1,1 @@
+registerKeyValue("hello", "world");

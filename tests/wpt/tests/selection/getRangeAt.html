@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>The getRangeAt method</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getrangeat">
+<body>
+<script>
+const sel = getSelection();
+
+test(function() {
+  var range = document.createRange();
+  sel.addRange(range);
+  assert_throws_dom("INDEX_SIZE_ERR", function() { sel.getRangeAt(-1); })
+  assert_throws_dom("INDEX_SIZE_ERR", function() { sel.getRangeAt(1); })
+}, "Only supports index 0");
+
+test(() => {
+  sel.removeAllRanges();
+  assert_throws_dom("INDEX_SIZE_ERR", () => sel.getRangeAt(0))
+}, "Throws when with no range");
+
+test(() => {
+  sel.addRange(document.createRange());
+  assert_equals(sel.getRangeAt(0), sel.getRangeAt(0));
+}, "Returns the same range object when with no selection change");
+
+test(() => {
+  const range = sel.getRangeAt(0);
+  sel.collapse(document.body);
+  assert_not_equals(range, sel.getRangeAt(0));
+}, "Returns a different range object when with selection change");
+</script>

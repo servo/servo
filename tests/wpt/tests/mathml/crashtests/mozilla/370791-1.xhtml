@@ -1,0 +1,33 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:math="http://www.w3.org/1998/Math/MathML" class="test-wait">
+<head>
+<script>
+
+function boom()
+{
+  var mi = document.getElementById("mi");
+  var textA = mi.firstChild;
+  var textB = document.createTextNode("b");
+  var textSpace = document.createTextNode(" ");
+
+  var floater = document.getElementById("floater");
+
+  mi.appendChild(textB);
+  mi.appendChild(textSpace);
+  mi.removeChild(textA);
+  mi.removeChild(textSpace);
+
+  floater.parentNode.removeChild(floater);
+
+  document.documentElement.removeAttribute("class");
+}
+
+</script>
+</head>
+
+<body onload="setTimeout(boom, 30);">
+
+<math:mi id="mi">a<p><span style="float: right;" id="floater" /></p></math:mi>
+
+</body>
+
+</html>

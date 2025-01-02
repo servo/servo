@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Unrelated mutation does not affect object-view-box transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=element>
+</div>
+<style>
+  #element {
+    object-view-box: inset(0px);
+    transition: object-view-box 100s -50s linear;
+  }
+</style>
+<script>
+  test((t) => {
+    // Ensure a before-style for element.
+    getComputedStyle(element).objectViewBox;
+    // Trigger a transition from inset(0px) to inset(20px).
+    element.style.objectViewBox = 'inset(20px)';
+    assert_equals(getComputedStyle(element).objectViewBox, 'inset(10px)', 'before mutation');
+    // Now do a style mutation that's unrelated to the computed value
+    // of object-view-box, and check again.
+    element.style.setProperty('--x', '1');
+    assert_equals(getComputedStyle(element).objectViewBox, 'inset(10px)', 'after mutation');
+  }, 'Unrelated mutation does not affect object-view-box transition');
+</script>

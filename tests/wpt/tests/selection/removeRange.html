@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Selection.removeRange tests</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script>
+"use strict";
+
+testRanges.forEach(function(rangeData, index) {
+    var endpoints = eval(rangeData);
+    if (!isSelectableNode(endpoints[0]) || !isSelectableNode(endpoints[2]))
+        return;
+    test(function() {
+        var selection = getSelection();
+        selection.removeAllRanges();
+        var range = ownerDocument(endpoints[0]).createRange();
+        range.setStart(endpoints[0], endpoints[1]);
+        range.setEnd(endpoints[2], endpoints[3]);
+
+        selection.addRange(range);
+        assert_equals(selection.rangeCount, 1);
+        selection.removeRange(range);
+        assert_equals(selection.rangeCount, 0, 'Range should be correctly removed.');
+        assert_equals(selection.anchorNode, null);
+        assert_equals(selection.focusNode, null);
+
+        selection.addRange(range);
+        assert_equals(selection.rangeCount, 1);
+        var equivalentRange = ownerDocument(endpoints[0]).createRange();
+        equivalentRange.setStart(endpoints[0], endpoints[1]);
+        equivalentRange.setEnd(endpoints[2], endpoints[3]);
+        assert_throws_dom("NotFoundError",
+                          function() { selection.removeRange(equivalentRange) },
+                          "Removing a different range should throw");
+        assert_equals(selection.rangeCount, 1, 'Equivalent Range should not remove the registered Range.');
+
+    }, 'removeRange() with Range ' + index);
+});
+
+test(function() {
+    var selection = getSelection();
+    assert_throws_js(TypeError, function() { selection.removeRange(null); });
+    assert_throws_js(TypeError, function() { selection.removeRange(selection); });
+}, 'removeRange() argument is non-optional Range');
+</script>
+</body>

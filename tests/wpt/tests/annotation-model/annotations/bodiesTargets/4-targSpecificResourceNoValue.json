@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4-targSpecificResourceNoValue.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "An Specific Resource target cannot include a value key. value key is only valid with Specific Resources.",
+    "title": "If a **Specific Resource** is a target, it does NOT have a **_value_ key** - [model 4](https://www.w3.org/TR/annotation-model/#specific-resources)",
+    "description": "True when no Specific Resource targets or when none of the Specific Resource targets include the value key. (Section 4)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "allOf": [
+                      { "not": { "$ref": "specificResource.json#/definitions/specificResourceWithValue" } },
+                      { "items": { "not": { "$ref": "specificResource.json#/definitions/specificResourceWithValue" } } },
+                      { "not": { "$ref": "specificResource.json#/definitions/itemSRWithValue" }  },
+                      { "items": { "not": { "$ref": "specificResource.json#/definitions/itemSRWithValue" } } }
+                     ]
+         }
+     }
+}

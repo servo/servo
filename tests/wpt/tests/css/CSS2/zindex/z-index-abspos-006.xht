@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: z-index and SELECT elements</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-03 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/z-index/006.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/zindex.html#painting-order"/>
+  <style type="text/css">
+   * { font: 1em serif; }
+   .a { position: absolute; z-index: 2; top: 2em; left: 2em; width: 13em; background: green; color: white; padding: 1em; }
+   .b { position: absolute; z-index: 1; top: 2.5em; left: 2.5em; background: red; color: yellow; height: 3em; }
+  </style>
+ </head>
+ <body>
+   <div class="test a"> There should be no red, nor any scroll bars, on this page. </div>
+   <select class="test b" size="3">
+    <option>FAIL FAIL FAIL FAIL</option>
+    <option>FAIL FAIL FAIL FAIL</option>
+    <option>FAIL FAIL FAIL FAIL</option>
+   </select>
+ </body>
+</html>

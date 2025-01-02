@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml"
+     id="askedForIntersection">
+<h:script src="/resources/testharness.js"/>
+<h:script src="/resources/testharnessreport.js"/>
+<style>
+.c1:nth-last-of-type(1n) { }
+</style>
+<script>
+    const test = async_test('getIntersectionList() crash test');
+    window.onload = test.step_func_done(() => {
+      docElement = document.documentElement;
+      textarea = document.createElementNS("http://www.w3.org/1999/xhtml", "textarea");
+      textarea.setAttribute("class", "c1");
+      docElement.appendChild(textarea);
+      object = document.createElementNS("http://www.w3.org/1999/xhtml", "object");
+      object.setAttribute("usemap", "#DivLogo-map");
+      iframe = document.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+      docElement.appendChild(iframe);
+      var svg = document.getElementById('askedForIntersection');
+      var rect = svg.createSVGRect();
+      svg.getIntersectionList(rect, svg);
+    });
+</script>
+<rect style='content: counters(c, ".", decimal)'></rect>
+<text x="10" y="50">PASS (didn't crash)</text>
+</svg>

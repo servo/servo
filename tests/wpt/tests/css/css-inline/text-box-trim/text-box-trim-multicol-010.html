@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Test text-box-trim with widows</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-break/#widows-orphans">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="text-box-trim-multicol-010-ref.html">
+<style>
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    width: 640px;
+    height: 449px;
+    gap: 20px;
+    text-box-trim: trim-both;
+    font-family: Ahem;
+    font-size: 50px;
+    line-height: 100px;
+    orphans: 1;
+    widows: 2;
+    background: yellow;
+  }
+</style>
+<div class="multicol">
+  xxx<br>
+  xxx<br>
+  xxx<br>
+  xxx<br>
+  xxx<br>
+</div>

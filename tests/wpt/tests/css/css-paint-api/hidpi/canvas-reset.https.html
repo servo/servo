@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="canvas-reset-ref.html">
+<style>
+.container {
+  width: 270px;
+  height: 275px;
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+  paint(ctx, geom) {
+    // Set some transform then reset the canvas.
+    ctx.translate(20, 30);
+    ctx.scale(1.5, 2.5);
+    ctx.reset();
+
+    var fillW = 250;
+    var fillH = 50;
+    ctx.beginPath();
+    ctx.rect(0, 0, fillW, fillH);
+    ctx.closePath();
+    ctx.clip();
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, fillW, fillH);
+  }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

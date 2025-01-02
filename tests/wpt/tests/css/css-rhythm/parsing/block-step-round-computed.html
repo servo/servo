@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-round computed values</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-round">
+<meta name="assert" content="Checking computed values for block-step-round">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+    test_computed_value("block-step-round", "up");
+    test_computed_value("block-step-round", "down");
+    test_computed_value("block-step-round", "nearest");
+</script>
+</body>
+</html>

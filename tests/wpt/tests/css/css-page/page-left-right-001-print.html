@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#spread-pseudos">
+<link rel="match" href="page-left-right-001-print-ref.html">
+<style>
+  @page {
+    size: 600px 300px;
+    margin: 0;
+  }
+  @page :left {
+    margin-left: 500px;
+    margin-bottom: 200px;
+  }
+  @page :right {
+    margin-right: 500px;
+    margin-top: 200px;
+  }
+  body {
+    margin: 0;
+    background: yellow;
+  }
+  div {
+    break-after: page;
+  }
+</style>
+<!-- The first page is a right page. -->
+<div>
+  bottom left corner
+</div>
+<div>
+  top right corner
+</div>
+<div>
+  bottom left corner
+</div>
+<div>
+  top right corner
+</div>

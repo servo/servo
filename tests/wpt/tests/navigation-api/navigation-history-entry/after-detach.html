@@ -1,0 +1,30 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  let i_navigation = i.contentWindow.navigation;
+
+  await i_navigation.navigate("#1").finished;
+  await i_navigation.navigate("#2").finished;
+  await i_navigation.back().finished;
+
+  assert_not_equals(i_navigation, null);
+  assert_not_equals(i_navigation.currentEntry, null);
+  assert_equals(i_navigation.entries().length, 3);
+  assert_true(i_navigation.canGoBack, "canGoBack");
+  assert_true(i_navigation.canGoForward, "canGoForward");
+
+  i.remove();
+
+  assert_equals(i_navigation.currentEntry, null);
+  assert_equals(i_navigation.entries().length, 0);
+  assert_false(i_navigation.canGoBack);
+  assert_false(i_navigation.canGoForward);
+}, "navigation.currentEntry/entries()/canGoBack/canGoForward after iframe removal");
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1930225">
+
+<style>
+*::first-line { }
+body.test {
+  list-style: square inside;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.getBoundingClientRect();
+  document.body.classList = "test";
+})
+</script>
+
+<body>
+<button>
+<li>

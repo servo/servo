@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scoping Test: ::slotted() allows ::file-selector-button</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<link rel="match" href="slotted-file-selector-button-ref.html">
+<p>Test passes if ::file-selector-button has green text.</p>
+<div id="host">
+  <input type="file">
+</div>
+<script>
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      ::slotted(*)::file-selector-button { color: green }
+    </style>
+    <slot></slot>
+  `;
+</script>

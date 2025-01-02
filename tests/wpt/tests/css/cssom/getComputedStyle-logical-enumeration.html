@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: getComputedStyle enumeration</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=210695">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1072180">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  test(function() {
+    let longhand = false;
+    let shorthand = false;
+    let env = false;
+    for (let property of getComputedStyle(document.documentElement)) {
+      if (property == "block-size")
+        longhand = true;
+      if (property == "padding-block")
+        shorthand = true;
+      if (property == "safe-area-inset-top")
+        env = true;
+    }
+    assert_true(longhand, "Logical longhands should be enumerated in computed style");
+    assert_false(shorthand, "Logical shorthands should not be enumerated in computed style");
+    assert_false(env, "Environment variables should not be enumerated in computed style");
+  }, "Logical properties in enumeration of computed style")
+</script>

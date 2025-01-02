@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>View transitions: use css tags for shared elements (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+div { contain: paint; }
+#left {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  top: 50px;
+  left: 50px;
+}
+#right {
+  width: 50px;
+  height: 50px;
+  background: green;
+  position: absolute;
+  top: 50px;
+  left: 250px;
+}
+body { background: lightpink; }
+</style>
+
+<div id=left></div>
+<div id=right></div>

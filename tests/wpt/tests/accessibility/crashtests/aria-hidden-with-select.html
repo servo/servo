@@ -1,0 +1,25 @@
+<html class="test-wait">
+<head>
+<script>
+window.onload = function() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector('#will-hide').ariaHidden = 'true';
+      document.documentElement.className = '';
+    });
+  });
+};
+</script>
+</head>
+<body>
+<main>
+  <div id="will-hide">
+    <div class="ignored">
+      <select id="select">
+        <option>1</option>
+      </select>
+    </div>
+  </div>
+</main>
+</body>
+</html>

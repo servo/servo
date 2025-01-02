@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+<title>The pointerout event should not be fired if the pointer doesn't move</title>
+<meta name="viewport" content="width=device-width">
+<link rel="help" href="https://github.com/w3c/pointerevents/issues/457">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#target{
+  width:100px;
+  height:100px;
+  background-color:red;
+}
+
+#overlay{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(0,0,0,0.2);
+  z-index: 1000;
+  text-align: center;
+  display:none;
+}
+</style>
+</head>
+<body>
+<h1>The pointerout event should not be fired if the pointer doesn't move</h1>
+<h4>
+  Test Description: This test checks if the pointerout event dispatched unexpectedly.
+  <ol>
+    <li>Click on the black rectangle.
+    <li>Don't move mouse after clicking.
+  </ol>
+</h4>
+<p>
+<div id="target"></div>
+<div id="overlay"></div>
+<div id="log"></div>
+<script>
+function waitForAnimationFrame() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
+promise_test(async () => {
+  const target = document.getElementById("target");
+
+  let out_event_count = 0;
+  target.addEventListener("pointerout", function() {
+    out_event_count++;
+  });
+
+  // Wait for the click event on target element and update display style on
+  // overlay element.
+  const promise = new Promise(resolve => {
+    target.addEventListener("click", async function() {
+      const overlay = document.getElementById("overlay");
+      overlay.style.display= 'block';
+      await waitForAnimationFrame();
+
+      overlay.style.display= 'none'
+      await waitForAnimationFrame();
+
+      resolve();
+    }, { once: true });
+  });
+
+  // Click target.
+  test_driver.click(target);
+  await promise;
+
+  assert_equals(out_event_count, 0, "The pointerout event should not be fired");
+}, "The pointerout event should not be fired if the pointer doesn't move");
+</script>
+</body>
+</html>

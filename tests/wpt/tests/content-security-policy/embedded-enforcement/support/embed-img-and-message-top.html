@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <script>
+    function addImage() {
+      let img = document.createElement('img');
+      img.onload = () => top.postMessage('img loaded', '*');
+      img.onerror = () => top.postMessage('img blocked', '*');
+      img.src = '/content-security-policy/support/pass.png';
+      document.body.appendChild(img);
+    }
+  </script>
+  <body onpageshow="addImage();">
+  </body>
+</html>

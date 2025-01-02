@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  document.querySelector("div[contenteditable]").focus();
+  document.execCommand("inserthtml", false, "<svg><td>");
+  document.documentElement.remove();
+});
+</script>
+</head>
+
+<body><div contenteditable></div></body>
+</html>

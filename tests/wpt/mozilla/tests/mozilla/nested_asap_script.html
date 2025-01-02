@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Nested ASAP scripts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+var t = async_test("Nested ASAP scripts");
+</script>
+<script async src="nested_asap_script.js"></script>
+</body>
+</html>

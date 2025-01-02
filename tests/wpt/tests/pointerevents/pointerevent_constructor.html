@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+    <head>
+        <title>PointerEvent: Constructor test</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+    </head>
+    <body>
+    <h1>PointerEvent: Dispatch custom event</h1>
+    <h4>Test Description: This test checks if PointerEvent constructor works properly.</h4>
+    <div id="target0"></div>
+    <script>
+        async_test(function() {
+            var target0 = document.getElementById("target0");
+            // set values for non-default constructor
+            on_event(target0, "pointermove", this.step_func(function(event) {
+                generate_tests(assert_equals, [
+                    ["getCoalescedEvents in event", "getCoalescedEvents" in event, false],
+                    ["getPredictedEvents().length", event.getPredictedEvents().length, 2],
+                    ["event.target", event.target, target0],
+                    ["event.currentTarget", event.currentTarget, target0],
+                    ["event.eventPhase", event.eventPhase, Event.AT_TARGET],
+                    ["event.clientX", event.clientX, 310],
+                    ["event.pointerType", event.pointerType, "pen"],
+                    ["getPredictedEvents()[0].clientX", event.getPredictedEvents()[0].clientX, 320],
+                    ["getPredictedEvents()[1].clientX", event.getPredictedEvents()[1].clientX, 330],
+                ]);
+                for (var i=0; i<event.getPredictedEvents().length; i++) {
+                    var predictedEvent = event.getPredictedEvents()[i];
+                    generate_tests(assert_equals, [
+                        ["getPredictedEvents()[" + i + "].pointerId", predictedEvent.pointerId, event.pointerId],
+                        ["getPredictedEvents()[" + i + "].pointerType", predictedEvent.pointerType, event.pointerType],
+                        ["getPredictedEvents()[" + i + "].isPrimary", predictedEvent.isPrimary, event.isPrimary],
+                        ["getPredictedEvents()[" + i + "].getPredictedEvents().length", predictedEvent.getPredictedEvents().length, 0],
+                        ["getPredictedEvents()[" + i + "].target", predictedEvent.target, null],
+                        ["getPredictedEvents()[" + i + "].currentTarget", predictedEvent.currentTarget, null],
+                        ["getPredictedEvents()[" + i + "].eventPhase", predictedEvent.eventPhase, Event.NONE],
+                        ["getPredictedEvents()[" + i + "].cancelable", predictedEvent.cancelable, false],
+                        ["getPredictedEvents()[" + i + "].bubbles", predictedEvent.bubbles, false],
+                        ["getPredictedEvents()[" + i + "].offsetX", predictedEvent.offsetX, 310 + (i==0?10:20)],
+                        ["getPredictedEvents()[" + i + "].offsetY", predictedEvent.offsetY, 0],
+                    ]);
+                }
+            }));
+            on_event(target0, "pointerout", this.step_func(function(event) {
+                generate_tests(assert_equals, [
+                    ["default event.pointerType", event.pointerType, ""],
+                    ["default getPredictedEvents().length", event.getPredictedEvents().length, 0],
+                ]);
+            }));
+            on_event(target0, "pointerup", this.step_func(function(event) {
+                generate_tests(assert_equals, [
+                    ["type event.pointerType", event.pointerType, "foo"],
+                ]);
+            }));
+
+            on_event(window, "load", this.step_func_done(function() {
+                assert_not_equals(window.PointerEvent, undefined);
+
+                var pointerEventInitDict =
+                {
+                  pointerId: 42,
+                  pointerType: "pen",
+                  isPrimary: true,
+                  clientX: 300,
+                };
+
+                var p1 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p2 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p3 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p4 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.coalescedEvents = [p1, p2];
+                pointerEventInitDict.predictedEvents = [p3, p4];
+                pointerEventInitDict.clientX = 310;
+                var event = new PointerEvent("pointermove", pointerEventInitDict);
+                target0.dispatchEvent(event);
+
+                var pointerEventDefault = new PointerEvent("pointerout");
+                target0.dispatchEvent(pointerEventDefault);
+
+                var pointerEventType = new PointerEvent("pointerup", { pointerType: "foo" } );
+                target0.dispatchEvent(pointerEventType);
+            }, "PointerEvent constructor"));
+        })
+    </script>
+    <div id="complete-notice">
+    <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+    </div>
+    <div id="log"></div>
+    </body>
+</html>

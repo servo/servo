@@ -1,0 +1,638 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: CSS2.1:10.3.8 Comprehensive - Absolutely Positioned Replaced Horizontal Size+Position Calculations</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+<link rel="alternate" href="http://mxr.mozilla.org/mozilla-central/source/layout/reftests/abspos-replaced-width-margin-000.html"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-width"/>
+<link rel="match" href="abspos-replaced-width-margin-000-ref.xht"/>
+<meta name="assert" content="The values of 'left', 'right', 'margin-left',
+'margin-right', and 'width' are calculated correctly for absolutely positioned
+replaced elements according to CSS2.1 Section 10.3.7."/>
+<style type="text/css">
+
+div { height: 1px; direction: ltr; }
+
+/*
+ * Every case here has two divs and an image nested inside of each other.  The
+ * innermost div (absolutely positioned) is the testcase (and has
+ * color).  The middle div's content edge establishes the containing
+ * block it would have if it were statically positioned.  The outermost
+ * div is actually its containing block.
+ *
+ * the abs pos containing block runs from 50px to 700px from the left edge
+ * the static pos containing block runs from 150px to 650px from the left edge
+ */
+
+/* totals for html and body: 21px on the left,  34px on the right */
+html, body { border: transparent medium solid; }
+html { margin: 0 3px 0 2px; padding: 0 4px 0 3px; border-width: 0 3px 0 8px; }
+body { margin: 0 6px 0 3px; padding: 0 7px 0 1px; border-width: 0 11px 0 4px; }
+
+body > div {
+  position: relative;
+
+  top: 0;
+  left: 4px;
+
+  margin-left: 16px;
+  border-left: 9px solid transparent;
+  /* sum of above items (29px), plus 21px above, is 50px */
+  padding-left: 40px;
+
+  width: 595px;
+
+  padding-right: 15px;
+  /* sum of above items (650px), plus 50px above, is 700px */
+
+  border-right: 27px solid transparent;
+  margin-right: 13px;
+}
+
+body > div > div {
+  /* padding-left above: 40px */
+  margin-left: 7px;
+  border-left: 29px solid transparent;
+  padding-left: 24px;
+  /* sum of above items (100px), plus 50px above, is 150px */
+
+  /* padding-right above: 15px */
+  padding-right: 14px;
+  border-right: 3px solid transparent;
+  margin-right: 18px;
+  /* sum of above items (50px), subtracted from 700px, is 650px */
+}
+
+body > div > div > img {
+  background: navy;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+
+  /* specify everything; we'll put the autos as overrides below */
+  left: 3px;
+  margin-left: 17px;
+  border-left: 6px solid transparent;
+  padding-left: 1px;
+  padding-right: 9px;
+  border-right: 8px solid transparent;
+  margin-right: 19px;
+  right: 8px;
+}
+
+/* now we want to test all 128 combinations of presence of the following */
+
+body > div.adir { direction: rtl; }
+body > div.sdir > div { direction: rtl; }
+body > div.edir > div > img { direction: rtl; }
+body > div.ol > div > img { left: auto; }
+body > div.or > div > img { right: auto; }
+body > div.ml > div > img { margin-left: auto; }
+body > div.mr > div > img { margin-right: auto; }
+
+/* combined with each of these three (as appropriate for narrow/wide images) */
+body > div.narrowwidth > div > img { width: 153px; height: 1px; }
+body > div.autowidth > div > img { width: auto; }
+body > div.widewidth > div > img { width: 660px; height: 1px; }
+
+</style>
+</head>
+<body>
+
+<div class="autowidth"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="autowidth mr ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+
+<div class="narrowwidth"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+<div class="narrowwidth mr ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-wide.png"/></div></div>
+
+<div class="autowidth"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="autowidth mr ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+
+<!-- ***** WIDE WIDTH ***** -->
+
+<!-- nothing auto -->
+
+<div class="widewidth"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- only left auto -->
+<div class="widewidth ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- only right auto -->
+<div class="widewidth or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- left and right auto -->
+<div class="widewidth or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- only margin-left auto -->
+<div class="widewidth ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- left and margin-left auto -->
+<div class="widewidth ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- right and margin-left auto (margin-left like 0) -->
+<div class="widewidth ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- left and right and margin-left auto (margin-left like 0) -->
+<div class="widewidth ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- only margin-right auto -->
+<div class="widewidth mr"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- left and margin-right auto (margin-right like 0) -->
+<div class="widewidth mr ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- right and margin-right auto -->
+<div class="widewidth mr or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- left and right and margin-right auto (margin-right like 0) -->
+<div class="widewidth mr or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- margin-left and margin-right auto (alternately like 0) -->
+<div class="widewidth mr ml"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- left and margin-left and margin-right auto (margin-right like 0) -->
+<div class="widewidth mr ml ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- right and margin-left and margin-right auto (margin-left like 0) -->
+<div class="widewidth mr ml or"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<!-- left and right and margin-left and margin-right auto (margin-left and margin-right like 0) -->
+<div class="widewidth mr ml or ol"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or ol adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or ol sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or ol sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or ol edir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or ol edir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or ol edir sdir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+<div class="widewidth mr ml or ol edir sdir adir"><div><img alt="" src="support/abspos-replaced-width-margin-000-narrow.png"/></div></div>
+
+</body>
+</html>

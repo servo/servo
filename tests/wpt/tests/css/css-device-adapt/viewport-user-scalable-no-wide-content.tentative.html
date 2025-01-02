@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<link rel="help" href="https://drafts.csswg.org/css-device-adapt/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5016">
+<style>
+body {
+  margin: 0;
+}
+#content {
+  width: 10000px;
+  height: 10000px;
+  background: green;
+}
+</style>
+
+<div id="content">Content</div>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+test(() => {
+  assert_equals(window.visualViewport.scale, 1.0,
+    'visual viewport scale should be 1.0');
+}, 'Page with meta viewport "width=device-width, user-scalable=no" ' +
+   'should scale document with very wide content to 1.0.');
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – draggable areas – box-shadow</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  box-shadow: 10px 10px 0 orange;
+}
+</style>
+
+<p>Try dragging the orange area along the sides of the blue box below. It should <em>not</em> be draggable.</p>
+
+<a href='#' draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'"></a>

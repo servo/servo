@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+// This page is loaded into a fenced frame. The document policies for this page
+// disable shared storage. This then creates a child iframe to determine if
+// document deliviered policies are reflected in the child frame.
+const [key, should_restrict_select_url] = parseKeylist();
+
+const iframe_url = generateURL(
+    'default-enabled-features-subframe-iframe.https.html', [key]);
+const iframe = document.createElement("iframe");
+iframe.src = iframe_url;
+if (should_restrict_select_url == "true") {
+  iframe.allow = "shared-storage-select-url 'none';"
+}
+document.body.appendChild(iframe);
+</script>
+</body>

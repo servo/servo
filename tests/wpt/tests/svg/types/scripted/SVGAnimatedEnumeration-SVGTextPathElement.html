@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGTextPathElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGTextPathElement.
+
+  var textPathElement = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+  textPathElement.setAttribute("method", "align");
+  textPathElement.setAttribute("spacing", "auto");
+
+  // method
+  // Check initial 'method' value.
+  assert_true(textPathElement.method instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(textPathElement.method.baseVal), "number");
+  assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN);
+
+  // Switch to 'stretch'.
+  textPathElement.method.baseVal = SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH;
+  assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
+  assert_equals(textPathElement.getAttribute('method'), "stretch");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { textPathElement.method.baseVal = 3; });
+  assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
+  assert_equals(textPathElement.getAttribute('method'), "stretch");
+
+  assert_throws_js(TypeError, function() { textPathElement.method.baseVal = -1; });
+  assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
+  assert_equals(textPathElement.getAttribute('method'), "stretch");
+
+  assert_throws_js(TypeError, function() { textPathElement.method.baseVal = 0; });
+  assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_STRETCH);
+  assert_equals(textPathElement.getAttribute('method'), "stretch");
+
+  // Switch to 'align'.
+  textPathElement.method.baseVal = SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN;
+  assert_equals(textPathElement.method.baseVal, SVGTextPathElement.TEXTPATH_METHODTYPE_ALIGN);
+  assert_equals(textPathElement.getAttribute('method'), "align");
+
+  // spacing
+  // Check initial 'spacing' value.
+  assert_true(textPathElement.spacing instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(textPathElement.spacing.baseVal), "number");
+  assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO);
+
+  // Switch to 'exact'.
+  textPathElement.spacing.baseVal = SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT;
+  assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
+  assert_equals(textPathElement.getAttribute('spacing'), "exact");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { textPathElement.spacing.baseVal = 3; });
+  assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
+  assert_equals(textPathElement.getAttribute('spacing'), "exact");
+
+  assert_throws_js(TypeError, function() { textPathElement.spacing.baseVal = -1; });
+  assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
+  assert_equals(textPathElement.getAttribute('spacing'), "exact");
+
+  assert_throws_js(TypeError, function() { textPathElement.spacing.baseVal = 0; });
+  assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_EXACT);
+  assert_equals(textPathElement.getAttribute('spacing'), "exact");
+
+  // Switch to 'auto'.
+  textPathElement.spacing.baseVal = SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO;
+  assert_equals(textPathElement.spacing.baseVal, SVGTextPathElement.TEXTPATH_SPACINGTYPE_AUTO);
+  assert_equals(textPathElement.getAttribute('spacing'), "auto");
+});
+</script>

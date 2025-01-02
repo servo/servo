@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta name=help href="https://privacycg.github.io/storage-partitioning/">
+<title>Helper frame</title>
+
+<script>
+  const usageDetails = async () =>
+    (await navigator.storage.estimate()).usageDetails.indexedDB || 0;
+
+  let details = {};
+
+  window.addEventListener("message", async event => {
+    if (event.data === "get-details") {
+      details.source = "same-site";
+      details.init = await usageDetails();
+      event.source.postMessage(details, event.source.origin);
+    }
+  });
+
+  window.addEventListener("load", async () => {
+    if (parent.opener) {
+      details.source = "cross-site";
+      details.init = await usageDetails();
+      parent.opener.postMessage(details, parent.opener.origin);
+    }
+  });
+
+  window.parent.postMessage("iframe-is-ready", window.parent.origin);
+</script>

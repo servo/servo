@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset=windows-1253>
+<title>Inheriting from windows-1253 parent</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<div id=log></div>
+<script>
+[
+  {
+    "title": "Child with bogus <meta charset>",
+    "url": "resources/bogus-charset.html",
+    "expected": "Ά\n" // 0x00A2 in windows-1252 is at the same position as 0x0386 in windows-1253
+  },
+  {
+    "title": "Child with bogus Content-Type charset",
+    "url": "resources/bogus-charset-http.py",
+    "expected": "Ά\n"
+  },
+  {
+    "title": "Child with bogus Content-Type charset, but valid <meta charset>",
+    "url": "resources/bogus-charset-http-valid-meta.py",
+    "expected": "\u045E\n"
+  }
+].forEach(({ title, url, expected }) => {
+  async_test(t => {
+    const frame = document.createElement("iframe");
+    t.add_cleanup(() => frame.remove());
+    frame.src = url;
+    frame.onload = t.step_func_done(() => {
+      assert_equals(frame.contentDocument.body.textContent, expected);
+    });
+    document.body.append(frame);
+  }, title);
+});
+
+async_test(t => {
+  self.onmessage = t.step_func_done(({ data }) => {
+    assert_equals(data, "\u00A2\n");
+  });
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  frame.src = get_host_info().HTTP_REMOTE_ORIGIN + new URL("resources/bogus-charset.html", location).pathname + "?postMessage";
+  document.body.append(frame);
+}, "Cross-origin child with bogus <meta charset>");
+</script>

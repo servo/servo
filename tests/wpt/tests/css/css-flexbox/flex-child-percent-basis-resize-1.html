@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Testcase, bug 1584018</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1584018">
+<link rel="match" href="flex-child-percent-basis-resize-1-ref.html">
+
+<style>
+  .flex-container {
+    display: flex;
+    flex-direction: row;
+    width: 100px;
+  }
+
+  .flex-item {
+    flex: 1 0 auto;
+  }
+
+  .scroll-outer {
+    overflow:hidden;
+    /* this combination is important */
+    height: 100%;
+    max-height: 100px;
+  }
+
+  .scroll-inner {
+    overflow:scroll;
+    height:100%;
+  }
+
+</style>
+
+<div class="flex-container">
+  <div class="flex-item">
+    <div class="scroll-outer">
+      <div class="scroll-inner">
+        <div>0</div>
+        <div>1</div>
+        <div>2</div>
+        <div>3</div>
+        <div>4</div>
+        <div>5</div>
+        <div>6</div>
+        <div>7</div>
+        <div>8</div>
+        <div>9</div>
+        <div>0</div>
+        <div>1</div>
+        <div>2</div>
+        <div>3</div>
+        <div>4</div>
+        <div>5</div>
+        <div>6</div>
+        <div>7</div>
+        <div>8</div>
+        <div>9</div>
+      </div>
+    </div>
+  </div>
+</div>

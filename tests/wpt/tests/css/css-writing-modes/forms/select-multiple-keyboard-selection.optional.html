@@ -1,0 +1,94 @@
+<!doctype html>
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://html.spec.whatwg.org/#the-select-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Test &lt;select&gt; multiple keyboard selection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select multiple size="4"></select>
+<script>
+const select = document.querySelector("select");
+for (let i = 0; i < 5; i++) {
+    const option = document.createElement("option");
+    option.textContent = `Option ${i + 1}`;
+    select.appendChild(option);
+}
+
+const arrow_left = "\uE012";
+const arrow_up = "\uE013";
+const arrow_right = "\uE014";
+const arrow_down = "\uE015";
+
+async function sendKeyEventAndWait(key) {
+  await test_driver.send_keys(document.activeElement, key);
+  // Engines differ in when the scrolling is applied so wait for a frame to be
+  // rendered.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+    if (!CSS.supports(`writing-mode: ${writingMode}`))
+        continue;
+
+    const isHorizontal = writingMode === "horizontal-tb";
+    const isReversedBlockFlowDirection = writingMode.endsWith("-rl");
+    const scrollBlockAxis = isHorizontal ? "scrollTop" : "scrollLeft";
+
+    let nextKey = isHorizontal ? arrow_down : arrow_right;
+    let previousKey = isHorizontal ? arrow_up : arrow_left;
+
+    if (isReversedBlockFlowDirection) {
+        [nextKey, previousKey] = [previousKey, nextKey];
+    }
+
+    promise_test(async function() {
+        select.selectedIndex = 0;
+        select.style.writingMode = writingMode;
+        this.add_cleanup(() => {
+            select.scrollTop = 0;
+            select.scrollLeft = 0;
+            select.removeAttribute("style");
+        });
+
+        assert_equals(select.value, "Option 1");
+        assert_equals(select[scrollBlockAxis], 0);
+
+        select.focus();
+
+        assert_equals(document.activeElement, select);
+
+        await sendKeyEventAndWait(previousKey);
+        assert_equals(select.value, "Option 1");
+        assert_equals(select[scrollBlockAxis], 0);
+
+        await sendKeyEventAndWait(nextKey);
+        assert_equals(select.value, "Option 2");
+        assert_equals(select[scrollBlockAxis], 0);
+
+        for (let i = 0; i < select.size - 1; i++) {
+            await sendKeyEventAndWait(nextKey);
+        }
+
+        assert_equals(select.value, "Option 5");
+
+        if (!isReversedBlockFlowDirection) {
+            assert_true(select[scrollBlockAxis] > 0);
+        } else {
+            assert_true(select[scrollBlockAxis] < 0);
+        }
+
+        await sendKeyEventAndWait(previousKey);
+        assert_equals(select.value, "Option 4");
+
+        if (!isReversedBlockFlowDirection) {
+            assert_true(select[scrollBlockAxis] > 0);
+        } else {
+            assert_true(select[scrollBlockAxis] < 0);
+        }
+    }, `select[multiple][style="writing-mode: ${writingMode}"] supports keyboard navigation`);
+};
+</script>

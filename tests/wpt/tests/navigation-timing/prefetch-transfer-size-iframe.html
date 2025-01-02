@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Navigation Timing Transfert Size of Prefetched Page</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+  <script src="/common/dispatcher/dispatcher.js"></script>
+</head>
+
+<body>
+  <script>
+    function add_iframe(url) {
+      return new Promise(resolve => {
+        const frame = document.createElement('iframe');
+        frame.src = url;
+        frame.addEventListener('load', () => {
+          resolve(frame);
+        }, { once: true });
+        document.body.appendChild(frame);
+      });
+    };
+
+    promise_test(async t => {
+      // Add an iframe
+      let iframe_url = 'resources/iframe-prefetch-transfer-size.html';
+      frame = await add_iframe(iframe_url)
+
+      // Prefetch a url as link element.
+      await frame.contentWindow.addLink();
+
+      // navigate to the prefetched url.
+      await new Promise(resolve => {
+        frame.addEventListener('load', () => {
+          resolve();
+        }, { once: true });
+        frame.contentWindow.navigateToPrefetchedUrl();
+      });
+
+      // Verify navigation timing transfer size is 0.;
+      let transferSize =
+        frame.contentWindow.performance.getEntriesByType('navigation')[0].transferSize;
+
+      assert_equals(transferSize, 0);
+
+    }, "Navigation timing transfer size for a prefetched navigation should be 0.");
+  </script>
+</body>
+
+</html>

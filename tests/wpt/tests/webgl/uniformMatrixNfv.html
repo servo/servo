@@ -1,0 +1,33 @@
+<!doctype html>
+<title>uniformMatrix*fv</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=https://www.khronos.org/registry/webgl/specs/latest/#WebGLRenderingContext>
+<link rel=help href=http://dev.w3.org/2006/webapi/WebIDL/#es-boolean>
+<link rel=help href=http://es5.github.com/#x9.2>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+
+<div id=log></div>
+<script id="vshader" type="x-shader/x-vertex">
+uniform mat2 m2;
+uniform mat3 m3;
+uniform mat4 m4;
+</script>
+<script>
+var floatArray = function(n) {
+  var a = [];
+  for (var i = 0; i < n; ++i) {
+    a.push(1);
+  }
+  return a;
+};
+[2, 3, 4].forEach(function(n) {
+  test(function() {
+    var gl = getGl();
+    var f = "uniformMatrix" + n + "fv";
+    var loc = gl.getUniformLocation(gl.createProgram(), "m" + n);
+    gl[f](loc, { valueOf: function() { throw "Error"; } }, floatArray(n));
+  }, "Should not throw for " + n);
+});
+</script>

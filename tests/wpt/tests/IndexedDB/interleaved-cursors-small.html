@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>IndexedDB: Interleaved iteration of multiple cursors</title>
+<link rel="author" href="pwnall@chromium.org" title="Victor Costan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support-promises.js"></script>
+<script src="resources/interleaved-cursors-common.js"></script>
+<script>
+cursorTest(1);
+cursorTest(10);
+cursorTest(100);
+</script>

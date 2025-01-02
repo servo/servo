@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Sending a message through PresentationConnection</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#sending-a-message-through-presentationconnection">
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+
+<script>
+const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+
+navigator.presentation.receiver.connectionList.then(list => {
+  const connection = list.connections[0];
+
+  const message1 = '1st';
+  const message2 = '2nd';
+  const message3 = new Uint8Array([51, 114, 100]);      // "3rd"
+  const message4 = new Uint8Array([52, 116, 104]);      // "4th"
+  const message5 = new Uint8Array([108, 97, 115, 116]); // "last"
+
+  // send messages
+  return stash.receive().then(() => {
+    connection.send(message1);              // string
+    connection.send(message2);              // string
+    connection.send(new Blob([message3]));  // Blob
+    connection.send(message4.buffer);       // ArrayBuffer
+    connection.send(message5);              // ArrayBufferView
+
+    return stash.receive();
+  }).then(() => {
+    // try to send a message in the "closed" state
+    // Note: a receiving user agent does not fire a "terminate" event
+    connection.close();
+    connection.onclose = () => {
+      try {
+        connection.send(message1);
+        stash.send(JSON.stringify({ type: 'ok' }));
+      } catch (e) {
+        stash.send(JSON.stringify({ type: 'error', name: e.name, message: e.message }));
+      }
+    };
+  });
+});
+</script>

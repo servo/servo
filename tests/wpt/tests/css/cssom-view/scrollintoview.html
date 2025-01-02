@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>CSSOM View - scrollIntoView</title>
+<meta charset="utf-8">
+<meta name="viewport" content="initial-scale=1">
+<link rel="author" title="Chris Wu" href="mailto:pwx.frontend@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<link rel="help" href="https://webidl.spec.whatwg.org/#es-operations">
+<link rel="help" href="https://webidl.spec.whatwg.org/#es-overloads">
+<meta name="flags" content="dom">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body.running { margin: 0; padding: 4000px; overflow: hidden }
+body.running #testDiv {
+  width: 200px;
+  height: 200px;
+  background-color: lightgreen;
+}
+</style>
+<body class=running>
+<div id=testDiv></div>
+<div id="log"></div>
+<script>
+var testDiv = document.getElementById('testDiv');
+
+var expectedXLeft = 4000;
+var expectedXRight = 4000 - window.innerWidth + testDiv.clientWidth;
+var expectedXCenter = 4000 - (window.innerWidth / 2) + (testDiv.clientWidth / 2);
+
+var expectedYTop = 4000;
+var expectedYBottom = 4000 - window.innerHeight + testDiv.clientHeight;
+var expectedYCenter = 4000 - (window.innerHeight / 2) + (testDiv.clientHeight / 2);
+
+[
+  ["omitted argument", "nearest", expectedYTop],
+  [true, "nearest", expectedYTop],
+  [false, "nearest", expectedYBottom],
+  [undefined, "nearest", expectedYTop],
+  [null, "nearest", expectedYTop],
+  [{}, "nearest", expectedYTop],
+  [{block: "center", inline: "center"}, expectedXCenter, expectedYCenter],
+  [{block: "start", inline: "start"}, expectedXLeft, expectedYTop],
+  [{block: "end", inline: "end"}, expectedXRight, expectedYBottom],
+  [{block: "nearest", inline: "nearest"}, "nearest", "nearest"],
+].forEach(([input, expectedX, expectedY]) => {
+  test(() => {
+    window.scrollTo(0, 0);
+    testScrollIntoView(input);
+    var x = (expectedX === "nearest") ? expectedXRight : expectedX;
+    var y = (expectedY === "nearest") ? expectedYBottom : expectedY;
+    assert_approx_equals(window.scrollX, x, 0.5, 'scrollX');
+    assert_approx_equals(window.scrollY, y, 0.5, 'scrollY');
+  }, `scrollIntoView(${format_input(input)}) starting at left,top`);
+
+  test(() => {
+    window.scrollTo(0, 12000);
+    testScrollIntoView(input);
+    var x = (expectedX === "nearest") ? expectedXRight : expectedX;
+    var y = (expectedY === "nearest") ? expectedYTop : expectedY;
+    assert_approx_equals(window.scrollX, x, 0.5, 'scrollX');
+    assert_approx_equals(window.scrollY, y, 0.5, 'scrollY');
+  }, `scrollIntoView(${format_input(input)}) starting at left,bottom`);
+
+  test(() => {
+    window.scrollTo(12000, 0);
+    testScrollIntoView(input);
+    var x = (expectedX === "nearest") ? expectedXLeft : expectedX;
+    var y = (expectedY === "nearest") ? expectedYBottom : expectedY;
+    assert_approx_equals(window.scrollX, x, 0.5, 'scrollX');
+    assert_approx_equals(window.scrollY, y, 0.5, 'scrollY');
+  }, `scrollIntoView(${format_input(input)}) starting at right,top`);
+
+  test(() => {
+    window.scrollTo(12000, 12000);
+    testScrollIntoView(input);
+    var x = (expectedX === "nearest") ? expectedXLeft : expectedX;
+    var y = (expectedY === "nearest") ? expectedYTop : expectedY;
+    assert_approx_equals(window.scrollX, x, 0.5, 'scrollX');
+    assert_approx_equals(window.scrollY, y, 0.5, 'scrollY');
+  }, `scrollIntoView(${format_input(input)}) starting at right,bottom`);
+});
+
+function testScrollIntoView(input) {
+  if (input === "omitted argument") {
+    testDiv.scrollIntoView();
+  } else {
+    testDiv.scrollIntoView(input);
+  }
+}
+
+// This formats dict as a string suitable as test name.
+// format_value() is provided by testharness.js,
+// which also preserves sign for -0.
+function format_dict(dict) {
+  const props = [];
+  for (let prop in dict) {
+    props.push(`${prop}: ${format_value(dict[prop])}`);
+  }
+  return `{${props.join(', ')}}`;
+}
+
+function format_input(input) {
+  if (input === "omitted argument") {
+    return "";
+  } else if (input === null || typeof input !== "object") {
+    return format_value(input);
+  }
+  return format_dict(input);
+}
+
+document.body.classList.remove('running');
+window.scrollTo(0, 0);
+</script>

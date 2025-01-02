@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Matching brackets and quotes for @rules</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/media.html#at-media-rule"/>
+  <link rel="match" href="matching-brackets-001-ref.xht"/>
+  <meta name="flags" content="invalid"/>
+  <meta name="assert" content="User agents must handle unexpected tokens
+    encountered while parsing an at-rule by reading until the end of the
+    statement, while observing the rules for matching pairs of brackets
+    and quotes, and correctly handling escapes. "/>
+  <style type="text/css"><![CDATA[
+    p {
+      color: red;
+      background: red;
+    }
+    #semicolon { background: transparent; }
+    @foo ] } ) test-token \
+     ~ ` ! @ # $ % ^ & * - _ + = | : > < ? / , .
+     [\]\5D ']' "]"; # { background: red; } ]
+     (\)\29 ')' ")"; #semicolon { background: red; } } } } )
+     '; #semicolon { background: red; } } } }',
+     "; #semicolon { background: red; }' } } }"
+    ;
+    #semicolon { color: green; }
+    #block { background: transparent; }
+    @foo ] } ) test-token \
+     ~ ` ! @ # $ % ^ & * - _ + = | : > < ? / , .
+     [\]\5D ']' "]"; #block { background: red; } ]
+     (\)\29 ')' ")"; #block { background: red; } )
+     '\'; #block { background: red; }',
+     "\"; #block { background: red; }'"
+     {\}\79 '}' "}"; #block { background: red; }
+        #block { background: red; } }
+    #block { color: green; }
+  ]]></style>
+ </head>
+ <body>
+  <p id="semicolon">This sentence must be green.</p>
+  <p id="block">This sentence must be green.</p>
+ </body>
+</html>

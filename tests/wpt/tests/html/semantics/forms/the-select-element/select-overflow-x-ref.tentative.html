@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<style>
+select {
+  width:30px;
+  height:20px;
+}
+select::part(button) {
+  background-color:blue;
+}
+</style>
+<select>
+  <option>&nbsp;</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>

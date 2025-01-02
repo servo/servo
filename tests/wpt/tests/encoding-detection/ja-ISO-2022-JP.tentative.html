@@ -1,0 +1,14 @@
+<!doctype html>
+<title>ja ISO-2022-JP</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<p>これは文字実験です。</p>
+<script>
+setup({explicit_done:true});
+onload = function() {
+    test(function() {
+        assert_equals(document.characterSet, "ISO-2022-JP", 'Expected ISO-2022-JP');
+    }, "Check detection result");
+      done();
+};
+</script>

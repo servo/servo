@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/4441">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+<script>
+test_no_interpolation({
+  property: 'overflow-clip-margin',
+  from: 'initial',
+  to: '123px'
+});
+
+test_no_interpolation({
+  property: 'overflow-x',
+  from: 'hidden',
+  to: 'visible'
+});
+
+test_no_interpolation({
+  property: 'overflow-y',
+  from: 'hidden',
+  to: 'visible'
+});
+</script>

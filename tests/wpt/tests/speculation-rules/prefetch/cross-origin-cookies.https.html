@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    await test_driver.delete_all_cookies();
+
+    let executor = 'cookies.py';
+    let agent = await spawnWindow(t, { executor });
+    let response_cookies = await agent.getResponseCookies();
+    let request_cookies = await agent.getRequestCookies();
+    assert_equals(request_cookies["count"], undefined);
+    assert_equals(request_cookies["type"], undefined);
+    assert_equals(response_cookies["count"], "1");
+    assert_equals(response_cookies["type"], "navigate");
+
+    let nextUrl = agent.getExecutorURL({ executor, hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+    await agent.forceSinglePrefetch(nextUrl, { requires: ["anonymous-client-ip-when-cross-origin"] });
+    await agent.forceSinglePrefetch(nextUrl);
+    await agent.navigate(nextUrl);
+
+    response_cookies = await agent.getResponseCookies();
+    request_cookies = await agent.getRequestCookies();
+    assert_equals(request_cookies["count"], undefined);
+    assert_equals(request_cookies["type"], undefined);
+    assert_equals(response_cookies["count"], "1");
+    assert_equals(response_cookies["type"], "prefetch");
+
+    let requestHeaders = await agent.getRequestHeaders();
+    assert_equals(requestHeaders.sec_purpose, "prefetch;anonymous-client-ip");
+  }, "speculation rules based prefetch should not use cookies for cross origin urls.");
+</script>

@@ -1,0 +1,41 @@
+[package]
+name = "net_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "net_traits"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+base = { workspace = true }
+content-security-policy = { workspace = true }
+cookie = { workspace = true }
+crossbeam-channel = { workspace = true }
+embedder_traits = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+hyper = { workspace = true }
+hyper_serde = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+mime = { workspace = true }
+num-traits = { workspace = true }
+percent-encoding = { workspace = true }
+pixels = { path = "../../pixels" }
+rustls = { workspace = true }
+serde = { workspace = true }
+servo_arc = { workspace = true }
+servo_rand = { path = "../../rand" }
+servo_url = { path = "../../url" }
+url = { workspace = true }
+uuid = { workspace = true }
+webrender_traits = { workspace = true }

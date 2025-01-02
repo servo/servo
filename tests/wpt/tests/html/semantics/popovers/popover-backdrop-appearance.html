@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover ::backdrop pseudo element appearance</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="match" href="popover-backdrop-appearance-ref.html">
+
+<style>
+#bottom { top: 70px; left: 70px; }
+#middle { top: 120px; left: 120px; }
+#top { top: 170px; left: 170px; }
+::backdrop { height: 200px; width: 200px; }
+#bottom::backdrop {
+  top: 50px;
+  left: 50px;
+  background-color: rgb(0, 50, 0);
+  z-index: 100;  /* z-index has no effect. */
+}
+#middle::backdrop {
+  top: 100px;
+  left: 100px;
+  background-color: rgb(0, 130, 0);
+  z-index: -100;  /* z-index has no effect. */
+}
+#top::backdrop {
+  top: 150px;
+  left: 150px;
+  background-color: rgb(0, 210, 0);
+  z-index: 0;  /* z-index has no effect. */
+}
+[popover] {
+  margin:0;
+}
+</style>
+<p>Test for [popover]::backdrop presence and stacking order. The test passes
+  if there are 3 stacked boxes, with the brightest green on top.</p>
+<div popover id=bottom>Bottom
+  <div popover=hint id=middle>Middle
+    <div popover=manual id=top>Top</div>
+  </div>
+</div>
+<script>
+document.getElementById('bottom').showPopover();
+document.getElementById('middle').showPopover();
+document.getElementById('top').showPopover();
+</script>

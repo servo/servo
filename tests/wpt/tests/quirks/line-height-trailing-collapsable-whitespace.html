@@ -1,0 +1,12 @@
+<!-- quirks mode -->
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-blocks-ignore-line-height-quirk">
+<link rel="match" href="line-height-trailing-collapsable-whitespace-ref.html">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="font-size:100px;">
+  <div style="display:inline-block; width:100px; height:50px; background:green;"></div>
+  <!-- Having collapsable whitespace here triggers a bug in Blink.
+       See crbug.com/845902#c2 -->
+  <br>
+  <div style="width:100px; height:50px; background:green;"></div>
+</div>

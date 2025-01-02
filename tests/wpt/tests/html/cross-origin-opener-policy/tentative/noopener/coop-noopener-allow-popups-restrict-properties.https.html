@@ -1,0 +1,26 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>
+    Cross-Origin-Opener-Policy: noopener-allow-popups means that the opener
+    has no access to the openee. This test verfies it for restrict-properties
+    COOP values.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../../resources/noopener-helper.js"></script>
+<script>
+
+
+test_noopener_opening_popup("noopener-allow-popups",
+                            "restrict-properties",
+                            SAME_ORIGIN,
+                            /*opener_expectation=*/true);
+test_noopener_opening_popup("restrict-properties",
+                            "noopener-allow-popups",
+                            SAME_ORIGIN,
+                            /*opener_expectation=*/false);
+ </script>

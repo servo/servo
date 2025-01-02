@@ -1,0 +1,52 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<html>
+<body></body>
+<script>
+    promise_test(async test => {
+      // 1. Load an iframe (not blocked).
+      let iframe = document.createElement("iframe");
+      {
+        iframe.name = "theiframe";
+        iframe.src =
+          "http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/frame-src/support/frame.html?0";
+        let iframeLoaded = new Promise(resolve => { iframe.onload = resolve });
+        document.body.appendChild(iframe);
+        await iframeLoaded;
+      }
+
+      // 2. Start blocking iframes using CSP frame-src 'none'.
+      {
+        let meta = document.createElement('meta');
+        meta.httpEquiv = "Content-Security-Policy";
+        meta.content = "frame-src 'none'";
+        document.getElementsByTagName('head')[0].appendChild(meta);
+      }
+
+      // 3. Blocked same-document navigation using iframe.src.
+      {
+        let violation = new Promise(resolve => {
+          window.addEventListener('securitypolicyviolation', () => resolve());
+        });
+        iframe.src =
+          "http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/frame-src/support/frame.html?1";
+        await violation;
+      }
+
+      // 4. Blocked same-document navigation using window.open.
+      {
+        let violation = new Promise(resolve => {
+          window.addEventListener('securitypolicyviolation', resolve);
+        });
+        window.open(
+          "http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/frame-src/support/frame.html?2",
+          "theiframe");
+        await violation;
+      }
+
+      // 5. Regression test for https://crbug.com/1018385. The browser should
+      // not crash while displaying the error page.
+      await new Promise(resolve => window.setTimeout(resolve, 1000));
+    }, "Same-document navigations in an iframe blocked by CSP frame-src dynamically using the <meta> tag");
+</script>
+</html>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVG Paint Servers: parsing stop-color with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#StopColorProperty"/>
+  </metadata>
+  <g id="target" style="color: blue"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_value("stop-color", "currentcolor");
+test_valid_value("stop-color", "white");
+test_valid_value("stop-color", "transparent");
+test_valid_value("stop-color", "rgb(255, 255, 255)");
+test_valid_value("stop-color", "#ffffff", "rgb(255, 255, 255)");
+test_valid_value("stop-color", "rgba(255, 255, 255, 1.0)", "rgb(255, 255, 255)");
+test_valid_value("stop-color", "rgba(255, 255, 255, 0.4)");
+test_valid_value("stop-color", "hsl(0deg, 100%, 100%)", "rgb(255, 255, 255)");
+test_valid_value("stop-color", "hsla(0deg, 100%, 100%, 1.0)", "rgb(255, 255, 255)");
+test_valid_value("stop-color", "hsla(0deg, 100%, 100%, 0.4)", "rgba(255, 255, 255, 0.4)");
+
+  ]]></script>
+</svg>

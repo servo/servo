@@ -1,0 +1,18 @@
+<!doctype html>
+<title>&lt;img> loading in destroyed document</title>
+<iframe></iframe>
+<script>
+onload = function() {
+  const img = new Image();
+  img.onload = function() {
+    const iframe = document.querySelector('iframe');
+    iframe.contentDocument.createElement('div').innerHTML =
+      `<picture>
+         <source srcset="nonexistent.png">
+         <img src="data:image/gif;base64,R0lGODlhCgAKAIAAAP/MAAAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==">
+       </picture>`;
+    iframe.remove();
+  };
+  img.src = 'data:image/gif;base64,R0lGODlhCgAKAIAAAP/MAAAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw==';
+};
+</script>

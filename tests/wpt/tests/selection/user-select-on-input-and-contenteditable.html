@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<title>Test: used 'user-select' is always 'contain' on editable elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#propdef-user-select">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<input type=text value="I should be selectable">
+<input type=search value="I should be selectable">
+<input type=url value="https://example.org/">
+<input type=tel value="555-555-5555">
+<input type=password value="I should be selectable">
+<textarea>I should be selectable</textarea>
+<div contenteditable="true">I should be selectable</div>
+<script>
+  const valuesToTest = ["auto", "text", "none", "contain", "all"];
+
+  for (let value of valuesToTest) {
+    promise_test(async function () {
+      for (let element of document.querySelectorAll("input,textarea")) {
+        element.style.userSelect = value;
+        element.focus();
+        let start = element.selectionStart;
+        await test_driver.click(element);
+        assert_not_equals(element.selectionStart, start, "Selection should've moved on click.");
+        element.selectionStart = 0;
+      }
+
+      let div = document.querySelector("div");
+      div.style.userSelect = value;
+      div.focus();
+      let oldOffset = getSelection().focusOffset;
+      await test_driver.click(div);
+      assert_not_equals(oldOffset, getSelection().focusOffset, "Selection should've moved on click.");
+      getSelection().focusOffet = 0;
+    }, `selection for ${value}`);
+  }
+</script>

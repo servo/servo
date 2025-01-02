@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint" />
+<link rel="help" href="https://crbug.com/1146797">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div>
+    <span style="position: relative">
+      <span>
+        <a id="target" href="#" style="float: left">link</a>
+      </span>
+    </span>
+  </div>
+<script>
+test(() => {
+  let target = document.getElementById('target');
+  let bounds = target.getBoundingClientRect();
+  let result = document.elementFromPoint(bounds.left + 1, bounds.top + 1);
+  assert_equals(result, target);
+});
+</script>
+</body>

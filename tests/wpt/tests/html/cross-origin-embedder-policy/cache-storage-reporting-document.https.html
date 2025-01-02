@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <title>
+    Check COEP report are send for CacheStorage requests in Document.
+  </title>
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/common/utils.js"></script>
+  </script>
+  <script src="./resources/cache-storage-reporting.js"></script>
+</head>
+<script>
+
+async function waitReports(frame) {
+  return await new Promise((resolve) => {
+    const observer = new frame.contentWindow.ReportingObserver((reports) => {
+      observer.disconnect();
+      resolve(reports.map(r => r.toJSON()));
+    });
+    observer.observe();
+
+    frame.contentWindow.eval(eval_script);
+  });
+}
+
+promise_test(async (t) => {
+  const iframe_url = local(encode(iframe_path + header_coep));
+  const iframe = await makeIframe(t, iframe_url);
+  const reports = await waitReports(iframe);
+  assert_equals(reports.length, 1);
+  const report = reports[0];
+  assert_equals(report.body.blockedURL, image_url);
+  assert_equals(report.body.type, "corp");
+  assert_equals(report.body.disposition, "enforce");
+  assert_equals(report.body.destination, "");
+  assert_equals(report.type, "coep");
+  assert_equals(report.url, iframe_url);
+}, "COEP support on document.")
+
+promise_test(async (t) => {
+  const iframe_url = local(encode(iframe_path + header_coep_report_only));
+  const iframe = await makeIframe(t, iframe_url);
+  const reports = await waitReports(iframe);
+  assert_equals(reports.length, 1);
+  const report = reports[0];
+  assert_equals(report.body.blockedURL, image_url);
+  assert_equals(report.body.type, "corp");
+  assert_equals(report.body.disposition, "reporting");
+  assert_equals(report.body.destination, "");
+  assert_equals(report.type, "coep");
+  assert_equals(report.url, iframe_url);
+}, "COEP-Report-Only support on document.")
+
+</script>
+</html>

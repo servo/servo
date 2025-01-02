@@ -1,0 +1,135 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test the ConstantSourceNode Interface</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function(t) {
+  var ac = new AudioContext();
+
+  var csn = ac.createConstantSource();
+  assert_equals(csn.offset.value, 1.0, "Default offset is 1.0");
+
+  csn = new ConstantSourceNode(ac);
+  assert_equals(csn.offset.value, 1.0, "Default offset is 1.0");
+
+  csn = new ConstantSourceNode(ac, {offset: -0.25});
+  assert_equals(csn.offset.value, -0.25, "Offset can be set during construction");
+}, "ConstantSourceNode can be constructed");
+
+test(function(t) {
+  var ac = new AudioContext();
+
+  var csn = ac.createConstantSource();
+
+  assert_throws_dom("InvalidStateError", function() {
+    csn.stop(1);
+  }, "Start must be called before stop");
+
+  assert_throws_js(RangeError, function() {
+    csn.start(-1);
+  }, "When can not be negative");
+
+  csn.start(0);
+  assert_throws_js(RangeError, function() {
+    csn.stop(-1);
+  }, "When can not be negative");
+}, "ConstantSourceNode stop and start");
+
+async_test(function(t) {
+  var ac = new OfflineAudioContext(1, 2048, 44100);
+  var csn = ac.createConstantSource();
+  csn.connect(ac.destination);
+  csn.start()
+  csn.stop(1024/44100)
+  csn.onended = function(e) {
+    t.step(function() {
+      assert_equals(e.type, "ended", "Event type should be 'ended', received: " + e.type);
+    });
+    t.done();
+  }
+  ac.startRendering();
+}, "ConstantSourceNode onended event");
+
+async_test(function(t) {
+  var ac = new OfflineAudioContext(1, 2048, 44100);
+  var csn = ac.createConstantSource();
+  csn.connect(ac.destination);
+  csn.start(512/44100)
+  csn.stop(1024/44100)
+
+  ac.oncomplete = function(e) {
+    t.step(function() {
+      var result = e.renderedBuffer.getChannelData(0);
+      for (var i = 0; i < 2048; ++i) {
+        if (i >= 512 && i < 1024) {
+          assert_equals(result[i], 1.0, "sample " + i + " should equal 1.0");
+        } else {
+          assert_equals(result[i], 0.0, "sample " + i + " should equal 0.0");
+        }
+      }
+    });
+    t.done();
+  }
+
+  ac.startRendering();
+}, "ConstantSourceNode start and stop when work");
+
+async_test(function(t) {
+  var ac = new OfflineAudioContext(1, 2048, 44100);
+  var csn = ac.createConstantSource();
+  csn.offset.value = 0.25;
+  csn.connect(ac.destination);
+  csn.start()
+
+  ac.oncomplete = function(e) {
+    t.step(function() {
+      var result = e.renderedBuffer.getChannelData(0);
+      for (var i = 0; i < 2048; ++i) {
+        assert_equals(result[i], 0.25, "sample " + i + " should equal 0.25");
+      }
+    });
+    t.done();
+  }
+
+  ac.startRendering();
+}, "ConstantSourceNode with no automation");
+
+async_test(function(t) {
+  var ac = new OfflineAudioContext(1, 2048, 44100);
+
+  var timeConstant = 2.0;
+  var offsetStart = 0.25;
+  var offsetEnd = 0.1;
+
+  var csn = ac.createConstantSource();
+  csn.offset.value = offsetStart;
+  csn.offset.setTargetAtTime(offsetEnd, 1024/ac.sampleRate, timeConstant);
+  csn.connect(ac.destination);
+  csn.start()
+
+  ac.oncomplete = function(e) {
+    t.step(function() {
+      // create buffer with expected values
+      var buffer = ac.createBuffer(1, 2048, ac.sampleRate);
+      for (var i = 0; i < 2048; ++i) {
+        if (i < 1024) {
+          buffer.getChannelData(0)[i] = offsetStart;
+        } else {
+          time = (i-1024)/ac.sampleRate;
+          buffer.getChannelData(0)[i] = offsetEnd + (offsetStart - offsetEnd)*Math.exp(-time/timeConstant);
+        }
+      }
+
+      var result = e.renderedBuffer.getChannelData(0);
+      var expected = buffer.getChannelData(0);
+      for (var i = 0; i < 2048; ++i) {
+        assert_approx_equals(result[i], expected[i], 1.342e-6, "sample " + i);
+      }
+    });
+    t.done();
+  }
+
+  ac.startRendering();
+}, "ConstantSourceNode with automation");
+</script>

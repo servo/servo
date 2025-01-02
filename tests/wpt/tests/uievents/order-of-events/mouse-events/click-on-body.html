@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Clicking on the body element itself fires a click event</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+    <link rel="help" href="https://w3c.github.io/uievents/#event-type-click">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+html {
+  background-color: white;
+  margin: 0;
+}
+body {
+  background-color: blue;
+  margin: 0;
+}
+#guineapig {
+  background-color: white;
+  margin-bottom: 100px;/* Expose an area of the body element itself */
+}
+#other {
+  background-color: white;
+}
+    </style>
+  </head>
+  <body>
+    <p id="guineapig">Click on the blue area below.</p>
+    <p id="other">&nbsp;</p><!-- Needed to prevent the margin from collapsing -->
+    <script>
+setup({explicit_timeout: true});
+promise_test(async function(t) {
+  document.body.addEventListener('click', function (event) {
+    t.step(function () {
+      assert_equals(event.target, document.body, 'target of click event must be the body element');
+      assert_equals(event.eventPhase, Event.AT_TARGET, 'click event must propagate to the body element at the Target Phase');
+      var passed = event.target === document.body && event.eventPhase === Event.AT_TARGET;
+      document.body.style.backgroundColor = 'white';
+      var guineapig = document.getElementById('guineapig');
+      guineapig.style.marginBottom = '16px';
+      if (passed) {
+        guineapig.textContent = 'PASS';
+        guineapig.style.backgroundColor = 'green';
+      }
+      t.done();
+    });
+  }, false);
+
+  await test_driver.click(document.body);
+}, "Clicking on the body element itself should fire a click event targeted at the body element");
+    </script>
+  </body>
+</html>

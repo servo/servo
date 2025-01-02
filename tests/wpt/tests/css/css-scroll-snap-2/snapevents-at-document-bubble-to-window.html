@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scrollsnapchange event on the document bubbles</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+
+<body>
+  <style>
+    :root {
+      margin: 0;
+      padding: 0;
+      scroll-snap-type: y mandatory;
+    }
+
+    div {
+      position: absolute;
+      margin: 0px;
+    }
+
+    #spacer {
+      width: 200vw;
+      height: 200vh;
+    }
+
+    .snap_point {
+      width: 40vw;
+      height: 40vh;
+      scroll-snap-align: start;
+    }
+
+    #snap_point_1 {
+      left: 0px;
+      top: 0px;
+      background-color: red;
+    }
+
+    #snap_point_2 {
+      top: 40vh;
+      left: 40vw;
+      background-color: orange;
+    }
+
+    #snap_point_3 {
+      left: 80vw;
+      top: 80vh;
+      background-color: blue;
+    }
+  </style>
+  <div id="spacer"></div>
+  <div id="snap_point_1" class="snap_point"></div>
+  <div id="snap_point_2" class="snap_point"></div>
+  <div id="snap_point_3" class="snap_point"></div>
+
+  <script>
+
+    promise_test(async(t) => {
+      await waitForCompositorCommit();
+
+      let scrollsnapchanging_promise = waitForSnapEvent(window, "scrollsnapchanging");
+      let scrollsnapchange_promise = waitForSnapEvent(window, "scrollsnapchange");
+      document.scrollingElement.scrollTo(0, snap_point_2.offsetTop);
+      let scrollsnapchanging_evt = await scrollsnapchanging_promise;
+      let scrollsnapchange_evt = await scrollsnapchange_promise;
+
+      assertSnapEvent(scrollsnapchanging_evt, { inline: null, block: snap_point_2 });
+      assertSnapEvent(scrollsnapchange_evt, { inline: null, block: snap_point_2 });
+    }, "scrollsnapchange bubbles when fired at the document (addEventListener).");
+
+    promise_test(async(t) => {
+      await waitForScrollReset(t, document.scrollingElement);
+      await waitForCompositorCommit();
+
+      let scrollsnapchanging_promise = waitForSnapEvent(window, "scrollsnapchanging",
+                                    /*scroll_happens=*/true,
+                                    /*use_onsnap_member=*/true);
+      let scrollsnapchange_promise = waitForSnapEvent(window, "scrollsnapchange",
+                                    /*scroll_happens=*/true,
+                                    /*use_onsnap_member=*/true);
+      document.scrollingElement.scrollTo(0, snap_point_2.offsetTop);
+      let scrollsnapchanging_evt = await scrollsnapchanging_promise;
+      let scrollsnapchange_evt = await scrollsnapchange_promise;
+
+      assertSnapEvent(scrollsnapchanging_evt, { inline: null, block: snap_point_2 });
+      assertSnapEvent(scrollsnapchange_evt, { inline: null, block: snap_point_2 });
+    }, "scrollsnapchange bubbles when fired at the document (onscrollsnapchange).");
+  </script>
+</body>
+
+</html>

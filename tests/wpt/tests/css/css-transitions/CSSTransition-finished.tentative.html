@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSTransition.finished</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#csstransition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+<style>
+
+.animated-div {
+  margin-left: 100px;
+  transition: margin-left 100s linear 100s;
+}
+
+</style>
+<div id="log"></div>
+<script>
+
+'use strict';
+
+promise_test(async t => {
+  const div = addDiv(t, { class: 'animated-div' });
+  getComputedStyle(div).marginLeft;
+  div.style.marginLeft = '200px';
+  const animation = div.getAnimations()[0];
+
+  animation.finish();
+  await animation.finished;
+
+  animation.play();
+  const marginLeft = parseFloat(getComputedStyle(div).marginLeft);
+  assert_equals(
+    marginLeft,
+    100,
+    'Replaying a finished transition should update the target element\'s style'
+  );
+}, 'Restarting a finished transition rewinds playback');
+
+</script>

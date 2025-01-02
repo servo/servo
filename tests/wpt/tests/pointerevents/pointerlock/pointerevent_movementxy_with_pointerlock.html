@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events pointer lock tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="/external/wpt/pointerevents/pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <style>
+          #testContainer {
+            touch-action: none;
+            user-select: none;
+            position: relative;
+          }
+        </style>
+        <script>
+           PhaseEnum = {
+              BeforeLocked:     0,
+              PointerLocked:    1,
+              PointerUnlocked:  2,
+              Done:             3,
+            };
+            var phase = PhaseEnum.BeforeLocked;
+            var last_event;
+            var mouseeventMovements = []
+            var pointereventMovements = []
+
+            function resetTestState() {
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointerevent movementX/Y with pointerlock test", ['mouse']);
+
+                function testPointerMoves(event) {
+                    if (last_event) {
+                        if (phase == PhaseEnum.PointerLocked){
+                            test_pointerEvent.step(function() {
+                                assert_equals(event.screenX, last_event.screenX);
+                                assert_equals(event.screenY, last_event.screenY);
+                            });
+                        } else { // BeforeLocked || Unlocked
+                            test_pointerEvent.step(function() {
+                                assert_equals(event.screenX - last_event.screenX, event.movementX);
+                                assert_equals(event.screenY - last_event.screenY, event.movementY);
+                            });
+                        }
+                    }
+                    last_event = event;
+                }
+
+                on_event(target, 'click', function(event) {
+                    if (phase == PhaseEnum.BeforeLocked)
+                       target.requestPointerLock();
+                    else if (phase == PhaseEnum.PointerLocked)
+                       document.exitPointerLock();
+                    else if (phase == PhaseEnum.PointerUnlocked)
+                        test_pointerEvent.done();
+                });
+                on_event(target, 'pointermove', function(event) {
+                    if (phase == PhaseEnum.PointerLocked) {
+                        pointereventMovements.push(`${event.movementX}, ${event.movementY}`);
+                    }
+                    testPointerMoves(event);
+                });
+                on_event(target, 'mousemove', function(event) {
+                    if (phase == PhaseEnum.PointerLocked) {
+                        mouseeventMovements.push(`${event.movementX}, ${event.movementY}`);
+                    }
+                });
+                on_event(document, 'pointerlockchange', function(event) {
+                    phase++;
+                    last_event = null;
+                    if (phase == PhaseEnum.PointerLocked) {
+                        test_pointerEvent.step(function() {
+                            assert_equals(document.pointerLockElement, target, "document.pointerLockElement should be target.");
+                        });
+                    } else if (phase == PhaseEnum.PointerUnlocked) {
+                        test_pointerEvent.step(function() {
+                            assert_equals(document.pointerLockElement, null, "document.pointerLockElement should be null.");
+                            assert_not_equals(mouseeventMovements.length, 0);
+                            assert_array_equals(pointereventMovements, mouseeventMovements, "pointermove should have movementX/Y same as mousemove");
+                        });
+                    }
+                    pointerHoverInTarget('mouse', target, 'right').then(function() {
+                        return clickInTarget("mouse", target);
+                    });
+                });
+
+                // Inject mouse inputs.
+                pointerHoverInTarget('mouse', target, 'right').then(function() {
+                    return clickInTarget("mouse", target);
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events movement with pointerlock test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks pointerevent movementX/Y value with pointerlock.
+            It checks whether movement X/Y matches event.screenX/Y - last_event.screenX/Y when pointer is not locked;
+            And if pointermove.movementX/Y matches mousemove.movementX/Y when pointer is locked.
+            <ol>
+                 <li>Move the mouse inside the green rectangle.</li>
+                 <li>Click left button on the green rectangle.(Enter pointerlock)</li>
+                 <li>Move the mouse around.</li>
+                 <li>Click left button again</li>
+                 <li>Move the mouse inside the green rectangle.</li>
+                 <li>Click left button again to end the test.</li>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div id="target" style="width:800px;height:250px;background:green"></div>
+        </div>
+        <div class="spacer"></div>
+    </body>
+</html>

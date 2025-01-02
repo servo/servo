@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/1029262">
+<meta name="assert" content="The renderer should not crash.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+  <!-- Note that the SVG in the data URL below is intentionally malformed: -->
+ <feImage xlink:href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><rect"/>
+</svg>
+
+<script>
+async_test(t => {
+  window.onload = t.step_func_done();
+}, 'The renderer should not crash.');
+</script>

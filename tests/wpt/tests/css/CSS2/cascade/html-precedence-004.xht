@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: User Stylesheets and non-CSS Presentational Hints</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/non-css/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html" />
+  <link rel="match" href="html-precedence-004-ref.xht" />
+
+  <meta name="flags" content="userstyle" />
+
+  <style type="text/css">
+   .instructions { color: red; }
+  </style>
+ </head>
+ <body id="hixie-cascade-tests">
+  <div class="instructions">
+   <p>For this test, set your user stylesheet to the following:</p>
+<pre>
+/* User Stylesheet */
+#hixie-cascade-tests .instructions { display: none; }
+#hixie-cascade-tests .red { color: red; }
+#hixie-cascade-tests .green { color: green; }
+#hixie-cascade-tests .normal { font-weight: normal; }
+</pre>
+  </div>
+  <p><font color="green" class="red">This text should be green.</font></p>
+  <p><b class="normal">This text should</b> not be bold.</p>
+  <p class="green">This line should be green.</p>
+ </body>
+</html>

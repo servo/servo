@@ -1,0 +1,2 @@
+Permissions-Policy: ch-device-memory=("https://{{host}}:{{ports[https][0]}}" "https://{{hosts[alt][]}}:{{ports[https][0]}}")
+Accept-CH: Sec-CH-Device-Memory

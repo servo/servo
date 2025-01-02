@@ -1,0 +1,4 @@
+features:
+- name: page-visibility-state
+  files:
+  - visibility-state-entry.tentative.html

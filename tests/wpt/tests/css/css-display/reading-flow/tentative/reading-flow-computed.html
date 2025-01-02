@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Display: getComputedStyle().readingFlow</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('reading-flow', 'normal');
+test_computed_value('reading-flow', 'flex-visual');
+test_computed_value('reading-flow', 'flex-flow');
+test_computed_value('reading-flow', 'grid-rows');
+test_computed_value('reading-flow', 'grid-columns');
+test_computed_value('reading-flow', 'grid-order');
+</script>
+</body>

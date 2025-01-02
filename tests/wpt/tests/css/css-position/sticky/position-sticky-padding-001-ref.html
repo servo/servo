@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  .block {
+    position: relative;
+    width: 300px;
+    height: 210px;
+    padding: 10px;
+    padding-top: 0;
+    margin: 10px;
+    float: left;
+    background-color: #ddd;
+  }
+
+  .col {
+    width: 100px;
+    background-color: blue;
+    height: 210px;
+  }
+
+  .abspos {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: cyan;
+    top: 210px;
+  }
+</style>
+<div class="block">
+  <div class="col"></div>
+  <div class="abspos"></div>
+</div>
+<div class="block">
+  <div class="col"></div>
+  <div class="abspos"></div>
+</div>

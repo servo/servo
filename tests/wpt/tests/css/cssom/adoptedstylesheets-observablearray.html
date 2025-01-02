@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Adoptedstylesheets as ObservableArray</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<span id=target>Test Span</span>
+<div id="divNonConstructed" class="nonConstructed"></div>
+<style>
+  #target {background-color: red;}
+</style>
+
+<script>
+
+const shadowRootNonConstructed = divNonConstructed.attachShadow({mode:'open'})
+nonConstructedStyle = document.createElement("style");
+shadowRootNonConstructed.appendChild(nonConstructedStyle);
+nonConstructedStyle.sheet.insertRule(".nonConstructed { color: red; }", 0);
+const nonConstructedStyleSheet = nonConstructedStyle.sheet;
+
+function assert_is(targetStyle, color) {
+  assert_equals(targetStyle.getPropertyValue('background-color'), color);
+}
+
+function testRoot(d, targetStyle) {
+  const red = 'rgb(255, 0, 0)';
+  const green = 'rgb(0, 255, 0)';
+  const blue = 'rgb(0, 0, 255)';
+
+  const sheet1 = new CSSStyleSheet();
+  sheet1.replaceSync('#target {background-color:lime !important;}');
+  const sheet2 = new CSSStyleSheet();
+  sheet2.replaceSync('#target {background-color:blue !important;}');
+  assert_equals(d.adoptedStyleSheets.length, 0);
+  assert_is(targetStyle, red);
+
+  d.adoptedStyleSheets = [sheet1];
+  assert_equals(d.adoptedStyleSheets.length, 1);
+  assert_is(targetStyle, green);
+
+  d.adoptedStyleSheets.push(sheet2);
+  assert_equals(d.adoptedStyleSheets.length, 2);
+  assert_is(targetStyle, blue);
+
+  d.adoptedStyleSheets.pop();
+  assert_equals(d.adoptedStyleSheets.length, 1);
+  assert_is(targetStyle, green);
+
+  d.adoptedStyleSheets.push(sheet2);
+  d.adoptedStyleSheets.reverse();
+  assert_equals(d.adoptedStyleSheets.length, 2);
+  assert_is(targetStyle, green);
+
+  d.adoptedStyleSheets.splice(1, 1);
+  assert_equals(d.adoptedStyleSheets.length, 1);
+  assert_is(targetStyle, blue);
+  d.adoptedStyleSheets.splice(0, 1, sheet1);
+  assert_equals(d.adoptedStyleSheets.length, 1);
+  assert_is(targetStyle, green);
+
+  // Adding non-constructed stylesheet to AdoptedStyleSheets is not allowed.
+  assert_throws_dom('NotAllowedError', () => { document.adoptedStyleSheets.push(nonConstructedStyleSheet); });
+
+  assert_throws_js(TypeError, () => { document.adoptedStyleSheets.push("foo"); });
+}
+
+test(function() {
+  const target = document.querySelector('#target');
+  const targetStyle = window.getComputedStyle(target);
+  testRoot(document, targetStyle);
+}, "document.adoptedStyleSheets should allow mutation in-place");
+
+test(function() {
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({mode: 'open'});
+  shadow.innerHTML = '<span id=target>Test Shadow Span</span><style>#target{background-color: red;}</style>';
+  const target = shadow.querySelector('#target');
+  const targetStyle = window.getComputedStyle(target);
+  testRoot(shadow, targetStyle);
+}, "shadowRoot.adoptedStyleSheets should allow mutation in-place");
+
+test(function() {
+  assert_true(Array.isArray(document.adoptedStyleSheets));
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({mode: 'open'});
+  assert_true(Array.isArray(shadow.adoptedStyleSheets));
+}, "adoptedStyleSheets should return true for isArray()");
+</script>

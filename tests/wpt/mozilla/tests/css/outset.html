@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel='match' href='outset_ref.html'>
+    <style>
+      body {
+         margin: 0px;
+      }
+
+      .test {
+        color: #f0f;
+      }
+
+      .outset {
+        border: 10px outset;
+        width: 100px;
+        height: 100px;
+        line-height: 100px;
+        text-align: center;
+      }
+
+      .hack1 {
+         width: 20px;
+         height: 20px;
+         background-color: white;
+         border-color: white;
+         border-style: solid;
+         position: relative;
+         top: -20px;
+         right: 8px;
+      }
+
+      .hack2 {
+         width: 20px;
+         height: 20px;
+         background-color: white;
+         border-color: white;
+         border-style: solid;
+         position: relative;
+         top: -155px;
+         right: -100px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="test">
+      <div class="outset"></div>
+    </section>
+
+    <div class="hack1"></div>
+    <div class="hack2"></div>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<title>CSS Test: Single-line flex containers should clamp their line's height to the container's computed min and max cross-size.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecoal95@gmail.com">
+<link rel="match" href="flexbox-single-line-clamp-1-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#algo-cross-line">
+<style>
+.container {
+  display: flex;
+  background: gray;
+  max-height: 200px;
+}
+.panel {
+  background: lightblue;
+  width: 150px;
+  border: 1px solid purple;
+  box-sizing: border-box;
+}
+.tall-child {
+  width: 50px;
+  height: 400px;
+}
+</style>
+<div class="container">
+  <div class="panel">
+    <div class="tall-child"></div>
+  </div>
+</div>

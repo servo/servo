@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent from cross-origin subframes.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const iframe = await attachIFrameContext({
+    generator_api: 'fledge',
+    headers: [[
+      'Allow-Cross-Origin-Event-Reporting', '?1'
+    ]],
+    register_beacon: true,
+    origin: get_host_info().HTTPS_ORIGIN
+  });
+  // Perform a cross-origin navigation. Since the navigation is
+  // content-initiated, the fenced frame reporting metadata will persist.
+  await navigateFrameContext(iframe, {
+    origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+  });
+  await iframe.execute(() => {
+    // This page will call reportEvent() twice. Once for a destination enum
+    // event (i.e. an event with an eventType/eventData specified), and once for
+    // a destination URL event (i.e. an event with a destinationURL specified).
+    const destination_enum_event = {
+      eventType: "click",
+      eventData: "enum",
+      destination: ["buyer"],
+      crossOriginExposed: true
+    }
+    window.fence.reportEvent(destination_enum_event);
+
+    const destination_url = new URL(BEACON_URL + "?type=url",
+        get_host_info().HTTPS_ORIGIN);
+    const destination_url_event = {
+      destinationURL: destination_url,
+      crossOriginExposed: true
+    }
+    window.fence.reportEvent(destination_url_event);
+  });
+  await nextBeacon("click", "enum");
+  await nextBeacon("url", "<No data>");
+}, 'window.fence.reportEvent from a content-initiated cross-origin navigation');
+</script>
+</body>

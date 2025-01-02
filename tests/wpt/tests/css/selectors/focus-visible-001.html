@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <link rel="author" title="Rob Dodson" href="robdodson@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    @supports not selector(:focus-visible) {
+      :focus {
+        outline: red solid 5px;
+        background-color: red;
+      }
+    }
+
+    :focus-visible {
+      outline: green solid 5px;
+    }
+
+    :focus:not(:focus-visible) {
+      outline: 0;
+      background-color: red;
+    }
+  </style>
+</head>
+<body>
+  This test checks that using the Tab key to navigate focus to an element triggers <code>:focus-visible</code> matching.
+  <ol id="instructions">
+    <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+    <li>Use the TAB key on the keyboard to focus the element below that says "Focus me."</li>
+    <li>If the element has a red background, then the test result is FAILURE. If the element has a green outline, then the test result is SUCCESS.</li>
+  </ol>
+  <br>
+  <div id="el" tabindex="0">Focus me.</div>
+  <script>
+    async_test(function(t) {
+      el.addEventListener("focus", t.step_func_done(function() {
+        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${el.tagName}#${el.id} should be green`);
+        assert_not_equals(getComputedStyle(el).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${el.tagName}#${el.id} should NOT be red`);
+
+        let focusVisiblePseudoAll = document.querySelectorAll(':focus-visible');
+        assert_equals(focusVisiblePseudoAll.length, 1, "Only 1 element matches ':focus-visible'");
+        let focusVisiblePseudo = document.querySelector(':focus-visible');
+        assert_equals(el, focusVisiblePseudo, "${el.tagName}#${el.id} matches ':focus-visible'");
+      }));
+      const tab_key = '\ue004';
+      test_driver.send_keys(el, tab_key)
+        .catch(e => t.step_func(() => assert_unreached("Actions sequence failed " + e)));
+    }, "Keyboard focus should match :focus-visible");
+  </script>
+</body>
+</html>

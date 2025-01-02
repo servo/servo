@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<title>Test the supported value for &lt;link rel=preload as="..."&gt;</title>
+<meta name="timeout" content="long">
+<meta name="variant" content="?as=image&expected=1">
+<meta name="variant" content="?as=fetch&expected=1">
+<meta name="variant" content="?as=font&expected=1">
+<meta name="variant" content="?as=script&expected=1">
+<meta name="variant" content="?as=style&expected=1">
+<meta name="variant" content="?as=track&expected=1">
+
+<meta name="variant" content="?as=garbagefoobar&expected=0">
+<meta name="variant" content="?as=video&expected=0">
+<meta name="variant" content="?as=audio&expected=0">
+<meta name="variant" content="?as=object&expected=0">
+<meta name="variant" content="?as=iframe&expected=0">
+<meta name="variant" content="?as=worklet&expected=0">
+<meta name="variant" content="?as=json&expected=0">
+
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+    const params = new URLSearchParams(location.search);
+    const as = params.get("as");
+    const expected = Number(params.get("expected"));
+    promise_test(async t => {
+        const link = document.createElement("link");
+        link.href = new URL("/common/echo.py?content=nothing", location.href).href;
+        link.rel = "preload";
+        link.as = as;
+        document.head.append(link);
+        await new Promise(resolve => {
+            t.step_timeout(resolve, 1000);
+            link.addEventListener("load", resolve);
+            link.addEventListener("error", resolve);
+        });
+        const resources = performance.getEntriesByName(link.href);
+        assert_equals(resources.length, expected);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#painting">
+<meta name="assert" content="The root element has a different background painting area and thus the background-clip property has no effect when specified on it.">
+<link rel="match" href="page-background-005-print-ref.html">
+<style>
+  @page {
+    size: 600px 300px;
+    margin: 20px;
+    border: 20px solid blue;
+    padding: 20px;
+    background-image: url(support/cat.png);
+    background-repeat: no-repeat;
+  }
+  @page border {
+    background-origin: border-box;
+  }
+  @page padding {
+    background-origin: padding-box;
+  }
+  @page content {
+    background-origin: content-box;
+  }
+  body {
+    margin: 0;
+  }
+  .text {
+    /* Add some padding to leave some room for glyph overflow.
+       The page area may clip overflow, although the ref doesn't. */
+    padding: 0 5px;
+    background: #ddd;
+  }
+</style>
+<div style="page:border; padding-top:100px;">
+  <div class="text">
+    There should be a cat in the top left corner, flush with the border
+    edge. The blue border should be painted on top of the cat.
+  </div>
+</div>
+<div style="page:padding; padding-top:100px;">
+  <div class="text">
+    There should be a cat in the top left corner, flush with the padding box,
+    i.e. just inside the blue border.
+  </div>
+</div>
+<div style="page:content;">
+  <div style="margin-left:105px; width:10px; height:100px; background:orange;"></div>
+  <div class="text">
+    There should be a cat in the top left corner, flush with the content box
+    (left-aligned with this box, vertically aligned with the orange bar).
+    </div>
+</div>

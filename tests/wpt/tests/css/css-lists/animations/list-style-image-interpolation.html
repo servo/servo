@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>list-style-image interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style-image">
+<meta name="assert" content="list-style-image supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  list-style-image: url(../resources/blue-20.png);
+}
+.target {
+  background-color: black;
+  width: 100px;
+  list-style-image: url(../resources/green-20.png);
+}
+.expected {
+  background-color: green;
+}
+</style>
+
+<body>
+<template id="target-template">
+  <ul>
+    <li class="target"></li>
+  </ul>
+</template>
+<script>
+test_interpolation({
+  property: 'list-style-image',
+  from: neutralKeyframe,
+  to: 'url(../resources/stripes-20.png)',
+}, [
+  {at: -0.3, expect: 'url(../resources/green-20.png)'},
+  {at: 0, expect: 'url(../resources/green-20.png)'},
+  {at: 0.3, expect: 'url(../resources/green-20.png)'},
+  {at: 0.6, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1.5, expect: 'url(../resources/stripes-20.png)'},
+]);
+
+test_interpolation({
+  property: 'list-style-image',
+  from: 'initial',
+  to: 'url(../resources/stripes-20.png)',
+}, [
+  {at: -0.3, expect: 'none'},
+  {at: 0, expect: 'none'},
+  {at: 0.3, expect: 'none'},
+  {at: 0.6, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1.5, expect: 'url(../resources/stripes-20.png)'},
+]);
+
+test_interpolation({
+  property: 'list-style-image',
+  from: 'inherit',
+  to: 'url(../resources/stripes-20.png)',
+}, [
+  {at: -0.3, expect: 'url(../resources/blue-20.png)'},
+  {at: 0, expect: 'url(../resources/blue-20.png)'},
+  {at: 0.3, expect: 'url(../resources/blue-20.png)'},
+  {at: 0.6, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1.5, expect: 'url(../resources/stripes-20.png)'},
+]);
+
+test_interpolation({
+  property: 'list-style-image',
+  from: 'unset',
+  to: 'url(../resources/stripes-20.png)',
+}, [
+  {at: -0.3, expect: 'url(../resources/blue-20.png)'},
+  {at: 0, expect: 'url(../resources/blue-20.png)'},
+  {at: 0.3, expect: 'url(../resources/blue-20.png)'},
+  {at: 0.6, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1.5, expect: 'url(../resources/stripes-20.png)'},
+]);
+
+// Constant image
+test_no_interpolation({
+  property: 'list-style-image',
+  from: 'url(../resources/stripes-20.png)',
+  to: 'url(../resources/stripes-20.png)',
+});
+
+// None to image
+test_interpolation({
+  property: 'list-style-image',
+  from: 'none',
+  to: 'url(../resources/stripes-20.png)',
+}, [
+  {at: -0.3, expect: 'none'},
+  {at: 0, expect: 'none'},
+  {at: 0.3, expect: 'none'},
+  {at: 0.6, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1.5, expect: 'url(../resources/stripes-20.png)'},
+]);
+
+// Image to image
+test_interpolation({
+  property: 'list-style-image',
+  from: 'url(../resources/green-20.png)',
+  to: 'url(../resources/stripes-20.png)',
+}, [
+  {at: -0.3, expect: 'url(../resources/green-20.png)'},
+  {at: 0, expect: 'url(../resources/green-20.png)'},
+  {at: 0.3, expect: 'url(../resources/green-20.png)'},
+  {at: 0.6, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1, expect: 'url(../resources/stripes-20.png)'},
+  {at: 1.5, expect: 'url(../resources/stripes-20.png)'},
+]);
+
+// Image to gradient
+test_interpolation({
+  property: 'list-style-image',
+  from: 'url(../resources/green-20.png)',
+  to: 'linear-gradient(45deg, blue, orange)',
+}, [
+  {at: -0.3, expect: 'url(../resources/green-20.png)'},
+  {at: 0, expect: 'url(../resources/green-20.png)'},
+  {at: 0.3, expect: 'url(../resources/green-20.png)'},
+  {at: 0.6, expect: 'linear-gradient(45deg, blue, orange)'},
+  {at: 1, expect: 'linear-gradient(45deg, blue, orange)'},
+  {at: 1.5, expect: 'linear-gradient(45deg, blue, orange)'},
+]);
+
+// Gradient to gradient
+test_interpolation({
+  property: 'list-style-image',
+  from: 'linear-gradient(-45deg, red, yellow)',
+  to: 'linear-gradient(45deg, blue, orange)',
+}, [
+  {at: -0.3, expect: 'linear-gradient(-45deg, red, yellow)'},
+  {at: 0, expect: 'linear-gradient(-45deg, red, yellow)'},
+  {at: 0.3, expect: 'linear-gradient(-45deg, red, yellow)'},
+  {at: 0.6, expect: 'linear-gradient(45deg, blue, orange)'},
+  {at: 1, expect: 'linear-gradient(45deg, blue, orange)'},
+  {at: 1.5, expect: 'linear-gradient(45deg, blue, orange)'},
+]);
+</script>
+</body>

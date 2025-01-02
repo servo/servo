@@ -1,0 +1,441 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.addTransceiver</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://rawgit.com/w3c/webrtc-pc/cc8d80f455b86c8041d63bceb8b457f45c72aa89/webrtc.html
+
+  /*
+    5.1.  RTCPeerConnection Interface Extensions
+
+      partial interface RTCPeerConnection {
+          sequence<RTCRtpSender>      getSenders();
+          sequence<RTCRtpReceiver>    getReceivers();
+          sequence<RTCRtpTransceiver> getTransceivers();
+          RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+                                                     optional RTCRtpTransceiverInit init);
+          ...
+      };
+
+      dictionary RTCRtpTransceiverInit {
+          RTCRtpTransceiverDirection         direction = "sendrecv";
+          sequence<MediaStream>              streams;
+          sequence<RTCRtpEncodingParameters> sendEncodings;
+      };
+
+      enum RTCRtpTransceiverDirection {
+        "sendrecv",
+        "sendonly",
+        "recvonly",
+        "inactive"
+      };
+
+    5.2.  RTCRtpSender Interface
+
+      interface RTCRtpSender {
+        readonly attribute MediaStreamTrack? track;
+        ...
+      };
+
+    5.3.  RTCRtpReceiver Interface
+
+      interface RTCRtpReceiver {
+        readonly attribute MediaStreamTrack  track;
+        ...
+      };
+
+    5.4.  RTCRtpTransceiver Interface
+
+      interface RTCRtpTransceiver {
+        readonly attribute DOMString?                  mid;
+        [SameObject]
+        readonly attribute RTCRtpSender                sender;
+        [SameObject]
+        readonly attribute RTCRtpReceiver              receiver;
+        readonly attribute boolean                     stopped;
+        readonly attribute RTCRtpTransceiverDirection  direction;
+        readonly attribute RTCRtpTransceiverDirection? currentDirection;
+        ...
+      };
+
+      Note
+        While addTrack checks if the MediaStreamTrack given as an argument is
+        already being sent to avoid sending the same MediaStreamTrack twice,
+        the other ways do not, allowing the same MediaStreamTrack to be sent
+        several times simultaneously.
+   */
+
+  /*
+    5.1.  addTransceiver
+      3.  If the first argument is a string, let it be kind and run the following steps:
+        1.  If kind is not a legal MediaStreamTrack kind, throw a TypeError.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    assert_idl_attribute(pc, 'addTransceiver');
+    assert_throws_js(TypeError, () => pc.addTransceiver('invalid'));
+  }, 'addTransceiver() with string argument as invalid kind should throw TypeError');
+
+  /*
+    5.1.  addTransceiver
+      The initial value of mid is null.
+
+      3.  If the dictionary argument is present, let direction be the value of the
+          direction member. Otherwise let direction be sendrecv.
+      4.  If the first argument is a string, let it be kind and run the following steps:
+        2.  Let track be null.
+      8.  Create an RTCRtpSender with track, streams and sendEncodings and let
+          sender be the result.
+      9.  Create an RTCRtpReceiver with kind and let receiver be the result.
+      10. Create an RTCRtpTransceiver with sender, receiver and direction, and let
+          transceiver be the result.
+      11. Add transceiver to connection's set of transceivers.
+
+    5.2.  RTCRtpSender Interface
+      Create an RTCRtpSender
+        2.  Set sender.track to track.
+
+    5.3.  RTCRtpReceiver Interface
+      Create an RTCRtpReceiver
+        2.  Let track be a new MediaStreamTrack object [GETUSERMEDIA]. The source of
+            track is a remote source provided by receiver.
+        3.  Initialize track.kind to kind.
+        5.  Initialize track.label to the result of concatenating the string "remote "
+            with kind.
+        6.  Initialize track.readyState to live.
+        7.  Initialize track.muted to true.
+        8.  Set receiver.track to track.
+
+    5.4.  RTCRtpTransceiver Interface
+      Create an RTCRtpTransceiver
+        2.  Set transceiver.sender to sender.
+        3.  Set transceiver.receiver to receiver.
+        4.  Let transceiver have a [[Direction]] internal slot, initialized to direction.
+        5.  Let transceiver have a [[CurrentDirection]] internal slot, initialized
+            to null.
+        6.  Set transceiver.stopped to false.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    assert_idl_attribute(pc, 'addTransceiver');
+
+    const transceiver = pc.addTransceiver('audio');
+    assert_true(transceiver instanceof RTCRtpTransceiver,
+      'Expect transceiver to be instance of RTCRtpTransceiver');
+
+    assert_equals(transceiver.mid, null);
+    assert_equals(transceiver.stopped, false);
+    assert_equals(transceiver.direction, 'sendrecv');
+    assert_equals(transceiver.currentDirection, null);
+
+    assert_array_equals([transceiver], pc.getTransceivers(),
+      `Expect added transceiver to be the only element in connection's list of transceivers`);
+
+    const sender = transceiver.sender;
+
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
+
+    assert_equals(sender.track, null);
+
+    assert_array_equals([sender], pc.getSenders(),
+      `Expect added sender to be the only element in connection's list of senders`);
+
+    const receiver = transceiver.receiver;
+    assert_true(receiver instanceof RTCRtpReceiver,
+      'Expect receiver to be instance of RTCRtpReceiver');
+
+    const track = receiver.track;
+    assert_true(track instanceof MediaStreamTrack,
+      'Expect receiver.track to be instance of MediaStreamTrack');
+
+    assert_equals(track.kind, 'audio');
+    assert_equals(track.readyState, 'live');
+    assert_equals(track.muted, true);
+
+    assert_array_equals([receiver], pc.getReceivers(),
+      `Expect added receiver to be the only element in connection's list of receivers`);
+
+  }, `addTransceiver('audio') should return an audio transceiver`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    assert_idl_attribute(pc, 'addTransceiver');
+
+    const transceiver = pc.addTransceiver('video');
+    assert_true(transceiver instanceof RTCRtpTransceiver,
+      'Expect transceiver to be instance of RTCRtpTransceiver');
+
+    assert_equals(transceiver.mid, null);
+    assert_equals(transceiver.stopped, false);
+    assert_equals(transceiver.direction, 'sendrecv');
+
+    assert_array_equals([transceiver], pc.getTransceivers(),
+      `Expect added transceiver to be the only element in connection's list of transceivers`);
+
+    const sender = transceiver.sender;
+
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
+
+    assert_equals(sender.track, null);
+
+    assert_array_equals([sender], pc.getSenders(),
+      `Expect added sender to be the only element in connection's list of senders`);
+
+    const receiver = transceiver.receiver;
+    assert_true(receiver instanceof RTCRtpReceiver,
+      'Expect receiver to be instance of RTCRtpReceiver');
+
+    const track = receiver.track;
+    assert_true(track instanceof MediaStreamTrack,
+      'Expect receiver.track to be instance of MediaStreamTrack');
+
+    assert_equals(track.kind, 'video');
+    assert_equals(track.readyState, 'live');
+    assert_equals(track.muted, true);
+
+    assert_array_equals([receiver], pc.getReceivers(),
+      `Expect added receiver to be the only element in connection's list of receivers`);
+
+  }, `addTransceiver('video') should return a video transceiver`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', { direction: 'sendonly' });
+    assert_equals(transceiver.direction, 'sendonly');
+  }, `addTransceiver() with direction sendonly should have result transceiver.direction be the same`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver('audio', { direction: 'inactive' });
+    assert_equals(transceiver.direction, 'inactive');
+  }, `addTransceiver() with direction inactive should have result transceiver.direction be the same`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    assert_idl_attribute(pc, 'addTransceiver');
+    assert_throws_js(TypeError, () =>
+      pc.addTransceiver('audio', { direction: 'invalid' }));
+  }, `addTransceiver() with invalid direction should throw TypeError`);
+
+  /*
+    5.1.  addTransceiver
+      5.  If the first argument is a MediaStreamTrack , let it be track and let
+          kind be track.kind.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const transceiver = pc.addTransceiver(track);
+    const { sender, receiver } = transceiver;
+
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
+
+    assert_true(receiver instanceof RTCRtpReceiver,
+      'Expect receiver to be instance of RTCRtpReceiver');
+
+    assert_equals(sender.track, track,
+      'Expect sender.track should be the track that is added');
+
+    const receiverTrack = receiver.track;
+    assert_true(receiverTrack instanceof MediaStreamTrack,
+      'Expect receiver.track to be instance of MediaStreamTrack');
+
+    assert_equals(receiverTrack.kind, 'audio',
+      `receiver.track should have the same kind as added track's kind`);
+
+    assert_equals(receiverTrack.readyState, 'live');
+    assert_equals(receiverTrack.muted, true);
+
+    assert_array_equals([transceiver], pc.getTransceivers(),
+      `Expect added transceiver to be the only element in connection's list of transceivers`);
+
+    assert_array_equals([sender], pc.getSenders(),
+      `Expect added sender to be the only element in connection's list of senders`);
+
+    assert_array_equals([receiver], pc.getReceivers(),
+      `Expect added receiver to be the only element in connection's list of receivers`);
+
+  }, 'addTransceiver(track) should have result with sender.track be given track');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const transceiver1 = pc.addTransceiver(track);
+    const transceiver2 = pc.addTransceiver(track);
+
+    assert_not_equals(transceiver1, transceiver2);
+
+    const sender1 = transceiver1.sender;
+    const sender2 = transceiver2.sender;
+
+    assert_not_equals(sender1, sender2);
+    assert_equals(transceiver1.sender.track, track);
+    assert_equals(transceiver2.sender.track, track);
+
+    const transceivers = pc.getTransceivers();
+    assert_equals(transceivers.length, 2);
+    assert_true(transceivers.includes(transceiver1));
+    assert_true(transceivers.includes(transceiver2));
+
+    const senders = pc.getSenders();
+    assert_equals(senders.length, 2);
+    assert_true(senders.includes(sender1));
+    assert_true(senders.includes(sender2));
+
+  }, 'addTransceiver(track) multiple times should create multiple transceivers');
+
+  /*
+    5.1.  addTransceiver
+      6.  Verify that each rid value in sendEncodings is composed only of
+          case-sensitive alphanumeric characters (a-z, A-Z, 0-9) up to a maximum
+          of 16 characters. If one of the RIDs does not meet these requirements,
+          throw a TypeError.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    assert_idl_attribute(pc, 'addTransceiver');
+
+    assert_throws_js(TypeError, () =>
+      pc.addTransceiver('video', {
+        sendEncodings: [{
+          rid: '@Invalid!'
+        }]
+      }));
+  }, 'addTransceiver() with rid containing invalid non-alphanumeric characters should throw TypeError');
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    assert_idl_attribute(pc, 'addTransceiver');
+
+    assert_throws_js(TypeError, () =>
+      pc.addTransceiver('audio', {
+        sendEncodings: [{
+          rid: 'a'.repeat(17)
+        }]
+      }));
+  }, 'addTransceiver() with rid longer than 16 characters should throw TypeError');
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('audio', {
+      sendEncodings: [{
+        rid: 'foo'
+      }]
+    });
+  }, `addTransceiver() with valid rid value should succeed`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    pc.addTransceiver('video', {
+      sendEncodings: [{
+        dtx: 'enabled',
+        active: false,
+        ptime: 5,
+        maxBitrate: 8,
+        maxFramerate: 25,
+        rid: 'foo'
+      }]
+    });
+  }, `addTransceiver() with valid sendEncodings should succeed`);
+
+  /*
+    TODO
+      5.1.  addTransceiver
+        - Adding a transceiver will cause future calls to createOffer to add a media
+          description for the corresponding transceiver, as defined in [JSEP]
+          (section 5.2.2.).
+
+        - Setting a new RTCSessionDescription may change mid to a non-null value,
+          as defined in [JSEP] (section 5.5. and section 5.6.).
+
+        1.  If the dictionary argument is present, and it has a streams member, let
+            streams be that list of MediaStream objects.
+
+      5.2.  RTCRtpSender Interface
+        Create an RTCRtpSender
+          3.  Let sender have an [[associated MediaStreams]] internal slot, representing
+              a list of MediaStream objects that the MediaStreamTrack object of this
+              sender is associated with.
+
+          4.  Set sender's [[associated MediaStreams]] slot to streams.
+
+          5.  Let sender have a [[send encodings]] internal slot, representing a list
+              of RTCRtpEncodingParameters dictionaries.
+
+          6.  If sendEncodings is given as input to this algorithm, and is non-empty,
+              set the [[send encodings]] slot to sendEncodings. Otherwise, set it to a
+              list containing a single RTCRtpEncodingParameters with active set to true.
+
+      5.3.  RTCRtpReceiver Interface
+        Create an RTCRtpReceiver
+          4.  If an id string, id, was given as input to this algorithm, initialize
+              track.id to id. (Otherwise the value generated when track was created
+              will be used.)
+
+    Tested in RTCPeerConnection-onnegotiationneeded.html
+      5.1.  addTransceiver
+        12. Update the negotiation-needed flag for connection.
+
+    Out of Scope
+      5.1.  addTransceiver
+        8.  If sendEncodings is set, then subsequent calls to createOffer will be
+            configured to send multiple RTP encodings as defined in [JSEP]
+            (section 5.2.2. and section 5.2.1.).
+
+            When setRemoteDescription is called with a corresponding remote
+            description that is able to receive multiple RTP encodings as defined
+            in [JSEP] (section 3.7.), the RTCRtpSender may send multiple RTP
+            encodings and the parameters retrieved via the transceiver's
+            sender.getParameters() will reflect the encodings negotiated.
+
+        9.  This specification does not define how to configure createOffer to
+            receive multiple RTP encodings. However when setRemoteDescription is
+            called with a corresponding remote description that is able to send
+            multiple RTP encodings as defined in [JSEP], the RTCRtpReceiver may
+            receive multiple RTP encodings and the parameters retrieved via the
+            transceiver's receiver.getParameters() will reflect the encodings
+            negotiated.
+
+    Coverage Report
+                            Tested    Not-Tested  Non-Testable  Total
+      addTransceiver          14          1           3           18
+      Create Sender            3          4           0            7
+      Create Receiver          8          1           0            9
+      Create Transceiver       7          0           0            7
+
+      Total                   32          6           3           41
+   */
+</script>

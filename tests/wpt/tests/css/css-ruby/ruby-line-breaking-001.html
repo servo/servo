@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>Meet the specification for line breaking between ruby bases</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#break-between">
+<link rel="match" href="ruby-line-breaking-001-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+  body { line-height: 3; font-kerning: none; }
+</style>
+<div style="width: .5em; border: 1px solid silver;">
+  <ruby>
+    <rb>「<rb>な<rb>に<rb>、<rb>誰<rb>？<rb>」<rb>「<rb>私<rb>です<rb>」</rb>
+    <!-- Check if ruby text containers are skipped from the text run -->
+    <rtc><rt>
+  </ruby>
+</div>

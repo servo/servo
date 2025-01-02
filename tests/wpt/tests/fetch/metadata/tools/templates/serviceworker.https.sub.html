@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for Service Workers</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(t, url, options, event, clear) {
+    // Register a service worker and check the request header.
+    return navigator.serviceWorker.register(url, options)
+      .then((registration) => {
+        t.add_cleanup(() => registration.unregister());
+        if (event === 'register') {
+          return;
+        }
+        return clear().then(() => registration.update());
+      });
+  }
+
+  {%- for subtest in subtests %}
+  {%- set origin = subtest.origins[0]|default('httpsOrigin') %}
+  {%- if origin == 'httpsOrigin' or not origin %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [% subtest.origins %], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, [%subtest.options | default({}) | tojson%], 'register')
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("end", ", ")%][%subtest.options | collection("options")%] - registration');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, [% subtest.origins %], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(t, url, [%subtest.options | default({}) | tojson%], 'update', () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("end", ", ")%][%subtest.options | collection("options")%] - updating');
+
+  {%- endif %}
+  {%- endfor %}
+  </script>
+</body>
+</html>

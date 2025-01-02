@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>pointer-events: none correctly targets scrolls</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+  #scroller {
+    overflow: auto;
+    height: 300px;
+    border: 2px solid blue;
+    pointer-events: none;
+  }
+
+  .spacer {
+    height: 200vh;
+  }
+
+</style>
+
+<div id="scroller">
+  <div class="spacer"></div>
+</div>
+<div class="spacer"></div>
+
+<script>
+  promise_test(async (t) => {
+    let scrolled = new Promise((resolve) => {
+      let scrollers = [window, document.getElementById("scroller")];
+      let onscroll = (evt) => {
+        for (const scroller of scrollers) {
+          scroller.removeEventListener("scroll", onscroll);
+        }
+        resolve(evt.target.id || "root");
+      }
+      for (const scroller of scrollers) {
+        scroller.addEventListener("scroll", onscroll);
+      }
+    });
+    const actions = new test_driver.Actions().scroll(50, 200, 0, 50, { duration: 50 });
+    actions.send();
+    assert_equals(await scrolled, "root", "Incorrect element scrolled");
+  }, "Wheel-scroll over pointer-events: none scroller skips that scroller");
+</script>

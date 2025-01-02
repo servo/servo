@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corners' with invalid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<meta name="assert" content="This test checks that 'corners' supports only a combination of 'border-radius' and 'corner-shape' values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value("corners", "auto");
+test_invalid_value("corners", "none");
+test_invalid_value("corners", "scoop");
+test_invalid_value("corners", "round round round round round");
+test_invalid_value("corners", "-1px");
+test_invalid_value("corners", "4px 2% 1em 4% 2px");
+test_invalid_value("corners", "4px / 2px 4% 1em 2% 2px");
+test_invalid_value("corners", "4px / angle");
+test_invalid_value("corners", "angle / 4px");
+test_invalid_value("corners", "4px angle 2% round");
+test_invalid_value("corners", "round 4px angle 2%");
+test_invalid_value("corners", "4px / 2% angle 1em");
+test_invalid_value("corners", "round 4px / 2% angle");
+</script>

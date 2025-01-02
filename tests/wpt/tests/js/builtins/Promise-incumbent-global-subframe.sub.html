@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<iframe src="{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}{{location[path]}}/../Promise-incumbent-global-subsubframe.sub.html"></iframe>
+<script>
+  document.domain = "{{host}}";
+  onmessage = function(e) {
+    if (e.data == "start") {
+      frames[0].Promise.resolve().then(frames[0].postMessage.bind(frames[0], "start", "*"));
+    } else {
+      parent.postMessage(e.data, "*");
+    }
+  }
+</script>

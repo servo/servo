@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <link rel="author" title="Vincent Hilla" href="mailto:vhilla@mozilla.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#the-directionality">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="test1" dir="auto">
+        <![CDATA[foo]]>اختبر
+    </div>
+
+    <iframe src="cdata-iframe.xhtml"></iframe>
+
+    <script>
+        function awaitMessage(msg) {
+            return new Promise(res => {
+                function waitAndRemove(e) {
+                    if (e.data != msg)
+                        return;
+                    window.removeEventListener("message", waitAndRemove);
+                    res();
+                }
+                window.addEventListener("message", waitAndRemove);
+            });
+        }
+
+        const subframeLoaded = awaitMessage("subframe-loaded");
+
+        async function createXHTMLCase(id) {
+            await subframeLoaded;
+
+            let iframe = document.querySelector("iframe");
+            iframe.contentWindow.postMessage(id, "*");
+
+            await awaitMessage(id);
+
+            const doc = iframe.contentDocument;
+            const div = doc.getElementById(id);
+            const cdata = div.firstChild;
+
+            return [div, cdata];
+        }
+
+        test(function() {
+            const div = document.getElementById("test1");
+            assert_true(div.matches(":dir(rtl)"));
+        }, "Content of CDATA is ignored for dir=auto in html document");
+
+        promise_test(async function() {
+            let [div, cdata] = await createXHTMLCase(1);
+            assert_true(div.matches(":dir(ltr)"));
+        }, "Text in CDATASection is considered when determining auto directionality");
+
+        promise_test(async function() {
+            let [div, cdata] = await createXHTMLCase(2);
+            assert_true(div.matches(":dir(ltr)"));
+            cdata.remove();
+            assert_true(div.matches(":dir(rtl)"));
+        }, "Directionality is updated when removing CDATASection");
+
+        promise_test(async function() {
+            let [div, cdata] = await createXHTMLCase(3);
+            assert_true(div.matches(":dir(ltr)"));
+            cdata.textContent = "اختبر";
+            assert_true(div.matches(":dir(rtl)"));
+        }, "Directionality is updated when changing text of CDATASection");
+    </script>
+</body>
+</html>

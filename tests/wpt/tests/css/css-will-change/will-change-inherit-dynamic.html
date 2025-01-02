@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: will-change: style changes are properly propagated to children if needed</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1499991">
+<link rel="help" href="https://drafts.csswg.org/css-will-change/#will-change">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="outer">
+  <div id="inner" style="will-change: inherit"></div>
+</div>
+<script>
+  test(function() {
+    assert_equals(getComputedStyle(outer).willChange, "auto");
+    assert_equals(getComputedStyle(inner).willChange, "auto");
+    outer.style.willChange = "color";
+    assert_equals(getComputedStyle(outer).willChange, "color");
+    assert_equals(getComputedStyle(inner).willChange, "color");
+  }, "will-change change is properly propagated to children if needed");
+</script>

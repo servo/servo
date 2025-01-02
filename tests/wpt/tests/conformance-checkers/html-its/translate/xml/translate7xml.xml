@@ -1,0 +1,19 @@
+<doc xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+ <head>
+  <its:rules version="2.0">
+   <its:translateRule selector="/doc" translate="no"/>
+   <its:translateRule selector="//p" translate="yes"/>
+  </its:rules>
+ </head>
+ <info>
+  <item type="title" its:translate="yes">The Life of a <b>Simple Man</b></item>
+  <!-- Note that the contents of <b> and <span> should end up 
+       translatable with these settings -->
+  <item type="date-main">Dec-05-2006</item>
+ </info>
+ <content>
+  <p>Everything started when Zebulon discovered that he had 
+   a <span>doppelgänger</span> who was a
+   serious baseball <span>aficionado</span>.</p>
+ </content>
+</doc>

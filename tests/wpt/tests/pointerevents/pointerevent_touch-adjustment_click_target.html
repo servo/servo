@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Touch-generated events should have the same target</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<p>Touch letter 'O' below to run the test. If a "PASS" result appears the test passes, otherwise it fails</p>
+<p><a href="#" id="link">Link</a> <span id="target">O</span></p>
+<div id="log"></div>
+<script>
+let input_gesture;
+const target = document.getElementById('target');
+const xPosition = Math.ceil(target.offsetLeft + 2);
+const yPosition = Math.ceil(target.offsetTop + 2);
+
+function inject_input() {
+  let actions = new test_driver.Actions();
+  return actions
+        .addPointer("touchPointer", "touch")
+        .setPointer("touchPointer")
+        .pointerMove(xPosition, yPosition)
+        .pointerDown()
+        .pointerUp()
+        .send();
+}
+
+
+addEventListener('load', () => {
+  input_gesture = inject_input();
+});
+
+async_test(t => {
+    const link = document.getElementById('link');
+    const expectedEventLog = ['pointerdown-link', 'touchstart-link', 'pointerup-link', 'touchend-link', 'click-link'];
+    const eventLogRecorder = [];
+
+    const eventNames = ['touchstart', 'touchmove', 'touchend', 'pointerdown', 'pointermove', 'pointerup', 'click'];
+    for (eventName of eventNames) {
+        document.addEventListener(eventName, t.step_func(event => {
+            // TouchEvent and PointerEvent should have the same un-adjusted coordinates.
+            // click event should have coordinates adjusted to link element.
+            const eventClientX = event.clientX || (event.touches.length > 0 ? event.touches[0].clientX : 0);
+            const eventClientY = event.clientY || (event.touches.length > 0 ? event.touches[0].clientY : 0);
+
+            if (event.type === 'click') {
+                assert_equals(document.elementFromPoint(eventClientX, eventClientY), link,
+                    'click should have clientX/Y adjusted to link.');
+            } else if (event.type != 'touchend') {
+                assert_equals(eventClientX, xPosition,
+                    `${event.type} should have un-adjusted x coordinates.`);
+                assert_equals(eventClientY, yPosition,
+                    `${event.type} should have un-adjusted y coordinates.`);
+            }
+
+            // All events should have target adjusted to link.
+            const targetName = event.target.id || event.target.nodeName || '[null]';
+            eventLogRecorder.push(`${event.type}-${targetName}`);
+            if (event.type === 'click') {
+                assert_array_equals(eventLogRecorder, expectedEventLog);
+                input_gesture.then(() => { t.done(); });
+            }
+        }));
+    }
+});
+</script>

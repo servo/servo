@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<title>CSS Border Image: border-image-repeat: round and stretch (reference)</title>
+<style type="text/css">
+  .container {
+    position: relative;
+    width: 224px;
+    height: 109px;
+  }
+  .container > div {
+    position: absolute;
+    width: 16px;
+    background-image: url("../support/border.png");
+  }
+  .top { top: 0; }
+  .right { left: 208px; }
+  .bottom { top: 93px; }
+  .left { left: 0; }
+  .top-left-corner-tile     {
+    background-position:   0px   0px;
+    background-size: 48px 48px;
+    height: 16px;
+  }
+  .top-edge-tile            {
+    background-position: -16px   0px;
+    background-size: 48px 48px;
+    height: 16px;
+  }
+  .top-right-corner-tile    {
+    background-position: -32px   0px;
+    background-size: 48px 48px;
+    height: 16px;
+  }
+  .left-edge-tile           {
+    background-position:   0px -77px;
+    background-size: 48px 231px;
+    height: 77px;
+  }
+  .right-edge-tile          {
+    background-position: -32px -77px;
+    background-size: 48px 231px;
+    height: 77px;
+  }
+  .bottom-left-corner-tile  {
+    background-position:   0px -32px;
+    background-size: 48px 48px;
+    height: 16px;
+  }
+  .bottom-edge-tile         {
+    background-position: -16px -32px;
+    background-size: 48px 48px;
+    height: 16px;
+  }
+  .bottom-right-corner-tile {
+    background-position: -32px -32px;
+    background-size: 48px 48px;
+    height: 16px;
+  }
+  .h-pos-0 { left: 16px; }
+  .h-pos-1 { left: 32px; }
+  .h-pos-2 { left: 48px; }
+  .h-pos-3 { left: 64px; }
+  .h-pos-4 { left: 80px; }
+  .h-pos-5 { left: 96px; }
+  .h-pos-6 { left: 112px; }
+  .h-pos-7 { left: 128px; }
+  .h-pos-8 { left: 144px; }
+  .h-pos-9 { left: 160px; }
+  .h-pos-10 { left: 176px; }
+  .h-pos-11 { left: 192px; }
+  .v-pos-0 { top: 16px; }
+</style>
+<p>The test passes if orange diamonds on top and bottom border repeat 12 times, and orange diamonds on left and right border are stretched, diamonds in corners are red, and other diamonds are orange.</p>
+<div class="container">
+  <div class="top left top-left-corner-tile"></div>
+  <div class="top top-edge-tile h-pos-0"></div>
+  <div class="top top-edge-tile h-pos-1"></div>
+  <div class="top top-edge-tile h-pos-2"></div>
+  <div class="top top-edge-tile h-pos-3"></div>
+  <div class="top top-edge-tile h-pos-4"></div>
+  <div class="top top-edge-tile h-pos-5"></div>
+  <div class="top top-edge-tile h-pos-6"></div>
+  <div class="top top-edge-tile h-pos-7"></div>
+  <div class="top top-edge-tile h-pos-8"></div>
+  <div class="top top-edge-tile h-pos-9"></div>
+  <div class="top top-edge-tile h-pos-10"></div>
+  <div class="top top-edge-tile h-pos-11"></div>
+  <div class="top right top-right-corner-tile"></div>
+  <div class="right right-edge-tile v-pos-0"></div>
+  <div class="bottom right bottom-right-corner-tile"></div>
+  <div class="bottom bottom-edge-tile h-pos-0"></div>
+  <div class="bottom bottom-edge-tile h-pos-1"></div>
+  <div class="bottom bottom-edge-tile h-pos-2"></div>
+  <div class="bottom bottom-edge-tile h-pos-3"></div>
+  <div class="bottom bottom-edge-tile h-pos-4"></div>
+  <div class="bottom bottom-edge-tile h-pos-5"></div>
+  <div class="bottom bottom-edge-tile h-pos-6"></div>
+  <div class="bottom bottom-edge-tile h-pos-7"></div>
+  <div class="bottom bottom-edge-tile h-pos-8"></div>
+  <div class="bottom bottom-edge-tile h-pos-9"></div>
+  <div class="bottom bottom-edge-tile h-pos-10"></div>
+  <div class="bottom bottom-edge-tile h-pos-11"></div>
+  <div class="bottom left bottom-left-corner-tile"></div>
+  <div class="left left-edge-tile v-pos-0"></div>
+</div>

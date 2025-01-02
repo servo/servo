@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Tests that dynamically modifying font-palette causes the necessary rendering update</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-palette-prop">
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
+<link rel="mismatch" href="font-palette-modify-notref.html">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+
+@font-palette-values --MyPalette {
+    font-family: "COLR-test-font";
+    base-palette: 1;
+}
+
+@font-palette-values --MyPalette2 {
+    font-family: "COLR-test-font";
+    base-palette: 0;
+    /* Glyph 'A' uses palette indices 3 and 7. */
+    override-colors: 3 #00FF00;
+}
+</style>
+</head>
+<body>
+<div id="target" style="font: 48px 'COLR-test-font'; font-palette: --MyPalette;">A</div>
+<script>
+let count = 0;
+function tick() {
+    if (count > 3) {
+        document.getElementById("target").style.setProperty("font-palette", "--MyPalette2");
+        document.documentElement.classList.remove("reftest-wait");
+    } else {
+        ++count;
+        requestAnimationFrame(tick);
+    }
+}
+[...document.fonts][0].load().then(tick);
+</script>
+</body>
+</html>

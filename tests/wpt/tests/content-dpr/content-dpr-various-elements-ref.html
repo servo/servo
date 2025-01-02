@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <title>Content-DPR: various elements</title>
+    <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+    <meta name="assert" content="Assert that content-dpr is taken into account for images in all relevant elements (input/canvas/svg/video-poster)">
+    <style>
+      .row {
+        display: flex;
+      }
+
+      .row > * {
+        object-fit: none;
+        object-position: top left;
+        margin: 5px;
+        width: 100px;
+        height: 100px;
+        background: yellow;
+      }
+    </style>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const canvas = document.getElementById('canvas')
+        const image = new Image()
+        image.onload = () => {
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(image, 0, 0, 50, 50)
+        }
+        image.src = "resources/square.png"
+    });
+    </script>
+  </head>
+  <body>
+    <p>There following green boxes should all be 50px by 50px (cover 25% of the yellow boxes)</p>
+    <div class="row">
+      <div>
+        <img src="resources/square.png" width="50" height="50" />
+      </div>
+      <div>
+        <video poster="resources/square.png" width="50" height="50"></video>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" ><image href="resources/square.png"  width="50" height="50" /></svg>
+      <div>
+        <input type="image" src="resources/square.png" width="50" height="50" />
+      </div>
+      <canvas id="canvas" width="100" height="100">
+    </div>
+  </body>
+</html>

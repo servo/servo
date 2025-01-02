@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 300px 400px;
+    margin: 0;
+  }
+  @page :first {
+    size: 200px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+There should be a 200x200 square on the next page.
+<div style="break-before:page; width:200px; height:200px; background:green;"></div>

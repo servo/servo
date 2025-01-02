@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED More than one class selector</title>
+  <style type="text/css"><![CDATA[
+p { background: green; color: white; }
+p:not(.t1):not(.t2) { background: red; color: yellow; }
+div { background: red; color: yellow; }
+div:not(.t1) { background: green; color: white; }
+address { background: green; color: white; }
+address:not(.t5):not(.t5) { background: red; color: yellow; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+ </head>
+ <body>
+  <p class="t1 t2">This line should be green.</p>
+  <div class="t3">This line should be green.</div>
+  <address class="t4 t5 t6">This line should be green.</address>
+</body>
+</html>

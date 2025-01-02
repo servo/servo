@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: Inherited Editability</title>
+<meta name="author" title="Dan Clark" href="mailto:daniec@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <div id="edit-context-top-0">Text in EditContext-associated element, should be editable</div>
+
+  <div id="edit-context-top-1">
+    <div id="default-1">
+      Element child of EditContext, should be editable
+    </div>
+  </div>
+
+  <div id="edit-context-top-2">
+    <div id="noteditable-2" contenteditable="false">
+      <div id="editable-in-noteditable-2" contenteditable="">
+        This is a contenteditable="" child of contenteditable="false" parent.
+        This node should be editable. It should be the target of beforeinput/input events when the user edits here.
+        The grandparent node #edit-context-0 should not be the target of beforeinput/input events,
+        and the EditContext should not receive
+        textupdate events
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-context-top-3">
+    <div id="noteditable-3" contenteditable="false">
+      <div id="editable-in-noteditable-3" contenteditable="">
+        <div id="contenteditable-in-contenteditable-3" contenteditable="">
+          This is an contenteditable="" child of a contenteditable="". Since this is the child of an
+          editable element, when the user types here, it's the parent contenteditable="" that gets
+          input/beforeinput events, and this doesn't. Basically the child contenteditable="" attribute
+          is a no-op.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-context-top-4">
+    <div id="noteditable-4" contenteditable="false">
+      <div id="edit-context-in-noteditable-4">
+        This is an EditContext child of contenteditable="false" parent.
+        This node should be editable, and this EditContext (but not the
+        grandparent EditContext) should get events, since there is an
+        intermediate non-editable parent.
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-context-top-5">
+    <div id="contenteditable-in-ec-5" contenteditable="">
+      This is a contenteditable="" child of EditContext.
+      It inherits editability from the parent and it should not be the target of beforeinput/input events.
+      Setting contenteditable="" on this node is basically a no-op.
+    </div>
+  </div>
+
+  <div id="edit-context-top-6">
+    <input id="input-in-ec-6" value="Input in EditContext. Events are fired against this element, and not against any parent EditContext.">
+  </div>
+
+  <div id="edit-context-top-7">
+    <div id="edit-context-in-ec-7">
+      EditContext child of EditContext. When user types here,
+      events are fired only against the parent EditContext, not this one.
+      Since the parent element was editable, the EditContext association is basically a no-op.
+    </div>
+  </div>
+
+<script>
+  const event_log = [];
+
+  const editContextElements = document.querySelectorAll("div[id^='edit-context-']");
+  editContextElements.forEach((element) => {
+    element.editContext = new EditContext();
+  });
+
+  const divs = Array.from(document.querySelectorAll("div"));
+  const inputs = Array.from(document.querySelectorAll("input"));
+  const eventTargets = divs.concat(inputs);
+  eventTargets.forEach((element) => {
+    element.addEventListener("beforeinput", (e) => {
+      if (element == e.target) {
+        event_log.push(`beforeinput: ${element.id}`);
+      }
+    });
+
+    element.addEventListener("input", (e) => {
+      if (element === e.target) {
+        event_log.push(`input: ${element.id}`);
+      }
+    });
+
+    if (element.editContext) {
+      element.editContext.addEventListener("textupdate", () => {
+        event_log.push(`textupdate: ${element.id}`);
+      });
+    }
+  });
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#edit-context-top-0");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: edit-context-top-0", "textupdate: edit-context-top-0"]);
+  }, 'Check that element with EditContext is editable and gets events');
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#default-1");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: edit-context-top-1", "textupdate: edit-context-top-1"]);
+  }, 'Check that child of EditContext is editable and the parent EditContext gets the events');
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#editable-in-noteditable-2");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: editable-in-noteditable-2", "input: editable-in-noteditable-2"]);
+  }, 'Check that a contenteditable child of a contenteditable="false" is editable');
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#contenteditable-in-contenteditable-3");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: editable-in-noteditable-3", "input: editable-in-noteditable-3"]);
+  }, 'Check that a contenteditable child of a contenteditable is editable, but the parent contenteditable gets the events');
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#edit-context-in-noteditable-4");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: edit-context-in-noteditable-4", "textupdate: edit-context-in-noteditable-4"]);
+  }, 'Check that an EditContext child of a contenteditable="false" parent is editable and gets events');
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#contenteditable-in-ec-5");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: edit-context-top-5", "textupdate: edit-context-top-5"]);
+  }, 'Check that an contenteditable child of an EditContext is editable, but the EditContext gets the events');
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#input-in-ec-6");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: input-in-ec-6", "input: input-in-ec-6"]);
+  }, 'Check that an input element in an EditContext is the event target for beforeinput/input');
+
+  promise_test(async () => {
+    event_log.length = 0;
+
+    const input_target = document.querySelector("#edit-context-in-ec-7");
+    await test_driver.click(input_target);
+    await test_driver.send_keys(input_target, "a");
+    assert_array_equals(event_log, ["beforeinput: edit-context-top-7", "textupdate: edit-context-top-7"]);
+  }, 'Check that for an EditContext child of an EditContext, the parent is the one that gets the events');
+
+</script>
+</body>
+</html>

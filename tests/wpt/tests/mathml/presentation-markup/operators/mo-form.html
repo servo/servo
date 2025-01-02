@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>&lt;mo&gt; form attribute</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <meta name="assert" content="Verifies behavior of form attribute.">
+    <link rel="match" href="mo-form-ref.html">
+  </head>
+  <body>
+
+    <!-- This checks the effect of @form on a prefix operator. -->
+    _<math><mo form="infix">∇</mo></math>_
+    _<math><mo form="prefix">∇</mo></math>_
+    _<math><mo form="postfix">∇</mo></math>_
+
+    <!-- This checks the effect of @form on an infix operator. -->
+    _<math><mo form="infix">⋉</mo></math>_
+    _<math><mo form="prefix">⋉</mo></math>_
+    _<math><mo form="postfix">⋉</mo></math>_
+
+    <!-- This checks the effect of @form on a postfix operator. -->
+    _<math><mo form="infix">”</mo></math>_
+    _<math><mo form="prefix">”</mo></math>_
+    _<math><mo form="postfix">”</mo></math>_
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
+  </body>
+</html>

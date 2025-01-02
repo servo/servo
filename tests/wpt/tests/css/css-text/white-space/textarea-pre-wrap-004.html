@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: preserved white space at the end of and white-space:pre-wrap does not change based on line-break:loose in a textarea</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/textarea-pre-wrap-001-ref.html">
+<meta name="assert" content="preserved white space at the end of the line is not wrapped when the white-space property is set to pre-wrap, even if line-break is loose in a textarea.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+textarea {
+  word-wrap: initial; /*deprecated alias*/
+  overflow-wrap: initial;
+  line-break: initial;
+  word-break: initial;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden; /* I don't want scrollbars, and overflow:visible isn't typically supported on textarea */
+
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
+  white-space: pre-wrap;
+  color: green;
+
+  background: linear-gradient(red, red) 0 0/2ch 2ch no-repeat;
+
+  width: 4ch;
+  line-break: loose;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <textarea>XX    XX</textarea>
+</body>

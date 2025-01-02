@@ -1,0 +1,115 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection H.264 profile levels</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function mungeLevel(sdp, level) {
+  level_hex = Math.round(level * 10).toString(16);
+  return {
+    type: sdp.type,
+    sdp: sdp.sdp.replace(/(profile-level-id=....)(..)/g,
+                         "$1" + level_hex)
+  }
+}
+
+// Numbers taken from
+// https://en.wikipedia.org/wiki/Advanced_Video_Coding#Levels
+let levelTable = {
+  1: {mbs: 1485, fs: 99},
+  1.1: {mbs: 3000, fs: 396},
+  1.2: {mbs: 6000, fs: 396},
+  1.3: {mbs: 11880, fs: 396},
+  2: {mbs: 11880, fs: 396},
+  2.1: {mbs: 19800, fs: 792},
+  2.2: {mbs: 20250, fs: 1620},
+  3: {mbs: 40500, fs: 1620},
+  3.1: {mbs: 108000, fs: 3600},
+  3.2: {mbs: 216000, fs: 5120},
+  4: {mbs: 245760, fs: 8192},
+  4.1: {mbs: 245760, fs: 8192},
+  4.2: {mbs: 522240, fs: 8704},
+  5: {mbs: 589824, fs: 22800},
+  5.1: {mbs: 983040, fs: 36864},
+  5.2: {mbs: 2073600, fs: 36864},
+  6: {mbs: 4177920, fs: 139264},
+  6.1: {mbs: 8355840, fs: 139264},
+  6.2: {mbs: 16711680, fs: 139264},
+};
+
+function sizeFitsLevel(width, height, fps, level) {
+  const frameSizeMacroblocks = width * height / 256;
+  const macroblocksPerSecond = frameSizeMacroblocks * fps;
+  assert_less_than_equal(frameSizeMacroblocks,
+                         levelTable[level].fs, 'frame size');
+  assert_less_than_equal(macroblocksPerSecond,
+                         levelTable[level].mbs, 'macroblocks/second');
+}
+
+// Constant for now, may be variable later.
+const framesPerSecond = 30;
+
+for (let level of Object.keys(levelTable)) {
+  promise_test(async t => {
+    assert_implements('getCapabilities' in RTCRtpSender, 'RTCRtpSender.getCapabilities not supported');
+    assert_implements(RTCRtpSender.getCapabilities('video').codecs.find(c => c.mimeType === 'video/H264'), 'H264 not supported');
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const v = document.createElement('video');
+
+    // Generate the largest video we can get from the attached device.
+    // This means platform inconsistency.
+    // The fake video in Chrome WPT tests is 3840x2160.
+    const stream = await navigator.mediaDevices.getUserMedia(
+      {video: {width: 12800, height: 7200, frameRate: framesPerSecond}});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const transceiver = pc1.addTransceiver(stream.getVideoTracks()[0], {
+      streams: [stream],
+    });
+    preferCodec(transceiver, 'video/H264');
+
+    exchangeIceCandidates(pc1, pc2);
+    const trackEvent = new Promise(r => pc2.ontrack = r);
+
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer),
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(mungeLevel(answer, level));
+
+    v.srcObject = new MediaStream([(await trackEvent).track]);
+    let metadataLoaded = new Promise((resolve) => {
+      v.autoplay = true;
+      v.id = stream.id
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+    await metadataLoaded;
+    // Ensure that H.264 is in fact used.
+    const statsReport = await transceiver.sender.getStats();
+    for (const stats of statsReport.values()) {
+      if (stats.type === 'outbound-rtp') {
+        const activeCodec = stats.codecId;
+        const codecStats = statsReport.get(activeCodec);
+        assert_implements_optional(codecStats.mimeType ==='video/H264',
+                          'Level ' + level + ' H264 video is not supported');
+      }
+    }
+    // TODO(hta): This will not catch situations where the initial size is
+    // within the permitted bounds, but resolution or framerate changes to
+    // outside the permitted bounds after a while. Should be addressed.
+    sizeFitsLevel(v.videoWidth, v.videoHeight, framesPerSecond, level);
+  }, 'Level ' + level + ' H264 video is appropriately constrained');
+
+}
+</script>

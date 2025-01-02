@@ -1,0 +1,58 @@
+<!doctype html>
+<title>adoptedStyleSheets should stay when adopting to/from template document</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://wicg.github.io/construct-stylesheets/">
+<script src = '/resources/testharness.js'></script>
+<script src = '/resources/testharnessreport.js'></script>
+<body>
+<div id="host"></div>
+<template id='template'>
+  <template id='nested_template'></template>
+</template>
+</body>
+<script>
+test(function() {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync("div { color: blue }");
+
+  let host = document.getElementById("host");
+  let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `<div></div>`;
+  root.adoptedStyleSheets = [sheet];
+
+  function assertAdoptedStyleSheet() {
+    assert_equals(host.ownerDocument, root.firstChild.ownerDocument, "Shadow root was not adopted?");
+    assert_equals(root.adoptedStyleSheets.length, 1);
+    assert_equals(root.adoptedStyleSheets[0], sheet);
+    if (root.ownerDocument == document) {
+      assert_equals(getComputedStyle(root.firstChild).color, "rgb(0, 0, 255)", "Sheet should apply");
+    }
+  }
+
+  assertAdoptedStyleSheet();
+
+  // adoptedStyleSheets is not cleared when adopted into a <template>.
+  const template = document.getElementById("template");
+  template.content.appendChild(host);
+
+  assert_not_equals(host.ownerDocument, document, "Should've been adopted");
+  assertAdoptedStyleSheet();
+
+  // adoptedStyleSheets is not cleared when adopted back in the main document.
+  document.body.appendChild(host);
+  assert_equals(host.ownerDocument, document, "Should've been re-adopted");
+  assertAdoptedStyleSheet();
+
+  // adoptedStyleSheets is not cleared when adopted into a nested <template>.
+  const nested_template = template.content.firstElementChild;
+  nested_template.content.appendChild(host);
+  assert_not_equals(host.ownerDocument, document, "Should've been adopted");
+  assertAdoptedStyleSheet();
+
+  // adoptedStyleSheets is cleared when adopted into an <iframe>.
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  iframe.contentDocument.body.appendChild(host);
+  assert_equals(root.adoptedStyleSheets.length, 0);
+}, "adoptedStyleSheets won'te be cleared when adopting into/from <template>s");
+</script>

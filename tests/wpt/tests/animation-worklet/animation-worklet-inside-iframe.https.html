@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>Test that AnimationWorklet inside frames with different origin causes new global scopes</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<style>
+.redbox {
+  width: 100px;
+  height: 100px;
+  background-color: #ff0000;
+}
+</style>
+
+<div id="target" class="redbox"></div>
+
+<script id="main_worklet" type="text/worklet">
+registerAnimator("duplicate_animator", class {
+  animate(currentTime, effect) {
+    effect.localTime = 500;
+  }
+});
+</script>
+
+<script>
+async_test(t => {
+  // Wait for iframe to load and start its animations.
+  window.onmessage = function(msg) {
+    window.requestAnimationFrame( _ => {
+      run_test(msg.data);
+    });
+  };
+
+  // Create and load the iframe to avoid racy cases.
+  var iframe = document.createElement('iframe');
+  iframe.src = 'resources/animator-iframe.html';
+  document.body.appendChild(iframe);
+
+  function run_test(data) {
+    runInAnimationWorklet(
+      document.getElementById('main_worklet').textContent
+    ).then(_ => {
+      // Create an animation for duplicate animator.
+      const target = document.getElementById('target');
+      const animation = new WorkletAnimation('duplicate_animator', new KeyframeEffect(target, [{ opacity: 0 }], { duration: 1000 }));
+      animation.play();
+
+      assert_equals(data, '0.4');
+
+      // wait until local times are synced back to the main thread.
+      waitForAnimationFrameWithCondition(_ => {
+        return getComputedStyle(target).opacity != '1';
+      }).then(t.step_func_done(() => {
+        assert_equals(getComputedStyle(target).opacity, '0.5');
+      }));
+    });
+  }
+}, 'Both main frame and iframe should update the opacity of their target');
+</script>

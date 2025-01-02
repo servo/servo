@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+<iframe id="i"></iframe>
+<script>
+let e = i.contentDocument.createElement("embed");
+i.contentDocument.body.appendChild(e);
+i.remove();
+
+// These should not crash.
+e.tryToGetAnAttribute;
+e.tryToSetAnAttribute = "foo";
+</script>
+</body>

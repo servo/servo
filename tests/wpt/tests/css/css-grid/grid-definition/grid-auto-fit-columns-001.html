@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<title>CSS Grid: auto-fit columns</title>
+
+<link rel="author" title="Sergio Villar" href="mailto: svillar@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-repeat-auto-fit">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-auto-columns">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-auto-rows">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-template-columns">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-column">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-grid-column-gap">
+<link rel="help" href="https://crbug.com/619930">
+<link rel="help" href="https://crbug.com/589460">
+<link rel="help" href="https://crbug.com/645746">
+<meta name="assert" content="Check that auto-fit columns are properly computed in a grid container"/>
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+
+.grid {
+    border: 2px solid magenta;
+    width: 200px;
+    position: relative;
+    justify-content: start;
+    grid-auto-columns: 157px;
+    grid-auto-rows: 25px;
+}
+
+.gridOnlyAutoRepeat { grid-template-columns: repeat(auto-fit, 30px [autobar]); }
+.gridPercentAutoRepeat { grid-template-columns: repeat(auto-fit, 30% [autobar]); padding: 0 13px; }
+.gridMinMaxAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(13px, 30px)); }
+.gridMaxMinAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(30px, 13px)); }
+.gridMaxMinPercentAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(30px, 6.5%)); }
+.gridAutoRepeatAndFixedBefore { grid-template-columns: 10px [foo] 20% [bar] repeat(auto-fit, [autofoo] 35px); }
+.gridAutoRepeatAndFixedAfter { grid-template-columns: repeat(auto-fit, [first] 30px [last]) [foo] minmax(60px, 80px) [bar] minmax(45px, max-content); }
+.gridAutoRepeatAndFixed { grid-template-columns: [start] repeat(2, 50px [a]) [middle] repeat(auto-fit, [autofoo] 15px [autobar]) minmax(5%, 10%) [end]; }
+.gridMultipleNames { grid-template-columns: [start] 20px [foo] 50% repeat(auto-fit, [bar] 20px [start foo]) [foo] 10% [end bar]; }
+.gridMultipleTracks { grid-template-columns: [start] 20px repeat(auto-fit, [a] 2em [b c] 10% [d]) [e] minmax(75px, 1fr) [last]; }
+.gridMinMaxFixedFlex { grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); }
+
+.item { background: cyan; }
+.item:nth-child(2n) { background: green; }
+
+.gap { grid-column-gap: 20px; }
+
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<p>This test checks that repeat(auto-fit, ) syntax works as expected.</p>
+
+<div class="grid gridOnlyAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridPercentAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="13" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMinMaxAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMaxMinAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMaxMinPercentAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridOnlyAutoRepeat">
+    <div class="item" style="grid-column: 1 / span 6 autobar" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridOnlyAutoRepeat gap">
+    <div class="item" style="grid-column: 1 / span 5" data-offset-x="0" data-offset-y="0" data-expected-width="357" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridOnlyAutoRepeat gap">
+    <div class="item" style="grid-column: autobar 2 / span 3" data-offset-x="0" data-offset-y="0" data-expected-width="257" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedBefore">
+    <div class="item" style="grid-column: 1 / span 6" data-offset-x="0" data-offset-y="0" data-expected-width="190" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedBefore">
+    <div class="item" style="grid-column: foo / autofoo" data-offset-x="10" data-offset-y="0" data-expected-width="40" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedBefore">
+    <div class="item" style="grid-column: bar / 5 autofoo" data-offset-x="50" data-offset-y="0" data-expected-width="297" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedBefore gap">
+    <div class="item" style="grid-column: 1 / span 4" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedBefore gap">
+    <div class="item" style="grid-column: span 3 / 2 autofoo" data-offset-x="0" data-offset-y="0" data-expected-width="125" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedBefore gap">
+    <div class="item" style="grid-column: notPresent / 3 autofoo" data-offset-x="267" data-offset-y="0" data-expected-width="157" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedAfter">
+    <div class="item" style="grid-column: 1 / span 4" data-offset-x="0" data-offset-y="0" data-expected-width="185" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedAfter">
+    <div class="item" style="grid-column: first / last 2" data-offset-x="0" data-offset-y="0" data-expected-width="60" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedAfter">
+    <div class="item" style="grid-column: last 2 / foo" data-offset-x="0" data-offset-y="0" data-expected-width="80" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedAfter gap">
+    <div class="item" style="grid-column: 1 / span 3" data-offset-x="0" data-offset-y="0" data-expected-width="195" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedAfter gap">
+    <div class="item" style="grid-column: 3 / span 1 bar" data-offset-x="80" data-offset-y="0" data-expected-width="222" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixedAfter gap">
+    <div class="item" style="grid-column: first / foo" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixed">
+    <div class="item" style="grid-column: 1 / span 8" data-offset-x="0" data-offset-y="0" data-expected-width="195" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixed">
+    <div class="item" style="grid-column: a / autobar 2" data-offset-x="50" data-offset-y="0" data-expected-width="80" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixed">
+    <div class="item" style="grid-column: autofoo / end" data-offset-x="100" data-offset-y="0" data-expected-width="95" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixed gap">
+    <div class="item" style="grid-column: 1 / span 4"  data-offset-x="0" data-offset-y="0" data-expected-width="195" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridAutoRepeatAndFixed gap">
+    <div class="item" style="grid-column: autobar / -1"  data-offset-x="140" data-offset-y="0" data-expected-width="20" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleNames">
+    <div class="item" style="grid-column: 1 / -1"  data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleNames">
+    <div class="item" style="grid-column: foo 3 / 4 bar"  data-offset-x="120" data-offset-y="0" data-expected-width="40" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleNames">
+    <div class="item" style="grid-column: -6 / span 2 start"  data-offset-x="20" data-offset-y="0" data-expected-width="140" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleNames gap">
+    <div class="item" style="grid-column: -4 / -2"  data-offset-x="40" data-offset-y="0" data-expected-width="140" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleNames gap">
+    <div class="item" style="grid-column: bar / foo 2"  data-offset-x="160" data-offset-y="0" data-expected-width="20" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleNames gap">
+    <div class="item" style="grid-column: foo / bar 2"  data-offset-x="40" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleTracks">
+    <div class="item" style="grid-column: e / last;"  data-offset-x="52" data-offset-y="0" data-expected-width="148" data-expected-height="25"></div>
+    <div class="item" style="grid-column: start / b;"  data-offset-x="0" data-offset-y="25" data-expected-width="52" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMultipleTracks gap">
+    <div class="item" style="grid-column: c / -1;"  data-offset-x="40" data-offset-y="0" data-expected-width="160" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMinMaxFixedFlex gap">
+    <div class="item" style="grid-column-start: 1" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMinMaxFixedFlex gap">
+    <div class="item" style="grid-column-start: 1" data-offset-x="0" data-offset-y="0" data-expected-width="90" data-expected-height="25"></div>
+    <div class="item" style="grid-column-start: 2" data-offset-x="110" data-offset-y="0" data-expected-width="90" data-expected-height="25"></div>
+</div>
+
+</body>

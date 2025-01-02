@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <style>
+    .spacer {
+      width: 500px;
+      height: 500px;
+      border: solid 1px green;
+    }
+
+    legend {
+      background-color: #000;
+      color: #fff;
+      padding: 0px 0px;
+    }
+
+    input {
+      margin: 0rem;
+    }
+
+    .scroller {
+      width: 100px;
+      height: 100px;
+      border: solid 1px black;
+      overflow: scroll;
+      padding-block-start: 0px;
+      padding-block-end: 0px;
+    }
+  </style>
+  <fieldset id="scroller" class="scroller">
+    <div class="spacer"></div>
+  </fieldset>
+  <script>
+    let scroller = document.getElementById("scroller");
+    // fieldsets' clientHeight and scrollHeight can be affected by the presence of
+    // a scrollbar which has been anecdotally measured to be 15 on several
+    // platforms.
+    const scrollbar_width = 15;
+    const max_vertical_scroll_offset = scroller.scrollHeight -
+      scroller.clientHeight;
+    // The fieldset's width is set based on the size of its contents:
+    // https://html.spec.whatwg.org/multipage/form-elements.html#the-fieldset-element
+    // "For the purpose of calculating the min-content inline size, use the
+    //  greater of the min-content inline size of the rendered legend and the
+    //  min-content inline size of the anonymous fieldset content box."
+    // So only bother checking vertical scrolling as the adjusted width might
+    // not permit horizontal scrolling.
+    let test_cases = [
+      {
+        scroll_start: "100px 200px",
+        expectation: {
+          scrollTop: 100,
+          msg: "scroll-start: <length> sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "25% 75%",
+        expectation: {
+          scrollTop: 0.25 * max_vertical_scroll_offset,
+          msg: "scroll-start: <percent> sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "calc(50px) calc(75px)",
+        expectation: {
+          scrollTop: 50,
+          msg: "scroll-start: <calc> sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "start",
+        expectation: {
+          scrollTop: 0,
+          msg: "scroll-start: start sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "center center",
+        expectation: {
+          scrollTop: 0.5 * max_vertical_scroll_offset,
+          msg: "scroll-start: center sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "end end",
+        expectation: {
+          scrollTop: max_vertical_scroll_offset,
+          msg: "scroll-start: end sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "top top",
+        expectation: {
+          scrollTop: 0,
+          msg: "scroll-start: top sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "bottom bottom",
+        expectation: {
+          scrollTop: max_vertical_scroll_offset,
+          msg: "scroll-start: bottom sets initial scroll position",
+        }
+      },
+      {
+        scroll_start: "1000px 2000px",
+        expectation: {
+          scrollTop: max_vertical_scroll_offset,
+          msg: "scroll-start is clamped",
+        }
+      }
+    ];
+
+    async function resetScroller(scroll_start) {
+      scroller.style.display = "none";
+      assert_equals(getComputedStyle(scroller)["display"], "none");
+
+      scroller.style["scroll-start"] = scroll_start;
+
+      scroller.style.display = "block";
+      assert_equals(getComputedStyle(scroller)["display"], "block");
+      assert_equals(scroller.style.scrollStart, scroll_start);
+    }
+
+    async function test_scroll_start(scroll_start, expectation) {
+      await resetScroller(scroll_start);
+
+      assert_approx_equals(scroller.scrollTop, expectation.scrollTop,
+        scrollbar_width, expectation.msg);
+    }
+
+
+    promise_test(async () => {
+      for (let test_case of test_cases) {
+        await test_scroll_start(test_case.scroll_start,
+          test_case.expectation);
+      }
+    }, "scroll-start sets default position of fieldset element");
+  </script>
+</body>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>CSS Test (Animations): Changing an @keyframes that animates filter</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1301937">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#keyframes">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#supported-filter-functions">
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#the-cssstylesheet-interface">
+<meta name="assert" content="This should not crash.">
+
+<style>
+#el1 {
+  height: 100px;
+  width: 100px;
+  animation: kf1 2s linear;
+}
+@keyframes kf1 {
+  from { filter: grayscale(0.9) }
+  to { filter: grayscale(0.8) }
+}
+</style>
+<div id="el1"></div>
+<script>
+
+document.documentElement.addEventListener("TestRendered", step1);
+
+function step1() {
+  requestAnimationFrame(function() { requestAnimationFrame(step2); });
+}
+
+function step2() {
+  let css = document.styleSheets[0];
+  css.insertRule("@keyframes kf1 { from { color: blue } to { color: blue } } ", css.rules.length);
+  requestAnimationFrame(step3);
+}
+
+function step3() {
+  document.documentElement.classList.remove("test-wait");
+}
+
+</script>

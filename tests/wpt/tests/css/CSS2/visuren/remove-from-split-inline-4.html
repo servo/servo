@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS 2.1 Test Suite: handling of blocks inside inlines</title>
+<link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu">
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="match" href="remove-from-split-inline-4-ref.html">
+<script>
+function doit() {
+  var target = document.getElementById("target");
+  target.remove();
+}
+</script>
+<style>
+  body > span { border: 3px solid blue }
+</style>
+<body onload='doit()'>
+  <span>
+    One
+    <div id="target">Five</div>
+    Two
+    <div>Three</div>
+    Four
+  </span>
+</body>

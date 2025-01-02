@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link><img src="/images/lcp-256x256.png" id="img"></a>
+      <a id=not_nav><img src="/images/lcp-16x16.png"></a>
+    </div>
+  </main>
+  <script>
+    // Push state a couple of times
+    history.pushState({}, "", "foobar.html");
+    history.pushState({}, "", "anotherOne.html");
+
+    (async () => {
+      const link = document.getElementById("link");
+      // Trigger a user interaction that doesn't result in a soft navigation, but
+      // does paint.
+      await (async () => {
+        const not_nav = document.getElementById("not_nav");
+        let non_soft_nav_click;
+        const non_soft_nav_click_promise =
+          new Promise(r => { non_soft_nav_click = r; });
+        not_nav.addEventListener("click", () => {
+          addImageToMain("lcp-133x106.png", "not_soft_nav_image");
+          (new PerformanceObserver(non_soft_nav_click)).observe({type: "element"});
+        });
+        if (test_driver) {
+          test_driver.click(not_nav);
+        }
+        await non_soft_nav_click_promise;
+      })();
+      const url = URL + "?" + counter;
+      link.addEventListener("click", () => {
+        // Add an LCP element.
+        const img = new Image();
+        img.src = '/images/lcp-100x500.png' + "?" + Math.random();
+        document.getElementById("main").appendChild(img);
+        history.back();
+      });
+      promise_test(async t => {
+        if (test_driver) {
+          test_driver.click(link);
+        }
+        await waitOnSoftNav();
+        assert_equals(
+            document.softNavigations, 1,
+            'Single Soft Navigation detected');
+        const [entries, options] = await new Promise(resolve => {
+          (new PerformanceObserver((list, obs, options) => resolve(
+            [list.getEntries(), options]))).observe(
+            {type: 'soft-navigation', buffered: true});
+          });
+
+        assert_equals(entries.length, 1,
+                      "Performance observer got an entry");
+      }, "Ensure that soft navigation entry emitted through a synchronous " +
+         "event that modified DOM and committed a same document navigation, " +
+         "and that was preceded by a user intreaction that resulted in a " +
+         "contentful paint is properly detected.");
+    })();
+  </script>
+</body>
+</html>
+
+
+
+

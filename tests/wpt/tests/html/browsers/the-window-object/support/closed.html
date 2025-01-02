@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<!--
+  There's two URL parameters supported here:
+
+  window: The property name of a getter on the global object that returns the relevant WindowProxy
+          object to message.
+  ident:  A reasonably unique identifier that will be echoed as the message.
+-->
+<script>
+  const params = new URLSearchParams(location.search);
+  self[params.get("window")].postMessage(params.get("ident"), "*");
+</script>

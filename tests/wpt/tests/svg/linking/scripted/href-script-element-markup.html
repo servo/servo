@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Href - script element tests on markup</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='testcommon.js'></script>
+<body>
+<div id='log'></div>
+<svg id='svg' width='100' height='100' viewBox='0 0 100 100'>
+  <script id='script' href='testScripts/externalScript1.js'
+          xlink:href='testScripts/externalScript2.js'></script>
+</svg>
+<script>
+'use strict';
+
+// Use an independent test file for markup testing because it may affect other
+// tests.
+
+test(function(t) {
+  var script = document.getElementById('script');
+  assert_equals(script.href.baseVal, 'testScripts/externalScript1.js');
+  assert_equals(loadedScript(), 'externalScript1');
+}, 'Test for loading external script by markup when setting both href and ' +
+   'xlink:href');
+
+</script>
+</body>

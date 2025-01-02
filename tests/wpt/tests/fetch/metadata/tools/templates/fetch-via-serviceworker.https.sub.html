@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  {%- if subtests|length > 10 %}
+  <meta name="timeout" content="long">
+  {%- endif %}
+  <title>HTTP headers on request using the "fetch" API and passing through a Serive Worker</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  const scripts = {
+    fallback: '/fetch/metadata/resources/fetch-via-serviceworker--fallback--sw.js',
+    respondWith: '/fetch/metadata/resources/fetch-via-serviceworker--respondWith--sw.js'
+  };
+
+  function induceRequest(t, url, init, script) {
+    const SCOPE = '/fetch/metadata/resources/fetch-via-serviceworker-frame.html';
+    const SCRIPT = scripts[script];
+
+    return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+      .then((registration) => {
+        t.add_cleanup(() => registration.unregister());
+
+        return wait_for_state(t, registration.installing, 'activated');
+      })
+      .then(() => with_iframe(SCOPE))
+      .then((frame) => {
+        t.add_cleanup(() => frame.remove());
+
+        return frame.contentWindow.fetch(url, init);
+      });
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, [% subtest.origins %]),
+        [%subtest.init | default({}) | tojson%],
+        'respondWith'
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("end", ", ")%][%subtest.init | collection("init")%] - respondWith');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, [% subtest.origins %]),
+        [%subtest.init | default({}) | tojson%],
+        'fallback'
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("end", ", ")%][%subtest.init | collection("init")%] - fallback');
+
+  {%- endfor %}
+
+  </script>
+  </body>
+</html>

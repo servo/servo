@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CSS Reference: border-block and border-inline logical properties in different writing modes</title>
+<link rel="author" title="Manish Goregaokar" href="mailto:manishearth@gmail.com">
+<style>
+#body tr td:nth-child(2) div {
+  writing-mode: horizontal-tb;
+}
+#body tr td:nth-child(3) div {
+  writing-mode: horizontal-tb;
+}
+#body tr td:nth-child(4) div {
+  writing-mode: vertical-rl;
+}
+#body tr td:nth-child(5) div {
+  writing-mode: vertical-rl;
+}
+#body tr td:nth-child(6) div {
+  writing-mode: vertical-lr;
+}
+#body tr td:nth-child(7) div {
+  writing-mode: vertical-lr;
+}
+#body tr td:nth-child(8) div {
+  writing-mode: sideways-lr;
+}
+#body tr td:nth-child(9) div {
+  writing-mode: sideways-lr;
+}
+
+
+#body tr td:nth-child(2n+2) div {
+  direction: ltr;
+}
+#body tr td:nth-child(2n+3) div {
+  direction: rtl;
+}
+
+
+td {
+  padding: 5px;
+  font-size: 13px;
+  background-color: silver;
+  width: 70px;
+  height: 70px;
+}
+
+
+.top {
+  border-bottom: 2px dotted blue;
+  border-top: 2px dotted orange;
+}
+.right {
+  border-left: 2px dotted blue;
+  border-right: 2px dotted orange;
+}
+
+.bottom {
+  border-top: 2px dotted blue;
+  border-bottom: 2px dotted orange;
+}
+.left {
+  border-right: 2px dotted blue;
+  border-left: 2px dotted orange;
+}
+</style>
+</head>
+<body>
+<p>
+  Test passes if orange dots are opposite to the blue dots in each cell. Orange dots should be on the (physical) side specified by the text in the cell.
+</p>
+<table>
+<thead>
+  <tr><th>writing mode</th><th colspan=2>horizontal-tb</th><th colspan=2>vertical-rl</th><th colspan=2>vertical-lr</th><th colspan=2>sideways-lr</th></tr>
+  <tr><th>direction</th><th>ltr</th><th>rtl</th><th>ltr</th><th>rtl</th><th>ltr</th><th>rtl</th><th>ltr</th><th>rtl</th></tr>
+</thead>
+<tbody id=body>
+  <tr id=block-start><th>block-start</th>   <td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td></tr>
+  <tr id=block-end><th>block-end</th>       <td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td></tr>
+  <tr id=inline-start><th>inline-start</th> <td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td></tr>
+  <tr id=inline-end><th>inline-end</th>     <td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td></tr>
+</tbody>
+</table>
+
+</body>
+</html>

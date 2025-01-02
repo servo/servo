@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Same-document traversal during cross-document navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  According to the spec, "apply the history step" will set the ongoing
+  navigation to "traversal", canceling any navigation that is still processing
+  in parallel and hasn't yet reached "apply the history step".
+-->
+
+<body>
+<script type="module">
+import { createIframe, delay } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.location.hash = "#1";
+  await delay(t, 0);
+  iframe.contentWindow.location.hash = "#2";
+  await delay(t, 0);
+
+  iframe.contentWindow.location.search = "?1";
+  iframe.contentWindow.onload = t.unreached_func("load event fired");
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.search, "", "must not go back synchronously (search)");
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not go back synchronously (hash)");
+
+  // Does go back eventually, and only one step
+  await t.step_wait(() => iframe.contentWindow.location.hash === "#1" && iframe.contentWindow.location.search === "");
+}, "cross-document navigations are stopped by same-document back()");
+</script>

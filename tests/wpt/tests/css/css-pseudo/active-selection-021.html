@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection, color and 'text-decoration: underline overline line-through'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="match" href="reference/active-selection-021-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      color: red;
+      font: 25px/1 Ahem;
+      text-decoration: underline overline line-through;
+    }
+
+  div::selection
+    {
+      color: green;
+    }
+  </style>
+
+  <!--
+  "
+  The element's own text decorations (both line decorations
+  and emphasis marks) are thus drawn in the pseudo-element's
+  own color when that is not currentColor, regardless of
+  their original color or fill specifications.
+  "
+  coming from
+  https://www.w3.org/TR/css-pseudo-4/#highlight-painting
+  -->
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if each glyph of "Selected Text" is green and <strong>not red</strong> and if the underline, the overline and the line-through are also green and not red.
+
+  <div id="test" class="highlight_reftest">Selected Text</div>

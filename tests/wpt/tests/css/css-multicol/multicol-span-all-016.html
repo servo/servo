@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: Height of container with a column spanner descendant.</title>
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#spanning-columns">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<div id="multicol" style="columns:2;">
+  <div id="container" style="height:100px; width:0px;" data-expected-bounding-client-rect-height="50">
+    <div style="column-span:all;"></div>
+  </div>
+</div>
+
+<script>
+  checkLayout('#container');
+</script>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Text shaping must be broken across inline box boundaries when padding or margin is non-zero</title>
+<link rel=match href="reference/boundary-shaping-009.ref.html">
+<link rel=help href="https://drafts.csswg.org/css-text/#boundary-shaping">
+<style>
+body {
+  font: 36px sans-serif;
+}
+div {
+  text-align: center;
+}
+.a {
+  padding-right: 10px;
+}
+.b {
+  margin-left: 10px;
+}
+.c {
+  color: red;
+  padding-left: 10px;
+}
+.d {
+  color: red;
+  margin-right: 10px;
+}
+</style>
+</head>
+<body>
+<div dir=ltr>
+السلام<span class=a>عليكم</span>
+</div>
+<div dir=ltr>
+<span class=b>السلام</span>عليكم
+</div>
+<div dir=rtl>
+السلام<span class=a>عليكم</span>
+</div>
+<div dir=rtl>
+<span class=b>السلام</span>عليكم
+</div>
+<div dir=ltr>
+السلام<span class=c>عليكم</span>
+</div>
+<div dir=ltr>
+<span class=d>السلام</span>عليكم
+</div>
+<div dir=rtl>
+السلام<span class=c>عليكم</span>
+</div>
+<div dir=rtl>
+<span class=d>السلام</span>عليكم
+</div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+    <head >
+        <title></title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <input id="foo" type="text"></input>
+        <script>
+          test(function() {
+            assert_not_equals(document.activeElement, null, "test_1.1, document.activeElement");
+            assert_equals(document.activeElement, document.body, "test_1.2, document.activeElement");
+
+            document.getElementById('foo').focus();
+            assert_not_equals(document.activeElement, null, "test_2.1, document.activeElement");
+            assert_equals(document.activeElement, document.getElementById("foo"), "test_2.2, document.activeElement");
+          });
+        </script>
+    </body>
+</html>

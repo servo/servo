@@ -1,0 +1,230 @@
+# General Test Guidelines
+
+### File Paths and Names
+
+When choosing where in the directory structure to put any new tests,
+try to follow the structure of existing tests for that specification;
+if there are no existing tests, it is generally recommended to create
+subdirectories for each section.
+
+Due to path length limitations on Windows, test paths must be less
+that 150 characters relative to the test root directory (this gives
+vendors just over 100 characters for their own paths when running in
+automation).
+
+File names should generally be somewhat descriptive of what is being
+tested; very generic names like `001.html` are discouraged. A common
+format is `test-topic-001.html`, where `test-topic` is a short
+identifier that describes the test. It should avoid conjunctions,
+articles, and prepositions as it should be as concise as possible. The
+integer that follows is normally just increased incrementally, and
+padded to three digits. (If you'd end up with more than 999 tests,
+your `test-topic` is probably too broad!)
+
+The test filename is significant in enabling specific optional features, such as HTTPS
+or server-side substitution. See the documentation on [file names flags][file-name-flags]
+for more details.
+
+In the css directory, the file names should be unique within the whole
+css/ directory, regardless of where they are in the directory structure.
+
+### HTTPS
+
+By default, tests are served over plain HTTP. If a test requires HTTPS
+it must be given a filename containing `.https.` e.g.,
+`test-secure.https.html`, or be the generated service worker test of a
+`.https`-less `.any` test. For more details see the documentation on
+[file names][file-name-flags].
+
+### HTTP2
+
+If a test must be served from an HTTP/2 server, it must be given a
+filename containing `.h2`.
+
+#### Support Files
+
+Various support files are available in in the directories named `/common/`,
+`/media/`, and `/css/support/`. Reusing existing resources is encouraged where
+possible, as is adding generally-useful files to these common areas rather than
+to specific test suites.
+
+
+#### Tools
+
+Sometimes you may want to add a script to the repository that's meant
+to be used from the command line, not from a browser (e.g., a script
+for generating test files). If you want to ensure (e.g., for security
+reasons) that such scripts will only be usable from the command line
+but won't be handled by the HTTP server then place them in a `tools`
+subdirectory at the appropriate level—the server will then return a
+404 if they are requested.
+
+For example, if you wanted to add a script for use with tests in the
+`notifications` directory, create the `notifications/tools`
+subdirectory and put your script there.
+
+
+### File Formats
+
+Tests are generally formatted as HTML (including XHTML) or XML (including SVG).
+Some test types support other formats:
+
+- [testharness.js tests](testharness) may be expressed as JavaScript files
+  ([the WPT server automatically generates the HTML documents for these][server
+  features])
+- [WebDriver specification tests](wdspec) are expressed as Python files
+
+The best way to determine how to format a new test is to look at how
+similar tests have been formatted. You can also ask for advice in [the
+project's matrix channel][matrix].
+
+
+### Character Encoding
+
+Except when specifically testing encoding, files must be encoded in
+UTF-8. In file formats where UTF-8 is not the default encoding, they
+must contain metadata to mark them as such (e.g., `<meta
+charset=utf-8>` in HTML files) or be pure ASCII.
+
+
+### Server Side Support
+
+The custom web server
+supports [a variety of features][server features] useful for testing
+browsers, including (but not limited to!) support for writing out
+appropriate domains and custom (per-file and per-directory) HTTP
+headers.
+
+
+### Be Short
+
+Tests should be as short as possible. For reftests in particular
+scrollbars at 800&#xD7;600px window size must be avoided unless scrolling
+behavior is specifically being tested. For all tests extraneous
+elements on the page should be avoided so it is clear what is part of
+the test (for a typical testharness test, the only content on the page
+will be rendered by the harness itself).
+
+
+### Be Conservative
+
+Tests should generally avoid depending on edge case behavior of
+features that they don't explicitly intend on testing. For example,
+except where testing parsing, tests should contain
+no [parse errors](https://validator.nu).
+
+This is not, however, to discourage testing of edge cases or
+interactions between multiple features; such tests are an essential
+part of ensuring interoperability of the web platform. When possible, use the
+canonical support libraries provided by features; for more information, see the documentation on [testing interactions between features][interacting-features].
+
+Tests should pass when the feature under test exposes the expected behavior,
+and they should fail when the feature under test is not implemented or is
+implemented incorrectly. Tests should not rely on unrelated features if doing
+so causes failures in the latest stable release of [Apple
+Safari][apple-safari], [Google Chrome][google-chrome], or [Mozilla
+Firefox][mozilla-firefox]. They should, therefore, not rely on any features
+aside from the one under test unless they are supported in all three browsers.
+
+Existing tests can be used as a guide to identify acceptable features. For
+language features that are not used in existing tests, community-maintained
+projects such as [the ECMAScript compatibility tables][es-compat] and
+[caniuse.com][caniuse] provide an overview of basic feature support across the
+browsers listed above.
+
+For JavaScript code that is re-used across many tests (e.g. `testharness.js`
+and the files located in the directory named `common`), only use language
+features that have been supported by each of the major browser engines above
+for over a year. This practice avoids introducing test failures for consumers
+maintaining older JavaScript runtimes.
+
+Patches to make tests run on older versions or other browsers will be accepted
+provided they are relatively simple and do not add undue complexity to the
+test.
+
+
+### Be Cross-Platform
+
+Tests should be as cross-platform as reasonably possible, working
+across different devices, screen resolutions, paper sizes, etc. The
+assumptions that can be relied on are documented [here][assumptions];
+tests that rely on anything else should be manual tests that document
+their assumptions.
+
+Fonts cannot be relied on to be either installed or to have specific
+metrics. As such, in most cases when a known font is needed, [Ahem][ahem]
+should be used and loaded as a web font. In other cases, `@font-face`
+should be used.
+
+
+### Be Self-Contained
+
+Tests must not depend on external network resources. When these tests
+are run on CI systems, they are typically configured with access to
+external resources disabled, so tests that try to access them will
+fail. Where tests want to use multiple hosts, this is possible through
+a known set of subdomains and the [text substitution features of
+wptserve](server-features).
+
+
+### Be Self-Describing
+
+Tests should make it obvious when they pass and when they fail. It
+shouldn't be necessary to consult the specification to figure out
+whether a test has passed of failed.
+
+
+### Style Rules
+
+A number of style rules should be applied to the test file. These are
+not uniformly enforced throughout the existing tests, but will be for
+new tests. Any of these rules may be broken if the test demands it:
+
+ * No trailing whitespace
+ * Use spaces rather than tabs for indentation
+ * Use UNIX-style line endings (i.e. no CR characters at EOL)
+
+We have a lint tool for catching these and other common mistakes. You
+can run it manually by starting the `wpt` executable from the root of
+your local web-platform-tests working directory, and invoking the
+`lint` subcommand, like this:
+
+```
+./wpt lint
+```
+
+The lint tool is also run automatically for every submitted pull request,
+and reviewers will not merge branches with tests that have lint errors, so
+you must fix any errors the lint tool reports. For details on doing that,
+see the [lint-tool documentation][lint-tool].
+
+But in the unusual case of error reports for things essential to a certain
+test or that for other exceptional reasons shouldn't prevent a merge of a
+test, update and commit the `lint.ignore` file in the web-platform-tests
+root directory to suppress the error reports. For details on doing that,
+see the [lint-tool documentation][lint-tool].
+
+
+## CSS-Specific Requirements
+
+In order to be included in an official specification test suite, tests
+for CSS have some additional requirements for:
+
+* [Metadata][css-metadata], and
+* [User style sheets][css-user-styles].
+
+
+[server features]: server-features
+[assumptions]: assumptions
+[ahem]: ahem
+[matrix]: https://app.element.io/#/room/#wpt:matrix.org
+[lint-tool]: lint-tool
+[css-metadata]: css-metadata
+[css-user-styles]: css-user-styles
+[file-name-flags]: file-names
+[interacting-features]: interacting-features
+[mozilla-firefox]: https://mozilla.org/firefox
+[google-chrome]: https://google.com/chrome/browser/desktop/
+[apple-safari]: https://apple.com/safari
+[es-compat]: https://kangax.github.io/compat-table/
+[caniuse]: https://caniuse.com/

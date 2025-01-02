@@ -1,0 +1,5 @@
+features:
+- name: scroll-to-text-fragment
+  files:
+  - beforematch-scroll-to-text-fragment.html
+  - hidden-until-found-text-fragment.html

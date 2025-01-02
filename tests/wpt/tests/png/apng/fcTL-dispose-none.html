@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>PNG Third Edition: animated PNG, dispose ops</title>
+<link rel="author" title="Philip Taylor" href="mailto:excors@gmail.com">
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/png-3/#apng-frame-based-animation">
+<link rel="help" href="https://www.w3.org/TR/png-3/#fcTL-chunk">
+<link rel="match" href="apng-lime-rectangle-ref.html">
+<meta name="assert" content="no disposal is done on this frame before rendering the next; the contents of the output buffer are left as is.">
+<script>
+    const el = document.querySelector(".reftest-wait");
+    setTimeout(() => {
+        el.classList.remove('reftest-wait');
+        }, 1300);
+</script>
+<style>
+
+</style>
+<body>
+    <p>Test passes if you see a lime green rectangle, and no red.</p>
+    <div class="test"><img src="support/007.png" alt=""></div>
+</body>
+</html>

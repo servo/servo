@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#typedef-auto-repeat">
+<head>
+  <style>
+
+.grid-container {
+  height: 30px;
+  width: 300px;
+  border-bottom: 2px solid #cfbfcf;
+}
+
+.grid-container > * { float: left; height: 30px; }
+.grid-container > :nth-child(2n) {  background: sienna; }
+.grid-container > :nth-child(2n + 1) {  background: orange; }
+
+</style>
+</head>
+
+<body>
+  <p>The test passes if it has the same visual effect as reference.</p>
+  <div class="grid-container">
+    <div style="width: 10px;"></div>
+    <div style="width: 20px;"></div>
+    <div style="width: 30px;"></div>
+    <div style="width: 40px;"></div>
+    <div style="width: 30px;"></div>
+    <div style="width: 40px;"></div>
+  </div>
+  <div class="grid-container">
+    <div style="width: 10px;"></div>
+    <div style="width: 20px;"></div>
+    <div style="width: 30px;"></div>
+    <div style="width: 40px;"></div>
+    <div style="width: 30px;"></div>
+    <div style="width: 50px; margin-left: 40px;"></div>
+  </div>
+  <div class="grid-container">
+    <div style="width: 20px; margin-left: 10px"></div>
+    <div style="width: 30px;"></div>
+    <div style="width: 30px; margin-left: 40px;"></div>
+    <div style="width: 40px;"></div>
+    <div style="width: 50px;"></div>
+    <div style="width: 60px;"></div>
+  </div>
+</body>
+
+</html>

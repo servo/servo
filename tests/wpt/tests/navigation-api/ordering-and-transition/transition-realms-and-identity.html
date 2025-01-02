@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+
+<script>
+promise_test(async () => {
+  await new Promise(resolve => window.onload = resolve);
+
+  i.contentWindow.navigation.addEventListener("navigate", e => {
+    e.intercept();
+  });
+
+  const returnValueFinished1 = i.contentWindow.navigation.navigate("?1").finished;
+  const transition1 = i.contentWindow.navigation.transition;
+  const transitionFinished1 = transition1.finished;
+
+  assert_true(returnValueFinished1 instanceof i.contentWindow.Promise);
+  assert_true(transition1 instanceof i.contentWindow.NavigationTransition);
+  assert_true(transitionFinished1 instanceof i.contentWindow.Promise);
+
+  assert_not_equals(returnValueFinished1, transitionFinished1);
+
+  // Ensure the getters aren't generating new objects each time.
+  assert_equals(i.contentWindow.navigation.transition, transition1);
+  assert_equals(i.contentWindow.navigation.transition.finished, transitionFinished1);
+
+  assert_equals(await transitionFinished1, undefined);
+
+  // Ensure stuff does change after another navigation.
+  const committed2 = i.contentWindow.navigation.navigate("?2").committed;
+  const transition2 = i.contentWindow.navigation.transition;
+  const transitionFinished2 = transition2.finished;
+
+  assert_not_equals(transition2, transition1);
+  assert_not_equals(transitionFinished2, transitionFinished1);
+
+  await committed2;
+}, "Realm and identity of the navigation.transition object and its finished promise");
+</script>

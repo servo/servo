@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: 'grid' value for 'display' property</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2014-11-18 -->
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-containers" title="3.1 Establishing Grid Containers">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="ahem">
+<meta name="assert" content="This test checks that 'grid' value for 'display' property generates a block level containing box.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+  .test-grid-overlapping-green {
+    display: grid;
+    font: 25px/1 Ahem;
+    color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="test-grid-overlapping-green">
+  <span>firs</span>
+  <span>seco</span>
+</div>
+<div class="test-grid-overlapping-green">
+  <span>firs</span>
+  <span>seco</span>
+</div>

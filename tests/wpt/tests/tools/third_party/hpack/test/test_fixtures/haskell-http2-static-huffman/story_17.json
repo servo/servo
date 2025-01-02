@@ -1,0 +1,369 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "0283c5837f06839d29af0188f439ce75c875fa570481630f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f04b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f1192bb03ae7403e30bcf8dc9daf88e067e110023",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yahoo.co.jp"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "cookie": "B=76j09a189a6h4&b=3&s=0b"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "0283c5837f06839d29af018cf1e3c2fe8739ceb90ebf4aff0481630f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f04b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f1192bb03ae7403e30bcf8dc9daf88e067e110023",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.yahoo.co.jp"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "cookie": "B=76j09a189a6h4&b=3&s=0b"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "0283c5837f06839d29af0187eabfa35332fd2b049960d48e62a1849eb61158982516301609458b0441009b5c88470f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f048e497ca582211f5f2c7cfdf6800b870f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/top/sp2/clr/1/clr-121025.css"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "0283c5837f06839d29af0187eabfa35332fd2b049060d48e62a1849eb6115b141e63af31a50f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/top/sp/logo.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "0283c5837f06839d29af0187eabfa35332fd2b04ad60d48e62a188ce7ea849ec2b043d349ea611594861d0c08011300784fc406d88c75545b1879af2f351057e95cd0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/bookstore/common/special/2012/0829_05/banner/84x84_1.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "0283c5837f06839d29af018df5d07e48bfa1ce73ae43afd2bf048260e60f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f0483f963e70f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f0f1192bb03ae7403e30bcf8dc9daf88e067e110023",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yjaxc.yahoo.co.jp"
+                },
+                {
+                    ":path": "/oi"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                },
+                {
+                    "cookie": "B=76j09a189a6h4&b=3&s=0b"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "0283c5837f06839d29af0187eabfa35332fd2b04a260d48e62a18f051a672d8c4c5a8b60e861360ea4563b0b52624304a0f6c885e634bf0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/weather/general/transparent_s/clouds.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "0283c5837f06839d29af0187eabfa35332fd2b04a060d48e62a18f051a672d8c4c5a8b60e861360ea4563b0b52624308b6a5e634bf0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/weather/general/transparent_s/sun.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "0283c5837f06839d29af0187eabfa35332fd2b04ad60d48e62a188ce7ea849ec2b043d349ea611594861d0c08011300784fc406d88c75545b1879af2f351097e95cd0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/bookstore/common/special/2012/0829_05/banner/84x84_2.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "0283c5837f06839d29af0187eabfa35332fd2b04af60d48e62a18aec2d26b696087a925a928623aac604008986c1e5b03007c4f44849ec2c48b6b2d950d36d83a17e95cd0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24929d29aee30c78f1e17f439ce75c875fa56c7f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/premium/contents/bnr/2012/50x50/0928_store_supernatural.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yahoo.co.jp/"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: StaticH - static table=yes, header table=no, huffman=yes"
+}

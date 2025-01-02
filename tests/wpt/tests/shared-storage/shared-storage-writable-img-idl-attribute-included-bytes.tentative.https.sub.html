@@ -1,0 +1,39 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script>
+    const sameOrigin = new URL("", location.href).origin;
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+    promise_test(async t => {
+      await loadSharedStorageImage({
+        key: ':8J+YgA==:', value: ':4p2k:',
+        hasSharedStorageWritableAttribute: true,
+        isSameOrigin: true,
+      });
+
+      await verifyKeyValueForOrigin(String.fromCharCode(0xD83D, 0xDE00),
+                                    String.fromCharCode(0x2764),
+                                    sameOrigin);
+      await deleteKeyForOrigin(String.fromCharCode(0xD83D, 0xDE00), sameOrigin);
+    }, 'test <img sharedstoragewritable src=[url]> via JS for same origin img with bytestring');
+
+    promise_test(async t => {
+      await loadSharedStorageImage({
+        key: ':8J+MjQ==:', value: ':8J+PgQ==:',
+        hasSharedStorageWritableAttribute: true,
+        isSameOrigin: false,
+      });
+
+      await verifyKeyValueForOrigin(String.fromCharCode(0xD83C, 0xDF0D),
+                                    String.fromCharCode(0xD83C, 0xDFC1),
+                                    crossOrigin);
+      await deleteKeyForOrigin(String.fromCharCode(0xD83C, 0xDF0D), crossOrigin);
+    }, 'test <img sharedstoragewritable src=[url]> via JS for cross origin img with bytestring');
+  </script>
+</body>

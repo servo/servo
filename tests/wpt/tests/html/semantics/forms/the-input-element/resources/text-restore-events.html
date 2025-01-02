@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script>
+  window.onload = () => {
+    const loadResolver = window.opener.loadResolver;
+    if (loadResolver)
+      loadResolver();
+  };
+</script>
+<input type=text value=initialValue>
+<script>
+  const input = document.querySelector('input');
+  input.onchange = () => window.seenchange = true;
+  input.oninput = () => window.seeninput = true;
+</script>

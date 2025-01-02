@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <title>WebGPU canvas_display_after_device_lost (ref)</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <style>
+    body { background-color: #F0E68C; }
+  </style>
+  <canvas id="cvs0" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs1" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs2" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs3" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <script>
+    function draw(canvas, color) {
+      var c = document.getElementById(canvas);
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, c.width, c.height);
+    }
+
+    draw('cvs0', '#66FF00');
+    draw('cvs1', '#000000');
+    draw('cvs2', '#66FF00');
+    draw('cvs3', '#00000000');
+ </script>
+</html>

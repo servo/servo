@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Crash tests PaymentRequest Constructor</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#constructor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+"use strict";
+const ABUSIVE_AMOUNT = 100000;
+
+const applePay = {
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+};
+
+const basicCard = Object.freeze({
+  supportedMethods: "basic-card",
+});
+
+const defaultAmount = Object.freeze({
+  currency: "USD",
+  value: "1.00",
+});
+
+const evilAmount = Object.freeze({
+  currency: "USD",
+  value: "1".repeat(ABUSIVE_AMOUNT),
+});
+
+const defaultMethods = Object.freeze([basicCard, applePay]);
+
+const defaultTotal = Object.freeze({
+  label: "label",
+  amount: defaultAmount,
+});
+
+const evilTotal = Object.freeze({
+  label: "a".repeat(ABUSIVE_AMOUNT),
+  amount: evilAmount,
+});
+
+const defaultDetails = Object.freeze({
+  total: defaultTotal,
+  get id() {
+    return Math.random();
+  },
+});
+
+const defaultPaymentItem = Object.freeze({
+  label: "label",
+  amount: defaultAmount,
+});
+
+const defaultShippingOption = {
+  get id() {
+    return "shipping option " + Math.random();
+  },
+  amount: defaultAmount,
+  label: "shipping option label",
+};
+
+// First argument is sequence<PaymentMethodData> methodData
+test(() => {
+  let evilMethods = [Object.assign({}, basicCard)];
+  // smoke test
+  try {
+    new PaymentRequest(evilMethods, defaultDetails);
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, let's add an abusive amount of methods.
+  while (evilMethods.length < ABUSIVE_AMOUNT) {
+    evilMethods.push({supportedMethods: "evil-method" + evilMethods.length});
+  }
+  try {
+    new PaymentRequest(evilMethods, defaultDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if there is an abusive number of payment methods in the methodData sequence");
+
+// PaymentMethodData.supportedMethods
+test(() => {
+  const supportedMethods = "basic-card";
+  // Smoke test
+  try {
+    new PaymentRequest([{ supportedMethods }], defaultDetails);
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, we make supportedMethods super large
+  const evilMethodData = [
+    {
+      supportedMethods: supportedMethods.repeat(ABUSIVE_AMOUNT),
+    },
+  ];
+  try {
+    new PaymentRequest(evilMethodData, defaultDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if PaymentMethodData.supportedMethods is an abusive length");
+
+// PaymentDetailsInit.id
+test(() => {
+  const id = "abc";
+  // Smoke Test
+  try {
+    new PaymentRequest(
+      defaultMethods,
+      Object.assign({}, defaultDetails, { id })
+    );
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, we make the id super large;
+  const evilDetails = Object.assign({}, defaultDetails, {
+    id: id.repeat(ABUSIVE_AMOUNT),
+  });
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if the request id has an abusive length");
+
+// PaymentDetailsInit.total.label
+test(() => {
+  const evilDetails = Object.assign({}, defaultDetails);
+  // Smoke Test
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, we make the label super large;
+  evilDetails.total = {
+    label: "l".repeat(ABUSIVE_AMOUNT),
+    amount: defaultAmount,
+  };
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if PaymentDetailsInit.total.label is an abusive length");
+
+test(() => {
+  const evilDetails = Object.assign({}, defaultDetails);
+  // Smoke Test
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, we can use evilAmount
+  evilDetails.total = evilAmount;
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if total.amount.value is an abusive length");
+
+for (const [prop, defaultValue] of [
+  ["displayItems", defaultPaymentItem],
+  ["shippingOptions", defaultShippingOption],
+]) {
+  test(() => {
+    const evilDetails = Object.assign({}, defaultDetails);
+    evilDetails[prop] = [defaultValue];
+    // Smoke Test
+    try {
+      new PaymentRequest(defaultMethods, evilDetails);
+    } catch (err) {
+      assert_unreached("failed smoke test: " + err.stack);
+    }
+    while (evilDetails[prop].length < ABUSIVE_AMOUNT) {
+      evilDetails[prop] = evilDetails[prop].concat(evilDetails[prop]);
+    }
+    // Now, construct with evil items!
+    try {
+      new PaymentRequest(defaultMethods, evilDetails);
+    } catch (err) {
+      assert_equals(err.name, "TypeError", "must be a TypeError");
+    }
+  }, `Don't crash if details.${prop} has an abusive number of items`);
+}
+
+test(() => {
+  const evilDetails = Object.assign({}, defaultDetails);
+  const evilShippingOption = Object.assign({}, defaultShippingOption);
+  evilDetails.shippingOptions = [evilShippingOption];
+  // Smoke Test
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, we make the label super large;
+  evilShippingOption.label = "l".repeat(ABUSIVE_AMOUNT);
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if PaymentShippingOptions.label is an abusive length");
+
+test(() => {
+  const evilDetails = Object.assign({}, defaultDetails);
+  const evilShippingOption = Object.assign({}, defaultShippingOption);
+  evilDetails.shippingOptions = [evilShippingOption];
+  // Smoke Test
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, we make use of evilAmount;
+  evilShippingOption.amount = evilAmount;
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if the PaymentShippingOptions.amount.value is an abusive length");
+
+test(() => {
+  const evilDetails = Object.assign({}, defaultDetails);
+  const evilDisplayItem = Object.assign({}, defaultPaymentItem);
+  evilDetails.displayItems = [evilDisplayItem];
+  // Smoke Test
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_unreached("failed smoke test: " + err.stack);
+  }
+  // Now, we make the label super large;
+  evilDisplayItem.label = "l".repeat(ABUSIVE_AMOUNT);
+  try {
+    new PaymentRequest(defaultMethods, evilDetails);
+  } catch (err) {
+    assert_equals(err.name, "TypeError", "must be a TypeError");
+  }
+}, "Don't crash if PaymentItem.label is an abusive length");
+</script>

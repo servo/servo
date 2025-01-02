@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Repro of https://crbug.com/1374294</title>
+<body></body>
+<script>
+  let iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  let generator = new iframe.contentWindow.MediaStreamTrackGenerator({kind: 'video'});
+  const capture = new ImageCapture(generator);
+  capture.grabFrame();
+</script>

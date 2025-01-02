@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1251931">
+
+<div>
+  <template shadowrootmode=open></template>
+  <span id="outside"></span>
+</div>
+<div style="content-visibility:hidden"></div>
+<script>
+  getComputedStyle(outside).color;
+  outside.style.color = "green";
+  getComputedStyle(outside).color;
+</script>

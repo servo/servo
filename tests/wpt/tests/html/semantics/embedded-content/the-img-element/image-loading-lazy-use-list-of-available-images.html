@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<title>Lazyload images can load immediately from the list of available images</title>
+<link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- A `loading=lazy` image will be placed below this div so that it is below
+     the viewport -->
+<div style="height: 1000vh;"></div>
+<div id="below-viewport-img-container"></div>
+
+<script>
+const image_path = location.origin + '/html/semantics/embedded-content/the-img-element/resources/image.png?image-loading-lazy-use-list-of-available-images-' + Math.random();
+
+promise_test(async t => {
+  const eager_image_promise = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = e => { reject(new Error("The img should not fail to load")) };
+    img.src = image_path;
+  });
+
+  await eager_image_promise;
+
+  // At this point, the image fetched eagerly above exists in the "list of
+  // available images". As per the spec's #updating-the-image-data algorithm [1]
+  // step 6, the "list of avalable images" is consulted before we take any
+  // lazyload-specific action. This means that lazyload images can load eagerly
+  // if they target a resource in the list of available images, which the image
+  // below is doing.
+  //
+  // Note that if https://github.com/whatwg/html/issues/7005 resolves in favor
+  // of allowing in-flight image requests to be placed in the list of available
+  // images, as opposed to just complete images, this would allow lazyload
+  // images (in addition to non-lazyload ones) to coalesce with these in-flight
+  // entries in the list of available images too. In that case we'd need to test
+  // for this here.
+  // [1]: https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data
+  const lazyload_image_promise = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.loading = 'lazy';
+    img.onload = resolve;
+    img.onerror = e => { reject("The img should not fail to load") };
+
+    document.querySelector('#below-viewport-img-container').append(img);
+    img.src = image_path;
+  });
+  const timeout_promise = new Promise((resolve, reject) => {
+    t.step_timeout(() => {
+      reject(new Error("The `loading=lazy` image should load immediately from " +
+                       "the list of available images, beating this timeout " +
+                       "promise."));
+    }, 1000);
+  });
+
+  // The `lazyload_image_promise` should resolve first because lazyload images
+  // are able to eagerly use resources in the "list of available images".
+  await Promise.race([lazyload_image_promise, timeout_promise]);
+}, 'Lazyload images can load immediately from the list of available images');
+</script>

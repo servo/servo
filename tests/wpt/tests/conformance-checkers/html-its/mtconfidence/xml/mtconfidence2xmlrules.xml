@@ -1,0 +1,10 @@
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+    <its:mtConfidenceRule selector="/text/body/p/span[@id='ireland']"
+      mtConfidence="0.6982"/>
+    <its:mtConfidenceRule selector="/text/body/p/span[@id='england']"
+      mtConfidence="0.7982"/>
+    <its:mtConfidenceRule selector="/text/body/p/span[@id='spain']"
+      mtConfidence="0.8982"/>
+     <its:mtConfidenceRule selector="/text/body/p/span[@id='germany']"
+      mtConfidence="0.5982"/>
+  </its:rules>

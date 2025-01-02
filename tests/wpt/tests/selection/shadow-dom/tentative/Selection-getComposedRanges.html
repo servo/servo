@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="Selection's getComposedRanges should return a sequence of static ranges">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getcomposedranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+
+test(() => {
+    getSelection().removeAllRanges();
+    assert_array_equals(getSelection().getComposedRanges(), []);
+}, 'getComposedRanges returns an empty sequence when there is no selection');
+
+test(() => {
+  container.innerHTML = 'hello, world';
+  getSelection().setBaseAndExtent(container.firstChild, 0, container.firstChild, 5);
+  try {
+    getSelection().getComposedRanges({ shadowRoots: [container] });
+    assert_unreached('executed without error; want error');
+  } catch (e) {
+    assert_equals(e.message, "Failed to execute 'getComposedRanges' on 'Selection': Failed to read the 'shadowRoots' property from 'GetComposedRangesOptions': Failed to convert value to 'ShadowRoot'.");
+  }
+}, 'getComposedRanges should fail if argument is not a shadow root');
+
+test(() => {
+    container.innerHTML = 'hello, world';
+    getSelection().setBaseAndExtent(container.firstChild, 0, container.firstChild, 5);
+    const ranges = getSelection().getComposedRanges();
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container.firstChild);
+    assert_equals(ranges[0].startOffset, 0);
+    assert_equals(ranges[0].endContainer, container.firstChild);
+    assert_equals(ranges[0].endOffset, 5);
+}, 'getComposedRanges returns a sequence with a static range when there is a forward-direction selection in the document tree');
+
+test(() => {
+    container.innerHTML = 'hello, world';
+    getSelection().setBaseAndExtent(container.firstChild, 4, container.firstChild, 3);
+    const ranges = getSelection().getComposedRanges();
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container.firstChild);
+    assert_equals(ranges[0].startOffset, 3);
+    assert_equals(ranges[0].endContainer, container.firstChild);
+    assert_equals(ranges[0].endOffset, 4);
+}, 'getComposedRanges returns a sequence with a static range when there is a backward-direction selection in the document tree');
+
+test(() => {
+    container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = 'hello, world';
+    getSelection().setBaseAndExtent(shadowRoot.firstChild, 0, shadowRoot.firstChild, 5);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, shadowRoot.firstChild);
+    assert_equals(ranges[0].startOffset, 0);
+    assert_equals(ranges[0].endContainer, shadowRoot.firstChild);
+    assert_equals(ranges[0].endOffset, 5);
+}, 'getComposedRanges returns a sequence with a static range pointing to a shadaw tree when there is a selection in the shadow tree and the shadow tree is specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = 'hello, world';
+    getSelection().setBaseAndExtent(shadowRoot.firstChild, 0, shadowRoot.firstChild, 5);
+    const ranges = getSelection().getComposedRanges();
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container);
+    assert_equals(ranges[0].startOffset, 1);
+    assert_equals(ranges[0].endContainer, container);
+    assert_equals(ranges[0].endOffset, 2);
+}, 'getComposedRanges returns a sequence with a static range pointing to the shadow host when there is a selection in a shadow tree and the shadow tree is not specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = 'hello, world';
+    getSelection().setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
+    const ranges = getSelection().getComposedRanges();
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container);
+    assert_equals(ranges[0].startOffset, 1);
+    assert_equals(ranges[0].endContainer, container);
+    assert_equals(ranges[0].endOffset, 2);
+}, 'getComposedRanges a sequence with a static range pointing to the shadow host when there is a forward selection that crosses shadow boundaries and the shadow tree is not specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = 'hello, world';
+    getSelection().setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, shadowRoot.firstChild);
+    assert_equals(ranges[0].startOffset, 7);
+    assert_equals(ranges[0].endContainer, container);
+    assert_equals(ranges[0].endOffset, 2);
+}, 'getComposedRanges a sequence with a static range that crosses shadow boundaries when there is a forward selection that crosses shadow boundaries and the shadow tree is specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
+    const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
+    outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
+    const innerHost = outerShadowRoot.getElementById('innerHost');
+    const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
+    innerShadowRoot.innerHTML = 'some text';
+    getSelection().setBaseAndExtent(innerShadowRoot.firstChild, 5, innerShadowRoot.firstChild, 9);
+    const ranges = getSelection().getComposedRanges();
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container);
+    assert_equals(ranges[0].startOffset, 1);
+    assert_equals(ranges[0].endContainer, container);
+    assert_equals(ranges[0].endOffset, 2);
+}, 'getComposedRanges returns a sequence with a static range pointing to the outer shadow host when there is a selection in an inner shadow tree and no shadow tree is specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
+    const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
+    outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
+    const innerHost = outerShadowRoot.getElementById('innerHost');
+    const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
+    innerShadowRoot.innerHTML = 'some text';
+    getSelection().setBaseAndExtent(innerShadowRoot.firstChild, 5, innerShadowRoot.firstChild, 9);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [innerShadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, innerShadowRoot.firstChild);
+    assert_equals(ranges[0].startOffset, 5);
+    assert_equals(ranges[0].endContainer, innerShadowRoot.firstChild);
+    assert_equals(ranges[0].endOffset, 9);
+}, 'getComposedRanges returns a sequence with a static range pointing to the inner shadow tree when there is a selection in an inner shadow tree and the inner shadow tree is specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
+    const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
+    outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
+    const innerHost = outerShadowRoot.getElementById('innerHost');
+    const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
+    innerShadowRoot.innerHTML = 'some text';
+    getSelection().setBaseAndExtent(innerShadowRoot.firstChild, 5, innerShadowRoot.firstChild, 9);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [outerShadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, outerShadowRoot);
+    assert_equals(ranges[0].startOffset, 0);
+    assert_equals(ranges[0].endContainer, outerShadowRoot);
+    assert_equals(ranges[0].endOffset, 1);
+}, 'getComposedRanges returns a sequence with a static range pointing to the outer shadow tree when there is a selection in an inner shadow tree and the outer shadow tree is specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
+    const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
+    outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
+    const innerHost = outerShadowRoot.getElementById('innerHost');
+    const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
+    innerShadowRoot.innerHTML = 'some text';
+    getSelection().setBaseAndExtent(container.firstChild, 0, outerShadowRoot, 0);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [innerShadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container.firstChild);
+    assert_equals(ranges[0].startOffset, 0);
+    assert_equals(ranges[0].endContainer, outerShadowRoot);
+    assert_equals(ranges[0].endOffset, 0);
+}, 'getComposedRanges returns a sequence with a static range without rescoping when there is a selection in an outer shadow tree and the inner shadow tree is specified as an argument');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The 'border-image-outset' property set to one value using 'em' units</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-outset" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="This test checks that if the outset values of right, bottom and left sides are not explicitly individually specified, the single value is then used for all four sides." />
+        <style type="text/css">
+            #test
+            {
+                background-color: blue;
+                border: 1em double red;
+                border-image-outset: 3em;
+                border-image-slice: 10;
+                border-image-source: url("support/green_color.png");
+                border-image-width: 1;
+                height: 6em;
+                margin: 4em;
+                width: 6em;
+            }
+            #reference1
+            {
+                background-color: orange;
+                height: 2em;
+                margin: -3em;
+                width: 2em;
+            }
+            #reference2
+            {
+                background-color: orange;
+                height: 2em;
+                margin: 11em 7em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if each of two orange rectangles touch green border by two sides and touch blue rectangle with one of the corners.</p>
+        <div id="test">
+            <div id="reference1"></div>
+            <div id="reference2"></div>
+        </div>
+    </body>
+</html>

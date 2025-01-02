@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test SVGLengthAdjustType enumeration animations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Initiate the test by clicking at (1, 50) - the 'S'.
+window.clickX = 1;
+
+// Setup test document
+var text = createSVGElement("text");
+text.setAttribute("id", "text");
+text.setAttribute("y", "50");
+text.setAttribute("textLength", "200");
+text.textContent = "Stretched text";
+text.setAttribute("onclick", "executeTest()");
+rootSVGElement.appendChild(text);
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "lengthAdjust");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+animate.setAttribute("from", "spacing");
+animate.setAttribute("to", "spacingAndGlyphs");
+animate.setAttribute("fill", "freeze");
+text.appendChild(animate);
+
+// Setup animation test
+function sample1() {
+    assert_equals(text.lengthAdjust.animVal, SVGTextContentElement.LENGTHADJUST_SPACING);
+    assert_equals(text.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACING);
+}
+
+function sample2() {
+    assert_equals(text.lengthAdjust.animVal, SVGTextContentElement.LENGTHADJUST_SPACINGANDGLYPHS);
+    assert_equals(text.lengthAdjust.baseVal, SVGTextContentElement.LENGTHADJUST_SPACING);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 1.999, sample1],
+        ["animation", 2.001, sample2],
+        ["animation", 3.999, sample2],
+        ["animation", 4.001, sample2]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

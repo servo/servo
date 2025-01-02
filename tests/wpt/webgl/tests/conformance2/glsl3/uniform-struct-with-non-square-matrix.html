@@ -1,0 +1,53 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL uniform struct with a non-square matrix test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderUniformStructWithNonSquareMatrixAndBoolean" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out highp vec4 my_color;
+struct S
+{
+    mat2x4 m;
+    bool b;
+};
+uniform S uni;
+void main()
+{
+    my_color = vec4(0, 1, 0, 1);
+    if (!uni.b) { my_color.g = 0.0; }
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderUniformStructWithNonSquareMatrixAndBoolean',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Set a boolean member in a uniform struct that also contains a non-square-matrix',
+  uniforms: [{name: "uni.b", functionName: "uniform1i", value: 1}]
+},
+], 2);
+</script>
+</body>
+</html>
+

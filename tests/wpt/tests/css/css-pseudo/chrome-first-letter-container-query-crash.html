@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+  <title>Chrome crash issue 41492455</title>
+  <link rel="help" href="https://issues.chromium.org/issues/41492455">
+</head>
+<span id="sp"></span>
+<style>
+  head, html, body, span { display: inline-block; }
+  html::first-letter, span::first-letter {
+    color: pink;
+  }
+  span {
+    container-type: inline-size;
+    float: right;
+  }
+  body {
+    writing-mode: vertical-rl;
+  }
+</style>
+<script>
+  document.body.offsetHeight;
+  document.documentElement.style.display = "block";
+  document.head.style.display = "none";
+  document.body.style.display = "block";
+  sp.style.display = "inline";
+  document.body.offsetHeight;
+</script>

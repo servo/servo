@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: Test pageswap fires before document capture</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="pageswap-fired-before-old-state-capture-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const is_new_page = params.has('new');
+
+if (is_new_page) {
+  document.documentElement.classList.add('newPage');
+  addEventListener('pagereveal', e => {
+    e.viewTransition.ready.then(() => {
+      document.getAnimations().forEach(anim => anim.pause());
+      requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+    });
+  });
+} else {
+  addEventListener('pageswap', e => {
+    document.documentElement.classList.add('oldPage');
+  });
+
+  onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace(location.href + '?new');
+    }));
+  };
+}
+</script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: limegreen;
+  position: absolute;
+  left: 20px;
+  top: 100px;
+}
+
+.oldPage #target {
+  view-transition-name: target;
+}
+
+.newPage #target {
+  left: 300px;
+  view-transition-name: target;
+}
+
+/* Ensure view-transition snapshots are easily distinguished from live DOM */
+:root {
+  view-transition-name: unset;
+}
+::view-transition {
+  background-color: thistle;
+}
+</style>
+<div id="target"></div>
+</html>

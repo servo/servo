@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="author" title="Chenguang Shao" href="chenguangshao1@gmail.com">
+        <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1478487">
+        <title>Reload Crash Test</title>
+        <script>
+            function PrintAndRefreshPage() {
+                var queryParams = new URLSearchParams(window.location.search);
+                var isFirstLoad = queryParams.get('isFirstLoad');
+                if (isFirstLoad === null) {
+                    window.print();
+                    setTimeout(function() {
+                        var url = window.location.href;
+                        var updatedUrl = url + '?isFirstLoad=false';
+                        window.location.href = updatedUrl;
+                    },
+                    0);
+                }
+            }
+        </script>
+    </head>
+    <body onload="PrintAndRefreshPage()">
+        <p>The pop-up print preview box is for refreshing the page</p>
+        <image id="image" loading="lazy" src="test.png"></image>
+    </body>
+</html>

@@ -1,0 +1,7 @@
+<!doctype html>
+<title>Preload should work in non-http(s) docs</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1685830">
+<link rel="match" href="preload-in-data-doc-ref.html">
+<iframe src="data:text/html,<link rel=preload as=style href='data:text/css,:root{background:green}' onload='this.onload = null; this.rel = &quot;stylesheet&quot;'>"></iframe>

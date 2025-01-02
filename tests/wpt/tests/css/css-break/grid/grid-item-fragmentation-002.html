@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<title>Tests that grid-item reordered with grid-row-start is fragmented correctly.</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; background: red;">
+  <div style="display: grid;">
+    <div style="height: 50px; background: green;"></div>
+    <div style="height: 150px; background: green; grid-row-start: 1;"></div>
+  </div>
+</div>

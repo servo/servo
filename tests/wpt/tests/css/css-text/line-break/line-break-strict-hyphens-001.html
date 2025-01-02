@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>CSS test: hyphens and line-break:strict</title>
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#propdef-line-break">
+<link rel=match href="reference/line-break-normal-hyphens-001-ref.html">
+<meta name=assert content="breaks before U+2010 or U+2013 when line-break is strict are not allowed when the preceding character has class ID.">
+<style>
+div {
+  width: 2em;
+  line-break: strict;
+  border: solid cyan;
+}
+</style>
+
+<p>The test passes if the second line in each box below ends with a hyphen.
+(Note: the hyphens in each box do no need to be the same size.)
+
+<div>文文‐文</div>
+<div>文文–文</div>

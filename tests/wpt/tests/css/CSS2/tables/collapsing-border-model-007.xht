@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Left table border width under collapsing borders model</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+        <link rel="match" href="collapsing-border-model-001-ref.html" />
+        <meta name="assert" content="The left border width of the table is half of the first cell's collapsed left border width." />
+        <style type="text/css">
+            table
+            {
+                background: blue;
+                border-collapse: collapse;
+            }
+            col
+            {
+                width: 165px;
+            }
+            td, #div1
+            {
+                height: 120px;
+            }
+            td
+            {
+                width: 110px;
+                border-left: 110px solid blue;
+                padding: 0;
+            }
+            #div1
+            {
+                background: orange;
+                width: 220px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the orange and blue boxes below are the same width.</p>
+        <div id="div1"></div>
+        <table>
+            <col />
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

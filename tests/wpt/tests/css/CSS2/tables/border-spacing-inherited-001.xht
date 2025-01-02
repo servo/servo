@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing is inherited by default</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Border-spacing is inherited by default." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #div1
+            {
+                background: black;
+                height: 1em;
+                left: 2in;
+                position: relative;
+                top: 1in;
+                width: 1in;
+            }
+            #div2
+            {
+                border-spacing: 1in;
+            }
+            #table
+            {
+                display: table;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            .cell
+            {
+                display: table-cell;
+                font-family: Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle box is as wide as the space between the first and last boxes.</p>
+        <div id="div1"></div>
+        <div id="div2">
+            <div id="table">
+                <div id="row">
+                    <div class="cell">XXXXXX</div>
+                    <div class="cell">XXXXXX</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

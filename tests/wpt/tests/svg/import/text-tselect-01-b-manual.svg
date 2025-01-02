@@ -1,0 +1,74 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: text-tselect-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextSelection">
+      <p>
+        Test text selection.
+      </p>
+      <p>
+        Run the test. Make a text selection in the upper block of text, and verify that text selection is possible and that the selection does not extend across multiple lines. Now make a text selection in the lower block of text, verifying that the selection <em>does</em> extend over multiple lines.
+
+Thus, it should
+        be possible to start text selection at the start of the "However"
+        and drag through the end of "same time." and the all four lines
+        should be selected.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+          For basic viewers conformant acion is as described above if there
+          is a text selection mechanism.  Since text selection is optional
+          on a basic device if text selection is not implemented then this
+          test is a pass, move on to the next test.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-tselect-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text font-size="16" x="10" y="20">Test single line and multiline text selection.</text>
+    <g font-size="16">
+      <text x="25" y="65">Here is a stand-alone 'text' element.</text>
+      <text x="25" y="90">Here is a second 'text' element just below.</text>
+      <text x="25" y="115">Because these are four separate 'text' elements,</text>
+      <text x="25" y="140">text selection should not go across lines here.</text>
+      <text>
+        <tspan x="25" y="190">However, these lines of text are achieved by using</tspan>
+        <tspan x="25" y="215">one 'tspan' per line, all contained within the same</tspan>
+        <tspan x="25" y="240">'text' element, so you should be able to select all</tspan>
+        <tspan x="25" y="265">four lines at the same time.</tspan>
+      </text>
+    </g>
+    <text id="revision" x="10" y="340" font-size="40" stroke="none" fill="black">$Revision: 1.8 $</text>
+    <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  </g>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

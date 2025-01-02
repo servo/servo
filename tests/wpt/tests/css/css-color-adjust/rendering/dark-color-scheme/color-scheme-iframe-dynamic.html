@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>prefers-color-scheme propagation - dynamic changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/4772">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta id="meta" name="color-scheme">
+<iframe id="frm" srcdoc='<div id="schemed" style="color-scheme: light dark; color: light-dark(lime, green)"></div>'></iframe>
+<div id="schemed" style="color-scheme: light dark; color: light-dark(lime, green)"></div>
+<script>
+  const lime = "rgb(0, 255, 0)";
+  const green = "rgb(0, 128, 0)";
+
+  let frame_window;
+  let frame_doc;
+  let frame_schemed;
+  let schemed;
+
+  promise_setup(async () => {
+    await new Promise(resolve => {
+      frm.onload = resolve;
+    });
+    frame_window = frm.contentWindow;
+    frame_doc = frm.contentDocument;
+    frame_schemed = frame_doc.getElementById("schemed");
+    schemed = document.getElementById("schemed");
+  });
+
+  promise_test(async () => {
+    assert_equals(getComputedStyle(schemed).color,
+                  frame_window.getComputedStyle(frame_schemed).color);
+    assert_equals(window.matchMedia("(prefers-color-scheme:light)").matches,
+                  frame_window.matchMedia("(prefers-color-scheme:light)").matches);
+  }, "Initially, the preferred color-scheme is the same in both documents");
+
+  promise_test(async () => {
+    meta.setAttribute("content", "dark");
+    assert_equals(frame_window.getComputedStyle(frame_schemed).color, green);
+    assert_true(frame_window.matchMedia("(prefers-color-scheme:dark)").matches);
+    meta.setAttribute("content", "light");
+    assert_equals(frame_window.getComputedStyle(frame_schemed).color, lime);
+    assert_true(frame_window.matchMedia("(prefers-color-scheme:light)").matches);
+  }, "Modify color-scheme <meta>");
+
+  promise_test(async () => {
+    frm.style.colorScheme = "dark";
+    assert_equals(frame_window.getComputedStyle(frame_schemed).color, green);
+    assert_true(frame_window.matchMedia("(prefers-color-scheme:dark)").matches);
+    frm.style.colorScheme = "light";
+    assert_equals(frame_window.getComputedStyle(frame_schemed).color, lime);
+    assert_true(frame_window.matchMedia("(prefers-color-scheme:light)").matches);
+  }, "Modify iframe color-scheme");
+</script>

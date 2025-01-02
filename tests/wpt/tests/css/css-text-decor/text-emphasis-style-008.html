@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>CSS Text Decoration Test - text-emphasis</title>
+		<link rel="author" title="TestTWF Tokyo Meetup (Unofficial)" href="mailto:ymdsmn@gmail.com">
+		<link rel="help" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property">
+		<link rel="match" href="reference/text-emphasis-style-008-ref.html">
+		<meta name="assert" content="Test checks that 'text-emphasis-style: filled double-circle'.">
+		<style>
+			span {
+			text-emphasis-style: filled double-circle;
+			}
+		</style>
+	</head>
+	<body>
+        <p>Test passes if "&#x25c9" is above every single character of "Text sample"</p>
+		<div style="font: 1.5em monospace">
+			<span>Text sample</span>.
+		</div>
+	</body>
+</html>

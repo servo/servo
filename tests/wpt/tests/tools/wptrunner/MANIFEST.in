@@ -1,0 +1,6 @@
+exclude MANIFEST.in
+include requirements.txt
+include wptrunner.default.ini
+include wptrunner/testharness_runner.html
+include wptrunner/*.js
+include wptrunner/executors/*.js

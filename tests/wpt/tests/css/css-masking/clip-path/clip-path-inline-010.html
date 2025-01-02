@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>clip-path on inline with padding-box and border-radius</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#valdef-shape-box-padding-box">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#typedef-shape-box">
+<link rel="match" href="clip-path-inline-010-ref.html">
+<meta name="fuzzy" content="maxDifference=0-43; totalPixels=0-319">
+<meta content="ahem" name="flags">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .container {
+    font: 100px/1 Ahem;
+    line-height: 100px;
+  }
+  .container > span {
+    margin-left: -8px;
+    border-radius: 58px;
+    clip-path: padding-box;
+    color: green;
+    /* This border draws outside the padding box and should be clipped. */
+    border: 8px solid red;
+  }
+</style>
+<p>Test passes if there is a filled green circle with radius 50px.
+<div class="container">
+  <span>X</span>
+</div>

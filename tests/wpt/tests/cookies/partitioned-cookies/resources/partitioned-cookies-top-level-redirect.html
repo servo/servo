@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<title>Test partitioned cookie top level cross-site</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+
+<script>
+    const partitionedCookie = "ancestor=chain";
+    assert_false(document.cookie.includes(partitionedCookie));
+
+    //Redirect the page back to the same-site.
+    const params = new URLSearchParams(new URL(window.location.href).search);
+    const original_site = params.get('location');
+    // Use redirect-and-echo-cookie-header.py to make the http cookie
+    // headers available on the redirect.
+    const sameSiteUrl = new URL(`./redirect-and-echo-cookie-header.py?`
+        + `location=${original_site}?redirect=true`,
+        get_host_info().ORIGIN + self.location.pathname);
+
+    window.location=sameSiteUrl.href;
+</script>

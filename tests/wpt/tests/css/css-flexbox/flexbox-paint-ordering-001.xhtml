@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase with flex items containing overlapping content, to test
+     their paint-order. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing the paint-order of overlapping flex items, with varying tweaks on the container</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#painting"/>
+    <link rel="match" href="flexbox-paint-ordering-001-ref.xhtml"/>
+    <style>
+      body {
+        line-height: 0;
+      }
+      .container {
+        width: 40px;
+        height: 14px;
+        border: 2px solid green;
+        margin-bottom: 2px;
+      }
+      .a {
+          width: 16px;
+          height: 10px;
+          background: blue;
+          min-width: 0;
+          border: 2px solid lightblue;
+      }
+      .b {
+          width: 16px;
+          height: 10px;
+          background: purple;
+          min-width: 0;
+          border: 2px solid slateblue;
+      }
+      .aKid {
+          margin-left: 10px;
+          margin-top: 2px;
+          width: 16px;
+          height: 6px;
+          background: yellow;
+          border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- inline-level flex container -->
+    <div class="container" style="display: inline-flex">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <!-- block-level flex container -->
+    <div class="container" style="display: flex">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <!-- floated flex container -->
+    <div class="container" style="display: flex; float: left">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+    <!-- Helper-div to clear floats: -->
+    <div style="clear: both"/>
+
+    <!-- relatively-positioned flex container -->
+    <div class="container" style="display: flex; position: relative">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+    <!-- absolutely-positioned flex container -->
+    <div class="container" style="display: flex; position: absolute">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+    <!--- Spacer div, since abspos div doesn't set aside space for itself -->
+    <div style="height: 20px"/>
+
+    <!-- fixed-position flex container -->
+    <div class="container" style="display: flex; position: fixed">
+      <div class="a"><div class="aKid"/></div>
+      <div class="b"></div>
+    </div>
+
+  </body>
+</html>

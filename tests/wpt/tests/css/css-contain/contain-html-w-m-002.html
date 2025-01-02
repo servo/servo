@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: paint containment on html prevents writing-mode propagation</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="paint containment on html prevents writing-mode propagation">
+  <link rel="match" href="reference/contain-body-w-m-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#contain-property">
+
+<style>
+html::before {
+    content: "";
+    width: 100px;
+    height: 100px;
+    background: orange;
+    display: block;
+}
+p { writing-mode: horizontal-tb; margin: 0;}
+body {
+    margin: 0;
+    width: 200px;
+    height: 200px;
+    writing-mode: vertical-rl;
+}
+html {
+    contain: paint;
+}
+</style>
+
+<p>Test passes if the orange square is in the upper-left corner.

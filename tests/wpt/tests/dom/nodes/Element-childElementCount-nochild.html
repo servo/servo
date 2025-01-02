@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>childElementCount without Child Element Nodes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1>Test of childElementCount with No Child Element Nodes</h1>
+<div id="log"></div>
+<p id="parentEl" style="font-weight:bold;">Test.</p>
+<script>
+test(function() {
+  var parentEl = document.getElementById("parentEl")
+  assert_equals(parentEl.childElementCount, 0)
+})
+</script>

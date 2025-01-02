@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>cssom-view - scroll-behavior: smooth</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#smooth-scrolling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  .filler { height: 10000px }
+
+  .smooth {
+    scroll-behavior: smooth;
+  }
+
+  #scrollable {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="testContainer">
+  <div id="scrollable">
+    <div class="filler"></div>
+  </div>
+  <div class="filler"></div>
+</div>
+<script>
+  promise_test(async () => {
+    await waitForCompositorReady();
+  }, "Make sure the page is ready for animation.");
+
+  var instantHistoryNavigationTest =
+    async_test("Instant scrolling while doing history navigation.");
+  var smoothHistoryNavigationTest =
+    async_test("Smooth scrolling while doing history navigation.");
+
+  function instant() {
+    document.documentElement.className = "";
+    document.body.className = "";
+    window.scrollTo(0, 0);
+    var p = document.createElement("pre");
+    p.textContent = new Array(1000).join("newline\n");
+    var a = document.createElement("a");
+    a.href = "#";
+    a.name = "foo";
+    a.textContent = "foo";
+    p.appendChild(a);
+    document.body.appendChild(p);
+    window.onhashchange = function() {
+      window.onhashchange = function() {
+        instantHistoryNavigationTest.step(function() {
+          assert_equals(location.hash, "", "Shouldn't be scrolled to a fragment.");
+          assert_equals(window.scrollY, 0, "Shouldn't be scrolled back to top yet.");
+        });
+        p.remove();
+        instantHistoryNavigationTest.done();
+        smooth();
+      }
+
+      instantHistoryNavigationTest.step(function() {
+        assert_equals(location.hash, "#foo", "Should be scrolled to a fragment.");
+        assert_not_equals(window.scrollY, 0, "Shouldn't be scrolled to top anymore.");
+      });
+      history.back();
+    }
+
+    instantHistoryNavigationTest.step(function() {
+      assert_equals(window.scrollY, 0, "Should be scrolled to top.");
+      assert_equals(location.hash, "", "Shouldn't be scrolled to a fragment.");
+    });
+    location.hash = "foo";
+  };
+  instant();
+
+  function smooth() {
+    document.documentElement.className = "";
+    document.body.className = "";
+    window.scrollTo(0, 0);
+    var p = document.createElement("pre");
+    p.textContent = new Array(1000).join("newline\n");
+    var a = document.createElement("a");
+    a.href = "#";
+    a.name = "bar";
+    a.textContent = "bar";
+    p.appendChild(a);
+    document.body.appendChild(p);
+    window.onhashchange = function() {
+      window.onhashchange = function() {
+        smoothHistoryNavigationTest.step(function() {
+          assert_equals(location.hash, "", "Shouldn't be scrolled to a fragment.");
+          assert_not_equals(window.scrollY, 0, "Shouldn't be scrolled back to top yet.");
+        });
+        p.remove();
+        smoothHistoryNavigationTest.done();
+      }
+
+      smoothHistoryNavigationTest.step(function() {
+        assert_equals(location.hash, "#bar", "Should be scrolled to a fragment.");
+        assert_not_equals(window.scrollY, 0, "Shouldn't be scrolled to top anymore.");
+      });
+      history.back();
+    }
+
+    smoothHistoryNavigationTest.step(function() {
+      assert_equals(window.scrollY, 0, "Should be scrolled to top.");
+      assert_equals(location.hash, "", "Shouldn't be scrolled to a fragment.");
+    });
+    location.hash = "bar";
+    document.documentElement.className = "smooth";
+  };
+
+  testContainer.style.display = "none";
+</script>

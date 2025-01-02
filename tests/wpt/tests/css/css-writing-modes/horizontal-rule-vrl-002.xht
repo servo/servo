@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: horizontal rule - 'vertical-rl' and orthogonal flow</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="7.1 Principles of Layout in Vertical Writing Modes" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" />
+  <link rel="match" href="horizontal-rule-vrl-002-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks that an horizontal rule (&lt;hr&gt; element) in 'vertical-rl' writing-mode must be rendered as a vertical rule." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      writing-mode: vertical-rl;
+    }
+
+  body
+    {
+      margin: 0px;
+    }
+
+  hr
+    {
+      background-color: green;
+      border: transparent none 0px;
+      height: auto;
+      margin: 0px;
+      width: 10px;
+    }
+
+  div#overlapped-red
+    {
+      background-color: red;
+      height: 100%;
+      left: 10px;
+      position: relative;
+      width: 10px;
+      z-index: -1;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p><img src="support/pass-cdts-horiz-rule.png" width="260" height="36" alt="Image download support must be enabled" /></p>
+
+  <hr></hr>
+
+  <div id="overlapped-red"></div>
+
+ </body>
+</html>

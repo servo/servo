@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<head>
+<title>CSSOM MouseEvent tests</title>
+<div style="background:lightblue; height:10000px">
+  Hello
+</div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function () {
+    var mouseEvent = new MouseEvent('mousedown', {clientX: 10, clientY: 20});
+    assert_equals(mouseEvent.x, 10);
+    assert_equals(mouseEvent.y, 20);
+    mouseEvent = new MouseEvent('mousedown', {clientX: 30, clientY: 40});
+    assert_equals(mouseEvent.x, 30);
+    assert_equals(mouseEvent.y, 40);
+}, 'MouseEvent\'s x and y must be equal to clientX and clientY.');
+
+test(function () {
+    var mouseEvent1 = new MouseEvent('mousedown', {clientX: 10, clientY: 20});
+    assert_equals(mouseEvent1.pageX, 10);
+    assert_equals(mouseEvent1.pageY, 20);
+    scrollBy(0, 5000);
+    assert_equals(mouseEvent1.pageX, 10);
+    assert_equals(mouseEvent1.pageY, 5020);
+
+    var mouseEvent2 = new MouseEvent('mousedown', {clientX: 10, clientY: 20});
+    assert_equals(mouseEvent2.pageX, 10);
+    assert_equals(mouseEvent2.pageY, 5020);
+}, 'MouseEvent\'s pageX and pageY attributes should be the sum of the scroll offset and clientX/clientY');
+
+test(function () {
+    var mouseEvent = new MouseEvent('mousedown', {clientX: 10, clientY: 20});
+    assert_equals(mouseEvent.offsetX, mouseEvent.pageX);
+    assert_equals(mouseEvent.offsetY, mouseEvent.pageY);
+    scrollBy(0, 5000);
+    assert_equals(mouseEvent.offsetX, mouseEvent.pageX);
+    assert_equals(mouseEvent.offsetY, mouseEvent.pageY);
+}, 'MouseEvent\'s offsetX/offsetY attributes should be the same value as its pageX/pageY attributes.');
+</script>
+</head>

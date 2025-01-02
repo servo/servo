@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200">
+  <metadata>
+    <h:link rel="help" href="ttps://www.w3.org/TR/css-transforms-1/#transform-attribute-specificity"/>
+    <link rel="match" href="transform-origin-not-explicit-style-ref.svg"/>
+    <h:meta name="assert" content="The transform-origin attribute impacts SVG rendering."/>
+  </metadata>
+  <style>
+    rect {
+      fill: green;
+    }
+  </style>
+  <g transform="translate(140, 130)">
+    <rect x="0" y="0" width="40" height="10" transform="scale(2, 3)" transform-origin="30 10"/>
+  </g>
+</svg>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API - controlling ua - sandboxing</title>
+<link rel="author" title="Francois Daoust" href="https://www.w3.org/People/#fd">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-start">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common.js"></script>
+<script>
+    add_completion_callback((tests, status) => {
+      // remove unserializable attributes, then send the result to the parent window
+      // note: a single test result is supposed to appear here.
+      parent.window.postMessage(JSON.parse(JSON.stringify({
+        type: 'presentation-api', test: tests[0], status: status
+      })), '*');
+    });
+
+    // disable timeout for manual tests
+    setup({explicit_timeout: true});
+
+    window.onmessage = function (ev) {
+      try {
+        // Presentation URLs are relative to the "controlling-ua" folder,
+        // update relative URLs for this folder
+        var urls = presentationUrls.map(function (url) {
+          if (/:\/\//.test(url)) {
+            return url;
+          }
+          else {
+            return '../' + url;
+          }
+        });
+        var request = null;
+        if (ev.data === 'create') {
+          try {
+            request = new PresentationRequest(urls);
+            parent.window.postMessage('success', '*');
+          }
+          catch (err) {
+            parent.window.postMessage(err.name, '*');
+          }
+        }
+        else if (ev.data === 'start') {
+          request = new PresentationRequest(urls);
+          request.start()
+            .then(function () {
+              parent.window.postMessage('success', '*');
+            })
+            .catch(function (err) {
+              if ((err.name === 'NotFoundError') ||
+                  (err.name === 'NotAllowedError')) {
+                // These errors either mean that the user dismissed the dialog
+                // box or that the UA could not find any available or suitable
+                // screen. This is equivalent of succeeding for the purpose of
+                // iframe tests.
+                parent.window.postMessage('success', '*');
+              }
+              else {
+                parent.window.postMessage(err.name, '*');
+              }
+            });
+        }
+        else if (ev.data === 'reconnect') {
+          request = new PresentationRequest(urls);
+          request.reconnect('someid')
+            .then(function () {
+              parent.window.postMessage('success', '*');
+            })
+            .catch(function (err) {
+              parent.window.postMessage(err.name, '*');
+            });
+        }
+        else if (ev.data.match(/^reconnect\?id=(.*)$/)) {
+          promise_test(function (t) {
+            var presentationId = RegExp.$1;
+            var phase = -1, actual = -1, connection, waitConnection;
+            var description = [
+              "Phase #1: Promise is resolved",
+              "Phase #2: 'connectionavailable' event fired",
+              "Phase #3: 'connect' event fired"
+            ].map(d => { return '(Reconnecting in a nested browsing context) ' + d; });
+
+            var count = function(evt) { actual++; return evt; };
+            var checkPhase = function(evt) {
+              phase++;
+              assert_equals(description[actual], description[phase], 'Event order is incorrect.');
+              return evt;
+            };
+
+            request = new PresentationRequest(urls);
+
+            var eventWatcher = new EventWatcher(t, request, 'connectionavailable');
+            var waitConnectionavailable = eventWatcher.wait_for('connectionavailable').then(count).then(function (evt) {
+              connection = connection || evt.connection; return evt;
+            });
+
+            return request.reconnect(presentationId).then(count).then(checkPhase).then(function (c) {
+              // Reconnecting Phase #1: Promise is resolved
+              connection = c;
+              assert_equals(connection.state, 'connecting', 'Check the initial state of the presentation connection.');
+              assert_equals(connection.id, presentationId, "The same presentation ID is set to the newly created presentation connection.");
+              assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
+
+              var eventWatcher = new EventWatcher(t, connection, 'connect');
+              waitConnect = eventWatcher.wait_for('connect').then(count);
+
+              // Reconnecting Phase #2: "connectionavailable" event is fired
+              return waitConnectionavailable;
+            }).then(checkPhase).then(function (evt) {
+              assert_true(evt instanceof PresentationConnectionAvailableEvent, 'An event using PresentationConnectionAvailableEvent is fired.');
+              assert_true(evt.isTrusted, 'The event is a trusted event.');
+              assert_false(evt.bubbles, 'The event does not bubbles.');
+              assert_false(evt.cancelable, 'The event is not cancelable.');
+              assert_equals(evt.type, 'connectionavailable', 'The event name is "connectionavailable".');
+              assert_equals(evt.target, request, 'event.target is the presentation request.');
+              assert_true(evt.connection instanceof PresentationConnection, 'event.connection is a presentation connection.');
+              assert_equals(evt.connection, connection, 'event.connection is set to the presentation which the promise is resolved with.');
+
+              // Reconnecting Phase #3: "connect" event is fired
+              return waitConnect;
+            }).then(checkPhase).then(function (evt) {
+              assert_true(evt.isTrusted && !evt.bubbles && !evt.cancelable && evt instanceof Event, 'A simple event is fired.');
+              assert_equals(evt.type, 'connect', 'The event name is "connect".');
+              assert_equals(evt.target, connection, 'event.target is the presentation connection.');
+              assert_equals(connection.state, 'connected', 'The presentation connection state is set to "connected".');
+              parent.window.postMessage({ type: 'presentation-api', test: { status: 0 } }, '*');
+              var terminateWatcher = new EventWatcher(t, connection, 'terminate');
+
+              // "terminate" event is fired
+              return terminateWatcher.wait_for('terminate');
+            }).then(function (evt) {
+              assert_true(evt.isTrusted && !evt.bubbles && !evt.cancelable && evt instanceof Event, 'A simple event is fired.');
+              assert_equals(evt.type, 'terminate', 'The event name is "terminate".');
+              assert_equals(evt.target, connection, 'event.target is the presentation connection.');
+              assert_equals(connection.state, 'terminated', 'The presentation connection state is set to "terminated".');
+            });
+          });
+        }
+        else if (ev.data.match(/^terminate\?id=(.*)$/)) {
+          var presentationId = RegExp.$1;
+          request = new PresentationRequest(urls);
+          request.reconnect(presentationId)
+            .then(function (c) {
+              parent.window.postMessage('reconnected', '*');
+              c.onterminate = function(evt) {
+                parent.window.postMessage({
+                  isSimpleEvent: evt.isTrusted && !evt.bubbles && !evt.cancelable && evt instanceof Event,
+                  type: evt.type,
+                  checkConnection: evt.target === c,
+                  state: c.state
+                }, '*');
+              };
+            })
+            .catch(function (err) {
+              parent.window.postMessage(err.name, '*');
+            });
+        }
+        else if (ev.data === 'getAvailability') {
+          request = new PresentationRequest(urls);
+          request.getAvailability()
+            .then(function () {
+              parent.window.postMessage('success', '*');
+            })
+            .catch(function (err) {
+              if (err.name === 'NotSupportedError') {
+                parent.window.postMessage('success', '*');
+              }
+              else {
+                parent.window.postMessage(err.name, '*');
+              }
+            });
+        }
+      }
+      catch (err) {
+        parent.window.postMessage('Could not create PresentationRequest', '*');
+      }
+    }
+    parent.window.postMessage('ready', '*');
+</script>
+

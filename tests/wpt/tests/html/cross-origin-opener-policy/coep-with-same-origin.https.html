@@ -1,0 +1,44 @@
+<!doctype html>
+<title>Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+<script src="resources/popup-test.js"></script>
+<script>
+[
+  {
+    "title": "popup with coop/coep",
+    "coop": "same-origin",
+    "coep": "require-corp",
+    "opener": "preserved"
+  },
+  {
+    "title": "popup with coop unsafe-none/coep",
+    "coop": "unsafe-none",
+    "coep": "require-corp",
+    "opener": "severed"
+  },
+  {
+    "title": "popup with coop unsafe-none without coep",
+    "coop": "unsafe-none",
+    "coep": "",
+    "opener": "severed"
+  },
+  {
+    "title": "popup without coep",
+    "coop": "same-origin",
+    "coep": "",
+    "opener": "severed"
+  }
+].forEach(variant => {
+  popup_test(`Same-origin ${variant.title}`, SAME_ORIGIN, { coop: variant.coop, coep: variant.coep }, variant.opener);
+});
+
+test(() => {
+  assert_true(window.crossOriginIsolated);
+}, "Bonus: window.crossOriginIsolated");
+</script>

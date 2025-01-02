@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><!-- The lang is important! -->
+<meta charset="utf-8">
+<title>CSS Test: Calc with rem and relative units on the root element</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-values/#rem">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1431031">
+<link rel="match" href="calc-rem-lang-ref.html">
+<style>
+  html {
+    font-size: calc(1rem + 1em);
+  }
+</style>
+<p style="font-size: initial">You should see a green box twice-the-initial-font-size wide.</p>
+<div style="width: 1em; height: 1em; background: green;"></div>
+</html>

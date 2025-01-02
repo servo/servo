@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>PNG Third Edition: animated PNG, bit depth. 1-bit palette and transparency</title>
+<link rel="author" title="Philip Taylor" href="mailto:excors@gmail.com">
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/png-3/#apng-frame-based-animation">
+<link rel="help" href="https://www.w3.org/TR/png-3/#fdAT-chunk">
+<link rel="match" href="apng-darkblue-rectangle-ref.html">
+<meta name="assert" content="It utilizes the same bit depth, colour type, compression method, filter method, interlace method, and palette (if any) as the static image.">
+<script>
+    const el = document.querySelector(".reftest-wait");
+    setTimeout(() => {
+        el.classList.remove('reftest-wait');
+        }, 2100);
+</script>
+<style>
+    .test {
+        width: 128px;
+        height: 64px;
+        background-color: white;
+        background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+</style>
+<body>
+    <p>Test passes if you see a dark blue rectangle, and no red.</p>
+    <div class="test"><img src="support/038.png" alt=""></div>
+</body>

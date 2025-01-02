@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+(async function() {
+  test_driver.set_test_context(window.opener);
+
+  // Step 3 (partitioned-popins/partitioned-popins.recursive.tentative.sub.https.window.js)
+  let message = "Could not open inner popin";
+  try {
+    window.open("/partitioned-popins/resources/partitioned-popins.close.html", '_blank', 'popin');
+    message = "Did open inner popin";
+  } catch (_) {}
+  window.opener.postMessage({type: "popin", message: message}, "*");
+  window.close();
+})();
+</script>

@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.prototype.getParameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpParameters-helper.js:
+  //   validateReceiverRtpParameters
+
+  /*
+    Validates the RTCRtpParameters returned from RTCRtpReceiver.prototype.getParameters
+
+    5.3.  RTCRtpReceiver Interface
+      getParameters
+        When getParameters is called, the RTCRtpParameters dictionary is constructed
+        as follows:
+
+        - The headerExtensions sequence is populated based on the header extensions that
+          the receiver is currently prepared to receive.
+
+        - The codecs sequence is populated based on the codecs that the receiver is currently
+          prepared to receive.
+
+        - rtcp.reducedSize is set to true if the receiver is currently prepared to receive
+          reduced-size RTCP packets, and false otherwise. rtcp.cname is left undefined.
+  */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('audio');
+    const callee = await doOfferAnswerExchange(t, pc);
+    const param = callee.getTransceivers()[0].receiver.getParameters();
+    validateReceiverRtpParameters(param);
+
+    assert_greater_than(param.headerExtensions.length, 0);
+    assert_greater_than(param.codecs.length, 0);
+  }, 'getParameters() with audio receiver');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('video');
+    const callee = await doOfferAnswerExchange(t, pc);
+    const param = callee.getTransceivers()[0].receiver.getParameters();
+    validateReceiverRtpParameters(param);
+
+    assert_greater_than(param.headerExtensions.length, 0);
+    assert_greater_than(param.codecs.length, 0);
+  }, 'getParameters() with video receiver');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.addTransceiver('video', {
+      sendEncodings: [
+        { rid: "rid1" },
+        { rid: "rid2" }
+      ]
+    });
+    const callee = await doOfferAnswerExchange(t, pc);
+    const param = callee.getTransceivers()[0].receiver.getParameters();
+    validateReceiverRtpParameters(param);
+    assert_greater_than(param.headerExtensions.length, 0);
+    assert_greater_than(param.codecs.length, 0);
+  }, 'getParameters() with simulcast video receiver');
+
+  promise_test(async t => {
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    caller.addTrack(track);
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    callee.addTrack(track);
+    var callerReceiver = caller.getTransceivers()[0].receiver;
+    assert_equals(callerReceiver.getParameters().codecs.length, 0);
+    const offer = await caller.createOffer();
+    await caller.setLocalDescription(offer);
+    await callee.setRemoteDescription(offer);
+    var calleeReceiver = callee.getTransceivers()[0].receiver;
+    assert_equals(calleeReceiver.getParameters().codecs.length, 0);
+    const answer = await callee.createAnswer();
+    await callee.setLocalDescription(answer);
+    assert_greater_than(calleeReceiver.getParameters().codecs.length, 0,
+      "callee codecs after answer");
+    await caller.setRemoteDescription(answer);
+    assert_greater_than(callerReceiver.getParameters().codecs.length, 0,
+      "caller codecs after answer");
+  }, 'getParameters() surfaces codecs on two-way receiver at the right time');
+
+</script>

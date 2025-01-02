@@ -1,0 +1,45 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" href="mailto:atotic@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/tables.html#the-td-element">
+<meta name="assert" content="Dynamic changes to rowspan/colspan relayout the table" />
+<style>
+  main table {
+    border-spacing:0;
+  }
+  main td {
+    background: green;
+    width:50px;
+    height:50px;
+    padding: 0;
+  }
+</style>
+
+<main>
+  <table data-expected-width="100">
+    <tr>
+      <td id="rowspan_target"></td>
+    </tr>
+    <tr>
+      <td></td>
+    </tr>
+  </table>
+<br>
+  <table data-expected-width="150">
+    <col style="width:50px">
+    <col style="width:50px">
+    <tr>
+      <td id="colspan_target"></td>
+      <td></td>
+    </tr>
+  </table>
+</main>
+
+<script>
+  document.body.offsetTop;
+  document.querySelector("#rowspan_target").setAttribute("rowspan", "2");
+  document.querySelector("#colspan_target").setAttribute("colspan", "2");
+  checkLayout("main table");
+</script>

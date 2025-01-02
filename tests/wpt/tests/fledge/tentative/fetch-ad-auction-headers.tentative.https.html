@@ -1,0 +1,12 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+    promise_test(async t => {
+      let response = await fetch('./resources/empty.html', {adAuctionHeaders: true});
+      // TODO(crbug.com/1442274): Check the request header when the functions
+      // are fully implemented.
+    }, 'test fetch(<url>, {adAuctionHeaders: true})');
+  </script>
+</body>

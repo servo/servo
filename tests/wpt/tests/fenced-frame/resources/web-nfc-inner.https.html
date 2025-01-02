@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of Web NFC API</title>
+
+<body>
+<script>
+async function init() {
+  const [ndef_write_key, ndef_scan_key] = parseKeylist();
+
+  const ndef = new NDEFReader();
+  ndef.write("Hello").then(
+    () => { writeValueToServer(ndef_write_key, "resolved"); },
+    () => { writeValueToServer(ndef_write_key, "rejected"); }
+  );
+  ndef.scan().then(
+    () => { writeValueToServer(ndef_scan_key, "resolved"); },
+    () => { writeValueToServer(ndef_scan_key, "rejected"); }
+  );
+}
+
+init();
+</script>
+</body>

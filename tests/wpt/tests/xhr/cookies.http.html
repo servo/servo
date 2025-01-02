@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<p>Derived from historical testcase for <a href="http://bugs.webkit.org/show_bug.cgi?id=3420">WebKit bug 3420</a>:
+XMLHttpRequest does not handle set-cookie headers.</p>
+
+<script>
+    function clearCookies()
+    {
+      return new Promise(resolve => {
+        var req = new XMLHttpRequest;
+        req.open("POST", "resources/get-set-cookie.py?clear=1");
+        req.onload = () => resolve();
+        req.send("");
+      });
+    }
+    function getAndSetCookies()
+    {
+      return new Promise(resolve => {
+        var req = new XMLHttpRequest;
+        req.open("POST", "resources/get-set-cookie.py");
+        req.onload = () => resolve(req.responseText);
+        req.send("");
+      });
+    }
+
+    promise_test(async function(t) {
+      await clearCookies();
+      var response = await getAndSetCookies();
+      assert_equals(response.match(/.*WK-test=1.*/), null,
+                    "The cookie must not be present after clear. clearCookies() failed.  Must be a bug in the test!");
+      var response = await getAndSetCookies();
+      assert_equals(response.match(/.*WK-test-secure=1.*/), null,
+                    "a secure cookie was sent via HTTP");
+      assert_regexp_match(response, /.*WK-test=1.*/, "an insecure cookie was sent");
+      await clearCookies();
+    }, "Basic non-cross-site cookie handling in XHR");
+</script>
+</html>

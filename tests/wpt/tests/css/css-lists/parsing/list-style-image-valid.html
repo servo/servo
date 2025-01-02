@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: parsing list-style-image with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style-image">
+<meta name="assert" content="list-style-image supports the full grammar '<image> | none'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value('list-style-image', 'none');
+
+test_valid_value('list-style-image', 'url("https://example.com/")');
+
+test_valid_value('list-style-image', 'linear-gradient(to left bottom, red, blue)');
+
+// TODO: Add cross-fade tests when browsers add support.
+</script>
+</body>
+</html>

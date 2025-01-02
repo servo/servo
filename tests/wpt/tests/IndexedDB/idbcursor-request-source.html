@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: The source of requests made against cursors</title>
+<meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbrequest-source">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+<script>
+
+[
+  cursor => cursor.update(0),
+  cursor => cursor.delete()
+].forEach(func => indexeddb_test(
+  (t, db) => {
+    db.createObjectStore('store', {autoIncrement: true});
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const store = tx.objectStore('store');
+    store.put('value');
+    store.openCursor().onsuccess = t.step_func(e => {
+      const cursor = e.target.result;
+      assert_equals(func(cursor).source, cursor,
+                    `${func}.source should be the cursor itself`);
+      t.done();
+    });
+  },
+  `The source of the request from ${func} is the cursor itself`
+));
+
+</script>

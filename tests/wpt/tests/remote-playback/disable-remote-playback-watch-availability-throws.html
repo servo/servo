@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <title>
+    Test that calling watchAvailability() when disableRemotePlayback attribute is set throws an exception
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    promise_test(t => {
+      let v = document.createElement("video");
+      v.src = getVideoURI("/media/movie_5");
+      v.disableRemotePlayback = true;
+
+      return promise_rejects_dom(
+        t,
+        "InvalidStateError",
+        v.remote.watchAvailability(() => {})
+      );
+    }, "Test that calling watchAvailability() when disableRemotePlayback attribute is set throws an exception.");
+  </script>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  // Loading the worklet script uses CORS, which doesn't support the data
+  // scheme.
+  return promise_rejects_dom(t, "OperationError",
+                             sharedStorage.worklet.addModule(
+                               `data:application/javascript;alert("Hi!")`));
+}, 'addModule() with data URL module script');
+
+promise_test(async t => {
+  // Loading the worklet script uses CORS, which doesn't support the data
+  // scheme.
+  return promise_rejects_dom(t, "OperationError",
+                             sharedStorage.createWorklet(
+                               `data:application/javascript;alert("Hi!")`));
+}, 'createWorklet() with data URL module script and default data origin');
+
+promise_test(async t => {
+  // Loading the worklet script uses CORS, which doesn't support the data
+  // scheme.
+  return promise_rejects_dom(t, "OperationError",
+                             sharedStorage.createWorklet(
+                                 `data:application/javascript;alert("Hi!")`,
+                                 { dataOrigin: "context-origin" }));
+}, 'createWorklet() with data URL module script and dataOrigin "context-origin"');
+
+promise_test(async t => {
+  // Opaque data origins are not permitted.
+  return promise_rejects_dom(t, "InvalidAccessError",
+                             sharedStorage.createWorklet(
+                                 `data:application/javascript;alert("Hi!")`,
+                                 { dataOrigin: "script-origin" }));
+}, 'createWorklet() with data URL module script and dataOrigin "script-origin"');
+</script>
+</body>

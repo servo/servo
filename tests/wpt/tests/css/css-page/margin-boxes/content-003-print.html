@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#populating-margin-boxes">
+<meta name="assert" content="Test image in the content property inside page margin boxes.">
+<link rel="match" href="content-003-print-ref.html">
+<style>
+  @page {
+    margin: 0;
+    margin-top: 50px;
+
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      content: "Lime rectangle: " url(/images/green.png);
+    }
+  }
+</style>

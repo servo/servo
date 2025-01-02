@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1240261">
+<link rel="match" href="change-src-while-not-displayed-ref.html">
+<embed id="embed" style="display:block;" src="data:text/html,FAIL">
+<script>
+  onload = function() {
+    document.body.offsetTop;
+    embed.style.display = "none";
+    document.body.offsetTop;
+    embed.src = "data:text/html,PASS";
+    document.body.offsetTop;
+    embed.style.display = "block";
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        document.documentElement.classList.remove('reftest-wait');
+      });
+    });
+  }
+</script>

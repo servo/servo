@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS filter : Clipping on descendant of filter element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#funcdef-filter-opacity">
+<link rel="help" href="https://crbug.com/734116">
+<link rel="help" href="https://crbug.com/747511">
+<link rel="match" href="reference/clip-under-filter-003-ref.html">
+<meta name="assert" content="This test ensures that overflow clip correctly applies to children in the presence of a filter on the same element"/>
+<div style="position:relative; width:100px; height:100px; border:5px dashed black; background:green; overflow:hidden; filter:opacity(1);">
+  <div style="margin-left:-5px; margin-top:-5px; width:100px; height:100px; border:5px solid red;"></div>
+</div>
+This test verifies overflow clip correctly applies to children in the presence of a filter on the same element.<br/>
+It succeeds if a green box with dashed black border is shown. No red border should be visible.

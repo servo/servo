@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>View transitions: pagereveal event provides viewTransition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<meta name="timeout" content="long">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(event.viewTransition, null,
+      "Transition should have been skipped when document was minimized");
+  });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  const render_blocker = document.createElement("script");
+  render_blocker.blocking = "render";
+  render_blocker.src = "/loading/resources/dummy.js?pipe=trickle(d10)";
+  render_blocker.type = "module";
+  document.head.append(render_blocker);
+
+  addEventListener('pagereveal', e => window.opener.did_reveal(e));
+
+  test_driver.minimize_window().then(rect => {
+    render_blocker.remove();
+    test_driver.set_window_rect(rect);
+  });
+  break;
+}
+</script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>

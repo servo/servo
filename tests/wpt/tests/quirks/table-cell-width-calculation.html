@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+ <head>
+  <title>The table cell width calculation quirk</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style> iframe { width:200px; height:20px; } </style>
+ </head>
+ <body>
+  <div id=log></div>
+  <iframe id=quirks></iframe>
+  <iframe id=almost></iframe>
+  <iframe id=standards></iframe>
+  <script>
+    setup({explicit_done:true});
+
+    var png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
+    var preload = new Image();
+    preload.src = png;
+
+    onload = function() {
+        var html = "<style id=style></style><table><tr><td id=test></table><table><tr><td id=ref></table><table><tr><td id=s_ref></table>";
+        var a_doctype = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">';
+        var s_doctype = '<!DOCTYPE HTML>';
+        var q = document.getElementById('quirks').contentWindow;
+        var a = document.getElementById('almost').contentWindow;
+        var s = document.getElementById('standards').contentWindow;
+        q.document.open();
+        q.document.write(html);
+        q.document.close();
+        a.document.open();
+        a.document.write(a_doctype + html);
+        a.document.close();
+        s.document.open();
+        s.document.write(s_doctype + html);
+        s.document.close();
+        [q, a, s].forEach(function(win) {
+            ['style', 'test', 'ref', 's_ref'].forEach(function(id) {
+                Object.getPrototypeOf(win).__defineGetter__(id, function() { return win.document.getElementById(id); });
+            });
+        });
+        q.title = 'quirks mode';
+        a.title = 'almost standards mode';
+        s.title = 'standards mode';
+
+        var tests = [
+        {desc:"baseline",
+        style:'table { width:8px }', // cell content width should be 2px (2px cell-spacing, 1px padding)
+        test:'<img src="{png}">',
+        ref:'<img src="{png}">',
+        s_ref:'<img src="{png}">'},
+
+        {desc:"basic",
+        style:'table { width:8px }',
+        test:'<img src="{png}"><img src="{png}"><img src="{png}">',
+        ref:'<nobr><img src="{png}"><img src="{png}"><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"inline-block",
+        style:'table { width:8px } img { display:inline-block }',
+        test:'<img src="{png}"><img src="{png}"><img src="{png}">',
+        ref:'<nobr><img src="{png}"><img src="{png}"><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"img in span",
+        style:'table { width:8px }',
+        test:'<span><img src="{png}"><img src="{png}"><img src="{png}"></span>',
+        ref:'<nobr><img src="{png}"><img src="{png}"><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"the don't-wrap rule is only for the purpose of calculating the width of the cell",
+        style:'table { width:8px }',
+        test:'<img src="{png}"><wbr><img src="{png}"><img src="{png}"><img src="{png}">',
+        ref:'<nobr><img src="{png}"><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"><img src="{png}"></nobr>'},
+
+        {desc:"the quirk only applies when the cell is the containing block",
+        style:'table { width:8px }',
+        test:'<div><img src="{png}"><img src="{png}"><img src="{png}"></div>',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"><img src="{png}"></nobr>'},
+
+        {desc:"the quirk shouldn't apply for generated content",
+        style:'table { width:8px } #test::before { content:url("{png}") url("{png}") url("{png}") }',
+        test:'',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"the quirk shouldn't apply for <input>",
+        style:'table { width:8px }',
+        test:'<input type=image src="{png}"><input type=image src="{png}"><input type=image src="{png}">',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"the quirk shouldn't apply for <object>",
+        style:'table { width:8px }',
+        test:'<object data="{png}"></object><object data="{png}"></object><object data="{png}"></object>',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"the quirk shouldn't apply for <embed>",
+        style:'table { width:8px }',
+        test:'<embed src="{png}"><embed src="{png}"><embed src="{png}">',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"the quirk shouldn't apply for <video poster>",
+        style:'table { width:8px }',
+        test:'<video poster="{png}"></video><video poster="{png}"></video><video poster="{png}"></video>',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"non-auto width on cell",
+        style:'td { width:2px }',
+        test:'<img src="{png}"><img src="{png}"><img src="{png}">',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        {desc:"zero width on cell, specified with on table",
+        style:'table { width:8px } td { width:0 }',
+        test:'<img src="{png}"><img src="{png}"><img src="{png}">',
+        ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>',
+        s_ref:'<nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr>'},
+
+        // tests below use overwrite body.innerHTML so tests using test/ref/s_ref props need to be above
+        {desc:"display:table-cell on span",
+        style:'div { display:table; width:2px } span { display:table-cell }',
+        body:'<div><span id=test><img src="{png}"><img src="{png}"><img src="{png}"></span></div>'+
+        '<div><span id=ref><nobr><img src="{png}"><img src="{png}"><img src="{png}"></nobr></span></div>'+
+        '<div><span id=s_ref><nobr><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr></span></div>'},
+
+        {desc:"display:table-cell on span, wbr",
+        style:'div { display:table; width:2px } span { display:table-cell }',
+        body:'<div><span id=test><img src="{png}"><wbr><img src="{png}"><img src="{png}"><img src="{png}"></span></div>'+
+        '<div><span id=ref><nobr><img src="{png}"><img src="{png}"><img src="{png}"><br><img src="{png}"></nobr></span></div>'+
+        '<div><span id=s_ref><nobr><img src="{png}"><img src="{png}"><br><img src="{png}"><img src="{png}"></nobr></span></div>'},
+        ];
+
+        tests.forEach(function(t) {
+            test(function() {
+                var style = t.style.replace(/\{png\}/g, png);
+                var test = t.test && t.test.replace(/\{png\}/g, png);
+                var ref = t.ref && t.ref.replace(/\{png\}/g, png);
+                var s_ref = t.s_ref && t.s_ref.replace(/\{png\}/g, png);
+                var body = t.body && t.body.replace(/\{png\}/g, png);
+                [q, a, s].forEach(function(win) {
+                    win.style.textContent = style;
+                    if (body !== undefined) {
+                        win.document.body.innerHTML = body;
+                    } else {
+                        win.test.innerHTML = test;
+                        win.ref.innerHTML = ref;
+                        win.s_ref.innerHTML = s_ref;
+                    }
+                    assert_equals(win.getComputedStyle(win.test).width,
+                                  win.getComputedStyle(win == q ? win.ref : win.s_ref).width,
+                                  'cell width, '+win.title);
+                    var test_imgs = win.test.querySelectorAll('img');
+                    var ref_imgs = win.ref.querySelectorAll('img');
+                    var s_ref_imgs = win.s_ref.querySelectorAll('img');
+                    for (var i = 0; i < test_imgs.length; ++i) {
+                        assert_equals(test_imgs[i].offsetLeft,
+                                      win == q ? ref_imgs[i].offsetLeft : s_ref_imgs[i].offsetLeft,
+                                      'img '+i+' offsetLeft, '+win.title);
+                    }
+                });
+            }, document.title+', '+t.desc);
+        });
+
+        done();
+    }
+  </script>
+ </body>
+</html>

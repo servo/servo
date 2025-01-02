@@ -1,0 +1,56 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script>
+    function loadImage(url, hasSharedStorageWritableAttribute) {
+      return new Promise(function(resolve, reject) {
+        var img = document.createElement('img');
+        document.body.appendChild(img);
+        img.onload = function() {
+          resolve(img);
+        };
+        img.onerror = function() {
+          reject(new Error('Image load failed'));
+        };
+        if (hasSharedStorageWritableAttribute) {
+          img.sharedStorageWritable = true;
+        }
+        img.src = url;
+      });
+    }
+
+    function loadFrame(url, hasSharedStorageWritableAttribute) {
+      return new Promise(function(resolve, reject) {
+        var frame = document.createElement('iframe');
+        document.body.appendChild(frame);
+        frame.onload = function() {
+          window.parent.postMessage({msg: 'iframe loaded'}, "*");
+          resolve(frame);
+        };
+        frame.onerror = function() {
+          reject(new Error('Nested iframe load failed'));
+        };
+        if (hasSharedStorageWritableAttribute) {
+          frame.sharedStorageWritable = true;
+        }
+        frame.src = url;
+      });
+    }
+
+    function fetchUrl(url, hasSharedStorageWritableAttribute) {
+      return new Promise(function(resolve, reject) {
+        fetch(url, {sharedStorageWritable:
+                    hasSharedStorageWritableAttribute})
+          .then(response => {
+              if (!response.ok) {
+                throw new Error('Failed to fetch ' + url + '; '
+                  + String(response.status) + ' ' + response.statusText);
+              }
+              resolve(response);
+          }).catch(error => {
+              reject(error);
+          });
+      });
+    }
+  </script>
+</body>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: 3d transform</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="3d-transform-incoming-ref.html">
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<script src="/common/reftest-wait.js"></script>
+<style>
+div { box-sizing: border-box; will-change: transform }
+.rotate3d {
+  transform: translate(20px, 100px) rotate3d(1, 1, 1, 45deg);
+  background: blue;
+}
+
+.wrap_perspective {
+  perspective: 100px;
+  width: max-content;
+  transform: translate(200px);
+}
+.rotatex {
+  transform-style: preserve-3d;
+  transform: rotateX(20deg);
+  background: green;
+}
+.shared {
+  view-transition-name: shared;
+  width: 100px;
+  height: 100px;
+}
+#hidden {
+  view-transition-name: hidden;
+  width: 10px;
+  height: 10px;
+  background: red;
+}
+
+::view-transition-group(hidden) { animation-duration: 300s; }
+::view-transition-image-pair(hidden) { visibility: hidden; }
+::view-transition-group(root) { visibility: hidden; }
+::view-transition { background: pink; }
+::view-transition-group(*) { animation-delay: 300s; }
+::view-transition-new(*) { animation: unset; opacity: 1; }
+::view-transition-old(*) { animation: unset; opacity: 0; }
+</style>
+
+<div id=wrapper class=wrap_perspective><div id=target class="shared rotatex"></div></div>
+<div id=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  document.startViewTransition(() => {
+    wrapper.classList.toggle("wrap_perspective");
+    target.classList.toggle("rotatex");
+    target.classList.toggle("rotate3d");
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

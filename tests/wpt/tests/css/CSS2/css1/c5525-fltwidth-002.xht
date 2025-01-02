@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   div { background: url(support/pattern-tr.png) top center no-repeat; font-size: 10px; }
+   p { float: left; width: 50%; margin: 0; font-size: 2em; }
+   img { float: none; color: red; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'"/>
+ </head>
+ <body>
+  <div>
+   <p>&#x21E8; To the right, there should be a green square, roughly in the middle of the page horizontally. </p>
+   <img src="support/swatch-green.png" alt="FAIL" />
+  </div>
+ </body>
+</html>

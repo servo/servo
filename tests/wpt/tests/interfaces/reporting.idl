@@ -1,0 +1,39 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Reporting API (https://w3c.github.io/reporting/)
+
+[Exposed=(Window,Worker)]
+interface ReportBody {
+  [Default] object toJSON();
+};
+
+[Exposed=(Window,Worker)]
+interface Report {
+  [Default] object toJSON();
+  readonly attribute DOMString type;
+  readonly attribute DOMString url;
+  readonly attribute ReportBody? body;
+};
+
+[Exposed=(Window,Worker)]
+interface ReportingObserver {
+  constructor(ReportingObserverCallback callback, optional ReportingObserverOptions options = {});
+  undefined observe();
+  undefined disconnect();
+  ReportList takeRecords();
+};
+
+callback ReportingObserverCallback = undefined (sequence<Report> reports, ReportingObserver observer);
+
+dictionary ReportingObserverOptions {
+  sequence<DOMString> types;
+  boolean buffered = false;
+};
+
+typedef sequence<Report> ReportList;
+
+dictionary GenerateTestReportParameters {
+  required DOMString message;
+  DOMString group = "default";
+};

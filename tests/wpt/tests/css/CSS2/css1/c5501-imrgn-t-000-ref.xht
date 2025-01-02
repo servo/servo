@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div {margin: 1.25em 0;}
+
+  img {vertical-align: bottom;}
+
+  img.swatch-lime
+  {
+  border-bottom: yellow solid 1.25em;
+  border-top: yellow solid 1.25em;
+  }
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>The three diagrams below should be identical:</p>
+
+  <div>
+     <img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-lime.png"   alt="Image download support must be enabled" height="20" width="20" class="swatch-lime"
+   /><img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" height="60" width="60" />
+  </div>
+
+  <div>
+     <img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-lime.png"   alt="Image download support must be enabled" height="20" width="20" class="swatch-lime"
+   /><img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" height="60" width="60" />
+  </div>
+
+  <div>
+     <img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-lime.png"   alt="Image download support must be enabled" height="20" width="20" class="swatch-lime"
+   /><img src="support/swatch-orange.png" alt="Image download support must be enabled" height="60" width="60"
+   /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" height="60" width="60" />
+  </div>
+
+ </body>
+</html>

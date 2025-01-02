@@ -1,0 +1,24 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#text-TSpanNotes"/>
+    <h:meta name="assert" content="x y and rotate attributes on text elements are lists that support length()"/>
+</metadata>
+  <text id="text" font-family="Verdana" font-size="55" fill="blue"
+    y="150 130 160"
+    x="120 160 200 240"
+    rotate="0 0 10, -10, 0"
+    >My socks are blue.</text>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    /* The SVG spec requires (at least) readonly support for length */
+    test(function() {
+      var text = document.getElementById('text');
+      assert_equals(text.y.baseVal.length, 3);
+      assert_equals(text.x.baseVal.length, 4);
+      assert_equals(text.rotate.baseVal.length, 5);
+    });
+  ]]></script>
+</svg>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="output" width="100" height="100"></canvas>
+<script>
+var canvas = document.getElementById('output');
+var ctx = canvas.getContext('2d');
+
+ctx.filter = new CanvasFilter([
+  {filter: "gaussianBlur", stdDeviation: 10},
+  {filter: "colorMatrix", type: "hueRotate", values: 90}
+]);
+
+ctx.fillStyle = "cyan";
+ctx.fillRect(40, 0, 70, 70);
+ctx.fillStyle = "magenta";
+ctx.fillRect(40, 40, 70, 70);
+ctx.fillStyle = "yellow";
+ctx.fillRect(0, 40, 70, 70);
+</script>
+</body>
+</html>

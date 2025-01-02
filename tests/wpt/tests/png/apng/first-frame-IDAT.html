@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>PNG Third Edition: animated PNG</title>
+<link rel="author" title="Philip Taylor" href="mailto:excors@gmail.com">
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/png-3/#apng-frame-based-animation">
+<link rel="help" href="https://www.w3.org/TR/png-3/#structure">
+<link rel="match" href="apng-lime-rectangle-ref.html">
+<meta name="assert" content="The static image may be included as the first frame of the animation by the presence of a single fcTL chunk before IDAT.">
+<script>
+    const el = document.querySelector(".reftest-wait");
+    setTimeout(() => {
+        el.classList.remove('reftest-wait');
+        }, 2000);
+</script>
+<body>
+    <p>Test passes if you see a lime green rectangle, and no red.</p>
+    <div class="test"><img src="support/001.png" alt=""></div>
+</body>

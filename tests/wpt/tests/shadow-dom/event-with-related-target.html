@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shadow DOM: Firing an event with relatedTarget inside a shadow tree</title>
+    <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+    <meta name="assert" content="The retargeting algorithm is used to determine relative targets">
+    <link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#retargeting-relatedtarget">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/event-path-test-helpers.js"></script>
+</head>
+<body>
+    <div id="log"></div>
+    <script>
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A ----------------------------------------------- A-SR
+        + B ----------- B-SR (4)                          + A1 --- A1-SR
+          + C           + B1 (3) [*; 0-4] --- B1-SR (2)   + A2-S   + A1a
+          + D --- D-SR    + B1a (*; 0)        + B1b [1,2] --- B1b-SR
+                  + D1                        + B1c-S (1)     + B1b1
+                                                              + B1b2
+        */
+        function testEventAtB1aWithB1a(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1}));
+
+                assert_array_equals(log.eventPath,
+                    ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['B1',  'B1',    'B1',    'B1', 'B1'], 'The related targets must be correct.');
+
+            }, 'Firing an event at B1a with relatedNode at B1 with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtB1aWithB1a('open');
+        testEventAtB1aWithB1a('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A ------------------------------------------------- A-SR
+        + B ----------- B-SR (4)                            + A1 --- A1-SR
+          + C           + B1 (3) [0,3-4] --- B1-SR (2)      + A2-S   + A1a
+          + D --- D-SR    + B1a (*; 0)       + B1b [1,2] --- B1b-SR
+                  + D1                       + B1c-S (1)     + B1b1 [*]
+                                                             + B1b2
+        */
+        function testEventAtB1aWithB1b1(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1b1}));
+
+                assert_array_equals(log.eventPath,
+                    ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['B1',  'B1b',   'B1b',   'B1', 'B1'], 'The related targets must be correct.');
+
+            }, 'Firing an event at B1a with relatedNode at B1b1 with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtB1aWithB1b1('open');
+        testEventAtB1aWithB1b1('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A -------------------------------------------------- A-SR
+        + B ------------- B-SR (5)                           + A1 --- A1-SR
+          + C             + B1 (4) ------- B1-SR (3)         + A2-S   + A1a
+          + D --- D-SR    + B1a [*; 0-5]   + B1b (2) --- B1b-SR (1)
+                  + D1                     + B1c-S       + B1b1 (*; 0)
+                                                         + B1b2
+        */
+        function testEventAtB1b1WithB1a(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                log = dispatchEventWithEventLog(nodes, nodes.B1b1, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+
+                assert_array_equals(log.eventPath,
+                    ['B1b1', 'B1b-SR', 'B1b', 'B1-SR', 'B1', 'B-SR'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['B1a',  'B1a',    'B1a', 'B1a',   'B1a', 'B1a'], 'The related targets must be correct.');
+
+            }, 'Firing an event at B1b1 with relatedNode at B1a with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtB1b1WithB1a('open');
+        testEventAtB1b1WithB1a('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A (8) -------------------------------------------------- A-SR (7)
+        + B (5) -------------- B-SR (4)                          + A1 -------- A1-SR
+          + C                  + B1 (3) [*; 0-4] --- B1-SR (2)   + A2-S (6)    + A1a
+          + D [0-8] --- D-SR     + B1a (*; 0)        + B1b ------ B1b-SR
+                        + D1 [*]                     + B1c-S (1)  + B1b1
+                                                                  + B1b2
+        */
+        function testEventAtB1aWithD1(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.D1}));
+
+                assert_array_equals(log.eventPath,
+                    ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D'], 'The related targets must be correct.');
+
+            }, 'Firing an event at B1a with relatedNode at D1 with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtB1aWithD1('open');
+        testEventAtB1aWithD1('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A (6) ----------------------------------- A-SR (5)
+        + B (3) [0] ----------- B-SR              + A1 ------ A1-SR
+          + C                   + B1 ----- B1-SR  + A2-S (4)  + A1a
+          + D (2) --- D-SR (1)  + B1a [*]  + B1b --- B1b-SR
+                        + D1 (*; 0)         + B1c-S   + B1b1
+                                                      + B1b2
+        */
+        function testEventAtD1WithB1a(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                log = dispatchEventWithEventLog(nodes, nodes.D1, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+
+                assert_array_equals(log.eventPath,
+                    ['D1', 'D-SR', 'D', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['B', 'B', 'B', 'B', 'B', 'B', 'B'], 'The related targets must be correct.');
+
+            }, 'Firing an event at D1 with relatedNode at B1a with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtD1WithB1a('open');
+        testEventAtD1WithB1a('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A (8) [0-5,8] ---------------------------------------- A-SR (7)
+        + B (5)  ------- B-SR (4)                              + A1 [6,7] --- A1-SR
+          + C            + B1 (3) ----- B1-SR (2)              + A2-S (6)     + A1a [*]
+          + D --- D-SR   + B1a (*; 0)   + B1b ------- B1b-SR
+                  + D1                  + B1c-S (1)   + B1b1
+                                                      + B1b2
+        */
+        function testEventAtB1aWithA1a(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.A1a}));
+
+                assert_array_equals(log.eventPath,
+                    ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['A',   'A',     'A',     'A',   'A',   'A', 'A1',   'A1',   'A'], 'The related targets must be correct.');
+
+            }, 'Firing an event at B1a with relatedNode at A1a with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtB1aWithA1a('open');
+        testEventAtB1aWithA1a('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A (4) ----------------------------------------- A-SR (3)
+        + B [0-4]  ----- B-SR                           + A1 (2) --- A1-SR (1)
+          + C            + B1 ------- B1-SR             + A2-S       + A1a (*; 0)
+          + D --- D-SR     + B1a [*]  + B1b --- B1b-SR
+                  + D1                + B1c-S   + B1b1
+                                                + B1b2
+        */
+        function testEventAtA1aWithB1a(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                log = dispatchEventWithEventLog(nodes, nodes.A1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+
+                assert_array_equals(log.eventPath,
+                    ['A1a', 'A1-SR', 'A1', 'A-SR', 'A'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['B', 'B', 'B', 'B', 'B'], 'The related targets must be correct.');
+
+            }, 'Firing an event at A1a with relatedNode at B1a with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtA1aWithB1a('open');
+        testEventAtA1aWithB1a('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A (8) ----------------------------------- A-SR (7)
+        + B (5)  ----- B-SR (4)                   + A2-S (6)
+          + C          + B1 (3) ----- B1-SR (2)
+          + D --- D-SR   + B1a (*; 0) + B1b ------- B1b-SR
+                  + D1                + B1c-S (1)   + B1b1
+                                                    + B1b2
+        A1 [0-6] --- A1-SR
+                   + A1a [*]
+        */
+        function testEventAtB1aWithDetachedA1a(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                nodes['A-SR'].removeChild(nodes.A1);
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.A1a}));
+
+                assert_array_equals(log.eventPath,
+                    ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets,
+                    ['A1', 'A1', 'A1', 'A1', 'A1', 'A1', 'A1', 'A1', 'A1'], 'The related targets must be correct.');
+
+            }, 'Firing an event at B1a with relatedNode at A1a (detached) with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtB1aWithDetachedA1a('open');
+        testEventAtB1aWithDetachedA1a('closed');
+
+        /*
+        -SR: ShadowRoot  -S: Slot  target: (~)  relatedTarget: [~]  *: indicates start  digit: event path order
+        A ----------------------------------- A-SR
+        + B [0-3]  ----- B-SR                 + A2-S
+          + C            + B1 -------- B1-SR
+          + D --- D-SR     + B1a [*]   + B1b --- B1b-SR
+                  + D1                 + B1c-S   + B1b1
+                                                 + B1b2
+        A1 (2) --- A1-SR (1)
+                   + A1a (*; 0)
+        */
+        function testEventAtA1aWithDetachedB1a(mode) {
+            test(function () {
+                var nodes = createFixedTestTree(mode);
+
+                nodes['A-SR'].removeChild(nodes.A1);
+                log = dispatchEventWithEventLog(nodes, nodes.A1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+
+                assert_array_equals(log.eventPath,      ['A1a', 'A1-SR', 'A1'], 'The event path must be correct.');
+                assert_array_equals(log.relatedTargets, ['B',   'B',     'B' ], 'The related targets must be correct.');
+
+            }, 'Firing an event at A1a with relatedNode at B1a (detached) with ' + mode + ' mode shadow trees');
+        }
+
+        testEventAtA1aWithDetachedB1a('open');
+        testEventAtA1aWithDetachedB1a('closed');
+
+    </script>
+    </body>
+</html>

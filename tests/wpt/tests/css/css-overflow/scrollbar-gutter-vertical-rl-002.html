@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <meta name="fuzzy" content="1;0-50">
+  <title>CSS Overflow: test scrollbar-gutter with vertical right to left content</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+  <link rel="match" href="scrollbar-gutter-vertical-rl-002-ref.html">
+
+  <style>
+  .line {
+    display: flex;
+  }
+
+  .container {
+    writing-mode: vertical-rl;
+
+    block-size: 200px;
+    inline-size: 200px;
+    margin: 10px;
+    background: deepskyblue;
+    resize: both;
+  }
+
+  .content {
+    inline-size: 100%;
+    block-size: 200%;
+    background: lightsalmon;
+  }
+  </style>
+
+  <div class="line">
+    <div class="container" style="overflow-x: auto; scrollbar-gutter: stable">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-x: scroll; scrollbar-gutter: stable">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-x: hidden; scrollbar-gutter: stable">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container" style="overflow-x: auto; scrollbar-gutter: stable both-edges">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-x: scroll; scrollbar-gutter: stable both-edges">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-x: hidden; scrollbar-gutter: stable both-edges">
+      <div class="content"></div>
+    </div>
+  </div>
+</html>

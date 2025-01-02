@@ -1,0 +1,219 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Document.currentScript</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#dom-document-currentscript">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#execute-the-script-block">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id="log"></div>
+<script>
+var data = {
+  "parse-inline" : [],
+  "parse-ext" : [],
+  "dom-inline" : [],
+  "dom-ext" : [],
+  "nested" : ["nested-outer","nested-inner","nested-outer"],
+  "script-load-error" : [null],
+  "script-window-error" : ["script-error-compile","script-error-runtime"],
+  "timeout" : [null],
+  "eval" : [],
+  "xhr-test" : [],
+  "script-svg" : [],
+  "script-async" : [],
+  "script-defer" : [],
+  "script-async-false" : [],
+  "iframe-src" : [],
+  "cross-origin" : [null],
+  "document-write" : [],
+  "microtask": [],
+};
+
+var expected = {};
+var actual = {};
+
+Object.keys(data).forEach(function(id) {
+  var test_expected = data[id];
+  if(test_expected.length == 0) {
+    test_expected = [id];
+  }
+  expected[id] = test_expected;
+  actual[id] = [];
+});
+
+var tests = {};
+setup({allow_uncaught_exception : true});
+
+Object.keys(expected).forEach(function(id) {
+  var testmsg = "Script " + id;
+  tests[id] = async_test(testmsg);
+});
+
+function verify(id) {
+  tests[id].step(function() {
+    actual[id].push(document.currentScript);
+  })
+}
+
+function finish(id) {
+  tests[id].step(function() {
+    assert_array_equals(actual[id],expected[id].map(function(id) {
+      return document.getElementById(id);
+    }));
+    this.done();
+  })
+}
+
+</script>
+
+<!-- Test parser inserted scripts -->
+<script id="parse-inline">
+verify('parse-inline');
+finish('parse-inline')
+</script>
+<script id="parse-ext" src="data:text/plain,verify('parse-ext')"></script>
+<script>finish('parse-ext');</script>
+
+<!-- Test DOM inserted scripts -->
+<script>
+var s = document.createElement("script");
+s.textContent = "verify('dom-inline');";
+s.id = "dom-inline";
+document.body.appendChild(s);
+finish('dom-inline');
+
+s = document.createElement("script");
+s.src = "data:text/plain,verify('dom-ext');";
+s.id = "dom-ext";
+s.onload = function() {
+  finish('dom-ext');
+}
+document.body.appendChild(s);
+</script>
+
+<!-- Test Nested scripts -->
+<script id="nested-outer">
+ verify("nested");
+ var s = document.createElement("script");
+ s.textContent = "verify('nested')";
+ s.id = "nested-inner";
+ document.body.appendChild(s);
+ verify("nested");
+ finish('nested');
+</script>
+
+<!-- Test script load error event listener -->
+<script>
+function testLoadFail() {
+  verify('script-load-error');
+  finish('script-load-error');
+}
+</script>
+
+<script src="http://some.nonexistant.test/fail" id="script-load-error" onerror="testLoadFail()">
+</script>
+
+<!-- Test for runtime and compile time errors -->
+<script>
+  window.onerror = function() {
+    verify('script-window-error');
+  }
+
+  var s = document.createElement("script");
+  s.id = "script-error-compile";
+  s.textContent = "{";
+  document.body.appendChild(s);
+
+  window.onerror = function() {
+    verify('script-window-error');
+  }
+
+  s = document.createElement("script");
+  s.id = "script-error-runtime";
+  s.textContent = "undefinedfn();";
+  document.body.appendChild(s);
+
+  finish('script-window-error');
+</script>
+
+<!-- Verify in setTimeout -->
+<script>
+  setTimeout(function() {
+    verify('timeout');
+    finish('timeout');
+  },0);
+</script>
+
+<!-- Verify in eval -->
+<script id="eval">
+  eval('verify("eval")');
+  finish("eval");
+</script>
+
+<!-- Verify in synchronous xhr -->
+<script id="xhr-test">
+  var request = new XMLHttpRequest();
+  request.open('GET','/',false);
+  request.send(null);
+
+  if(request.status === 200) {
+    verify('xhr-test');
+    finish('xhr-test');
+  }
+</script>
+
+<!-- Testing script within svg -->
+<svg>
+  <script id="script-svg">
+    verify('script-svg');
+    finish('script-svg');
+  </script>
+</svg>
+
+<!-- Test script async and defer -->
+<script id='script-async' async src='data:text/plain,verify("script-async"),finish("script-async")'></script>
+
+<script id='script-defer' defer src='data:text/plain,verify("script-defer"),finish("script-defer")'></script>
+
+<!-- Test async = false dynamic script loading -->
+<script>
+  var s = document.createElement("script");
+  s.id = "script-async-false";
+  s.src = "data:text/plain,verify('script-async-false');"
+  s.onload = function() {
+    finish('script-async-false');
+  }
+  s.async = false;
+  document.body.appendChild(s);
+</script>
+
+<!-- Verify in iframe javascript uri scheme -->
+<iframe src="javascript:parent.verify('iframe-src'),parent.finish('iframe-src')"
+        style="visibility:hidden;display:none">
+</iframe>
+
+<!-- Testing cross origin script -->
+<script>
+var s = document.createElement("script");
+s.id = "cross-origin";
+s.src = get_host_info(). HTTP_REMOTE_ORIGIN + "/html/dom/documents/dom-tree-accessors/cross-domain.js"
+s.onload = function() {
+  verify('cross-origin')
+  finish('cross-origin');
+}
+document.body.appendChild(s);
+
+</script>
+
+<!-- Testing document.write -->
+<script>
+document.write('<script id="document-write">verify("document-write"); finish("document-write");</' + 'script>');
+</script>
+
+<!-- Testing microtask -->
+<script id="microtask">
+  Promise.resolve().then(() => {
+    verify("microtask");
+    finish("microtask");
+  });
+</script>

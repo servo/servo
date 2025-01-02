@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#dimension-mapping">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#propdef-padding-top">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=966795">
+<link rel="match" href="../reference/nothing.html">
+<meta name="assert" content="Percentage-padding is always resolved against the inline-size of the containing block, even if it's about block padding.">
+<p>There should be nothing below.</p>
+<div style="float:left;">
+  <div style="display:flex; writing-mode:vertical-rl; padding:1000%; background:red;"></div>
+</div>

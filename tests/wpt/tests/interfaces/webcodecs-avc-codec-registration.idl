@@ -1,0 +1,25 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: AVC (H.264) WebCodecs Registration (https://w3c.github.io/webcodecs/avc_codec_registration.html)
+
+partial dictionary VideoEncoderConfig {
+  AvcEncoderConfig avc;
+};
+
+dictionary AvcEncoderConfig {
+  AvcBitstreamFormat format = "avc";
+};
+
+enum AvcBitstreamFormat {
+  "annexb",
+  "avc",
+};
+
+partial dictionary VideoEncoderEncodeOptions {
+  VideoEncoderEncodeOptionsForAvc avc;
+};
+
+dictionary VideoEncoderEncodeOptionsForAvc {
+  unsigned short? quantizer;
+};

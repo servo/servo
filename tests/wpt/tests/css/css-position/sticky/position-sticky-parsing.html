@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Position value 'sticky' should be a valid value</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#position-property" />
+<meta name="assert" content="This test checks that setting position to 'sticky'
+should be allowed." />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- We need something to create elements in. -->
+<body></body>
+
+<script>
+const displayTypes = [
+  'block',
+  'inline',
+  'run-in',
+  'flow',
+  'flow-root',
+  'table',
+  'flex',
+  'grid',
+  'ruby',
+  'subgrid',
+  'list-item',
+  'table-row-group',
+  'table-header-group',
+  'table-footer-group',
+  'table-row',
+  'table-cell',
+  'table-caption',
+  // Sticky does not apply to table-column or table-column-group, but the
+  // computed value should still be sticky.
+  'table-column',
+  'table-column-group',
+  'ruby-base',
+  'ruby-text',
+  'ruby-base-container',
+  'ruby-text-container',
+  'contents',
+  'none',
+];
+
+test(() => {
+  for (displayValue of displayTypes) {
+    let div = document.createElement('div');
+    let style = `position: sticky; display: ${displayValue};`;
+    div.setAttribute('style', style);
+    document.body.appendChild(div);
+
+    // We only check display values that the browser under test recognizes.
+    if (div.style.display == displayValue) {
+      assert_equals(getComputedStyle(div).position, 'sticky',
+          `Expected sticky to be valid for display: ${displayValue}`);
+    }
+    document.body.removeChild(div);
+  }
+}, 'The value of sticky for the position property should be parsed correctly');
+</script>

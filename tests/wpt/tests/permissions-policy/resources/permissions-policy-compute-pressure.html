@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+
+window.onload = async function() {
+  let enabled = true;
+  try {
+    const observer = new PressureObserver(() => {});
+    await observer.observe("cpu");
+    observer.disconnect();
+  } catch (e) {
+    enabled = false;
+  }
+  parent.postMessage({ type: 'availability-result', enabled }, '*');
+}
+</script>

@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<body>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  await i.contentWindow.navigation.navigate("#1").finished;
+
+  i.contentWindow.navigation.onnavigate = t.step_func(e => {
+    assert_false(e.cancelable);
+    // intercept() should throw with commit: "after-transition" because e.cancelable is false.
+    let iframe_constructor = i.contentWindow.DOMException;
+    assert_throws_dom("InvalidStateError", iframe_constructor, () => e.intercept({ commit: "after-transition" }));
+  });
+  await i.contentWindow.navigation.back().finished;
+}, "{ commit: 'after-transition' } for an uncancelable traverse navigation");
+</script>
+</body>

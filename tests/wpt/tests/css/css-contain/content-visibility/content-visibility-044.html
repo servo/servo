@@ -1,0 +1,34 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: slot moved after container is hidden</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="ensure that hidden slotted element can be updated">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body style="margin: 0">
+
+<div id=host>
+<input id=slotted style="margin: 0">
+<script>
+
+async_test((t) => {
+  let container = document.createElement("div");
+  container.innerHTML = "<slot></slot>";
+  let shadowRoot = host.attachShadow({ mode: "open" });
+  shadowRoot.innerHTML = "<style>.hidden { content-visibility: hidden }</style>";
+  shadowRoot.appendChild(container);
+
+  t.step(async () => {
+    container.classList.add("hidden");
+    requestAnimationFrame(() => {
+      assert_equals(slotted.offsetTop, 0);
+      container.innerHTML = "<div style='height: 20px;'></div><slot></slot>";
+      t.done();
+    });
+  });
+});
+</script>

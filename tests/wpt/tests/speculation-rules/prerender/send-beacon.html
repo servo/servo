@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering: sendBeacon</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const STORE_URL = '/speculation-rules/prerender/resources/key-value-store.py';
+
+  // Create a prerendered page.
+  const rule_extras = {'target_hint': getTargetHint()};
+  const {exec, activate} = await create_prerendered_page(
+      t, undefined, undefined, rule_extras);
+
+  // This test will send 3 beacons. Each beacon will be stored with these keys
+  // on the server.
+  const keys = [token(), token(), token()];
+
+  // Ask the prerendered page to send beacons during prerendering and
+  // prerenderingchange.
+  await exec(async (store_url, keys) => {
+    const url1 = `${store_url}?key=${keys[0]}&value=during-prerendering`;
+    navigator.sendBeacon(url1);
+
+    document.onprerenderingchange = _ => {
+      const url2 = `${store_url}?key=${keys[1]}&value=onprerenderingchange`;
+      navigator.sendBeacon(url2);
+    };
+  }, [STORE_URL, keys]);
+
+  // Wait for the beacon sent during prerendering.
+  assert_equals(await nextValueFromServer(keys[0]), 'during-prerendering');
+
+  await activate();
+
+  // Wait for the beacon sent during the prerenderingchange event.
+  assert_equals(await nextValueFromServer(keys[1]), 'onprerenderingchange');
+
+  // Ask the activated page to send a beacon.
+  await exec(async (store_url, keys) => {
+    const url3 = `${store_url}?key=${keys[2]}&value=after-activation`;
+    navigator.sendBeacon(url3);
+  }, [STORE_URL, keys]);
+
+  // Wait for the beacon sent after activation.
+  assert_equals(await nextValueFromServer(keys[2]), 'after-activation');
+}, 'Prerendering page should be able to send beacons');
+</script>
+<body>
+</body>

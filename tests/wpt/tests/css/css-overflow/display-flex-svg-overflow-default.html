@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>display:flex on svg uses 0 as min size with default overflow</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="display-flex-svg-overflow-default-ref.html">
+<style>
+  body {
+    background: lightblue;
+  }
+  div {
+    display: flex;
+    width: 100px;
+    height: 100px;
+  }
+  svg {
+    flex-grow: 1;
+  }
+</style>
+<div>
+  <svg>
+    <rect width="150" height="150" fill="green"></rect>
+  </svg>
+</div>

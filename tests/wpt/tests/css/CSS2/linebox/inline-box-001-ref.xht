@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div {width: 192px;}
+
+  span {border-color: blue;}
+
+  span#top
+  {
+  border-style: solid none solid solid;
+  border-width: 2px 0px 2px 2px;
+  }
+
+  div#middle {background-color: orange;}
+
+  span#bottom
+  {
+  border-style: solid solid solid none;
+  border-width: 2px 2px 2px 0px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there are blue borders around the top, left and bottom but not the right side of the text "First line", and borders around the top, right, bottom but not the left of the text "Last line".</p>
+
+  <div><span id="top">First line</span></div>
+  <div id="middle">Filler Text</div>
+  <div><span id="bottom">Last line</span></div>
+
+ </body>
+</html>

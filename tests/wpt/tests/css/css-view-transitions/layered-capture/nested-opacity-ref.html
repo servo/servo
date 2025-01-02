@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<body>
+<style>
+    body {
+        margin: 0;
+    }
+
+    .parent {
+        opacity: .4;
+    }
+    .child {
+        left: 50px;
+        top: 50px;
+    }
+    div.green {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: green;
+        will-change: opacity;
+    }
+</style>
+    <div class="green parent">
+        <div class="green child"></div>
+    </div>
+</body>

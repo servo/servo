@@ -1,0 +1,320 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpTransceiver.prototype.setCodecPreferences</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./third_party/sdp/sdp.js"></script>
+<script>
+  'use strict';
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+    transceiver.setCodecPreferences(capabilities.codecs);
+  }, `setCodecPreferences() on audio transceiver with codecs returned from RTCRtpReceiver.getCapabilities('audio') should succeed`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('video');
+    const capabilities = RTCRtpReceiver.getCapabilities('video');
+    transceiver.setCodecPreferences(capabilities.codecs);
+  }, `setCodecPreferences() on video transceiver with codecs returned from RTCRtpReceiver.getCapabilities('video') should succeed`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    transceiver.setCodecPreferences([]);
+  }, `setCodecPreferences([]) should succeed`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+    const { codecs } = capabilities;
+
+    if(codecs.length >= 2) {
+      const tmp = codecs[0];
+      codecs[0] = codecs[1];
+      codecs[1] = tmp;
+    }
+
+    transceiver.setCodecPreferences(codecs);
+  }, `setCodecPreferences() with reordered codecs should succeed`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('video');
+    const capabilities = RTCRtpReceiver.getCapabilities('video');
+    const { codecs } = capabilities;
+    // This test verifies that the mandatory VP8 codec is present
+    // and can be preferred.
+    const codec = codecs.find(c => c.mimeType === 'video/VP8');
+    assert_true(!!codec, 'VP8 video codec was found');
+    transceiver.setCodecPreferences([codec]);
+  }, `setCodecPreferences() with only VP8 should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('video');
+    const capabilities = RTCRtpReceiver.getCapabilities('video');
+    const { codecs } = capabilities;
+    // This test verifies that the mandatory H264 codec is present
+    // and can be preferred.
+    const codec = codecs.find(c => c.mimeType === 'video/H264');
+    assert_true(!!codec, 'H264 video codec was found');
+    transceiver.setCodecPreferences([codec]);
+  }, `setCodecPreferences() with only H264 should succeed`);
+
+  async function getRTPMapLinesWithCodecAsFirst(firstCodec)
+  {
+     const codecs = RTCRtpReceiver.getCapabilities('video').codecs;
+     codecs.forEach((codec, idx) => {
+       if (codec.mimeType === firstCodec) {
+        codecs.splice(idx, 1);
+        codecs.unshift(codec);
+       }
+     });
+
+     const pc = new RTCPeerConnection();
+     const transceiver = pc.addTransceiver('video');
+     transceiver.setCodecPreferences(codecs);
+     const offer = await pc.createOffer();
+
+     return offer.sdp.split('\r\n').filter(line => line.startsWith('a=rtpmap:'));
+  }
+
+  promise_test(async () => {
+    const lines = await getRTPMapLinesWithCodecAsFirst('video/H264');
+
+    assert_greater_than(lines.length, 1);
+    assert_true(lines[0].indexOf('H264') !== -1, 'H264 should be the first codec');
+  }, `setCodecPreferences() should allow setting H264 as first codec`);
+
+  promise_test(async () => {
+    const lines = await getRTPMapLinesWithCodecAsFirst('video/VP8');
+
+    assert_greater_than(lines.length, 1);
+    assert_true(lines[0].indexOf('VP8') !== -1, 'VP8 should be the first codec');
+  }, `setCodecPreferences() should allow setting VP8 as first codec`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('video');
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(capabilities.codecs));
+  }, `setCodecPreferences() on audio transceiver with codecs returned from getCapabilities('video') should throw InvalidModificationError`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const codecs = [{
+      mimeType: 'data',
+      clockRate: 2000,
+      channels: 2,
+      sdpFmtpLine: '0-15'
+    }];
+
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+  }, `setCodecPreferences() with user defined codec with invalid mimeType should throw InvalidModificationError`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const codecs = [{
+      mimeType: 'audio/piepiper',
+      clockRate: 2000,
+      channels: 2,
+      sdpFmtpLine: '0-15'
+    }];
+
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+  }, `setCodecPreferences() with user defined codec should throw InvalidModificationError`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+    const codecs = [
+      ...capabilities.codecs,
+      {
+        mimeType: 'audio/piepiper',
+        clockRate: 2000,
+        channels: 2,
+        sdpFmtpLine: '0-15'
+      }];
+
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+  }, `setCodecPreferences() with user defined codec together with codecs returned from getCapabilities() should throw InvalidModificationError`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+    const codecs = [capabilities.codecs[0]];
+    codecs[0].clockRate = codecs[0].clockRate / 2;
+
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+  }, `setCodecPreferences() with modified codec clock rate should throw InvalidModificationError`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+    const codecs = [capabilities.codecs[0]];
+    codecs[0].channels = codecs[0].channels + 11;
+
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+  }, `setCodecPreferences() with modified codec channel count should throw InvalidModificationError`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+    const codecs = [capabilities.codecs[0]];
+    codecs[0].sdpFmtpLine = "modifiedparameter=1";
+
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+  }, `setCodecPreferences() with modified codec parameters should throw InvalidModificationError`);
+
+  test((t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+
+    const { codecs } = capabilities;
+    assert_greater_than(codecs.length, 0,
+      'Expect at least one codec available');
+
+    const [ codec ] = codecs;
+    const { channels=2 } = codec;
+    codec.channels = channels+1;
+
+    assert_throws_dom('InvalidModificationError', () => transceiver.setCodecPreferences(codecs));
+  }, `setCodecPreferences() with modified codecs returned from getCapabilities() should throw InvalidModificationError`);
+
+  promise_test(async (t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const {codecs} = RTCRtpReceiver.getCapabilities('audio');
+    // Reorder codecs, put PCMU/PCMA first.
+    let firstCodec;
+    let i;
+    for (i = 0; i < codecs.length; i++) {
+      const codec = codecs[i];
+      if (codec.mimeType === 'audio/PCMU' || codec.mimeType === 'audio/PCMA') {
+        codecs.splice(i, 1);
+        codecs.unshift(codec);
+        firstCodec = codec.mimeType.substr(6);
+        break;
+      }
+    }
+    assert_not_equals(firstCodec, undefined, 'PCMU or PCMA codec not found');
+    transceiver.setCodecPreferences(codecs);
+
+    const offer = await pc.createOffer();
+    const mediaSection = SDPUtils.getMediaSections(offer.sdp)[0];
+    const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+    assert_equals(rtpParameters.codecs[0].name, firstCodec);
+  }, `setCodecPreferences() modifies the order of audio codecs in createOffer`);
+
+  promise_test(async (t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('video');
+    const {codecs} = RTCRtpReceiver.getCapabilities('video');
+    // Reorder codecs, swap H264 and VP8.
+    let vp8 = -1;
+    let h264 = -1;
+    let firstCodec;
+    let i;
+    for (i = 0; i < codecs.length; i++) {
+      const codec = codecs[i];
+      if (codec.mimeType === 'video/VP8' && vp8 === -1) {
+        vp8 = i;
+        if (h264 !== -1) {
+          codecs[vp8] = codecs[h264];
+          codecs[h264] = codec;
+          firstCodec = 'VP8';
+          break;
+        }
+      }
+      if (codec.mimeType === 'video/H264' && h264 === -1) {
+        h264 = i;
+        if (vp8 !== -1) {
+          codecs[h264] = codecs[vp8];
+          codecs[vp8] = codec;
+          firstCodec = 'H264';
+          break;
+        }
+      }
+    }
+    assert_not_equals(firstCodec, undefined, 'VP8 and H264 codecs not found');
+    transceiver.setCodecPreferences(codecs);
+
+    const offer = await pc.createOffer();
+    const mediaSection = SDPUtils.getMediaSections(offer.sdp)[0];
+    const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+    assert_equals(rtpParameters.codecs[0].name, firstCodec);
+  }, `setCodecPreferences() modifies the order of video codecs in createOffer`);
+
+  // Tests the note removed as result of discussion in
+  // https://github.com/w3c/webrtc-pc/issues/2933
+  promise_test(async (t) => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const transceiver = pc1.addTransceiver('video');
+    const {codecs} = RTCRtpReceiver.getCapabilities('video');
+    const vp8 = codecs.find(codec => codec.mimeType === 'video/VP8');
+    const h264 = codecs.find(codec => codec.mimeType === 'video/H264');
+    const thirdCodec = codecs.find(codec => ['video/VP9', 'video/AV1'].includes(codec.mimeType));
+    assert_true(!!vp8);
+    assert_true(!!h264);
+    assert_true(!!thirdCodec);
+
+    transceiver.setCodecPreferences([vp8, thirdCodec]);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const transceiver2 = pc2.getTransceivers()[0];
+    transceiver2.setCodecPreferences([h264, thirdCodec, vp8]);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const mediaSection = SDPUtils.getMediaSections(pc2.localDescription.sdp)[0];
+    const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+    // Order is determined by pc2 but H264 is not present.
+    assert_equals(rtpParameters.codecs.length, 2);
+    assert_equals(rtpParameters.codecs[0].name, thirdCodec.mimeType.substring(6));
+    assert_equals(rtpParameters.codecs[1].name, 'VP8');
+
+  }, `setCodecPreferences() filters on receiver and prefers receiver order`);
+
+["audio", "video"].forEach(kind => promise_test(async (t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const [codec] = RTCRtpReceiver.getCapabilities(kind).codecs;
+    codec.mimeType = codec.mimeType.toUpperCase();
+    const transceiver = pc.addTransceiver(kind);
+    transceiver.setCodecPreferences([codec]);
+
+    codec.mimeType = codec.mimeType.toLowerCase();
+    transceiver.setCodecPreferences([codec]);
+  }, `setCodecPreferences should accept ${kind} codecs regardless of mimeType case`));
+
+ </script>

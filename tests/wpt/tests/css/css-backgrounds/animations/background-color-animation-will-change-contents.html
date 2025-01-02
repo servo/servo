@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-will-change-contents-ref.html">
+<style>
+.container {
+  width: 600px;
+  height: 600px;
+  will-change: contents;
+  /* Start with a short delay and ensure that we pick up the color change when
+     the animation enters the active phase. */
+  animation: bgcolor 10s steps(1, jump-start) backwards 0.2s;
+}
+@keyframes bgcolor {
+  0% { background-color: rgba(200, 0, 0, 1); }
+  100% { background-color: rgba(0, 200, 0, 1); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="container"></div>
+
+<script>
+  function waitForActiveAnimation() {
+    const anim = document.getAnimations()[0];
+    return new Promise(resolve => {
+      const tick = () => {
+        requestAnimationFrame(() => {
+          if (anim.currentTime > 200)
+            resolve();
+          else
+            tick();
+        });
+      };
+      tick();
+    });
+  }
+
+  window.onload = async () => {
+    await waitForActiveAnimation();
+    takeScreenshot();
+  };
+</script>
+</body>
+</html>

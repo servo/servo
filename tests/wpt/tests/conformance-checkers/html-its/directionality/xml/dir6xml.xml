@@ -1,0 +1,11 @@
+<text xml:lang="en">
+ <head>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0"
+   xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="dir6xmlrules.xml" />
+ </head>
+ <body>
+  <par>In Hebrew, the title <quote xml:lang="he"
+   direction="rtlText">פעילות הבינאום, W3C</quote>
+   means <quote>Internationalization Activity, W3C</quote>.</par>
+ </body>
+</text>

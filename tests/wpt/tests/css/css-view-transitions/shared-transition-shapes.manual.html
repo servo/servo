@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions of different elements and shapes</title>
+<link rel="help" href="https://github.com/vmpstr/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+body {
+  background: lightpink;
+}
+
+#container {
+  width: max-content;
+  position: relative;
+}
+
+.left {
+  left: 50px;
+}
+.right {
+  left: 550px;
+}
+
+div {
+  margin: 10px;
+  contain: paint;
+}
+
+.square {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+.rounded {
+  width: 100px;
+  height: 100px;
+  background: green;
+  border-radius: 20%;
+}
+.translucent {
+  opacity: 0.5;
+}
+.text {
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<input id=toggle type=button value="Toggle!"></input>
+<span>Same shape should move right and left</span>
+<div id=container class=left>
+  <div id=e1 class=square></div>
+  <div id=e2 class=rounded></div>
+  <div id=e3 class="square translucent"></div>
+  <div id=e4 class="rounded translucent"></div>
+  <div id=e5 class=text>Lorem Ipsum</div>
+</div>
+
+<script>
+let classes = ["left", "right"]
+let i = 0;
+async function runAnimation() {
+  e1.style.viewTransitionName = "e1";
+  e2.style.viewTransitionName = "e2";
+  e3.style.viewTransitionName = "e3";
+  e4.style.viewTransitionName = "e4";
+  e5.style.viewTransitionName = "e5";
+  let t = document.startViewTransition(() => {
+    container.classList.remove(classes[i]);
+    i = (i + 1) % classes.length;
+    container.classList.add(classes[i]);
+  });
+  await t.finished;
+}
+
+function init() {
+  toggle.addEventListener("click", runAnimation);
+}
+onload = init;
+</script>

@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Radial gradient stop normalization</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#radial-gradients">
+<meta name="assert" content="Rendering of radial-gradient with normalized color stops">
+<link rel="match" href="reference/100x100-blue.html">
+<style>
+  #gradient {
+    width: 100px;
+    height: 100px;
+    background-image: radial-gradient(50px, blue 1000%, red 1000%);
+  }
+</style>
+<div id="gradient"></div>

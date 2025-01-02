@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<script>
+ function testRun() {
+   localStorage.test6564729 += 'H';
+   var d = parent.document;
+   var e = parent.document.open(); // no effect, since that document is already in unload
+   localStorage.test6564729 += (e == d) ? 'I' : 'X';
+   var s = 'FAIL';
+   document.write(s);
+   localStorage.test6564729 += document.body.textContent == s ? 'x' : 'J';
+   document.close();
+   localStorage.test6564729 += 'K';
+ }
+</script>
+<body onbeforeunload="localStorage.test6564729 += 'D'"
+      onpagehide="localStorage.test6564729 += 'G'"
+      onunload="testRun()">
+<p>Inner frame

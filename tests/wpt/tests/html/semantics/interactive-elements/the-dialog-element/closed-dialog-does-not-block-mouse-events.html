@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.webkit.org/show_bug.cgi?id=110952">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+#div {
+    height: 100px;
+    width: 100px;
+    background: red;
+}
+</style>
+<div id=div></div>
+<dialog id="dialog"></dialog>
+<dialog></dialog>
+
+<script>
+promise_test(async () => {
+  const dialog = document.getElementById('dialog');
+  dialog.showModal();
+  dialog.close();
+
+  const div = document.getElementById('div');
+  div.addEventListener('click', function(event) {
+    div.firedOn = true;
+    div.style.backgroundColor = 'green';
+  });
+
+  var absoluteTop = 0;
+  var absoluteLeft = 0;
+  for (var parentNode = div; parentNode; parentNode = parentNode.offsetParent) {
+    absoluteLeft += parentNode.offsetLeft;
+    absoluteTop += parentNode.offsetTop;
+  }
+
+  const x = absoluteLeft + div.offsetWidth / 2;
+  const y = absoluteTop + div.offsetHeight / 2;
+  const actions = new test_driver.Actions()
+    .pointerMove(x, y)
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(0, 0);
+  await actions.send();
+  assert_true(div.firedOn, 'div should have gotten a click event.');
+}, 'Ensure that closed dialogs do not block mouse events. To test manually, click the red box. The test succeeds if the red box turns green.');
+</script>

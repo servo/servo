@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<title>Test frame-ancestor</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+
+<script>
+async function runTest(embed_url,
+    cross_origin_to_top_level_fenced_frame, cross_origin_to_top_level_iframe,
+    expected_result) {
+  const ancestor_key = token();
+
+  // Generate the url for the top level fenced frame, including the information
+  // needed to pass on to its nested iframe
+  const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+  let fenced_frame_url = generateURL(
+      "resources/ancestor-throttle-inner.https.html",
+      [ancestor_key, embed_url, cross_origin_to_top_level_iframe], true);
+  if (cross_origin_to_top_level_fenced_frame)
+    fenced_frame_url = getRemoteOriginURL(fenced_frame_url, true);
+
+  const fenced_frame_config = await generateURNFromFledgeRawURL(
+      fenced_frame_url, [], true);
+
+  attachFencedFrame(fenced_frame_config);
+
+  // There is no API to observe whether the document in the FencedFrame loaded
+  // or not. Instead, set up a timeout. If the document loads, "loaded" will be
+  // sent to the server. Otherwise "blocked" will be sent after 3 seconds.
+  step_timeout(() => {
+    writeValueToServer(ancestor_key, "blocked");
+  }, 3000);
+
+  // Get the result for the fenced frame's nested iframe.
+  const fenced_frame_result = await nextValueFromServer(ancestor_key);
+  assert_equals(fenced_frame_result, expected_result,
+      "The inner iframe was " + expected_result + ".");
+}
+
+promise_test(async () => {
+  return runTest("fenced-frame/resources/" +
+      "ancestor-throttle-nested.https.html?" +
+      "nested_url=ancestor-throttle-iframe-csp.https.html",
+      true, false, "blocked");
+}, "root(origin1)->fenced(origin2)->iframe(origin1) should honor " +
+    "CSP frame-ancestors headers up until the fenced frame root");
+
+promise_test(async () => {
+  return runTest("fenced-frame/resources/" +
+      "ancestor-throttle-nested.https.html?" +
+      "nested_url=ancestor-throttle-iframe-csp.https.html",
+      true, false, "blocked");
+}, "root(origin1)->fenced(origin2)->iframe(origin1) should honor " +
+    "XFO SAMEORIGIN headers up until the fenced frame root");
+
+promise_test(async () => {
+  return runTest("fenced-frame/resources/" +
+      "ancestor-throttle-iframe-csp.https.html", true, true, "loaded");
+}, "root(origin1)->fenced(origin2)->iframe(origin2) should honor " +
+    "CSP frame-ancestors headers up until the fenced frame root");
+
+promise_test(async () => {
+  return runTest("fenced-frame/resources/" +
+      "ancestor-throttle-iframe-xfo.https.html", true, true, "loaded");
+}, "root(origin1)->fenced(origin2)->iframe(origin2) should honor " +
+    "XFO SAMEORIGIN headers up until the fenced frame root");
+
+promise_test(async () => {
+  return runTest("fenced-frame/resources/" +
+      "ancestor-throttle-nested.https.html?" +
+      "nested_url=ancestor-throttle-iframe-csp.https.html",
+      false, true, "blocked");
+}, "root(origin1)->fenced(origin1)->iframe(origin2)->iframe(origin2) should " +
+    "honor CSP frame-ancestors headers up until the fenced frame root");
+
+promise_test(async () => {
+  return runTest("fenced-frame/resources/" +
+      "ancestor-throttle-nested.https.html?" +
+      "nested_url=ancestor-throttle-iframe-csp.https.html",
+      false, true, "blocked");
+}, "root(origin1)->fenced(origin1)->iframe(origin2)->iframe(origin2) should " +
+    "honor XFO SAMEORIGIN headers up until the fenced frame root");
+</script>
+</body>
+</html>

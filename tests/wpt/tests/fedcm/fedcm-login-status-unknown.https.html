@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FedCM IDP sign-in status API tests for unknown state</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+  import {request_options_with_mediation_required,
+          fedcm_test,
+          select_manifest,
+          fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+  // TODO(crbug.com/1494119): move the test under fedcm-login-status.
+  fedcm_test(async t => {
+    let test_options = request_options_with_mediation_required("manifest_with_no_accounts.json");
+    await select_manifest(t, test_options);
+
+    let request = navigator.credentials.get(test_options);
+    return promise_rejects_dom(t, 'NetworkError', request);
+  }, 'Test that promise is rejected silently when accounts fetch fails in unknown state');
+</script>

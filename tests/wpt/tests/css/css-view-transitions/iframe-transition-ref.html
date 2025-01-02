@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>View transitions: iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+iframe { width: 500px; height: 500px }
+</style>
+
+<iframe srcdoc="
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+html { height: 50%; }
+</style>
+
+<div></div>
+"></iframe>
+
+

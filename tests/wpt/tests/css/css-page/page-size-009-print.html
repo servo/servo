@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#at-page-rule">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#using-named-pages">
+<link rel="match" href="page-size-009-print-ref.html">
+<style>
+  @page {
+    size: 300px 400px;
+    margin: 0;
+  }
+  @page smaller {
+    size: 200px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="page:smaller;">
+  There should be a 200x200 square on the next page.
+</div>
+<div style="width:100vw; height:100vh; background:green;"></div>

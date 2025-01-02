@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: rgb(0, 200, 0);
+  transition-property: background-color;
+  /* Use a long animation that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animation in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated property value. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animation is ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  transition-duration: 1000000s;
+  transition-timing-function: cubic-bezier(0,1,1,0);
+  transition-delay: -500000s;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="container" id="target"></div>
+
+<script>
+function update() {
+  document.getElementById('target').style.backgroundColor = "rgb(200, 0, 0)";
+  requestAnimationFrame(() => {
+    takeScreenshot();
+  });
+}
+requestAnimationFrame(function() {
+  requestAnimationFrame(update);
+});
+</script>
+</body>
+</html>

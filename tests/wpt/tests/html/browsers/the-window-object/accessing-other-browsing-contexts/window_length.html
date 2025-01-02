@@ -1,0 +1,51 @@
+<!doctype html>
+<title>window.length</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var iframe;
+var subframe;
+var other_window;
+test(function() {assert_equals(window.length, 0)}, "No child browsing contexts");
+test(function() {
+  iframe = document.createElement("iframe");
+  assert_equals(window.length, 0)
+}, "iframe not inserted into the document");
+
+test(function() {
+  document.body.appendChild(iframe);
+  assert_equals(window.length, 1)
+}, "One iframe inserted into the document");
+
+test(function() {
+  subframe = document.createElement("iframe");
+  iframe.contentDocument.body.appendChild(subframe);
+  assert_equals(window.length, 1);
+}, "Child browsing context has a child browsing context");
+
+test(function() {
+  try {
+    assert_equals(iframe.contentWindow.length, 1);
+  } finally {
+    subframe.parentNode.removeChild(subframe);
+  }
+}, "window.length in child frame");
+
+test(function() {
+  iframe.parentNode.removeChild(iframe);
+  other_window = window.open();
+  assert_equals(window.length, 0);
+  assert_equals(other_window.length, 0);
+}, "Opened window")
+
+test(function() {
+  other_window.document.body.appendChild(iframe);
+  try {
+    assert_equals(other_window.length, 1);
+  } finally {
+    other_window.close();
+  }
+}, "Iframe in opened window")
+
+</script>

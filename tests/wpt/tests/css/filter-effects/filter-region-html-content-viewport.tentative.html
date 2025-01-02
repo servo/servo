@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Filter with userSpaceOnUse filterUnits on non-SVG element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterEffectsRegion">
+<link rel="match" href="reference/green-100x100.html">
+<style>
+  #target {
+    width: 105px;
+    height: 105px;
+    background-color: red;
+    position: relative;
+    border: 10px solid orange;
+    filter: url(#f);
+  }
+  #target > div {
+    width: 100px;
+    height: 100px;
+    background-color: yellow;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+ }
+</style>
+<div id="target">
+  <div></div>
+</div>
+<svg height="0">
+  <filter id="f" filterUnits="userSpaceOnUse"
+          x="0%" y="0%" width="80%" height="80%">
+    <feFlood flood-color="green"/>
+  </filter>
+</svg>

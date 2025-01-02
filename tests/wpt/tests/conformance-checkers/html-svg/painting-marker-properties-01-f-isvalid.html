@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>painting-marker-properties-01-f-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: painting-marker-properties-01-f-manual.svg</h1>
+<svg id="svg-root" width="100%" height="100%" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <style><![CDATA[
+        .start
+        {
+            marker-start: url(#markerTest);
+        }
+        .end
+        {
+            marker-end: url(#markerTest);
+        }
+        .mid
+        {
+            marker-mid: url(#markerTest);
+        }]]>
+    </style>
+    <defs>
+        <marker id="markerTest" markerWidth="100" markerHeight="100" fill="blue">
+            <rect width="50" height="55" />
+        </marker>
+    </defs>
+    <rect width="50" height="55" fill="blue" />
+    <line class="start" y1="50" x2="100" y2="50" stroke="none" />
+    <path class="start" d="M 0 100 L 50 100 L 100 100" />
+    <polygon class="start" points="0,150 50,150 100,150" />
+    <polyline class="start" points="0,200 50,200 100,200" />
+    <rect y="250" width="50" height="50" fill="blue" />
+
+    <rect x="250" width="50" height="55" fill="blue" />
+    <line class="end" x1="150" y1="50" x2="250" y2="50" stroke="none" />
+    <path class="end" d="M 150 100 L 200 100 L 250 100" />
+    <polygon class="end" points="250,150 200,150" />
+    <polyline class="end" points="150,200 200,200 250,200" />
+    <rect x="250" y="250" width="50" height="50" fill="blue" />
+
+    <rect x="350" width="50" height="105" fill="blue" />
+    <path class="mid" d="M 300 100 L 350 100 L 400 100" />
+    <polygon class="mid" points="300,150 350,150" />
+    <polyline class="mid" points="300,200 350,200 400,200" />
+    <rect x="350" y="250" width="50" height="50" fill="blue" />
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.2 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>
+</body>
+</html>

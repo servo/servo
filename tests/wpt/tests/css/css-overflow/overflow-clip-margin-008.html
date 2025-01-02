@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="reftest">
+<meta charset="utf-8">
+<title>Overflow-clip-margin has no effect with overflow:scroll and paint containment </title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="overflow-clip-margin-008-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  overflow-clip-margin: 20px;
+  contain: paint;
+  overflow: scroll;
+}
+.child {
+  width: 200px;
+  height: 200px;
+  background: lightblue;
+}
+</style>
+<div class=container>
+  <div class=child></div>
+</div>

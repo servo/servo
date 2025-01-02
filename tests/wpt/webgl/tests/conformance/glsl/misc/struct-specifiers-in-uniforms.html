@@ -1,0 +1,67 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css" />
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+<title></title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+precision mediump float;
+uniform struct S { $(type) field;} s;
+void main() {
+    // All uniforms are required to be zero initialized. Add the color green
+    // to make the rendering test pass.
+    gl_FragColor = $(asVec4) + vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script>
+"use strict";
+description("Verifies that structure specifiers work with uniforms.");
+var tests = [];
+var wtu = WebGLTestUtils;
+var typeInfos = [
+    { type: 'float',    asVec4: 'vec4(0.0,s.field,0.0,0.0)' },
+    { type: 'vec2',     asVec4: 'vec4(s.field,0.0,0.0)' },
+    { type: 'vec3',     asVec4: 'vec4(s.field,0.0)' },
+    { type: 'vec4',     asVec4: 's.field' },
+    { type: 'int',      asVec4: 'vec4(0.0,s.field,0.0,0.0)' },
+    { type: 'ivec2',    asVec4: 'vec4(s.field,0.0,0.0)' },
+    { type: 'ivec3',    asVec4: 'vec4(s.field,0.0)' },
+    { type: 'ivec4',    asVec4: 'vec4(s.field)' },
+    { type: 'bool',     asVec4: 'vec4(0.0,s.field,0.0,0.0)' },
+    { type: 'bvec2',    asVec4: 'vec4(s.field,0.0,0.0)' },
+    { type: 'bvec3',    asVec4: 'vec4(s.field,0.0)' },
+    { type: 'bvec4',    asVec4: 'vec4(s.field)' },
+];
+typeInfos.forEach(function (typeInfo) {
+    var replaceParams = {
+        type: typeInfo.type,
+        asVec4: typeInfo.asVec4
+    };
+    tests.push({
+        fShaderSource: wtu.replaceParams(wtu.getScript('fragmentShader'), replaceParams),
+        passMsg: typeInfo.type,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        render:true
+    });
+});
+GLSLConformanceTester.runTests(tests);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

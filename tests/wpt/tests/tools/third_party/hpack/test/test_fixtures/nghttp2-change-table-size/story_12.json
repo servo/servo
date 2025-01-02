@@ -1,0 +1,392 @@
+{
+  "cases": [
+    {
+      "seqno": 0, 
+      "wire": "82864189acd524b615095c87a7847abcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c153b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b518b2d4b70ddf45abefb4005db90408721eaa8a4498f5788ea52d6b0e83772ff", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "pinterest.com"
+        }, 
+        {
+          ":path": "/"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    }, 
+    {
+      "seqno": 1, 
+      "wire": "82864194a4b2186b10649cab50902f59aa496c2a12b90f4f049f62dae838e4602e34c842079c65d699132eb218afcffbba5c929228d7e95cdfc2539a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176fc190c0738f9d29aee30c566a925b0a84ae43d2c760ff0a8ab35492d8542624150883f92e5f59f455bb47a9a7c9b8cdb24ab068f5da63bf828d7e860d01e92787d8dc04f37bbfa279d29978697b7fe02f93a89e85fcb677d9ad39f8f1cc06939d0de844bf9a1f1fb05e671e6312bcda58cbef70d8f566cb33191e3369e6ce8374dd97de8b323da039b4b11e9bfbf786cd8703dc3d329d9c21a59c1d6f43041fcf", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/164311086374323731_DhZSfIfc_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 2, 
+      "wire": "8286c1049f62dae838e4602e05c65d03ad01f75b79979b6e2dda7a5fdba331628d7e95cdc5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/161637074097583855_SNjDRMKe_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 3, 
+      "header_table_size": 1365, 
+      "wire": "3fb60a8286c1049f62dae838e4604eb2dbecbad3807990084e09a8b0de3e0ebf88bd146bf4ae6fc5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/273593746083022624_FCoEkXsC_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 4, 
+      "wire": "8286c1049e62dae838e461b13e175971a65a13cfb2e38cc5d93ae9cb375f3146bf4ae6c5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/52917364342893663_qtPmJgkx_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 5, 
+      "wire": "8286c1049f62dae838e4602171f6c4f882db4d0196df00a2cdeb7f2355ee98a35fa5737fc5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/116952921544035902_KyTWinzm_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 6, 
+      "header_table_size": 2730, 
+      "wire": "3f8b158286c1049f62dae838e4604f32d34db2e804e3aebad09b1450a5377471977c51afd2b9bfc5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/283445370267774252_AttBMVfT_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 7, 
+      "wire": "8286c1049f62dae838e4604cba1684eb2e36fbe0136f09d8ad96fe0c726d2c51afd2b9bfc5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/237142736599025827_ufDEHdRe_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 8, 
+      "wire": "8286c1049f62dae838e46042682fb4f3ceb8e3edb2cb2f062e1769338dbf3451afd2b9bfc5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/224194887669533381_UBmi659g_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }, 
+    {
+      "seqno": 9, 
+      "wire": "8286c1049e62dae838e4604eb416dc71f700cb8d3afbe07628425f73548e9146bf4ae6c5c0c390c2bfbe", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "media-cache-lt0.pinterest.com"
+        }, 
+        {
+          ":path": "/upload/274156696036479907_A1ezgnsj_b.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://pinterest.com/"
+        }, 
+        {
+          "cookie": "_pinterest_sess=\"eJyLMnSMyghISi53cnEMyqgo9ElPya0M1jdw9/S0tY8vycxNtfUN8TX0Dck28A9JrvQPtLVVK04tLs5MsfXM9az0C3HKicpKN/JzSa/yrQrKiswKNY3MijSJzMrI8M1KN/bNDTT1rQo08Uy3tQUAm3EkCA==\""
+        }
+      ]
+    }
+  ], 
+  "draft": 9, 
+  "description": "Encoded by nghttp2. The basic encoding strategy is described in http://lists.w3.org/Archives/Public/ietf-http-wg/2013JulSep/1135.html We use huffman encoding only if it produces strictly shorter byte string than original. We make some headers not indexing at all, but this does not always result in less bits on the wire."
+}

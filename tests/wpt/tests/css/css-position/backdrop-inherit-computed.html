@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Position Test: ::backdrop inherits from originating element - computed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#backdrop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  dialog {
+    --foo: bar;
+    --bg: green;
+    left: 100px;
+    color-scheme: dark;
+  }
+  dialog::backdrop {
+    background-color: var(--bg);
+    left: inherit;
+  }
+</style>
+<dialog></dialog>
+<script>
+  let dialog = document.querySelector("dialog");
+  setup(() => {
+    dialog.showModal();
+  });
+
+  test(() => {
+    let style = getComputedStyle(dialog, "::backdrop");
+    assert_equals(style.getPropertyValue("--foo"), "bar");
+    assert_equals(style.getPropertyValue("--bg"), "green");
+  }, "Inherit custom property");
+
+  test(() => {
+    assert_equals(getComputedStyle(dialog, "::backdrop").backgroundColor, "rgb(0, 128, 0)");
+  }, "Apply inherited custom property to background-color");
+
+  test(() => {
+    assert_equals(getComputedStyle(dialog, "::backdrop").colorScheme, "dark");
+  }, "Implicitly inherited color-scheme");
+
+  test(() => {
+    assert_equals(getComputedStyle(dialog, "::backdrop").left, "100px");
+  }, "Explicitly inherited left");
+</script>

@@ -1,0 +1,150 @@
+<!DOCTYPE html> <meta charset="utf-8" />
+<title>Test for requesting billing address</title>
+<link
+  rel="help"
+  href="https://github.com/w3c/payment-method-basic-card/pull/65"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  setup({
+    explicit_done: true,
+    explicit_timeout: true,
+  });
+  const basicCard = { supportedMethods: "basic-card" };
+  const details = {
+    total: {
+      label: "label",
+      amount: { currency: "USD", value: "5.00" },
+    },
+  };
+
+  // Smoke tests
+  test(() => {
+    assert_true(
+      "onpaymentmethodchange" in PaymentRequest.prototype,
+      "The paymentmethodchange event handler is not supported on PaymentRequest"
+    );
+    assert_true(
+      "PaymentMethodChangeEvent" in window,
+      "The PaymentMethodChangeEvent is not supported"
+    );
+  }, "PaymentMethodChangeEvent support");
+
+  function dontRequestBillingAddress(options) {
+    promise_test(async t => {
+      const request = new PaymentRequest([basicCard], details, {
+        requestBillingAddress: false,
+      });
+      const showPromise = request.show();
+
+      // Let's check the method data from PaymentMethodChangeEvent.
+      const event = await new Promise(resolve =>
+        request.addEventListener("paymentmethodchange", resolve)
+      );
+      assert_true(
+        event instanceof PaymentMethodChangeEvent,
+        "Expected instance of PaymentMethodChangeEvent"
+      );
+      assert_equals(
+        event.methodDetails.billingAddress,
+        null,
+        "Expected methodDetails.billingAddress to be null"
+      );
+
+      // Let's check the billingAddress in the response
+      const response = await showPromise;
+      const {
+        details: { billingAddress: responseBillingAddress },
+      } = response;
+
+      assert_equals(
+        responseBillingAddress,
+        null,
+        "Expected PaymentResponse.data.billingAddress to be null"
+      );
+
+      // And we are done
+      await response.complete("success");
+    });
+  }
+
+  function requestBillingAddress() {
+    promise_test(async t => {
+      const request = new PaymentRequest([basicCard], details, {
+        requestBillingAddress: true,
+      });
+      const showPromise = request.show();
+
+      // Let's check the methodDetails from event.
+      const event = await new Promise(resolve =>
+        request.addEventListener("paymentmethodchange", resolve)
+      );
+      assert_true(
+        event instanceof PaymentMethodChangeEvent,
+        "Expected instance of PaymentMethodChangeEvent"
+      );
+      const { billingAddress: eventBillingAddress } = event.methodDetails;
+      checkRedactList(eventBillingAddress);
+
+      // Let's check the billingAddress in the response.
+      const response = await showPromise;
+      const {
+        details: { billingAddress: responseBillingAddress },
+      } = await showPromise;
+      checkRedactList(responseBillingAddress);
+
+      // And we are done.
+      await response.complete("success");
+    });
+  }
+
+  function checkRedaction(billingAddress) {
+    assert_true(
+      billingAddress instanceof ContactAddress,
+      "Expected instance of ContactAddress"
+    );
+    for (const item of ["organization", "phone", "recipient"]) {
+      assert_equals(
+        billingAddress[item],
+        "",
+        `Expected billingAddress's "${item}" attribute to equal null (redacted).`
+      );
+    }
+  }
+</script>
+
+<h2>Request billing address</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the
+  page. Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When the payment sheet is presented, select a payment method (e.g., a credit
+  card), and press "Pay".
+</p>
+<ol>
+  <li>
+    <button onclick="dontRequestBillingAddress()">
+      When no billing address is requested,
+      `PaymentMethodChangeEvent.methodData.billingAddress` is null.
+    </button>
+  </li>
+  <li>
+    <button onclick="requestBillingAddress()">
+      When billing address is
+      requested,`PaymentMethodChangeEvent.methodData.billingAddress` is a
+      `ContactAddress`.
+    </button>
+  </li>
+  <li><button onclick="done()">Done!</button></li>
+</ol>
+<small>
+  If you find a buggy test, please
+  <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a> and
+  tag one of the
+  <a
+    href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml"
+    >suggested reviewers</a
+  >.
+</small>

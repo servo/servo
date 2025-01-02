@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-020-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-content/#content-property">
+<meta name="assert" content="Checks that the ::marker is updated when 'content: none' is applied or unapplied dynamically.">
+<style>
+.no-marker ::marker {
+  content: none;
+}
+.inside {
+  list-style-position: inside;
+}
+.symbol {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "string";
+}
+.image {
+  list-style-image: url("/images/green-100x50.png");
+}
+</style>
+<div class="no-marker">
+  <ol class="inside">
+    <li class="symbol">inside symbol</li>
+    <li class="decimal">inside decimal</li>
+    <li class="string">inside string</li>
+    <li class="image">inside image</li>
+  </ol>
+  <ol class="outside">
+    <li class="symbol">outside symbol</li>
+    <li class="decimal">outside decimal</li>
+    <li class="string">outside string</li>
+    <li class="image">outside image</li>
+  </ol>
+</div>
+<div>
+  <ol class="inside">
+    <li class="symbol">inside symbol</li>
+    <li class="decimal">inside decimal</li>
+    <li class="string">inside string</li>
+    <li class="image">inside image</li>
+  </ol>
+  <ol class="outside">
+    <li class="symbol">outside symbol</li>
+    <li class="decimal">outside decimal</li>
+    <li class="string">outside string</li>
+    <li class="image">outside image</li>
+  </ol>
+</div>
+<script src="/common/reftest-wait.js"></script>
+<script>
+"use strict";
+addEventListener("load", function() {
+  requestAnimationFrame(() => {
+    for (const div of document.querySelectorAll("div")) {
+      div.classList.toggle("no-marker");
+    }
+    takeScreenshot();
+  });
+}, {once: true});
+</script>
+</html>

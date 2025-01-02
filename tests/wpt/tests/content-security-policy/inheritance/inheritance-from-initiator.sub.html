@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="img-src http://{{hosts[][www]}}:{{ports[http][0]}}">
+<body>
+  <script>
+    let message_from = w => {
+      return new Promise(resolve => {
+        window.addEventListener('message', msg => {
+          if (msg.source == w) {
+            resolve(msg.data);
+          }
+        });
+      });
+    };
+
+    // `iframe_a` and `iframe_b` are two helper iframes with different
+    // CSPs.
+    let iframe_a, iframe_b;
+
+    // Setup `iframe_a` and `iframe_b`.
+    promise_setup(async () => {
+      iframe_a = document.createElement('iframe');
+      iframe_a.src = "./support/iframe-do.sub.html?" +
+        "img-src=http://{{hosts[][www1]}}:{{ports[http][0]}}";
+      document.body.appendChild(iframe_a);
+      await message_from(iframe_a.contentWindow);
+
+      iframe_b = document.createElement('iframe');
+      iframe_b.id = 'iframe_b';
+      iframe_b.src = "./support/iframe-do.sub.html?" +
+        "img-src=http://{{hosts[][www2]}}:{{ports[http][0]}}";
+      document.body.appendChild(iframe_b);
+      await message_from(iframe_b.contentWindow);
+    });
+
+    let test_iframe_id_counter = 0;
+
+    // Helper function to create the target iframe of a navigation.
+    let create_test_iframe = async () => {
+      let test_iframe = document.createElement('iframe');
+      test_iframe.id = "test_iframe_" + test_iframe_id_counter++;
+      test_iframe.name = test_iframe.id;
+      document.body.appendChild(test_iframe);
+      return test_iframe;
+    }
+
+    // The following code will try loading several images and check
+    // whether CSP has been inherited by the parent ("p"), `iframe_a`
+    // ("a") or `iframe_b` ("b"). It will post a message to the top
+    // with the result.
+    let data_payload = `
+      <body><script>
+        new Promise(async (resolve, reject) => {
+          const img_path = "/content-security-policy/support/pass.png";
+
+          let img_loaded = (origin) => new Promise(resolve => {
+            let img = document.createElement('img');
+            img.onerror = () => resolve(false);
+            img.onload = () => resolve(true);
+            img.src = origin + img_path;
+            document.body.appendChild(img);
+          });
+
+          inherited_from_p = await img_loaded(
+            "http://{{hosts[][www]}}:{{ports[http][0]}}");
+          inherited_from_a = await img_loaded(
+            "http://{{hosts[][www1]}}:{{ports[http][0]}}");
+          inherited_from_b = await img_loaded(
+            "http://{{hosts[][www2]}}:{{ports[http][0]}}");
+
+          if (inherited_from_a + inherited_from_b +
+               inherited_from_p !== 1) {
+            reject("Exactly one CSP should be inherited");
+          }
+          if (inherited_from_a) resolve("a");
+          if (inherited_from_b) resolve("b");
+          if (inherited_from_p) resolve("p");
+        }).then(from => top.postMessage(from, '*'),
+                error => top.postMessage(error, '*'));
+      </scr`+`ipt></body>
+    `;
+
+    let data_url = "data:text/html;base64," + btoa(data_payload);
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      iframe_a.contentWindow.postMessage(
+        `parent.document.getElementById('${test_iframe.id}').src = '${data_url}'`);
+
+      assert_equals(await message_from(test_iframe.contentWindow), "p");
+    }, "Setting src inherits from parent.");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      iframe_a.contentWindow.postMessage(
+        `parent.document.getElementById('${test_iframe.id}').contentWindow.location = '${data_url}'`);
+
+      assert_equals(await message_from(test_iframe.contentWindow), "a");
+    }, "Changing contentWindow.location inherits from who changed it.");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      window.navigate_test_iframe = () => {
+        test_iframe.contentWindow.location = data_url;
+      };
+      iframe_a.contentWindow.postMessage(`parent.navigate_test_iframe();`);
+      assert_equals(await message_from(test_iframe.contentWindow), "p");
+    }, "Changing contentWindow.location indirectly inherits from who changed it directly.");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      iframe_a.contentWindow.postMessage(
+        `window.open('${data_url}', "${test_iframe.name}")`);
+
+      assert_equals(await message_from(test_iframe.contentWindow), "a");
+    }, "window.open() inherits from caller.");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      let a = iframe_b.contentDocument.createElement('a');
+      a.id = 'a';
+      a.href = data_url;
+      a.target = test_iframe.name;
+      iframe_b.contentDocument.body.appendChild(a);
+
+      iframe_a.contentWindow.postMessage(
+        `parent.document.getElementById('iframe_b').contentDocument.getElementById('a').click();`);
+
+      assert_equals(await message_from(test_iframe.contentWindow), "b");
+      iframe_b.contentDocument.body.removeChild(a);
+    }, "Click on anchor inherits from owner of the anchor.");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      let form = iframe_b.contentDocument.createElement('form');
+      form.id = 'form';
+      form.action = data_url;
+      form.target = test_iframe.name;
+      form.method = "POST";
+      iframe_b.contentDocument.body.appendChild(form);
+
+      iframe_a.contentWindow.postMessage(
+        `parent.document.getElementById('iframe_b').contentDocument.getElementById('form').submit();`);
+
+      assert_equals(await message_from(test_iframe.contentWindow), "b");
+      iframe_b.contentDocument.body.removeChild(form);
+    }, "Form submission through submit() inherits from owner of form.");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      let form = iframe_b.contentDocument.createElement('form');
+      form.id = 'form';
+      form.action = data_url;
+      form.target = test_iframe.name;
+      form.method = "POST";
+      iframe_b.contentDocument.body.appendChild(form);
+      let button = iframe_b.contentDocument.createElement('button');
+      button.type = "submit";
+      button.value = "submit";
+      button.id = "button";
+      form.appendChild(button);
+
+      iframe_a.contentWindow.postMessage(
+        `parent.document.getElementById('iframe_b').contentDocument.getElementById('button').click();`);
+
+      assert_equals(await message_from(test_iframe.contentWindow), "b");
+      iframe_b.contentDocument.body.removeChild(form);
+    }, "Form submission through button click inherits from owner of form.");
+
+  </script>
+</body>

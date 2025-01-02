@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and image (complex)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-bounds">
+  <link rel="match" href="../reference/ref-nothing-below.xht">
+
+  <meta name="assert" content="In this test, a filled red image has a padding belt painted red and a red border. This test checks that the associated overlay for an image must not leak outside the image's border box.">
+
+  <!--
+
+  "
+   For replaced content, the associated overlay must cover
+   at least the entire replaced object, and may extend
+   outward to include the element's entire content box.
+   The overlay may also include other other areas within
+   the border-box of an element (...)
+  "
+  coming from
+  https://www.w3.org/TR/css-pseudo-4/#highlight-bounds
+
+  -->
+
+  <style>
+  div
+    {
+      font-size: 300%;
+    }
+
+  img
+    {
+      background-color: red;
+      /* so that the padding belt is painted red */
+      border: red solid 10px;
+      padding: 10px;
+    }
+
+  /*
+  Chromium 80+ highlights the descender space
+  below the baseline on which the image "sits" while
+  Firefox 72+ only highlights the image itself.
+  */
+
+  img::selection
+    {
+      background-color: red;
+      color: red;
+    }
+
+  span#masking
+    {
+      background-color: white;
+      display: inline-block;
+      height: 100px;
+      position: relative;
+      right: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  document.documentElement.className = "";
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if there is nothing below.
+
+  <div id="test"><img src="support/60x60-red.png" alt="Image download support must be enabled"><span id="masking"></span></div>

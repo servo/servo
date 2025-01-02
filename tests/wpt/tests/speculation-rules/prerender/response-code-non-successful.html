@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Check that non-successful responses result in discarding the prerender</title>
+<meta name="variant" content="?code=204">
+<meta name="variant" content="?code=205">
+<meta name="variant" content="?code=402">
+<meta name="variant" content="?code=404">
+<meta name="variant" content="?code=500">
+<meta name="variant" content="?code=503">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const params = new URLSearchParams(window.location.search);
+
+promise_test(async t => {
+  // Pass the `code` search param so that a prerendered page is served with the
+  // response code.
+  const {exec, tryToActivate} =
+      await create_prerendered_page(t, {'prerendering': params});
+  const result = await tryToActivate();
+  assert_equals(result, 'discarded');
+},`Responses with code ${params.get('code')} should be discarded`);
+</script>

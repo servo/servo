@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-transform uppercase German sharp S and selection reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+#target {
+  color: white;
+  background: red;
+}
+#target::selection {
+  background: green;
+}
+</style>
+
+<p>The test passes if you see no red below (when you select the text below you can select the whole "SS" text).</p>
+
+<span id="target" lang="de">SS</span>
+
+<script>
+  window.getSelection().setBaseAndExtent(target, 0, target, 1);
+</script>

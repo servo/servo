@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start interaction with fragment-navigation</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <iframe id="frame" src="scroll-start-with-fragment-navigation-inner-frame.html#fragment_target"
+    onload="runTest()"></iframe>
+  <script>
+    function runTest() {
+      test((t) => {
+        let scroller = frame.contentDocument.scrollingElement;
+        // fragment_target is at the bottom of the frame so the frame should be
+        // fully scrolled down to bring it into view.
+        let expected_scroll_top = scroller.scrollHeight - scroller.clientHeight;
+
+        assert_equals(frame.contentWindow.location.hash, "#fragment_target");
+        assert_not_equals(100, expected_scroll_top);
+        assert_equals(frame.contentDocument.scrollingElement.scrollTop,
+          expected_scroll_top);
+      }, "scroll-start does not override hash fragment navigation");
+    }
+  </script>
+</body>

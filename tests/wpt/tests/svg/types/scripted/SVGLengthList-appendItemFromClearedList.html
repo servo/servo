@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<title>SVGLengthList, appendItem() from cleared list</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/SVGLengthList-helper.js"></script>
+<svg width="200" height="200">
+    <text id="text1" x="1 2 3">ABC</text>
+    <text id="text2" x="10 20">ABC</text>
+</svg>
+<script>
+test(function() {
+  // This is a test of the SVGLengthList::appendItem() API.
+
+  var list1 = document.getElementById("text1").x.baseVal;
+  var list2 = document.getElementById("text2").x.baseVal;
+
+  var itemFromClearedList = list2.getItem(0);
+  list2.clear();
+  assert_equals(list2.numberOfItems, 0);
+
+  list1.appendItem(itemFromClearedList);
+
+  assert_list(list1, [1, 2, 3, 10]);
+  assert_equals(list2.numberOfItems, 0);
+});
+</script>

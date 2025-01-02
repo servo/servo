@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>text-justify interpolation</title>
+    <link rel="author" title="Kiet Ho" href="mailto:tho22@apple.com">
+    <link rel="help" href="https://drafts.csswg.org/css-text/#text-justify-property">
+    <meta name="assert" content="text-justify supports discrete animation">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/interpolation-testcommon.js"></script>
+  </head>
+  <body>
+    <script>
+      test_no_interpolation({
+        property: 'text-justify',
+        from: 'auto',
+        to: 'inter-word'
+      });
+
+      test_no_interpolation({
+        property: 'text-justify',
+        from: 'auto',
+        to: 'inter-character'
+      });
+
+      test_no_interpolation({
+        property: 'text-justify',
+        from: 'inter-character',
+        to: 'distribute'
+      });
+
+      test_no_interpolation({
+        property: 'text-justify',
+        from: 'inter-word',
+        to: 'distribute'
+      });
+
+      test_no_interpolation({
+        property: 'text-justify',
+        from: 'distribute',
+        to: 'none'
+      });
+    </script>
+  </body>
+</html>

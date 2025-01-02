@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Fragmentation level 3 Test: widows and orphans in block-in-inline</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-break/#widows-orphans">
+<link rel="match" href="reference/widows-block-in-inline-001-ref.html">
+<style>
+.columns {
+  columns: 3;
+  column-fill: auto;
+  line-height: 1;
+  height: 5em;
+  orphans: 3;
+  widows: 3;
+}
+</style>
+<body>
+  <div class="columns">
+    <div>
+      p1l1<br>
+      p1l2<br>
+      p1l3<br>
+    </div>
+    <span>
+      <div>
+        p2l1<br>
+        p2l2<br>
+        p2l3<br>
+        p2l4<br>
+        p2l5<br>
+        p2l6<br>
+        p2l7<br>
+      </div>
+    </span>
+  </div>
+</body>

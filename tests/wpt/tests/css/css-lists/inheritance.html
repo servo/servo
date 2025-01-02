@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Lists properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_not_inherited('counter-increment', 'none', 'foo 123');
+assert_not_inherited('counter-reset', 'none', 'foo 123');
+assert_inherited('list-style-image', 'none', 'url("data:,a")');
+assert_inherited('list-style-position', 'outside', 'inside');
+assert_inherited('list-style-type', 'disc', 'square');
+</script>
+</body>
+</html>

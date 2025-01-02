@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="562" height="532">
+    <style>
+        text {
+            font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+            dominant-baseline: middle;
+            text-anchor: middle;
+            fill: #062886;
+            font-size: medium;
+        }
+        ellipse.fixture, rect.test {
+            fill: #eeffcc;
+            stroke: #007020;
+            stroke-width: 2;
+        }
+        text.fixture {
+            color: #06287e;
+        }
+        circle.class {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        circle.module {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        text.class, text.module {
+            fill: #0e84b5;
+        }
+        line, path {
+            stroke: black;
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+    <!-- main scope -->
+    <circle class="module" r="265" cx="281" cy="266" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 26,266 A 255 255 0 0 1 536 266" id="testModule"/>
+    </defs>
+    <text class="module">
+        <textPath xlink:href="#testModule" startOffset="50%">test_fixtures_request_different_scope.py</textPath>
+    </text>
+
+    <!-- TestOne -->
+    <circle class="class" r="100" cx="141" cy="266" />
+    <!-- inner -->
+    <line x1="141" x2="141" y1="231" y2="301"/>
+    <!-- order -->
+    <path d="M 141 296 L 201 296 L 211 286 L 211 146 L 221 136 L 281 136" />
+    <!-- outer -->
+    <path d="M 141 306 L 201 306 L 211 316 L 211 386 L 221 396 L 281 396" />
+    <ellipse class="fixture" rx="50" ry="25" cx="141" cy="231" />
+    <text x="141" y="231">inner</text>
+    <rect class="test" width="110" height="50" x="86" y="276" />
+    <text x="141" y="301">test_order</text>
+    <!-- scope name -->
+    <defs>
+        <path d="M 51,266 A 90 90 0 0 1 231 266" id="testOne"/>
+    </defs>
+    <text class="class">
+        <textPath xlink:href="#testOne" startOffset="50%">TestOne</textPath>
+    </text>
+    <!-- scope order number -->
+    <mask id="testOneOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="100" cx="141" cy="266" />
+    </mask>
+    <circle class="module" r="15" cx="41" cy="266" mask="url(#testOneOrderMask)"/>
+    <text class="module" x="41" y="266">1</text>
+    <!-- scope order number -->
+    <mask id="testMainOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="265" cx="281" cy="266" />
+    </mask>
+    <circle class="module" r="15" cx="16" cy="266" mask="url(#testMainOrderMask)"/>
+    <text class="module" x="16" y="266">2</text>
+
+    <!-- TestTwo -->
+    <circle class="class" r="100" cx="421" cy="266" />
+    <!-- inner -->
+    <line x1="421" x2="421" y1="231" y2="301"/>
+    <!-- order -->
+    <path d="M 421 296 L 361 296 L 351 286 L 351 146 L 341 136 L 281 136" />
+    <!-- outer -->
+    <path d="M 421 306 L 361 306 L 351 316 L 351 386 L 341 396 L 281 396" />
+    <ellipse class="fixture" rx="50" ry="25" cx="421" cy="231" />
+    <text x="421" y="231">inner</text>
+    <rect class="test" width="110" height="50" x="366" y="276" />
+    <text x="421" y="301">test_order</text>
+    <!-- scope name -->
+    <defs>
+        <path d="M 331,266 A 90 90 0 0 1 511 266" id="testTwo"/>
+    </defs>
+    <text class="class">
+        <textPath xlink:href="#testTwo" startOffset="50%">TestTwo</textPath>
+    </text>
+    <!-- scope order number -->
+    <mask id="testTwoOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="100" cx="421" cy="266" />
+    </mask>
+    <circle class="module" r="15" cx="521" cy="266" mask="url(#testTwoOrderMask)"/>
+    <text class="module" x="521" y="266">1</text>
+    <!-- scope order number -->
+    <circle class="module" r="15" cx="546" cy="266" mask="url(#testMainOrderMask)"/>
+    <text class="module" x="546" y="266">2</text>
+
+    <ellipse class="fixture" rx="50" ry="25" cx="281" cy="396" />
+    <text x="281" y="396">outer</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="281" cy="136" />
+    <text x="281" y="136">order</text>
+</svg>

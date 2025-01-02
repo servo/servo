@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>Test elementFromPoint for list-item</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+ul {
+  font-size: 10px;
+}
+ul.inside {
+  list-style-position: inside;
+}
+.image {
+  list-style-image: url(../../images/green-16x16.png);
+}
+.debug-marker {
+  position: absolute;
+  width: 0;
+  height: 0;
+  outline: 2px solid red;
+}
+</style>
+<body>
+  <ul>
+    <li>Outside 1</li>
+    <li>Outside 2</li>
+    <li>Outside 3</li>
+    <li class="image">Image Outside 1</li>
+    <li class="image">Image Outside 2</li>
+  </ul>
+  <ul class="inside">
+    <li>Inside 1</li>
+    <li>Inside 2</li>
+    <li>Inside 3</li>
+    <li class="image">Image Inside 1</li>
+    <li class="image">Image Inside 2</li>
+  </ul>
+<script>
+setup({explicit_done:true});
+window.onload = function() {
+  for (let li of document.getElementsByTagName('li')) {
+    test(() => {
+      let bounds = li.getBoundingClientRect();
+      let style = window.getComputedStyle(li);
+      let y = (bounds.top + bounds.bottom) / 2;
+      if (style.listStylePosition === 'inside') {
+        // Inside markers are normal inline boxes.
+        // It is safe to assume "left + 1" is in the box.
+        let x = bounds.left + 1;
+        addDebugMarker(x, y);
+        let result = document.elementFromPoint(x, y);
+        assert_equals(result, li);
+      } else {
+        // The spec does not define outside marker position.
+        // This code assumes that the marker is within "left - 40" to "left - 1".
+        // This is heuristic, but all browsers seem to pass with this method.
+        let result = null;
+        for (let x = bounds.left - 40; x < bounds.left; x++) {
+          result = document.elementFromPoint(x, y);
+          if (result === li) {
+            addDebugMarker(x, y);
+            break;
+          }
+        }
+        assert_equals(result, li);
+      }
+    }, `<li>${li.textContent}</li>`);
+  }
+  done();
+};
+
+// Show a marker for the debugging purposes, in case the heuristic doesn't apply.
+function addDebugMarker(x, y) {
+  let div = document.createElement('div');
+  div.className = 'debug-marker';
+  let style = div.style;
+  style.left = x + 'px';
+  style.top = y + 'px';
+  document.body.appendChild(div);
+}
+</script>
+</body>

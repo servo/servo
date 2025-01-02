@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-sensor-*-https.html) loads the initiator
+// page, then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
+} else {
+  const sensorName = params.get('sensorName');
+  const sensorType = window[sensorName];
+  const sensor = new sensorType;
+  sensor.start();
+
+  const promise = new Promise((resolve) => {
+    // Sensor TCs only test the async result for Sensor.start() regardless of
+    // success/fail results, because sensors can vary depending on the device.
+    sensor.onactivate = function () { resolve(); }
+    sensor.onerror = function (e) { resolve(); }
+  });
+
+  const prerenderEventCollector = new PrerenderEventCollector();
+  prerenderEventCollector.start(promise, sensorName + " test");
+}
+
+</script>

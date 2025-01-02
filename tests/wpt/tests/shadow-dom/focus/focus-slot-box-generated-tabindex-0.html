@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focus - slot with tabindex=0 that generates a box should be focusable</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#sequential-focus-navigation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/shadow-utils.js"></script>
+<body>
+<div id=host>
+  <template shadowrootmode=open>
+    <slot tabindex=0 style="display: inline-block;"></slot>
+  </template>
+  Content
+</div>
+<script>
+promise_test(async () => {
+  const host = document.getElementById("host");
+  const slot = host.shadowRoot.querySelector("slot");
+
+  resetFocus();
+  await navigateFocusForward();
+
+  return assert_equals(slot, host.shadowRoot.activeElement);
+}, "slot with tabindex=0 that generates a box should be focusable");
+</script>
+</body>

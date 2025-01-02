@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>Ensures that prefetch is not specific to resource types</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/prefetch-helper.js"></script>
+<body>
+<script>
+    const host_info = get_host_info();
+const loaders = {
+    "": {
+        file: "../../common/dummy.xml",
+        type: "text/xml",
+        load: fetch
+    },
+    image: {
+        file: 'green.png',
+        type: 'image/png',
+        load: href => {
+            const image = document.createElement('img');
+            image.src = href;
+            document.body.appendChild(image);
+            return new Promise(resolve => image.addEventListener('load', resolve));
+        }
+    },
+    script: {
+        file: 'dummy.js',
+        type: 'application/javascript',
+        load: href => {
+            const script = document.createElement('script');
+            script.src = href;
+            document.body.appendChild(script);
+            return new Promise(resolve => script.addEventListener('load', resolve));
+        }
+    },
+    style: {
+        file: 'dummy.css',
+        type: 'text/css',
+        load: href => {
+            const link = document.createElement('link');
+            link.href = href;
+            link.rel = "stylesheet";
+            document.body.appendChild(link);
+            return new Promise(resolve => link.addEventListener('load', resolve));
+        }
+    },
+    document: {
+        file: 'empty.html',
+        type: 'text/html',
+        load: href => {
+            const iframe = document.createElement("iframe");
+            iframe.src = href;
+            document.body.appendChild(iframe);
+            return new Promise(resolve => iframe.addEventListener("load", resolve));
+        }
+    }
+};
+
+for (const as in loaders) {
+    for (const consumer in loaders) {
+        const {file, type, load} = loaders[as]
+        promise_test(async t => {
+            const {href} = await prefetch({file, type, as, origin: host_info[origin]});
+            const requests = await get_prefetch_info(href);
+            assert_equals(requests.length, 1);
+            assert_equals(requests[0].headers["sec-fetch-dest"], "empty");
+        }, `Prefetch as=${as} should work when consumed as ${consumer} (${origin})`);
+    }
+}
+
+</script>
+</body>

@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<title> Ensure left takes effect after element is centered for orthogonal writing mode </title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3973">
+<link rel="match" href="div-orthogonal-auto-margin-left-ref.html">
+<style>
+  #outer {
+    inset: 0;
+    background-color: black;
+    writing-mode: vertical-rl;
+    margin: auto;
+    left: 10px;
+    position: absolute;
+    block-size: max-content;
+    inline-size: 100px;
+    border: 5px solid red;
+  }
+</style>
+<div id="outer"><div style="block-size: 200px;"></div></div>

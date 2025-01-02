@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Specificity with universal selector</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/specificity/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specificity" />
+  <link rel="help" href="http://www.w3.org/TR/css3-selectors/#specificity" />
+  <link rel="help" href="http://www.w3.org/TR/selectors4/#specificity" />
+  <link rel="match" href="specificity-013-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+    p { color: yellow; background: red; border: maroon; } /* selects the <p> with 0,0,0,1 */
+    div * { color: white; background: green; } /* selects the <p> with 0,0,0,1 and so should override */
+    body div * { border: solid lime; } /* selects the <p> with 0,0,0,2 */
+  ]]></style>
+ </head>
+ <body>
+  <div>
+   <p>The background of this sentence should be green.</p>
+  </div>
+ </body>
+</html>

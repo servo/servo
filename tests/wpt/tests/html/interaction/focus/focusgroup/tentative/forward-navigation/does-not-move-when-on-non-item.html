@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus does not move when initially set a focusable element that isn't a focusgroup item.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div tabindex=-1 focusgroup>
+  <div>
+    <span id=nonitem1 tabindex=0>nonitem1</span>
+  </div>
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=-1>item2</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var nonitem1 = document.getElementById("nonitem1");
+
+    await focusAndKeyPress(nonitem1, kArrowDown);
+    assert_equals(document.activeElement, nonitem1);
+
+    await focusAndKeyPress(nonitem1, kArrowRight);
+    assert_equals(document.activeElement, nonitem1);
+  }, "When the focus is set on a focusable element that isn't a focusgroup item, an arrow key press shouldn't move the focus at all.");
+
+</script>

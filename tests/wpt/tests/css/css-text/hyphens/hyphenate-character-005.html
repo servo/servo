@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text test: hyphenate-character</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#hyphenate-character">
+<link rel="match" href="reference/hyphenate-character-005-ref.html">
+<meta name="assert" content="Specifies the string that appears at the end of the line before a hyphenation break">
+<style>
+div {
+  font: 32px sans-serif;
+  margin-left: 10ch;
+  width: 3ch;
+  hyphenate-character: "\00a0\0640";
+}
+</style>
+
+<p>Test passes if the word below is hyphenated
+using a right-to-left <i>space+kashida</i> sequence "<span dir=rtl>&nbsp;&#x0640;</span>",
+and shaping is <i>not</i> interrupted.
+
+<div dir=rtl lang=ug>
+قىل­مىغانلىقى
+</div>

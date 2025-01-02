@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Iframe</title>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content="This test ensures that an iframe element can be transformed.">
+    <link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+    <style>
+      iframe {
+        height: 50px;
+        width: 50px;
+        transform: translate(25px, 25px) scale(2, 2);
+        border: none;
+      }
+    </style>
+    <p>Test passes if there is a filled green square.</p>
+    <iframe src="support/transform-iframe-002-contents.html"></iframe>
+  </body>
+</html>

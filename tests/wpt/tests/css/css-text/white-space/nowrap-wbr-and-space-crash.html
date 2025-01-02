@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=950209">
+<link rel="author" title="Koji Ishii" href="kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  white-space: nowrap;
+  width: 3ch;
+}
+</style>
+<body>
+  <div>12345<wbr> 678</div>
+<script>
+test(() => {
+  document.body.offsetTop;
+});
+</script>
+</body>

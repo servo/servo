@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+
+<body>
+  <script>
+    new PerformanceObserver(entries => {
+        window.parent.postMessage(entries.getEntries()[0].toJSON());
+    }).observe({ entryTypes: ["largest-contentful-paint"] });
+
+    const image = document.createElement("img");
+    image.src = "/images/green.svg";
+    image.id = "theImage";
+    document.body.appendChild(image);
+  </script>
+</body>

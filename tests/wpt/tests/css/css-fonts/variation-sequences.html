@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="UTF-8" />
+<title>CSS Test: Cluster Matching Variation Sequences</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#cluster-matching" />
+<link rel="help" href="https://unicode.org/reports/tr51/" />
+<link rel="help" href="https://unicode.org/reports/tr37/" />
+<link rel="help" href="https://www.unicode.org/Public/UNIDATA/StandardizedVariants.txt" />
+<link rel="help" href="https://www.unicode.org/versions/Unicode15.1.0/ch23.pdf#G19053" />
+<link rel="match" href="variation-sequences-ref.html">
+<meta name="assert" content="Variation sequences should be taken into account during cluster matching.">
+<link rel="stylesheet" type="text/css" href="support/css/variation-sequences.css" />
+<script type="text/javascript" src="support/js/variation-sequences.js"></script>
+<body></body>
+<script>
+    generateVariationSequenceTests("emoji");
+    generateVariationSequenceTests("cjk");
+    generateVariationSequenceTests("math");
+</script>

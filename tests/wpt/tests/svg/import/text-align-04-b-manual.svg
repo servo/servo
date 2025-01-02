@@ -1,0 +1,106 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: text-align-04-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#AlignmentProperties">
+      <p>
+        Test for viewer capibility to handle the basics of the 'text-anchor'
+        alignment property for 'text' and related elements.
+      </p>
+      <p>
+        The second group from the top contains sub-tests to verify that the
+        interpreter handles text-anchor when the text is comprised of other
+        text related elements, 'tspan', 'tref', and 'textPath'.
+        The text-anchor property is present on the containing 'text' element
+        in these cases, not on the contained child elements.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if:
+      </p>
+      <ul>
+        <li>
+          The text "start text pink tspan" begins just to the right of the
+          vertical pink line.
+        </li>
+        <li>
+          The text "middle text bold tspan" is split by the vertical pink line
+          between the words "text" and "bold".
+        </li>
+        <li>
+          The text "end text tref" ends just to the left of the vertical pink
+          line.
+        </li>
+        <li>
+          The text "end text on path" ends just to the left of the vertical pink
+          line.
+        </li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-align-04-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F" font-weight="700">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSansBold.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="5" y="40" font-size="36" fill="black">Test of 'text-anchor'</text>
+    <defs>
+      <text id="tref-internal-reference">end text tref</text>
+      <path id="myPath" d="M -5 260 220 260"/>
+    </defs>
+
+    <text x="20" y="80" font-size="30" fill="black">Tspan, tref, toap</text>
+    <!-- Test cases -->
+    <line x1="220" y1="120" x2="220" y2="260" stroke="fuchsia"/>
+    <g font-size="16" fill="blue">
+      <text x="220" y="140" text-anchor="start">
+        start text <tspan xml:space="preserve" fill="fuchsia"> pink tspan</tspan>
+      </text>
+      <text x="220" y="180" text-anchor="middle">
+        middle text <tspan font-weight="bold" xml:space="preserve"> bold tspan</tspan>
+      </text>
+      <text x="220" y="220" text-anchor="end">
+        <tref xlink:href="#tref-internal-reference"/>
+      </text>
+      <text text-anchor="end">
+        <textPath text-anchor="end" startOffset="100%" xlink:href="#myPath">Text-anchor: end text on path</textPath>
+      </text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

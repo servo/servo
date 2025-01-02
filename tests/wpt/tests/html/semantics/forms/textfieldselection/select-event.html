@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>text field selection: select()</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#textFieldSelection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<textarea>foobar</textarea>
+<input type="text" value="foobar">
+<input type="search" value="foobar">
+<input type="tel" value="1234">
+<input type="url" value="https://example.com/">
+<input type="password" value="hunter2">
+
+<script>
+"use strict";
+
+const els = [document.querySelector("textarea"), ...document.querySelectorAll("input")];
+
+const actions = [
+  {
+    label: "select()",
+    action: el => el.select()
+  },
+  {
+    label: "selectionStart",
+    action: el => el.selectionStart = 1
+  },
+  {
+    label: "selectionEnd",
+    action: el => el.selectionEnd = el.value.length - 1
+  },
+  {
+    label: "selectionDirection",
+    action: el => el.selectionDirection = "backward"
+  },
+  {
+    label: "setSelectionRange()",
+    action: el => el.setSelectionRange(1, el.value.length - 1) // changes direction implicitly to none/forward
+  },
+  {
+    label: "setRangeText()",
+    action: el => el.setRangeText("newmiddle", el.selectionStart, el.selectionEnd, "select")
+  },
+  {
+    label: "selectionStart out of range",
+    action: el => el.selectionStart = 1000
+  },
+  {
+    label: "selectionEnd out of range",
+    action: el => el.selectionEnd = 1000
+  },
+  {
+    label: "setSelectionRange out of range",
+    action: el => el.setSelectionRange(1000, 2000)
+  }
+];
+
+function waitForEvents() {
+  // Engines differ in when these events are sent (see:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1785615) so wait for both a
+  // frame to be rendered, and a timeout.
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          resolve();
+        });
+      });
+    });
+  });
+}
+
+function initialize(el) {
+  el.setRangeText("foobar", 0, el.value.length, "start");
+  // Make sure to flush async dispatches
+  return waitForEvents();
+}
+
+els.forEach((el) => {
+  const elLabel = el.localName === "textarea" ? "textarea" : "input type " + el.type;
+
+  actions.forEach((action) => {
+    // promise_test instead of async_test is important because these need to happen in sequence (to test that events
+    // fire if and only if the selection changes).
+    promise_test(async t => {
+      await initialize(el);
+
+      const watcher = new EventWatcher(t, el, "select");
+
+      const promise = watcher.wait_for("select").then(e => {
+        assert_true(e.isTrusted, "isTrusted must be true");
+        assert_true(e.bubbles, "bubbles must be true");
+        assert_false(e.cancelable, "cancelable must be false");
+      });
+
+      action.action(el);
+
+      return promise;
+    }, `${elLabel}: ${action.label}`);
+
+    promise_test(async t => {
+      el.onselect = t.unreached_func("the select event must not fire the second time");
+
+      action.action(el);
+
+      await waitForEvents();
+      el.onselect = null;
+    }, `${elLabel}: ${action.label} a second time (must not fire select)`);
+
+    promise_test(async t => {
+      const element = el.cloneNode(true);
+      let fired = false;
+      element.addEventListener('select', () => fired = true, { once: true });
+
+      action.action(element);
+
+      await waitForEvents();
+      assert_true(fired, "event didn't fire");
+
+    }, `${elLabel}: ${action.label} disconnected node`);
+
+    // Intentionally still using promise_test, as assert_unreachable does not
+    // make the test fail inside a listener while t.unreached_func() does.
+    promise_test(async t => {
+      const element = el.cloneNode(true);
+      let fired = false;
+      element.addEventListener('select', () => fired = true, { once: true });
+
+      action.action(element);
+
+      assert_false(fired, "the select event must not fire synchronously");
+      await waitForEvents();
+      assert_true(fired, "event didn't fire");
+    }, `${elLabel}: ${action.label} event queue`);
+
+    promise_test(async t => {
+      const element = el.cloneNode(true);
+      let selectCount = 0;
+      element.addEventListener('select', () => ++selectCount);
+      assert_equals(element.selectionEnd, 0);
+
+      action.action(element);
+      action.action(element);
+
+      await waitForEvents();
+      assert_equals(selectCount, 1, "the select event must not fire twice");
+    }, `${elLabel}: ${action.label} twice in disconnected node (must fire select only once)`);
+  });
+});
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Fonts reference</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<style>
+@font-face {
+  font-family: test;
+  src: url(/fonts/Ahem.ttf);
+  ascent-override: 80%;
+  descent-override: 20%;
+}
+@font-face {
+  font-family: fallback;
+  src: url(/fonts/GentiumPlus-R.woff);
+  ascent-override: 80%;
+  descent-override: 20%;
+}
+#test, #ref {
+  font: 24px/2 fallback, serif;
+}
+span {
+  font-family: test;
+}
+</style>
+<p>The first line should have much wider word spacing:</p>
+<div id=test>
+This<span>&nbsp;</span>is<span>&nbsp;</span>a<span>&nbsp;</span>test
+</div>
+<div id=ref>
+This is a test
+</div>

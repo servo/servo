@@ -1,0 +1,5 @@
+spec: https://drafts.csswg.org/css-variables/
+suggested_reviewers:
+  - dbaron
+  - svgeesus
+  - tabatkins

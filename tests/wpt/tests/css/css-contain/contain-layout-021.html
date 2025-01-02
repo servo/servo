@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Layout containment fixed positioned descendants</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="match" href="reference/contain-layout-021-ref.html">
+<meta name=assert content="Layout containment makes an element to act as containing block for fixed positioned descendants.">
+<style>
+html {
+  contain: layout;
+}
+#fixed {
+  position: fixed;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+body {
+  height: 3000px;
+  margin: 0px;
+}
+#spacer {
+  height: 200px;
+}
+</style>
+<script>
+function runTest() {
+  document.documentElement.scrollTop += 200;
+}
+</script>
+<body onload="runTest()">
+<div id="spacer"></div>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="fixed"></div>
+</body>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS contain-intrinsic-size: single-select list box</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#list-box">
+<style>
+.ciw-0 {
+  contain-intrinsic-width: 0px;
+}
+.ciw-100 {
+  contain-intrinsic-width: 100px;
+}
+.cih-0 {
+  contain-intrinsic-height: 0px;
+}
+.cih-100 {
+  contain-intrinsic-height: 100px;
+}
+select {
+  padding: 0;
+  border: solid;
+  margin: 5px;
+}
+.test {
+  contain: size;
+}
+</style>
+
+<!-- To measure the size of an empty <select> without size containment -->
+<select id="reference"></select>
+
+<select class="test ciw-none cih-none"
+    data-expected-client-width="default" data-expected-client-height="default"></select>
+<select class="test ciw-none cih-0"
+    data-expected-client-width="default" data-expected-client-height="0"></select>
+<select class="test ciw-none cih-100"
+    data-expected-client-width="default" data-expected-client-height="100"></select>
+
+<select class="test ciw-0 cih-none"
+    data-expected-client-width="0" data-expected-client-height="default"></select>
+<select class="test ciw-0 cih-0"
+    data-expected-client-width="0" data-expected-client-height="0"></select>
+<select class="test ciw-0 cih-100"
+    data-expected-client-width="0" data-expected-client-height="100"></select>
+
+<select class="test ciw-100 cih-none"
+    data-expected-client-width="100" data-expected-client-height="default"></select>
+<select class="test ciw-100 cih-0"
+    data-expected-client-width="100" data-expected-client-height="0"></select>
+<select class="test ciw-100 cih-100"
+    data-expected-client-width="100" data-expected-client-height="100"></select>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+const reference = document.getElementById("reference");
+const normalWidth = reference.clientWidth;
+const normalHeight = reference.clientHeight;
+for (let test of document.querySelectorAll(".ciw-none")) {
+  test.dataset.expectedClientWidth = normalWidth;
+}
+for (let test of document.querySelectorAll(".cih-none")) {
+  test.dataset.expectedClientHeight = normalHeight;
+}
+checkLayout('.test');
+</script>

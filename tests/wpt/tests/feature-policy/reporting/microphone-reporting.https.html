@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src=/resources/testdriver.js></script>
+    <script src=/resources/testdriver-vendor.js></script>
+    <script src='../../mediacapture-streams/permission-helper.js'></script>
+  </head>
+  <body>
+    <script>
+var t = async_test("Microphone Report Format");
+
+var check_report_format = (reports, observer) => {
+  let report = reports[0];
+  assert_equals(report.type, "permissions-policy-violation");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.featureId, "microphone");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+  assert_equals(report.body.disposition, "enforce");
+};
+
+new ReportingObserver(t.step_func_done(check_report_format),
+                      {types: ['permissions-policy-violation']}).observe();
+
+setMediaPermission().then(() => navigator.mediaDevices.getUserMedia({audio: true}))
+  .then(
+  t.unreached_func("UserMedia microphone access should not be allowed in this document.")
+).catch(() => {});
+    </script>
+  </body>
+</html>

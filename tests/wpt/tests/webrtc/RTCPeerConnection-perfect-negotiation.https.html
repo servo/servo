@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-perfect-negotiation-helper.js"></script>
+<script>
+'use strict';
+
+promise_test_both_roles(async (t, pc) => {
+  assert_equals(await runA("simpleConnect"), 1, "one transceiver");
+  assert_equals(await runB("addTransceiver"), 2, "two transceivers");
+}, "Perfect negotiation setup connects");
+
+promise_test_both_roles(async (t, pc) => {
+  await runBoth("addTransceiver");
+  const [numA, numB] = await runBoth("getNumTransceivers");
+  assert_equals(numA, 2, "two transceivers on side A");
+  assert_equals(numB, 2, "two transceivers on side B");
+}, "Perfect negotiation glare");
+</script>

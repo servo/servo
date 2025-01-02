@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html class="reftest-wait" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org"/>
+    <link rel="help" href="https://drafts.csswg.org/selectors/#relational"/>
+    <link rel="help" href="https://drafts.csswg.org/selectors/#lang-pseudo"/>
+    <link rel="match" href="../../reference/ref-filled-green-100px-square.xht"/>
+</head>
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <section class="lang"><div xml:lang="zh" lang="ja"></div></section>
+    <section class="lang"><div id="ja" xml:lang="ja" lang="ja"></div></section>
+    <div><section class="lang" id="fr" lang="fr" style="-webkit-locale: 'en'"><div></div></section></div>
+    <div><section class="lang" id="es" xml:lang="es"><div></div></section></div>
+    <section class="lang"><div id="kr" xml:lang="kr" lang="en"></div></section>
+    <style>
+        body > *:not(p) { background: red; }
+        section, div { width: 100px; height: 20px; }
+        .lang:has(:lang(zh)) { background: green; }
+        .lang:has(:lang(ja)) { background: red; }
+        div:has(.lang:lang(fr)) { background: red; }
+        div:has(.lang:lang(en)) { background: green; }
+        div:has(#es:lang(es)) { background: red; }
+        div:has(#es:lang(en)) { background: green; }
+        .lang:has(#kr:lang(kr)) { background: red; }
+        .lang:has(#kr:lang(kr)) { background: green; }
+        div:has(.lang > :lang(pt)) { background: red; }
+    </style>
+    <script>
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                document.getElementById('ja').setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:lang', 'zh');
+                document.getElementById('fr').setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:lang', 'en');
+                document.getElementById('es').setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:lang', 'en');
+                document.getElementById('kr').removeAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:lang');
+                document.documentElement.className = '';
+            }, 0);
+        });
+    </script>
+</body>
+</html>

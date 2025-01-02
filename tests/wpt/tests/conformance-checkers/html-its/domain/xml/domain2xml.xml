@@ -1,0 +1,14 @@
+<doc>
+    <head>
+        <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+            <its:domainRule selector="/doc/body"
+                domainPointer="/doc/head/meta[@name='DC.subject']/@content"
+                domainMapping="automotive auto, 'criminal law' law, 'property law' law"
+            />
+        </its:rules>
+        <meta name="DC.subject" content="automotive"/>
+    </head>
+    <body>
+        <p>The new car from XYZ - buy it now!</p>
+    </body>
+</doc>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>object serialization</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/channel.sub.js"></script>
+<script src="serialize-data.js"></script>
+
+<script>
+setup(() => {
+    remote = new RemoteGlobal();
+
+    let url = `serialize_child.html?uuid=${remote.uuid}`;
+    win = window.open(url);
+});
+
+for (let [name, obj] of Object.entries(objects)) {
+    promise_test(async t => {
+        let result = await remote.call(
+            (name, inputValue) => compareResult(name, inputValue),
+            name,
+            obj.input);
+        assert_true(result);
+    }, `Serialize ${name}`);
+}
+
+promise_test(async t => {
+    let remoteValue = RemoteObject.from(document.head);
+    let result = await remote.call(inputValue => {
+        if (!(inputValue instanceof RemoteObject)) {
+            throw new AssertionError(`Expected RemoteObject`);
+        }
+        return inputValue;
+    }, remoteValue);
+    assert_equals(result, document.head);
+}, "Serialize RemoteObject");
+
+</script>

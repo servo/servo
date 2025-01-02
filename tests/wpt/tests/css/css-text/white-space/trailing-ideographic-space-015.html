@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: handling leading ideographic space sequence</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" title="3. White Space and Wrapping: the white-space property" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre-wrap">
+<link rel="help" title="4.1.3. Phase II: Trimming and Positioning" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" title="5.5. Overflow Wrapping: the overflow-wrap/word-wrap property" href="https://drafts.csswg.org/css-text-3/#overflow-wrap-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-anywhere">
+<link rel="match" href="reference/trailing-ideographic-space-011-ref.html">
+<link rel="match" href="reference/trailing-ideographic-space-alt-011-ref.html">
+<meta name="assert" content="Trailing ideographic spaces should hang, despite the use of overflow-wrap: anywhere.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+div {
+    font: 20px/1 Ahem;
+    width: 3ch;
+
+    overflow-wrap: anywhere;
+}
+span { background: blue; } /* If the space is removed instead of hanging, there will be no blue box*/
+</style>
+
+<p>Test passes if the characters below are arranged in a single line and if there is a blue square at the end of the first line.
+<div>X&#x03000;<span>X&#x03000;</span></div>

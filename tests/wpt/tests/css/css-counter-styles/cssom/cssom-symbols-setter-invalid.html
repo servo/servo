@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSSCounterStyleRule symbols setter with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-counter-styles-3/#the-csscounterstylerule-interface">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="cssom-symbols-setter-ref.html">
+<style id="sheet">
+@counter-style foo {
+  system: alphabetic;
+  symbols: A B C;
+}
+</style>
+
+<ol style="list-style-type: foo; list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+
+<script>
+// Force layout update before changing the rule
+document.body.offsetWidth;
+
+const sheet = document.getElementById('sheet');
+const foo_rule = sheet.sheet.rules[0];
+
+// Invalid values should be ignored
+foo_rule.symbols = '';
+foo_rule.symbols = '1 2 *';
+foo_rule.symbols = 'A';
+</script>

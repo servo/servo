@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<title>CSS Syntax: {}-blocks in declaration values</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9317">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Standard properties -->
+
+<style id=plain_var>
+  .a {
+    color: rgb(2, 2, 2);
+    color:var(--x); /* Valid */
+    background-color:rgb(1, 1, 1);
+  }
+</style>
+<script>
+  test(() => {
+    let rules = plain_var.sheet.rules;
+    assert_equals(rules.length, 1);
+    let declarations = rules[0].style;
+    assert_equals(declarations.color, 'var(--x)');
+    assert_equals(declarations.backgroundColor, 'rgb(1, 1, 1)');
+  }, 'Plain var()');
+</script>
+
+<style id=whole_value_block>
+  .a {
+    color: rgb(2, 2, 2);
+    color:{var(--x)}; /* Valid */
+    background-color:rgb(1, 1, 1);
+  }
+</style>
+<script>
+  test(() => {
+    let rules = whole_value_block.sheet.rules;
+    assert_equals(rules.length, 1);
+    let declarations = rules[0].style;
+    assert_equals(declarations.color, '{var(--x)}');
+    assert_equals(declarations.backgroundColor, 'rgb(1, 1, 1)');
+  }, 'Whole-value block with var()');
+</script>
+
+<style id=whole_value_block_with_space>
+  .a {
+    color: rgb(2, 2, 2);
+    color: { var(--x) }; /* Valid */
+    background-color:rgb(1, 1, 1);
+  }
+</style>
+<script>
+  test(() => {
+    let rules = whole_value_block_with_space.sheet.rules;
+    assert_equals(rules.length, 1);
+    let declarations = rules[0].style;
+    assert_equals(declarations.color, '{ var(--x) }');
+    assert_equals(declarations.backgroundColor, 'rgb(1, 1, 1)');
+  }, 'Whole-value block with var() (spaces)');
+</script>
+
+<style id=trailing_block>
+  .a {
+    color: rgb(2, 2, 2);
+    color:var(--x) { }; /* Invalid */
+    background-color:rgb(1, 1, 1);
+  }
+</style>
+<script>
+  test(() => {
+    let rules = trailing_block.sheet.rules;
+    assert_equals(rules.length, 1);
+    let declarations = rules[0].style;
+    assert_equals(declarations.color, 'rgb(2, 2, 2)');
+    assert_equals(declarations.backgroundColor, 'rgb(1, 1, 1)');
+  }, 'Trailing block, leading var()');
+</script>
+
+<style id=leading_block>
+  .a {
+    color: rgb(2, 2, 2);
+    color:{ } var(--x); /* Invalid */
+    background-color:rgb(1, 1, 1);
+  }
+</style>
+<script>
+  test(() => {
+    let rules = leading_block.sheet.rules;
+    assert_equals(rules.length, 1);
+    let declarations = rules[0].style;
+    assert_equals(declarations.color, 'rgb(2, 2, 2)');
+    assert_equals(declarations.backgroundColor, 'rgb(1, 1, 1)');
+  }, 'Leading block, trailing var()');
+</script>
+
+<style id=in_block_var_with_trailing_token>
+  .a {
+    color: rgb(2, 2, 2);
+    color:{ var(--x) } A; /* Invalid */
+    background-color:rgb(1, 1, 1);
+  }
+</style>
+<script>
+  test(() => {
+    let rules = in_block_var_with_trailing_token.sheet.rules;
+    assert_equals(rules.length, 1);
+    let declarations = rules[0].style;
+    assert_equals(declarations.color, 'rgb(2, 2, 2)');
+    assert_equals(declarations.backgroundColor, 'rgb(1, 1, 1)');
+  }, 'In-block var() with trailing token');
+</script>
+
+<style id=in_block_var_with_leading_token>
+  .a {
+    color: rgb(2, 2, 2);
+    color:A { var(--x) }; /* Invalid */
+    background-color:rgb(1, 1, 1);
+  }
+</style>
+<script>
+  test(() => {
+    let rules = in_block_var_with_leading_token.sheet.rules;
+    assert_equals(rules.length, 1);
+    let declarations = rules[0].style;
+    assert_equals(declarations.color, 'rgb(2, 2, 2)');
+    assert_equals(declarations.backgroundColor, 'rgb(1, 1, 1)');
+  }, 'In-block var() with leading token');
+</script>
+
+<!-- Custom Properties -->
+
+<style id=plain_var_custom>
+  .a {
+    --y:var(--x); /* Valid */
+  }
+</style>
+<script>
+  test(() => {
+    let rules = plain_var_custom.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].style.getPropertyValue('--y'), 'var(--x)');
+  }, 'Plain var() (custom property)');
+</script>
+
+<style id=whole_value_block_custom>
+  .a {
+    --y:{var(--x)}; /* Valid */
+  }
+</style>
+<script>
+  test(() => {
+    let rules = whole_value_block_custom.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].style.getPropertyValue('--y'), '{var(--x)}');
+  }, 'Whole-value block with var() (custom property)');
+</script>
+
+<style id=whole_value_block_with_space_custom>
+  .a {
+    --y: { var(--x) }; /* Valid */
+  }
+</style>
+<script>
+  test(() => {
+    let rules = whole_value_block_with_space_custom.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].style.getPropertyValue('--y'), '{ var(--x) }');
+  }, 'Whole-value block with var() (spaces, custom property)');
+</script>
+
+<style id=trailing_block_custom>
+  .a {
+    --y:var(--x) { }; /* Valid */
+  }
+</style>
+<script>
+  test(() => {
+    let rules = trailing_block_custom.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].style.getPropertyValue('--y'), 'var(--x) { }');
+  }, 'Trailing block, leading var() (custom property)');
+</script>
+
+<style id=leading_block_custom>
+  .a {
+    --y:{ } var(--x); /* Valid */
+  }
+</style>
+<script>
+  test(() => {
+    let rules = leading_block_custom.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].style.getPropertyValue('--y'), '{ } var(--x)');
+  }, 'Leading block, trailing var() (custom property)');
+</script>
+
+<style id=in_block_var_with_trailing_token_custom>
+  .a {
+    --y:{ var(--x) } A; /* Valid */
+  }
+</style>
+<script>
+  test(() => {
+    let rules = in_block_var_with_trailing_token_custom.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].style.getPropertyValue('--y'), '{ var(--x) } A');
+  }, 'In-block var() with trailing token (custom property)');
+</script>
+
+<style id=in_block_var_with_leading_token_custom>
+  .a {
+    --y:A { var(--x) }; /* Valid */
+  }
+</style>
+<script>
+  test(() => {
+    let rules = in_block_var_with_leading_token_custom.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].style.getPropertyValue('--y'), 'A { var(--x) }');
+  }, 'In-block var() with leading token (custom property)');
+</script>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: old content captures an empty div</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="new-content-is-empty-div-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+div {
+  contain: paint;
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  top: 50px;
+}
+#source {
+  left: 50px;
+  background: green;
+}
+#target {
+  left: 200px;
+}
+#hidden {
+  background: red;
+  view-transition-name: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+/* The effect of the following should be position at the incoming element
+   but contents of the new element.
+*/
+html::view-transition-group(shared) { animation-duration: 0s; }
+html::view-transition-new(shared) { animation: unset; opacity: 1; }
+html::view-transition-old(shared) { animation: unset; opacity: 1; }
+
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+
+</style>
+
+<div id=source></div>
+<div id=target></div>
+<div id=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  source.style = "view-transition-name: shared";
+  document.startViewTransition(() => {
+    source.style = "";
+    target.style = "view-transition-name: shared";
+
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot))
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

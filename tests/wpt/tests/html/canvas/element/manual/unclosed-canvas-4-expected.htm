@@ -1,0 +1,14 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>unclosed canvas tag in body</title>
+    </head>
+    <body>
+        <p>There should be no text below this, because the text is inside a canvas element
+            and the &lt;/div&gt; that's also inside the canvas element does not close an open
+            element. The canvas is never closed, and the rest of the body ends up inside it.
+            There's nothing special about div; we get the same results with other types of
+            elements. The fact that the canvas tag uses XML self-closing syntax has no effect.
+        </p>
+    </body>
+</html>

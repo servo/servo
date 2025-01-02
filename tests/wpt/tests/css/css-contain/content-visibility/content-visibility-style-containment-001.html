@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>content-visibility and style containment</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1765615">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<meta name="assert" content="content-visibility: auto and elements skipping their content change the used value of the contain property to turn on style containment.">
+<style>
+  /* Selectors for content-visibility */
+  #spacer_for_far_to_viewport {
+      height: 300vh;
+  }
+  #visible .content_visibility {
+      content-visibility: visible;
+  }
+  #hidden .content_visibility {
+      content-visibility: hidden;
+  }
+  #auto_far .content_visibility {
+      content-visibility: auto;
+  }
+  #auto_close .content_visibility {
+      content-visibility: auto;
+  }
+  #visible_to_hidden .content_visibility {
+      content-visibility: visible;
+  }
+  #hidden_to_visible .content_visibility {
+      content-visibility: hidden;
+  }
+  #visible_to_auto .content_visibility {
+      content-visibility: visible;
+  }
+  #auto_to_visible .content_visibility {
+      content-visibility: auto;
+  }
+
+  /* Selectors for testing counters */
+  .set_counter_to_9 {
+      counter-set: testcounter 9;
+  }
+  .increment_counter {
+      counter-increment: testcounter;
+  }
+  span.print_counter::after {
+      font: 25px/1 Ahem;
+      content: counters(testcounter, ".");
+  }
+
+</style>
+<body>
+  <div id="log"></div>
+
+  <div id="visible">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <div id="hidden">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <div id="auto_close">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <div id="visible_to_hidden">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <div id="hidden_to_visible">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <div id="visible_to_auto">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <div id="auto_to_visible">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <div id="spacer_for_far_to_viewport"></div>
+
+  <div id="auto_far">
+    <div class="set_counter_to_9"></div>
+    <span><span class="print_counter"></span></span>
+    <div class="content_visibility">
+      <span class="increment_counter"></span>
+    </div>
+    <span><span class="print_counter"></span></span>
+  </div>
+
+  <script>
+    function styleContainmentApplied(id) {
+        let container = document.getElementById(id);
+
+        let printed_counters = container.getElementsByClassName("print_counter");
+
+        // To verify style containment, we test the string length of generated
+        // content for counters.
+        // See contain-style-dynamic-001.html for more details.
+        function haveSameStringLength(box1, box2) {
+            const ahemFontSizePx = 25;
+            return Math.abs(box2.width - box1.width) < ahemFontSizePx / 2;
+        }
+        let beforeBox = printed_counters[0].parentNode.getBoundingClientRect();
+        let afterBox = printed_counters[1].parentNode.getBoundingClientRect();
+        return haveSameStringLength(beforeBox, afterBox);
+    }
+
+    function setContentVisibility(id, value) {
+        let container = document.getElementById(id);
+        let content_visibility = container.getElementsByClassName("content_visibility")[0];
+        content_visibility.style.contentVisibility = value;
+    }
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        assert_false(styleContainmentApplied("visible"));
+    }, "content-visibility: visible");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        assert_true(styleContainmentApplied("hidden"));
+    }, "content-visibility: hidden");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        await waitForAtLeastOneFrame();
+        assert_true(styleContainmentApplied("auto_far"));
+    }, "content-visibility: auto (far from viewport)");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        await waitForAtLeastOneFrame();
+        assert_true(styleContainmentApplied("auto_close"));
+    }, "content-visibility: auto (close from viewport)");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("visible_to_hidden", "hidden");
+        assert_true(styleContainmentApplied("visible_to_hidden"));
+    }, "switching content-visibility from visible to hidden");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("hidden_to_visible", "visible");
+        assert_false(styleContainmentApplied("hidden_to_visible"));
+    }, "switching content-visibility from hidden to visible");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("visible_to_auto", "auto");
+        await waitForAtLeastOneFrame();
+        assert_true(styleContainmentApplied("visible_to_auto"));
+    }, "switching content-visibility from visible to auto");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("auto_to_visible", "visible");
+        assert_false(styleContainmentApplied("auto_to_visible"));
+    }, "switching content-visibility from auto to visible");
+  </script>
+</body>

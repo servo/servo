@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Filters: Crash when a SVG filter is deleted</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterElement">
+<link rel="issue" href="https://bugs.webkit.org/show_bug.cgi?id=90405">
+<meta name="assert" content="Check that crash doesn't happen when a SVG filter is deleted that used to be referenced by an HTML element but is no longer.">
+<body>
+  <img id="html" style="filter: url(#MyFilter);" src="support/color-palette.png">
+  <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1" id="svg">
+    <defs>
+      <filter id="MyFilter">
+        <feColorMatrix type="hueRotate" values="180"/>
+      </filter>
+    </defs>
+  </svg>
+  <script>
+    html = document.getElementById('html');
+    html.style = "";
+    svg = document.getElementById('svg');
+    svg.parentNode.removeChild(svg);
+  </script>
+</body>

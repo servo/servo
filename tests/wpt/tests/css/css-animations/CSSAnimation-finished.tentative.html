@@ -1,0 +1,85 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSAnimation.finished</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#cssanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes abc {
+  to { transform: translate(10px) }
+}
+@keyframes def {}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+const ANIM_PROP_VAL = 'abc 100s';
+const ANIM_DURATION = 100 * MS_PER_SEC;
+
+promise_test(async t => {
+  const div = addDiv(t);
+
+  // Set up pending animation
+  div.style.animation = ANIM_PROP_VAL;
+  const animation = div.getAnimations()[0];
+  const originalFinishedPromise = animation.finished;
+
+  // Cancel the animation and flush styles
+  div.style.animation = '';
+  getComputedStyle(div).animation;
+
+  await promise_rejects_dom(t, 'AbortError', originalFinishedPromise,
+                        'finished promise is rejected with AbortError');
+
+  assert_not_equals(animation.finished, originalFinishedPromise,
+                    'Finished promise should change after the original is ' +
+                    'rejected');
+}, 'finished promise is rejected when an animation is canceled by resetting ' +
+   'the animation property');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  // As before, but this time instead of removing all animations, simply update
+  // the list of animations. At least for Firefox, updating is a different
+  // code path.
+
+  // Set up pending animation
+  div.style.animation = ANIM_PROP_VAL;
+  const animation = div.getAnimations()[0];
+  const originalFinishedPromise = animation.finished;
+
+  // Update the animation and flush styles
+  div.style.animation = 'def 100s';
+  getComputedStyle(div).animation;
+
+  await promise_rejects_dom(t, 'AbortError', originalFinishedPromise,
+                        'finished promise is rejected with AbortError');
+
+  assert_not_equals(animation.finished, originalFinishedPromise,
+                    'Finished promise should change after the original is ' +
+                    'rejected');
+}, 'finished promise is rejected when an animation is canceled by changing ' +
+   'the animation property');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = ANIM_PROP_VAL;
+  const animation = div.getAnimations()[0];
+  const originalFinishedPromise = animation.finished;
+  animation.currentTime = ANIM_DURATION;
+
+  await animation.finished;
+
+  div.style.animationPlayState = 'running';
+  await waitForAnimationFrames(2);
+
+  assert_equals(animation.finished, originalFinishedPromise,
+                'The finished promise should NOT be reset');
+  assert_equals(animation.currentTime, ANIM_DURATION,
+                'Sanity check: the current time should not change');
+}, 'finished promise is not reset when animationPlayState is set to running');
+
+</script>

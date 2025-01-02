@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  promise_test(function() {
+      var t = new TestBinding;
+      return t.returnResolvedPromise('success')
+          .then(function(s) {
+              assert_equals(s, 'success');
+          });
+  }, 'Resolve callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      return t.returnRejectedPromise('success')
+          .then(test.unreached_func())
+          .catch(function(s) {
+              assert_equals(s, 'success');
+          });
+  }, 'Reject callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      var p = new Promise(function() {});
+      t.promiseRejectWithTypeError(p, "success");
+      return promise_rejects_js(test, TypeError, p, "TypeError should be instantiated");
+  }, 'Native code rejects with exception');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      var resolved;
+      var p = t.promiseNativeHandler(function(v) {
+          resolved = v;
+      }, null);
+      t.promiseResolveNative(p, 'success');
+      return p.then(function() {
+          assert_equals(resolved, 'success')
+      });
+  }, 'Native resolve callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      var rejected;
+      var p = t.promiseNativeHandler(null, function(v) {
+          rejected = v;
+      });
+      t.promiseRejectNative(p, 'success');
+      return p.catch(function() {
+          assert_equals(rejected, 'success')
+      });
+  }, 'Native reject callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      var resolved;
+      var p = new Promise(function() {});
+      var start = Date.now();
+      t.resolvePromiseDelayed(p, 'success', 100);
+      test.step_timeout(function() { window.gc() }, 0);
+      return p.then(function(v) {
+          var end = Date.now();
+          assert_greater_than_equal(end - start, 100);
+          assert_equals(v, 'success');
+      });
+  }, 'Native promise from async callback can be resolved');
+</script>

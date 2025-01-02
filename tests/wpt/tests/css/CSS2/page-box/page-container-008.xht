@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Paged Media Canvas Background</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#painting" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="For documents in the html namespace, a background on 'html' will cover the page area but not the margin area." />
+  <style type="text/css">
+	@page { margin: 7%; }
+	html {
+        background-color: #ddffdd;
+	}
+
+  </style>
+ </head>
+ <body>
+   <div>
+     <p>There is a white margin around the edge of this page. The top and bottom margins are of equal height, and the right and left margins are of equal width. The rest of the page, including this text, has a pale green background.</p>
+   </div>
+ </body>
+</html>

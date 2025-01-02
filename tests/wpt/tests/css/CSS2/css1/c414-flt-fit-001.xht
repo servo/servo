@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Stacking Replaced Left Floats</title>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-30 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#floating-elements"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="match" href="c414-flt-fit-001-ref.xht" />
+
+  <meta name="flags" content="image" />
+
+  <style type="text/css"><![CDATA[
+   div { border: 5px solid blue; width: 250px; margin: 10px; line-height: 0; }
+   div p { margin: 0; float: left; }
+  ]]></style>
+
+ </head>
+ <body>
+  <p>There should be a complete unbroken drawing of a yin-yang (&#x262F;) symbol below, slightly on the left (&#x21E6;) inside a blue box.</p>
+  <div>
+   <p> <img src="support/test-tl.png" alt="FAIL: You need images enabled."/> </p>
+   <p> <img src="support/test-tr.png" alt="FAIL: You need images enabled."/> </p>
+   <p> <img src="support/test-bl.png" alt="FAIL: You need images enabled."/> </p>
+       <img src="support/test-br.png" alt="FAIL: You need images enabled."/>
+  </div>
+ </body>
+</html>

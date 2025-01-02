@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Historical drag-and-drop features</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.test-square {
+  width: 100px;
+  height: 100px;
+}
+
+#draggable {
+  background: orange;
+}
+
+#dropzone {
+  background: blue;
+}
+</style>
+
+<p>Drag the orange square onto the blue square and release it.</p>
+
+<div draggable="true" id="draggable" class="test-square" ondragstart="event.dataTransfer.setData('text/plain', null)"></div>
+<div id="dropzone" class="test-square"></div>
+
+<script>
+"use strict";
+
+async_test(t => {
+  let dragexitCount = 0;
+  document.addEventListener("dragexit", () => {
+    ++dragexitCount;
+  });
+
+  // Prevent the event to allow drop
+  document.addEventListener("dragover", e => {
+    e.preventDefault();
+  });
+
+  document.addEventListener("drop", t.step_func_done(() => {
+    assert_equals(dragexitCount, 0);
+  }));
+}, `dragexit must not fire during drag-and-drop`);
+</script>

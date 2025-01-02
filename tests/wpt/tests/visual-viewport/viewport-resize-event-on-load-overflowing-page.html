@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Resize Event On Load Overflowing Page</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+            var t = async_test(
+                "Resize event fired exactly once against window.visualViewport if " +
+                "scrollbars affect layout.");
+            t.step(() => {
+              // Run the test in a new window to make sure we don't pick up
+              // a resize event due to a previous page having a different scale.
+              var win = window.open("helper-resize-event-on-load-overflowing-page.html");
+              t.add_cleanup(() => win.close());
+            });
+        </script>
+    </head>
+    <body>
+    <h1>Viewport: Resize Event On Load Overflowing Page</h1>
+    <h4>
+        Test Description: This test ensures that we fire a resize event against
+        window.visualViewport if the page has overflow (since this creates a scrollbar
+        and thus changes the viewport size).
+    </h4>
+    <div id="log"></div>
+    </body>
+</html>
+

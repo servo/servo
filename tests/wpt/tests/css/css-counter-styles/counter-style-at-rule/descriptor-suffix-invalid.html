@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: descriptor suffix, invalid</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#counter-style-suffix">
+<link rel="match" href="descriptor-suffix-invalid-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: extends decimal;
+    suffix: ',';
+    suffix: *;
+    suffix: 0;
+    suffix: '$' '$';
+  }
+</style>
+<ol start="-2" style="list-style-type: a">
+  <li><li><li><li><li>
+</ol>

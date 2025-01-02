@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Text test: intrinsic minimum sizing of trailing spaces with white-space:pre-wrap</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-003-ref.html">
+<meta name="assert" content="Preserved white space at the end of soft-wrapped lines is hanged when white-space is pre-wrap, and therefore does not count when computing the (minimum) intrinsic size.">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 25px/1 Ahem;
+  white-space: pre-wrap;
+  width: min-content;
+  color: green;
+  background: red;
+}
+</style>
+
+<p>This test passes if there is a green rectangle and no red.
+
+<div>X    X X X</div>

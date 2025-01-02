@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Text: hyphenate-limit-chars with computed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-chars">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_computed_value("hyphenate-character", "auto");
+test_computed_value("hyphenate-limit-chars", "auto auto", "auto");
+test_computed_value("hyphenate-limit-chars", "auto auto auto", "auto");
+test_computed_value("hyphenate-limit-chars", "5");
+test_computed_value("hyphenate-limit-chars", "5 2");
+test_computed_value("hyphenate-limit-chars", "5 2 3");
+test_computed_value("hyphenate-limit-chars", "5 2 calc(3.1)", "5 2 3");
+test_computed_value("hyphenate-limit-chars", "auto 2");
+test_computed_value("hyphenate-limit-chars", "auto 2 auto", "auto 2");
+test_computed_value("hyphenate-limit-chars", "auto auto 2");
+</script>

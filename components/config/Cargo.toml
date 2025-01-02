@@ -1,0 +1,29 @@
+[package]
+name = "servo_config"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_config"
+path = "lib.rs"
+
+[dependencies]
+embedder_traits = { workspace = true }
+euclid = { workspace = true }
+getopts = { workspace = true }
+log = { workspace = true }
+num_cpus = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+servo_config_plugins = { path = "../config_plugins" }
+servo_geometry = { path = "../geometry" }
+servo_url = { path = "../url" }
+style_config = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+dirs = "5.0"

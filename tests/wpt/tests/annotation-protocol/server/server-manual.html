@@ -1,0 +1,413 @@
+<!doctype html>
+<html>
+<head>
+<title>Annotation Protocol Must Tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script type="application/javascript">
+/* globals header, assert_equals, promise_test, assert_true, uuid, assert_regexp_match */
+
+/* jshint unused: false, strict: false */
+
+setup( { explicit_timeout: true, explicit_done: true } );
+
+// just ld+json here as the full profile'd media type is a SHOULD
+var MEDIA_TYPE = 'application/ld+json';
+var MEDIA_TYPE_REGEX = /application\/ld\+json/;
+// a request timeout if there is not one specified in the parent window
+
+var myTimeout = 5000;
+
+function request(method, url, headers, content) {
+  if (method === undefined) {
+    method = "GET";
+  }
+
+  return new Promise(function (resolve, reject) {
+    var xhr = new XMLHttpRequest();
+
+    // this gets returned when the request completes
+    var resp = {
+      xhr: xhr,
+      headers: null,
+      status: 0,
+      body: null,
+      text: ""
+    };
+
+    xhr.open(method, url);
+
+    // headers?
+    if (headers !== undefined) {
+      headers.forEach(function(ref, idx) {
+        xhr.setRequestHeader(ref[0], ref[1]);
+      });
+    }
+
+    // xhr.timeout = myTimeout;
+
+    xhr.ontimeout = function() {
+      resp.timeout = myTimeout;
+      resolve(resp);
+    };
+
+    xhr.onerror = function() {
+      resolve(resp);
+    };
+
+    xhr.onload = function () {
+      resp.status = this.status;
+      if (this.status >= 200 && this.status < 300) {
+        var d = xhr.response;
+        resp.text = d;
+        // we have it; what is it?
+        var type = xhr.getResponseHeader('Content-Type');
+        if (type) {
+          resp.type = type.split(';')[0];
+          if (resp.type === MEDIA_TYPE) {
+            try {
+              d = JSON.parse(d);
+              resp.body = d;
+            }
+            catch(err) {
+              resp.body = null;
+            }
+          }
+        } else {
+          resp.type = null;
+          resp.body = null;
+        }
+
+      }
+      resolve(resp);
+    };
+
+    if (content !== undefined) {
+      if ("object" === typeof(content)) {
+        xhr.send(JSON.stringify(content));
+      } else if ("function" === typeof(content)) {
+        xhr.send(content());
+      } else if ("string" === typeof(content)) {
+        xhr.send(content);
+      }
+    } else {
+      xhr.send();
+    }
+  });
+}
+
+function checkBody(res, pat, isRE) {
+  if (isRE === undefined) {
+    isRE = true;
+  }
+  if (!res.body) {
+    if (isRE) {
+      assert_regexp_match("", pat, header + " not found in body");
+    } else {
+      assert_equals("", pat, header + " not found in body") ;
+    }
+  } else {
+    if (isRE) {
+      assert_regexp_match(res.body, pat, pat + " not found in body ");
+    } else {
+      assert_equals(res.body, pat, pat + " not found in body");
+    }
+  }
+}
+
+function checkHeader(res, header, pat, isRE) {
+  if (isRE === undefined) {
+    isRE = true;
+  }
+  if (!res.xhr.getResponseHeader(header)) {
+    if (isRE) {
+      assert_regexp_match("", pat, header + " not found in response");
+    } else {
+      assert_equals("", pat, header + " not found in response") ;
+    }
+  } else {
+    var val = res.xhr.getResponseHeader(header) ;
+    if (isRE) {
+      assert_regexp_match(val, pat, pat + " not found in " + header);
+    } else {
+      assert_equals(val, pat, pat + " not found in " + header);
+    }
+  }
+}
+
+/* makePromiseTests
+ *
+ * thennable   - Promise that when resolved will send data into the test
+ * criteria    - Array of assertions
+ */
+
+function makePromiseTests( thennable, criteria ) {
+  // loop over the array of criteria
+  //
+  // create a promise_test for each one
+  criteria.forEach(function(ref) {
+    promise_test(function() {
+      return thennable.then(function(res) {
+        if (ref.header !== undefined) {
+        // it is a header check
+          if (ref.pat !== undefined) {
+            checkHeader(res, ref.header, ref.pat, true);
+          } else if (ref.string !== undefined) {
+            checkHeader(res, ref.header, ref.string, false);
+          } else if (ref.test !== undefined) {
+            assert_true(ref.test(res));
+          }
+        } else {
+          if (ref.pat !== undefined) {
+            checkBody(res, ref.pat, true);
+          } else if (ref.string !== undefined) {
+            checkBody(res, ref.string, false);
+          } else if (ref.test !== undefined) {
+            assert_true(ref.test(res));
+          }
+        }
+      });
+    }, ref.assertion);
+  });
+}
+
+function runTests( container_url, annotation_url ) {
+  // trim whitespace from incoming variables
+  container_url = container_url.trim();
+  annotation_url = annotation_url.trim();
+
+  // Section 4 has a requirement that the URL end in a slash, so...
+  // ensure the url has a length
+  test(function() {
+    assert_regexp_match(container_url, /\/$/, 'Container URL did not end in a "/" character');
+  }, 'Container MUST end in a "/" character');
+
+  // Container tests
+  var theContainer = request("GET", container_url);
+
+  makePromiseTests( theContainer, [
+      { header: 'Allow', pat: /GET/, assertion: "Containers MUST support GET (check Allow on GET)" },
+      { header: 'Allow', pat: /HEAD/, assertion: "Containers MUST support HEAD (check Allow on GET)" },
+      { header: 'Allow', pat: /OPTIONS/, assertion: "Containers MUST support OPTIONS (check Allow on GET)" },
+      { header: 'Content-Type', pat: MEDIA_TYPE_REGEX, assertion: 'Containers MUST have a Content-Type header with the application/ld+json media type'},
+      { header: 'Content-Type', pat: MEDIA_TYPE_REGEX, assertion: 'Containers MUST response with the JSON-LD representation (by default)'},
+      { test: function(res) { return ( 'type' in res.body && res.body.type.indexOf('BasicContainer') > -1 ); }, assertion: 'Containers MUST return a description of the container with BasicContainer' },
+      { test: function(res) { return ( 'type' in res.body && res.body.type.indexOf('AnnotationCollection') > -1 ); }, assertion: 'Containers MUST return a description of the container with AnnotationCollection' },
+      { header: 'Link', pat: /(.*)/, assertion: 'Containers MUST return a Link header (rfc5988) on all responses' },
+      { header: 'ETag', pat: /(.*)/, assertion: 'Containers MUST have an ETag header'},
+      { header: 'Vary', pat: /Accept/, assertion: 'Containers MUST have a Vary header with Accept in the value'},
+      { header: 'Link', pat: /rel\=\"type\"|\/ns\/ldp#|Container/, assertion: 'Containers MUST advertise its type by including a link where the rel parameter value is type and the target IRI is the appropriate Container Type'},
+      { header: 'Link', pat: /rel\=\"type\"|\/ns\/ldp#|Container/,
+        assertion: 'Containers MUST advertise that it imposes Annotation protocol specific' +
+                   ' constraints by including a link where the target IRI is' +
+                   ' http://www.w3.org/TR/annotation-protocol/, and the rel parameter' +
+                   ' value is the IRI http://www.w3.org/ns/ldp#constrainedBy'},
+  ] );
+
+
+  promise_test(function() {
+      return request("HEAD", container_url).then(function(res) {
+          assert_equals(res.status, 200, "HEAD request returned " + res.status);
+          });
+      }, "Containers MUST support HEAD method");
+
+  promise_test(function() {
+      return request("OPTIONS", container_url).then(function(res) {
+          assert_equals(res.status, 200, "OPTIONS request returned " + res.status);
+          });
+      }, "Containers MUST support OPTIONS method");
+
+  // Container representation tests
+
+
+  makePromiseTests( theContainer, [
+      { header: 'Content-Location', pat: /(.*)/, assertion: "Containers MUST include a Content-Location header with the IRI as its value" },
+      { header: 'Content-Location', test: function(res) { if (res.xhr.getResponseHeader('content-location') === res.body.id ) { return true; } else { return false;} }, assertion: "Container's Content-Location and `id` MUST match" }
+      ]);
+
+  promise_test(function() {
+    return theContainer.then(function(res) {
+      var f = res.body.first;
+      if (f !== undefined && f !== "") {
+        request("GET", f).then(function(lres) {
+          assert_true(('partOf' in lres.body) || ('id' in lres.body.partOf), "No partOf in response");
+          });
+      } else {
+        assert_true(false, "no 'first' in response from Container");
+      }
+    });
+  }, "Annotation Pages must have a link to the container they are part of, using the partOf property");
+
+  promise_test(function() {
+    return theContainer.then(function(res) {
+      var l = res.body.last;
+      request("GET", l).then(function(lres) {
+        assert_true(('prev' in lres.body), "No link to the previous page in response");
+        });
+    });
+  }, "Annotation Pages MUST have a link to the previous page in the sequence, using the prev property (if not the first page)");
+
+  promise_test(function() {
+    return theContainer.then(function(res) {
+      var f = res.body.first;
+      request("GET", f).then(function(lres) {
+        assert_true(('next' in lres.body), "No link to the next page in response");
+        });
+    });
+  }, "Annotation Pages MUST have a link to the next page in the sequence, using the next property (if not the last page)");
+
+  // Annotation Tests
+  var theRequest = request("GET", annotation_url);
+
+  makePromiseTests( theRequest, [
+      { header: 'Allow', pat: /GET/, assertion: "Annotations MUST support GET (check Allow on GET)" },
+      { header: 'Allow', pat: /HEAD/, assertion: "Annotations MUST support HEAD (check Allow on GET)" },
+      { header: 'Allow', pat: /OPTIONS/, assertion: "Annotations MUST support OPTIONS (check Allow on GET)" },
+      { header: 'Content-Type', pat: MEDIA_TYPE_REGEX, assertion: 'Annotations MUST have a Content-Type header with the application/ld+json media type'},
+      { header: 'Link', string: '<http://www.w3.org/ns/ldp#Resource>; rel="type"', assertion: 'Annotations MUST have a Link header entry where the target IRI is http://www.w3.org/ns/ldp#Resource and the rel parameter value is type'},
+      { header: 'ETag', pat: /(.*)/, assertion: 'Annotations MUST have an ETag header'},
+      { header: 'Vary', pat: /Accept/, assertion: 'Annotations MUST have a Vary header with Accept in the value'},
+      ] );
+
+  promise_test(function() {
+    return request("HEAD", annotation_url).then(function(res) {
+      assert_equals(res.status, 200, "HEAD request returned " + res.status);
+      });
+    }, "Annotations MUST support HEAD method");
+
+  promise_test(function() {
+    return request("OPTIONS", annotation_url).then(function(res) {
+        assert_equals(res.status, 200, "OPTIONS request returned " + res.status);
+      });
+    }, "Annotations MUST support OPTIONS method");
+
+
+  // creation and deletion tests
+
+  var theAnnotation = {
+    "@context": "http://www.w3.org/ns/anno.jsonld",
+    "type": "Annotation",
+    "body": {
+      "type": "TextualBody",
+      "value": "I like this page!"
+    },
+    "target": "http://www.example.com/index.html",
+    "canonical": 'urn:uuid:' + token()
+  };
+
+  var theCreation = request("POST", container_url, [ [ 'Content-Type', MEDIA_TYPE ] ], theAnnotation);
+
+  makePromiseTests( theCreation, [
+      { test: function(res) { return ('id' in res.body); }, assertion: "Created Annotation MUST have an id property" },
+      { test: function(res) { return (('id' in res.body) && (res.body.id.search(container_url) > -1));}, assertion: "Created Annotation MUST have an id that starts with the Container IRI" },
+      { test: function(res) { return ( 'canonical' in res.body && res.body.canonical === theAnnotation.canonical ); }, assertion: "Created Annotation MUST preserve any canonical IRI" },
+      { test: function(res) { return ( res.status === 201 ) ; }, assertion: "Annotation Server MUST respond with a 201 Created code if the creation is successful" },
+      { header: "Location", test: function(res) { return res.body.id === res.xhr.getResponseHeader('location') ; } , assertion: "Location header SHOULD match the id of the new Annotation" },
+      ]);
+
+  promise_test(function() {
+    return theCreation.then(function(res) {
+      var newAnnotation = res.body ;
+      newAnnotation.target = "http://other.example/";
+      return request("PUT", res.body.id, [['Content-Type', MEDIA_TYPE]], newAnnotation)
+        .then(function(lres) {
+          assert_equals(lres.body.target, newAnnotation.target, "Annotation did not update");
+        })
+        .catch(function(err) {
+          assert_true(false, "Update of annotation failed");
+        });
+    });
+  }, "Annotation update must be done with the PUT method");
+
+  promise_test(function() {
+    return theCreation.then(function(res) {
+      request("DELETE", res.body.id)
+        .then(function(lres) {
+          assert_equals(lres.status, 204, "DELETE of " + res.body.id + " did not return a 204 Status" );
+        });
+    });
+  }, "Annotation deletion with DELETE method MUST return a 204 status" );
+
+  // SHOULD tests
+
+  test(function() {
+    assert_equals(container_url.toLowerCase().substr(0,5), "https", "Server is not using HTTPS");
+    }, "Annotation server SHOULD use HTTPS rather than HTTP");
+
+  var thePrefRequest = request("GET", container_url,
+      [['Prefer', 'return=representation;include="http://www.w3.org/ns/ldp#PreferMinimalContainer"']]);
+
+  promise_test(function() {
+    return thePrefRequest
+      .then(function(res) {
+        var f = res.body.first;
+        request("GET", f).then(function(fres) {
+          fres.body.items.forEach(function(item) {
+            assert_true('@context' in item, "Annotation does not contain `@context`");
+            });
+          });
+        });
+      }, "SHOULD return the full annotation descriptions");
+
+
+  makePromiseTests( thePrefRequest, [
+      { test: function(res) { return ('total' in res.body); }, assertion: "SHOULD include the total property with the total number of annotations in the container" },
+      { test: function(res) { return ('first' in res.body); }, assertion: "SHOULD have a link to the first page of its contents using `first`" },
+      { test: function(res) { return ('last' in res.body); }, assertion: "SHOULD have a link to the last page of its contents using `last`" },
+      { test: function(res) { return (!('items' in res.body)); }, assertion: "Response contains annotations via `items` when it SHOULD NOT"},
+      { test: function(res) { return (!('ldp:contains' in res.body)); }, assertion: "Response contains annotations via `ldp:contains` when it SHOULD NOT" },
+      { header: 'Vary', pat: /Prefer/, assertion: "SHOULD include Prefer in the Vary header" }
+    ]);
+
+  promise_test(function() {
+    return thePrefRequest
+      .then(function(res) {
+        var h = res.xhr.getResponseHeader('Prefer');
+        assert_equals(h, null, "Reponse contains the `Prefer` header when it SHOULD NOT");
+        });
+      }, 'SHOULD NOT [receive] the Prefer header when requesting the page');
+
+}
+
+// set up an event handler one the document is loaded that will run the tests once we
+// have a URI to run against
+on_event(document, "DOMContentLoaded", function() {
+    var serverURI = document.getElementById("uri") ;
+    var annotationURI = document.getElementById("annotation") ;
+    var runButton = document.getElementById("endpoint-submit-button") ;
+    on_event(runButton, "click", function() {
+        // user clicked
+        var URI = serverURI.value;
+        var ANN = annotationURI.value;
+        runButton.disabled = true;
+
+        // okay, they clicked.  run the tests with that URI
+        runTests(URI, ANN);
+        done();
+        });
+    });
+</script>
+</head>
+<body>
+<p>The scripts associated with this test will exercise all of the MUST and SHOULD requirements
+for an Annotation Protocol server implementation.  In order to do so, the server must have
+its CORS settings configured such that your test machine can access the annotations and containers
+and such that it can get certain information from the headers.  In particular, the container and
+annotations within the container
+under test must permit access to the Allow, Content-Location, Content-Type, ETag, Link, Location, Prefer, and Vary headers.
+Correct CORS access can be achieved with headers like:</p>
+<pre>
+Access-Control-Allow-Headers: Content-Type, Prefer
+Access-Control-Allow-Methods: GET,HEAD,OPTIONS,DELETE,PUT
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: ETag, Allow, Vary, Link, Content-Type, Location, Content-Location, Prefer
+</pre>
+<p>Provide endpoint and annotation URIs and select "Go" to start testing.</p>
+<form name="endpoint">
+  <p><label for="uri">Endpoint URI:</label> <input type="text" size="50" id="uri" name="uri"></p>
+  <p><label for="uri">Annotation URI:</label> <input type="text" size="50" id="annotation" name="annotation"></p>
+  <input type="button" id="endpoint-submit-button" value="Go">
+</form>
+</body>
+</html>

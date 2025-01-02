@@ -1,0 +1,37 @@
+<!doctype html>
+<head>
+	<title>CSS Test (Conditional Rules): Support for simple failing conditions in @media</title>
+	<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#use">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#at-media">
+	<link rel="match" href="at-supports-001-ref.html">
+	<meta name="assert"
+	      content="Test passes if rules under a false @media condition are not applied.">
+	<style>
+		div {
+			background: green;
+			height: 25px;
+			width: 100px;
+		}
+		@media not all {
+			.test1 { background: red; }
+		}
+		@media unknown {
+			.test2 { background: red; }
+		}
+		@media (unknown) {
+			.test3 { background: red; }
+		}
+		@media not (unknown) {
+			.test4 { background: red; }
+		}
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+	<div class="test1"></div>
+	<div class="test2"></div>
+	<div class="test3"></div>
+	<div class="test4"></div>
+</body>
+</html>

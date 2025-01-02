@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/common.js"></script>
+<title> 'focus-without-user-activation' Policy : Correctly block automatic focus when policy disabled
+</title>
+<body>
+<script>
+  "use strict"
+  // Note: According to html spec: https://html.spec.whatwg.org/#attr-fe-autofocus,
+  // topDocument's autofocus processed flag initially is false and is set to true
+  // after flushing autofocus candidates, i.e. flush of autofocus candidates
+  // only happens once per page load.
+  // In order to test the behaviour with both focus-without-user-activation on and off:
+  // two test files are necessary:
+  // - focus-without-user-activation-disabled-tentative.html
+  // - focus-without-user-activation-enabled-tentative.sub.html
+
+  // Cross origin subframe should not be able to use autofocus to steal focus
+  // from main frame by default. However, with focus-without-user-activation
+  // enabled for subframe, subframe should be able to autofocus.
+  const url = "http://{{hosts[alt][www1]}}:{{ports[http][0]}}/permissions-policy/experimental-features/resources/focus-without-user-activation-iframe-tentative.html";
+
+  function subframe_focused(subframe, event_name, timeout) {
+    return new Promise(resolve => {
+      window.onmessage = m => resolve(m.data.focused);
+      subframe.contentWindow.postMessage({
+        event: event_name,
+        timeout: timeout
+      }, "*");
+    });
+  }
+
+  promise_test( async (instance) => {
+    const frame = createIframe(document.body, {
+      sandbox: "allow-scripts allow-same-origin",
+      allow: "focus-without-user-activation *",
+      src: url
+    });
+
+    await wait_for_load(frame);
+    assert_true(await subframe_focused(frame, "autofocus"), "'autofocus' should work.");
+    window.focus(); // Reset focus state in subframe.
+    assert_true(await subframe_focused(frame, "focus-input"), "'element.focus' should work.");
+    window.focus(); // Reset focus state in subframe.
+    assert_true(await subframe_focused(frame, "focus-window"), "'window.focus' should work.");
+    window.focus(); // Reset focus state in subframe.
+  }, "When the policy is enabled, 'autofocus' and scripted focus do focus " +
+     "the document.");
+</script>
+</body>

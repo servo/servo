@@ -1,0 +1,52 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="variant" content="?no-currententrychange">
+<meta name="variant" content="?currententrychange">
+
+<script type="module">
+import { Recorder, hasVariant } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const from = navigation.currentEntry;
+
+  const recorder = new Recorder({
+    skipCurrentChange: !hasVariant("currententrychange"),
+    finalExpectedEvent: "transition.finished rejected"
+  });
+
+  recorder.setUpNavigationAPIListeners();
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler() { recorder.record("handler run"); } });
+  });
+
+  const result = navigation.navigate("/common/blank.html#1");
+  recorder.setUpResultListeners(result);
+
+  Promise.resolve().then(() => recorder.record("promise microtask"));
+
+  window.stop();
+
+  await recorder.readyToAssert;
+
+  recorder.assert([
+    /* event name, location.hash value, navigation.transition properties */
+    ["navigate", "", null],
+    ["currententrychange", "#1", { from, navigationType: "push" }],
+    ["handler run", "#1", { from, navigationType: "push" }],
+    ["AbortSignal abort", "#1", { from, navigationType: "push" }],
+    ["navigateerror", "#1", { from, navigationType: "push" }],
+    ["committed fulfilled", "#1", null],
+    ["promise microtask", "#1", null],
+    ["finished rejected", "#1", null],
+    ["transition.finished rejected", "#1", null],
+  ]);
+
+  recorder.assertErrorsAreAbortErrors();
+}, "event and promise ordering for navigation.navigate() intercepted by intercept() but then stopped using window.stop()");
+</script>

@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+
+<head>
+  <title>MediaRecorder peer connection</title>
+  <meta name=variant content="?kinds=video&mimeType=''">
+  <meta name=variant content="?kinds=audio&mimeType=''">
+  <meta name=variant content="?kinds=video,audio&mimeType=''">
+  <meta name=variant content="?kinds=audio&mimeType=audio/webm;codecs=opus">
+  <meta name=variant content="?kinds=video&mimeType=video/webm;codecs=vp8">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/webm;codecs=vp8,opus">
+  <meta name=variant content="?kinds=video&mimeType=video/webm;codecs=vp9">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/webm;codecs=vp9,opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=avc1.64003E,mp4a.40.2">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=avc3.64003E,mp4a.40.2">
+  <meta name=variant content="?kinds=video&mimeType=video/mp4;codecs=vp9">
+  <meta name=variant content="?kinds=audio&mimeType=audio/mp4;codecs=opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=vp9,opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=av01,opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=av01,mp4a.40.2">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=hvc1.1.6.L186.B0,opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=hev1.1.6.L186.B0,opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=hvc1.1.6.L186.B0,mp4a.40.2">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4;codecs=hev1.1.6.L186.B0,mp4a.40.2">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/x-matroska;codecs=hvc1.1.6.L186.B0,opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/x-matroska;codecs=hev1.1.6.L186.B0,opus">
+  <meta name=variant content="?kinds=video,audio&mimeType=video/mp4">
+
+  <link rel="help"
+        href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="../mediacapture-streams/permission-helper.js"></script>
+  <script src="utils/peerconnection.js"></script>
+</head>
+
+<body>
+<video id="remote" autoplay width="240"></video>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const  mimeType = params.get('mimeType');
+  const kinds = params.get('kinds');
+  const tag = `kinds "${kinds} "mimeType "${mimeType}"`;
+  let stream;
+  let pc;
+
+  promise_setup(async () => {
+    const t = {add_cleanup: add_completion_callback};
+    const [, connection_pc, connection_stream] = await startConnection(t, true, true);
+    pc = connection_pc;
+
+    let video = null;
+    if (kinds.indexOf('video') != -1) {
+      video = connection_stream.getVideoTracks()[0];
+    }
+
+    let audio = null;
+    if (kinds.indexOf('audio') != -1) {
+      audio = connection_stream.getAudioTracks()[0];
+    }
+
+    // Needed for the tests to get exercised in Chrome (bug)
+    document.getElementById('remote').srcObject = connection_stream;
+    stream = new MediaStream([audio, video].filter(n => n));
+  });
+
+  promise_test(async t => {
+    // Spec doesn't mandate codecs, so if not supported, test failure instead.
+    if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+      promise_test(async t => {
+        assert_throws_dom('NotSupportedError',
+                          () => new MediaRecorder(stream, { mimeType }));
+      }, `MediaRecorder constructor throws on no support 1, ${tag}`);
+      return;
+    }
+
+    const recorder = new MediaRecorder(stream, { mimeType });
+    recorder.start(200);
+    await new Promise(r => recorder.onstart = r);
+    let combinedSize = 0;
+    // Wait for a small amount of data to appear. Kept small for mobile tests
+    while (combinedSize < 2000) {
+      const {data} = await new Promise(r => recorder.ondataavailable = r);
+      combinedSize += data.size;
+    }
+    recorder.stop();
+  }, `PeerConnection MediaRecorder receives data after onstart, ${tag}`);
+
+  promise_test(async t => {
+    // Spec doesn't mandate codecs, so if not supported, test failure instead.
+    if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+      promise_test(async t => {
+        assert_throws_dom('NotSupportedError',
+                          () => new MediaRecorder(stream, { mimeType }));
+      }, `MediaRecorder constructor throws on no support 2, ${tag}`);
+      return;
+    }
+
+    const clone = stream.clone();
+    const recorder = new MediaRecorder(clone, { mimeType });
+    recorder.start();
+    await new Promise(r => recorder.onstart = r);
+    await waitForReceivedFramesOrPackets(t, pc, kinds.audio, kinds.video, 10);
+    for (const track of clone.getTracks()) {
+      track.stop();
+    }
+    // As the tracks ended, expect data from the recorder.
+    await Promise.all([
+      new Promise(r => recorder.onstop = r),
+      new Promise(r => recorder.ondataavailable = r)
+    ]);
+  }, `PeerConnection MediaRecorder gets ondata on stopping tracks, ${tag}`);
+
+  </script>
+</body>
+</html>

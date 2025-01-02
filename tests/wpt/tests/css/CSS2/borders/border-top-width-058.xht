@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-top-width using inches with a minimum plus one value, 1in</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-24 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-top-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+		<link rel="match" href="border-bottom-width-058-ref.xht" />
+
+        <meta name="assert" content="The 'border-top-width' property supports a minimum plus one length value in inches that sets the width of the top border." />
+        <style type="text/css">
+            #wrapper
+            {
+                background: red;
+                height: 1in;
+            }
+            #test
+            {
+                border-top-style: solid;
+                border-top-width: 1in;
+                height: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a wide filled black rectangle and <strong>no red</strong>.</p>
+        <div id="wrapper">
+            <div id="test"></div>
+        </div>
+    </body>
+</html>

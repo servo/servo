@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSSOM StyleRule selectorText property setter with namespaces</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#dom-cssstylerule-selectortext">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<style type="text/css" id="styleElement">
+@namespace url(http://www.w3.org/1999/xhtml);
+@namespace svg url(http://www.w3.org/2000/svg);
+
+svg|*.style0 { background-color: rgb(0, 0, 255) !important; }
+svg|*.style1 { background-color: rgb(255, 0, 255); }
+</style>
+
+<span>
+  <p></p>
+
+  <svg height="30" width="200" id="container" class="style1" lang="zh-CN" language segment="42 43">
+    <text x="0" y="15">SVG text</text>
+  </svg>
+</span>
+
+<script>
+  var styleSheet = document.getElementById("styleElement").sheet;
+  var rule = styleSheet.cssRules[2];
+
+  var divContainerStyle = getComputedStyle(document.getElementById("container"));
+
+  const originalStyleSelector = "svg|*.style0";
+
+  var assertColors = function(selectorMatches) {
+    assert_equals(divContainerStyle.getPropertyValue('background-color'), selectorMatches ? "rgb(0, 0, 255)" : "rgb(255, 0, 255)")
+  };
+
+  [
+    {selector: ".style1", isMatch: false, },
+    {selector: "svg|*.style1  ", isMatch: true, normalizedSelector: "svg|*.style1"},
+    {selector: "*|*.style1  ", isMatch: true, normalizedSelector: "*|*.style1"},
+    {selector: " *.style1  ", isMatch: false, normalizedSelector: ".style1"},
+    {selector: "p", isMatch: false},
+  ].forEach(function(testCase) {
+    test(function() {
+      // Check if starting with the default value.
+      assert_equals(rule.selectorText, originalStyleSelector);
+
+      this.add_cleanup(function() { rule.selectorText = originalStyleSelector; });
+
+      assertColors(false);
+
+      rule.selectorText = testCase.selector;
+
+      var expectedSelector = testCase.normalizedSelector ? testCase.normalizedSelector : testCase.selector;
+
+      assert_equals(rule.selectorText, expectedSelector);
+
+      assertColors(testCase.isMatch);
+    }, "CSSStyleRule: selectorText value: |" + testCase.selector + "| isMatch: " + testCase.isMatch);
+  });
+</script>

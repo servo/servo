@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p {margin: 0px;}
+
+  td {border: black solid medium; padding: 0px;}
+
+  div.teal {background-color: teal;}
+
+  div.aqua {background-color: aqua;}
+
+  div.blue {background-color: blue;}
+
+  div.yellow {background-color: yellow;}
+
+  div.long {width: 70px; height: 10px; background-color: orange;}
+
+  div.short {width: 40px; height: 10px; background-color: orange;}
+
+  div.blank {width: 100px; height: 20px;}
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>The two diagrams below should be identical, with no red present.</p>
+
+  <table>
+   <tr>
+    <td>
+     <div class="teal"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="teal"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+
+     <div class="blue"><div class="blank"></div></div>
+
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+
+    </td>
+
+    <td>
+     <div class="teal"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="teal"><div class="long"></div><div class="short"></div></div>
+
+     <div class="yellow"><div class="blank"></div></div>
+
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+
+     <div class="blue"><div class="blank"></div></div>
+
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+
+    </td>
+   </tr>
+  </table>
+
+ </body>
+</html>

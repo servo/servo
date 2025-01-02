@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Test window.navigation.204</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const window_data_key = token();
+
+  attachFencedFrame(generateURL("resources/window-navigation-204-inner.html",
+      [window_data_key]));
+
+  const actual_result  = await nextValueFromServer(window_data_key);
+  assert_equals(actual_result, "still in page",
+                "The fenced frame has the right value for `204 response` upon " +
+                "subsequent navigation resulting in HTTP 204");
+}, "window.navigation.204");
+</script>
+
+</body>

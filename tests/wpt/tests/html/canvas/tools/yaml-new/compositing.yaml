@@ -1,0 +1,409 @@
+- name: 2d.composite.globalAlpha.range
+  code: |
+    ctx.globalAlpha = 0.5;
+    // This may not set it to exactly 0.5 if it is rounded/quantised, so
+    // remember for future comparisons.
+    var a = ctx.globalAlpha;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = 1.1;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = -0.1;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = 0;
+    @assert ctx.globalAlpha === 0;
+    ctx.globalAlpha = 1;
+    @assert ctx.globalAlpha === 1;
+
+- name: 2d.composite.globalAlpha.invalid
+  code: |
+    ctx.globalAlpha = 0.5;
+    // This may not set it to exactly 0.5 if it is rounded/quantised, so
+    // remember for future comparisons.
+    var a = ctx.globalAlpha;
+    ctx.globalAlpha = Infinity;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = -Infinity;
+    @assert ctx.globalAlpha === a;
+    ctx.globalAlpha = NaN;
+    @assert ctx.globalAlpha === a;
+
+- name: 2d.composite.globalAlpha.default
+  code: |
+    @assert ctx.globalAlpha === 1.0;
+
+- name: 2d.composite.globalAlpha.fill
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvas
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.drawImage(canvas2, 0, 0);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvaspattern
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = ctx.createPattern(canvas2, 'no-repeat');
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvascopy
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.globalCompositeOperation = 'copy'
+    ctx.globalAlpha = 0.51;
+    ctx.drawImage(canvas2, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,130;
+  expected: green
+
+
+- name: 2d.composite.operation.get
+  code: |
+    var modes = ['source-atop', 'source-in', 'source-out', 'source-over',
+        'destination-atop', 'destination-in', 'destination-out', 'destination-over',
+        'lighter', 'copy', 'xor'];
+    for (var i = 0; i < modes.length; ++i)
+    {
+        ctx.globalCompositeOperation = modes[i];
+        @assert ctx.globalCompositeOperation === modes[i];
+    }
+
+- name: 2d.composite.operation.unrecognised
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'nonexistent';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.darker
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'darker';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.over
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'over';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.clear
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'clear';
+    @assert ctx.globalCompositeOperation === 'clear';
+
+- name: 2d.composite.operation.highlight
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'highlight';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.nullsuffix
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'source-over\0';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.casesensitive
+  code: |
+    ctx.globalCompositeOperation = 'xor';
+    ctx.globalCompositeOperation = 'Source-over';
+    @assert ctx.globalCompositeOperation === 'xor';
+
+- name: 2d.composite.operation.default
+  code: |
+    @assert ctx.globalCompositeOperation === 'source-over';
+
+
+- name: 2d.composite.globalAlpha.image
+  test_type: promise
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvas
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.drawImage(offscreenCanvas2, 0, 0);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+
+- name: 2d.composite.globalAlpha.imagepattern
+  test_type: promise
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    const response = await fetch('/images/red.png');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+  expected: green
+
+- name: 2d.composite.globalAlpha.canvaspattern
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = ctx.createPattern(offscreenCanvas2, 'no-repeat');
+    // Avoiding any potential alpha = 0 optimisations.
+    ctx.globalAlpha = 0.01;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 2,253,0,255;
+
+- name: 2d.composite.globalAlpha.canvascopy
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'copy'
+    ctx.globalAlpha = 0.51;
+    ctx.drawImage(offscreenCanvas2, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,130;
+
+- name: 2d.composite.grid
+  size: [80, 60]
+  code: |
+    ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
+    ctx.fillRect(15, 15, 50, 30);
+
+    ctx.translate(25, 20);
+    ctx.rotate(Math.PI / 2);
+    ctx.scale(0.6, 1.2);
+    ctx.translate(-25, -20);
+
+    ctx.globalAlpha = 0.5;
+
+    {{ js_filter_code }}
+    {{ js_shadow_code }}
+
+    ctx.globalCompositeOperation = '{{ variant_names[0] }}';
+
+    {{ js_draw_code }}
+  cairo_reference: |
+    # Background.
+    cr.push_group()
+    cr.set_source_rgba(0, 102/255, 240/255, 0.8)
+    cr.rectangle(15, 15, 50, 30)
+    cr.fill()
+    background = cr.pop_group()
+
+    # Foreground.
+    cr.push_group()
+    cr.translate(25, 20)
+    cr.rotate(math.pi / 2)
+    cr.scale(0.6, 1.2)
+    cr.translate(-25, -20)
+    cr.set_source_rgba(52/255, 1, 52/255, 0.5)
+    cr.rectangle(5, 5, 50, 30)
+    cr.fill()
+    foreground = cr.pop_group()
+
+    # Filtered foreground.
+    cr.push_group()
+    {{ cairo_filter_code }}
+    cr.set_source(foreground)
+    cr.paint()
+    filtered_foreground = cr.pop_group()
+
+    {% if cairo_operator != 'SOURCE' %}
+    cr.set_source(background)
+    cr.paint()
+    {% endif %}
+
+    cr.set_operator(cairo.OPERATOR_{{ cairo_operator }})
+
+    {% if cairo_operator != 'SOURCE' %}
+    {{ cairo_shadow_code }}
+    {% endif %}
+
+    cr.set_source(filtered_foreground)
+    cr.paint()
+  fuzzy: maxDifference=0-3; totalPixels=0-25392
+  variants_layout:
+  - single_file
+  - multi_files
+  - multi_files
+  - multi_files
+  grid_width: 6
+  variants:
+  - source-over:
+      cairo_operator: OVER
+    source-in:
+      cairo_operator: IN
+    source-out:
+      cairo_operator: OUT
+    source-atop:
+      cairo_operator: ATOP
+    destination-over:
+      cairo_operator: DEST_OVER
+    destination-in:
+      cairo_operator: DEST_IN
+    destination-out:
+      cairo_operator: DEST_OUT
+    destination-atop:
+      cairo_operator: DEST_ATOP
+    lighter:
+      cairo_operator: ADD
+    copy:
+      cairo_operator: SOURCE
+    xor:
+      cairo_operator: XOR
+    multiply:
+      cairo_operator: MULTIPLY
+    screen:
+      cairo_operator: SCREEN
+    overlay:
+      cairo_operator: OVERLAY
+    darken:
+      cairo_operator: DARKEN
+    lighten:
+      cairo_operator: LIGHTEN
+    color-dodge:
+      cairo_operator: COLOR_DODGE
+    color-burn:
+      cairo_operator: COLOR_BURN
+    hard-light:
+      cairo_operator: HARD_LIGHT
+    soft-light:
+      cairo_operator: SOFT_LIGHT
+    difference:
+      cairo_operator: DIFFERENCE
+    exclusion:
+      cairo_operator: EXCLUSION
+    hue:
+      cairo_operator: HSL_HUE
+    saturation:
+      cairo_operator: HSL_SATURATION
+    color:
+      cairo_operator: HSL_COLOR
+    luminosity:
+      cairo_operator: HSL_LUMINOSITY
+
+  - no_filter:
+      js_filter_code: // No filter.
+      cairo_filter_code: "# No filter."
+    filter:
+      js_filter_code: |-
+        ctx.filter = 'drop-shadow(5px -5px 0px rgb(255, 154, 100))';
+      cairo_filter_code: |-
+        cr.push_group()
+        cr.set_operator(cairo.OPERATOR_OVER)
+        cr.translate(5, -5)  # Filter offset.
+        cr.set_source(foreground)
+        cr.paint()
+        cr.set_operator(cairo.OPERATOR_IN)
+        cr.set_source_rgb(1, 154/255, 100/255)
+        cr.paint()
+        cr.pop_group_to_source()
+        cr.paint()
+
+  - no_shadow:
+      js_shadow_code: // No shadow.
+      cairo_shadow_code: "# No shadow."
+    shadow:
+      js_shadow_code: |-
+        ctx.shadowOffsetX = 20;
+        ctx.shadowOffsetY = 20;
+        ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
+      cairo_shadow_code: |-
+        cr.push_group()
+        cr.set_operator(cairo.OPERATOR_OVER)
+        cr.translate(20, 20)  # Shadow offset.
+        cr.set_source(filtered_foreground)
+        cr.paint()
+        cr.set_operator(cairo.OPERATOR_IN)
+        cr.set_source_rgba(154/255, 0, 154/255, 0.8)
+        cr.paint()
+        cr.pop_group_to_source()
+        cr.paint()
+
+  - fillRect:
+      js_draw_code: |-
+        ctx.fillStyle = 'rgb(52, 255, 52)';
+        ctx.fillRect(5, 5, 50, 30);
+    drawImage:
+      js_draw_code: |-
+        const img_canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
+        const img_ctx = img_canvas.getContext('2d');
+        img_ctx.fillStyle = 'rgb(52, 255, 52)';
+        img_ctx.fillRect(0, 0, {{ size[0] }}, {{ size[1] }});
+        ctx.drawImage(img_canvas, 5, 5, 50, 30);
+    pattern:
+      js_draw_code: |-
+        const img_canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
+        const img_ctx = img_canvas.getContext('2d');
+        img_ctx.fillStyle = 'rgb(52, 255, 52)';
+        img_ctx.fillRect(0, 0, {{ size[0] }}, {{ size[1] }});
+        ctx.fillStyle = ctx.createPattern(img_canvas, 'repeat');
+        ctx.fillRect(5, 5, 50, 30);

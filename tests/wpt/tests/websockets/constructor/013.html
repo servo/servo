@@ -1,0 +1,42 @@
+<!doctype html>
+<title>WebSockets: multiple WebSocket objects</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  // test that the events are fired as they should when opening 25 websockets and
+  // sending a message on each and then closing when getting the message back
+  var ws = [];
+  var events = 0;
+  for (var i = 0; i < 25; ++i) {
+    ws[i] = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+    ws[i].id = i;
+    ws[i].onopen = t.step_func(function(e) {
+      events++;
+      this.send(this.id);
+      this.onopen = t.step_func(function() {assert_unreached()});
+    }, ws[i]);
+    ws[i].onmessage = t.step_func(function(e) {
+      events++;
+      assert_equals(e.data, ''+this.id);
+      this.close();
+      this.onmessage = t.step_func(function() {assert_unreached()});
+    }, ws[i]);
+    ws[i].onclose = t.step_func(function(e) {
+      events++;
+      if (events == 75) {
+        t.done();
+      }
+      this.onclose = t.step_func(function() {assert_unreached()});
+    }, ws[i]);
+    ws[i].onerror = t.step_func(function() {assert_unreached()});
+  }
+});
+</script>
+

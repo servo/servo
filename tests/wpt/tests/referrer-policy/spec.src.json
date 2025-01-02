@@ -1,0 +1,1134 @@
+{
+  "test_description_template": "Referrer Policy: Expects %(expectation)s for %(subresource)s to %(origin)s origin and %(redirection)s redirection from %(source_scheme)s context.",
+  "test_page_title_template": "Referrer-Policy: %(title)s",
+  "specification": [
+    {
+      // unset-referrer-policy
+      "title": "Referrer Policy is not explicitly defined",
+      "description": "Check that referrer URL follows the strict-origin-when-cross-origin policy when no explicit Referrer Policy is set.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policies",
+      "test_expansion": [
+        {
+          // same-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-insecure
+          "expansion": "override",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "swap-origin",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": "cross-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // upgrade-protocol
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // downgrade-protocol
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": [
+            "same-http",
+            "cross-http"
+          ],
+          "subresource": "*",
+          "expectation": "omitted"
+        },
+        {
+          // same-secure
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-secure
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "swap-origin",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-secure
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": "cross-https",
+          "subresource": "*",
+          "expectation": "origin"
+        }
+      ]
+    },
+    {
+      // meta tag default
+      "title": "<meta rel=referrer> is set to the legacy keyword 'default'",
+      "description": "Check that the 'default' legacy keyword results in behavior equivalent to the default policy (currently strict-origin-when-cross-origin)",
+      "specification_url": "https://html.spec.whatwg.org/multipage/semantics.html#the-meta-element",
+      "test_expansion": [
+        {
+          // same-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-insecure
+          "expansion": "override",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "swap-origin",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "*",
+          "origin": "cross-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // upgrade-protocol
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "*",
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // downgrade-protocol
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "*",
+          "origin": [
+            "same-http",
+            "cross-http"
+          ],
+          "subresource": "*",
+          "expectation": "omitted"
+        },
+        {
+          // same-secure
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-secure
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "swap-origin",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-secure
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "default",
+          "redirection": "*",
+          "origin": "cross-https",
+          "subresource": "*",
+          "expectation": "origin"
+        }
+      ]
+    },
+    {
+      // no-referrer
+      "title": "Referrer Policy is set to 'no-referrer'",
+      "description": "Check that sub-resource never gets the referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-no-referrer",
+      "test_expansion": [
+        {
+          // generic
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "no-referrer",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "expectation": "omitted"
+        }
+      ]
+    },
+    {
+      // meta tag never
+      "title": "<meta rel=referrer> is set to the legacy value 'never'",
+      "description": "Check that the legacy <meta> value 'never' is equivalent to the 'no-referrer' policy",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-no-referrer",
+      "test_expansion": [
+        {
+          // generic
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "never",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "expectation": "omitted"
+        }
+      ]
+    },
+    {
+      // no-referrer-when-downgrade
+      "title": "Referrer Policy is set to 'no-referrer-when-downgrade'",
+      "description": "Check that non a priori insecure subresource gets the full Referrer URL. A priori insecure subresource gets no referrer information.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-no-referrer-when-downgrade",
+      "test_expansion": [
+        {
+          // insecure-protocol
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "no-referrer-when-downgrade",
+          "redirection": "*",
+          "origin": [
+            "same-http",
+            "cross-http"
+          ],
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // upgrade-protocol
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "no-referrer-when-downgrade",
+          "redirection": "*",
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // downgrade-protocol
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "no-referrer-when-downgrade",
+          "redirection": "*",
+          "origin": [
+            "same-http",
+            "cross-http"
+          ],
+          "subresource": "*",
+          "expectation": "omitted"
+        },
+        {
+          // secure-protocol
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "no-referrer-when-downgrade",
+          "redirection": "*",
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        }
+      ]
+    },
+    {
+      // origin
+      "title": "Referrer Policy is set to 'origin'",
+      "description": "Check that all subresources in all casses get only the origin portion of the referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-origin",
+      "test_expansion": [
+        {
+          // generic
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "origin",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "expectation": "origin"
+        }
+      ]
+    },
+    {
+      // same-origin
+      "title": "Referrer Policy is set to 'same-origin'",
+      "description": "Check that cross-origin subresources get no referrer information and same-origin get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-same-origin",
+      "test_expansion": [
+        {
+          // same-origin-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "same-origin",
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-origin-secure-default
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "same-origin",
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-origin-insecure
+          "expansion": "override",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "same-origin",
+          "redirection": "swap-origin",
+          "origin": [
+            "same-http",
+            "same-https"
+          ],
+          "subresource": "*",
+          "expectation": "omitted"
+        },
+        {
+          // cross-origin
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "same-origin",
+          "redirection": "*",
+          "origin": [
+            "cross-http",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "omitted"
+        }
+      ]
+    },
+    {
+      // origin-when-cross-origin
+      "title": "Referrer Policy is set to 'origin-when-cross-origin'",
+      "description": "Check that cross-origin subresources get the origin portion of the referrer URL and same-origin get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-origin-when-cross-origin",
+      "test_expansion": [
+        {
+          // same-origin-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-origin-secure-default
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-origin-upgrade
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // same-origin-downgrade
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // same-origin-insecure
+          "expansion": "override",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "origin-when-cross-origin",
+          "redirection": "swap-origin",
+          "origin": [
+            "same-http",
+            "same-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-origin
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "origin-when-cross-origin",
+          "redirection": "*",
+          "origin": [
+            "cross-http",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        }
+      ]
+    },
+    {
+      // meta tag origin-when-crossorigin
+      "title": "<meta rel=referrer> is set to the legacy value 'origin-when-crossorigin'",
+      "description": "Check that the legacy <meta> value 'origin-when-crossorigin' is equivalent to the 'origin-when-cross-origin' policy",
+      "specification_url": "https://html.spec.whatwg.org/multipage/semantics.html#the-meta-element",
+      "test_expansion": [
+        {
+          // same-origin-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "origin-when-crossorigin",
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-origin-secure-default
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "origin-when-crossorigin",
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-origin-upgrade
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "origin-when-crossorigin",
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // same-origin-downgrade
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "origin-when-crossorigin",
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // same-origin-insecure
+          "expansion": "override",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "origin-when-crossorigin",
+          "redirection": "swap-origin",
+          "origin": [
+            "same-http",
+            "same-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-origin
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "origin-when-crossorigin",
+          "redirection": "*",
+          "origin": [
+            "cross-http",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        }
+      ]
+    },
+    {
+      // strict-origin
+      "title": "Referrer Policy is set to 'strict-origin'",
+      "description": "Check that non a priori insecure subresource gets only the origin portion of the referrer URL. A priori insecure subresource gets no referrer information.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin",
+      "test_expansion": [
+        {
+          // insecure-protocol
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin",
+          "redirection": "*",
+          "origin": [
+            "same-http",
+            "cross-http"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // upgrade-protocol
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin",
+          "redirection": "*",
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // downgrade-protocol
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin",
+          "redirection": "*",
+          "origin": [
+            "same-http",
+            "cross-http"
+          ],
+          "subresource": "*",
+          "expectation": "omitted"
+        },
+        {
+          // secure-protocol
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin",
+          "redirection": "*",
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        }
+      ]
+    },
+    {
+      // strict-origin-when-cross-origin
+      "title": "Referrer Policy is set to 'strict-origin-when-cross-origin'",
+      "description": "Check that a priori insecure subresource gets no referrer information. Otherwise, cross-origin subresources get the origin portion of the referrer URL and same-origin get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin-when-cross-origin",
+      "test_expansion": [
+        {
+          // same-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-insecure
+          "expansion": "override",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "swap-origin",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "cross-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // upgrade-protocol
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "*",
+          "origin": [
+            "same-https",
+            "cross-https"
+          ],
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // downgrade-protocol
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "*",
+          "origin": [
+            "same-http",
+            "cross-http"
+          ],
+          "subresource": "*",
+          "expectation": "omitted"
+        },
+        {
+          // same-secure
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        },
+        {
+          // same-secure
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "swap-origin",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-secure
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "strict-origin-when-cross-origin",
+          "redirection": "*",
+          "origin": "cross-https",
+          "subresource": "*",
+          "expectation": "origin"
+        }
+      ]
+    },
+    {
+      // unsafe-url
+      "title": "Referrer Policy is set to 'unsafe-url'",
+      "description": "Check that all sub-resources get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-unsafe-url",
+      "test_expansion": [
+        {
+          // generic
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "unsafe-url",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        }
+      ]
+    },
+    {
+      // meta tag always
+      "title": "<meta rel=referrer> is set to the legacy value 'always'",
+      "description": "Check that the legacy <meta> value 'always' is equivalent to the 'unsafe-url' policy",
+      "specification_url": "https://html.spec.whatwg.org/multipage/semantics.html#the-meta-element",
+      "test_expansion": [
+        {
+          // generic
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": "always",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "expectation": "stripped-referrer"
+        }
+      ]
+    }
+  ],
+  "delivery_key": "referrerPolicy",
+  "excluded_tests": [
+    {
+      // upgraded-protocol-workers
+      "expansion": "*",
+      "source_scheme": "http",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-https",
+        "cross-https"
+      ],
+      "subresource": [
+        "worker-classic",
+        "worker-module",
+        "sharedworker-classic",
+        "sharedworker-module"
+      ],
+      "expectation": "*"
+    },
+    {
+      // mixed-content-insecure-subresources
+      "expansion": "*",
+      "source_scheme": "https",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-http",
+        "same-http-downgrade",
+        "cross-http",
+        "cross-http-downgrade",
+        "same-ws",
+        "same-ws-downgrade",
+        "cross-ws",
+        "cross-ws-downgrade"
+      ],
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // overhead-for-redirection
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": [
+        "keep-origin",
+        "swap-origin"
+      ],
+      "origin": "*",
+      "subresource": [
+        "a-tag",
+        "area-tag"
+      ],
+      "expectation": "*"
+    },
+    {
+      // source-https-unsupported-by-web-platform-tests-runners
+      "expansion": "*",
+      "source_scheme": "https",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": "*",
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // <link rel=noreferrer>'s delivery_value should be no-referrer
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "rel-noref",
+      "delivery_value": [
+        null,
+        "no-referrer-when-downgrade",
+        "same-origin",
+        "origin",
+        "origin-when-cross-origin",
+        "strict-origin",
+        "strict-origin-when-cross-origin",
+        "unsafe-url"
+      ],
+      "redirection": "*",
+      "origin": "*",
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // redirections that referrer-policy tests don't care
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": [
+        "keep-scheme",
+        "swap-scheme",
+        "downgrade"
+      ],
+      "origin": "*",
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // origins that referrer-policy tests don't care
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-http-downgrade",
+        "cross-http-downgrade",
+        "same-ws-downgrade",
+        "cross-ws-downgrade"
+      ],
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // subresource values not yet tested
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": [
+        "area-tag",
+        "audio-tag",
+        "beacon",
+        "link-css-tag",
+        "link-prefetch-tag",
+        "object-tag",
+        "picture-tag",
+        "sharedworker-import",
+        "sharedworker-import-data",
+        "video-tag",
+        "websocket",
+        "worker-import",
+        "worker-import-data",
+        "worklet-animation",
+        "worklet-animation-import-data",
+        "worklet-audio",
+        "worklet-audio-import-data",
+        "worklet-layout",
+        "worklet-layout-import-data",
+        "worklet-paint",
+        "worklet-paint-import-data"
+      ],
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // source_context_list values not yet tested
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "iframe-blank-inherit",
+        "sharedworker-classic",
+        "sharedworker-classic-data",
+        "sharedworker-module",
+        "sharedworker-module-data",
+        "worker-classic-data",
+        "worker-module-data"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    // Skip some nested source_context_lists for faster tests.
+    {
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "iframe",
+        "srcdoc",
+        "srcdoc-inherit"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "script-tag-dynamic-import",
+      "origin": "*",
+      "expectation": "*"
+    },
+  ],
+  "source_context_schema": {
+    "supported_delivery_type": {
+      "top": [
+        "meta",
+        "http-rp"
+      ],
+      "iframe": [
+        "meta",
+        "http-rp"
+      ],
+      "iframe-blank": [
+        "meta"
+      ],
+      "srcdoc": [
+        "meta"
+      ],
+      "worker-classic": [
+        "http-rp"
+      ],
+      "worker-module": [
+        "http-rp"
+      ],
+      "worker-classic-data": [],
+      "worker-module-data": [],
+      "sharedworker-classic": [
+        "http-rp"
+      ],
+      "sharedworker-module": [
+        "http-rp"
+      ],
+      "sharedworker-classic-data": [],
+      "sharedworker-module-data": []
+    }
+  },
+  "subresource_schema": {
+    "supported_delivery_type": {
+      // List of elements that support "attr" delivery type can be followed
+      // from the cross reference of:
+      // https://html.spec.whatwg.org/C/#referrer-policy-attribute
+      "a-tag": [
+        "attr",
+        "rel-noref"
+      ],
+      "area-tag": [
+        "attr"
+      ],
+      "audio-tag": [],
+      "beacon": [],
+      // Fetch API supports `init["referrerPolicy"]` in `Request`:
+      // https://fetch.spec.whatwg.org/#dom-request.
+      // TODO(https://github.com/web-platform-tests/wpt/issues/21815):
+      // Add support for this. Currently `common.sub.js` doesn't support this.
+      "fetch": [],
+      "iframe-tag": [
+        "attr"
+      ],
+      "img-tag": [
+        "attr"
+      ],
+      // TODO(https://github.com/web-platform-tests/wpt/issues/21815):
+      // Support "attr" in the following `<link>`-related subresources.
+      // The current referrrer-policy test helper doesn't support
+      // checking referrer results via <link> elements.
+      "link-css-tag": [],
+      "link-prefetch-tag": [],
+      "object-tag": [],
+      // `<img>` supports referrerpolicy attribute,
+      // so `<img>` inside `<picture>` also supports the attribute.
+      // TODO(https://github.com/web-platform-tests/wpt/issues/21815):
+      // Support this.
+      "picture-tag": [],
+      "script-tag": [
+        "attr"
+      ],
+      "script-tag-dynamic-import": [
+        // The policy set to the <script referrerpolicy> attribute is used for
+        // dynamic imports initiated from the script, passed as referencing
+        // script's fetch options.
+        // https://html.spec.whatwg.org/multipage/webappapis.html#hostimportmoduledynamically(referencingscriptormodule,-modulerequest,-promisecapability)
+        "attr"
+      ],
+      "sharedworker-classic": [],
+      "sharedworker-import": [],
+      "sharedworker-import-data": [],
+      "sharedworker-module": [],
+      "video-tag": [],
+      "websocket": [],
+      "worker-classic": [],
+      "worker-import": [],
+      "worker-import-data": [],
+      "worker-module": [],
+      "worklet-animation": [],
+      "worklet-animation-import-data": [],
+      "worklet-audio": [],
+      "worklet-audio-import-data": [],
+      "worklet-layout": [],
+      "worklet-layout-import-data": [],
+      "worklet-paint": [],
+      "worklet-paint-import-data": [],
+      "xhr": []
+    }
+  },
+  "test_expansion_schema": {
+    "delivery_type": [
+      "attr",
+      "rel-noref",
+      "http-rp",
+      "meta"
+    ],
+    "delivery_value": [
+      null,
+      "no-referrer",
+      "no-referrer-when-downgrade",
+      "same-origin",
+      "origin",
+      "origin-when-cross-origin",
+      "strict-origin",
+      "strict-origin-when-cross-origin",
+      "unsafe-url",
+      "default",
+      "always",
+      "never",
+      "origin-when-crossorigin"
+    ],
+    "expectation": [
+      "omitted",
+      "origin",
+      "stripped-referrer"
+    ]
+  }
+}

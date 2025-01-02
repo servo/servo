@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+    <head>
+        <title>PointerCancel - touch</title>
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+    </head>
+    <body class="scrollable" onload="run()">
+        <h1>pointercancel test</h1>
+        <h3>Warning: this test works properly only for devices that have touchscreen</h3>
+        <h4>
+        Test Description: This test checks if pointercancel event triggers.
+        <p>Start touch over the black rectangle and then move your finger to scroll the page.</p>
+        </h4>
+        <p>
+        <div id="target0" style="background: black"></div>
+        <script>
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointercancel event received");
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            var pointerdown_event = null;
+            var pointercancel_event = null;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var actions_promise;
+
+                on_event(target0, "pointerdown", function (event) {
+                    pointerdown_event = event;
+                    detected_pointertypes[event.pointerType] = true;
+                });
+
+                on_event(target0, "pointercancel", function (event) {
+                    pointercancel_event = event;
+                    test_pointerEvent.step(function () {
+                        assert_not_equals(pointerdown_event, null, "pointerdown was received: ");
+                        const properties = [
+                            "pointerId", "width", "height",
+                            "pressure", "tangentialPressure", "tiltX", "tiltY",
+                            "twist", "altitudeAngle", "azimuthAngle",
+                            "pointerType", "isPrimary"
+                        ];
+                        for (let property in properties) {
+                            assert_equals(event[property],
+                                    pointerdown_event[property],
+                                    property + " should be the same for pointerdown and pointercancel");
+                        }
+                    });
+                    test_pointerEvent.step(function () {
+                        check_PointerEvent(event);
+                    });
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.x, 0, "pointercancel.x must be zero");
+                        assert_equals(event.y, 0, "pointercancel.x must be zero");
+                        assert_equals(event.clientX, 0, "pointercancel.clientX must be zero");
+                        assert_equals(event.clientY, 0, "pointercancel.clientY must be zero");
+                    });
+                });
+
+                on_event(target0, "pointerout", function (event) {
+                    test_pointerEvent.step(function () {
+                        assert_not_equals(pointercancel_event, null, "pointercancel was received before pointerout: ");
+                        assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerId should be the same for pointerout and pointercancel");
+                        assert_equals(event.pointerType, pointerdown_event.pointerType, "pointerType should be the same for pointerout and pointercancel");
+                        assert_equals(event.isPrimary, pointerdown_event.isPrimary, "isPrimary should be the same for pointerout and pointercancel");
+                    });
+                });
+
+                on_event(target0, "pointerleave", function (event) {
+                    test_pointerEvent.step(function () {
+                        assert_not_equals(pointercancel_event, null, "pointercancel was received before pointerleave: ");
+                        assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerId should be the same for pointerleave and pointercancel");
+                        assert_equals(event.pointerType, pointerdown_event.pointerType, "pointerType should be the same for pointerleave and pointercancel");
+                        assert_equals(event.isPrimary, pointerdown_event.isPrimary, "isPrimary should be the same for pointerleave and pointercancel");
+                    });
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
+                });
+
+                // Inject touch inputs.
+                actions_promise = touchScrollInTarget(target0, 'down');
+            }
+        </script>
+        <h1>Pointer Events pointercancel Tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

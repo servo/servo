@@ -1,0 +1,111 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<head>
+<!--- Allow injected scripts to use functions in fledge-util.sub.js --->
+<base href="..">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/fledge-util.sub.js"></script>
+</head>
+<body>
+<script>
+
+  // This can be used for either iframes or top-level windows.
+  // If there is an opener, this is a top-level window, so
+  // send messages to the opener. Otherwise, this is an iframe,
+  // so send messages to the parent.
+  let message_dest = window.opener;
+  if (!message_dest)
+    message_dest = window.parent;
+
+  // In order to use some WPT test fixture features in another frame
+  // (particularly, testdriver), we need to set the test context for the test
+  // driver. This is main window driving the test.
+  //
+  // To find that window, follow both parent and opener links to very end;
+  // keeping in mind that top-level windows' parent fields loop back to
+  // themselves.
+  let main_test_window = window;
+  while (true) {
+    if (main_test_window.opener) {
+      main_test_window = main_test_window.opener;
+    } else if (main_test_window.parent !== main_test_window) {
+      main_test_window = main_test_window.parent;
+    } else {
+      break;
+    }
+  }
+
+  test_driver.set_test_context(main_test_window);
+
+  // Fake Test class that only supports adding cleanup callbacks,
+  // primarily to leave interest groups once the test is complete.
+  function Test() {
+    this.cleanup_callbacks = [];
+  }
+
+  // Registers a cleanup method with Test.
+  Test.prototype.add_cleanup = function(callback) {
+    this.cleanup_callbacks.push(callback);
+  };
+
+  // Runs all previously registered cleanup methods, waiting for
+  // them all to complete.
+  Test.prototype.do_cleanup = async function() {
+    while (this.cleanup_callbacks.length > 0) {
+      await this.cleanup_callbacks[0]();
+      this.cleanup_callbacks = this.cleanup_callbacks.slice(1);
+    }
+  };
+
+  // Create a bogus test instance that tracks cleanup callbacks. The
+  // main frame managing the test is expected to post a message
+  // to run test_instance.do_cleanup() and wait for it to complete
+  // before destroying the frame.
+  let test_instance = new Test();
+
+  // Register a message event listener that listens for events with data
+  // in the format {messageUuid: <uuid>, script: <script>}, and when such
+  // a message is received, tries to eval the script and then returns a
+  // message in the format:
+  //   {messageUuid: <uuid>, result: <result>, returnValue: <returnValue>}
+  //
+  // On success, <result> is "success", while on failure, it's an error
+  // message. <script> is interpreted as a possibly asynchronous function
+  // body. Exceptions are caught and their stringified value is returned
+  // as <result>. <returnValue> is a value returned to the caller of
+  // the function that sent the message. It's up to the received script
+  // to set it, if a return value is needed.
+  //
+  // "messageUuid" serves to allow the listener to make sure the message
+  // is intended for it.
+  window.addEventListener('message', async function(event) {
+    // If not a message for this listener, do nothing.
+    if (!event.data.messageUuid)
+      return;
+    let message = {result: 'unexpected'};
+    try {
+      let param = event.data.param;
+      message = await eval(
+          `(async () => {
+            ${event.data.script};
+            return {result: 'success'};
+          })()`);
+    } catch (e) {
+      message.result = e.toString();
+    }
+    message.messageUuid = event.data.messageUuid;
+
+    message_dest.postMessage(message, '*');
+  });
+
+  // Inform "message_dest" that the frame has finished loading.
+  message_dest.postMessage(
+      {messageUuid: '{{GET[uuid]}}', result: 'load complete'},
+      '*');
+</script>
+</body>
+</html>

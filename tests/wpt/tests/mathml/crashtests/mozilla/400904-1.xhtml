@@ -1,0 +1,20 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:math="http://www.w3.org/1998/Math/MathML">
+<head>
+<script type="text/javascript">
+
+function boom()
+{
+  var MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+  var mtd = document.getElementById("mtd");
+  var n = document.createElementNS(MATHML_NS, 'mrow');
+  mtd.appendChild(n);
+  mtd.setAttribute('rowspan', 7);
+}
+
+</script>
+</head>
+
+<body onload="boom();">
+<math:mtd id="mtd"></math:mtd><math:mtr><math:mrow></math:mrow></math:mtr>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/C/#the-textarea-element-2">
+<title>Test textarea width and height accounting for scrollbars</title>
+<meta name="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<textarea id="rows1" rows="1"></textarea>
+<textarea id="rows1Hidden" rows="1" style="overflow-x: hidden"></textarea>
+<textarea id="rows1Scroll" rows="1" style="overflow-x: scroll"></textarea>
+<textarea id="cols3" cols="3"></textarea>
+<textarea id="cols3Hidden" cols="3" style="overflow-y: hidden"></textarea>
+<textarea id="cols3Scroll" cols="3" style="overflow-y: scroll"></textarea>
+<div id="scrollableDiv" style="overflow:scroll"></div>
+
+<script>
+const scrollbarsHaveThickness = (scrollableDiv.offsetHeight != 0);
+test(() => {
+  assert_equals(rows1.offsetWidth, rows1Hidden.offsetWidth);
+  assert_equals(rows1.offsetHeight, rows1Hidden.offsetHeight);
+}, 'rows=1 doesnt include scrollbar thickness');
+
+test(() => {
+  assert_equals(rows1.offsetWidth, rows1Scroll.offsetWidth);
+  if (scrollbarsHaveThickness) {
+    assert_less_than(rows1.offsetHeight, rows1Scroll.offsetHeight);
+  } else {
+    assert_equals(rows1.offsetHeight, rows1Scroll.offsetHeight);
+  }
+}, 'rows=1 overflow scroll includes scrollbar thickness');
+
+test(() => {
+  assert_equals(cols3.offsetWidth, cols3Scroll.offsetWidth);
+  if (scrollbarsHaveThickness) {
+    assert_greater_than(cols3.offsetWidth, cols3Hidden.offsetWidth);
+  } else {
+    assert_equals(cols3.offsetWidth, cols3Hidden.offsetWidth);
+  }
+  assert_equals(cols3.offsetHeight, cols3Scroll.offsetHeight);
+  assert_equals(cols3.offsetHeight, cols3Hidden.offsetHeight);
+}, 'cols=3 includes scrollbar thickness');
+</script>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: Blended element with animation</title>
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <style type="text/css">
+            div {
+                width: 100px;
+                height: 100px;
+                background: #FF0;
+            }
+
+            @keyframes changeOpacity
+            {
+                from { opacity: 0.9; }
+                50% { opacity: 0.9; }
+                to { opacity: 0.1; }
+            }
+
+            #blender {
+                background: #0F0;
+                animation: changeOpacity 10s;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see a fading green box after 5 seconds.</p>
+        <div><div id="blender"></div></div>
+    </body>
+</html>

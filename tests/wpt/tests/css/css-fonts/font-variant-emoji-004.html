@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="UTF-8" />
+<title>CSS Fonts: font-variant-emoji web font test</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-variant-emoji-prop" />
+<link rel="help" href="https://www.unicode.org/reports/tr51/tr51-25.html#Emoji_Properties_and_Data_Files" />
+<link rel="match" href="font-variant-emoji-004-ref.html"/>
+<meta name="assert" content="Variation Selector 15 (U+FE0E) or Variation Selector 16 (U+FE0F) in the contents of an element override the rendering specified by font-variant-emoji property."/>
+<link rel="stylesheet" type="text/css" href="support/css/variation-sequences.css" />
+<style>
+    .emoji {
+      font-variant-emoji: emoji;
+    }
+
+    .text {
+      font-variant-emoji: text;
+    }
+
+    .unicode {
+      font-variant-emoji: unicode;
+    }
+</style>
+
+<p>Variation Selector 15</p>
+<div style="font-family: ColorEmojiFont, MonoEmojiFont;">
+  <span class="text">&#x1fae8;&#xfe0e;</span>
+  <span class="emoji">&#x1fae8;&#xfe0e;</span>
+  <span class="unicode">&#x1fae8;&#xfe0e;</span>
+  <span class="unicode">&#x2139;&#xfe0e;</span>
+</div>
+
+<p>Variation Selector 16</p>
+<div style="font-family: MonoEmojiFont, ColorEmojiFont;">
+  <span class="text">&#x1fae8;&#xfe0f;</span>
+  <span class="emoji">&#x1fae8;&#xfe0f;</span>
+  <span class="unicode">&#x1fae8;&#xfe0f;</span>
+  <span class="unicode">&#x2139;&#xfe0f;</span>
+</div>

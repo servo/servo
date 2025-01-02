@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: svg image respects orientation</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+</head>
+<body>
+    <svg style="width: 500px; height: 650px">
+        <image xlink:href="../support/exif-orientation-1-ul-pre-rotated.jpg" X="0" Y="0"></image>
+        <image xlink:href="../support/exif-orientation-2-ur-pre-rotated.jpg" X="125" Y="0"></image>
+        <image xlink:href="../support/exif-orientation-3-lr-pre-rotated.jpg" X="250" Y="0"></image>
+        <image xlink:href="../support/exif-orientation-4-lol-pre-rotated.jpg" X="375" Y="0"></image>
+        <image xlink:href="../support/exif-orientation-5-lu-pre-rotated.jpg" X="0" Y="125"></image>
+        <image xlink:href="../support/exif-orientation-6-ru-pre-rotated.jpg" X="125" Y="125"></image>
+        <image xlink:href="../support/exif-orientation-7-rl-pre-rotated.jpg" X="250" Y="125"></image>
+        <image xlink:href="../support/exif-orientation-8-llo-pre-rotated.jpg" X="375" Y="125"></image>
+        <image xlink:href="../support/exif-orientation-9-u-pre-rotated.jpg" X="0" Y="250"></image>
+    </svg>
+</body>
+</html>

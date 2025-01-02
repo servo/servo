@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let p1_resolved = false;
+  let p2_resolved = false;
+  let p3_resolved = false;
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept({ handler: async () => {
+      await Promise.resolve();
+      assert_false(p2_resolved);
+      assert_false(p3_resolved);
+      p1_resolved = true;
+    }});
+    e.intercept({ handler: async () => {
+      await new Promise(resolve => t.step_timeout(resolve, 1));
+      assert_true(p1_resolved);
+      assert_false(p3_resolved);
+      p2_resolved = true;
+    }});
+    e.intercept({ handler: async () => {
+      await new Promise(resolve => t.step_timeout(resolve, 1));
+      assert_true(p1_resolved);
+      assert_true(p2_resolved);
+      p3_resolved = true;
+    }});
+  });
+
+  let promise = navigation.navigate("#1").finished;
+  assert_equals(location.hash, "#1");
+  assert_false(p1_resolved);
+  assert_false(p2_resolved);
+  assert_false(p3_resolved);
+
+  await promise;
+  assert_true(p1_resolved);
+  assert_true(p2_resolved);
+  assert_true(p3_resolved);
+}, "navigation.navigate() returns a finished promise that awaits all promises if event.intercept() is called multiple times");
+</script>

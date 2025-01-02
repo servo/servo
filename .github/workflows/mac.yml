@@ -1,0 +1,161 @@
+name: MacOS
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-layout:
+        required: false
+        type: string
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
+      github-release-id:
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: choice
+        options: ["release", "debug", "production"]
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-layout:
+        required: false
+        type: choice
+        options: ["none", "2013", "2020", "all"]
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      upload:
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: MacOS Build
+    runs-on: macos-13
+    steps:
+      # XProtect can cause random failures if it decides that the DMG we create
+      # during the packaging phase is malware.
+      # TODO(mrobinson): Is there a way we can do things in a less suspicious way so
+      # we don't have to kill this service?
+      - name: Kill XProtectBehaviorService
+        run: |
+          echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Install crown
+        run: cargo install --path support/crown
+      - name: Bootstrap
+        run: |
+          ./mach bootstrap --skip-lints
+          brew install gnu-tar
+      - name: Build (${{ inputs.profile }})
+        run: |
+          ./mach build --use-crown --locked --${{ inputs.profile }}
+          cp -r target/cargo-timings target/cargo-timings-macos
+      - name: Smoketest
+        uses: nick-fields/retry@v3
+        with: # See https://github.com/servo/servo/issues/30757
+          timeout_minutes: 5
+          max_attempts: 2
+          command: ./mach smoketest --${{ inputs.profile }}
+      - name: Script tests
+        run: ./mach test-scripts
+      - name: Unit tests
+        if: ${{ inputs.unit-tests }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
+          max_attempts: 3 # https://github.com/servo/servo/issues/30683
+          command: ./mach test-unit --${{ inputs.profile }}
+      - name: Build mach package
+        run: ./mach package --${{ inputs.profile }}
+      - name: Run DMG smoketest
+        uses: nick-fields/retry@v3
+        with: # See https://github.com/servo/servo/issues/30757
+          timeout_minutes: 5
+          max_attempts: 2
+          command: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
+      - name: Archive build timing
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-timings-macos
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*
+      - name: Upload artifact for mach package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: target/${{ inputs.profile }}/servo-tech-demo.dmg
+      - name: Upload nightly
+        if: ${{ inputs.upload }}
+        run: |
+          ./mach upload-nightly mac --secret-from-environment \
+            --github-release-id ${{ inputs.github-release-id }}
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      - name: Build package for target
+        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
+      - name: Upload package for target
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-macos
+          path: target.tar.gz
+
+  wpt-2020:
+    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    name: MacOS WPT
+    needs: ["build"]
+    uses: ./.github/workflows/mac-wpt.yml
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-layout: "layout-2020"
+      wpt-args: ${{ inputs.wpt-args }}
+    secrets: inherit
+
+  wpt-2013:
+    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
+    name: MacOS WPT (Legacy)
+    needs: ["build"]
+    uses: ./.github/workflows/mac-wpt.yml
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-layout: "layout-2013"
+      wpt-args: ${{ inputs.wpt-args }}
+    secrets: inherit

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>View transitions: no crash with view-transitions in massive iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:roger.johannesson@xperi.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+iframe { width: 40000px; height: 40000px }
+</style>
+
+<iframe></iframe>
+
+<script>
+promise_test(async t => {
+  const iframeDoc = document.getElementsByTagName("iframe")[0].contentDocument;
+  assert_implements(iframeDoc.startViewTransition, "Missing document.startViewTransition in iframe");
+  const transition = iframeDoc.startViewTransition();
+  try { await transition.ready; } catch {}
+}, "startViewTransition in massive iframe shouldn't crash.");
+</script>

@@ -1,0 +1,10 @@
+<!doctype html>
+<script>
+opener.history_length = history.length;
+</script>
+<a onclick="location.replace('manual_click_location_replace_during_load-2.html'); return false;" href>Click Here</a>
+<p>Filler image to keep the page loading:</p>
+<img>
+<script>
+document.images[0].src = "/images/smiley.png?pipe=trickle(20:d1:r2)&random=" + Math.random();
+</script>

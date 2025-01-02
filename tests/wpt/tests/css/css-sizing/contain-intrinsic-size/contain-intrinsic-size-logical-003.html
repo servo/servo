@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: Logical versions</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-size">
+<style>
+.test {
+  contain: size;
+  display: inline-block;
+  background: green;
+}
+.test::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 20px;
+}
+.cis-none {
+  contain-intrinsic-inline-size: none;
+  contain-intrinsic-block-size: none;
+}
+.cis-block {
+  contain-intrinsic-inline-size: none;
+  contain-intrinsic-block-size: 50px;
+}
+.cis-inline {
+  contain-intrinsic-inline-size: 100px;
+  contain-intrinsic-block-size: none;
+}
+.cis-both {
+  contain-intrinsic-inline-size: 100px;
+  contain-intrinsic-block-size: 50px;
+}
+.vertical {
+  writing-mode: vertical-lr;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.test')">
+  <div id="log"></div>
+
+  <div class="test cis-none"
+       data-expected-client-width="0" data-expected-client-height="0"></div>
+  <div class="test cis-block"
+       data-expected-client-width="0" data-expected-client-height="50"></div>
+  <div class="test cis-inline"
+       data-expected-client-width="100" data-expected-client-height="0"></div>
+  <div class="test cis-both"
+       data-expected-client-width="100" data-expected-client-height="50"></div>
+
+  <div class="test cis-none vertical"
+       data-expected-client-height="0" data-expected-client-width="0"></div>
+  <div class="test cis-block vertical"
+       data-expected-client-height="0" data-expected-client-width="50"></div>
+  <div class="test cis-inline vertical"
+       data-expected-client-height="100" data-expected-client-width="0"></div>
+  <div class="test cis-both vertical"
+       data-expected-client-height="100" data-expected-client-width="50"></div>
+
+  <hr>
+
+  <img class="test cis-none" src="/css/support/60x60-green.png"
+       data-expected-client-width="0" data-expected-client-height="0">
+  <img class="test cis-block" src="/css/support/60x60-green.png"
+       data-expected-client-width="0" data-expected-client-height="50">
+  <img class="test cis-inline" src="/css/support/60x60-green.png"
+       data-expected-client-width="100" data-expected-client-height="0">
+  <img class="test cis-both" src="/css/support/60x60-green.png"
+       data-expected-client-width="100" data-expected-client-height="50">
+
+  <img class="test cis-none vertical" src="/css/support/60x60-green.png"
+       data-expected-client-height="0" data-expected-client-width="0">
+  <img class="test cis-block vertical" src="/css/support/60x60-green.png"
+       data-expected-client-height="0" data-expected-client-width="50">
+  <img class="test cis-inline vertical" src="/css/support/60x60-green.png"
+       data-expected-client-height="100" data-expected-client-width="0">
+  <img class="test cis-both vertical" src="/css/support/60x60-green.png"
+       data-expected-client-height="100" data-expected-client-width="50">
+
+  <hr>
+
+  <svg class="test cis-none"
+       data-expected-client-width="0" data-expected-client-height="0"></svg>
+  <svg class="test cis-block"
+       data-expected-client-width="0" data-expected-client-height="50"></svg>
+  <svg class="test cis-inline"
+       data-expected-client-width="100" data-expected-client-height="0"></svg>
+  <svg class="test cis-both"
+       data-expected-client-width="100" data-expected-client-height="50"></svg>
+
+  <svg class="test cis-none vertical"
+       data-expected-client-height="0" data-expected-client-width="0"></svg>
+  <svg class="test cis-block vertical"
+       data-expected-client-height="0" data-expected-client-width="50"></svg>
+  <svg class="test cis-inline vertical"
+       data-expected-client-height="100" data-expected-client-width="0"></svg>
+  <svg class="test cis-both vertical"
+       data-expected-client-height="100" data-expected-client-width="50"></svg>
+
+  <hr>
+
+  <canvas class="test cis-none" width="40" height="20"
+       data-expected-client-width="0" data-expected-client-height="0"></canvas>
+  <canvas class="test cis-block" width="40" height="20"
+       data-expected-client-width="0" data-expected-client-height="50"></canvas>
+  <canvas class="test cis-inline" width="40" height="20"
+       data-expected-client-width="100" data-expected-client-height="0"></canvas>
+  <canvas class="test cis-both" width="40" height="20"
+       data-expected-client-width="100" data-expected-client-height="50"></canvas>
+
+  <canvas class="test cis-none vertical" width="40" height="20"
+       data-expected-client-height="0" data-expected-client-width="0"></canvas>
+  <canvas class="test cis-block vertical" width="40" height="20"
+       data-expected-client-height="0" data-expected-client-width="50"></canvas>
+  <canvas class="test cis-inline vertical" width="40" height="20"
+       data-expected-client-height="100" data-expected-client-width="0"></canvas>
+  <canvas class="test cis-both vertical" width="40" height="20"
+       data-expected-client-height="100" data-expected-client-width="50"></canvas>
+
+  <hr>
+
+  <iframe class="test cis-none"
+       data-expected-client-width="0" data-expected-client-height="0"></iframe>
+  <iframe class="test cis-block"
+       data-expected-client-width="0" data-expected-client-height="50"></iframe>
+  <iframe class="test cis-inline"
+       data-expected-client-width="100" data-expected-client-height="0"></iframe>
+  <iframe class="test cis-both"
+       data-expected-client-width="100" data-expected-client-height="50"></iframe>
+
+  <iframe class="test cis-none vertical"
+       data-expected-client-height="0" data-expected-client-width="0"></iframe>
+  <iframe class="test cis-block vertical"
+       data-expected-client-height="0" data-expected-client-width="50"></iframe>
+  <iframe class="test cis-inline vertical"
+       data-expected-client-height="100" data-expected-client-width="0"></iframe>
+  <iframe class="test cis-both vertical"
+       data-expected-client-height="100" data-expected-client-width="50"></iframe>
+
+  <hr>
+
+  <video class="test cis-none"
+       data-expected-client-width="0" data-expected-client-height="0"></video>
+  <video class="test cis-block"
+       data-expected-client-width="0" data-expected-client-height="50"></video>
+  <video class="test cis-inline"
+       data-expected-client-width="100" data-expected-client-height="0"></video>
+  <video class="test cis-both"
+       data-expected-client-width="100" data-expected-client-height="50"></video>
+
+  <video class="test cis-none vertical"
+       data-expected-client-height="0" data-expected-client-width="0"></video>
+  <video class="test cis-block vertical"
+       data-expected-client-height="0" data-expected-client-width="50"></video>
+  <video class="test cis-inline vertical"
+       data-expected-client-height="100" data-expected-client-width="0"></video>
+  <video class="test cis-both vertical"
+       data-expected-client-height="100" data-expected-client-width="50"></video>
+</body>

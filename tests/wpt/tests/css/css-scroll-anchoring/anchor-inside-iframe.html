@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe width="700" height="500" srcdoc="
+  <!DOCTYPE html>
+  <style> body { height: 1000px } div { height: 100px } </style>
+  <div id='block1'>abc</div>
+  <div id='block2'>def</div>
+"></iframe>
+<script>
+  async_test((t) => {
+    var iframeWindow = document.querySelector("iframe").contentWindow;
+    iframeWindow.addEventListener("load", () => {
+      var block1 = iframeWindow.document.querySelector("#block1");
+      iframeWindow.scrollTo(0, 150);
+
+      requestAnimationFrame(() => {
+        step_timeout(() => {
+          block1.style.height = "200px";
+          assert_equals(iframeWindow.scrollY, 250);
+          t.done();
+        }, 0);
+      });
+    });
+  }, "Scroll anchoring in an iframe.");
+</script>

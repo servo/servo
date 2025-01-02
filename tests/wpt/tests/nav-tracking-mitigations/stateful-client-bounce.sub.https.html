@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Bounce Tracking Mitigations: Stateful Client Bounce</title>
+<body>body for test_driver.bless</body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+  promise_setup(async () => {
+    try {
+      await test_driver.set_storage_access('*', '*', 'blocked');
+    } catch (e) {
+      // Ignore, can be unimplemented if the platform blocks cross-site
+      // cookies by default. If this failed without default blocking the test
+      // will fail.
+    }
+  });
+
+  promise_test(async t => {
+    let linkInNewPage = null;
+
+    // Open a new tab and retrieve the link to start the test.
+    await test_driver.bless('open page to start test', async () => {
+      const otherTab = window.open(
+        'resources/redirect-chain-start.sub.https.html');
+
+      await new Promise(resolve => otherTab.addEventListener('load', resolve));
+      linkInNewPage = otherTab.document.getElementById('navigate-link');
+    });
+
+    const redirectEndedPromise = new Promise(resolve => {
+      window.addEventListener('message', resolve, {once: true});
+    });
+
+    // Click the link in the new tab.
+    //
+    // Ideally, we would click this from within the page, but because the page
+    // immediately navigates away, test_driver fails as it expects the page to
+    // not navigate away. Doing this from the main test page avoids the issue.
+    test_driver.click(linkInNewPage);
+
+    await redirectEndedPromise;
+
+    let result = [];
+    while (result.length == 0) {
+      result = await test_driver.run_bounce_tracking_mitigations();
+    }
+    assert_array_equals(result, ['{{hosts[alt][]}}']);
+
+    // Open a page on the bounce origin, and check that cookies have been
+    // cleared.
+    const getCookiesFromBounceOrigin = new Promise(
+      resolve => {
+        window.addEventListener(
+          'message',
+          (event) => { resolve(event.data.cookie) },
+          {once: true})
+    });
+
+    const url = new URL(
+      'resources/cross-origin-get-cookie.sub.https.html',
+      window.location.href);
+    url.hostname = '{{hosts[alt][]}}';
+    window.open(url);
+
+    assert_equals(await getCookiesFromBounceOrigin, '');
+  }, 'Bounce tracking mitigations deleting state for a bounce tracker');
+</script>

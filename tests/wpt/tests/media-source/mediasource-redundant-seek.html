@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Test MediaSource behavior when receiving multiple seek requests during a pending seek.</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+            mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+            {
+                mediaElement.play();
+
+                // Append all media data for complete playback.
+                test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer end update.');
+                test.expectEvent(mediaElement, 'loadedmetadata', 'Reached HAVE_METADATA');
+                test.expectEvent(mediaElement, 'playing', 'Playing media.');
+                sourceBuffer.appendBuffer(mediaData);
+
+                test.waitForExpectedEvents(function()
+                {
+                    var bufferedRanges = mediaElement.buffered;
+
+                    assert_greater_than_equal(mediaElement.duration, 4.0, 'Duration is >= 4.0s');
+                    assert_equals(bufferedRanges.length, 1, 'Just one buffered range');
+                    assert_less_than_equal(bufferedRanges.start(0), 1.0, 'Buffered range starts <= 1.0s');
+                    assert_greater_than_equal(bufferedRanges.end(0), 4.0, 'Buffered range ends >= 4.0s');
+
+                    test.expectEvent(mediaElement, 'seeking', 'seeking');
+                    test.expectEvent(mediaElement, 'timeupdate', 'timeupdate');
+                    test.expectEvent(mediaElement, 'seeked', 'seeked');
+
+                    // Request seeks.
+                    mediaElement.currentTime = 1.0;
+
+                    // This 'ephemeral' seek should be invisible to javascript, except any latency incurred in its processing.
+                    mediaElement.currentTime = 3.0;
+
+                    mediaElement.currentTime = 1.0;
+
+                    assert_true(mediaElement.seeking, 'Element is seeking');
+                    assert_equals(mediaElement.currentTime, 1.0, 'Element time is at last seek time');
+                });
+
+                test.waitForExpectedEvents(function()
+                {
+                    // No more seeking or seeked events should occur.
+                    mediaElement.addEventListener('seeking', test.unreached_func("Unexpected event 'seeking'"));
+                    mediaElement.addEventListener('seeked', test.unreached_func("Unexpected event 'seeked'"));
+
+                    assert_false(mediaElement.seeking, 'Element is not seeking');
+                    assert_greater_than_equal(mediaElement.currentTime, 1.0, 'Element time is at or after last seek time');
+                    assert_less_than(mediaElement.currentTime, 3.0, 'Element time is before the ephemeral seek time');
+
+                    var timeBeforeWait = mediaElement.currentTime;
+                    test.waitForCurrentTimeChange(mediaElement, function()
+                    {
+                        // Time should have advanced a little, but not yet reached the ephemeral seek time.
+                        assert_greater_than(mediaElement.currentTime, timeBeforeWait, 'Element time has increased');
+                        assert_less_than(mediaElement.currentTime, 3.0, 'Element time is still before the ephemeral seek time');
+                        test.done();
+                    });
+                });
+            }, 'Test redundant fully prebuffered seek');
+
+        </script>
+    </body>
+</html>

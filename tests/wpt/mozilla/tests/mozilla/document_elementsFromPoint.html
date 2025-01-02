@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>document.elementsFromPoint does not crash due to a missing display list</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    document.elementsFromPoint(10, 10);
+}, "doesn't crash");
+</script>

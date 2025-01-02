@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>localeCompare should return the same as other browsers, even though it's implementation-dependent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals("ab".localeCompare("aZ"), -1);
+})
+</script>

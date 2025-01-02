@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>input selection test</title>
+    <link rel="match" href="input_selection_ref.html">
+    <style>
+      input {
+        font: 16px sans-serif;
+        border: 0 none;
+        margin: 0;
+        padding: 0;
+        color: white;
+      }
+      ::selection {
+        color: white;
+        background: rgba(176, 214, 255, 1.0);
+      }
+    </style>
+  </head>
+  <body>
+    <input value="Hello">
+    <script>
+      var input = document.querySelector("input");
+      input.focus();
+      input.setSelectionRange(0, 5);
+    </script>
+  </body>
+</html>

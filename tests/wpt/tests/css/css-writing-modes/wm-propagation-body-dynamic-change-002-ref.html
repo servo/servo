@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS-Writing Modes Test: propagation of the writing-mode property from body to root</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  html {
+    writing-mode: vertical-rl;
+  }
+
+  main {
+    writing-mode: horizontal-tb;
+    inline-size: 100px;
+  }
+
+  div {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+  }
+  </style>
+
+  <main>
+    <div></div>
+    <p>Test passes if you see a blue square in the upper-right corner of the page</p>
+  </main>
+</html>

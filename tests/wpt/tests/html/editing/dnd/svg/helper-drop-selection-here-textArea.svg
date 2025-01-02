@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" width="500px" height="300px" viewBox="0 0 500 300">
+<textArea x="10" y="10" width="480" height="280" font-size="20" editable="simple" pointer-events="boundingBox">Drop selection here</textArea>
+<rect x="10" y="10" width="480" height="280" stroke="black" stroke-width="1" fill="none"/>
+</svg>

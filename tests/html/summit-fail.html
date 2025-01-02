@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      html {
+        background-color: #ccc;
+        font-size: 50px;
+      }
+      div.frame {
+        text-align: center;
+        float: left;
+        width: 310px;
+        height: 400px;
+      }
+      iframe {
+        width: 300px;
+        height: 300px;
+        border: solid 1px black;
+        display: block;
+        background-color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <iframe id="frameone" sandbox="allow-scripts" src="summit-two.html">
+      </iframe>
+      frame one
+    </div>
+    <div class="frame">
+      <iframe id="frametwo" sandbox="allow-scripts" src="summit-crash.html">
+      </iframe>
+      frame two
+    </div>
+  </body>
+</html>

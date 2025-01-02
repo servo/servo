@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: the HTMLFormControlsCollection interface</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/common-dom-interfaces.html#htmlformcontrolscollection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id="f1">
+  <input type="radio" id="r1" name="ra">
+  <keygen id="kg" name="key"></keygen> <!-- we test that it does *not* appear in form.elements -->
+</form>
+<form id="f2">
+  <table>
+    <tr>
+      <td>
+        <input type="checkbox" id="cb">
+        <input type="checkbox" name="cb">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <button id="btn"></button>
+        <button name="btn"></button>
+      </td>
+    </tr>
+  </table>
+</form>
+
+<script>
+
+var coll1, coll2, rdo;
+
+setup(function () {
+  rdo = document.getElementById("r1");
+  coll1 = document.forms[0].elements;
+  coll2 = document.forms[1].elements;
+});
+
+//length
+test(function () {
+  assert_equals(coll1.length, 1, "The length attribute is incorrect.");
+  assert_equals(coll2.length, 4, "The length attribute is incorrect.");
+}, "The length attribute must return the number of elements in the form");
+
+//getter - index
+test(function () {
+  assert_equals(coll1.item(0), rdo, "HTMLFormControlsCollection.item(index) should return the 'input' element in radio status.");
+}, "HTMLFormControlsCollection.item(index) must return the indexed item");
+
+test(function () {
+  assert_equals(coll1[0], rdo, "HTMLFormControlsCollection[index] should return the 'input' element in radio status.");
+}, "HTMLFormControlsCollection[index] must return the indexed item");
+
+//getter - name
+test(function () {
+  assert_throws_js(TypeError, function() { coll1("r1") });
+}, "HTMLFormControlsCollection is not callable");
+
+test(function () {
+  assert_equals(coll1["r1"], rdo, "HTMLFormControlsCollection[name] should return the 'input' element in radio status.");
+}, "HTMLFormControlsCollection[name] must return the named item");
+
+//getter - namedItem
+test(function () {
+  assert_equals(coll1.namedItem("r1"), rdo, "HTMLFormControlsCollection.namedItem(name) should return the 'input' element in radio status.");
+}, "HTMLFormControlsCollection.namedItem(name) must return the named item");
+
+test(function () {
+  assert_true(coll1.namedItem("r1") instanceof Element, "Can not return 'Element' object.");
+}, "The namedItem(name) must return an Element");
+
+test(function () {
+  assert_true(coll2.namedItem("cb") instanceof RadioNodeList, "Can not return 'RadioNodeList' object.");
+}, "The namedItem(name) must return RadioNodeList");
+
+test(function () {
+  assert_equals(coll1.namedItem(""), null, "The return value of namedItem() should be null.");
+}, "The namedItem(name) must return null if the name is empty");
+
+test(function () {
+  assert_equals(coll1.namedItem("test"), null, "The return value of namedItem() should be null.");
+}, "The namedItem(name) must return null if there is no matched element");
+
+test(function () {
+  assert_equals(coll1.namedItem("r1"), document.getElementById("r1"), "Controls can be named by 'id' attribute.");
+  assert_equals(coll1.namedItem("ra"), document.getElementById("r1"), "Controls can be named by 'name' attribute.");
+}, "Controls can be indexed by id or name attribute");
+
+test(function () {
+  assert_equals(coll1.namedItem("kg"), null, "Keygen does not show up when queried by id.");
+  assert_equals(coll1.namedItem("key"), null, "Keygen does not show up when queried by name.");
+}, "Keygen controls do not show up at all");
+
+test(function () {
+  assert_equals(coll2.namedItem("btn").length, 2, "The length attribute should be 2.");
+}, "The namedItem(name) must return the items with id or name attribute");
+
+//various controls in fieldset and form
+var containers = ["form", "fieldset"],
+    controls = ["button", "fieldset", "input", "object", "output", "select", "textarea"];
+for (var m = 0; m < containers.length; m++) {
+  test(function () {
+    var container = document.createElement(containers[m]);
+    var len = controls.length;
+    for (var n = 0; n < len; n++)
+      container.appendChild(document.createElement(controls[n]));
+    document.body.appendChild(container);
+    assert_equals(container.elements.length, len, "The length should be " + len + ".");
+  }, "The HTMLFormControlsCollection interface is used for collections of listed elements in " + containers[m] + " element");
+}
+
+//Check the controls' order
+test(function () {
+  var opt = document.forms[1].insertBefore(document.createElement("output"), document.forms[1].firstChild);
+  assert_array_equals(document.forms[1].elements,
+                      [opt, document.getElementsByTagName("input")[1], document.getElementsByTagName("input")[2],
+                      document.getElementsByTagName("button")[0], document.getElementsByTagName("button")[1]]);
+}, "The controls in the form element must be sorted in tree order");
+
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const selection = window.getSelection();
+  const range = selection.getRangeAt(0);
+  selection.modify("move", "backward", "character");
+  selection.addRange(range);
+});
+</script>
+</head>
+<body>
+<fieldset contenteditable spellcheck="true">
+  <input value="x">
+  <table>
+    <caption></caption>
+  </table>
+</fieldset>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/373893049">
+
+<style>
+select,::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <button>
+    Hello??
+    <selectedcontent />
+  </button>
+  <option>
+    <object type="no/type">
+      <select>
+        <button>
+          Hello??
+          <selectedcontent />
+        </button>
+        <option>One</option>
+        <option>Two</option>
+      </select>
+    </object>
+  </option>
+  <option>Two</option>
+</select>

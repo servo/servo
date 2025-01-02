@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Test Reference</title>
+<style>
+  dialog {
+    inset: 100px;
+  }
+  dialog::backdrop {
+    background-color: green;
+    inset: 100px;
+  }
+</style>
+<dialog>Green backdrop with 100px inset</dialog>
+<script>
+  document.querySelector("dialog").showModal();
+</script>

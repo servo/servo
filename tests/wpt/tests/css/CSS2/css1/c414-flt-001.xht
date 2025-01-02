@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Non-Replaced Floating Left vs. Right</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#floating-elements"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   p { color: navy; }
+   .test div { margin: 1em; padding: 0.5em; background: teal; color: aqua; }
+   .test p { width: 10em; padding: 0.25em; margin: 0; border: 0.25em solid blue; background: navy; color: white; }
+   .test p.left { float: left; }
+   .test p.right { float: right; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" title="9.5.1 Positioning the float: the 'float' property"/>
+ </head>
+ <body>
+  <p>In the following test, the blue blocks should be on the given sides of the teal rectangle.</p>
+  <div class="test">
+   <div>
+    <p class="left"> &#x21E6; This blue block should be on the left. </p>
+    <p class="right"> &#x21E8; This blue block should be on the right. </p>
+    Teal rectangle. Teal rectangle. Teal rectangle. Teal rectangle. Teal rectangle. Teal rectangle.
+    Teal rectangle. Teal rectangle. Teal rectangle. Teal rectangle. Teal rectangle. Teal rectangle.
+   </div>
+  </div>
+ </body>
+</html>

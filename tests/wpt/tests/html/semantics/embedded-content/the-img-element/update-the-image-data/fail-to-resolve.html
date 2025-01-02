@@ -1,0 +1,25 @@
+<!doctype html>
+<title>img update the image data: fail to resolve URL</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<img src="//[">
+<img srcset="//[">
+<img srcset="//[" src="/images/red.png">
+<img srcset="//[, /images/red.png">
+
+<script>
+setup({explicit_done: true});
+
+var expected = '//[';
+
+onload = function() {
+  [].forEach.call(document.images, function(img) {
+    test(function() {
+      assert_equals(img.currentSrc, expected);
+    }, img.outerHTML);
+  });
+  done();
+};
+</script>

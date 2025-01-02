@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Page Visibility API is Read Only</title>
+
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript" src="resources/pagevistestharness.js"></script>
+
+        <script type="text/javascript">
+            setup({ explicit_done: true });
+            function onload_test()
+            {
+                //check for feature definition first before attempting to overwrite
+                pv_test();
+
+                //Check document.hidden
+                document.hidden = "new value";
+                test_true(document.hidden !== "new value", 'document.hidden is read only.');
+
+                //Check document.visibilityState
+                document.visibilityState = "new value";
+                test_true(document.visibilityState !== "new value",
+                                "document.visibilityState is read only.");
+
+                done();
+            }
+        </script>
+    </head>
+    <body onload="onload_test();">
+        <h1>Description</h1>
+        <p>This test validates that the Page Visibility attributes are read only.</p>
+
+        <div id="log"></div>
+    </body>
+</html>

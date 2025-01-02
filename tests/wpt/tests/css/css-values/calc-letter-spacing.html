@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: computed value of 'letter-spacing' when specified with calc() function</title>
+
+  <!--
+
+  Original test is:
+
+https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793f5b9668cc/third_party/WebKit/LayoutTests/css3/calc/letter-spacing.html
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css3-values/#calc-computed-value">
+
+  <meta name="flags" content="invalid">
+  <meta content="This test verifies how 6 calc() functions are computed for 'letter-spacing'." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+    function verifyComputedStyle(property_name, initial_value, specified_value, expected_value, description)
+    {
+
+    var elemTarget = document.getElementById("target");
+
+    test(function()
+      {
+
+      elemTarget.style.setProperty(property_name, initial_value);
+
+      /*
+      In exactly 4 out of the 6 sub-tests, the initial_value will
+      act as a fallback value because the calc() function in the
+      specified value generates an invalid value. Since we are
+      running 6 consecutive tests on the same element, then
+      it is necessary to 'reset' its property to an initial
+      value.
+      */
+
+      elemTarget.style.setProperty(property_name, specified_value);
+
+      assert_equals(getComputedStyle(elemTarget)[property_name], expected_value, specified_value + ' should compute to ' + expected_value);
+
+      }, description);
+    }
+
+ /* verifyComputedStyle(property_name, initial_value, specified_value, expected_value, description) */
+
+    verifyComputedStyle("letter-spacing", "20px", "calc(1 + 1px)", "20px", "testing letter-spacing: calc(1 + 1px)");
+
+    verifyComputedStyle("letter-spacing", "20px", "calc(1 + 100%)", "20px", "testing letter-spacing: calc(1 + 100%)");
+
+    verifyComputedStyle("letter-spacing", "20px", "calc(100%)", "100%", "testing letter-spacing: calc(100%)");
+
+    verifyComputedStyle("letter-spacing", "20px", "calc(10px) bla", "20px", "testing letter-spacing: calc(10px) bla");
+
+    verifyComputedStyle("letter-spacing", "20px", "calc(bla) 10px", "20px", "testing letter-spacing: calc(bla) 10px");
+
+    verifyComputedStyle("letter-spacing", "initial", "calc(10px)", "10px", "testing letter-spacing: calc(10px)");
+
+  }
+
+  startTesting();
+
+  </script>

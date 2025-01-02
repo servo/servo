@@ -1,0 +1,4 @@
+# Always adjust install_requires in setup.cfg and requirements.txt
+# when changing minimum version dependencies
+pytest == 6.1.0
+typing-extensions >= 3.7.2; python_version < "3.8"

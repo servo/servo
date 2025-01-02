@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>text-box-trim skips "invisible line boxes"</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://www.w3.org/TR/css-inline-3/#invisible-line-boxes">
+<link rel="match" href="text-box-trim-end-empty-line-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font: 50px/2 Ahem;
+  text-box-trim: trim-end;
+  text-box-edge: text alphabetic;
+}
+</style>
+<div class="target">
+  A<br>
+  <span></span>
+</div>
+<div class="spacer"></div>
+<div class="target">
+  A<br>
+  B<br>
+  <span></span>
+</div>
+<div class="spacer"></div>

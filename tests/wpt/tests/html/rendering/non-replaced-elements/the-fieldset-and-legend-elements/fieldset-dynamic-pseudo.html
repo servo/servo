@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!--
+Chrome had a crash bug in a case of dynamic addition of pseudo elements.
+crbug.com/1242229
+-->
+<html class="reftest-wait">
+<head>
+<link rel="match" href="fieldset-dynamic-pseudo-ref.html">
+<style>
+*::after { content:"after text"; border:3px solid black;}
+*::before { content:"before text"; border:3px solid black; }
+</style>
+</head>
+<body>
+<fieldset><legend>Legend</legend></fielset>
+<script>
+document.styleSheets[0].disabled = true;
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.styleSheets[0].disabled = false;
+    document.documentElement.className = '';
+  });
+});
+</script>
+</body>
+</html>

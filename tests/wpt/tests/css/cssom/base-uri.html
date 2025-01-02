@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM base URI is the document's base URI</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://html.spec.whatwg.org/#document-base-url">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1343919">
+<base href="/non-existent-base/">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<div id="target"></div>
+<script>
+const target = document.getElementById("target");
+const kRelativeURI = "url(something.png)";
+const kKeyframes = [
+  { backgroundImage: kRelativeURI },
+  { backgroundImage: kRelativeURI },
+];
+function assertBackground() {
+  const image = getComputedStyle(target).backgroundImage;
+  assert_true(image.includes("non-existent-base"), image);
+}
+function assertNoBackground() {
+  const image = getComputedStyle(target).backgroundImage;
+  assert_equals(image, "none");
+}
+
+promise_test(async function() {
+  target.style.backgroundImage = kRelativeURI;
+  assertBackground();
+  target.style.backgroundImage = "";
+  assertNoBackground();
+}, "setProperty");
+
+promise_test(async function() {
+  const keyframe = new KeyframeEffect(target, kKeyframes, 10000);
+  const animation = new Animation(keyframe, document.timeline);
+  animation.play();
+  await animation.ready;
+  assertBackground();
+  animation.cancel();
+  assertNoBackground();
+}, "KeyframeEffect constructor");
+
+promise_test(async function() {
+  const keyframe = new KeyframeEffect(target, [], 10000);
+  keyframe.setKeyframes(kKeyframes);
+  const animation = new Animation(keyframe, document.timeline);
+  animation.play();
+  await animation.ready;
+  assertBackground();
+  animation.cancel();
+  assertNoBackground();
+}, "KeyframeEffect.setKeyframes");
+</script>

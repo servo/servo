@@ -1,0 +1,30 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Caret should be rendered in the editing host which has no visible non-anonymous content</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+div[contenteditable]::after {
+  content: "placeholder text";
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", async () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  document.activeElement?.blur();
+  const waitForFocus = new Promise(resolve =>
+    editingHost.addEventListener("focus", resolve, {once: true})
+  );
+  editingHost.focus();
+  await waitForFocus;
+  document.documentElement.removeAttribute("class");
+}, {once: true});
+</script>
+</head>
+<body>
+<div contenteditable></div>
+</body>
+</html>

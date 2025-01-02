@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>Test that user activation propagation is fenced.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+// Simulate a click in frame context `frame`.
+async function click(frame) {
+  var actions = new test_driver.Actions();
+  await actions.pointerMove(0, 0, {origin: frame})
+               .pointerDown()
+               .pointerUp()
+               .send();
+}
+
+assert_activations = (sticky_activation, transient_activation, frame_name) => {
+  if (sticky_activation) {
+    assert_true(navigator.userActivation.hasBeenActive,
+                frame_name + " has been activated.");
+  } else {
+    assert_false(navigator.userActivation.hasBeenActive,
+                 frame_name + " has not been activated yet.");
+  }
+  if (transient_activation) {
+    assert_true(navigator.userActivation.isActive,
+                frame_name + " is currently active.");
+  } else {
+    assert_false(navigator.userActivation.isActive,
+                 frame_name + " is not currently active.");
+  }
+};
+
+promise_test(async () => {
+  // This test checks that consumption of transient user activations is
+  // fenced, i.e. that when the top-level embedder and a fenced frame are
+  // both active, and one of them performs an operation that consumes
+  // transient user activation (sets `navigator.userActivation.isActive`
+  // to `false`), it doesn't affect the other frame.
+
+  // Given a top-level frame A and fenced frame B, the structure of the
+  // test is as follows:
+  // - Activate both A and B with a click
+  // - Consume A's transient user activation with `window.open`
+  // - Check that A is inactive and B is active
+  // - Reactivate A with a click
+  // - Consume B's transient user activation with `window.open`
+  // - Check that A is active and B is inactive
+
+  const B = attachFencedFrameContext();
+
+  // Check that both frames are inactive after loading.
+  assert_activations(false, false, "A");
+  await B.execute(assert_activations, [false, false, "B"]);
+
+  // Send a click to activate the top-level frame, and check user activation.
+  await click(document.documentElement);
+  assert_activations(true, true, "A");
+  await B.execute(assert_activations, [false, false, "B"]);
+
+  // Send a click to activate the fenced frame, and check user activation.
+  await click(B.element);
+  assert_activations(true, true, "A");
+  await B.execute(assert_activations, [true, true, "B"]);
+
+  // Open a window to consume the top-level transient user activation.
+  window.open('about:blank');
+
+  // Check that it consumed the navigation in only the top-level frame.
+  assert_activations(true, false, "A");
+  await B.execute(assert_activations, [true, true, "B"]);
+
+  // Reactivate this frame and check the user activation status.
+  await click(document.documentElement);
+  assert_activations(true, true, "A");
+  await B.execute(assert_activations, [true, true, "B"]);
+
+  // Open a window in the fenced frame to consume its transient activation.
+  await B.execute(() => {
+    window.open('about:blank');
+  });
+
+  // Check that B's transient user activation was consumed.
+  assert_activations(true, true, "A");
+  await B.execute(assert_activations, [true, false, "B"]);
+
+}, 'user-activation');
+</script>
+</body>

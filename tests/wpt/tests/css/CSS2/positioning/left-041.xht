@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Left using centimeters with a value of zero, 0cm</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-17 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-left" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+		<link rel="match" href="left-004-ref.xht" />
+
+        <meta name="assert" content="The 'left' property sets a zero length value in centimeters." />
+        <style type="text/css">
+            div
+            {
+                height: 1in;
+                position: relative;
+            }
+            #div1
+            {
+                border-left: 5px solid orange;
+            }
+            div div
+            {
+                border-left: 5px solid blue;
+                left: 0cm;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no space between</strong> the orange and blue lines.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

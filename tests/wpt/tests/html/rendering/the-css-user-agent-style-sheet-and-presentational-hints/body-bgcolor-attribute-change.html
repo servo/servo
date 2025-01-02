@@ -1,0 +1,10 @@
+<!doctype html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/obsolete.html#attr-body-bgcolor">
+<link rel="match" href="body-bgcolor-attribute-change-ref.html">
+<body bgcolor="yellow">
+  Passes if the background is green.
+</body>
+<script>
+  document.body.offsetTop;
+  document.body.setAttribute("bgcolor", "green");
+</script>

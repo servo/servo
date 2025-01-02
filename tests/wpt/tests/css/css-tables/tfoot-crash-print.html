@@ -1,0 +1,33 @@
+<!-- quirks -->
+<!--
+  This is just a crashtest, but there's no way to express that in wpt right
+  now, so we just ensure we don't render blank
+-->
+<link rel="mismatch" href="/common/blank.html">
+<link rel="help" href="https://drafts.csswg.org/css-tables/">
+<style>
+  big {
+    font-size-adjust: 66;
+    border-right-style: dotted;
+  }
+</style>
+<script>
+  window.addEventListener('load', () => {
+    const table = document.createElement('table')
+    table.tFoot = document.getElementById('tfoot_0')
+    const element_0 = document.createElement('div')
+    table.appendChild(element_0)
+    document.documentElement.appendChild(table)
+  })
+</script>
+</head>
+<table>
+  <tfoot id='tfoot_0'>
+  <tr>
+    <tr readonly>
+      <caption>
+        <big></big>
+      </caption>
+    </tr>
+  </tfoot>
+</table>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM Element Attachment</title>
+<link rel='author' href='mailto:masonf@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/1235'>
+<link rel='help' href='https://github.com/whatwg/html/pull/10069'>
+<link rel='help' href='https://github.com/whatwg/dom/pull/1246'>
+
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../../html/resources/common.js'></script>
+<script src="support/helpers.js"></script>
+
+<div id=multiple1>
+  <template shadowrootmode=open>Open</template>
+  <template shadowrootmode=closed>Closed</template>
+</div>
+
+<div id=multiple2>
+  <template shadowrootmode=closed>Closed</template>
+  <template shadowrootmode=open>Open</template>
+</div>
+
+<script>
+test((t) => {
+  t.add_cleanup(() => {
+    multiple1.remove();
+    multiple2.remove();
+  });
+  let shadow = multiple1.shadowRoot;
+  assert_true(!!shadow,'Remaining shadow root should be open');
+  assert_equals(shadow.textContent,"Open");
+  assert_equals(multiple1.childElementCount, 1);
+  assert_equals(multiple1.firstElementChild.shadowRootMode, "closed");
+  shadow = multiple2.shadowRoot;
+  assert_false(!!shadow,'Remaining shadow root should be closed');
+  assert_equals(multiple2.childElementCount, 1);
+  assert_equals(multiple2.firstElementChild.shadowRootMode, "open");
+},'Repeated declarative shadow roots keep only the first');
+</script>
+
+<div id=open1>
+  <template shadowrootmode=open>Open</template>
+</div>
+
+<script>
+test((t) => {
+  assert_throws_dom("NotSupportedError",() => {
+    open1.attachShadow({mode: "closed"});
+  },'Mismatched shadow root mode should throw');
+  const initialShadow = open1.shadowRoot;
+  const shadow = open1.attachShadow({mode: "open"}); // Shouldn't throw
+  assert_equals(shadow,initialShadow,'Same shadow should be returned');
+  assert_equals(shadow.textContent,'','Shadow should be empty');
+},'Calling attachShadow() on declarative shadow root must match mode');
+</script>
+
+<div id=open2>
+  <template shadowrootmode=open shadowrootdelegatesfocus shadowrootclonable shadowrootserializable>
+    Open, delegates focus (not the default), clonable (not the default)
+    serializable (not the default), named slot assignment (the default)
+  </template>
+</div>
+
+<script>
+test((t) => {
+  t.add_cleanup(() => open2.remove());
+  assert_true(!!open2.shadowRoot);
+  // Changing the mode should throw.
+  assert_throws_dom("NotSupportedError",() => {
+    open2.attachShadow({mode: "closed"});
+  },'Mismatched shadow root mode should throw');
+  assert_throws_dom("NotSupportedError",() => {
+    open2.attachShadow({mode: "closed", delegatesFocus: true, slotAssignment: "named", clonable: true, serializable: true});
+  },'Mismatched shadow root mode should throw (explicit args)');
+
+  // Changing other things should not throw, and should not change the shadow root's settings
+  const initialShadow = open2.shadowRoot;
+  assert_equals(initialShadow.delegatesFocus,true);
+  assert_equals(initialShadow.slotAssignment,"named");
+  assert_true(initialShadow.clonable);
+  assert_true(initialShadow.serializable);
+  let newShadow = open2.attachShadow({mode: "open", delegatesFocus: false, slotAssignment: "manual", clonable: false, serializable: false});
+  assert_equals(newShadow,initialShadow,'Same shadow should be returned');
+  assert_equals(newShadow.textContent,'','Shadow should be empty');
+  assert_equals(newShadow.delegatesFocus,true);
+  assert_equals(newShadow.slotAssignment,"named");
+  assert_true(newShadow.clonable);
+  assert_true(newShadow.serializable);
+  assert_throws_dom("NotSupportedError",() => {
+    open2.attachShadow({mode: "open"});
+  },'Invoking attachShadow() on a non-declarative shadow root should throw');
+},'Calling attachShadow() on declarative shadow root must match all parameters');
+</script>

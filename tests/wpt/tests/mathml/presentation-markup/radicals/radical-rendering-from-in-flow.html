@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>radicals rendering from in-flow children</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#radicals-msqrt-mroot">
+    <meta name="assert" content="Verify rendering of radicals is only affected by in-flow children.">
+    <style>
+      .oof1 {
+          position: absolute;
+      }
+      .oof2 {
+          position: fixed;
+      }
+      .nobox {
+          display: none;
+      }
+    </style>
+    <link rel="match" href="radical-rendering-from-in-flow-ref.html">
+  </head>
+  <body>
+    <math>
+      <msqrt>
+        <mspace width="32px" class="oof1"/>
+        <mspace width="16px" class="oof2"/>
+        <mspace width="8px" class="nobox"/>
+        <mspace width="64px" height="8px" style="background: lightblue"></mspace>
+        <mspace width="32px" class="oof1"/>
+        <mspace width="16px" class="oof2"/>
+        <mspace width="8px" class="nobox"/>
+      </msqrt>
+      <mroot>
+        <mspace width="32px" class="oof1"/>
+        <mspace width="16px" class="oof2"/>
+        <mspace width="8px" class="nobox"/>
+        <mspace width="64px" height="12px" style="background: lightblue"></mspace>
+        <mspace width="32px" class="oof1"/>
+        <mspace width="16px" class="oof2"/>
+        <mspace width="8px" class="nobox"/>
+        <mspace width="128px" height="24px" style="background: lightgreen"></mspace>
+        <mspace width="32px" class="oof1"/>
+        <mspace width="16px" class="oof2"/>
+        <mspace width="8px" class="nobox"/>
+      </mroot>
+    </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_msqrt");</script>
+  </body>
+</html>

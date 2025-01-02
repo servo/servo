@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Canvas paint order</title>
+<link rel="author" title="Philip Rogers" href="pdr@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+<link rel="match" href="canvas-paint-order-ref.html">
+<style>
+  #canvas {
+    background: red;
+    width: 95px;
+    height: 95px;
+  }
+  #negative-margin {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background: green;
+    margin-left: -100px;
+  }
+</style>
+<canvas id="canvas"></canvas>
+<!-- #negative-margin should paint fully on top of the canvas. -->
+<div id="negative-margin"></div>
+<script>
+  onload = function() {
+    var context = canvas.getContext("2d");
+    context.save();
+    context.fillStyle = "red";
+    context.fillRect(0, 0, 500, 500);
+    context.restore();
+  };
+</script>

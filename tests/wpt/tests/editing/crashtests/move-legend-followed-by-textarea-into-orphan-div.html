@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Testcase for bug 667321 of Mozilla</title>
+<script>
+function boom()
+{
+  document.body.style.float = "left";
+  document.createElement("div").appendChild(document.querySelector("legend"));
+}
+</script>
+</head>
+<body onload="boom();"><fieldset><legend></legend><textarea></textarea></fieldset></body>
+</html>

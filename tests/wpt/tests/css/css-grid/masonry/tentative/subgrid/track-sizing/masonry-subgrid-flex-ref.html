@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Verify correct sizing of flex tracks when using subgrid in CSS Masonry</title>
+  <link rel="author" title="Brandon Stewart" href="mailto:brandonstewart@apple.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+  <style>
+    grid {
+      display: inline-grid;
+      grid-template-columns: 1fr 2fr 3fr;
+      border: 1px solid;
+      background: lightgrey;
+    }
+
+    subgrid {
+      display: grid;
+      grid: subgrid / subgrid;
+      grid-column: 2 / span 2;
+      grid-row: 1 / span 2;
+      background: lightblue;
+    }
+  </style>
+</head>
+
+<body>
+<grid>
+  <item>1</item>
+  <subgrid>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </subgrid>
+  <item>5</item>
+</grid>
+
+<grid>
+  <item style="width: 2ch">1</item>
+  <subgrid>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </subgrid>
+  <item>5</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <subgrid>
+    <item style="width: 3ch">2</item>
+    <item>3</item>
+    <item>4</item>
+  </subgrid>
+  <item>5</item>
+</grid>
+
+<grid>
+  <item style="width: 4ch">1</item>
+  <subgrid>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </subgrid>
+  <item>5</item>
+</grid>
+
+<grid>
+  <item style="width: 3ch">1</item>
+  <subgrid>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+  </subgrid>
+  <item>5</item>
+</grid>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="helpers.js"></script>
+<!-- Put this page in a sandbox to give it an opaque origin -->
+
+<script>
+promise_test(async t => {
+  navigation.onnavigate = t.unreached_func("onnavigate should not be called");
+  navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");
+  navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+  const result = navigation.navigate("#1");
+  assertNeverSettles(t, result);
+  await new Promise(resolve => t.step_timeout(resolve, 10));
+}, "navigation.navigate() in an opaque origin iframe");
+</script>

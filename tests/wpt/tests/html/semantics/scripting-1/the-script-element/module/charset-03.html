@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Imported module scripts should always use UTF-8</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module" src="resources/import-utf8.js"></script>
+<script type="module">
+test(function() {
+  assert_equals(window.getSomeString(), "śćążź",
+                'Should be decoded as UTF-8');
+}, 'UTF-8 imported module script');
+</script>
+
+<script type="module" src="resources/import-utf8-with-charset-header.js"></script>
+<script type="module">
+test(function() {
+  assert_equals(window.getSomeString(), "śćążź",
+                'Should be decoded as UTF-8');
+}, 'UTF-8 imported module script with wrong charset in Content-Type');
+</script>
+
+<script type="module" src="resources/import-non-utf8.js"></script>
+<script type="module">
+test(function() {
+  assert_not_equals(window.getSomeString(), "śćążź",
+                    'Should be decoded as UTF-8');
+}, 'Non-UTF-8 imported module script');
+</script>
+
+<script type="module" src="resources/import-non-utf8-with-charset-header.js"></script>
+<script type="module">
+test(function() {
+  assert_not_equals(window.getSomeString(), "śćążź",
+                    'Should be decoded as UTF-8');
+}, 'Non-UTF-8 imported module script with charset in Content-Type');
+</script>

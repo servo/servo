@@ -1,0 +1,43 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: positioned movement update moves hidden container</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-078-ref.html">
+<meta name="assert" content="when locked, position updates still apply">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.hidden { content-visibility: hidden; }
+#target {
+  top: 50px;
+  left: 0;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: blue;
+}
+#t2 {
+  top: 150px;
+  left: 100px;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+</style>
+
+<p>Test passes if the blue and orange boxes are vertically aligned with each other.
+<div id=target class=hidden>FAIL</div>
+<div id=t2 class=hidden>FAIL</div>
+
+<script>
+function runTest() {
+  target.style = "left: 100px;";
+  takeScreenshot();
+}
+
+window.onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

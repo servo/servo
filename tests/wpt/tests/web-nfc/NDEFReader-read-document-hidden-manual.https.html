@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>NDEFReader.onreading respect page visibility changes</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/#visible-document">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
+<script>
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  const ndefWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
+  const promise = new Promise((resolve, reject) => {
+    ndefWatcher.wait_for("reading").then(event => {
+      if (document.hidden) reject();
+      else resolve();
+    });
+  });
+  await ndef.scan();
+  await promise;
+}, "Test NDEFReader.onreading is not fired when document is hidden");
+
+</script>
+
+<p>Step1: switch the page to the background, then tap a formatted NFC tag.</p>
+<p>Step2: switch back to the page, then tap the tag again.</p>

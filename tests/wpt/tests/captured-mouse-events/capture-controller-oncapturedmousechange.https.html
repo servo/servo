@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel='help' href='https://screen-share.github.io/captured-mouse-events/#capture-controller-extensions'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+      const controller = new CaptureController();
+      assert_equals(controller.oncapturedmousechange, null);
+  }, "oncapturedmousechange is initially unset");
+
+  test(() => {
+      const controller = new CaptureController();
+      let result = undefined;
+      controller.oncapturedmousechange = (e) => {
+          result = {
+              target: e.currentTarget,
+              surfaceX: e.surfaceX,
+              surfaceY: e.surfaceY,
+          };
+      };
+      const init = {surfaceX: 5, surfaceY: 7};
+      controller.dispatchEvent(
+          new CapturedMouseEvent("capturedmousechange", init)
+      );
+      assert_equals(result.target, controller);
+      assert_equals(result.surfaceX, init.surfaceX);
+      assert_equals(result.surfaceY, init.surfaceY);
+  }, "dispatching a CapturedMouseEvent on CaptureController should trigger oncapturedmousechange");
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<title>legend display: none</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ legend { display: none; }
+</style>
+<fieldset>
+ <legend>Foo</legend>
+</fieldset>
+<script>
+ test(() => {
+   const display = getComputedStyle(document.querySelector('legend')).display;
+   assert_equals(display, 'none');
+ });
+</script>

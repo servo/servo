@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Same-origin PDFs must not create accessible Document objects</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- https://github.com/whatwg/html/pull/6947 -->
+
+<iframe src="resources/portable-document-format-sample-valid.pdf"></iframe>
+
+<script>
+setup({ explicit_done: true });
+
+window.onload = () => {
+  test(() => {
+    assert_throws_dom("SecurityError", () => {
+      document.querySelector("iframe").contentWindow.document;
+    });
+  });
+  done();
+};
+</script>

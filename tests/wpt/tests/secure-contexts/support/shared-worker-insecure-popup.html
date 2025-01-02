@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script src="../server-locations.sub.js"></script>
+<body>
+  <script>
+    var url = self[location.search.substr(1)] + "support/https-subframe-shared.html";
+    onmessage = function(e) {
+      var data = e.data;
+      data.fromPopup = true;
+      opener.postMessage(data, "*");
+    }
+    var ifr = document.createElement("iframe");
+    ifr.src = url;
+    document.body.appendChild(ifr);
+  </script>
+</body>

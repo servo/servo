@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.effect</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const anim = new Animation();
+  assert_equals(anim.effect, null, 'initial effect is null');
+
+  const newEffect = new KeyframeEffect(createDiv(t), null);
+  anim.effect = newEffect;
+  assert_equals(anim.effect, newEffect, 'new effect is set');
+}, 'effect is set correctly.');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({ left: ['100px', '100px'] },
+                                { fill: 'forwards' });
+  const effect = animation.effect;
+
+  assert_equals(getComputedStyle(div).left, '100px',
+                'animation is initially having an effect');
+
+  animation.effect = null;
+  assert_equals(getComputedStyle(div).left, 'auto',
+                'animation no longer has an effect');
+
+  animation.effect = effect;
+  assert_equals(getComputedStyle(div).left, '100px',
+                'animation has an effect again');
+}, 'Clearing and setting Animation.effect should update the computed style'
+   + ' of the target element');
+
+</script>
+</body>

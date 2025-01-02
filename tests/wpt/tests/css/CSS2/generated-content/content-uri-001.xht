@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content property with missing image</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="When the URI resource cannot be displayed the user agent needs to leave it out or display some indication that the resource cannot be displayed." />
+        <style type="text/css">
+            div:before
+            {
+                content: url('missingImage.png');
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is nothing displayed below or there is a missing image icon displayed.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<title>Tests for step_wait</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+promise_test(async t => {
+  let x = 1;
+  Promise.resolve().then(() => ++x);
+  await t.step_wait(() => x === 1);
+  assert_equals(x, 2);
+}, "Basic step_wait() test");
+
+promise_test(async t => {
+  let cond = false;
+  let x = 0;
+  setTimeout(() => cond = true, 100);
+  await t.step_wait(() => {
+    ++x;
+    return cond;
+  });
+  assert_equals(x, 2);
+}, "step_wait() isn't invoked too often");
+
+promise_test(async t => {
+  await t.step_wait(); // Throws
+}, "step_wait() takes an argument");
+
+promise_test(async t => {
+  function wait(ms) {
+    return new Promise(resolve => step_timeout(resolve, ms));
+  }
+  let x = 1;
+  step_timeout(() => {
+    ++x;
+  }, 100);
+
+  await t.step_wait(async () => {
+    await wait(1);
+    return x === 2;
+  });
+  assert_equals(x, 2);
+}, "async step_wait()");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_tests": [
+    {
+      "name": "Basic step_wait() test",
+      "message": null,
+      "properties": {},
+      "status_string": "PASS"
+    },
+    {
+      "name": "step_wait() isn't invoked too often",
+      "message": null,
+      "properties": {},
+      "status_string": "PASS"
+    },
+    {
+      "name": "step_wait() takes an argument",
+      "message": "cond is not a function",
+      "properties": {},
+      "status_string": "FAIL"
+    },
+    {
+      "name": "async step_wait()",
+      "message": null,
+      "properties": {},
+      "status_string": "PASS"
+    }
+  ],
+  "type": "complete",
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  }
+}
+</script>

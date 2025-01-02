@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<form target="the-window">
+  <input type="hidden" name="pushed">
+</form>
+
+<script>
+"use strict";
+promise_test(async t => {
+  const form = document.querySelector("form");
+  const wEndingURL = changeURLHost(
+    absoluteURL("resources/slow-message-source-with-history-and-location.html?pushed="),
+    "{{hosts[][www]}}"
+  );
+  form.action = wEndingURL;
+
+  const wStartingCode = `
+    opener.postMessage({ historyLength: history.length, locationHref: location.href }, "*");
+  `;
+
+  const wStartingURL = codeInjectorURL(wStartingCode);
+  const w = window.open(wStartingURL, "the-window");
+  t.add_cleanup(() => w.close());
+
+  const wBeforeLoadedMessage = await waitForMessage();
+  assert_equals(wBeforeLoadedMessage.historyLength, 1, "window's starting history.length");
+  assert_equals(wBeforeLoadedMessage.locationHref, wStartingURL, "window's starting location.href");
+
+  form.submit();
+
+  const wAfterFormSubmitMessage = await waitForMessage();
+  assert_equals(wAfterFormSubmitMessage.historyLength, 2, "window's after-submit history.length");
+  assert_equals(wAfterFormSubmitMessage.locationHref, wEndingURL, "window's after-submit location.href");
+}, "No replace before load, triggered by formElement.submit() in the opener window, after the opener has loaded [window is cross-origin]");
+</script>

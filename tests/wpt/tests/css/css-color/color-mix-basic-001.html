@@ -1,0 +1,47 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1695376">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="color-mix-basic-001-ref.html">
+<style>
+div { color: black; }
+.test { background-color: red; width: 14em; height: 1em; margin-top: 0; margin-bottom: 0; }
+</style>
+<body>
+<script>
+const TEST_CASES = [
+  ["blue", "red"],
+  ["blue", "green"],
+  ["rgb(255, 0, 0, .2)", "red"],
+  ["blue", "red", 0.9],
+  ["blue", "red", 0],
+  ["currentColor", "white"],
+  ["currentColor", "rgba(0, 0, 0, .5)"],
+];
+
+for (let [from, to, animationProgress] of TEST_CASES) {
+  const animationProgressExplicit = animationProgress !== undefined;
+  animationProgress = animationProgressExplicit ? animationProgress : 0.5;
+
+  let progress = ` ${animationProgress * 100}%`;
+  let oneMinusProgress = ` ${(1 - animationProgress) * 100}%`;
+  let values = [
+    `color-mix(in srgb, ${from}, ${to} ${progress})`,
+    `color-mix(in srgb, ${from} ${oneMinusProgress}, ${to})`,
+    `color-mix(in srgb, ${from} ${oneMinusProgress}, ${to} ${progress})`,
+  ];
+
+  if (animationProgress == 0.5) {
+    values.push(`color-mix(in srgb, ${from}, ${to})`);
+  }
+
+  for (let value of values) {
+    const element = document.createElement("div")
+    element.classList.add('test')
+    element.style.backgroundColor = value;
+    document.body.appendChild(element)
+  }
+}
+</script>
+</body>

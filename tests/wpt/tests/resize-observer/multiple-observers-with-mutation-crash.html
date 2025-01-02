@@ -1,0 +1,49 @@
+<!doctype html>
+<html class="test-wait">
+<!--
+  This test is for crbug.com/1368458 which is a crash where we expected
+  up-to-date style&layout when delivering resize observations. We would crash
+  if a resize observer in one frame caused a modification in the presence of a
+  resize observer in another frame.
+-->
+<iframe id="iframe" style="border: none;" srcdoc="
+  <!doctype html>
+  <style>body { margin: 0; }</style>
+  <div id='inner_element'>hello</div>
+  <script>
+    const resizeObserver = new ResizeObserver((entries) => {
+      const size = entries[0].borderBoxSize[0].inlineSize;
+      const event = new CustomEvent('onIframeResizeObserved', {detail: size});
+      parent.document.dispatchEvent(event);
+    });
+    resizeObserver.observe(inner_element);
+  </script>
+"></iframe>
+<div id="outer_element" style="width: 200px;">world</div>
+
+<script>
+  const onInnerElementInitialResize = (event) => {
+    // `inner_element` should result in an initial observation of width 300px.
+    window.document.removeEventListener(
+        'onIframeResizeObserved', onInnerElementInitialResize, false);
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      // `outer_element` should result in an initial observation of width 200px.
+
+      // Modify styles so that inner_element is resized.
+      iframe.contentDocument.body.style.width = "200px";
+    });
+    resizeObserver.observe(outer_element);
+
+    const onInnerElementSecondResize = (event) => {
+      // `inner_element` should result in a second observation of width 100px.
+
+      // Finish the test.
+      document.documentElement.classList.remove('test-wait');
+    };
+    window.document.addEventListener(
+        'onIframeResizeObserved', onInnerElementSecondResize, false);
+  };
+  window.document.addEventListener(
+      'onIframeResizeObserved', onInnerElementInitialResize, false);
+</script>

@@ -1,0 +1,89 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Background Fetch (https://wicg.github.io/background-fetch/)
+
+partial interface ServiceWorkerGlobalScope {
+  attribute EventHandler onbackgroundfetchsuccess;
+  attribute EventHandler onbackgroundfetchfail;
+  attribute EventHandler onbackgroundfetchabort;
+  attribute EventHandler onbackgroundfetchclick;
+};
+
+partial interface ServiceWorkerRegistration {
+  readonly attribute BackgroundFetchManager backgroundFetch;
+};
+
+[Exposed=(Window,Worker)]
+interface BackgroundFetchManager {
+  Promise<BackgroundFetchRegistration> fetch(DOMString id, (RequestInfo or sequence<RequestInfo>) requests, optional BackgroundFetchOptions options = {});
+  Promise<BackgroundFetchRegistration?> get(DOMString id);
+  Promise<sequence<DOMString>> getIds();
+};
+
+dictionary BackgroundFetchUIOptions {
+  sequence<ImageResource> icons;
+  DOMString title;
+};
+
+dictionary BackgroundFetchOptions : BackgroundFetchUIOptions {
+  unsigned long long downloadTotal = 0;
+};
+
+[Exposed=(Window,Worker)]
+interface BackgroundFetchRegistration : EventTarget {
+  readonly attribute DOMString id;
+  readonly attribute unsigned long long uploadTotal;
+  readonly attribute unsigned long long uploaded;
+  readonly attribute unsigned long long downloadTotal;
+  readonly attribute unsigned long long downloaded;
+  readonly attribute BackgroundFetchResult result;
+  readonly attribute BackgroundFetchFailureReason failureReason;
+  readonly attribute boolean recordsAvailable;
+
+  attribute EventHandler onprogress;
+
+  Promise<boolean> abort();
+  Promise<BackgroundFetchRecord> match(RequestInfo request, optional CacheQueryOptions options = {});
+  Promise<sequence<BackgroundFetchRecord>> matchAll(optional RequestInfo request, optional CacheQueryOptions options = {});
+};
+
+enum BackgroundFetchResult { "", "success", "failure" };
+
+enum BackgroundFetchFailureReason {
+  // The background fetch has not completed yet, or was successful.
+  "",
+  // The operation was aborted by the user, or abort() was called.
+  "aborted",
+  // A response had a not-ok-status.
+  "bad-status",
+  // A fetch failed for other reasons, e.g. CORS, MIX, an invalid partial response,
+  // or a general network failure for a fetch that cannot be retried.
+  "fetch-error",
+  // Storage quota was reached during the operation.
+  "quota-exceeded",
+  // The provided downloadTotal was exceeded.
+  "download-total-exceeded"
+};
+
+[Exposed=(Window,Worker)]
+interface BackgroundFetchRecord {
+  readonly attribute Request request;
+  readonly attribute Promise<Response> responseReady;
+};
+
+[Exposed=ServiceWorker]
+interface BackgroundFetchEvent : ExtendableEvent {
+  constructor(DOMString type, BackgroundFetchEventInit init);
+  readonly attribute BackgroundFetchRegistration registration;
+};
+
+dictionary BackgroundFetchEventInit : ExtendableEventInit {
+  required BackgroundFetchRegistration registration;
+};
+
+[Exposed=ServiceWorker]
+interface BackgroundFetchUpdateUIEvent : BackgroundFetchEvent {
+  constructor(DOMString type, BackgroundFetchEventInit init);
+  Promise<undefined> updateUI(optional BackgroundFetchUIOptions options = {});
+};

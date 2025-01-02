@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Node.prototype.getElementsByClassName with no real class names</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<span class=" ">test</span>
+
+<script>
+"use strict";
+
+test(() => {
+  const elements = document.getElementsByClassName("");
+  assert_array_equals(elements, []);
+}, "Passing an empty string to getElementsByClassName should return an empty HTMLCollection");
+
+test(() => {
+  const elements = document.getElementsByClassName(" ");
+  assert_array_equals(elements, []);
+}, "Passing a space to getElementsByClassName should return an empty HTMLCollection");
+
+test(() => {
+  const elements = document.getElementsByClassName("   ");
+  assert_array_equals(elements, []);
+}, "Passing three spaces to getElementsByClassName should return an empty HTMLCollection");
+
+</script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that clipping is preserved properly for nested `position: absolute` elements. -->
+<link rel=match href=absolute_clipping_of_own_contents_ref.html>
+<style>
+body, html {
+    margin: 0;
+    height: 100%;
+}
+#map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 256px;
+    background: lightblue;
+    overflow: hidden;
+}
+#outer {
+    position: absolute;
+    left: -128px;
+    top: -128px;
+}
+#inner {
+    position: absolute;
+    background: navy;
+    width: 256px;
+    height: 256px;
+    left: 128px;
+    top: 0;
+}
+</style>
+</head>
+
+<body>
+    <div id=map>
+        <div id=outer>
+            <div id=inner></div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<title>Box Shadow Border Radius (Outset)</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<!-- This test is complicated, so leaving the reference code identical to the test, minus colors. Please keep them in sync. -->
+
+<style>
+  body > div {
+    /* Isolate tests from each other */
+    position: relative;
+    width: 100px;
+    height: 100px;
+    float: left;
+  }
+  div > div {
+    position: absolute;
+    box-sizing: border-box;
+    /* opacity: 0.7; /* uncomment this line for debugging */
+  }
+
+  .floor > .test {
+    color: silver;
+  }
+  .trap > .test {
+    color: transparent;
+  }
+
+  .floor > .ref {
+    border: solid transparent;
+    width: 58px;
+    height: 58px;
+    top: 21px;
+    left: 21px;
+  }
+  .trap > .ref {
+    border: solid silver;
+    width: 62px;
+    height: 62px;
+    top: 19px;
+    left: 19px;
+  }
+
+  /* Keep tests centered by (top|left)*2 + (width|height) = 100.
+     Keep tests consistent spread + (width|height) = 60
+     Floor = spread - 2px
+     Trap = spread + 2px */
+
+  .once > .test {
+    border-radius: 10px;
+    box-shadow: 0 0 0 10px;
+    /* shadow radius = 20px */
+    top: 30px; left: 30px;
+    width: 40px; height: 40px;
+  }
+  .once > .ref {
+    border-radius: 20px;
+  }
+  .once.floor > .ref {
+    border-width: 8px;
+  }
+  .once.trap > .ref {
+    border-width: 12px;
+  }
+
+  .twice > .test {
+    border-radius: 10px;
+    box-shadow: 0 0 0 5px;
+    /* shadow radius = 15px */
+    top: 25px; left: 25px;
+    width: 50px; height: 50px;
+  }
+  .twice > .ref {
+    border-radius: 15px;
+  }
+  .twice.floor > .ref {
+    border-width: 3px;
+  }
+  .twice.trap > .ref {
+    border-width: 7px;
+  }
+
+  .half > .test {
+    border-radius: 8px;
+    box-shadow: 0 0 0 16px;
+    /* shadow radius = 21px */
+    top: 36px; left: 36px;
+    width: 28px; height: 28px;
+  }
+  .half > .ref {
+    border-radius: 21px;
+  }
+  .half.floor > .ref {
+    border-width: 14px;
+  }
+  .half.trap > .ref {
+    border-width: 20px;
+  }
+
+  .fourth > .test {
+    border-radius: 5px;
+    box-shadow: 0 0 0 20px;
+    /* shadow radius = 14.45px */
+    top: 40px; left: 40px;
+    width: 20px; height: 20px;
+  }
+  .fourth > .ref {
+    border-radius: 15px;
+  }
+  .fourth.floor > .ref {
+    border-width: 18px;
+  }
+  .fourth.trap > .ref {
+    border-width: 23px;
+  }
+
+  .eighth > .test {
+    border-radius: 2px;
+    box-shadow: 0 0 0 16px;
+    /* shadow radius = 5.28 */
+    top: 36px; left: 36px;
+    width: 28px; height: 28px;
+  }
+  .eighth > .ref {
+    border-radius: 5.28px;
+  }
+  .eighth.floor > .ref {
+    border-width: 14px;
+  }
+  .eighth.trap > .ref {
+    border-width: 18px;
+  }
+
+
+</style>
+
+<p>Test passes if there is no red.
+
+<div class="once floor">
+  <div class="ref"></div>
+  <div class="test"></div>
+</div>
+<div class="once trap">
+  <div class="test"></div>
+  <div class="ref"></div>
+</div>
+
+<div class="twice floor">
+  <div class="ref"></div>
+  <div class="test"></div>
+</div>
+<div class="twice trap">
+  <div class="test"></div>
+  <div class="ref"></div>
+</div>
+
+<div class="half floor">
+  <div class="ref"></div>
+  <div class="test"></div>
+</div>
+<div class="half trap">
+  <div class="test"></div>
+  <div class="ref"></div>
+</div>
+
+<div class="fourth floor">
+  <div class="ref"></div>
+  <div class="test"></div>
+</div>
+<div class="fourth trap">
+  <div class="test"></div>
+  <div class="ref"></div>
+</div>
+
+<div class="eighth floor">
+  <div class="ref"></div>
+  <div class="test"></div>
+</div>
+<div class="eighth trap">
+  <div class="test"></div>
+  <div class="ref"></div>
+</div>

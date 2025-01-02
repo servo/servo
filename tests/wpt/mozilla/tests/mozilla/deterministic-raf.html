@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(function (t) {
+        var i = 0;
+        var log = [];
+        var loopB_ended = false;
+
+        var loopA = function () {
+            log.push("A");
+            if (i++ < 5) {
+                requestAnimationFrame(loopA);
+            } else {
+                assert_true(loopB_ended);
+                t.step(function () {
+                    assert_array_equals(log,
+                                        ["A", "B", "A", "B", "A", "B", "A", "B", "A", "B", "A"]);
+                });
+                t.done();
+            }
+        };
+
+        var loopB = function () {
+            log.push("B");
+            if (i < 5) {
+                requestAnimationFrame(loopB);
+            } else {
+                assert_false(loopB_ended);
+                loopB_ended = true;
+                t.step(function () {
+                    assert_array_equals(log,
+                                        ["A", "B", "A", "B", "A", "B", "A", "B", "A", "B"]);
+                });
+            }
+        };
+
+        loopA();
+        loopB();
+    }, "Concurrent requestAnimationFrame loops are deterministic");
+</script>

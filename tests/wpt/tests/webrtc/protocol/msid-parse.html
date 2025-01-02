@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerconnection MSID parsing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+const preamble = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+a=ice-ufrag:6HHHdzzeIhkE0CKj
+a=ice-pwd:XYDGVpfvklQIEnZ6YnyLsAew
+m=video 1 RTP/SAVPF 100
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:video
+a=rtpmap:100 VP8/30
+a=setup:actpass
+`;
+
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const ontrackPromise = addEventListenerPromise(t, pc, 'track');
+  await pc.setRemoteDescription({type: 'offer', sdp: preamble});
+  const trackevent = await ontrackPromise;
+  assert_equals(pc.getReceivers().length, 1);
+  assert_equals(trackevent.streams.length, 1, 'Stream count');
+}, 'Description with no msid produces a track with a stream');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const ontrackPromise = addEventListenerPromise(t, pc, 'track');
+  await pc.setRemoteDescription({type: 'offer',
+                                 sdp: preamble + 'a=msid:- foobar\n'});
+  const trackevent = await ontrackPromise;
+  assert_equals(pc.getReceivers().length, 1);
+  assert_equals(trackevent.streams.length, 0);
+}, 'Description with msid:- appid produces a track with no stream');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const ontrackPromise = addEventListenerPromise(t, pc, 'track');
+  await pc.setRemoteDescription({type: 'offer',
+                                 sdp: preamble + 'a=msid:foo bar\n'});
+  const trackevent = await ontrackPromise;
+  assert_equals(pc.getReceivers().length, 1);
+  assert_equals(trackevent.streams.length, 1);
+  assert_equals(trackevent.streams[0].id, 'foo');
+}, 'Description with msid:foo bar produces a stream with id foo');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const ontrackPromise = addEventListenerPromise(t, pc, 'track');
+  await pc.setRemoteDescription({type: 'offer',
+                                 sdp: preamble + 'a=msid:foo bar\n'
+                                               + 'a=msid:baz bar\n'});
+  const trackevent = await ontrackPromise;
+  assert_equals(pc.getReceivers().length, 1);
+  assert_equals(trackevent.streams.length, 2);
+}, 'Description with two msid produces two streams');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const ontrackPromise = addEventListenerPromise(t, pc, 'track');
+  await pc.setRemoteDescription({type: 'offer',
+                                 sdp: preamble + 'a=msid:foo\n'});
+  const trackevent = await ontrackPromise;
+  assert_equals(pc.getReceivers().length, 1);
+  assert_equals(trackevent.streams.length, 1);
+  assert_equals(trackevent.streams[0].id, 'foo');
+}, 'Description with msid foo but no track id is accepted');
+
+</script>

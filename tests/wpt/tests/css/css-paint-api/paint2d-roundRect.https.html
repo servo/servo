@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="paint2d-roundRect-ref.html">
+<meta name="fuzzy" content="maxDifference=0-128;totalPixels=0-200">
+<style>
+    #output {
+        width: 100px;
+        height: 100px;
+        background-image: paint(rects);
+        background-color: blue;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('rects', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.roundRect(10, 10, 80, 80, [20, 40, 10]);
+        ctx.fill();
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

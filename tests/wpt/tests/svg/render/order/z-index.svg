@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/render.html#ZIndexProperty"/>
+    <h:link rel="match" href="z-index-ref.svg"/>
+    <h:meta name="assert" content="The z-index property allows an element to be assigned to a stack level."/>
+  </metadata>
+
+  <rect x="74" y="35" width="70" height="70" fill="red" style="z-index: 1;" />
+  <rect x="130" y="50" width="70" height="70" fill="green" />
+  <rect x="100" y="80" width="70" height="70" fill="blue" />
+
+</svg>

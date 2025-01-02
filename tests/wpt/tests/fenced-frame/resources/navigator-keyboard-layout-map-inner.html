@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of navigator.keyboard.getLayoutMap</title>
+
+<body>
+<script>
+async function init() { // Needed in order to use top-level await.
+  // This file is meant to be navigated to from a <fencedframe> element. It
+  // reports back to the page hosting the <fencedframe> whether or not
+  // `keyboard.getLayoutMap` is allowed.
+  const keyboard_layout_key = parseKeylist();
+  // Report whether or not `navigator.keyboard.getLayoutMap()` is allowed.
+  navigator.keyboard.getLayoutMap().then(
+    () => { writeValueToServer(keyboard_layout_key, "resolved"); },
+    () => { writeValueToServer(keyboard_layout_key, "rejected");},
+  );
+}
+
+init();
+</script>
+</body>

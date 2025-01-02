@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.fxtf.org/geometry-1/#DOMMatrix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/dommatrix-test-util.js"></script>
+<p>Test DOMMatrix.inverse()/invertSelf() for invertible matrices</p>
+<script>
+test(function() {
+  var m = new DOMMatrix();
+  assert_true(m.isIdentity);
+  var m1 = m.inverse();
+  assert_true(m1.isIdentity);
+  // Use checkMatrix() instead of checkDOMMatrix() because checkMatrix() has
+  // a default epsilon = Number.MIN_VALUE which can at least pass
+  // assert_approx_equal(0, -0, epsilon).
+  checkMatrix(m, m1);
+  m.invertSelf();
+  checkMatrix(m, m1);
+}, "identity");
+
+test(function() {
+  var m = new DOMMatrix().translate(10, -20.5);
+  var m1 = m.inverse();
+  checkMatrix(m1, new DOMMatrix().translate(-10, 20.5));
+  // Check with 'new DOMMatrix()' instead of identity() because the latter is
+  // a 3d identity matrix.
+  checkMatrix(m1.multiply(m), new DOMMatrix());
+  m.invertSelf();
+  checkMatrix(m, m1);
+}, "translate");
+
+test(function() {
+  var m = new DOMMatrix().translate(10, -20.5, 30.5);
+  var m1 = m.inverse();
+  checkMatrix(m1, new DOMMatrix().translate(-10, 20.5, -30.5));
+  checkMatrix(m1.multiply(m), identity());
+  m.invertSelf();
+  checkMatrix(m, m1);
+}, "translate3d");
+
+test(function() {
+  var m = new DOMMatrix().scale(4, -0.5);
+  var m1 = m.inverse();
+  checkMatrix(m1, new DOMMatrix().scale(0.25, -2.0));
+  checkMatrix(m1.multiply(m), new DOMMatrix());
+  m.invertSelf();
+  checkMatrix(m, m1);
+}, "scale");
+
+test(function() {
+  var m = new DOMMatrix().scale(4, -0.5, 2);
+  var m1 = m.inverse();
+  checkMatrix(m1, new DOMMatrix().scale(0.25, -2.0, 0.5));
+  checkMatrix(m1.multiply(m), identity());
+  m.invertSelf();
+  checkMatrix(m, m1);
+}, "scale3d");
+
+test(function() {
+  var m = new DOMMatrix().rotateAxisAngle(0, 0, 1, -30)
+                         .scale(10, -0.5, 2.5)
+                         .rotateAxisAngle(0, 1, 0, 10)
+                         .translate(10, -20.5, 30.5)
+                         .rotateAxisAngle(1, 0, 0, 20);
+  var expected = new DOMMatrix().rotateAxisAngle(1, 0, 0, -20)
+                                .translate(-10, 20.5, -30.5)
+                                .rotateAxisAngle(0, 1, 0, -10)
+                                .scale(0.1, -2.0, 0.4)
+                                .rotateAxisAngle(0, 0, 1, 30);
+  var m1 = m.inverse();
+  var epsilon = 1e-6;
+  checkMatrix(m1, expected, {epsilon});
+  m.invertSelf();
+  checkMatrix(m, expected, {epsilon});
+}, "complex");
+</script>

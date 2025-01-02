@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+<script src ="routines.js"></script>
+</head>
+<body>
+<video id="video" autoplay controls playsinline></video>
+<script>
+
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["camera"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({video: true});
+
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = stream;
+    const playingPromise = new Promise(r => video.onplaying = r);
+    await video.play();
+
+    const updatePromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await updatePromise, "got expected");
+
+    await playingPromise;
+    assert_equals(video.videoTracks.length, 1);
+    assert_equals(video.audioTracks.length, 0);
+
+}, "Receiver and sender read, modifiy and write video frames.");
+
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["microphone"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = stream;
+    const playingPromise = new Promise(r => video.onplaying = r);
+    await video.play();
+
+    const updatePromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await updatePromise, "got expected");
+
+    await playingPromise;
+    assert_equals(video.videoTracks.length, 0);
+    assert_equals(video.audioTracks.length, 1);
+
+}, "Receiver and sender read, modifiy and write audio frames.");
+
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-no-write-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["camera"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({video: true});
+
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = stream;
+
+    // As the receiver doesn't get any frames, it won't post a success
+    // message back and it will cause an expected timeout.
+    return new Promise((resolve, reject) => {
+        worker.onmessage = (event) => {reject()};
+        test.step_timeout(resolve, 500);
+    });
+
+}, "Sender reads frames but doesn't write them back. Receiver doesn't receive any frames.");
+
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-drop-frames-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["camera"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({video: true});
+
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = stream;
+
+    const updatePromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await updatePromise, "got expected");
+
+}, "Sender skips some frames and only writes one back. Receiver only receives that frame.");
+
+        </script>
+    </body>
+</html>

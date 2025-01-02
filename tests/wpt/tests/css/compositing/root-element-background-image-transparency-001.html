@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Opacity on Root Element With background image</title>
+    <link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+    <link rel="help" href="https://drafts.fxtf.org/compositing/#pagebackdrop">
+    <meta name="assert" content="The background image should have opacity applied to
+    it as part of the Root Element Group">
+    <link rel="match" href="root-element-background-image-transparency-001-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-9600" />
+    <style>
+      html {
+        background: url(support/transform-triangle-left.svg);
+        opacity: 0.5;
+      }
+      body {
+        /* The default 8px margin makes the background not line up exactly */
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

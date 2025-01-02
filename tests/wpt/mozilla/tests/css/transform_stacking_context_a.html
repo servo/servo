@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='transform_stacking_context_ref.html'>
+<!-- Tests that `transform` causes a new stacking context to be formed. -->
+<style>
+body {
+    margin: 0;
+}
+
+section {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+}
+
+#a {
+    background: red;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+#b {
+    background: #00ff00;
+    top: 25px;
+    left: 25px;
+    z-index: 2;
+}
+
+#c {
+    background: blue;
+    top: 50px;
+    left: 50px;
+    z-index: 3;
+}
+
+#container {
+    transform: matrix(1, 0, 0, 1, 0, 0);
+    width: 200px;
+    height: 200px;
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=c></section>
+<div id=container>
+    <section id=b></section>
+</div>
+</body>
+</html>
+
+
+

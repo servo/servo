@@ -1,0 +1,47 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Client to Authenticator Protocol (CTAP) (https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-errata-20220621.html)
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  USVString credentialProtectionPolicy;
+  boolean enforceCredentialProtectionPolicy = false;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  ArrayBuffer credBlob;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  boolean getCredBlob;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  boolean minPinLength;
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  boolean hmacCreateSecret;
+};
+
+dictionary HMACGetSecretInput {
+  required ArrayBuffer salt1;   // 32-byte random data
+  ArrayBuffer salt2;  // Optional additional 32-byte random data
+};
+
+partial dictionary AuthenticationExtensionsClientInputs {
+  HMACGetSecretInput hmacGetSecret;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  boolean hmacCreateSecret;
+};
+
+dictionary HMACGetSecretOutput {
+  required ArrayBuffer output1;
+  ArrayBuffer output2;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+  HMACGetSecretOutput hmacGetSecret;
+};

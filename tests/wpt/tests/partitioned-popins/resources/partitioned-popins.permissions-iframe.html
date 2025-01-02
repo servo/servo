@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+(async function() {
+  test_driver.set_test_context(window.top);
+
+  // Step 3 (partitioned-popins/partitioned-popins.permission-{}.tentative.sub.https.window.js)
+  let message = "Success";
+  try {
+    window.open("/partitioned-popins/resources/partitioned-popins.permissions-popin.html", '_blank', 'popin');
+  } catch (_) {
+    message = "Failure";
+  }
+
+  // Step 5 (partitioned-popins/partitioned-popins.permission-{}.tentative.sub.https.window.js)
+  window.top.postMessage({type: "popin", message: message}, "*");
+})();
+</script>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: popover shows under c-v auto</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="spacer-with-popover-top-layer-ref.html">
+<meta name="assert" content="top layer popovers render under c-v auto">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.box { width: 100px; height: 100px; border: 1px solid black; }
+.auto { content-visibility: auto }
+.spacer { width: 10px; height: 3000px; background: lightblue; }
+</style>
+
+<div class=spacer></div>
+<div id=container class="box auto">
+content
+<div popover id=popover>PASS<div id=inner></div></div>
+</div>
+
+<script>
+function runTest() {
+  popover.showPopover();
+  takeScreenshot();
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

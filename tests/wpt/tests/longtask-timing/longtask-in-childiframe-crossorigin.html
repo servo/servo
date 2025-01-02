@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: long task in nested child iframe</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src='resources/utils.js'></script>
+
+<h1>Long Task in Nested Cross-Origin Child Iframe</h1>
+<div id="log"></div>
+<script>
+  const child_url = new URL("resources/subframe-with-longtask.html",
+                            new URL(location.pathname,
+                                    get_host_info().HTTPS_REMOTE_ORIGIN)).href;
+
+  async_test(function (t) {
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    const observer = new PerformanceObserver(
+        t.step_func(function (entryList) {
+            const entries = entryList.getEntries();
+            assert_equals(entries.length, 1,
+                'Exactly one entry is expected.');
+            const longtask = entries[0];
+            assert_equals(longtask.entryType, 'longtask');
+            if (longtask.name == 'self' ||
+                longtask.name == 'multiple-contexts' ||
+                longtask.name == 'unknown')
+              return;
+            checkLongTaskEntry(longtask, 'cross-origin-descendant');
+            // Assert the TaskAttributionTiming entry in attribution.
+            assert_equals(longtask.attribution.length, 1,
+                'Exactly one attribution entry is expected');
+            const attribution = longtask.attribution[0];
+            assert_equals(attribution.entryType, 'taskattribution');
+            assert_equals(attribution.name, 'unknown');
+            assert_equals(attribution.duration, 0);
+            assert_equals(attribution.startTime, 0);
+            assert_equals(attribution.containerType, 'iframe');
+            assert_equals(attribution.containerId, 'child-iframe-id');
+            assert_equals(attribution.containerName, 'child-iframe-name');
+            assert_equals(attribution.containerSrc, child_url);
+            observer.disconnect();
+            t.done();
+        })
+    );
+    observer.observe({entryTypes: ['longtask']});
+    window.onload = () => {
+        const iframe = document.createElement('iframe');
+        iframe.id = 'child-iframe-id';
+        iframe.name = 'child-iframe-name';
+        document.body.appendChild(iframe);
+        iframe.src = child_url;
+    };
+}, 'Performance longtask entries in cross-origin child iframe are observable in parent.');
+</script>
+
+</body>

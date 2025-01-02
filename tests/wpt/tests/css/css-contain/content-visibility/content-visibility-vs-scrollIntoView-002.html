@@ -1,0 +1,63 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: auto + overflow clip + scrollIntoView</title>
+<link rel="author" title="Cathie Chen" href="mailto:cathiechen@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-vs-scrollIntoView-002-ref.html">
+<meta name="assert"
+    content="content-visibility: auto element not relevent to user should be hidden even after calling scrollIntoView of its descendant">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+    .auto {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 1px auto 10000px;
+    }
+
+    .child {
+        height: 40000px;
+        position: relative;
+    }
+
+    #target {
+        position: absolute;
+        bottom: 0;
+    }
+
+    .before_target {
+        height: 40000px;
+    }
+
+    #overflow_clip {
+        overflow: clip;
+        height: 20000px;
+    }
+</style>
+
+<div id=e1 class="auto before_target"></div>
+<div id=e2 class="auto before_target"></div>
+<div id=e3 class="auto">
+    <div id="overflow_clip">
+        <div class=child>
+            <div id=target>PASS</div>
+        </div>
+    </div>
+</div>
+<div id=e4 class=auto>
+    <div class=child></div>
+</div>
+
+<script>
+    function runTest() {
+        target.scrollIntoView();
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            // Remove the fixed value of height, so that the computed height would be 40000px.
+            // e3 should be hidden now, "PASS" should not show up.
+            overflow_clip.style.height = "auto";
+            requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+        }));
+    }
+    window.onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

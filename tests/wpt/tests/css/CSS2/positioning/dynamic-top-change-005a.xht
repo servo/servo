@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inheriting 'top' changes from abspos grandparent (variant: block parent)</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inherit"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inherit"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-position"/>
+  <meta name="flags" content="dom" />
+  <meta name="assert" content="The position of a positioned element which inherits its 'top' value from its relatively positioned parent changes when the parent's 'top' value is changed."/>
+  <style type="text/css"><![CDATA[
+    .testDiv { position: relative; width: 100px; height: 100px; }
+    #green { top: 100px; background: green; }
+    #red { top: inherit; background: red; display: block; }
+    #parent { position: relative; }
+    body > p { position: absolute; font-size: medium; }
+    #grandparent { position: absolute; top: 0; }
+    body { font-size: 0; line-height: 0; position: relative; }
+  ]]></style>
+  <script type="text/javascript"><![CDATA[
+    window.onload = function() {
+      document.body.offsetWidth;
+      document.getElementById("parent").style.top = "50px";
+    }
+  ]]></script>
+ </head>
+ <body>
+   <p>Test passes if there is no red.</p>
+   <div id="grandparent">
+     <div id="parent">
+       <span id="red" class="testDiv"></span>
+     </div>
+   </div>
+   <div id="green" class="testDiv"></div>
+ </body>
+</html>

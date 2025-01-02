@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/css3-color/#transparency">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Opacity on an inline element should apply on float child.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: green">
+  <span style="opacity: 0">
+    <div style="width: 100px; height: 100px; float: left; background: red"></div>
+  </span>
+</div>

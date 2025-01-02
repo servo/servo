@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: getComputedStyle().listStyleImage</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style-image">
+<meta name="assert" content="list-style-image computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('list-style-image', 'none');
+
+test_computed_value('list-style-image', 'url("https://{{host}}/")');
+
+test_computed_value('list-style-image', 'linear-gradient(to left bottom, red , blue )', 'linear-gradient(to left bottom, rgb(255, 0, 0), rgb(0, 0, 255))');
+
+test_computed_value('list-style-image', 'radial-gradient(10px at 20px 30px, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('list-style-image', 'radial-gradient(circle calc(-0.5em + 10px) at calc(-1em + 10px) calc(-2em + 10px), rgb(255, 0, 0), rgb(0, 0, 255))', 'radial-gradient(0px at -30px -70px, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('list-style-image', 'radial-gradient(ellipse calc(-0.5em + 10px) calc(0.5em + 10px) at 20px 30px, rgb(255, 0, 0), rgb(0, 0, 255))', 'radial-gradient(0px 30px at 20px 30px, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('list-style-image', 'radial-gradient(ellipse calc(0.5em + 10px) calc(-0.5em + 10px) at 20px 30px, rgb(255, 0, 0), rgb(0, 0, 255))', 'radial-gradient(30px 0px at 20px 30px, rgb(255, 0, 0), rgb(0, 0, 255))');
+</script>
+</body>
+</html>

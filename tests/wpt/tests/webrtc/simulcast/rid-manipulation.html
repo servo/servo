@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Tests - RID manipulation</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../mediacapture-streams/permission-helper.js"></script>
+<script>
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const rids = [0, 1, 2];
+  pc1.addTransceiver("video", {sendEncodings: rids.map(rid => ({rid}))});
+  const [{sender}] = pc1.getTransceivers();
+
+  const negotiateSfuAnswer = async asimulcast => {
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+    offer.sdp = swapRidAndMidExtensionsInSimulcastOffer(offer, rids);
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    answer.sdp = swapRidAndMidExtensionsInSimulcastAnswer(answer,pc1.localDescription, rids);
+    answer.sdp = answer.sdp.replace('a=simulcast:recv 0;1;2', asimulcast);
+    return answer;
+  };
+  await pc1.setRemoteDescription(await negotiateSfuAnswer('a=simulcast:recv foo;1;2'));
+  await pc1.setRemoteDescription(await negotiateSfuAnswer('a=simulcast:recv foo;bar;2'));
+}, 'Remote reanswer altering rids does not throw an exception.');
+
+</script>

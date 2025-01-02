@@ -1,0 +1,12 @@
+{
+  "web-features-manifest": {
+    "path": "manifest.py",
+    "script": "main",
+    "parser": "create_parser",
+    "help": "Create the WEB_FEATURES_MANIFEST.json",
+    "virtualenv": true,
+    "requirements": [
+      "../metadata/yaml/requirements.txt"
+    ]
+  }
+}

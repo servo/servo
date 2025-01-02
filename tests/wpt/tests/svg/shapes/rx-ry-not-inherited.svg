@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://www.w3.org/TR/SVG2/shapes.html#EllipseElement"/>
+    <h:meta name="assert" content="rx,ry are not inherited by default"/>
+  </metadata>
+  <style>
+    g {
+      rx: 10px;
+      ry: 20px;
+    }
+  </style>
+  <g>
+    <ellipse id="spot" cx="50" cy="50"/>
+  </g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+  test(function() {
+    var spot = document.getElementById('spot');
+    assert_equals(getComputedStyle(spot).rx, "auto");
+    assert_equals(getComputedStyle(spot).ry, "auto");
+    spot.style.rx = 'inherit';
+    spot.style.ry = 'inherit';
+    assert_equals(getComputedStyle(spot).rx, "10px");
+    assert_equals(getComputedStyle(spot).ry, "20px");
+  });
+  ]]></script>
+</svg>

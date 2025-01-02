@@ -1,0 +1,112 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-52-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test eventbase targets.
+      </p>
+      <p>
+        The test consists of 4 rectangles named A, B, C, D. The D rectangle contains
+        three animations changing the color of the animation target.
+        Each animation applies to one of the other rectangles
+        by using xlink:href. Clicking on rect A should change it's
+        color immediately, clicking B changes its color after 2 seconds,
+        clicking C changes its color after 4 seconds and clicking D shows no visible change
+        (although D contains the animations the event target for each
+        animation is the referenced rectangle, this rectangle is also the
+        animation target.)
+      </p>
+      <p>
+        The following sections in the SMIL Animation spec (http://www.w3.org/TR/smil-animation/)
+        are relevant as confirmation of this test:
+        The SMIL spec(3.6.7 subsection "Event Values") states that "If the
+        Eventbase-element term is missing, the event-base element is defined to
+        be the target element of the animation"
+        The SMIL spec (3.1 subsection "The target element") says that the
+        animation target may be defined explicitly thru the targetElement IDREF
+        or href URI.
+        So in this test, the animation target is defined through
+        xlink:href and the event base per definition is then also this
+        referenced element.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test.  Click on each of the four blue rectangles from left to right.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if all of the following conditions are met:</p>
+      <ul>
+        <li>the A rectangle turns yellow immediately when clicked</li>
+        <li>the B rectangle turns yellow two seconds after being clicked</li>
+        <li>the C rectangle turns yellow four seconds after being clicked</li>
+        <li>at the time the C rectangle turns yellow, the D rectangle is still blue</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-52-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="65" y="50" font-size="30" stroke="none" fill="black">A</text>
+    <text x="165" y="50" font-size="30" stroke="none" fill="black">B</text>
+    <text x="265" y="50" font-size="30" stroke="none" fill="black">C</text>
+    <text x="365" y="50" font-size="30" stroke="none" fill="black">D</text>
+
+    <g transform="translate(0,45)">
+      <g id="A" fill="rgb(126,143,250)">
+        <rect x="30" y="15" rx="5" ry="5" width="90" height="40" stroke="#000000" fill="inherit" stroke-width="2"/>
+        <text x="50" y="40" font-size="20" stroke="none" fill="black">click A</text>
+      </g>
+
+      <g id="B" fill="rgb(126,143,250)">
+        <rect x="130" y="15" rx="5" ry="5" width="90" height="40" stroke="#000000" fill="inherit" stroke-width="2"/>
+        <text x="135" y="40" font-size="20" stroke="none" fill="black">click B+2</text>
+      </g>
+
+      <g id="C" fill="rgb(126,143,250)">
+        <rect x="230" y="15" rx="5" ry="5" width="90" height="40" stroke="#000000" fill="inherit" stroke-width="2"/>
+        <text x="235" y="40" font-size="20" stroke="none" fill="black">click C+4</text>
+      </g>
+
+      <g fill="rgb(126,143,250)">
+        <rect x="330" y="15" rx="5" ry="5" width="90" height="40" stroke="#000000" fill="inherit" stroke-width="2"/>
+        <text x="350" y="40" font-size="20" stroke="none" fill="black">never</text>
+        <set begin="click" fill="freeze" xlink:href="#A" attributeName="fill" to="yellow"/>
+        <set begin="click+2" fill="freeze" xlink:href="#B" attributeName="fill" to="yellow"/>
+        <set begin="click+4" fill="freeze" xlink:href="#C" attributeName="fill" to="yellow"/>
+      </g>
+    </g>
+
+    <text x="15" y="175" font-size="28">Test of Eventbase targets.</text>
+    <text x="15" y="245" font-size="18">Note that clicking rect D should give no result.</text>
+    <text x="15" y="205" font-size="18">Clicking a rectangle should change its color at the </text>
+    <text x="15" y="225" font-size="18">time for the click + delay as indicated in each rect.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for issue #15884</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+    <map name="img_map" id="img_map">
+        <area shape="rect" coords="0,0,100,100">
+    </map>
+    <img usemap="#img_map" src="2x2.png" id="img">
+
+    <img usemap="#img_no_map" src="2x2.png" id="img_no">
+    <script>
+        var siblingTest = async_test("Image should find a non-sibling map");
+        var img = document.getElementById('img');
+        var img_clicked = false;
+        img.onclick = siblingTest.step_func_done();
+        document.addEventListener("DOMContentLoaded", siblingTest.step_func(function() {
+            img.click();
+        }));
+    </script>
+</body>

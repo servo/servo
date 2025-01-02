@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests Stale While Revalidate is not executed for fetch API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+const verify_headers = (header_list, response, verification_func) => {
+  header_list.forEach(header => {
+    const value = response.headers.get(header+"-received");
+    if(value) {
+      verification_func(value);
+    }
+  });
+};
+
+promise_test(async (test) => {
+  const request_token = token();
+  const string_list_client_hint_headers = [
+    "sec-ch-ua",
+  ];
+  const string_client_hint_headers = [
+    "sec-ch-ua-arch",
+    "sec-ch-ua-platform",
+    "sec-ch-ua-platform-version",
+    "sec-ch-ua-model",
+    "sec-ch-ua-full-version",
+    "sec-ch-prefers-color-scheme",
+    "sec-ch-prefers-reduced-motion",
+    "sec-ch-ua-full-version-list",
+    "sec-ch-ua-wow64",
+    "sec-ch-prefers-reduced-transparency",
+  ];
+  const boolean_client_hint_headers = [
+    "sec-ch-mobile",
+  ];
+
+  const response = await fetch("resources/echo-ua-client-hints-received.py");
+  verify_headers(string_client_hint_headers, response, value => {
+    if(value) {
+      // Check that the hints have quotes
+      // TODO(yoav): this doesn't account for parameters. Need an SH parser, that verifies no parameters are present.
+      assert_equals(value.slice(0,1), "\"");
+      assert_equals(value.slice(-1), "\"");
+    }
+  });
+  verify_headers(string_list_client_hint_headers, response, value => {
+    // Check that the hints have quotes
+    // TODO(yoav): this doesn't account for list parsing or parameters. Need an SH parser, that verifies this is a list of strings with a "v" parameter present in at least one value.
+    assert_false((typeof value) == "undefined");
+    assert_equals(value.slice(0,1), "\"");
+    assert_equals(value.slice(-1), "\"");
+  });
+  verify_headers(boolean_client_hint_headers, response, value => {
+    if(value) {
+      // Check that the value is a valid boolean
+      assert_false((typeof value) == "undefined");
+      assert_equals(value.slice(0,1), "?");
+      const num = value.slice(-1);
+      assert_true(num == "0" || num == "1");
+    }
+  });
+}, 'User agent client hint header values are surrounded by quotes');
+</script>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<head>
+<title>Test AudioContext.setSinkId() method</title>
+</head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+const audioContext = new AudioContext();
+let outputDeviceList = null;
+let firstDeviceId = null;
+
+// Setup: Get permission via getUserMedia() and a list of audio output devices.
+promise_setup(async t => {
+  await navigator.mediaDevices.getUserMedia({ audio: true });
+  const deviceList = await navigator.mediaDevices.enumerateDevices();
+  outputDeviceList =
+      deviceList.filter(({kind}) => kind === 'audiooutput');
+  assert_greater_than(outputDeviceList.length, 1,
+                      'the system must have more than 1 device.');
+  firstDeviceId = outputDeviceList[1].deviceId;
+}, 'Get permission via getUserMedia() and a list of audio output devices.');
+
+
+// 1.2.3. AudioContext.setSinkId() method
+// https://webaudio.github.io/web-audio-api/#dom-audiocontext-setsinkid-domstring-or-audiosinkoptions-sinkid
+
+promise_test(async t => {
+  t.step(() => {
+    // The default value of `sinkId` is the empty string.
+    assert_equals(audioContext.sinkId, '');
+  });
+  t.done();
+}, 'setSinkId() with a valid device identifier should succeeded.');
+
+promise_test(async t => {
+  // Change to the first non-default device in the list.
+  await audioContext.setSinkId(firstDeviceId);
+  t.step(() => {
+    // If both `sinkId` and [[sink ID]] are a type of DOMString, and they are
+    // equal to each other, resolve the promise immediately.
+    assert_equals(typeof audioContext.sinkId, 'string');
+    assert_equals(audioContext.sinkId, firstDeviceId);
+  });
+  return audioContext.setSinkId(firstDeviceId);
+}, 'setSinkId() with the same sink ID should resolve immediately.');
+
+promise_test(async t => {
+  // If sinkId is a type of AudioSinkOptions and [[sink ID]] is a type of
+  // AudioSinkInfo, and type in sinkId and type in [[sink ID]] are equal,
+  // resolve the promise immediately.
+  await audioContext.setSinkId({type: 'none'});
+  t.step(() => {
+    assert_equals(typeof audioContext.sinkId, 'object');
+    assert_equals(audioContext.sinkId.type, 'none');
+  });
+  return audioContext.setSinkId({type: 'none'});
+}, 'setSinkId() with the same AudioSinkOptions.type value should resolve ' +
+   'immediately.');
+
+// 1.2.4. Validating sinkId
+// https://webaudio.github.io/web-audio-api/#validating-sink-identifier
+
+// Step 3. If document is not allowed to use the feature identified by
+// "speaker-selection", return a new DOMException whose name is
+// "NotAllowedError".
+// TODO: Due to the lack of implementation, this step is not tested.
+
+// The wrong AudioSinkOption.type should cause a TypeError.
+promise_test(t =>
+    promise_rejects_js(t, TypeError,
+                       audioContext.setSinkId({type: 'something_else'})),
+    'setSinkId() should fail with TypeError on an invalid ' +
+    'AudioSinkOptions.type value.');
+
+// Step 4. If sinkId is a type of DOMString but it is not equal to the empty
+// string or it does not match any audio output device identified by the result
+// that would be provided by enumerateDevices(), return a new DOMException whose
+// name is "NotFoundError".
+promise_test(t =>
+    promise_rejects_dom(t, 'NotFoundError',
+                        audioContext.setSinkId('some_random_device_id')),
+    'setSinkId() should fail with NotFoundError on an invalid device ' +
+    'identifier.');
+
+// setSinkId invoked from closed AudioContext should throw InvalidStateError
+// DOMException.
+promise_test(async t => {
+  await audioContext.close();
+  t.step(() => {
+    assert_equals(audioContext.state, 'closed');
+  });
+  promise_rejects_dom(t, 'InvalidStateError',
+                      audioContext.setSinkId('some_random_device_id'))
+},'setSinkId() should fail with InvalidStateError when calling from a' +
+  'stopped AudioContext');
+
+// setSinkId invoked from detached document should throw InvalidStateError
+// DOMException.
+promise_test(async t => {
+  const iframe = document.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+  document.body.appendChild(iframe);
+  let iframeAudioContext = new iframe.contentWindow.AudioContext();
+  document.body.removeChild(iframe);
+  promise_rejects_dom(t, 'InvalidStateError',
+                      iframeAudioContext.setSinkId('some_random_device_id'));
+},'setSinkId() should fail with InvalidStateError when calling from a' +
+  'detached document');
+
+// Pending setSinkId() promises should be rejected with a
+// DOMException of InvalidStateError when the context is closed.
+// See: crbug.com/1408376
+promise_test(async t => {
+  const audioContext = new AudioContext();
+  promise_rejects_dom(t, 'InvalidStateError',
+                      audioContext.setSinkId('some_random_device_id'));
+  await audioContext.close();
+},'pending setSinkId() should be rejected with InvalidStateError when' +
+  'AudioContext is closed');
+</script>
+</html>

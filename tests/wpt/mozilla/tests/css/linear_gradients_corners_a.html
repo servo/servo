@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that corners are not handled incorrectly. -->
+<link rel=mismatch href=linear_gradients_corners_ref.html>
+<style>
+section {
+    display: block;
+    width: 300px;
+    height: 150px;
+    border: solid black 1px;
+}
+#a {
+    background: linear-gradient(to top right, white, black);
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+</body>
+</html>

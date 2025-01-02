@@ -1,0 +1,42 @@
+[package]
+name = "script_layout_interface"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "script_layout_interface"
+path = "lib.rs"
+
+[dependencies]
+base = { workspace = true }
+app_units = { workspace = true }
+atomic_refcell = { workspace = true }
+canvas_traits = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+fnv = { workspace = true }
+fonts = { path = "../../fonts" }
+fonts_traits = { workspace = true }
+html5ever = { workspace = true }
+ipc-channel = { workspace = true }
+libc = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+metrics = { path = "../../metrics" }
+net_traits = { workspace = true }
+pixels = { path = "../../pixels" }
+profile_traits = { workspace = true }
+range = { path = "../../range" }
+script_traits = { workspace = true }
+selectors = { workspace = true }
+serde = { workspace = true }
+servo_arc = { workspace = true }
+servo_url = { path = "../../url" }
+style = { workspace = true }
+style_traits = { workspace = true }
+webrender_api = { workspace = true }
+webrender_traits = { workspace = true }

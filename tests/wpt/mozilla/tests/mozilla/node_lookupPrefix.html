@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <x xarg="xval">
+            <!--comment-->
+            <?test test?>
+            TEST
+            <x/>
+        </x>
+        <script>
+        test(function() {
+            document.documentElement.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:x", "test");
+            document.body.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:s", "test");
+            var x = document.getElementsByTagName("x")[0];
+            x.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:t", "test");
+            var yprefix = document.createElementNS("ynamespace", "yprefix:ylocalname");
+            var ynoprefix = document.createElementNS("ynamespace", "ylocalname");
+            ynoprefix.setAttribute("ynoprefixattr", "yval");
+            ynoprefix.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:yattr", "yval");
+
+            // Step 1
+            assert_equals(document.lookupPrefix(""), null);
+            assert_equals(document.lookupPrefix(null), null);
+
+            // Element step 1
+            assert_equals(yprefix.lookupPrefix("ynamespace"), "yprefix");
+            assert_equals(ynoprefix.lookupPrefix("ynamespace"), null);
+
+            // Element step 2
+            assert_equals(x.lookupPrefix("test"), "t");
+            assert_equals(ynoprefix.lookupPrefix("yval"), "yattr");
+
+            // analogous to wpt - https://github.com/w3c/web-platform-tests/blob/master/dom/nodes/Node-lookupPrefix.xhtml
+            assert_equals(document.lookupPrefix("test"), "x");
+            assert_equals(x.lookupPrefix("test"), "t");
+            assert_equals(x.lookupPrefix("http://www.w3.org/1999/xhtml"), null);
+            assert_equals(x.lookupPrefix("something"), null);
+            assert_equals(x.lookupPrefix(null), null);
+            assert_equals(x.parentNode.lookupPrefix("test"), "s");
+            assert_equals(x.firstChild.lookupPrefix("test"), "t");
+            assert_equals(x.childNodes[1].lookupPrefix("test"), "t");
+            assert_equals(x.childNodes[2].lookupPrefix("test"), "t");
+            assert_equals(x.lastChild.lookupPrefix("test"), "t");
+        });
+        </script>
+    </body>
+</html>

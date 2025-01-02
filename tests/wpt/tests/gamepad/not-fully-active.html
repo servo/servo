@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Gamepad tests for non-fully-active document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  promise_test(async () => {
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = `<h1>test</h1>`
+    await new Promise(resolve => {
+      iframe.onload = resolve;
+      document.body.appendChild(iframe);
+    });
+    const navigator = iframe.contentWindow.navigator;
+    iframe.remove();
+    const gamepads = navigator.getGamepads();
+    assert_true(Array.isArray(gamepads), 'getGamepads should return an array');
+    assert_equals(gamepads.length, 0, "No gamepads should be available");
+  }, "calling getGamepads() in a non-fully-active document");
+</script>

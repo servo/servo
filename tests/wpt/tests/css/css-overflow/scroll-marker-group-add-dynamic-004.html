@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Re-attach fieldset ::scroll-marker-group</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  fieldset,
+  legend {
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+
+  #scrollable::scroll-marker-group {
+    display: block;
+    height: 50px;
+  }
+
+  #scrollable.extra::scroll-marker-group {
+    display: flex;
+  }
+
+  #scrollable>div::scroll-marker {
+    display: block;
+    width: 50px;
+    height: 50px;
+    content: "";
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <fieldset id="scrollable" style="scroll-marker-group:after; height:50px; overflow:hidden; background:green;">
+    <legend style="width:100px; height:20px; background:green;"></legend>
+    <div></div>
+    <div></div>
+  </fieldset>
+</div>
+<script>
+  document.body.offsetTop;
+  scrollable.className = "extra";
+</script>

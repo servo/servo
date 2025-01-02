@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>TextPath Side — 001</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="mailto:tavmjong@free.fr"/>
+    <html:link rel="help"
+          href="https://svgwg.org/svg2-draft/text.html#TextPathAttributes"/>
+    <html:link rel="match"  href="textpath-side-001-ref.svg" />
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("fonts/FreeSans.woff") format("woff"),
+           local("FreeSans");
+    }
+    text { font-family: FreeSans, sans-serif }
+  </style>
+
+  <style id="test-style" type="text/css">
+    /* Style that is being tested (if needed). */
+    text { font-family: FreeSans, sans-serif }
+  </style>
+
+  <defs>
+    <path id="TextPath" d="m 90,150 c 100,-100 200,100 300,0"/>
+  </defs>
+
+  <g id="test-body-content" style="font-size:24px">
+    <g transform="translate(0,0)">
+      <use xlink:href="#TextPath" style="fill:none;stroke:lightblue"/>
+      <text>
+        <textPath xlink:href="#TextPath">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</textPath>
+      </text>
+    </g>
+    <g transform="translate(0,75)">
+      <use xlink:href="#TextPath" style="fill:none;stroke:lightblue"/>
+      <text>
+        <textPath xlink:href="#TextPath" side="left">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</textPath>
+      </text>
+    </g>
+    <g transform="translate(0,150)">
+      <use xlink:href="#TextPath" style="fill:none;stroke:lightblue"/>
+      <text>
+        <textPath xlink:href="#TextPath" side="right">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</textPath>
+      </text>
+    </g>
+  </g>
+
+</svg>

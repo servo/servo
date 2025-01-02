@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Tests animation with tree-scoped names and references</title>
+<meta name="assert" content="Custom counter style references should work in shadow DOM keyframes">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="scoped-reference-animation-ref.html">
+
+<style>
+@counter-style lower-roman { system: extends disc; }
+@counter-style upper-roman { system: extends disc; }
+</style>
+
+<div id="host">
+</div>
+
+<script>
+host.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+/* Overrides predefined and outer tree scope's custom lower-roman counter-style */
+@counter-style lower-roman {
+  system: cyclic;
+  symbols: 'X';
+}
+
+/* Overrides predefined and outer tree scope's upper-roman counter-style */
+@counter-style upper-roman {
+  system: cyclic;
+  symbols: 'O';
+}
+
+/* Should resolve to the custom counter styles, not the predefined or the outer
+   tree scope's ones */
+@keyframes list-style-type-anim {
+  from { list-style-type: lower-roman; }
+  to { list-style-type: upper-roman; }
+}
+
+#target1 {
+  animation: list-style-type-anim 2s -0.9s linear paused;
+}
+
+#target2 {
+  animation: list-style-type-anim 2s -1s linear paused;
+}
+</style>
+
+<ul id="target1">
+  <li>List marker should be X
+</ul>
+
+<ul id="target2">
+  <li>List marker should be O
+</ul>
+`;
+</script>

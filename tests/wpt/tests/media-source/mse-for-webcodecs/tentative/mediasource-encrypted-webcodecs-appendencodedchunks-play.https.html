@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<title>Test encoded chunk buffering and playback with EME + MediaSource</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/encrypted-media/util/utf8.js"></script>
+<script src="/encrypted-media/util/utils.js"></script>
+<script src="/encrypted-media/util/clearkey-messagehandler.js"></script>
+<script src="media-source-webcodecs-util.js"></script>
+<script>
+setup(() => {
+  assert_implements(
+      SourceBuffer.prototype.hasOwnProperty('appendEncodedChunks'),
+      'SourceBuffer prototype hasOwnProperty "appendEncodedChunks", used ' +
+          'here to feature detect MSE-for-WebCodecs implementation.');
+});
+
+promise_test(async t => {
+  return runEncryptedChunksTest(t);
+}, "Buffer encrypted EncodedVideoChunks (VP9) one-by-one and play them with MSE");
+
+// TODO(crbug.com/1144908): More exhaustive tests (multiple sourcebuffers,
+// varying append patterns, invalid append patterns; eventually more codecs,
+// out-of-order DTS, durations, etc.)
+
+</script>
+</html>

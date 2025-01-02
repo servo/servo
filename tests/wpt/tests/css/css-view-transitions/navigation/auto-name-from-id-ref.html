@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: cross-document navigation with auto name</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<style>
+@view-transition { navigation: auto; }
+body {
+  background: rebeccapurple;
+  margin: 0;
+}
+#green {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  left: 100px;
+  view-transition-name: auto;
+  background: green;
+  contain: layout;
+}
+</style>
+<div id="green"></div>
+</html>

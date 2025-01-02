@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Cloning objects, preserving sharing #2</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="a" width=30 height=30></canvas>
+<div id=log></div>
+<script>
+async_test(function() {
+  var canvas = document.getElementsByTagName("canvas")[0];
+  var context = canvas.getContext("2d");
+  var img_data = context.getImageData(0, 0, 30, 30);
+  var obj = {a: img_data, b: {c: img_data, d: 3}};
+  postMessage(obj, '*');
+  onmessage = this.step_func(function(e) {
+    assert_equals(e.data.a, e.data.b.c);
+    this.done();
+  });
+});
+</script>

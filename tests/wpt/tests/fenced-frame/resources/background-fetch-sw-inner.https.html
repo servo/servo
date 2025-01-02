@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of background fetch in SW</title>
+
+<body>
+  <script type="module">
+      const [background_fetch_register_key, method] = parseKeylist();
+
+      const getController = () => {
+        if (navigator.serviceWorker.controller) {
+          return navigator.serviceWorker.controller;
+        }
+        return new Promise(resolve => {
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            resolve(navigator.serviceWorker.controller);
+          });
+        });
+      };
+
+      const sendMessageToServiceWorker = async () => {
+        const ctrl = await getController();
+        return new Promise(resolve => {
+          ctrl.postMessage(method);
+          navigator.serviceWorker.onmessage = e => {
+            resolve(e.data);
+          }
+        });
+      };
+
+      await navigator.serviceWorker.register(
+        "background-fetch-sw.js", { scope: location.href });
+      const data = await sendMessageToServiceWorker();
+
+      writeValueToServer(background_fetch_register_key, data);
+  </script>
+</body>

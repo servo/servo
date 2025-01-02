@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<title>:nth-child with complex selector list argument</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<link rel="match" href="nth-child-of-complex-selector-ref.html">
+<style>
+/* At least 4 pair of <p> above, can be overlapping. The other selectors of the list are useless. */
+p:nth-child(4n of html:root>body>p+p:not(empty), :not(*), p:not(p), span, .notthere) {
+    background-color: lime;
+}
+</style>
+</head>
+<body>
+    <p>This test the styling of paragraphs with :nth-child(An+B of selector). If the test succeed, paragraphs that say "green" should have a green background.</p>
+    <p>White</p>
+    <p>White</p>
+    <p>White</p>
+    <p>Green</p>
+    <p>White</p>
+    <p>White</p>
+    <p>White</p>
+    <p>Green</p>
+</body>
+</html>

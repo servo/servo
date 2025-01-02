@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageContextValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page/Collection is missing @context key or 'http://www.w3.org/ns/anno.jsonld' is not a value of @context.",
+  "title": "Implements **Annotation Page** (or Annotation Collection for embedded Page) **_@context_ key** and '**http://www.w3.org/ns/anno.jsonld**' is **a value of _@context_** - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "description": "True when the Annotation Page/Collection has @context key and 'http://www.w3.org/ns/anno.jsonld' is an @context value (Section 5.2)",
+  "type": "object",
+  "required": [ "@context" ],
+  "properties": {
+    "@context": {
+      "oneOf": [
+      { "$ref": "collections.json#/definitions/contextValueFound" },
+      { "$ref": "collections.json#/definitions/contextValueInArrayFound" }
+      ]
+    }
+  }
+}

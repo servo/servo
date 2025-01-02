@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RTCPeerConnection Insertable Streams - Video Frames</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../../mediacapture-streams/permission-helper.js'></script>
+<script src="../../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="./RTCPeerConnection-insertable-streams.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee.close());
+
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const track = stream.getTracks()[0];
+  t.add_cleanup(() => track.stop());
+
+  const sender = caller.addTrack(track)
+  const senderStreams = sender.createEncodedStreams();
+  const senderReader = senderStreams.readable.getReader();
+  const senderWriter = senderStreams.writable.getWriter();
+  const numFramesToSend = 20;
+
+  const ontrackPromise = new Promise((resolve, reject) => {
+    callee.ontrack = async e => {
+      const receiverStreams = e.receiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+
+      let numReceivedKeyFrames = 0;
+      let numReceivedDeltaFrames = 0;
+      for (let i = 0; i < numFramesToSend; i++) {
+        const result = await receiverReader.read();
+        if (result.value.type == 'key')
+          numReceivedKeyFrames++;
+        else if (result.value.type == 'delta')
+          numReceivedDeltaFrames++;
+
+        if (numReceivedKeyFrames > 0 && numReceivedDeltaFrames > 0)
+          resolve();
+        else if (numReceivedKeyFrames + numReceivedDeltaFrames >= numFramesToSend)
+          reject();
+      }
+    }
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+
+  let numSentKeyFrames = 0;
+  let numSentDeltaFrames = 0;
+  // Pass frames as they come from the encoder.
+  for (let i = 0; i < numFramesToSend; i++) {
+    const result = await senderReader.read();
+    verifyNonstandardAdditionalDataIfPresent(result.value);
+    if (result.value.type == 'key') {
+      numSentKeyFrames++;
+    } else {
+      numSentDeltaFrames++;
+    }
+
+    senderWriter.write(result.value);
+  }
+
+  assert_greater_than(numSentKeyFrames, 0);
+  assert_greater_than(numSentDeltaFrames, 0);
+
+  return ontrackPromise;
+}, 'Key and Delta frames are sent and received');
+
+</script>
+</body>
+</html>

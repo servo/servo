@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Shadow DOM: event dispatch order for capture and non-capture listerns at a shadow host</title>
+<meta name="author" title="Hayato Ito" href="mailto:hayato@google.com">
+<link rel="help" href="https://github.com/whatwg/dom/issues/685">
+<link rel="help" href="https://github.com/whatwg/dom/pull/686">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<div id=host>
+  <template id=shadowroot data-mode=open>
+    <div id=target></div>
+  </template>
+</div>
+<script>
+test(() => {
+  let nodes = createTestTree(host);
+  let log = dispatchEventWithLog(nodes, nodes.target,
+                                 new Event('my-event', { bubbles: true, composed: true }),
+                                 { capture: true });
+  let path = ['target', 'shadowroot', 'host'];
+  assert_event_path_equals(log,
+                           [['host', 'host', null, path, 'capture'],
+                            ['shadowroot', 'target', null, path, 'capture'],
+                            ['target', 'target', null, path, 'capture'],
+                            ['target', 'target', null, path, 'non-capture'],
+                            ['shadowroot', 'target', null, path, 'non-capture'],
+                            ['host', 'host', null, path, 'non-capture'],
+                           ]);
+}, 'Event dispatch order: capture listerns should be called in capturing phase at a shadow host');
+</script>

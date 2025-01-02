@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+:root  { background: rebeccapurple; }
+.target {
+  width: 200px;
+  height: 200px;
+  contain: paint;
+  view-transition-name: target;
+  padding: 20px;
+}
+
+.child {
+  width: 100px;
+  height: 200px;
+  position: relative;
+  background: green;
+}
+</style>
+
+<div class=target>
+  <div class=child>
+  </div>
+</div>
+

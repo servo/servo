@@ -1,0 +1,13 @@
+<title> Check openee.frames access is checked</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/test-access-property.js"></script>
+<script>
+
+testAccessProperty("frames", w => w.frames);
+
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: z-index and the canvas and background propagation</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/z-index/canvas/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/zindex.html#painting-order"/>
+  <style type="text/css">
+   * { background: transparent; margin: 0; }
+   html { margin: 5em auto;
+          height: 35px; width: 35px;
+          border: solid 10px red;
+          background: transparent; }
+   body { background: transparent url(support/swatch-red.png) no-repeat center;
+          height: 15px; width: 15px;
+          border: 10px solid green; }
+   div { background: red url(support/swatch-green.png) center no-repeat;
+         height: 15px; width: 15px; padding: 9px;
+         border: solid 10px green;
+         position: absolute; margin-top: -19px; margin-left: -19px; z-index: -1; }
+   p { position: absolute; top: 0; left: 0; margin: 1em; }
+  </style>
+ </head>
+ <body>
+   <p>There should be a completely-filled green square and no red.</p>
+  <!--
+
+   The <div> should be under the <body> box but above the canvas and <html>
+   backdrop.
+
+   !-->
+  <div></div>
+ </body>
+</html>

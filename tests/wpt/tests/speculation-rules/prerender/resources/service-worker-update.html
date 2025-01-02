@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<body>
+<script type="module">
+
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+// The main test page (restriction-service-worker-update.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const registration =
+      await navigator.serviceWorker.getRegistration(location.href);
+
+  const prerenderEventCollector = new PrerenderEventCollector();
+  const promise = registration.update()
+      .then(registration => {
+        prerenderEventCollector.addEvent('service worker updated');
+      });
+  prerenderEventCollector.start(
+      promise, 'ServiceWorkerRegistration.update');
+}
+
+</script>
+</body>

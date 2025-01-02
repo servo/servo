@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {fontSize: 'larger'},
+        {fontSize: 'larger'}
+    ];
+
+    container.style.fontSize = 'small';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    fontSize = getComputedStyle(element).fontSize;
+    container.style.fontSize = 'medium';
+    assert_not_equals(getComputedStyle(element).fontSize, fontSize);
+}, 'Relative font size larger responsive to style changes');
+
+test(function() {
+    var keyframes = [
+        {fontSize: 'smaller'},
+        {fontSize: 'smaller'}
+    ];
+
+    container.style.fontSize = 'large';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    fontSize = getComputedStyle(element).fontSize;
+    container.style.fontSize = 'medium';
+    assert_not_equals(getComputedStyle(element).fontSize, fontSize);
+}, 'Relative font size smaller responsive to style changes');
+
+test(function() {
+    var keyframes = [
+        {fontSize: 'medium'},
+        {fontSize: 'medium'}
+    ];
+
+    container.style.fontFamily = 'cursive';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    fontSize = getComputedStyle(element).fontSize;
+    container.style.fontFamily = 'monospace';
+    assert_not_equals(getComputedStyle(element).fontSize, fontSize);
+}, 'Font size medium responsive to style changes');
+
+test(function() {
+    var keyframes = [
+        {fontSize: 'initial'},
+        {fontSize: 'initial'}
+    ];
+
+    container.style.fontFamily = 'monospace';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    fontSize = getComputedStyle(element).fontSize;
+    container.style.fontFamily = 'serif';
+    assert_not_equals(getComputedStyle(element).fontSize, fontSize);
+}, 'Font size initial responsive to style changes');
+
+</script>

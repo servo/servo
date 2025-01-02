@@ -1,0 +1,60 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const helperUrlBase = crossOrigin +
+      `/shared-storage/resources/credentials-test-helper.py`;
+
+promise_test(async t => {
+  const ancestor_key = token();
+  const helper_url =  helperUrlBase +
+                     `?access_control_allow_origin_header=${window.origin}` +
+                     `&access_control_allow_credentials_header=true` +
+                     `&token=${ancestor_key}`;
+
+   await sharedStorage.createWorklet(
+      helper_url + `&action=store-cookie`,
+      { credentials: "include" });
+}, 'createWorklet() with cross-origin module script, credentials ' +
+   '"include", default data origin (context origin), and without the ' +
+   'Shared-Storage-Cross-Origin-Worklet-Allowed response header');
+
+promise_test(async t => {
+  const ancestor_key = token();
+  const helper_url = helperUrlBase +
+                     `?access_control_allow_origin_header=${window.origin}` +
+                     `&access_control_allow_credentials_header=true` +
+                     `&token=${ancestor_key}`;
+
+  await sharedStorage.createWorklet(
+      helper_url + `&action=store-cookie`,
+        { credentials: "include", dataOrigin: "context-origin" });
+}, 'createWorklet() with cross-origin module script, credentials ' +
+   '"include", "context-origin" as dataOrigin, and without the ' +
+   'Shared-Storage-Cross-Origin-Worklet-Allowed response header');
+
+promise_test(async t => {
+  const ancestor_key = token();
+  const helper_url = helperUrlBase +
+                     `?access_control_allow_origin_header=${window.origin}` +
+                     `&access_control_allow_credentials_header=true` +
+                     `&token=${ancestor_key}`;
+
+  return promise_rejects_dom(t, "OperationError",
+    sharedStorage.createWorklet(
+      helper_url + `&action=store-cookie`,
+        { credentials: "include", dataOrigin: "script-origin" }));
+}, 'createWorklet() with cross-origin module script, credentials ' +
+   '"include", "script-origin" as dataOrigin, and without the ' +
+   'Shared-Storage-Cross-Origin-Worklet-Allowed response header');
+
+</script>
+</body>

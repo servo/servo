@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/common.js" ></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow: scroll;
+        position: relative;
+        height: 400px;
+        width: 400px;
+        border:solid 1px black;
+        scroll-snap-type: y mandatory;
+      }
+      .no-snap { scroll-snap-align: none }
+      .scroller div:focus {
+        border: solid 1px red;
+      }
+      .large-space {
+        height: 300vh;
+        width: 300vw;
+        position: absolute;
+      }
+      .target {
+        scroll-snap-align: start;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border: solid 1px black;
+      }
+      .top {
+        top: 0px;
+      }
+      .left {
+        left: 0px;
+      }
+      .right {
+        left: 200px;
+      }
+      .bottom {
+        top: 200px;
+      }
+      .inner {
+        text-align: right;
+      }
+      .inner1 {
+        height: 150px;
+        width: 150px;
+        top: 150px;
+        left: 100px;
+        background-color: blue;
+      }
+      .inner2 {
+        height: 100px;
+        width: 100px;
+        top: 150px;
+        left: 100px;
+        background-color: pink;
+      }
+      .inner3 {
+        height: 75px;
+        width: 75px;
+        top: 150px;
+        left: 100px;
+        background-color: green;
+      }
+      .inner4 {
+        height: 50px;
+        width: 50px;
+        top: 150px;
+        left: 100px;
+        background-color: grey;
+      }
+      .outer {
+        height: 200px;
+        width: 200px;
+        top: 150px;
+        left: 50px;
+        left: 50px;
+        background-color: yellow;
+      }
+    </style>
+    <div id="scroller" class="scroller">
+      <div class="large-space"></div>
+      <div class="top left target">Top Left</div>
+      <div class="top right target">Top Right</div>
+      <div class="outer target" id="outer">Outer</div>
+      <div class="inner inner1 target" id="inner1">I1</div>
+      <div class="inner inner2 target" id="inner2">I2</div>
+      <div class="inner inner3 target" id="inner3">I3</div>
+      <div class="inner inner4 target" id="inner4">I4</div>
+    </div>
+    <script>
+      function cleanup() {
+        inner.style.top = 100;
+        outer.style.top = 100;
+      }
+      window.onload = (async () => {
+        const inner1 = document.getElementById("inner1");
+        const inner2 = document.getElementById("inner2");
+        const inner3 = document.getElementById("inner3");
+        const inner4 = document.getElementById("inner4");
+        const outer = document.getElementById("outer");
+        const scroller = document.getElementById("scroller");
+
+        promise_test(async (t) => {
+          await waitForCompositorCommit();
+
+          await runScrollSnapSelectionVerificationTest(t, scroller,
+            /*aligned_elements_x=*/[],
+            /*aligned_elements_y=*/[inner1, inner2, inner3, inner4,  outer],
+            /*axis=*/"y",
+            /*expected_target_x*/null,
+            /*expected_target_y*/inner4);
+
+          // Push inner4 outside the snapport. It should no longer be considered
+          // the snap target; inner3 is next in line.
+          inner4.style.left = "500px";
+          await runScrollSnapSelectionVerificationTest(t, scroller,
+            /*aligned_elements_x=*/[],
+            /*aligned_elements_y=*/[inner1, inner2, inner3, inner4,  outer],
+            /*axis=*/"y",
+            /*expected_target_x*/null,
+            /*expected_target_y*/inner3);
+
+          // Reset inner4's style.
+          inner4.style.left = "100px";
+        }, "snap container selects innermost area as snap target");
+
+        promise_test(async (t) => {
+          t.add_cleanup(() => {
+            outer.style.top = "150px";
+          });
+          await waitForCompositorCommit();
+
+          // Move outer target below inner targets.
+          outer.style.top = "400px";
+
+          // Snap to now-below outer target.
+          scroller.scrollTop = outer.offsetTop;
+
+          runLayoutSnapSeletionVerificationTest(t, scroller,
+            [inner1, inner2, inner3, inner4], outer, "y");
+        }, "snap container follows selected snap target after layout change " +
+           "(the pre-existing snap target should not be overriden because of " +
+           "the innermost area)");
+      });
+    </script>
+  </body>
+</html>

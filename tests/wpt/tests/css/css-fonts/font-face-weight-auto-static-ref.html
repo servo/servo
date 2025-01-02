@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Support for font-weight:auto in @font-face</title>
+<style>
+    @font-face {
+        font-family: "Lato";
+        src: url('support/fonts/Lato-Medium.ttf') format('truetype');
+        font-display: swap;
+        font-weight: normal;
+    }
+    .test {
+        font-family: "Lato";
+        font-size: 3em;
+        font-weight: bold;
+    }
+</style>
+
+<p class="test">text</p>

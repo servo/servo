@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/test-helpers.js"></script>
+
+<script>
+
+  promise_test(async t => {
+    await new Promise(resolve => {
+      window.addEventListener('DOMContentLoaded', resolve);
+    });
+    // Small delay to give chrome's test automation a chance to actually install
+    // itself.
+    await new Promise(resolve => step_timeout(resolve, 100));
+
+    await window.test_driver.bless(
+      'show a file picker.<br />Please select file-system-access/resources/data/testfile.txt');
+    const files = await self.showOpenFilePicker({
+      multiple: false, types: [
+        { description: 'Text files', accept: { ' text/plain ': ['.txt'] } },
+        { description: 'Images', accept: { '  image/*  ': ['.jpg', '.jpeg', '.png'] } },
+      ],
+    });
+    assert_true(Array.isArray(files));
+    assert_equals(files.length, 1);
+    assert_true(files[0] instanceof FileSystemHandle);
+    assert_true(files[0] instanceof FileSystemFileHandle);
+    assert_equals(files[0].kind, "file");
+    assert_equals(files[0].name, 'testfile.txt');
+    assert_equals(await (await files[0].getFile()).text(), 'Hello World!\n');
+
+    promise_test(async t => {
+      assert_equals(await files[0].queryPermission(), 'granted');
+    }, 'showOpenFilePicker returns correct permissions');
+  }, 'showOpenFilePicker works');
+
+</script>
+

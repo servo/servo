@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/common.js"></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        border: solid 1px black;
+        overflow-y: scroll;
+        height: 200px;
+        width: 200px;
+        display: inline-block;
+        background-color: yellow;
+        position: relative;
+      }
+      .snapcontainer {
+        scroll-snap-type: y mandatory;
+      }
+      .snaparea {
+        scroll-snap-align: start;
+        margin-bottom: 120%;
+        height: 40px;
+        width: 50px;
+        background-color: green;
+      }
+      .space {
+        height: 500vh;
+        width: 500vw;
+        position: absolute;
+      }
+    </style>
+    <div>
+      <div id="plaincontainer" class="scroller">
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+      </div>
+      <div id="snapcontainer1" class="scroller snapcontainer">
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+      </div>
+      <div id="snapcontainer2" class="scroller snapcontainer">
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+        <div class="snaparea"></div>
+      </div>
+    </div>
+    <script>
+      const plaincontainer = document.getElementById("plaincontainer");
+      const snapcontainer1 = document.getElementById("snapcontainer1");
+      const snapcontainer2 = document.getElementById("snapcontainer2");
+
+      async function test_unrelated_gesture_during_snap(t,
+                                                     snapcontainer,
+                                                     other_container,
+                                                     inputs,
+                                                     expectations) {
+        await waitForScrollReset(t, snapcontainer);
+        await waitForScrollReset(t, other_container);
+        await waitForCompositorCommit();
+
+        assert_equals(snapcontainer.scrollTop, 0, "snapcontainer is reset.");
+        assert_equals(other_container.scrollTop, 0, `${other_container.id} is ` +
+                      `reset.`);
+        const scrollend_promises = [
+          waitForScrollendEventNoTimeout(snapcontainer),
+          waitForScrollendEventNoTimeout(other_container)
+        ];
+        let last_scroll_top = snapcontainer.scrollTop;
+        async function scroll_listener() {
+          // If we are scrolling back to 0, we are snapping.
+          if (snapcontainer.scrollTop < last_scroll_top) {
+            snapcontainer.removeEventListener("scroll", scroll_listener);
+            await new test_driver.Actions().scroll(0, 0, 0, inputs.scroll_amt,
+                                            { origin: other_container }).send();
+          }
+          last_scroll_top = snapcontainer.scrollTop;
+        }
+        snapcontainer.addEventListener("scroll", scroll_listener);
+
+        // The snap areas are separated by margin-bottom: 120%. Scrolling to
+        // almost halfway should snap back to 0.
+        const snap_scroll_amt = snapcontainer.clientHeight / 2;
+        await new test_driver.Actions().scroll(0, 0, 0, snap_scroll_amt,
+                                         { origin: snapcontainer })
+                                         .send();
+
+        await Promise.all(scrollend_promises);
+        assert_equals(snapcontainer.scrollTop, 0,
+          "snapcontainer snaps back to 0");
+        assert_equals(other_container.scrollTop, expectations.expectedScrollTop,
+          `${other_container.id} is at expected scroll offset.`);
+      }
+
+      promise_test(async (t) => {
+        await test_unrelated_gesture_during_snap(t, snapcontainer1,
+                                                 plaincontainer,
+                                                { scroll_amt: 100 },
+                                                { expectedScrollTop: 100 });
+      }, "gesture on separate scroll container works while another container "+
+         "snaps");
+
+      promise_test(async (t) => {
+        // scrolling the full clientHeight of snapcontainer2 should result in
+        // snapping to its second snap area.
+        const scroll_amt = snapcontainer2.clientHeight;
+        const expectedScrollTop = snapcontainer2.querySelectorAll(".snaparea")[1].offsetTop;
+        await test_unrelated_gesture_during_snap(t, snapcontainer1,
+                                                 snapcontainer2,
+                                                 { scroll_amt: scroll_amt },
+                                                 { expectedScrollTop: expectedScrollTop});
+      }, "gesture on separate snap container works while another container "+
+         "snaps");
+    </script>
+  </body>
+</html>

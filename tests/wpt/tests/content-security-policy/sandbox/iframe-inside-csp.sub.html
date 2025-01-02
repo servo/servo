@@ -1,0 +1,18 @@
+<html>
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'self'; connect-src 'self';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS (1/2): Script can execute","PASS (2/2): Eval works"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+<body>
+  <script>
+    window.onmessage = function(e) {
+      log(e.data);
+    }
+  </script>
+  <iframe src="support/sandboxed-eval.sub.html"></iframe>
+</body>
+</html>

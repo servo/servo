@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientationabsolute');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const orientationData = generateOrientationData(1.1, 2.2, 3.3, true);
+  await helper.setData(orientationData);
+  await waitForEvent(getExpectedAbsoluteOrientationEvent(orientationData));
+}, 'Tests basic operation of deviceorientationabsolute event using mock data.');
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientationabsolute');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors({disabledSensors: ['absolute-orientation']});
+
+  const orientationData = generateOrientationData(null, null, null, true);
+  const watcher = new EventWatcher(t, window, ['deviceorientationabsolute']);
+
+  const event = await watcher.wait_for('deviceorientationabsolute');
+  assert_equals(event.type, 'deviceorientationabsolute', 'type is set to \"deviceorientationabsolute\"');
+  assert_true(event instanceof DeviceOrientationEvent, 'event is DeviceOrientationEvent');
+
+  assertEventEquals(event, getExpectedAbsoluteOrientationEvent(orientationData));
+}, 'If UA can never provide absolute information, the event should be fired as a null event.');
+</script>

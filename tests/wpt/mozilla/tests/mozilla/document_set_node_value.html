@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <body>
+    <div id="div" class="div-class">A</div>
+    <p>P</p>
+    <script>
+    test(function() {
+      assert_equals(document.nodeValue, null);
+      var div = document.getElementById("div");
+      assert_equals(div.nodeValue, null);
+      assert_equals(div.firstChild.nodeValue, "A");
+      div.firstChild.nodeValue = "B";
+      assert_equals(div.firstChild.nodeValue, "B");
+      var commentNode = document.createComment("comment node");
+      assert_equals(commentNode.nodeValue, "comment node");
+    });
+    </script>
+  </body>
+</html>

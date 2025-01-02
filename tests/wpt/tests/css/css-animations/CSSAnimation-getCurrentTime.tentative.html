@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSAnimation.currentTime</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#cssanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+
+.animated-div {
+  margin-left: 10px;
+  /* Make it easier to calculate expected values: */
+  animation-timing-function: linear ! important;
+}
+
+@keyframes anim {
+  from { margin-left: 100px; }
+  to { margin-left: 200px; }
+}
+
+</style>
+<div id="log"></div>
+<script type="text/javascript">
+
+'use strict';
+
+promise_test(async t => {
+  const div = addDiv(t, { class: 'animated-div' });
+  div.style.animation = 'anim 100s';
+  const animation = div.getAnimations()[0];
+
+  assert_equals(
+    animation.currentTime,
+    0,
+    'Animation.currentTime should be zero when an animation ' +
+      'is initially created'
+  );
+
+  await animation.ready;
+
+  animation.currentTime = 50 * MS_PER_SEC;
+
+  assert_time_equals_literal(
+    animation.currentTime,
+    50 * MS_PER_SEC,
+    'Check setting of currentTime actually works'
+  );
+  assert_equals(getComputedStyle(div).marginLeft, '150px');
+}, 'currentTime can be used to seek a CSS animation');
+
+promise_test(async t => {
+  const div = addDiv(t, { class: 'animated-div' });
+  div.style.animation = 'anim 100s';
+
+  const animation = div.getAnimations()[0];
+  await animation.ready;
+
+  assert_throws_js(
+    TypeError,
+    () => {
+      animation.currentTime = null;
+    },
+    'Expect TypeError exception on trying to set Animation.currentTime to null'
+  );
+}, 'Setting currentTime to null on a CSS animation throws');
+
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Text Reference: overflow-wrap: anywhere</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+  div {
+    /* Use sans-serif fonts to ensure the width of `&nbsp` is larger than `i`. */
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 100px;
+    width: min-content;
+    overflow-wrap: anywhere;
+    border: 5px solid blue;
+    margin-bottom: 5px; /* To separate <div>s visually. */
+  }
+  </style>
+
+  <p>The first three div should have the same width, but the fourth one should be wider.</p>
+  <div>i</div>
+  <div>i</div>
+  <div>i</div>
+  <div>i&nbsp;</div>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>href - feImage element reference</title>
+<body>
+  <svg width="300" height="300" viewBox="0 0 300 300"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <filter id="Fitted" primitiveUnits="objectBoundingBox">
+      <feImage xlink:href="/images/rgrg-256x256.png"
+               x="0" y="0" width="100%" height="100%"
+               preserveAspectRatio="none"/>
+    </filter>
+    <rect x="20" y="25" width="100" height="110" filter="url(#Fitted)"/>
+    <rect x="20" y="25" width="100" height="110" fill="none" stroke="green"/>
+  </svg>
+</body>

@@ -1,0 +1,10 @@
+features:
+- name: background-clip
+  files:
+  - clip-border-box*
+  - clip-content-box*
+  - clip-padding-box*
+  - clip-rounded-corner.html
+- name: background-clip-text
+  files:
+  - clip-text-*

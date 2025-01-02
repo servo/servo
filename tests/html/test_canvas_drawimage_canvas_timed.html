@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<style type=''>
+html {
+  font-family: helvetica, sans-serif;
+}
+
+canvas {
+  padding: 15px;
+  margin: 10px;
+}
+
+.example {
+  display: inline-block;
+  width: 280px;
+  margin-top: 50px;
+  margin-right: 50px;
+}
+
+.title {
+  text-align: center;
+}
+
+.description {
+  width: 100%;
+}
+
+.description div {
+  display: inline-block;
+  text-align: center;
+  font-size: 13px;
+}
+
+.description .source {
+  width: 100px;
+}
+
+.description .target {
+  width: 100px;
+}
+
+.example-title {
+  text-align: center;
+  font-size: 16px;
+}
+
+.error {
+  color: red;
+}
+
+</style>
+<body>
+    <h1 class="title">Timed DrawImage canvas to canvas</h1>
+    <h4 class="title", id="Test Result">This text is where the timing result will go...</h4>
+</body>
+
+<script type="text/javascript">
+
+var smoothingEnabled = false;
+var examplesNum = 0;
+
+var imageSource = {
+  width: 50,
+  height: 50
+};
+
+var destCanvas = {
+  width: 100,
+  height: 100
+};
+
+    var t0 = performance.now();     //save starting time
+    drawImage(25, 25);            // The source canvas will copied to the 25,25 position of the destination canvas
+    var t1 = performance.now();     //save ending time
+    document.getElementById('Test Result').innerHTML = "DrawImage took " + (t1 - t0) + " milliseconds."; //print to browser
+    console.log("DrawImage took " + (t1 - t0) + " milliseconds.");  //print to console
+
+function renderExample(title) {
+  var container = document.createElement('div');
+  container.id = 'example' + examplesNum++;
+  container.setAttribute('class', 'example');
+
+  var h2 = document.createElement('h2');
+  h2.textContent = title;
+  h2.setAttribute('class', 'example-title');
+  container.appendChild(h2);
+
+  var div1 = document.createElement('div');
+  var canvas1 = document.createElement('canvas');
+  var canvas2 = document.createElement('canvas');
+  div1.appendChild(canvas1);
+  div1.appendChild(canvas2);
+  container.appendChild(div1);
+
+  var div2 = document.createElement('div');
+  div2.setAttribute('class', 'description');
+  var source = document.createElement('div');
+  source.textContent = ' Source (' + imageSource.width + ',' + imageSource.height + ')';
+  source.setAttribute('class', 'source');
+
+  var arrow = document.createElement('div');
+  arrow.textContent = ' -> ';
+  arrow.setAttribute('class', 'arrow');
+
+  var target = document.createElement('div');
+  target.textContent = 'Target (' + destCanvas.width + ',' + destCanvas.height + ')';
+  target.setAttribute('class', 'target');
+
+  div2.appendChild(source);
+  div2.appendChild(arrow);
+  div2.appendChild(target);
+  container.appendChild(div2);
+
+  return container;
+}
+
+function drawImage() {
+  var args = Array.prototype.slice.call(arguments);
+
+  var div = renderExample('drawImage(' + args.toString() + ')');
+  var canvasEls = div.querySelectorAll('canvas');
+  var canvas1 = canvasEls[0];
+  var canvas2 = canvasEls[1];
+
+  canvas1.width = imageSource.width;
+  canvas1.height = imageSource.height;
+
+  var ctx1 = canvas1.getContext('2d');
+  ctx1.fillStyle = "#00FFFF";
+  ctx1.fillRect(0, 0, imageSource.width, imageSource.height);
+
+  ctx1.fillStyle = "#000000";
+  ctx1.fillRect(5,5,40,40);
+  ctx1.clearRect(10,10,30,30);
+  ctx1.strokeRect(15,15,20,20);
+
+  canvas2.width = destCanvas.width;
+  canvas2.height = destCanvas.height;
+
+  var ctx2 = canvas2.getContext('2d');
+  ctx2.fillStyle = "#FF0000";
+  ctx2.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+  ctx2.imageSmoothingEnabled = smoothingEnabled;
+
+  args.unshift(canvas1);
+  try {
+    ctx2.drawImage.apply(ctx2, args);
+  }
+  catch(err) {
+    var title = div.querySelector('.example-title');
+    var error = document.createElement('h2');
+    error.setAttribute('class', 'example-title error');
+    div.insertBefore(error, title);
+    error.textContent += "Call Failed: " + err.message;
+  }
+
+  document.body.appendChild(div);
+};
+
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test clip-path property with overflow:scroll</title>
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clip-path-property">
+<link rel="match" href="reference/clip-path-scroll-ref.html">
+<html class="reftest-wait">
+<p>The test passes if there is a green square containing text (which can be scrolled
+with mouse wheel or touch). No scrollbars should be seen.</p>
+<div id="target" style="clip-path: polygon(10px 10px, 10px 100px, 100px 100px, 100px 10px);
+            width: 200px; height: 200px; overflow: scroll; background: red">
+  <div style="position: relative; top: 100px;
+              width: 100px; height: 100px; background: green">
+  </div>
+  <div style="height: 1000px"></div>
+</div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    target.scrollTop = 100;
+    document.documentElement.classList.remove("reftest-wait");
+  });
+});
+</script>
+</html>
+

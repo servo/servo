@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Reporting: Order</title>
+<link rel="author" title="Paul Meyer" href="paulmeyer@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<p id="error">No error</p>
+<script>
+  var count = 0;
+  async_test(function(test) {
+    var observer = new ReportingObserver(function(reports) {
+      test.step(function() {
+        // Reports should be received in the same order that they were
+        // generated.
+        for(i in reports) {
+          assert_equals(reports[i].body.message, "" + count++);
+        }
+      });
+
+      if (count == 10)
+        test.done();
+    });
+    observer.observe();
+
+    for (i = 0; i != 10; ++i)
+      test_driver.generate_test_report("" + i);
+  }, "Order");
+</script>
+</body>
+</html>

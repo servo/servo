@@ -1,0 +1,19 @@
+<!doctype html>
+<title>NOT invoking resource selection by inserting parent into a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var v = document.createElement('video');
+  var div = document.createElement('div');
+  div.appendChild(v);
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after div.appendChild(v)');
+  document.body.appendChild(div);
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after document.body.appendChild(div)');
+  window.onload = t.step_func(function() {
+    assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState in window.onload');
+    t.done();
+  });
+});
+</script>

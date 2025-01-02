@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Tests that anchor names are correctly tree-scoped even with style sheet sharing</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#target-anchor-element">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.host {
+  width: 100px;
+  height: 100px;
+}
+
+#host2 {
+  margin-left: 200px;
+}
+</style>
+
+<div class="host" id="host1"></div>
+<div class="host" id="host2"></div>
+
+<script>
+document.querySelectorAll('.host').forEach(host => {
+  let shadow = host.attachShadow({mode: 'open'});
+  shadow.innerHTML = `
+    <style>
+      div { width: 100px; height: 100px; }
+      #anchor { anchor-name: --a; background: orange; }
+      #target {
+        position: fixed;
+        background: lime;
+        left: anchor(--a left);
+        top: anchor(--a bottom);
+      }
+    </style>
+    <div id=anchor>anchor</div>
+    <div id=target>target</div>
+  `;
+});
+
+test(() => {
+  const target1 = host1.shadowRoot.getElementById('target');
+  assert_equals(target1.offsetLeft, 0);
+  assert_equals(target1.offsetTop, 100);
+
+  const target2 = host2.shadowRoot.getElementById('target');
+  assert_equals(target2.offsetLeft, 200);
+  assert_equals(target2.offsetTop, 200);
+}, 'Anchor names in different tree scopes should not be confused');
+</script>

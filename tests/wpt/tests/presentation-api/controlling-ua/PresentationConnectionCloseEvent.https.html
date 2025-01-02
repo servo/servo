@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Constructing a PresentationConnectionCloseEvent</title>
+<link rel="author" title="mark a. foltz" href="https://github.com/markafoltz">
+<link rel="help" href="http://w3c.github.io/presentation-api/#controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  test(() => {
+    let eventWithMessage, eventWithoutMessage;
+    for (let reason of ["error", "closed", "wentaway"]) {
+      eventWithMessage = new PresentationConnectionCloseEvent("close", {reason: reason, message: "A message" });
+      assert_equals(eventWithMessage.type, "close");
+      assert_equals(eventWithMessage.reason, reason);
+      assert_equals(eventWithMessage.message, "A message");
+
+      eventWithoutMessage = new PresentationConnectionCloseEvent("close", {reason: reason});
+      assert_equals(eventWithoutMessage.type, "close");
+      assert_equals(eventWithoutMessage.reason, reason);
+      assert_equals(eventWithoutMessage.message, "");
+    }
+  });
+</script>

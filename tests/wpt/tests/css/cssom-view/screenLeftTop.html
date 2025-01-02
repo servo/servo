@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-window-screenleft">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-window-screentop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_equals(typeof window.screenLeft, "number", "screenLeft type");
+  assert_equals(window.screenLeft, window.screenX, "alias of screenX");
+}, "screenLeft");
+
+test(() => {
+  assert_equals(typeof window.screenTop, "number", "screenTop type");
+  assert_equals(window.screenTop, window.screenY, "alias of screenY");
+}, "screenTop");
+</script>

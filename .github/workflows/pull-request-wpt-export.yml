@@ -1,0 +1,45 @@
+name: WPT Export
+on:
+  pull_request_target:
+    types: ['opened', 'synchronize', 'reopened', 'edited', 'closed']
+    branches: ['main']
+
+jobs:
+  upstream:
+    # Run job only on servo/servo
+    if: github.repository == 'servo/servo'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Calculate PR fetch depth
+        run: echo "PR_FETCH_DEPTH=$(( ${{ github.event.pull_request.commits }} + 1 ))" >> "${GITHUB_ENV}"
+      - name: Check out shallow servo PR
+        run: |
+          git clone --depth 1 ${{ github.event.repository.clone_url}} servo
+          cd servo
+          git fetch origin pull/${{ github.event.pull_request.number}}/head:pr --depth ${{ env.PR_FETCH_DEPTH }}
+      - name: Check out wpt
+        uses: actions/checkout@v4
+        with:
+          path: wpt
+          repository: 'web-platform-tests/wpt'
+          # The token here must be the token that we will use to push to the
+          # WPT repository and not the token used for GitHub actions, because
+          # the checkout action sets up an `extraheader` authorization override
+          # using the token specified here.
+          # See https://github.com/actions/checkout/issues/162.
+          token: ${{ secrets.WPT_SYNC_TOKEN }}
+      - name: Setup Python
+        uses: ./servo/.github/actions/setup-python
+        with:
+          python-version-file-path: ./servo/.python-version
+      - name: Install requirements
+        run: |
+          uv venv
+          uv pip install -r servo/python/requirements.txt
+      - name: Process pull request
+        run: |
+         source .venv/bin/activate
+         servo/python/wpt/export.py
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}

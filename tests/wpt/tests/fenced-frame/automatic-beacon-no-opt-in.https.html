@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons opt out</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async (t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: "fledge",
+    register_beacon: true,
+  });
+  const new_url = new URL("resources/dummy.html", location.href);
+
+  await fencedframe.execute(
+    (new_url) => {
+      addEventListener("click", (event) => {
+        window.open(new_url, "_blank");
+      });
+    },
+    [new_url]
+  );
+
+  // An automatic beacon should not be sent out, as the document did not opt in
+  // through the call to setReportEventDataForAutomaticBeacons(), nor through
+  // the 'Allow-Fenced-Frame-Automatic-Beacons' header.
+  // Set up a timeout to ensure that there's enough time to send any potential
+  // automatic beacons.
+  await actions
+    .pointerMove(0, 0, { origin: fencedframe.element })
+    .pointerDown()
+    .pointerUp()
+    .send();
+  await verifyBeaconData("reserved.top_navigation_start", "<No data>", null,
+      false, t);
+}, "Automatic beacons will not send if the document does not opt in.");
+
+</script>
+</body>

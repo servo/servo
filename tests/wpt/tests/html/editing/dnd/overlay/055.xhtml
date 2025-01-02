@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Drag feedback for partly visible element: absolute position</title>
+<style type="text/css">
+div
+  {position:absolute;
+  top:-150px;
+  left:-150px;
+  height:200px;
+  width:200px;
+  background-color:navy;}
+p
+  {margin-top:100px;}
+</style>
+</head>
+<body>
+<div draggable="true" ondragstart="event.dataTransfer.effectAllowed = 'copy'"/>
+<p>Try to drag blue box above. Feedback overlay should be square.</p>
+</body>
+</html>

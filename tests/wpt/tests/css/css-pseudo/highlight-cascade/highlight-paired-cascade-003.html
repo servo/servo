@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: paired cascade: UA default highlight colors are used when highlight pseudo cascade yields only properties other than highlight colors</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="match" href="highlight-paired-cascade-003-ref.html">
+<meta name="assert" value="This test verifies that setting text-decoration on ::selection does not suppress any UA non-initial used values for color or background-color. While the former is an applicable (shorthand) property for highlight styles, it is not one of the highlight colors (color or background-color), so paired cascade does not apply.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection {
+        /*
+            Used values for color and background-color should be the
+            UA defaults, usually like black on blue or white on blue,
+            *not* initial on initial (like unhighlighted content).
+        */
+        text-decoration: none;
+    }
+</style>
+<p>Test passes if the text below appears to be highlighted.
+<main class="highlight_reftest">quick</main>
+<script>selectNodeContents(document.querySelector("main"));</script>

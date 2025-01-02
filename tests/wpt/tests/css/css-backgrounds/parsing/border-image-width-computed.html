@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: getComputedStyle().borderImageWidth</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image-width">
+<meta name="assert" content="border-image-width computed value is four values, each either a number, the keyword auto, or a computed length-percentage value.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("border-image-width", "0");
+test_computed_value("border-image-width", "1");
+test_computed_value("border-image-width", "auto");
+test_computed_value("border-image-width", "10px");
+test_computed_value("border-image-width", "20%");
+test_computed_value("border-image-width", "calc(20% + 10px)");
+test_computed_value("border-image-width", "calc(-0.5em + 10px)", "0px");
+test_computed_value("border-image-width", "calc(0.5em + 10px)", "30px");
+test_computed_value("border-image-width", "1 auto");
+test_computed_value("border-image-width", "1 auto 10px");
+test_computed_value("border-image-width", "1 auto 10px 20%");
+test_computed_value("border-image-width", "20% 10px auto 1");
+</script>
+</body>
+</html>

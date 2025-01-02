@@ -1,0 +1,8 @@
+docs/
+tools/ci/
+tools/docker/
+tools/lint/
+tools/manifest/
+tools/serve/
+tools/wpt/
+tools/web_features/

@@ -1,0 +1,21 @@
+{
+  "name": "File Handling WPT",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "144x144"
+    }
+  ],
+  "start_url": "../file_handlers-member-manual.tentative.html",
+  "display": "standalone",
+  "scope": "../../file_handlers-member/",
+  "file_handlers": [
+    {
+      "action": "../file_handlers-member-manual.tentative.html",
+      "name": "Plain Text",
+      "accept": {
+        "text/plain": [".txt"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: border-style: hidden applied to table-column</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Marc Pacheco" href="http://marc.baffl.co.uk/contact.php" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties" />
+  <link rel="match" href="border-conflict-style-101-ref.xht" />
+  <meta content="'border-style: hidden' must apply to all elements, including internal table elements. 'hidden' (border-style) is the same as 'none': the computed border width is zero." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 200px;
+  }
+
+  col
+  {
+  border-color: red;
+  border-style: hidden;
+  }
+
+  td
+  {
+  height: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>There should be <strong>no red</strong>, not even thin red lines.</p>
+
+  <table>
+
+      <col></col><col></col>
+
+      <tbody>
+          <tr>
+              <td></td><td></td>
+          </tr>
+
+          <tr>
+              <td></td><td></td>
+          </tr>
+      </tbody>
+
+  </table>
+
+ </body>
+</html>

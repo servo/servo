@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant-east-asian: jis04; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-east-asian-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-east-asian-05-ref.html">
+<meta name="assert" content="Enables rendering of JIS2004 forms (OpenType feature: jp04)">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 3em;
+	  line-height: 1.1;
+  }
+  .high {
+	 font-variant-east-asian: jis04;
+  }
+  .low {
+   font-feature-settings: "jp78" off, "jp83" off, "jp90" off, "jp04" on, "smpl" off,  "trad" off, "fwid" off, "pwid" off, "ruby" off ;
+  }
+</style>
+<body>
+<p>Test passes if the three lines below are identical, with three crosses (✗), one check mark (✓), then five crosses (✗). </p>
+<section class="test">
+	<p class="high">YZabcdefg</p>
+	<p class="low">YZabcdefg</p>
+	<p class="ref">BBBABBBBB</p>
+</section>

@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>CSS Test: Test for baseline alignment of table cells</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+<link rel="match" href="table-vertical-align-baseline-001-ref.xht"/>
+<style type="text/css">
+
+td { vertical-align: baseline; }
+
+</style>
+</head>
+<body>
+
+<table>
+  <tbody><tr>
+    <td style="padding-top: 0"><div style="padding-top: 40px">data</div></td>
+    <td style="padding-top: 12px"><div style="padding-top: 3px">data</div></td>
+    <td style="padding-top: 40px"><div style="padding-top: 0">data</div></td>
+  </tr>
+</tbody></table>
+
+
+
+</body></html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/websocket-cookies-helper.sub.js"></script>
+<script>
+promise_test(() => {
+  var value = '' + Math.random();
+  var origin = WSS_CROSS_SITE_ORIGIN;
+  return setSameSiteCookies(origin, value).then(
+    () => { return connectAndGetRequestCookiesFrom(origin); }
+  ).then(
+    cookies => {
+      assert_not_equals(cookies, '(none)', 'request should contain cookies.');
+      // SameSite cookies are blocked.
+      assertCookie(cookies, 'samesite-unspecified', value, false /* present */);
+      assertCookie(cookies, 'samesite-lax', value, false /* present */);
+      assertCookie(cookies, 'samesite-strict', value, false /* present */);
+      // SameSite=None third-party cookie is not blocked.
+      assertCookie(cookies, 'samesite-none', value, true /* present */);
+      return clearSameSiteCookies(origin);
+    }
+  );
+}, 'Test that third-party cookies are accepted for WebSockets.');
+</script>

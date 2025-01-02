@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>SendBeacon Content-Type header</title>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+  </head>
+  <body>
+    <script src="/common/utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script>
+const RESOURCES_DIR = "/beacon/resources/";
+
+function testContentTypeAndBody(what, expected, title) {
+  function wait(ms) {
+    return new Promise(resolve => step_timeout(resolve, ms));
+  }
+  promise_test(async t => {
+    const id = self.token();
+    const testUrl = new Request(RESOURCES_DIR + "content-type-and-body.py?cmd=put&id=" + id).url;
+    assert_equals(performance.getEntriesByName(testUrl).length, 0);
+    assert_true(navigator.sendBeacon(testUrl, what), "SendBeacon Succeeded");
+
+    do {
+      await wait(50);
+    } while (performance.getEntriesByName(testUrl).length === 0);
+    assert_equals(performance.getEntriesByName(testUrl).length, 1);
+    const checkUrl = RESOURCES_DIR + "content-type-and-body.py?cmd=get&id=" + id;
+    const response = await fetch(checkUrl);
+    const text = await response.text();
+    if (expected.startsWith("multipart/form-data")) {
+      const split = expected.split(":");
+      const contentType = split[0];
+      const contentDisposition = "Content-Disposition: form-data; name=\"" + split[1] + "\"; filename=\"blob\"";
+      assert_true(text.startsWith(contentType), "Correct Content-Type header result");
+      assert_true(text.includes(contentDisposition), "Body included value");
+    } else {
+      assert_equals(text, expected, "Correct Content-Type header result");
+    }
+  }, "Test content-type header for a body " + title);
+}
+
+function stringToArrayBufferView(input) {
+  var buffer = new ArrayBuffer(input.length * 2);
+  var view = new Uint16Array(buffer);
+
+  // dumbly copy over the bytes
+  for (var i = 0, len = input.length; i < len; i++) {
+    view[i] = input.charCodeAt(i);
+  }
+  return view;
+}
+
+function stringToArrayBuffer(input) {
+  var buffer = new ArrayBuffer(input.length * 2);
+  var view = new Uint16Array(buffer);
+
+  // dumbly copy over the bytes
+  for (var i = 0, len = input.length; i < len; i++) {
+    view[i] = input.charCodeAt(i);
+  }
+  return buffer;
+}
+
+function stringToBlob(input) {
+  return new Blob([input], {type: "text/plain"});
+}
+
+function stringToFormData(input) {
+  var formdata = new FormData();
+  formdata.append(input, new Blob(['hi']));
+  return formdata;
+}
+
+function stringToURLSearchParams(input)
+{
+  return new URLSearchParams(input);
+}
+
+testContentTypeAndBody("hi!", "text/plain;charset=UTF-8: hi!", "string");
+testContentTypeAndBody(stringToArrayBufferView("123"), ": 1\0" + "2\0" + "3\0", "ArrayBufferView");
+testContentTypeAndBody(stringToArrayBuffer("123"), ": 1\0" + "2\0" + "3\0", "ArrayBuffer");
+testContentTypeAndBody(stringToBlob("123"), "text/plain: 123", "Blob");
+testContentTypeAndBody(stringToFormData("qwerty"), "multipart/form-data:qwerty", "FormData");
+testContentTypeAndBody(stringToURLSearchParams("key1=value1&key2=value2"), "application/x-www-form-urlencoded;charset=UTF-8: key1=value1&key2=value2", "URLSearchParams");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'/>
+    <title>Vibration API: test that calls to vibrate() are silently ignored when the device cannot vibrate</title>
+    <link rel='author' title='Robin Berjon' href='mailto:robin@berjon.com'/>
+    <link rel='help' href='https://w3c.github.io/vibration/#dfn-perform-vibration'/>
+    <meta name='flags' content='dom, no-vibrator'/>
+    <meta name='assert' content='If the device does not provide a vibration mechanism, or it is disabled, the user agent must silently ignore any invocations of the vibrate() method.'/>
+  </head>
+  <body>
+    <h1>Description</h1>
+    <p>
+      <strong>This test is only useful on devices that do not have vibration capability</strong>.
+      If your device supports vibration, then <strong>skip</strong> this test. An implementation
+      supporting this API but running on a device that cannot vibrate must silently ignore the
+      call (we test that it doesn't throw).
+    </p>
+    <button type="button" id="button">Click here if the device doesn't support vibration</button>
+    <div id='log'></div>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
+    <script>
+      if (undefined !== navigator.vibrate) {
+          async_test(function (t) {
+              var target = document.getElementById('button');
+              target.addEventListener("click", t.step_func_done(function() {
+                  assert_true(navigator.vibrate(1000), "vibrate() returns true when vibration is not supported");
+              }));
+              test_driver.click(target).catch(t.unreached_func("click failed"));
+          }, "Calling vibrate returns true");
+      }
+    </script>
+  </body>
+</html>

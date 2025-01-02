@@ -1,0 +1,12 @@
+<!DOCTYPE HTML>
+<title>Don't crash when mutating style attribute with non-initial transition</title>
+<link rel="help" href="https://crbug.com/1313554">
+<style>
+  #foo { transition: --unset 1s linear; }
+</style>
+<div id=foo style="background-color:red">PASS if no crash</div>
+<script>
+foo.offsetTop;
+foo.style.backgroundColor = 'green';
+foo.offsetTop;
+</script>

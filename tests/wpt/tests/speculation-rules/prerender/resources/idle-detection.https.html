@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+
+assert_true(document.prerendering);
+
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+async function requestIdleDetectionPermission() {
+  const bc = new PrerenderChannel('prerender-channel', uid);
+
+  try {
+    const _ = await IdleDetector.requestPermission();
+    bc.postMessage('unexpected success');
+  } catch (err){
+    bc.postMessage(err.name);
+  } finally {
+    bc.close();
+  }
+}
+
+requestIdleDetectionPermission();
+
+</script>

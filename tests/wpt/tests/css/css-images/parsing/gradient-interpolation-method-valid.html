@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: parsing gradients with color interpolation methods</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#gradients">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#color-interpolation-method">
+<meta name="assert" content="gradients supports the addition of color-interpolation-method to the grammar">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+
+const LINEAR_GRADIENT_SPECIFIERS = [
+    { input: '30deg' },
+    { input: 'to right bottom' },
+];
+
+const RADIAL_GRADIENT_SPECIFIERS = [
+    { input: '50px' },
+    { input: 'ellipse 50% 40em', output: '50% 40em' },
+    { input: 'at right center' },
+];
+
+const CONIC_GRADIENT_SPECIFIERS = [
+    { input: 'from 30deg' },
+    { input: 'at left 10px top 50em' },
+];
+
+const legacy_stops = "red, blue"
+const legacy_stops_with_hint = "red, 50%, blue"
+const non_legacy_stops = "color(srgb 1 0 0), blue"
+
+function test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, stops)
+{
+    for (const specifier of specifiers) {
+        const input = specifier.input
+        const output = specifier.output ? specifier.output : specifier.input
+        test_valid_value(`background-image`, `${gradientFunction}(${input}, ${stops})`, `${gradientFunction}(${output}, ${stops})`)
+    }
+}
+
+function test_gradients(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResult, specifiers, stops) {
+    const resultForNoSpecifierCase = (colorInterpolationMethodResult == "") ? "" : `in ${colorInterpolationMethodResult}, `
+    test_valid_value(`background-image`, `${gradientFunction}(in ${colorInterpolationMethod}, ${stops})`, `${gradientFunction}(${resultForNoSpecifierCase}${stops})`)
+
+    for (const specifier of specifiers) {
+        const input = specifier.input
+        const output = specifier.output ? specifier.output : specifier.input
+        const result = colorInterpolationMethodResult == "" ? ", " : ` in ${colorInterpolationMethodResult}, `
+        test_valid_value(`background-image`, `${gradientFunction}(${input} in ${colorInterpolationMethod}, ${stops})`, `${gradientFunction}(${output}${result}${stops})`)
+        test_valid_value(`background-image`, `${gradientFunction}(in ${colorInterpolationMethod} ${input}, ${stops})`, `${gradientFunction}(${output}${result}${stops})`)
+    }
+}
+
+function test_gradient_with_interpolation_method(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResult, specifiers, stops) {
+    const colorInterpolationMethodResultForLegacyStops = (colorInterpolationMethodResult == "srgb") ? "" : colorInterpolationMethodResult;
+    test_gradients(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResultForLegacyStops, specifiers, legacy_stops)
+    test_gradients(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResultForLegacyStops, specifiers, legacy_stops_with_hint)
+
+    const colorInterpolationMethodResultForNonLegacyStops = (colorInterpolationMethodResult == "oklab") ? "" : colorInterpolationMethodResult;
+    test_gradients(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResultForNonLegacyStops, specifiers, non_legacy_stops)
+}
+
+function test_each_interpolation_method(gradientFunction, specifiers) {
+    test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, legacy_stops)
+    test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, legacy_stops_with_hint)
+    test_gradients_no_specified_interpolation_method(gradientFunction, specifiers, non_legacy_stops)
+
+    for (const colorSpace of [ "lab", "oklab", "srgb", "srgb-linear", "xyz", "xyz-d50", "xyz-d65" ]) {
+        const colorInterpolationMethod = colorSpace
+        const colorInterpolationMethodResult = colorSpace == "xyz" ? "xyz-d65" : colorInterpolationMethod
+
+        test_gradient_with_interpolation_method(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResult, specifiers)
+    }
+
+    for (const colorSpace of [ "hsl", "hwb", "lch", "oklch" ]) {
+        for (const hueInterpolationMethod of [ "", " shorter hue", " longer hue", " increasing hue", " decreasing hue" ]) {
+            const colorInterpolationMethod = `${colorSpace}${hueInterpolationMethod}`
+            const colorInterpolationMethodResult = hueInterpolationMethod == " shorter hue" ? colorSpace : colorInterpolationMethod
+
+            test_gradient_with_interpolation_method(gradientFunction, colorInterpolationMethod, colorInterpolationMethodResult, specifiers)
+        }
+    }
+}
+
+test_each_interpolation_method("linear-gradient", LINEAR_GRADIENT_SPECIFIERS)
+test_each_interpolation_method("radial-gradient", RADIAL_GRADIENT_SPECIFIERS)
+test_each_interpolation_method("conic-gradient", CONIC_GRADIENT_SPECIFIERS)
+
+</script>
+</body>
+</html>

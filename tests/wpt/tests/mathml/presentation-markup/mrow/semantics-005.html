@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>&lt;semantics&gt - mozilla bug 21479</title>
+<meta charset="utf-8"/>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=21479">
+<link rel="help" href="https://w3c.github.io/mathml-core/#semantics-and-presentation">
+<link rel="match" href="semantics-005-ref.html">
+<meta name="assert" content="The embellished operator made of a single mo inside a semantics element is treated the same as the mo alone.">
+<p>
+  <math xmlns="http://www.w3.org/1998/Math/MathML">
+    <mover>
+      <mspace width="300px" height="10px" mathbackground="black"></mspace>
+      <semantics><mo>&#xaf;</mo></semantics>
+    </mover>
+  </math>
+</p>

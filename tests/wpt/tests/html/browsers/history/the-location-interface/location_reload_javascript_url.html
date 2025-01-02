@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_reload_javascript_url</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <iframe></iframe>
+
+    <script>
+    async_test(function(t) {
+      const URL = "/common/blank.html";
+      const URL2 = "/common/blank.html#foo";
+      const JS_URL_TEXT = "javascript generated page";
+      const JS_URL = "javascript:'<html>" + JS_URL_TEXT + "</html>'";
+
+      var iframe = document.querySelector("iframe");
+      var count = 0;
+      iframe.onload = t.step_func(function() {
+        // The URL should initially be "blank.html", and then "blank.html#foo";
+        // The textContent of the iframe's document should initially be blank,
+        // then become js generated text, and then be blank again after reload.
+        switch (count) {
+        case 0:
+          assert_equals(iframe.contentWindow.document.URL,
+                        location.href.replace(location.pathname, URL),
+                        "iframe url (" + count + ")");
+          assert_equals(iframe.contentDocument.body.textContent, "",
+                        "text of blank page");
+          iframe.contentWindow.location = JS_URL;
+          iframe.contentWindow.location = URL2;
+          break;
+        case 1:
+          assert_equals(iframe.contentWindow.document.URL,
+                        location.href.replace(location.pathname, URL2),
+                        "iframe url (" + count + ")");
+          assert_equals(iframe.contentDocument.body.textContent,
+                        JS_URL_TEXT, "text of js generated page");
+          iframe.contentWindow.location.reload();
+          break;
+        case 2:
+          assert_equals(iframe.contentWindow.document.URL,
+                          location.href.replace(location.pathname, URL2),
+                          "iframe url (" + count + ")");
+          assert_equals(iframe.contentDocument.body.textContent, "",
+                        "text of blank page");
+          t.done();
+          break;
+        }
+        count++;
+      });
+      iframe.src = URL;
+    });
+    </script>
+
+  </body>
+</html>

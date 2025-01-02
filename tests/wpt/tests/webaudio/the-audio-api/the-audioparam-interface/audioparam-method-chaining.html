@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      audioparam-method-chaining.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audioparam-testing.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let sampleRate = 8000;
+
+      // Create a dummy array for setValueCurveAtTime method.
+      let curveArray = new Float32Array([5.0, 6.0]);
+
+      // AudioNode dictionary with associated dummy arguments.
+      let methodDictionary = [
+        {name: 'setValueAtTime', args: [1.0, 0.0]},
+        {name: 'linearRampToValueAtTime', args: [2.0, 1.0]},
+        {name: 'exponentialRampToValueAtTime', args: [3.0, 2.0]},
+        {name: 'setTargetAtTime', args: [4.0, 2.0, 0.5]},
+        {name: 'setValueCurveAtTime', args: [curveArray, 5.0, 1.0]},
+        {name: 'cancelScheduledValues', args: [6.0]}
+      ];
+
+      let audit = Audit.createTaskRunner();
+
+      // Task: testing entries from the dictionary.
+      audit.define('from-dictionary', (task, should) => {
+        let context = new AudioContext();
+
+        methodDictionary.forEach(function(method) {
+          let sourceParam = context.createGain().gain;
+          should(
+              sourceParam === sourceParam[method.name](...method.args),
+              'The return value of ' + sourceParam.constructor.name + '.' +
+                  method.name + '()' +
+                  ' matches the source AudioParam')
+              .beEqualTo(true);
+
+        });
+
+        task.done();
+      });
+
+      // Task: test method chaining with invalid operation.
+      audit.define('invalid-operation', (task, should) => {
+        let context = new OfflineAudioContext(1, sampleRate, sampleRate);
+        let osc = context.createOscillator();
+        let amp1 = context.createGain();
+        let amp2 = context.createGain();
+
+        osc.connect(amp1);
+        osc.connect(amp2);
+        amp1.connect(context.destination);
+        amp2.connect(context.destination);
+
+        // The first operation fails with an exception, thus the second one
+        // should not have effect on the parameter value. Instead, it should
+        // maintain the default value of 1.0.
+        should(
+            function() {
+              amp1.gain.setValueAtTime(0.25, -1.0)
+                  .linearRampToValueAtTime(2.0, 1.0);
+            },
+            'Calling setValueAtTime() with a negative end time')
+            .throw(RangeError);
+
+        // The first operation succeeds but the second fails due to zero target
+        // value for the exponential ramp. Thus only the first should have
+        // effect on the parameter value, setting the value to 0.5.
+        should(
+            function() {
+              amp2.gain.setValueAtTime(0.5, 0.0).exponentialRampToValueAtTime(
+                  0.0, 1.0);
+            },
+            'Calling exponentialRampToValueAtTime() with a zero target value')
+            .throw(RangeError);
+
+        osc.start();
+        osc.stop(1.0);
+
+        context.startRendering()
+            .then(function(buffer) {
+              should(amp1.gain.value, 'The gain value of the first gain node')
+                  .beEqualTo(1.0);
+              should(amp2.gain.value, 'The gain value of the second gain node')
+                  .beEqualTo(0.5);
+            })
+            .then(() => task.done());
+      });
+
+      // Task: verify if the method chaining actually works. Create an arbitrary
+      // envelope and compare the result with the expected one created by JS
+      // code.
+      audit.define('verification', (task, should) => {
+        let context = new OfflineAudioContext(1, sampleRate * 4, sampleRate);
+        let constantBuffer = createConstantBuffer(context, 1, 1.0);
+
+        let source = context.createBufferSource();
+        source.buffer = constantBuffer;
+        source.loop = true;
+
+        let envelope = context.createGain();
+
+        source.connect(envelope);
+        envelope.connect(context.destination);
+
+        envelope.gain.setValueAtTime(0.0, 0.0)
+            .linearRampToValueAtTime(1.0, 1.0)
+            .exponentialRampToValueAtTime(0.5, 2.0)
+            .setTargetAtTime(0.001, 2.0, 0.5);
+
+        source.start();
+
+        context.startRendering()
+            .then(function(buffer) {
+              let expectedEnvelope =
+                  createLinearRampArray(0.0, 1.0, 0.0, 1.0, sampleRate);
+              expectedEnvelope.push(...createExponentialRampArray(
+                  1.0, 2.0, 1.0, 0.5, sampleRate));
+              expectedEnvelope.push(...createExponentialApproachArray(
+                  2.0, 4.0, 0.5, 0.001, sampleRate, 0.5));
+
+              // There are slight differences between JS implementation of
+              // AudioParam envelope and the internal implementation. (i.e.
+              // double/float and rounding up) The error threshold is adjusted
+              // empirically through the local testing.
+              should(buffer.getChannelData(0), 'The rendered envelope')
+                  .beCloseToArray(
+                      expectedEnvelope, {absoluteThreshold: 4.0532e-6});
+            })
+            .then(() => task.done());
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="pointerevent_support.js"></script>
+
+<h1>PointerEvent: Verifies that mouse boundary events don't point to shadow-dom</h1>
+
+<input id="target" style="margin: 20px">
+
+<script>
+  function name(node) {
+    return node? node.tagName : "(null)";
+  }
+
+  function get_event_details(e) {
+      return e.type + " target=" + name(e.target) + " relatedTarget=" + name(e.relatedTarget);
+  }
+
+  function events_match_expected(actualEvents, expectedEventDetails) {
+      if (actualEvents.length != expectedEventDetails.length)
+        return false;
+
+      let actualEventDetails = actualEvents.map(e => get_event_details(e));
+      return (expectedEventDetails.every(expected => actualEventDetails.includes(expected)) &&
+              arePointerEventsBeforeCompatMouseEvents(actualEvents) &&
+              actualEventDetails[0] == expectedEventDetails[0]);
+  }
+
+  promise_test(async () => {
+    let rect = document.getElementById("target").getBoundingClientRect();
+    let targetEvents = ["mouseout", "pointerout", "mouseover", "pointerover"];
+    let receivedEvents = [];
+    var moveReceived = false;
+
+    targetEvents.forEach(function(eventName) {
+      window.addEventListener(eventName, function(e) {
+        receivedEvents.push(e);
+      });
+    });
+
+    window.addEventListener('pointermove', () => { moveReceived = true; });
+
+    await new test_driver.Actions()
+               .addPointer("default-mouse")
+               .pointerMove(Math.ceil(rect.left - 10), Math.ceil(rect.top - 10))
+               .send()
+    await resolveWhen(() => { return moveReceived == true });
+
+    moveReceived = false;
+    receivedEvents.length = 0;
+    await new test_driver.Actions()
+               .addPointer("default-mouse")
+               .pointerMove(Math.ceil(rect.left + 10), Math.ceil(rect.top + 10))
+               .send()
+    await resolveWhen(() => { return moveReceived == true });
+
+    let intoInputExpected = [
+      "pointerout target=BODY relatedTarget=INPUT",
+      "pointerover target=INPUT relatedTarget=BODY",
+      "mouseout target=BODY relatedTarget=INPUT",
+      "mouseover target=INPUT relatedTarget=BODY",
+    ];
+    assert_true(events_match_expected(receivedEvents, intoInputExpected), "Moved into <input>");
+
+
+    moveReceived = false;
+    receivedEvents.length = 0;
+    await new test_driver.Actions()
+               .addPointer("default-mouse")
+               .pointerMove(Math.ceil(rect.left - 10), Math.ceil(rect.top - 10))
+               .send()
+    await resolveWhen(() => { return moveReceived == true });
+
+    let outOfInputExpected = [
+      "pointerout target=INPUT relatedTarget=BODY",
+      "pointerover target=BODY relatedTarget=INPUT",
+      "mouseout target=INPUT relatedTarget=BODY",
+      "mouseover target=BODY relatedTarget=INPUT",
+    ];
+    assert_true(events_match_expected(receivedEvents, outOfInputExpected), "Moved out of <input>");
+  }, "PointerEvent: Verifies that mouse boundary events don't point to shadow-dom");
+</script>

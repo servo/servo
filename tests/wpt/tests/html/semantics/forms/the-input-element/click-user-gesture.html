@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test click() user gesture for pickers</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type=module>
+import inputTypes from "./input-types.js";
+
+const pickerTypes = ['color', 'date', 'datetime-local', 'file', 'month', 'time', 'week'];
+
+for (const inputType of pickerTypes) {
+  promise_test(async t => {
+    const input = document.createElement("input");
+    input.setAttribute("type", inputType);
+
+    await test_driver.bless('click');
+    input.click();
+    input.blur();
+  }, `input[type=${inputType}] click() does not throw when user activation is active`);
+}
+
+for (const inputType of pickerTypes) {
+  promise_test(async () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', inputType);
+
+    await test_driver.bless('click');
+    input.click();
+    input.blur();
+
+    assert_false(navigator.userActivation.isActive);
+  }, `input[type=${inputType}] click() consumes user activation`);
+}
+</script>

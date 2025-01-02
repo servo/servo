@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering can access cache storage</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const cacheName = token();
+  const cache = await caches.open(cacheName);
+  await cache.add('resources/cache.txt');
+  t.add_cleanup(() => caches.delete(cacheName));
+  const response = await cache.match('resources/cache.txt');
+  const cacheText = await (response ? response.text() : 'primary cache match failed');
+
+  const {exec} = await create_prerendered_page(t);
+  const result = await exec(async cacheName => {
+    const cache = await caches.open(cacheName);
+    const match = await cache.match('cache.txt');
+    return await match.text();
+  }, [cacheName]);
+
+  assert_equals(
+    result, cacheText,
+    'prerendering page should be able to read from cache storage.');
+}, 'prerendering page should be able to access cache storage')
+
+</script>

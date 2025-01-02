@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>compute the kind of widget: transition origin without author origin style before the transition</title>
+<link rel="match" href="appearance-transition-002-ref.html">
+<style>
+  input {
+    transition: background-color 1e10s steps(2, start);
+  }
+
+  .bg200 {
+    background-color: rgb(0, 200, 0);
+  }
+</style>
+<input value="text" id=input>
+<script>
+  document.documentElement.offsetTop;
+  input.classList.toggle('bg200');
+</script>
+<p>PASS if the input field has a light green background</p>

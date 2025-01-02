@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Backspace/Delete in inline editing host which is a shadow root</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const shadowRoot = document.body.firstChild.attachShadow({mode: "open"});
+  const editingHost = document.createElement("span");
+  editingHost.setAttribute("contenteditable", "");
+  shadowRoot.appendChild(editingHost);
+  const utils = new EditorTestUtils(editingHost);
+
+  promise_test(async t => {
+    utils.setupEditingHost("ab[]c");
+    await utils.sendBackspaceKey();
+    assert_equals(
+      editingHost.textContent,
+      "ac"
+    );
+  }, "Backspace at <span contenteditable>ab[]c</span>");
+
+  promise_test(async t => {
+    utils.setupEditingHost("a[]bc");
+    await utils.sendDeleteKey();
+    assert_equals(
+      editingHost.textContent,
+      "ac"
+    );
+  }, "Delete at <span contenteditable>a[]bc</span>");
+
+  promise_test(async t => {
+    utils.setupEditingHost("a[b]c");
+    await utils.sendBackspaceKey();
+    assert_equals(
+      editingHost.textContent,
+      "ac"
+    );
+  }, "Backspace at <span contenteditable>a[b]c</span>");
+
+  promise_test(async t => {
+    utils.setupEditingHost("a[b]c");
+    await utils.sendDeleteKey();
+    assert_equals(
+      editingHost.textContent,
+      "ac"
+    );
+  }, "Delete at <span contenteditable>a[b]c</span>");
+}, {once: true});
+</script>
+</head>
+<body><div></div></body>
+</html>

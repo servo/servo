@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): :focus behavior with shadow hosts & delegatesFocus </title>
+  <link rel="author" title="Rakina Zata Amni" href="rakina@chromium.org" />
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/semantics-other.html#selector-focus" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/shadow-utils.js"></script>
+</head>
+
+<body>
+<input>
+
+<script>
+function createFocusableDiv() {
+  const div = document.createElement("div");
+  div.innerText = "foo";
+  div.tabIndex = 0;
+  return div;
+}
+
+function createShadowHost(delegatesFocus, container) {
+  const host = document.createElement("div");
+  host.attachShadow({ mode: "open", delegatesFocus: delegatesFocus });
+  container.appendChild(host);
+  return host;
+}
+
+const delegatesFocusValues = [true, false];
+
+for (const delegatesFocus of delegatesFocusValues) {
+  test(() => {
+    resetFocus();
+    const host = createShadowHost(delegatesFocus, document.body);
+    const shadowChild = createFocusableDiv();
+    host.shadowRoot.appendChild(shadowChild);
+
+    shadowChild.focus();
+    assert_true(shadowChild.matches(":focus"), "element in shadow tree matches :focus");
+    assert_true(host.matches(":focus"), "host matches :focus");
+  }, `:focus applies to host with delegatesFocus=${delegatesFocus} when the shadow root's descendant has focus`);
+
+  test(() => {
+    resetFocus();
+    const host = createShadowHost(delegatesFocus, document.body);
+    const slotted = createFocusableDiv();
+    host.shadowRoot.appendChild(document.createElement("slot"));
+    host.appendChild(slotted);
+
+    slotted.focus();
+    assert_true(slotted.matches(":focus"), "slotted element matches :focus");
+    assert_false(host.matches(":focus"), "host matches :focus");
+  }, `:focus does not apply to host with delegatesFocus=${delegatesFocus} when slotted element has focus`);
+
+  for (const nestedDelegatesFocus of delegatesFocusValues) {
+    test(() => {
+      resetFocus();
+      const host = createShadowHost(delegatesFocus, document.body);
+      const nestedHost = createShadowHost(nestedDelegatesFocus, host.shadowRoot);
+      const nestedShadowChild = createFocusableDiv();
+      nestedHost.shadowRoot.appendChild(nestedShadowChild);
+      nestedShadowChild.focus();
+      assert_true(nestedShadowChild.matches(":focus"), "element in nested shadow tree matches :focus");
+      assert_true(nestedHost.matches(":focus"), "host of nested shadow tree matches focus");
+      assert_true(host.matches(":focus"), "topmost host matches focus");
+    }, `:focus applies to host with delegatesFocus=${delegatesFocus} when an element in a nested shadow tree with delegatesFocus=${nestedDelegatesFocus} is focused`);
+
+    test(() => {
+      resetFocus();
+      const host = createShadowHost(delegatesFocus, document.body);
+      const nestedHost = createShadowHost(nestedDelegatesFocus, host.shadowRoot);
+      const nestedShadowChild = createFocusableDiv();
+      nestedHost.shadowRoot.appendChild(nestedShadowChild);
+      // All nested shadow hosts should has :focus applied
+      nestedShadowChild.focus();
+
+      const elementOutsideOfShadowDOM = document.querySelector("input");
+      // Move the focus to an element which is outside of the nested
+      // shadow DOM trees
+      elementOutsideOfShadowDOM.focus();
+
+      assert_false(nestedShadowChild.matches(":focus"), "element in nested shadow tree doesn't matche :focus");
+      assert_false(nestedHost.matches(":focus"), "host of nested shadow tree doesn't match focus");
+      assert_false(host.matches(":focus"), "topmost host matches focus");
+      assert_true(elementOutsideOfShadowDOM.matches(":focus"), "The element outside of shadow dom matches :focus");
+    }, `:focus should be removed from hosts with delegatesFocus=${delegatesFocus} when none of the elements in a nested shadow tree with delegatesFocus=${nestedDelegatesFocus} is focused`);
+  }
+}
+</script>
+</body>

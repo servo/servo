@@ -1,0 +1,15 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:math="http://www.w3.org/1998/Math/MathML">
+<head>
+<script>
+function boom()
+{
+  var span = document.getElementById("s");
+  var newSpan = document.createElementNS("http://www.w3.org/1999/xhtml", "span");
+  span.appendChild(newSpan);
+}
+</script>
+</head>
+<body onload="boom();">
+<math:math><span id="s"><div/></span></math:math>
+</body>
+</html>

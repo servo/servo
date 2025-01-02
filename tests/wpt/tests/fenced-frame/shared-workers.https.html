@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<title>Test shared workers aren't shared across fenced frame boundaries.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext();
+  const worker = new SharedWorker(
+      "/fenced-frame/resources/shared-worker.js");
+
+  const messagePromise = new Promise((resolve, reject) => {
+    worker.port.onmessage = evt => {
+      // The main frame should not get a postMessage from the fenced frame's
+      // SharedWorker, even though the main frame and fenced frame are
+      // same-origin to each other.
+      reject();
+    };
+  });
+  await fencedframe.execute(async () => {
+    // The worker will take anything postMessaged to it and postMessage it to
+    // all registered ports.
+    const worker = new SharedWorker(
+        "/fenced-frame/resources/shared-worker.js");
+    worker.port.postMessage("message");
+    await new Promise((resolve) => {
+      // Sanity check that the postMessage() is making to the fenced frame.
+      worker.port.onmessage = evt => {
+        resolve();
+      };
+    });
+  });
+  const timeout = new Promise(r => t.step_timeout(r, 1000));
+  await Promise.race([messagePromise, timeout]);
+
+}, 'Shared workers should not be shared across fenced frame boundaries');
+</script>
+</body>

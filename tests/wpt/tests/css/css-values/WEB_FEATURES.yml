@@ -1,0 +1,55 @@
+features:
+- name: abs-sign
+  files:
+  - signs-abs-*
+- name: cap
+  files:
+  - cap-*
+- name: rcap
+  files:
+  - rcap-*
+- name: exp-functions
+  files:
+  - exp-log-*
+  - hypot-pow-sqrt-*
+- name: ic
+  files:
+  - ic-*
+- name: ric
+  files:
+  - ric-*
+- name: lh
+  files:
+  - lh-*
+- name: rlh
+  files:
+  - rlh-*
+- name: ch
+  files:
+  - ch-*
+- name: rch
+  files:
+  - rch-*
+- name: rex
+  files:
+  - rex-*
+- name: round-mod-rem
+  files:
+  - round-function.html
+  - round-mod-rem-*
+- name: trig-functions
+  files:
+  - acos-asin-atan-atan2-*
+  - sin-cos-tan-*
+- name: calc-constants
+  files:
+  - calc-infinity-*
+- name: viewport-unit-variants
+  files:
+  - viewport-units-compute.html
+  - viewport-units-invalidation.html
+  - viewport-units-keyframes.html
+  - viewport-units-media-queries.html
+  - viewport-units-parsing.html
+  - viewport-units-writing-mode-font-size.html
+  - viewport-units-writing-mode.html

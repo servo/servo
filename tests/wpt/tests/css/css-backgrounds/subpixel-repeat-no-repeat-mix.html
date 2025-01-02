@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Background Test: Mixing background-repeat: repeat and no-repeat, subpixel sizes</title>
+  <link rel="author" title="schenney" href="mailto:schenney@chromium.org">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size">
+  <link rel="match" href="reference/subpixel-repeat-no-repeat-mix-ref.html">
+  <style>
+    div.x {
+      position: absolute;
+      left: 20px;
+      top: 10px;
+      width: 116.8px;
+      height: 10px;
+      background-image: url("resources/green-right.png");
+      background-position-x: right;
+      background-repeat: repeat-y;
+      background-size: 116.8px 0.8px;
+    }
+    div.y {
+      position: absolute;
+      left: 10px;
+      top: 20px;
+      width: 10px;
+      height: 116.8px;
+      background-image: url("resources/green-bottom.png");
+      background-position-y: bottom;
+      background-repeat: repeat-x;
+      background-size: 0.8px 116.8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="y"></div>
+  <div class="x"></div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<body>
+  <div>
+    The permission element min-width/height should not be allowed to exceeed the maximum
+    allowed value for max-width/height.
+  </div>
+
+<style>
+  #id1 {
+    font-size: 10px;
+    height: 30px;
+    border: 0px;
+    /* Used to determine the "fit-content" width value which is used
+       to set the width to 3 * fit-content.
+    */
+    width: fit-content;
+  }
+  #id2 {
+    font-size: 10px;
+    height: 10px;
+    border: 0px;
+    width: fit-content;
+  }
+</style>
+
+<div><permission id="id1" type="geolocation"></div>
+<div><permission id="id2" type="camera"></div>
+<script>
+  el = document.getElementById("id1");
+  let w = getComputedStyle(el).width;
+  el.style.width = `calc(3 * ${w})`; // 3 * fit-content
+</script>
+</body>

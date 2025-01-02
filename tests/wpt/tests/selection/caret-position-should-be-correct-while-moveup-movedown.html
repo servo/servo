@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      .vertical-lr {
+        writing-mode: vertical-lr;
+        border: 1px solid black;
+        padding: 10px;
+        width: 100px;
+        height: 200px;
+      }
+      .vertical-rl {
+        writing-mode: vertical-rl;
+        border: 1px solid black;
+        padding: 10px;
+        width: 100px;
+        height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div contenteditable id="horizontal">text1<br />text2</div>
+    <div contenteditable class="vertical-lr" id="vertical_lr">
+      text1<br />
+      text2
+    </div>
+    <div contenteditable class="vertical-rl" id="vertical_rl">
+      text1<br />
+      text2
+    </div>
+
+    <script>
+      const horizontal = document.getElementById("horizontal");
+      const verticalLR = document.getElementById("vertical_lr");
+      const verticalRL = document.getElementById("vertical_rl");
+      const tests = [
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[2],
+          endNode: horizontal.childNodes[0],
+          anchorOffset: horizontal.childNodes[2].textContent.indexOf(
+            horizontal.childNodes[2].textContent.trim()
+          ),
+          focusOffset:
+            horizontal.childNodes[2].textContent.indexOf(
+              horizontal.childNodes[2].textContent.trim()
+            ) + horizontal.childNodes[2].textContent.trim().length,
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in moving up horizontal div when selection was left to right with line granularity",
+        },
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[2],
+          endNode: horizontal.childNodes[0],
+          anchorOffset:
+            horizontal.childNodes[2].textContent.indexOf(
+              horizontal.childNodes[2].textContent.trim()
+            ) + horizontal.childNodes[2].textContent.trim().length,
+          focusOffset: horizontal.childNodes[2].textContent.indexOf(
+            horizontal.childNodes[2].textContent.trim()
+          ),
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in moving up horizontal div when selection was right to left with line granularity",
+        },
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[0],
+          endNode: horizontal.childNodes[2],
+          anchorOffset: horizontal.childNodes[0].textContent.indexOf(
+            horizontal.childNodes[0].textContent.trim()
+          ),
+          focusOffset:
+            horizontal.childNodes[0].textContent.indexOf(
+              horizontal.childNodes[0].textContent.trim()
+            ) + horizontal.childNodes[0].textContent.trim().length,
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in moving down horizontal div when selection was left to right with line granularity",
+        },
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[0],
+          endNode: horizontal.childNodes[2],
+          anchorOffset:
+            horizontal.childNodes[0].textContent.indexOf(
+              horizontal.childNodes[0].textContent.trim()
+            ) + horizontal.childNodes[0].textContent.trim().length,
+          focusOffset: horizontal.childNodes[0].textContent.indexOf(
+            horizontal.childNodes[0].textContent.trim()
+          ),
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in moving down horizontal div when selection was right to left with line granularity",
+        },
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[2],
+          endNode: horizontal.childNodes[0],
+          anchorOffset: horizontal.childNodes[2].textContent.indexOf(
+            horizontal.childNodes[2].textContent.trim()
+          ),
+          focusOffset:
+            horizontal.childNodes[2].textContent.indexOf(
+              horizontal.childNodes[2].textContent.trim()
+            ) + horizontal.childNodes[2].textContent.trim().length,
+          direction: "backward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in moving up horizontal div when selection was left to right with paragraph granularity",
+        },
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[2],
+          endNode: horizontal.childNodes[0],
+          anchorOffset:
+            horizontal.childNodes[2].textContent.indexOf(
+              horizontal.childNodes[2].textContent.trim()
+            ) + horizontal.childNodes[2].textContent.trim().length,
+          focusOffset: horizontal.childNodes[2].textContent.indexOf(
+            horizontal.childNodes[2].textContent.trim()
+          ),
+          direction: "backward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in moving up horizontal div when selection was right to left with paragraph granularity",
+        },
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[0],
+          endNode: horizontal.childNodes[2],
+          anchorOffset: horizontal.childNodes[0].textContent.indexOf(
+            horizontal.childNodes[0].textContent.trim()
+          ),
+          focusOffset:
+            horizontal.childNodes[0].textContent.indexOf(
+              horizontal.childNodes[0].textContent.trim()
+            ) + horizontal.childNodes[0].textContent.trim().length,
+          direction: "forward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in moving down horizontal div when selection was left to right with paragraph granularity",
+        },
+        {
+          elementUnderTest: horizontal,
+          startNode: horizontal.childNodes[0],
+          endNode: horizontal.childNodes[2],
+          anchorOffset:
+            horizontal.childNodes[0].textContent.indexOf(
+              horizontal.childNodes[0].textContent.trim()
+            ) + horizontal.childNodes[0].textContent.trim().length,
+          focusOffset: horizontal.childNodes[0].textContent.indexOf(
+            horizontal.childNodes[0].textContent.trim()
+          ),
+          direction: "forward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in moving down horizontal div when selection was right to left with paragraph granularity",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move right with line granularity for vertical-lr div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move right with line granularity for vertical-lr div when selection was bottom to top",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move left with line granularity for vertical-lr div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move left with line granularity for vertical-lr div when selection was bottom to top",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          direction: "forward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in move right with paragraph granularity for vertical-lr div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          direction: "forward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in move right with paragraph granularity for vertical-lr div when selection was bottom to top",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          direction: "backward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in move left with paragraph granularity for vertical-lr div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          direction: "backward",
+          granularity: "paragraph",
+          description:
+            "Caret position should be correct in move left with paragraph granularity for vertical-lr div when selection was bottom to top",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move left with line granularity for vertical-rl div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move left with line granularity for vertical-rl div when selection was bottom to top",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move right with line granularity for vertical-rl div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move right with line granularity for vertical-rl div when selection was bottom to top",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move left with paragraph granularity for vertical-rl div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[0],
+          endNode: verticalLR.childNodes[2],
+          anchorOffset:
+            verticalLR.childNodes[0].textContent.indexOf(
+              verticalLR.childNodes[0].textContent.trim()
+            ) + verticalLR.childNodes[0].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[0].textContent.indexOf(
+            verticalLR.childNodes[0].textContent.trim()
+          ),
+          direction: "forward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move left with paragraph granularity for vertical-rl div when selection was bottom to top",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          focusOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move right with paragraph granularity for vertical-rl div when selection was top to bottom",
+        },
+        {
+          elementUnderTest: verticalLR,
+          startNode: verticalLR.childNodes[2],
+          endNode: verticalLR.childNodes[0],
+          anchorOffset:
+            verticalLR.childNodes[2].textContent.indexOf(
+              verticalLR.childNodes[2].textContent.trim()
+            ) + verticalLR.childNodes[2].textContent.trim().length,
+          focusOffset: verticalLR.childNodes[2].textContent.indexOf(
+            verticalLR.childNodes[2].textContent.trim()
+          ),
+          direction: "backward",
+          granularity: "line",
+          description:
+            "Caret position should be correct in move right with paragraph granularity for vertical-rl div when selection was bottom to top",
+        },
+      ];
+      for (const testData of tests) {
+        test(function () {
+          // Get the selection object and set startNode to it.
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.setBaseAndExtent(
+            testData.startNode,
+            testData.anchorOffset,
+            testData.startNode,
+            testData.focusOffset
+          );
+          // Modify the selection as per the direction and granularity of the test
+          testData.elementUnderTest.focus();
+          selection.modify(
+            "move",
+            testData.direction,
+            testData.granularity
+          );
+          // After modification, the selection should should have collapsed and should be on the endNode of the test with offset same as the initial focus offset
+          assert_true(selection.isCollapsed);
+          assert_equals(selection.focusOffset, testData.focusOffset);
+          assert_equals(selection.focusNode, testData.endNode);
+        }, testData.description);
+      }
+    </script>
+  </body>
+</html>

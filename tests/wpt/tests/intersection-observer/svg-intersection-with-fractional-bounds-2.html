@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>IntersectionObserver observing an SVG &lt;rect> with fractional bounds element</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/intersection-observer-test-utils.js"></script>
+
+<svg id="container" width="1" height="1" viewBox="0 0 1000 1000" style="background: lightblue; position: absolute; top: 0; left: 0;">
+  <rect id="target" x="0" y="-3" width="4" height="4" fill="green"></rect>
+</svg>
+
+<script>
+  setup(() => {
+    window.entries = [];
+    window.target = document.getElementById("target");
+    window.targetRect = target.getBoundingClientRect();
+  });
+  var epsilon = 0.0001;
+  runTestCycle(function() {
+    assert_true(!!target, "target exists");
+    var observer = new IntersectionObserver(changes => {
+        entries = entries.concat(changes);
+      }, {root: container, threshold: [0, 0.25, 0.5, 0.7, 1]});
+    observer.observe(target);
+    entries = entries.concat(observer.takeRecords());
+    assert_equals(entries.length, 0, "No initial notifications");
+    runTestCycle(step0, "Initial Observation");
+  });
+  function step0() {
+    target.setAttribute('y', -2);
+    runTestCycle(step1, "Changing target y position to -2 (-0.002 in root coordinates)");
+    checkLastEntry(entries, 0, [
+      0, 0.004, -0.003, 0.001,
+      0, 0.004, 0, 0.001,
+      0, 1, 0, 1,
+      true,
+    ], epsilon);
+  }
+  function step1() {
+    target.setAttribute('y', -1);
+    runTestCycle(step2, "Changing target y position to -1 (-0.001 in root coordinates)");
+    checkLastEntry(entries, 1, [
+      0, 0.004, -0.002, 0.002,
+      0, 0.004, 0, 0.002,
+      0, 1, 0, 1,
+      true,
+    ], epsilon);
+  }
+  function step2() {
+    target.setAttribute('y', -4);
+    runTestCycle(step3, "Changing target y position to -4 (-0.004 in root coordinates)");
+    checkLastEntry(entries, 2, [
+      0, 0.004, -0.001, 0.003,
+      0, 0.004, 0, 0.003,
+      0, 1, 0, 1,
+      true,
+    ], epsilon);
+  }
+  function step3() {
+    target.setAttribute('y', 0);
+    runTestCycle(step4, "Changing target y position to 0");
+    checkLastEntry(entries, 3, [
+      0, 0.004, -0.004, 0,
+      0, 0.004, 0, 0,
+      0, 1, 0, 1,
+      true,
+    ], epsilon);
+  }
+  function step4() {
+    checkLastEntry(entries, 4, [
+      0, 0.004, 0, 0.004,
+      0, 0.004, 0, 0.004,
+      0, 1, 0, 1,
+      true,
+    ], epsilon);
+  }
+</script>

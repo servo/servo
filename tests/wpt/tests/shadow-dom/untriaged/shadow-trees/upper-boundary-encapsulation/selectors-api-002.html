@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Upper-boundary encapsulation: shadow root's Selector APIs</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: Nodes in a shadow tree must be accessible through selector APIs of the shadow root.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+// Return a document containing the structure below:
+//
+// <body> - - - - - {shadow-root}
+//   |                    |
+//   |                    +-- <p class="test-class" id="test-id">
+//   |
+//   +-- <p class="test-class" id="test-id">
+function createTestDocument() {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var pHost = doc.createElement('p');
+    pHost.className = 'test-class';
+    pHost.id = 'test-id';
+    doc.body.appendChild(pHost);
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    var pShadow = doc.createElement('p');
+    pShadow.className = 'test-class';
+    pShadow.id = 'test-id';
+    shadowRoot.appendChild(pShadow);
+    return {
+        doc: doc,
+        shadowRoot: shadowRoot,
+        pHost: pHost,
+        pShadow: pShadow
+    };
+}
+
+test(function () {
+    var documentObject = createTestDocument();
+    var shadowRoot = documentObject.shadowRoot;
+    var pShadow = documentObject.pShadow;
+    assert_equals(shadowRoot.querySelector('p'), pShadow);
+    assert_equals(shadowRoot.querySelector('.test-class'), pShadow);
+    assert_equals(shadowRoot.querySelector('#test-id'), pShadow);
+},
+    'Elements in a shadow tree should be accessible from ' +
+    'shadow root\'s querySelector() method.'
+);
+
+function assert_singleton_node_list(nodeList, expectedNode) {
+    assert_equals(nodeList.length, 1);
+    assert_equals(nodeList[0], expectedNode);
+}
+
+test(function () {
+    var documentObject = createTestDocument();
+    var shadowRoot = documentObject.shadowRoot;
+    var pShadow = documentObject.pShadow;
+    assert_singleton_node_list(shadowRoot.querySelectorAll('p'), pShadow);
+    assert_singleton_node_list(shadowRoot.querySelectorAll('.test-class'),
+                               pShadow);
+    assert_singleton_node_list(shadowRoot.querySelectorAll('#test-id'),
+                               pShadow);
+},
+    'Elements in a shadow tree should be accessible from ' +
+    'shadow root\'s querySelectorAll() method.'
+);
+</script>
+</body>
+</html>

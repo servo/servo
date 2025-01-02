@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<div id="test-container"></div>
+
+<script>
+async function setup_test() {
+  const test_container = document.querySelector("#test-container");
+  test_container.setHTMLUnsafe(`
+    <div id="host1">
+      <template shadowrootmode="open" shadowrootreferencetarget="label1">
+        <span>Outside the label</span>
+        <label id="label1">Label 1</label>
+        <label id="label2">Label 2</label>
+      </template>
+    </div>
+    <input id="input1" aria-labelledby="host1">`);
+  const input1 = test_container.querySelector("#input1");
+  assert_equals(await test_driver.get_computed_label(input1), "Label 1");
+  return test_container
+}
+
+promise_test(async t => {
+  const test_container = await setup_test();
+  const host1 = test_container.querySelector("#host1");
+  const label1 = host1.shadowRoot.querySelector("#label1");
+  label1.id = "changed";
+  assert_equals(await test_driver.get_computed_label(input1), "Outside the label Label 1 Label 2");
+}, "Changing the ID of the referenced element updates the computed label");
+
+promise_test(async t => {
+  const test_container = await setup_test();
+  const host1 = test_container.querySelector("#host1");
+  const label1 = host1.shadowRoot.querySelector("#label1");
+  label1.remove();
+  assert_equals(await test_driver.get_computed_label(input1), "Outside the label Label 2");
+}, "Removing the referenced element updates the computed label");
+
+promise_test(async t => {
+  const test_container = await setup_test();
+  const host1 = test_container.querySelector("#host1");
+  const new_label = document.createElement("label");
+  new_label.id = "label1";
+  new_label.textContent = "New label";
+  host1.shadowRoot.prepend(new_label);
+  assert_equals(await test_driver.get_computed_label(input1), "New label");
+}, "New referenced element prepended to the shadow supercedes the existing label");
+
+promise_test(async t => {
+  const test_container = await setup_test();
+  const host1 = test_container.querySelector("#host1");
+  host1.shadowRoot.referenceTarget = "label2";
+  assert_equals(await test_driver.get_computed_label(input1), "Label 2");
+}, "Changing the reference target ID updates the computed label");
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+
+<script>
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-midi.https.html) loads the initiator page,
+// then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  const promise = new Promise((resolve, reject) => {
+    navigator.requestMIDIAccess({sysex: params.get("sysex") === "true"}).then(
+      _ => { resolve(); },
+      e => {
+        // Chromium rejects the promise on trybots with an error like:
+        // ALSA lib seq_hw.c:457:(snd_seq_hw_open) open /dev/snd/seq failed:
+        //   Permission denied
+        //
+        // See https://crbug.com/371230 for a similar bug.
+        //
+        // Just ignore any errors for now. The test passes if the promise
+        // settles after activation.
+        resolve();
+      });
+  });
+  prerenderEventCollector.start(promise, 'navigator.requestMIDIAccess');
+}
+
+</script>

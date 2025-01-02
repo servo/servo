@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: text-transform - Latin1 uppercase</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/text.html#caps-prop' />
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property"/>
+<link rel="match" href="text-transform-bicameral-001-ref.xht"/>
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-text-transform/generate?test=1' />
+<meta name="assert" content="The UA will uppercase all letters in the Latin 1 set when text-transform is set to uppercase." />
+<style type='text/css'>
+.test span { text-transform: uppercase; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the right-hand character in each pair matches the left-hand one.</p>
+
+
+<div class="test">
+<div>A <span>a</span></div>
+<div>B <span>b</span></div>
+<div>C <span>c</span></div>
+<div>D <span>d</span></div>
+<div>E <span>e</span></div>
+<div>F <span>f</span></div>
+<div>G <span>g</span></div>
+<div>H <span>h</span></div>
+<div>I <span>i</span></div>
+<div>J <span>j</span></div>
+<div>K <span>k</span></div>
+<div>L <span>l</span></div>
+<div>M <span>m</span></div>
+<div>N <span>n</span></div>
+<div>O <span>o</span></div>
+<div>P <span>p</span></div>
+<div>Q <span>q</span></div>
+<div>R <span>r</span></div>
+<div>S <span>s</span></div>
+<div>T <span>t</span></div>
+<div>U <span>u</span></div>
+<div>V <span>v</span></div>
+<div>W <span>w</span></div>
+<div>X <span>x</span></div>
+<div>Y <span>y</span></div>
+<div>Z <span>z</span></div>
+<div>À <span>à</span></div>
+<div>Á <span>á</span></div>
+<div>Â <span>â</span></div>
+<div>Ã <span>ã</span></div>
+<div>Ä <span>ä</span></div>
+<div>Å <span>å</span></div>
+<div>Æ <span>æ</span></div>
+<div>Ç <span>ç</span></div>
+<div>È <span>è</span></div>
+<div>É <span>é</span></div>
+<div>Ê <span>ê</span></div>
+<div>Ë <span>ë</span></div>
+<div>Ì <span>ì</span></div>
+<div>Í <span>í</span></div>
+<div>Î <span>î</span></div>
+<div>Ï <span>ï</span></div>
+<div>Ð <span>ð</span></div>
+<div>Ñ <span>ñ</span></div>
+<div>Ò <span>ò</span></div>
+<div>Ó <span>ó</span></div>
+<div>Ô <span>ô</span></div>
+<div>Õ <span>õ</span></div>
+<div>Ö <span>ö</span></div>
+<div>Ø <span>ø</span></div>
+<div>Ù <span>ù</span></div>
+<div>Ú <span>ú</span></div>
+<div>Û <span>û</span></div>
+<div>Ü <span>ü</span></div>
+<div>Ý <span>ý</span></div>
+<div>Þ <span>þ</span></div>
+<div>Ÿ <span>ÿ</span></div>
+</div>
+
+
+<!--p class="notes">Notes: <br />The <a href='http://www.w3.org/TR/REC-CSS2/text.html#propdef-text-transform'>CSS2 specification</a> only requires that text-transform work for 'the Latin1 repertoire'. It is not clear what characters the term 'Latin1' covers. This test assumes that it means the Basic Latin and Latin-1 Supplement blocks of the Unicode Standard (equivalent to ISO-8859-1). There is one character in this set, ÿ, that only occurs in the lower-case form.</p-->
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

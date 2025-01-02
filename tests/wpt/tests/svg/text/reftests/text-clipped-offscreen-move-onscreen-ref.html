@@ -1,0 +1,14 @@
+<!doctype HTML>
+<title>Reftest Reference</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<div style="position: relative; overflow: hidden; width: 300px; height: 400px;">
+  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="300px" height="400px">
+    <text id="target" x="15" y="150">VISIBLE</text>
+  </svg>
+</div>
+<script>
+let target = document.getElementById('target');
+onload = function() {
+  requestAnimationFrame(() => target.setAttribute('y', 150));
+};
+</script>

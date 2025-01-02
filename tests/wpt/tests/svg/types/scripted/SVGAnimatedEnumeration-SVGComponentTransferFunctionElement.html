@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGComponentTransferFunctionElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGComponentTransferFunctionElement.
+
+  var feFuncRElement = document.createElementNS("http://www.w3.org/2000/svg", "feFuncR");
+  feFuncRElement.setAttribute("type", "identity");
+
+  // Check initial 'type' value.
+  assert_true(feFuncRElement.type instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feFuncRElement.type.baseVal), "number");
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY);
+
+  // Switch to 'table'.
+  feFuncRElement.type.baseVal = SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_TABLE;
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_TABLE);
+  assert_equals(feFuncRElement.getAttribute('type'), "table");
+
+  // Switch to 'discrete'.
+  feFuncRElement.type.baseVal = SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_DISCRETE;
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_DISCRETE);
+  assert_equals(feFuncRElement.getAttribute('type'), "discrete");
+
+  // Switch to 'linear'.
+  feFuncRElement.type.baseVal = SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_LINEAR;
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_LINEAR);
+  assert_equals(feFuncRElement.getAttribute('type'), "linear");
+
+  // Switch to 'gamma'.
+  feFuncRElement.type.baseVal = SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA;
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA);
+  assert_equals(feFuncRElement.getAttribute('type'), "gamma");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { feFuncRElement.type.baseVal = 6; });
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA);
+  assert_equals(feFuncRElement.getAttribute('type'), "gamma");
+
+  assert_throws_js(TypeError, function() { feFuncRElement.type.baseVal = -1; });
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA);
+  assert_equals(feFuncRElement.getAttribute('type'), "gamma");
+
+  assert_throws_js(TypeError, function() { feFuncRElement.type.baseVal = 0; });
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_GAMMA);
+  assert_equals(feFuncRElement.getAttribute('type'), "gamma");
+
+  // Switch to 'identity'.
+  feFuncRElement.type.baseVal = SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY;
+  assert_equals(feFuncRElement.type.baseVal, SVGComponentTransferFunctionElement.SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY);
+  assert_equals(feFuncRElement.getAttribute('type'), "identity");
+});
+</script>

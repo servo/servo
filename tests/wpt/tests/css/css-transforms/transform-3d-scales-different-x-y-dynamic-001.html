@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8" />
+<title>Raster transform 3D scales with different X and Y components changing dynamically</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="match" href="transform-3d-scales-different-x-y-dynamic-001-ref.html" />
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-7">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#funcdef-scale3d" />
+<meta name="assert" content="Checks that when the X and Y components of a 3D scale are changed dynamically, the result looks like when setting the value from the very beginning." />
+<style>
+:root {
+  overflow: hidden;
+}
+.horizontal, .vertical {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.vertical {
+  writing-mode: vertical-lr;
+}
+.test {
+  transform-origin: 0 0;
+  line-height: 20px;
+  block-size: 20px;
+  inline-size: max-content;
+  border: 5px solid;
+  border-color: blue orange;
+  margin-inline-start: calc(30px * var(--index));
+}
+.horizontal > .test {
+  transform: scale3d(var(--scale), 1, 1);
+}
+.vertical > .test {
+  transform: scale3d(1, var(--scale), 1);
+}
+</style>
+<body>
+<script>
+"use strict";
+const horizontal = document.createElement("div");
+horizontal.className = "vertical";
+const vertical = document.createElement("div");
+vertical.className = "horizontal";
+document.body.append(horizontal, vertical);
+const scales = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 17, 20, 25, 30].reverse();
+for (let i = 0; i < scales.length; ++i) {
+  const scale = scales[i];
+  const htest = document.createElement("div");
+  htest.className = "test";
+  htest.textContent = "Lorem";
+  htest.style.cssText = `--scale: ${scale}; --index: ${i+1}`;
+  horizontal.appendChild(htest);
+  const vtest = htest.cloneNode();
+  vtest.textContent = "Ipsum";
+  vertical.appendChild(vtest);
+}
+document.addEventListener("TestRendered", () => {
+  horizontal.className = "horizontal";
+  vertical.className = "vertical";
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</body>
+</html>

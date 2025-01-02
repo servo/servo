@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: progress dynamic appearance</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+<link rel="match" href="appearance-progress-bar-002-ref.html">
+<style>
+  #progress1 { appearance: none }
+  #progress2 { appearance: auto }
+</style>
+<progress id="progress1" value="0.5">
+<progress id="progress2" value="0.5">
+<script>
+  document.body.offsetTop;
+  progress1.style.appearance = "auto";
+  progress2.style.appearance = "none";
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-collapse and 'display: block' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-collapse" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#borders" />
+        <meta name="assert" content="Border-collapse does not apply to 'display: block' elements." />
+        <style type="text/css">
+            #bottom, span
+            {
+                border-collapse: collapse;
+                display: block;
+                height: 100px;
+                width: 100px;
+            }
+            span
+            {
+                border-bottom: 10px solid blue;
+            }
+            #bottom
+            {
+                border-top: 10px dotted orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if below there is a horizontal solid blue line above a dotted orange line.</p>
+        <div>
+            <span></span>
+        </div>
+        <div id="bottom"></div>
+    </body>
+</html>

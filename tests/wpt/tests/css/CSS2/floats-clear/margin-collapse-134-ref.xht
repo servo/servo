@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border: black solid medium;
+  border-spacing: 0px;
+  display: inline-table;
+  margin: 1em 0em auto 1em;
+  }
+
+  td {height: 1em; width: 8em; padding: 0px;}
+
+  .lime { background-color: lime; }
+  .yellow { background-color: yellow; }
+  .green { background-color: green; }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following three rectangles should be identical, with no red present.</p>
+
+  <div><table>
+    <tr>
+     <td class="lime"></td>
+    </tr>
+    <tr>
+     <td class="yellow"></td>
+    </tr>
+    <tr>
+     <td class="green"></td>
+    </tr>
+   </table><table>
+    <tr>
+     <td class="lime"></td>
+    </tr>
+    <tr>
+     <td class="yellow"></td>
+    </tr>
+    <tr>
+     <td class="green"></td>
+    </tr>
+  </table></div>
+
+  <table>
+    <tr>
+     <td class="lime"></td>
+    </tr>
+    <tr>
+     <td class="yellow"></td>
+    </tr>
+    <tr>
+     <td class="green"></td>
+    </tr>
+   </table>
+
+ </body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>appearance:base select nested inside top layer elements</title>
+<link rel=author href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../../popovers/resources/popover-utils.js"></script>
+
+<div id=popover1 popover>popover1
+  <select id=select1>
+    <option>option</option>
+    <option>option
+      <div popover id=popover2>popover2</div>
+    </option>
+  </select>
+</div>
+
+<dialog id=dialog1>dialog1
+  <select id=select2>
+    <option>option</option>
+    <option>option
+      <dialog id=dialog2>dialog2</dialog>
+    </option>
+  </select>
+</dialog>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>
+
+<script>
+promise_test(async (t) => {
+  const popover = document.querySelector('#popover1');
+  const select = document.querySelector('#select1');
+  assert_true(!!popover && !!select,'precondition');
+  t.add_cleanup(() => popover.hidePopover());
+
+  popover.showPopover();
+  assert_true(popover.matches(':popover-open'));
+  await clickOn(select);
+  assert_true(select.matches(':open'),'the select should be showing');
+  assert_true(popover.matches(':popover-open'),'and the popover should also still be showing');
+},'select can be nested inside a popover');
+
+promise_test(async (t) => {
+  const popover1 = document.querySelector('#popover1');
+  const popover2 = document.querySelector('#popover2');
+  const select = document.querySelector('#select1');
+  assert_true(!!popover1 && !!popover2 && !!select,'precondition');
+  t.add_cleanup(() => popover1.hidePopover());
+
+  popover1.showPopover();
+  await clickOn(select);
+  popover2.showPopover();
+  assert_true(select.matches(':open'),'the select should be showing');
+  assert_true(popover1.matches(':popover-open'),'and the outer popover should also still be showing');
+  assert_true(popover2.matches(':popover-open'),'and the inner popover should also still be showing');
+},'a popover can be nested inside select');
+
+promise_test(async (t) => {
+  const dialog = document.querySelector('#dialog1');
+  const select = document.querySelector('#select2');
+  assert_true(!!dialog && !!select,'precondition');
+  t.add_cleanup(() => dialog.close());
+
+  dialog.showModal();
+  assert_true(dialog.matches('[open]:modal'));
+  await clickOn(select);
+  assert_true(select.matches(':open'),'the select should be showing');
+  assert_true(dialog.matches('[open]:modal'),'and the dialog should also still be showing');
+},'select can be nested inside a modal dialog');
+
+promise_test(async (t) => {
+  const dialog1 = document.querySelector('#dialog1');
+  const dialog2 = document.querySelector('#dialog2');
+  const select = document.querySelector('#select2');
+  assert_true(!!dialog1 && dialog2 && !!select,'precondition');
+  t.add_cleanup(() => {dialog1.close();dialog2.close()});
+
+  dialog1.showModal();
+  await clickOn(select);
+  dialog2.showModal();
+  assert_true(select.matches(':open'),'the select should be showing');
+  assert_true(dialog1.matches('[open]:modal'),'and the outer dialog should also still be showing');
+  assert_true(dialog2.matches('[open]:modal'),'and the inner dialog should also still be showing');
+},'a modal dialog can be nested inside select');
+</script>

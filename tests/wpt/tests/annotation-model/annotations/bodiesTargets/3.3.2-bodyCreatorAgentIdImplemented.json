@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-bodyCreatorAgentIdImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Id for Body Creator (Agent) not found or more than 1 found. Agents should have exactly one id of format uri.",
+  "title": "Implements Body-level creator (Agent) **_id_ key** with **single value** that is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when type for Body Creator (Agent) has exactly one id (Section 3.3.2)",
+    "required": [ "body" ],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/creatorAgentWithIdFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithIdFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithIdFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/creatorAgentWithIdFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithIdFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithIdFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

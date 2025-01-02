@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org" />
+<link rel="help" href="https://crbug.com/1180773"/>
+<link rel="match" href="collapsed-border-positioned-tr-td-ref.html"/>
+<style>
+td {
+  width: 50.6px;
+  height: 50.3px;
+  background: yellow;
+  padding: 0;
+  border: 1px solid blue;
+}
+</style>
+<table style="border-collapse: collapse">
+  <tr style="position: relative">
+    <td></td><td></td><td></td>
+  </tr>
+  <tr>
+    <td style="position: relative"></td>
+    <td style="position: relative"></td>
+    <td style="position: relative"></td>
+  </tr>
+</table>

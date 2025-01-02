@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: available height for replaced content</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing/#available">
+<link rel="help" href="https://crrev.com/acc04ddbdc31a7c5bda78f88719df43367630fed">
+<meta name="assert" content="This test ensures that the available height for replaced content is calculated correctly when the parent has border, padding or min-height."/>
+<style>
+#wrapper {
+  width: 200px;
+  min-height: 1px;
+  height: 20px;
+  border: 1px solid green;
+  padding: 50px;
+}
+img {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: 100%;
+  height: 100%;
+  background: silver;
+}
+</style>
+<div id="log"></div>
+<div id="wrapper">
+  <img src="" data-expected-height="20">
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout('img');
+</script>

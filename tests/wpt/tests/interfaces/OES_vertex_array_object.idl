@@ -1,0 +1,18 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL OES_vertex_array_object Khronos Ratified Extension Specification (https://registry.khronos.org/webgl/extensions/OES_vertex_array_object/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WebGLVertexArrayObjectOES : WebGLObject {
+};
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface OES_vertex_array_object {
+    const GLenum VERTEX_ARRAY_BINDING_OES = 0x85B5;
+
+    WebGLVertexArrayObjectOES createVertexArrayOES();
+    undefined deleteVertexArrayOES(WebGLVertexArrayObjectOES? arrayObject);
+    [WebGLHandlesContextLoss] GLboolean isVertexArrayOES(WebGLVertexArrayObjectOES? arrayObject);
+    undefined bindVertexArrayOES(WebGLVertexArrayObjectOES? arrayObject);
+};

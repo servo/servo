@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+async function runStartEndTest(t, utterance) {
+  const eventWatcher = new EventWatcher(t, utterance, ['start', 'end', 'error']);
+  await test_driver.bless('speechSynthesis.speak',
+      () => { speechSynthesis.speak(utterance) });
+  await eventWatcher.wait_for(['start', 'end']);
+}
+promise_test(async (t) => {
+  const utterance = new SpeechSynthesisUtterance();
+  await runStartEndTest(t, utterance);
+}, 'speechSynthesis.speak() fires start and end events with empty utterance');
+promise_test(async (t) => {
+  const utterance = new SpeechSynthesisUtterance('test');
+  await runStartEndTest(t, utterance);
+}, 'speechSynthesis.speak() fires start and end events');
+</script>

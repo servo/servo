@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifies overflow-clip-margin impacts layout</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Scott Violet" href="mailto:sky@chromium.org">
+<link rel="match" href="overflow-clip-margin-002-ref.html">
+<style>
+  .scroller {
+      overflow: auto;
+      width: 100px;
+      height: 100px;
+      /* Avoids some fuzz on scrollbar corners */
+      scrollbar-color: blue blue;
+  }
+  .parent {
+      width: 100px;
+      height: 100px;
+      overflow: clip;
+      overflow-clip-margin: 10px;
+  }
+  .child {
+      width: 200px;
+      height: 200px;
+      position: relative;
+      top: -50px;
+      left: -50px;
+      background-color: green;
+  }
+</style>
+<p>You should see a green box with scrollbars.</p>
+<div class="scroller">
+  <div class="parent">
+    <div class="child"></div>
+  </div>
+</div>
+
+<p>You should see a green box with scrollbars.</p>
+<div class="scroller">
+  <div class="parent" style="overflow-clip-margin: 100px">
+    <div class="child"></div>
+  </div>
+</div>
+
+<p>You should see a green box with no scrollbars.</p>
+<div class="scroller">
+  <div class="parent" style="background-color: green">
+  </div>
+</div>

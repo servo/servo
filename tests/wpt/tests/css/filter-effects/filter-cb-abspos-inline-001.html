@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset=UTF-8>
+<title>CSS Filter: Establishing containing block for absolutely-positioned elements, on an inline element</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/">
+<link rel="match" href="filter-cb-abspos-inline-001-ref.html">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#supported-filter-functions">
+<meta name="assert" content="A value other than none for the filter property results in the creation of a containing block for absolute and fixed positioned descendants unless the element it applies to is a document root element in the current browsing context.">
+<meta name="assert" content="A value of 100% leaves the input unchanged.">
+<style>
+
+#cb {
+    filter: brightness(100%);
+}
+
+#abspos {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    background: blue;
+}
+
+</style>
+
+<p>Filler text.</p>
+
+<div>
+    <span id="cb">Blue box should cover top-left corner of this sentence.<span id="abspos"></span></span>
+</div>

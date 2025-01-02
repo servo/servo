@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds and Borders Test: body background not propagating when html does</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#body-background">
+<link rel="match" href="background-color-body-propagation-ref.html">
+<style>
+  html {
+    background-color: green;
+    background-image: none;
+  }
+  body {
+    background-color: red;
+    margin: 0;
+  }
+  p {
+    background: green;
+  }
+</style>
+<p>The viewport should have a green background.</p>

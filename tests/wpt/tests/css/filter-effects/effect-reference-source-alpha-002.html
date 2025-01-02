@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Filters: feColorMatrix with SourceAlpha</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feColorMatrixElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#attr-valuedef-in-sourcealpha">
+<link rel="help" href="https://crbug.com/331362">
+<link rel="match" href="reference/effect-reference-source-alpha-002-ref.html">
+<meta name="assert" content="Check that the result of an identity feColorMatrix with SourceAlpha from an element with will-change: transform as input is opaque black"/>
+
+<style>
+.rect {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    filter: url(#alpha);
+    will-change: transform;
+}
+</style>
+<div class="rect"></div>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1">
+  <defs>
+    <filter id="alpha" color-interpolation-filters="sRGB">
+      <feColorMatrix in="SourceAlpha"/>
+    </filter>
+  </defs>
+</svg>

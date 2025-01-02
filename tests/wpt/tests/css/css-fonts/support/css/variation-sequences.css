@@ -1,0 +1,38 @@
+@font-face {
+    font-family: "MonoEmojiFont";
+    src: url(../../resources/vs/NotoEmoji-Regular_subset.ttf);
+}
+
+@font-face {
+    font-family: "ColorEmojiFont";
+    src: url(../../resources/vs/NotoColorEmoji-Regular_subset.ttf);
+}
+
+@font-face {
+    font-family: "EmojiFontWithBaseCharOnly";
+    src: url(../../resources/vs/NotoEmoji-Regular_without-cmap14-subset.ttf);
+}
+
+@font-face {
+    font-family: "CJKFontWithVS";
+    src: url(../../resources/vs/NotoSansJP-Regular_with-cmap14-subset.ttf);
+}
+
+@font-face {
+    font-family: "CJKFontWithBaseCharOnly";
+    src: url(../../resources/vs/MPLUS1-Regular_without-cmap14-subset.ttf);
+}
+
+@font-face {
+    font-family: "MathFontWithVS";
+    src: url(../../resources/vs/STIXTwoMath-Regular_with-cmap14-subset.ttf);
+}
+
+@font-face {
+    font-family: "MathFontWithBaseCharOnly";
+    src: url(../../resources/vs/NotoSansMath-Regular_without-cmap14-subset.ttf);
+}
+
+body {
+    font-size: 24px;
+}

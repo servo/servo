@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-indent with text-align: end</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<link rel="match" href="reference/text-indent-text-align-end-ref.html">
+<style>
+.container {
+  border: solid;
+  width: 200px;
+  text-indent: 50px;
+  text-align: end;
+}
+
+.content {
+  display: inline-block;
+  width: 50px;
+  height: 20px;
+  background: green;
+}
+</style>
+
+<p>Test passes if the green square is positioned against the right edge of the box.</p>
+
+<!--
+  In this case the `text-indent` doesn't affect the positioning of the content
+  when text-align positions it further than the indent does.
+-->
+<div class="container">
+  <div class="content"></div>
+</div>

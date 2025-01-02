@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie secure attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2.5">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      const secureTests = [
+        {
+          cookie: "test=1; Secure",
+          expected: "test=1",
+          name: "Set cookie for Secure attribute",
+        },
+        {
+          cookie: "test=2; seCURe",
+          expected: "test=2",
+          name: "Set cookie for seCURe attribute",
+        },
+        {
+          cookie: "test=3; Secure=",
+          expected: "test=3",
+          name: "Set cookie for for Secure= attribute",
+        },
+        {
+          cookie: "test=4; Secure=aaaa",
+          expected: "test=4",
+          name: "Set cookie for Secure=aaaa",
+        },
+        {
+          cookie: "test=5; Secure =aaaaa",
+          expected: "test=5",
+          name: "Set cookie for Secure space equals",
+        },
+        {
+          cookie: "test=6; Secure= aaaaa",
+          expected: "test=6",
+          name: "Set cookie for Secure equals space",
+        },
+        {
+          cookie: "test=7;                Secure",
+          expected: "test=7",
+          name: "Set cookie for spaced Secure",
+        },
+        {
+          cookie: "test=8;       Secure     ;",
+          expected: "test=8",
+          name: "Set cookie for space Secure with ;",
+        },
+        {
+          cookie: ["testa9a=x; secure; ", "; secure", "testa9b=y; secure;"],
+          expected: "testa9a=x; testa9b=y",
+          name: "Ignore name- and value-less `Set-Cookie: ; secure`",
+        },
+      ];
+
+      for (const test of secureTests) {
+        httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+      }
+    </script>
+  </body>
+</html>

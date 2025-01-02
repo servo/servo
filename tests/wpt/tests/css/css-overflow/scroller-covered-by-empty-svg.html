@@ -1,0 +1,53 @@
+<!doctype html>
+<link rel="help" href="https://crbug.com/41490395">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+  #scroller {
+    overflow: auto;
+    width: 600px;
+    height: 300px;
+    border: 2px solid blue;
+    will-change: scroll-position;
+  }
+
+  #svg {
+    position: relative;
+    top: -300px;
+    width: 300px;
+    height: 300px;
+  }
+
+  .spacer {
+    height: 200vh;
+  }
+</style>
+
+<div id="scroller">
+  <div class="spacer"></div>
+</div>
+<svg id="svg"></svg>
+<div class="spacer"></div>
+
+<script>
+  promise_test(async (t) => {
+    let scrolled = new Promise((resolve) => {
+      let scrollers = [window, document.getElementById("scroller")];
+      let onscroll = (evt) => {
+        for (const scroller of scrollers) {
+          scroller.removeEventListener("scroll", onscroll);
+        }
+        resolve(evt.target.id || "root");
+      }
+      for (const scroller of scrollers) {
+        scroller.addEventListener("scroll", onscroll);
+      }
+    });
+    // Scroll in SVG. Should scroll the window.
+    new test_driver.Actions().scroll(100, 100, 0, 50, { duration: 50 }).send();
+    assert_equals(await scrolled, "root", "Scroll in SVG should scroll the window");
+  }, "Wheel-scroll in empty SVG covering scroller should not scroll the scroller");
+</script>

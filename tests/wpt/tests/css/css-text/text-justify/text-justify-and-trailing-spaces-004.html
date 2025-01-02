@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>CSS text tests: How trailing spaces affect text-justify </title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-justify-property'>
+<link rel='match' href='reference/text-justify-and-trailing-spaces-003-ref.html'>
+<link rel='match' href='reference/text-justify-and-trailing-spaces-alt-003-ref.html'>
+<meta name="assert" content="The RTL text in the first line is correctly justified, leaving aside the trailing space, which must hang or be removed.">
+<style>
+.test {
+  width: 7ch;
+  font: 20px monospace;
+  background: blue;
+  margin-left: 20px;
+
+  direction: rtl;
+
+  white-space: pre-wrap;
+  text-align: justify;
+}
+.test > span {
+  background: green;;
+}
+</style>
+<p>Test passes if we have XX at each edge of the blue box and XXX in the second line (left-edge trailing space if not removed)</p>
+<div class="test"><span>XX XX XXX</span></div>

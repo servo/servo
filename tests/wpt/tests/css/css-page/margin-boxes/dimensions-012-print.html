@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Margins around margin boxes.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-012-print-ref.html">
+<style>
+  @page {
+    margin: 4em 5em 8em 7em;
+    width: 20em;
+    height: 16em;
+    font: 16px/1 Ahem;
+    white-space: pre-wrap;
+
+    @top-left-corner {
+      vertical-align: top;
+      text-align: left;
+      margin: auto;
+      width: fit-content;
+      height: fit-content;
+      content: "x x\a\a0x\ax x";
+      background: pink;
+    }
+
+    /* Top-left has a min content width of 3em. Top-right has an inner min
+       content width of 2em. Additionally, it has 25% margins on each side. In
+       the horizontal direction that means 20em*0.25 = 5em on each side. Outer
+       min content width for top-right becomes 12em.
+
+       Available space is 20em. Unused space is 5em. Total flex is 15. Left flex
+       is 3. Right flex is 12.
+
+       Left outer width: 3em + 5em*3/15 = 4em
+       Right outer width: 12em + 5em*12/15 = 16em */
+    @top-left {
+      vertical-align: top;
+      text-align: left;
+      content: "xxx";
+      background: hotpink;
+    }
+    @top-right {
+      vertical-align: top;
+      text-align: left;
+      margin: 25%;
+      content: "xx";
+      background: yellow;
+    }
+
+    /* Right-top has an inner min content height of 2em. It's margin-top is 1em,
+       so the outer min content height becomes 3em. Right-bottom has an inner
+       min content height of 1em. Additionally, it has 25% margins on each side.
+       In the vertical direction that means 16em*0.25 = 4em on each side. Outer
+       min content height for right-bottom becomes 9em.
+
+       Available space is 16em. Unused space is 4em. Total flex is 12. Top flex
+       is 3. Bottom flex is 9.
+
+       Top outer height: 3em + 4em*3/12 = 4em
+       Bottom outer height: 9em + 4em*9/12 = 12em */
+    @right-top {
+      vertical-align: top;
+      text-align: left;
+      margin-top: 1em;
+      content: "x\ax";
+      background: hotpink;
+    }
+    @right-bottom {
+      vertical-align: top;
+      text-align: left;
+      margin: 25%;
+      content: "x";
+      background: yellow;
+    }
+  }
+
+  body {
+    background: blue;
+  }
+</style>

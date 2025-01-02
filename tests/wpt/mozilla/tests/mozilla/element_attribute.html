@@ -1,0 +1,67 @@
+<html>
+<head id="foo">
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="test" foo="bar"></div>
+  <script>
+    var element = document.getElementById("test");
+
+    test(function() {
+      var r1 = element.getAttribute("id");
+      assert_equals(r1, "test", "test1-0, Element.getAttribute().");
+      var r2 = element.getAttribute("foo");
+      assert_equals(r2, "bar", "test1-1, Element.getAttribute().");
+    });
+
+    test(function() {
+      var NAME  = "hoge";
+      var VALUE = "fuga";
+      element.setAttribute(NAME, VALUE);
+      var r = element.getAttribute(NAME);
+      assert_equals(r, VALUE, "test2. Element.setAttribute().");
+    });
+
+    test(function() {
+      var NAME = "foo";
+      var VALUE = "mozilla";
+      element.setAttribute(NAME, VALUE);
+      var r = element.getAttribute(NAME);
+      assert_equals(r, VALUE, "test3, attribute update by Element.setAttribute().")
+    });
+
+    test(function() {
+      element.setAttribute("id", "bar");
+      element.removeAttribute("id");
+
+      var r1 = element.hasAttribute("id");
+      assert_equals(r1, false, "test4-0, Element.removeAttribute().");
+      var r2 = element.getAttribute("id");
+      assert_equals(r2, null, "test4-1, Element.removeAttribute().");
+    });
+
+    test(function() {
+      element.setAttribute("xml:lang", "en");
+
+      var r1 = element.hasAttribute("xml:lang");
+      assert_equals(r1, true, "test5-0, Element.setAttribute('xml:lang').");
+      var r2 = element.getAttribute("xml:lang");
+      assert_not_equals(r2, null, "test5-1, Element.setAttribute('xml:lang').");
+    });
+
+    test(function() {
+      assert_throws_dom("NamespaceError", function () {
+        element.setAttributeNS("http://example.com", "xmlns", "foo");
+      });
+      assert_throws_dom("NamespaceError", function () {
+        element.setAttributeNS("http://www.w3.org/2000/xmlns/", "attr", "value");
+      });
+      assert_throws_dom("NamespaceError", function () {
+        element.setAttributeNS("http://www.w3.org/2000/xmlns/", "prefix:attr", "value");
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<style>
+  body { margin: 0; }
+</style>
+<div style="columns:2; width:200px; gap:0; column-fill:auto; height:100px;">
+  <div id="table" style="display:table; width:100%;">
+    <div id="header" style="display:table-header-group; break-inside:avoid;">
+      <div id="hitme" style="position:relative; left:30px; width:20px; height:20px;"></div>
+    </div>
+    <div style="display:table-row; break-inside:avoid;">
+      <div style="height:60px; background:blue;"></div>
+    </div>
+    <div style="display:table-row; break-inside:avoid;">
+      <div style="height:60px; background:blue;"></div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> { assert_equals(document.elementFromPoint(29, 10), header); }, "before first");
+  test(()=> { assert_equals(document.elementFromPoint(40, 10), hitme); }, "first");
+  test(()=> { assert_equals(document.elementFromPoint(61, 10), header); }, "after first");
+  test(()=> { assert_equals(document.elementFromPoint(129, 10), header); }, "before second");
+  test(()=> { assert_equals(document.elementFromPoint(140, 10), hitme); }, "second");
+  test(()=> { assert_equals(document.elementFromPoint(151, 10), header); }, "after second");
+</script>

@@ -1,0 +1,20 @@
+<!doctype html>
+<title>beforeunload event in child frame for parent navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+
+function do_test(e) {
+  assert_equals(e.type, "beforeunload");
+  assert_false(e.bubbles, "bubbles");
+  assert_true(e.cancelable, "bubbles");
+  assert_equals(e.returnValue, "");
+}
+
+onload = t.step_func(function() {
+  t.done();
+})
+</script>
+<iframe src="001-1.html"></iframe>

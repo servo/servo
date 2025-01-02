@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-UI test: outline-style: auto</title>
+  <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="outline-style:auto allows the UA to display any outline it wants, but it must display something.">
+  <link rel="mismatch" href="reference/outline-007-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-ui-3/#outline-props">
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  outline-style: auto;
+
+  /* These values may be ignored by the UA, but just in case they are not,
+     set them to something that does not result in the outline being invisible */
+  outline-width: 5px;
+  outline-color: green;
+}
+
+</style>
+
+  <p>Test passes if there is an outlined box below. The outline may be any shape or color so long as it is visible.</p>
+  <div></div>
+

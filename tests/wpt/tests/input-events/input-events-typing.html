@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Input Event typing tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<div id="rich" contenteditable></div>
+<textarea id="plain"></textarea>
+<script>
+let inputEventsLog = [];
+const rich = document.getElementById('rich');
+const plain = document.getElementById('plain');
+
+function log(event) {
+    const clone = new event.constructor(event.type, event);
+    clone.state = rich.innerHTML;
+    inputEventsLog.push(clone);
+}
+
+function resetRich() {
+    inputEventsLog = [];
+    rich.innerHTML = '';
+}
+
+function resetPlain() {
+    inputEventsLog = [];
+    plain.innerHTML = '';
+}
+
+rich.addEventListener('beforeinput', log);
+rich.addEventListener('input', log);
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.focus();
+    const message = 'Hello';
+    await test_driver.send_keys(rich, message);
+    // 10 events (5 beforeinput + 5 input events)
+    assert_equals(inputEventsLog.length, 10);
+    for (let i = 0; i < inputEventsLog.length; i += 2) {
+        const beforeInputEvent = inputEventsLog[i];
+        const inputEvent = inputEventsLog[i + 1];
+        assert_equals(beforeInputEvent.type, 'beforeinput');
+        assert_equals(inputEvent.type, 'input');
+        assert_equals(beforeInputEvent.inputType, 'insertText');
+        assert_equals(inputEvent.inputType, 'insertText');
+        assert_equals(beforeInputEvent.data, inputEvent.data);
+        assert_equals(inputEvent.data, message[i / 2]);
+        assert_equals(beforeInputEvent.state + message[i / 2], inputEvent.state);
+    }
+}, 'It triggers beforeinput and input events on text typing');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.focus();
+    await test_driver.send_keys(rich, "\uE006"); // Return
+
+    assert_equals(inputEventsLog.length, 2);
+    const beforeInputEvent = inputEventsLog[0];
+    const inputEvent = inputEventsLog[1];
+    assert_equals(beforeInputEvent.type, 'beforeinput');
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(beforeInputEvent.inputType, 'insertParagraph');
+    assert_equals(inputEvent.inputType, 'insertParagraph');
+    assert_equals(beforeInputEvent.data, inputEvent.data);
+}, 'It triggers beforeinput and input events on typing RETURN');
+
+promise_test(async function() {
+    this.add_cleanup(resetPlain);
+    const expectedResult = [
+        // Pressing 'a'
+        'insertText',
+        // Return
+        'insertLineBreak'
+    ];
+    const result = [];
+
+    plain.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+    await test_driver.click(plain);
+    await test_driver.send_keys(plain,"a");
+    await test_driver.send_keys(plain,'\uE006'); // Return
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'Newline character in plain text editing should get insertLinebreak input event');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.focus();
+    await new test_driver.Actions()
+        .keyDown('\uE008') // Shift
+        .keyDown('\uE006') // Return
+        .keyUp('\uE006')
+        .keyUp('\uE008')
+        .send();
+
+    assert_equals(inputEventsLog.length, 2);
+    const [beforeInputEvent, inputEvent] = inputEventsLog;
+    assert_equals(beforeInputEvent.type, 'beforeinput');
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(beforeInputEvent.inputType, 'insertLineBreak');
+    assert_equals(inputEvent.inputType, 'insertLineBreak');
+    assert_equals(beforeInputEvent.data, inputEvent.data);
+}, 'It triggers beforeinput and input events on typing Shift+RETURN');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.innerHTML = '<p>Preexisting <i id="caret">c</i>ontent</p>';
+    const caret = document.querySelector('#caret');
+    await test_driver.click(caret);
+    await test_driver.send_keys(caret, "\uE017"); // Delete
+
+    assert_equals(inputEventsLog.length, 2);
+    const [beforeInputEvent, inputEvent] = inputEventsLog;
+    assert_equals(beforeInputEvent.type, 'beforeinput');
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(beforeInputEvent.inputType, 'deleteContentForward');
+    assert_equals(inputEvent.inputType, 'deleteContentForward');
+    assert_equals(beforeInputEvent.data, inputEvent.data);
+}, 'It triggers beforeinput and input events on typing DELETE with pre-existing content');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.focus();
+    await test_driver.send_keys(rich, "\uE017"); // Delete
+    assert_equals(inputEventsLog.length, 2);
+    const [beforeInputEvent, inputEvent] = inputEventsLog;
+    assert_equals(beforeInputEvent.type, 'beforeinput');
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(beforeInputEvent.inputType, 'deleteContentForward');
+    assert_equals(inputEvent.inputType, 'deleteContentForward');
+    assert_equals(beforeInputEvent.data, inputEvent.data);
+}, 'It triggers beforeinput and input events on typing DELETE with no pre-existing content');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.innerHTML = '<p>Preexisting <i id="caret">c</i>ontent</p>';
+
+    await test_driver.click(document.querySelector('#caret'));
+    await test_driver.send_keys(rich, "\uE003"); // Back Space
+
+    assert_equals(inputEventsLog.length, 2);
+    const [beforeInputEvent, inputEvent] = inputEventsLog;
+    assert_equals(beforeInputEvent.type, 'beforeinput');
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(beforeInputEvent.inputType, 'deleteContentBackward');
+    assert_equals(inputEvent.inputType, 'deleteContentBackward');
+    assert_equals(beforeInputEvent.data, inputEvent.data);
+}, 'It triggers beforeinput and input events on typing BACK_SPACE with pre-existing content');
+
+promise_test(async function () {
+    this.add_cleanup(resetRich);
+    rich.innerHTML = '<p>Preexisting <i id="caret">C</i>ontent</p>';
+
+    const expectedResult = [
+        // Pressing 'a', 'b'
+        'insertText',
+        'insertText',
+        // Delete twice
+        'deleteContentForward',
+        'deleteContentForward',
+        // Pressing 'c', 'd'
+        'insertText',
+        'insertText',
+        // Backspace
+        'deleteContentBackward'
+    ];
+    const result = [];
+
+    rich.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+
+    await test_driver.click(document.querySelector('#caret')); // Preexisting |Content
+    await test_driver.send_keys(rich, "a"); // Preexisting a|Content
+    await test_driver.send_keys(rich, "b"); // Preexisting ab|Content
+    // Delete
+    await test_driver.send_keys(rich, "\uE017"); // Preexisting ab|ontent
+    // Delete
+    await test_driver.send_keys(rich, "\uE017"); // Preexisting ab|ntent
+    await test_driver.send_keys(rich, "c"); // Preexisting abc|ntent
+    await test_driver.send_keys(rich, "d"); // Preexisting abcd|ntent
+    // Backspace
+    await test_driver.send_keys(rich, "\uE003"); // Preexisting abc|ntent
+
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'Input events have correct inputType updated when different inputs are typed');
+
+promise_test(async function () {
+    this.add_cleanup(resetRich);
+    rich.innerHTML = '<p>Preexisting <i id="caret">c</i>ontent</p>';
+
+    const expectedResult = [
+        // Remove selected text with Backspace
+        'deleteContentBackward',
+        // Remove selected text with Delete
+        'deleteContentForward'
+    ];
+    const result = [];
+
+    rich.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+
+    const modifierKey = navigator.platform === "MacIntel" ? '\u2318' : '\uE009';
+
+    // Click before "content"
+    await test_driver.click(document.querySelector('#caret')); // Preexisting |content
+    // Select text to the left
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('\uE008') // Shift
+        .keyDown('\uE012') // Arrow Left
+        .keyUp('\uE012')
+        .keyUp('\uE008')
+        .keyUp(modifierKey)
+        .send(); // |Preexisting ^content
+    // Backspace
+    await test_driver.send_keys(rich, "\uE003"); // |content
+    // Select text to the right
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('\uE008') // Shift
+        .keyDown('\uE014') // Arrow Right
+        .keyUp('\uE012')
+        .keyUp('\uE008')
+        .keyUp(modifierKey)
+        .send(); // ^content|
+    // Delete
+    await test_driver.send_keys(rich, "\uE017"); // |
+
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'Input events have correct inputType when selected text is removed with Backspace or Delete');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.focus();
+    await test_driver.send_keys(rich, "\uE003"); // Back Space
+
+    assert_equals(inputEventsLog.length, 2);
+    const [beforeInputEvent, inputEvent] = inputEventsLog;
+    assert_equals(beforeInputEvent.type, 'beforeinput');
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(beforeInputEvent.inputType, 'deleteContentBackward');
+    assert_equals(inputEvent.inputType, 'deleteContentBackward');
+    assert_equals(beforeInputEvent.data, inputEvent.data);
+}, 'It triggers beforeinput and input events on typing BACK_SPACE with no pre-existing content');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.focus();
+    await test_driver.send_keys(rich, "hello");
+
+    // Decide whether to use  Key.COMMAND (mac) or Key.CONTROL (everything else)
+    const modifierKey = navigator.platform === "MacIntel" ? '\u2318' : '\uE009';
+
+    // Undo
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('z')
+        .keyUp('z')
+        .keyUp(modifierKey)
+        .send();
+    // Redo
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('\uE008') // Shift
+        .keyDown('z')
+        .keyUp('z')
+        .keyUp('\uE008')
+        .keyUp(modifierKey)
+        .send();
+
+    // Ignore the initial typing of 'hello'
+    const historyInputEventsLog = inputEventsLog.slice(10);
+
+    assert_equals(historyInputEventsLog.length, 4);
+    const inputTypes = ['historyUndo', 'historyRedo'];
+    for (let i = 0; i < historyInputEventsLog.length; i += 2) {
+        // We are increaisng i by 2 as there should always be matching beforeinput and input events.
+        const beforeInputEvent = historyInputEventsLog[i];
+        const inputEvent = historyInputEventsLog[i + 1];
+        assert_equals(beforeInputEvent.type, 'beforeinput');
+        assert_equals(inputEvent.type, 'input');
+        assert_equals(beforeInputEvent.inputType, inputTypes[i / 2]);
+        assert_equals(inputEvent.inputType, inputTypes[i / 2]);
+        assert_equals(beforeInputEvent.data, inputEvent.data);
+    }
+}, 'It triggers beforeinput and input events on typing Undo and Redo key combinations with an existing history');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    rich.focus();
+    // Decide whether to use  Key.COMMAND (mac) or Key.CONTROL (everything else)
+    const modifierKey = navigator.platform === "MacIntel" ? '\u2318' : '\uE009';
+
+    // Undo
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('z')
+        .keyUp('z')
+        .keyUp(modifierKey)
+        .send();
+    // Redo
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('\uE008') // Shift
+        .keyDown('z')
+        .keyUp('z')
+        .keyUp('\uE008')
+        .keyUp(modifierKey)
+        .send();
+
+    assert_equals(inputEventsLog.length, 4);
+    const inputTypes = ['historyUndo', 'historyRedo'];
+    for (let i = 0; i < inputEventsLog.length; i += 2) {
+        const beforeInputEvent = inputEventsLog[i];
+        const inputEvent = inputEventsLog[i + 1];
+        assert_equals(beforeInputEvent.type, 'beforeinput');
+        assert_equals(inputEvent.type, 'input');
+        assert_equals(beforeInputEvent.inputType, inputTypes[i / 2]);
+        assert_equals(inputEvent.inputType, inputTypes[i / 2]);
+        assert_equals(beforeInputEvent.data, inputEvent.data);
+    }
+}, 'It triggers beforeinput and input events on typing Undo and Redo key combinations without an existing history');
+
+promise_test(async function() {
+    this.add_cleanup(resetRich);
+    const expectedResult = [
+        // Pressing 'a'.
+        'plain-keydown-a',
+        'plain-keypress-a',
+        'plain-beforeinput-a-null',
+        'plain-input-a-null',
+        'plain-keyup-a',
+        // Pressing Shift-'b'.
+        'plain-keydown-B',
+        'plain-keypress-B',
+        'plain-beforeinput-B-null',
+        'plain-input-B-null',
+        'plain-keyup-B',
+        // Pressing 'c'.
+        'rich-keydown-c',
+        'rich-keypress-c',
+        'rich-beforeinput-c-null',
+        'rich-input-c-null',
+        'rich-keyup-c',
+        // Pressing Shift-'d'.
+        'rich-keydown-D',
+        'rich-keypress-D',
+        'rich-beforeinput-D-null',
+        'rich-input-D-null',
+        'rich-keyup-D',
+    ];
+    const result = [];
+
+    for (const eventType of ['beforeinput', 'input', 'keydown', 'keypress', 'keyup']) {
+        const listener = event => {
+            if (event.key === 'Shift') return;
+            const eventInfo = [event.target.id, event.type, event.data || event.key];
+            if (event instanceof InputEvent) eventInfo.push(String(event.dataTransfer));
+            result.push(eventInfo.join('-'));
+        }
+        rich.addEventListener(eventType, listener);
+        plain.addEventListener(eventType, listener);
+    }
+
+    plain.focus();
+    await new test_driver.Actions()
+        .keyDown('a')
+        .keyUp('a')
+        .keyDown('\uE008') // Shift
+        .keyDown('b')
+        .keyUp('b')
+        .keyUp('\uE008')
+        .send();
+
+    rich.focus();
+    await new test_driver.Actions()
+        .keyDown('c')
+        .keyUp('c')
+        .keyDown('\uE008') // Shift
+        .keyDown('d')
+        .keyUp('d')
+        .keyUp('\uE008')
+        .send();
+
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'InputEvents have correct data/order when typing on textarea and contenteditable');
+</script>

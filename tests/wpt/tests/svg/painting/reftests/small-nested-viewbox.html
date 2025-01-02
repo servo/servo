@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1922222">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="match" href="small-nested-viewbox-ref.html">
+<style>
+  svg {
+    width: 16px;
+    padding: 4px;
+    background: #ccc;
+    color: #000;
+  }
+</style>
+<svg viewBox="0 0 4 4">
+  <svg viewBox='0 0 256 256'>
+    <rect width="256" height="256" x="0" y="0" fill="green" />
+  </svg>
+</svg>

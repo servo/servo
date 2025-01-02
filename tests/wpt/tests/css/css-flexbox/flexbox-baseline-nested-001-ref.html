@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Reference: Baseline of nested flex containers with stretched textfield inside</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+    <meta charset="utf-8">
+    <style>
+      .ib {
+        display: inline-block;
+      }
+      .innerFlex {
+        display: flex;
+        height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    abc
+    <div class="ib">
+      <div class="innerFlex">
+        <input value="def">
+      </div>
+    </div>
+  </body>
+</html>

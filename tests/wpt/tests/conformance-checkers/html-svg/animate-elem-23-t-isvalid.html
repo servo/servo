@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>animate-elem-23-t-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: animate-elem-23-t-manual.svg</h1>
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: animate-elem-23-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Guide objects to show where the animation elements belong at which time -->
+    <g font-size="12">
+      <text x="15" y="55">Color at 3s</text>
+      <rect x="15" y="60" width="30" height="30"/>
+      <circle cx="30" cy="75" r="10" fill="rgb(0,0,255)"/>
+      <text x="15" y="145">Color at 6s</text>
+      <rect x="15" y="150" width="30" height="30"/>
+      <circle cx="30" cy="165" r="10" fill="rgb(0,127,127)"/>
+      <text x="15" y="235">Color at 9s</text>
+      <rect x="15" y="240" width="30" height="30"/>
+      <circle cx="30" cy="255" r="10" fill="rgb(0,255,0)"/>
+    </g>
+
+    <g>
+      <rect x="150" y="50" width="240" height="240" stroke="black" fill="black"/>
+      <circle cx="270" cy="170" r="110" visibility="hidden">
+        <set attributeName="visibility" attributeType="CSS" to="visible" begin="3s" dur="6s" fill="freeze"/>
+        <animateColor attributeName="fill" attributeType="CSS" from="rgb(0,0,255)" to="rgb(0,255,0)" begin="3s" dur="6s" fill="freeze"/>
+      </circle>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
+</body>
+</html>

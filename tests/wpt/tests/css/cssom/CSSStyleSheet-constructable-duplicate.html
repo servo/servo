@@ -1,0 +1,84 @@
+<!doctype html>
+<title>Cascade order of a stylesheet for duplicate sheets.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://wicg.github.io/construct-stylesheets/">
+<script src = '/resources/testharness.js'></script>
+<script src = '/resources/testharnessreport.js'></script>
+<div id="target"></div>
+<script>
+
+function attachShadowDiv(host) {
+  const shadowRoot = host.attachShadow({mode: 'open'});
+  const shadowDiv = document.createElement("div");
+  shadowRoot.appendChild(shadowDiv);
+  return shadowDiv;
+}
+
+function blueSheetsWithIncreasingZIndex(n) {
+  let sheets = [];
+  for (let i = 0; i < n; ++i) {
+    sheets.push(new CSSStyleSheet());
+    sheets[i].replaceSync("div { z-index: " + i + "; color: blue; }");
+  }
+  return sheets;
+}
+
+let sheets = [];
+
+test(function() {
+  sheets = blueSheetsWithIncreasingZIndex(2);
+
+  document.adoptedStyleSheets = [sheets[1], sheets[0], sheets[1]];
+  assert_equals(getComputedStyle(document.querySelector("div")).zIndex, "1", "duplicate stylesheet should take right position in the cascade");
+
+  document.adoptedStyleSheets = [];
+}, "Duplicate stylesheets have the right cascade position in the Document");
+
+test(function() {
+  sheets = blueSheetsWithIncreasingZIndex(2);
+
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("div { color: red; }");
+
+  document.adoptedStyleSheets = [sheets[1], sheets[0]];
+  assert_equals(getComputedStyle(document.querySelector("div")).zIndex, "0", "backmost stylesheet should take precedence");
+  assert_equals(getComputedStyle(document.querySelector("div")).color, "rgb(0, 0, 255)", "backmost stylesheet should take precedence");
+
+  document.adoptedStyleSheets = [sheets[1], sheets[0], sheets[1], sheet];
+  assert_equals(getComputedStyle(document.querySelector("div")).zIndex, "1", "duplicate stylesheet should take the right position in the cascade");
+  assert_equals(getComputedStyle(document.querySelector("div")).color, "rgb(255, 0, 0)", "backmost stylesheet should take precedence");
+
+  document.adoptedStyleSheets = [];
+}, "Appending duplicate stylesheets yields the correct cascade position in the Document");
+
+test(function() {
+  sheets = blueSheetsWithIncreasingZIndex(2);
+
+  const span = document.createElement("span");
+  target.appendChild(span);
+  attachShadowDiv(span);
+
+  span.shadowRoot.adoptedStyleSheets = [sheets[1], sheets[0], sheets[1]];
+  assert_equals(getComputedStyle(span.shadowRoot.querySelector("div")).zIndex, "1", "duplicate stylesheet should take right position in the cascade");
+}, "Duplicate stylesheets have the right cascade position in the ShadowRoot");
+
+test(function() {
+  sheets = blueSheetsWithIncreasingZIndex(2);
+
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("div { color: red; }");
+
+  const span = document.createElement("span");
+  target.appendChild(span);
+  attachShadowDiv(span);
+
+  span.shadowRoot.adoptedStyleSheets = [sheets[1], sheets[0]];
+  assert_equals(getComputedStyle(span.shadowRoot.querySelector("div")).zIndex, "0", "backmost stylesheet should take precedence");
+  assert_equals(getComputedStyle(span.shadowRoot.querySelector("div")).color, "rgb(0, 0, 255)", "backmost stylesheet should take precedence");
+
+  span.shadowRoot.adoptedStyleSheets = [sheets[1], sheets[0], sheets[1], sheet];
+  assert_equals(getComputedStyle(span.shadowRoot.querySelector("div")).zIndex, "1", "duplicate stylesheet should take right position in the cascade");
+  assert_equals(getComputedStyle(span.shadowRoot.querySelector("div")).color, "rgb(255, 0, 0)", "backmost stylesheet should take precedence");
+}, "Appending duplicate stylesheets yields the correct cascade position in the ShadowRoot");
+
+</script>

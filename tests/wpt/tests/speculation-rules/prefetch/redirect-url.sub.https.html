@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    const agent = await spawnWindow(t);
+    // Because `forceSinglePrefetch()` waits for 2 seconds, the redirect and final
+    // responses are expected to be received before `navigate()` below.
+    const nextUrl = new URL('/common/redirect.py', location.href);
+    const finalUrl = agent.getExecutorURL({ page: 2 });
+    nextUrl.searchParams.set('location', finalUrl);
+    await agent.forceSinglePrefetch(nextUrl);
+    await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+    assert_prefetched(await agent.getRequestHeaders(),
+        'Prefetched response should be used by navigation.');
+  }, 'Redirect and final response received before navigation start');
+
+  promise_test(async t => {
+    const agent = await spawnWindow(t);
+    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 2.5-second delay
+    // here to make the redirect response is received after `navigate()` below.
+    const nextUrl = new URL('/common/slow-redirect.py?delay=2.5', location.href);
+    const finalUrl = agent.getExecutorURL({ page: 2 });
+    nextUrl.searchParams.set('location', finalUrl);
+    await agent.forceSinglePrefetch(nextUrl);
+    await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+    assert_prefetched(await agent.getRequestHeaders(),
+        'Prefetched response should be used by navigation.');
+  }, 'Same-origin redirect response received after navigation start');
+
+  promise_test(async t => {
+    const agent = await spawnWindow(t);
+    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 2.5-second delay
+    // here to make the redirect response is received after `navigate()` below.
+    const nextUrl = new URL('/common/slow-redirect.py?delay=2.5', location.href);
+    const finalUrl = agent.getExecutorURL({ page: 2, hostname: '{{hosts[alt][www]}}' });
+    nextUrl.searchParams.set('location', finalUrl);
+    await agent.forceSinglePrefetch(nextUrl);
+    await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+    assert_prefetched(await agent.getRequestHeaders(),
+        'Prefetched response should be used by navigation.');
+  }, 'Cross-site redirect response received after navigation start');
+</script>

@@ -1,0 +1,57 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Clipboard API and events (https://w3c.github.io/clipboard-apis/)
+
+dictionary ClipboardEventInit : EventInit {
+  DataTransfer? clipboardData = null;
+};
+
+[Exposed=Window]
+interface ClipboardEvent : Event {
+  constructor(DOMString type, optional ClipboardEventInit eventInitDict = {});
+  readonly attribute DataTransfer? clipboardData;
+};
+
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute Clipboard clipboard;
+};
+
+typedef Promise<(DOMString or Blob)> ClipboardItemData;
+
+[SecureContext, Exposed=Window]
+interface ClipboardItem {
+  constructor(record<DOMString, ClipboardItemData> items,
+              optional ClipboardItemOptions options = {});
+
+  readonly attribute PresentationStyle presentationStyle;
+  readonly attribute FrozenArray<DOMString> types;
+
+  Promise<Blob> getType(DOMString type);
+
+  static boolean supports(DOMString type);
+};
+
+enum PresentationStyle { "unspecified", "inline", "attachment" };
+
+dictionary ClipboardItemOptions {
+  PresentationStyle presentationStyle = "unspecified";
+};
+
+typedef sequence<ClipboardItem> ClipboardItems;
+
+[SecureContext, Exposed=Window]
+interface Clipboard : EventTarget {
+  Promise<ClipboardItems> read(optional ClipboardUnsanitizedFormats formats = {});
+  Promise<DOMString> readText();
+  Promise<undefined> write(ClipboardItems data);
+  Promise<undefined> writeText(DOMString data);
+};
+
+dictionary ClipboardUnsanitizedFormats {
+  sequence<DOMString> unsanitized;
+};
+
+dictionary ClipboardPermissionDescriptor : PermissionDescriptor {
+  boolean allowWithoutGesture = false;
+};

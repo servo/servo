@@ -1,0 +1,14 @@
+<!doctype html>
+<title>CSS Container Queries Test: Math block container child crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://crbug.com/1294268">
+<p>Pass if there is no crash.</p>
+<math id="m" style="display:block math"></math>
+<script>
+  let div = document.createElement("div");
+  div.style.containerType = "size";
+  m.appendChild(div);
+  div.appendChild(document.createElement("span"));
+  document.body.offsetTop;
+  div.style.color = "green";
+</script>

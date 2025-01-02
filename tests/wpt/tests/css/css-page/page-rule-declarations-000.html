@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Paged Media: parsing @page declarations</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-page/#at-page-rule"/>
+<meta name="assert" content="Test that @page declarations are parsed correctly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css">
+
+    @page :visited { /* :visited is invalid for @page */
+        color: red;
+    }
+    @page a_page_name:visited { /* :visited is invalid for @page */
+        background-color: red;
+    }
+    @page {
+        margin-top:5cm;
+        margin-bottom:10cm;
+    }
+    @page :left {
+        margin-right:3cm;
+    }
+    @page :right {
+        margin-left:3cm;
+    }
+    @page :first {
+        border-width:1px;
+    }
+    @page hello {
+        color:green;
+    }
+    @page world:right {
+        background-color:green;
+    }
+    @page auto_page {
+        size: auto;
+    }
+    @page square_page {
+        size: 4in;
+    }
+    @page letter_page {
+        size: letter;
+    }
+    @page page_width_height {
+        size: 10cm 15cm;
+    }
+    @page page_size_orientation {
+        size: ledger landscape;
+    }
+    @page page_orientation_size {
+        size: portrait a4;
+    }
+    @page page_jis_size_orientation {
+        size: jis-b5 portrait;
+    }
+    @page page_orientation_jis_size {
+        size: landscape jis-b4;
+    }
+    @page err_empty_size {
+        size:;
+    }
+    @page err_unknow_page_size {
+        size: yotsugiri;
+    }
+    @page err_length_and_page_size {
+        size: 10cm letter;
+    }
+    @page err_length_and_orientation {
+        size: 10cm landscape;
+    }
+    @page err_orientations {
+        size: portrait landscape;
+    }
+    @page err_too_many_params {
+        size: a5 landscape auto;
+    }
+
+</style>
+<script type="text/javascript">
+
+    let expectedForSelector = {
+        "" : "margin-top: 5cm; margin-bottom: 10cm;",
+        ":left" : "margin-right: 3cm;",
+        ":right" : "margin-left: 3cm;",
+        ":first" : "border-width: 1px;",
+        "hello" : "color: green;",
+        "world:right" : "background-color: green;",
+        "auto_page" : "size: auto;",
+        "square_page" : "size: 4in;",
+        "letter_page" : "size: letter;",
+        "page_width_height" : "size: 10cm 15cm;",
+        "page_size_orientation" : "size: ledger landscape;",
+        "page_orientation_size" : "size: a4 portrait;",
+        "page_jis_size_orientation" : "size: jis-b5 portrait;",
+        "page_orientation_jis_size" : "size: jis-b4 landscape;",
+        "err_empty_size" : "",
+        "err_unknow_page_size" : "",
+        "err_length_and_page_size" : "",
+        "err_length_and_orientation" : "",
+        "err_orientations" : "",
+        "err_too_many_params" : ""
+    };
+    let styleSheets = document.styleSheets;
+    for (let i = 0; i < styleSheets.length; i++) {
+        let rules = styleSheets[i].cssRules;
+        for (let rule of rules) {
+            if (rule.type == CSSRule.PAGE_RULE) {
+                let expected = expectedForSelector[rule.selectorText];
+                test(function(){
+                    assert_equals(rule.style.cssText, expected, "unexpected @page contents");
+                }, "unexpected contents for selector ['" + rule.selectorText + "']");
+                delete expectedForSelector[rule.selectorText];
+            }
+        }
+    }
+    test(function() {
+        assert_equals(Object.keys(expectedForSelector).length, 0, "missing @page selectors");
+    });
+
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffect getKeyframes()</title>
+<link rel="help"
+      href="https://drafts.csswg.org/web-animations/#dom-keyframeeffect-getkeyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/keyframe-utils.js"></script>
+<script src="../../resources/keyframe-tests.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+const target = document.getElementById('target');
+
+
+for (const subtest of gKeyframeSerializationTests) {
+  test(t => {
+    const effect = new KeyframeEffect(target, subtest.input);
+    assert_frame_lists_equal(effect.getKeyframes(), subtest.output);
+  }, `getKeyframes() should serialize its css values with ${subtest.desc}`);
+}
+</script>

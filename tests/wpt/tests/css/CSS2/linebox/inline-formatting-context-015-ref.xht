@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p {margin: 1em 0em;}
+
+  table
+  {
+  background-color: orange;
+  border-spacing: 0px;
+  width: 200px;
+  }
+
+  td
+  {
+  padding: 0px;
+  vertical-align: top;
+  }
+
+  td:first-child {width: 110px;}
+
+  div
+  {
+  border: blue solid 5px;
+  height: 20px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the "Filler Text" is to the right of the blue box and an orange background covers the area behind both the "Filler Text" and the blue box.</p>
+
+  <table>
+    <tr><td><div></div></td><td>Filler Text Filler Text</td></tr>
+  </table>
+
+ </body>
+</html>

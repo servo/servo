@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Focus event inner document</title>
+</head>
+<body>
+<h1>Inner</h1>
+<script>
+let innerlog = "innerlog:";
+
+window.onmessage = function(e) {
+  if (e.data == "getlog") {
+    parent.postMessage(innerlog, "*");
+  }
+};
+
+window.onfocus = function() {
+  innerlog += "windowfocus,";
+};
+
+window.onblur = function() {
+  innerlog += "windowblur,";
+};
+</script>
+</body>
+</html>

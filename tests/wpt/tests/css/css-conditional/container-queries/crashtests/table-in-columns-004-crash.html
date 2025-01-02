@@ -1,0 +1,16 @@
+<!doctype html>
+<title>CSS Container Queries Crash Test</title>
+<link rel="help" href="https://crbug.com/1338055">
+<p>Pass if no crash</p>
+<div style="container-type:inline-size">
+  <span style="columns: 1">
+    <canvas>
+      <script>
+        document.body.offsetTop;
+      </script>
+      <div style="container-type:inline-size">
+        <span style="display:table-column-group"></span>
+      </div>
+    </canvas>
+  </span>
+</div>

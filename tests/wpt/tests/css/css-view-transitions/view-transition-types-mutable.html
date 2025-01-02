@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>View behavior of ViewTransitionTypeSet</title>
+<link rel="help" href="https://www.w3.org/TR/css-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+    test(() => {
+    assert_implements(document.startViewTransition);
+    const { types } = document.startViewTransition();
+    assert_true(types instanceof ViewTransitionTypeSet);
+  }, "ViewTransition.types is a ViewTransitionTypeSet");
+
+  test(() => {
+    assert_implements(document.startViewTransition);
+    const { types } = document.startViewTransition();
+    types.add("a");
+    types.add("b");
+    assert_array_equals([...types], ["a", "b"]);
+    assert_array_equals(Array.from(types), ["a", "b"]);
+    types.delete("b");
+    assert_array_equals([...types], ["a"]);
+    assert_true(types.has("a"));
+    types.add("a");
+    assert_array_equals([...types], ["a"]);
+    types.add(".");
+    types.add("");
+    types.add("123");
+    assert_array_equals([...types], ["a", ".", "", "123"]);
+  }, "ViewTransitionTypeSet behaves like an ordinary Set of strings");
+
+  promise_test(async () => {
+    assert_implements(document.startViewTransition);
+    const transition = document.startViewTransition();
+    transition.types.add("a");
+    await transition.finished;
+    assert_array_equals([...transition.types], ["a"]);
+    transition.types.add("b");
+    assert_array_equals([...transition.types], ["a", "b"]);
+  }, "ViewTransitionTypeSet should reflect its members for a non-active transition");
+</script>
+
+</html>

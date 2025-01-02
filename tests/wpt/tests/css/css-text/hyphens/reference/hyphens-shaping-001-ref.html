@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<style>
+  @font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+  }
+  div {
+    font-family: 'csstest_noto';
+    font-size: 3em;
+    line-height: 1; /* Not strictly needed, but it gets quite tall otherwise, so this helps fit the screen. */
+    width: 0;
+    hyphens: manual;
+    margin: 1em auto;
+  }
+  .ref { color: orange; }
+</style>
+
+<p>Test passes if the black text is identical to the orange text (except the color).
+
+<div dir=rtl lang=ug class=ref>&#xFEA9;&#xFE8D;&#xFEE3;&#xFEF4;<br>&#xFEAA;&#xFEEF;</div>
+
+<div dir=rtl lang=ug>&#xFEA9;&#xFE8D;&#xFEE3;&#xFEF4;<br>&#xFEAA;&#xFEEF;</div>

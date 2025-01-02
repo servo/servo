@@ -1,0 +1,26 @@
+<!doctype html>
+<title>CSS Pseudo Element API IDL tests</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#cssom">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+'use strict';
+
+idl_test(
+  ['css-pseudo'],
+  ['cssom', 'html', 'dom'],
+  idl_array => {
+    idl_array.add_objects({
+      Window: ['window'],
+      CSSPseudoElementList: ['beforeElements'],
+      CSSPseudoElement: ['beforeElements.item(0)'],
+    });
+
+    window.beforeElements =
+      window.getPseudoElements(document.body, 'before');
+  }
+);
+</script>

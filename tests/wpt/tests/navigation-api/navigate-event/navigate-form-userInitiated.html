@@ -1,0 +1,32 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<form id="form" method="post" action="">
+<input id="submit" type="submit" value="Submit">
+</form>
+<script>
+async_test(t => {
+  navigation.onnavigate = t.step_func_done(e => {
+    e.preventDefault();
+
+    assert_equals(e.navigationType, "push");
+    assert_true(e.cancelable);
+    assert_true(e.canIntercept);
+    assert_true(e.userInitiated);
+    assert_false(e.hashChange);
+    assert_equals(e.downloadRequest, null);
+    assert_equals(e.destination.url, location.href);
+    assert_false(e.destination.sameDocument);
+    assert_equals(e.destination.key, "");
+    assert_equals(e.destination.id, "");
+    assert_equals(e.destination.index, -1);
+    assert_not_equals(e.formData, null);
+    // NavigateEvent sourceElement is still in development, so test whether it is available.
+    if ("sourceElement" in e) assert_equals(e.sourceElement, submit);
+  });
+  window.onload = t.step_func(() => test_driver.click(submit));
+}, "<form> submission fires navigate event");
+</script>

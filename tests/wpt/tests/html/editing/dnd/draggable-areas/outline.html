@@ -1,0 +1,16 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – draggable areas – outline</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  outline: 10px solid orange;
+}
+</style>
+
+<p>Try dragging the orange border of the blue box below. It should <em>not</em> be draggable.</p>
+
+<a href='#' draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'"></a>

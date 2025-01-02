@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Out-of-order stylesheet loads for the same element happen correctly, even with imports (issue #15101)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+  var link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "resources/imports-background-red.css?pipe=trickle(d3)";
+  document.head.appendChild(link);
+  link.href = "resources/imports-background-green.css";
+  t.step_timeout(function() {
+    assert_equals(getComputedStyle(document.body).getPropertyValue("background-color"), "rgb(0, 128, 0)");
+    t.done();
+  }, 4000);
+}, "out-of-order stylesheet loads for the same element happen correctly, even with imports");
+</script>

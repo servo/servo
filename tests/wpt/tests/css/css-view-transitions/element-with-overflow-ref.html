@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: element with overflow ref</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+  .old_target {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100px;
+    height: 100px;
+    background: lightblue;
+    transform: translate(8px, 8px);
+  }
+
+  .new_target {
+    position: fixed;
+    top: 200px;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    background: lightgreen;
+    transform: translate(8px, 8px);
+  }
+
+  .inner {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    top: 50px;
+    left: 50px;
+    border: 5px solid black;
+  }
+</style>
+<div class="old_target">
+  <div class="inner"></div>
+</div>
+<div class="new_target">
+  <div class="inner" style="border:5px solid blue"></div>
+</div>

@@ -1,0 +1,56 @@
+<!doctype html>
+<title>Object.prototype.getOwnPropertyNames</title>
+<link rel=help href=http://es5.github.io/#x15.2.3.4>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id=log></div>
+<script>
+test(function () {
+  var obj = {0: 'a', 1: 'b', 2: 'c'};
+  assert_array_equals(
+    Object.getOwnPropertyNames(obj).sort(),
+    ['0', '1', '2']
+  );
+}, "object");
+
+test(function () {
+  var arr = ['a', 'b', 'c'];
+  assert_array_equals(
+    Object.getOwnPropertyNames(arr).sort(),
+    ['0', '1', '2', 'length']
+  );
+}, "array-like");
+
+test(function () {
+  var obj = Object.create({}, {
+    getFoo: {
+      value: function() { return this.foo; },
+      enumerable: false
+    }
+  });
+  obj.foo = 1;
+  assert_array_equals(
+    Object.getOwnPropertyNames(obj).sort(),
+    ['foo', 'getFoo']
+  );
+}, "non-enumerable property");
+
+test(function() {
+  function ParentClass() {}
+  ParentClass.prototype.inheritedMethod = function() {};
+
+  function ChildClass() {
+    this.prop = 5;
+    this.method = function() {};
+  }
+  ChildClass.prototype = new ParentClass;
+  ChildClass.prototype.prototypeMethod = function() {};
+
+  var obj = new ChildClass;
+  assert_array_equals(
+    Object.getOwnPropertyNames(obj).sort(),
+    ['method', 'prop']
+  );
+}, 'items on the prototype chain are not listed');
+</script>

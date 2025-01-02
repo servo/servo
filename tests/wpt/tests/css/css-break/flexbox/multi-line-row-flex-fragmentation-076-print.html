@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- This is a multi-line extension of: single-line-row-flex-fragmentation-042-print.html -->
+<html>
+  <meta charset="utf-8">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1743890">
+  <link rel="match" href="multi-line-row-flex-fragmentation-076-print-ref.html">
+
+  <style>
+  @page { size: 5in 3in; margin: 0.5in; }
+  body { margin: 0; }
+
+  .flexbox {
+    display: flex;
+    border: 0.25in solid black;
+    font-size: 0.25in;
+    flex-flow: row wrap;
+  }
+  .item {
+    contain: size;
+    box-sizing: border-box;
+    border: 4px solid purple;
+    width: 25%;
+    height: 0.5in;
+  }
+  </style>
+
+  <!-- This div makes the flexbox not at the top of first page. -->
+  <div style="height: 0.25in; background: gray;"></div>
+
+  <div class="flexbox">
+    <div class="item" style="margin-top: 0.5in;">1</div>
+    <div class="item">2</div>
+    <div class="item" style="margin-top: 1in; height: 1in;">3</div>
+    <div class="item" style="margin-top: 2in;">4</div>
+    <div class="item">5</div>
+    <div class="item">6</div>
+    <div class="item">7</div>
+    <div class="item">8</div>
+  </div>
+
+  <div style="height: 0.25in; background: gray;"></div>
+</html>

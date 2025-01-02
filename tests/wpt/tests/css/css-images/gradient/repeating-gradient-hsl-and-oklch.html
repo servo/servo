@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<meta name=fuzzy content="maxDifference=0-1;totalPixels=0-2000">
+<head>
+    <meta charset="utf-8">
+    <title>Repeating linear gradients in HSL and OKLCH space</title>
+    <link rel="author" title="Ashley Hale" href="mailto:ahale@mozilla.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <meta name="assert" content="Tests that a multi-stop shorter hue gradient and a single-stop longer hue (wrapping) gradient match in appearance">
+    <link rel="match" href="repeating-gradient-hsl-and-oklch-ref.html">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        .a {
+          width: 100px;
+          height: 100px;
+          background: repeating-linear-gradient(
+            to bottom,
+            hsl(180 50% 70%) 0px 20px,
+            hsl(0 50% 50%) 20px 40px
+          );
+        }
+
+        .b {
+          width: 100px;
+          height: 100px;
+          background: repeating-linear-gradient(
+            to bottom,
+            oklch(70% 50% 180) 0px 20px,
+            oklch(50% 50% 0) 20px 40px
+          );
+        }
+    </style>
+</head>
+
+<body>
+    <p>repeating-linear-gradient with HSL</p>
+    <div class="a"></div>
+    <p>repeating-linear-gradient with OKLCH</p>
+    <div class="b"></div>
+</body>
+</html>

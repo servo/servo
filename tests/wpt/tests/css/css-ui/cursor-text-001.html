@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor:text with vertical text</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode">
+<meta name="flags" content="interact may">
+<meta charset="UTF-8">
+<meta name="assert" content="User agents may automatically display a horizontal I-beam/cursor (e.g. same as the vertical-text keyword) for vertical text.">
+<style>
+div {
+  cursor: text;
+  color: blue;
+  writing-mode: vertical-rl;
+}
+p {
+	cursor: text;
+}
+</style>
+<body>
+  <p>The test passes if, when moved over the blue vertical text, the cursor indicates vertical-text that may be selected,
+  and looks different from the cursor used to indicate that horizontal text may be selected,
+  such as when placed over this sentence.
+  Often rendered as a horizontal I-beam.</p>
+  <p>Disregard this test if there is no vertical text.</p>
+  <div>Lorem ipsum</div>
+</body>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  CSS Grid Layout Test: Grid Item (First) Baseline Alignment Row Cyclic Sizing Exclusions Reference File
+</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .grid {
+    border: solid silver;
+    margin: 1em 0.25em;
+    display: inline-grid;
+    grid-template-columns: repeat(3, auto);
+    font: 20px/1 Ahem;
+    height: 5em;
+  }
+  .grid > div {
+    border: 1em aqua;
+    border-style: solid none;
+  }
+  .index {
+    padding: 1em 0;
+  }
+  .percent, .orthogonal {
+    height: 1em;
+  }
+
+  .self > div {
+    align-self: start;
+  }
+  .content > div {
+    align-content: start;
+  }
+  .self.ref > div {
+    align-self: start;
+  }
+  .content.ref > div {
+    align-content: start;
+  }
+</style>
+
+<p>Test passes if the upper set of boxes is identical to the lower set.
+
+<div class="grid self">
+  <div class="index">
+    X
+  </div>
+  <div class="percent">
+    X
+  </div>
+</div>
+
+<div class="grid self">
+  <div class="index">
+    X
+  </div>
+  <div class="orthogonal">
+    X
+  </div>
+</div>
+
+<div class="grid content">
+  <div class="index">
+    X
+  </div>
+  <div class="percent">
+    X
+  </div>
+</div>
+
+<div class="grid content">
+  <div class="index">
+    X
+  </div>
+  <div class="orthogonal">
+    X
+  </div>
+</div>
+
+<br>
+
+<div class="grid self ref">
+  <div class="index">
+    X
+  </div>
+  <div class="percent">
+    X
+  </div>
+</div>
+
+<div class="grid self ref">
+  <div class="index">
+    X
+  </div>
+  <div class="orthogonal">
+    X
+  </div>
+</div>
+
+<div class="grid content ref">
+  <div class="index">
+    X
+  </div>
+  <div class="percent">
+    X
+  </div>
+</div>
+
+<div class="grid content ref">
+  <div class="index">
+    X
+  </div>
+  <div class="orthogonal">
+    X
+  </div>
+</div>

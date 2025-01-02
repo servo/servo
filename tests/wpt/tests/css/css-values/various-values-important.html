@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Values: !important flag parsing</title>
+    <link rel="help" href="https://www.w3.org/TR/css-syntax-3/" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      #target {
+        font-variant: no-common-ligatures proportional-nums !important;
+        initial-letter: 123 !important;
+        text-box-edge: text !important;
+        view-transition-class: cls !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target">Some text.</div>
+  </body>
+  <script>
+test(() => {
+  assert_equals(getComputedStyle(target).fontVariant, 'no-common-ligatures proportional-nums');
+});
+test(() => {
+  assert_equals(getComputedStyle(target).initialLetter, '123');
+});
+test(() => {
+  assert_equals(getComputedStyle(target).textBoxEdge, 'text');
+});
+test(() => {
+  assert_equals(getComputedStyle(target).viewTransitionClass, 'cls');
+});
+  </script>
+</html>

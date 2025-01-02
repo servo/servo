@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script>
+    window.addEventListener('securitypolicyviolation', function(e) {
+        log("Fail");
+    });
+</script>
+<html style="background-color: blue;">
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="style-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self'">
+    <title>inline-style-attribute-on-html</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <p>Even though this page has a CSP policy the blocks inline style, the style attribute on the HTML element still takes effect because it preceeds the meta element.
+    </p>
+    <script>
+        log(document.documentElement.style.length > 0 ? 'PASS' : 'FAIL');
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

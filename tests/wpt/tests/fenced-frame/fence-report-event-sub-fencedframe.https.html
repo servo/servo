@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent from nested fenced frames.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    headers: [[
+      'Allow-Cross-Origin-Event-Reporting', '?1'
+    ]],
+    register_beacon: true
+  });
+  await fencedframe.execute(async () => {
+    const fencedframe = await attachFencedFrameContext({
+      generator_api: 'sharedstorage'
+    });
+    await fencedframe.execute(() => {
+      const destination_url = new URL(BEACON_URL + "?type=url",
+          get_host_info().HTTPS_ORIGIN);
+      window.fence.reportEvent({
+        eventType: "click",
+        eventData: "enum",
+        destination: ["buyer"],
+        crossOriginExposed: true
+      });
+      window.fence.reportEvent({
+        destinationURL: destination_url,
+        crossOriginExposed: true
+      });
+    });
+  });
+  // Check that both the destination enum and destination URL events were
+  // reported.
+  await verifyBeaconData("click", "enum", null, false, t);
+  await verifyBeaconData("url", "<No data>", null, false, t);
+}, 'window.fence.reportEvent should not work in a nested fenced frame');
+</script>
+</body>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<iframe src="resources/selectedcontent-restore-iframe.html"></iframe>
+
+<script>
+const iframe = document.querySelector('iframe');
+promise_test(async () => {
+  await new Promise(resolve => iframe.onload = resolve);
+  await test_driver.bless();
+
+  iframe.contentDocument.querySelector('select').value = 'two';
+  assert_equals(iframe.contentDocument.querySelector('select').value, 'two',
+    'Assining two to select.value should work.');
+  iframe.contentDocument.querySelector('form').submit();
+  await new Promise(resolve => iframe.onload = resolve);
+
+  await test_driver.bless();
+  iframe.contentWindow.history.back();
+  await new Promise(resolve => iframe.onload = resolve);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  assert_equals(iframe.contentDocument.querySelector('select').value, 'two',
+    'The selects value should be restored after navigating back.');
+  assert_equals(iframe.contentDocument.querySelector('selectedcontent').innerHTML,
+    iframe.contentDocument.querySelector('option[value=two]').innerHTML,
+    'selectedcontent.innerHTML should match the selected <option>');
+}, '<selectedcontent> should be up to date after form restoration.');
+</script>

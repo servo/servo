@@ -1,0 +1,13 @@
+[toolchain]
+channel = "1.82.0"
+
+components = [
+    "clippy",
+    # For support/crown
+    "llvm-tools",
+    # For support/crown
+    "rustc-dev",
+    # For formatting
+    "rustfmt",
+]
+profile = "minimal"

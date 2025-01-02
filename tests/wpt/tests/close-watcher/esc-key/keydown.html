@@ -1,0 +1,21 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  window.onkeydown = e => e.preventDefault();
+
+  await sendEscKey();
+
+  assert_array_equals(events, []);
+}, "A keydown listener can prevent the Esc keypress from being interpreted as a close request");
+</script>

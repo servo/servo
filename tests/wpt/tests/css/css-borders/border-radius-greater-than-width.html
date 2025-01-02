@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+    <title>CSS Test: Property of 'border-[*]-radius'.</title>
+    <link rel="author" title="Lin Peng" href="mailto:penglin220@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+    <link rel="match" href="reference/border-radius-greater-than-width-ref.html">
+    <meta name="assert" content="Border should also render normally when 'border-[*]-radius' are greater than width or height." />
+    <style type="text/css">
+      div
+      {
+        width: 9px;
+        height: 100px;
+        border-top: 100px solid lightgreen;
+        border-left: 100px solid black;
+        border-top-right-radius: 10px;
+        border-bottom-left-radius: 10px;
+      }
+    </style>
+</head>
+<body>
+  <div></div>
+</body>

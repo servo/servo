@@ -1,0 +1,288 @@
+group trivial "Trivial expressions"
+
+	case float
+		values { output float out0 = 5.0; }
+		both ""
+
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const float a = 5.0;
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int
+		values { output int out0 = 5; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const int a = 5;
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool
+		values { output bool out0 = true; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const bool a = true;
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case cast
+		values { output float out0 = 1.0; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const float a = float(int(bool(true)));
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # trivial
+
+group operators "Operators"
+
+	case math_float
+		values { output float out0 = 2.19; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const float a = 6.0/3.5 + 1.8*2.6 - 4.2;
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case math_vec
+		values { output float out0 = 15.0; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const vec3 a = (vec4(1.0, 2.0, 3.0, 4.0).zyx * vec3(1.0, 1.5, 3.0).xyz).xzy + (vec2(5.0)/vec2(2.5)).xxy;
+				out0 = a.x + a.y + a.z;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case math_int
+		values { output int out0 = 7; }
+		both ""
+			precision highp int;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const int a = 5-1 + 2*3 - 9/3;
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case math_ivec
+		values { output int out0 = 21; }
+		both ""
+			precision highp int;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const ivec3 a = ivec2(5-1, 4).xxy + ivec4(1*3, 9/3, 1+2, 8/4).xyz;
+				out0 = a.x + a.y + a.z;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case math_mat
+		values { output float out0 = 8.0; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const mat3 a = mat3(3.0) * mat3(4.0);
+				const mat4 b = mat4(a[1][1])*2.0;
+				const mat2 c = mat2(b[0][0]) / 3.0;
+				out0 = c[0][0]+c[1][0];
+				${OUTPUT}
+			}
+		""
+	end
+
+	case logical
+		values { output bool out0 = true; }
+		both ""
+			precision highp int;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const bool a = (!false || false) && (true ^^ false);
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case compare
+		values { output bool out0 = true; }
+		both ""
+			precision highp int;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const bool a = (false == false) && (true != false) && (1 < 2) && (3 <= 3) && ((1 > 1) != (1 >= 1));
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case selection
+		values { output float out0 = 5.3; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const float a = false ? 0.0 : (true ? 5.3 : 1.0);
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # operators
+
+group complex_types "Arrays, structs & nested calls"
+
+	case struct
+		values { output float out0 = 260.922; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			struct S
+			{
+				vec4 a;
+				int  b;
+			};
+
+			void main()
+			{
+				const S s = S(vec4(1.5), 123);
+				out0 = length(s.a.xy)*float(s.b);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case nested_struct
+		values { output float out0 = 965.9; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			struct S
+			{
+				vec4 v;
+				int  i;
+			};
+
+			struct T
+			{
+				S s;
+				bool b;
+				int i;
+			};
+
+			struct U
+			{
+				S s;
+				T t;
+			};
+
+			void main()
+			{
+				const S s = S(vec4(1.5), 123);
+				const T t = T(s, false, 3);
+				const U u = U(s, t);
+				const U v = U(S(vec4(1.3), 4), T(S(vec4(2.0), 5), true, 6));
+				out0 = float(u.s.i*v.t.i + v.t.s.i)*v.s.v.x; // float(123*6 + 5)*1.3
+				${OUTPUT}
+			}
+		""
+	end
+
+	case array
+		values
+		{
+			input float in0 = [ 0.0 | 1.0];
+			output float out0 = [0.0 | 1.0];
+		}
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				float a[int(max(-1.0, 2.0))];
+				a[0] = -1.0;
+				a[1] = in0;
+				out0 = a[int(min(1.0, 2.0))];
+				${OUTPUT}
+			}
+		""
+	end
+
+	case nested_builtin_funcs
+		values { output float out0 = 3.05; }
+		both ""
+			precision highp float;
+			${DECLARATIONS}
+
+			void main()
+			{
+				const float a = sqrt( atan(sin(1.5)/cos(1.5)) /*1.5*/ * log2(exp2(log(exp(6.2) + 0.1)) + 0.1) /*~6.2*/);
+				out0 = a;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # complex_types

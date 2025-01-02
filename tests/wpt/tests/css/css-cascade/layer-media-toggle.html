@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: Tests against a Chrome bug that modifying a sheet affects existing layers</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1313357">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+<style>
+@layer foo, bar;
+@layer bar {
+  #target { background-color: green; }
+}
+@layer foo {
+  #target { background-color: red; }
+}
+</style>
+<style media="print" id="toggle">
+#target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target"></div>
+
+<script>
+document.body.offsetWidth; // Force style calculation
+document.getElementById('toggle').media = 'all';
+</script>

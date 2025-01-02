@@ -1,0 +1,87 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Chris Lilley" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: text-fonts-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#FontPropertiesUsedBySVG">
+        <p>
+          Purpose of test is to determine if the font family is being
+          correctly selected. The top two lines of text test serif fonts;
+          the top line in maroon tests the generic font family 'serif'
+          and the second line in black tests a selection of commonly
+          available named serif fonts. The next two lines of text test
+          sans-serif fonts;
+          the top line in maroon tests the generic font family 'sans-serif'
+          and the second line in black tests a selection of commonly
+          available named sans serif fonts. The following two lines
+          of text test monospaced fonts;
+          the top line in maroon tests the generic font family 'monospaced'
+          and the second line in black tests a selection of commonly
+          available named monospaced fonts. The lowercase 'i' and uppercase'W'
+          should be the same width,for monospaced fonts.
+        </p>
+        <p>
+          The seventh line of text, in green, tests for
+          three non-existent fonts (nonsense names). There is no fallback
+          generic font specified. The text must be displayed anyway.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The first six lines contain two Japanese characters (画像)
+        at the end of the line. Both of these characters must be displayed,
+        although it is compliant to display them with the 'missing glyph'
+        if no suitable font containing Japanese characters can be found.
+        Most but not all fonts have a visible missing glyph character.
+        If the selected font has a visible missing glyph character, it should appear
+        wherever the corresponding glyph is not available.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-fonts-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-weight="normal" font-size="24" stroke="none">
+      <text font-family="Georgia, 'Minion Web', 'Times New Roman', Times, 'MS PMincho', Heisei-Mincho, serif " x="20" y="80">A serifed face 画像</text>
+      <text font-family="Arial, 'Arial Unicode', 'Myriad Web', Geneva, 'Lucida Sans Unicode', 'MS PGothic', Osaka, sans-serif " x="20" y="160">A sans-serif face 画像</text>
+      <text font-family="'Lucida Console', 'Courier New', Courier, Monaco, 'MS Gothic', Osaka-Mono, monospace" x="20" y="240">A mono (iW) face 画像</text>
+      <g id="generic" fill="maroon">
+        <text font-family="serif" x="40" y="50">A serifed face 画像</text>
+        <text font-family="sans-serif " x="40" y="130">A sans-serif face 画像</text>
+        <text font-family="monospace " x="40" y="210">A mono (iW) face 画像</text>
+      </g>
+      <text fill="green" font-family="'No such font at all', 'another fictitious one', sillynamewithoutspaces" x="40" y="290">This must be displayed</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

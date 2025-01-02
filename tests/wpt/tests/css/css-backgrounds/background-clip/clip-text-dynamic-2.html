@@ -1,0 +1,39 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Test: background-clip: text is invalidated properly on text position changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1525372">
+<link rel="author" href="mailto:mwoodrow@mozilla.com" title="Matt Woodrow">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="clip-text-dynamic-2-ref.html">
+<style>
+  .text {
+    background-color: blue;
+    color: transparent;
+    font: 50px/1 monospace;
+    background-clip: text;
+    height: 200px;
+  }
+  .prev {
+    height: 10px;
+  }
+  p {
+    color: transparent;
+  }
+</style>
+<div class="text">
+  <div class="prev"></div>
+  <div class="inner">
+    <p>XxX</p>
+  </div>
+</div>
+<script>
+onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector(".prev").style.height = "100px";
+      document.documentElement.className = "";
+    })
+  })
+}
+</script>

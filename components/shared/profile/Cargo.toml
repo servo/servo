@@ -1,0 +1,26 @@
+[package]
+name = "profile_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "profile_traits"
+path = "lib.rs"
+
+[features]
+tracing = ["dep:tracing"]
+
+[dependencies]
+base = { workspace = true }
+crossbeam-channel = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
+servo_config = { path = "../../config" }
+signpost = { git = "https://github.com/pcwalton/signpost.git" }
+time_03 = { workspace = true }
+tracing = { workspace = true, optional = true }

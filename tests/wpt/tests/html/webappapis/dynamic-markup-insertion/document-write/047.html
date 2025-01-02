@@ -1,0 +1,11 @@
+<!doctype html>
+<title>document.write</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var win;
+var t = async_test(() => {
+  win = window.open("047-1.html");
+});
+t.add_cleanup(() => win.close());
+</script>

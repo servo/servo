@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.6-targRightsValidated.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "ERROR: A target or target/source has one or more rights key values that are not of format uri.",
+    "title": "If present all target-level or target/source-level **_rights_ key values** are strings of **format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
+    "description": "True when no target-level or target/source-level (SR target) rights key present or when all rights key values are strings of format uri (Section 3.3.6)",
+    "type": "object",
+    "properties":
+    {
+      "target":
+       {
+          "oneOf":
+          [
+            { "$ref": "id.json#/definitions/arraySingleStringUri" },
+            { "allOf":
+               [
+                  { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/sourceWithRights" }
+               ]
+            },
+            {
+                "type": "array",
+                "minItems": 1,
+                "items":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "allOf":
+                           [
+                              { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" },
+                              { "$ref": "specificResource.json#/definitions/sourceWithRights" }
+                           ]
+                        }
+                    ]
+                }
+            }
+          ]
+       }
+   }
+}

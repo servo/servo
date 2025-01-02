@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="match" href="large-min-size-reftest-ref.html">
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<body>
+  <div>
+    The permission element min-width/height should not be allowed to exceeed the maximum
+    allowed value for max-width/height.
+  </div>
+
+<style>
+  #id1 {
+    font-size: 10px;
+    min-height: 100px;
+    min-width: 1000px;
+    border: 0px;
+
+    width: 1px;
+    height: 1px;
+  }
+  #id2 {
+    font-size: 10px;
+    max-height: 5px;
+    max-width: 10px;
+    border: 0px;
+
+    width: 1000px;
+    height: 1000px;
+  }
+</style>
+
+<div><permission id="id1" type="geolocation"></div>
+<div><permission id="id2" type="camera"></div>
+</body>

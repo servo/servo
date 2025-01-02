@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Templates: Template element as a descendant of the body element.</title>
+<meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<meta name="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<meta name="assert" content="Template element can be a descendant of the body element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-template-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/html/resources/common.js'></script>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+
+function templateIsAChild(element) {
+    element.innerHTML = '<template>some text</template>';
+
+    assert_not_equals(element.querySelector('template'), null,
+        'Template element should be a descendant of the ' + element.tagName + ' element');
+}
+
+function templateIsDisallowedAsAChild(element) {
+    element.innerHTML = '<template>some text</template>';
+
+    assert_equals(element.querySelector('template'), null,
+        'Template element should not be allowed as a descendant of the ' + element.tagName + ' element');
+}
+
+function templateIsAnIndirectChild(element) {
+    element.innerHTML = '<div><template>some text</template></div>';
+
+    assert_not_equals(element.querySelector('template'), null,
+        'Template element should be a descendant of the ' + element.tagName + ' element');
+}
+
+function templateIsDisallowedAsAnIndirectChild(element) {
+    element.innerHTML = '<div><template>some text</template></div>';
+
+    assert_equals(element.querySelector('template'), null,
+        'Template element should not be allowed as indirect descendant of the ' + element.tagName + ' element');
+}
+
+function templateIsAnAppendedChild(doc, element) {
+    var template = doc.createElement('template');
+
+    element.appendChild(template);
+
+    assert_not_equals(element.querySelector('template'), null,
+        'Template element should be a descendant of the ' + element.tagName + ' element');
+}
+
+function templateIsAnAppendedIndirectChild(doc, element) {
+    var template = doc.createElement('template');
+    var div = doc.createElement('div');
+    div.appendChild(template);
+
+    element.appendChild(div);
+
+    assert_not_equals(element.querySelector('template'), null,
+        'Template element should be a descendant of the ' + element.tagName + ' element');
+}
+
+var doc = newHTMLDocument();
+var frameset = doc.createElement('frameset');
+
+var parameters = [['Template element as a descendant of the BODY element. ' +
+                   'Template element is created by innerHTML',
+                   doc.body],
+                  ['Template element as a descendant of the HEAD element. ' +
+                   'Template element is created by innerHTML',
+                   doc.head],
+                   ];
+// Template element as a descendant of the HEAD and BODY elements
+generate_tests(templateIsAChild, parameters);
+
+parameters = [['Template element as a descendant of the FRAMESET element. ' +
+               'Template element is created by innerHTML',
+               frameset],
+               ];
+// Template element should be disallowed as a descendant of the FRAMESET elements
+generate_tests(templateIsDisallowedAsAChild, parameters);
+
+
+parameters = [['Template element as an indirect descendant of the BODY element. ' +
+               'Template element is created by innerHTML',
+               doc.body],
+              ['Template element as an indirect descendant of the HEAD element. ' +
+               'Template element is created by innerHTML',
+               doc.head],
+               ];
+// Template element as an indirect descendant of the HEAD, BODY and FRAMESET elements
+generate_tests(templateIsAnIndirectChild, parameters);
+
+parameters = [['Template element as an indirect descendant of the FRAMESET element. ' +
+               'Template element is created by innerHTML',
+               frameset],
+               ];
+// Template element should be disallowed as an indirect descendant of the FRAMESET elements
+generate_tests(templateIsDisallowedAsAnIndirectChild, parameters);
+
+
+
+parameters = [['Template element as a descendant of the BODY element. ' +
+               'Template element is appended by appendChild()',
+               doc, doc.body],
+              ['Template element as a descendant of the HEAD element. ' +
+               'Template element is appended by appendChild()',
+               doc, doc.head],
+               ['Template element as a descendant of the FRAMESET element. ' +
+                'Template element is  appended by appendChild()',
+                doc, frameset]
+               ];
+// Template element as a descendant of the HEAD, BODY and FRAMESET elements
+generate_tests(templateIsAnAppendedChild, parameters);
+
+
+
+parameters = [['Template element as an indirect descendant of the BODY element. ' +
+               'Template element is appended by appendChild()',
+               doc, doc.body],
+              ['Template element as an indirect descendant of the HEAD element. ' +
+               'Template element is appended by appendChild()',
+               doc, doc.head],
+               ['Template element as an indirect descendant of the FRAMESET element. ' +
+                'Template element is  appended by appendChild()',
+                doc, frameset]
+               ];
+// Template element as a descendant of the HEAD, BODY and FRAMESET elements
+generate_tests(templateIsAnAppendedIndirectChild, parameters);
+
+</script>
+</body>
+</html>

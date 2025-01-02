@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/xmlhttprequest-event-order.js"></script>
+    <title>XMLHttpRequest: The send() method: event order when synchronous flag is set</title>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadstart" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-loadend" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following-sibling::ol/li[9]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#same-origin-request-steps" data-tested-assertations="following::DL[1]/DT[1]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dt[11] following::a[contains(@href,'#switch-done')]/.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#switch-done" data-tested-assertations="following::ol[1]/li[1] following::ol[1]/li[3] following::ol[1]/li[4] following::ol[1]/li[6] following::ol[1]/li[7]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute" data-tested-assertations="following::ol/li[3]" />
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        test(function () {
+            var xhr = new XMLHttpRequest();
+            prepare_xhr_for_event_order_test(xhr);
+
+            xhr.open("POST", "./resources/content.py", false);
+            xhr.send("Test Message");
+
+            assert_equals(xhr.response, "Test Message");
+            assert_xhr_event_order_matches([1, 4, "load(12,12,true)", "loadend(12,12,true)"]);
+        });
+    </script>
+</body>
+</html>

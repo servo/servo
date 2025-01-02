@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-wbr-nobr-002-ref.html">
+<!--
+  This test assumes that all engines segment a Japanese text:
+    楽しいドライブ
+  to the following phrases:
+    楽しい / ドライブ
+
+  While assuming all engines segment this way looks fairly reasonable,
+  segmenting differently doesn't necessarily mean a failure because the
+  algorithm is UA dependent. Please add references if different.
+-->
+<style>
+@font-face {
+  font-family: mplus;
+  src: url(/fonts/mplus-1p-regular.woff);
+}
+.container > div {
+  font-family: mplus;
+  word-break: auto-phrase;
+  width: 10em;
+  font-size: 10px;
+  border: 1px solid;
+}
+nobr {
+  white-space: nowrap;
+}
+</style>
+<div class="container" lang="ja">
+  <!-- `<nobr>` can turn 4 phrases to 3 phrases. -->
+  <div>楽しいドライブ、楽しいドライブ。</div>
+  <div>楽しい<nobr>ドライブ、楽しい</nobr>ドライブ。</div>
+</div>

@@ -1,0 +1,187 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-light-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#LightSourceDefinitions">
+      <p>
+        Verify the basic operation of the different lights used in the feDiffuseLighting
+        and feSpecularLighting elements. The test uses the same feDiffuseLighting filter,
+        using different lights.
+      </p>
+      <p>
+        The first row shows different settings for feDistantLight. The second row shows
+        different settings for fePointLight. The last row shows different settings for
+        feSpotLight.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered image should look approximately like the reference image, except for the last
+        feSpotLight test for which a reference image could not be created. The reference image may not be pixel accurate. However, the rendered image should show
+        at least 'similar' lighting results and bump maps.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-light-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- Title -->
+    <text x="240" y="20" fill="black" font-size="12" font-family="Arial" text-anchor="middle">Filters: feDistantLight, fePointLight, feSpotLight</text>
+    <!-- ===================================================================== -->
+    <!-- Filter definitions                                                    -->
+    <!-- ===================================================================== -->
+    <defs>
+      <!-- ================================================= -->
+      <!-- feDistantLight                                    -->
+      <!-- ================================================= -->
+      <filter id="distantLightA" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feDistantLight azimuth="0" elevation="0"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="distantLightB" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feDistantLight azimuth="45" elevation="0"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="distantLightC" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feDistantLight azimuth="0" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="distantLightD" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feDistantLight azimuth="45" elevation="45"/>
+        </feDiffuseLighting>
+      </filter>
+      <!-- ================================================= -->
+      <!-- fePointLight                                    -->
+      <!-- ================================================= -->
+      <filter id="pointLightA" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <fePointLight x="0" y="0" z="10"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="pointLightB" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <fePointLight x="50" y="0" z="10"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="pointLightC" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <fePointLight x="0" y="30" z="10"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="pointLightD" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <fePointLight x="50" y="30" z="10"/>
+        </feDiffuseLighting>
+      </filter>
+      <!-- ================================================= -->
+      <!-- feSpotLight                                       -->
+      <!-- ================================================= -->
+      <filter id="spotLightA" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightB" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="30" z="35" pointsAtX="25" pointsAtY="0" pointsAtZ="0" specularExponent="0"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightC" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="1"/>
+        </feDiffuseLighting>
+      </filter>
+      <filter id="spotLightD" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
+          <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="30"/>
+        </feDiffuseLighting>
+      </filter>
+    </defs>
+    <!-- ==================================================== -->
+    <!-- The same image is rendered multiple times with using -->
+    <!-- different filters.                                   -->
+    <!-- ==================================================== -->
+    <!-- Various feDistantLights -->
+    <g transform="translate(0, 40)">
+      <text x="70" y="10">Various values for feDistantLight azimuth and elevation</text>
+      <text x="70" y="25">(0, 0)</text>
+      <text x="165" y="25">(45, 0)</text>
+      <text x="260" y="25">(0, 45)</text>
+      <text x="355" y="25">(45, 45)</text>
+      <image xlink:href="../images/bumpMap2.png" x="70" y="30" width="50" height="30" filter="url(#distantLightA)"/>
+      <image xlink:href="../images/bumpMap2.png" x="165" y="30" width="50" height="30" filter="url(#distantLightB)"/>
+      <image xlink:href="../images/bumpMap2.png" x="260" y="30" width="50" height="30" filter="url(#distantLightC)"/>
+      <image xlink:href="../images/bumpMap2.png" x="355" y="30" width="50" height="30" filter="url(#distantLightD)"/>
+    </g>
+    <!-- Various fePointLights -->
+    <g transform="translate(0, 120)">
+      <text x="70" y="10">Various values for fePointLight's x, y and z</text>
+      <text x="70" y="25">(0, 0, 10)</text>
+      <text x="165" y="25">(50, 0, 10)</text>
+      <text x="260" y="25">(0, 30, 10)</text>
+      <text x="355" y="25">(50, 30, 10)</text>
+    </g>
+    <g>
+      <image transform="translate(70, 150)" xlink:href="../images/bumpMap2.png" width="50" height="30" filter="url(#pointLightA)"/>
+      <image transform="translate(165, 150)" xlink:href="../images/bumpMap2.png" width="50" height="30" filter="url(#pointLightB)"/>
+      <image transform="translate(260, 150)" xlink:href="../images/bumpMap2.png" width="50" height="30" filter="url(#pointLightC)"/>
+      <image transform="translate(355, 150)" xlink:href="../images/bumpMap2.png" width="50" height="30" filter="url(#pointLightD)"/>
+    </g>
+    <!-- feSpotLight -->
+    <g transform="translate(0, 210)">
+      <text x="70" y="0">Various values for feSpotLight's x, y, z, pointsAtX, pointsAtY, pointsAtZ</text>
+      <text x="70" y="15">(25, 0, 25)</text>
+      <text x="70" y="30">(25, 30, 0)</text>
+      <text x="165" y="15">(25, 30, 25)</text>
+      <text x="165" y="30">(25, 0, 0)</text>
+      <text x="260" y="30">np=1</text>
+      <text x="355" y="30">limitingConeAngle=30</text>
+    </g>
+    <g>
+      <rect transform="translate(70, 245)" width="50" height="30" filter="url(#spotLightA)"/>
+      <rect transform="translate(165, 245)" width="50" height="30" filter="url(#spotLightB)"/>
+      <rect transform="translate(260, 245)" width="50" height="30" filter="url(#spotLightC)"/>
+      <rect transform="translate(355, 245)" width="50" height="30" filter="url(#spotLightD)"/>
+    </g>
+    <!-- ===================================================== -->
+    <!-- Legends                                               -->
+    <!-- ===================================================== -->
+    <!-- Surface Scale -->
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

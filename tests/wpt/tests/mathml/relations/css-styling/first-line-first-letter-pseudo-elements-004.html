@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML and ::first-line/::first-letter pseudo-elements</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="match" href="first-line-first-letter-pseudo-elements-004-ref.html"/>
+<meta name="assert" content="::first-letter/::first-line works for HTML elements inside MathML.">
+<style>
+  .firstline::first-line { background: lightgreen; }
+  .firstletter::first-letter { background: lightgreen; }
+</style>
+<ol>
+  <li>PASS if first line is green:
+    <math>
+      <mtext><span class="firstline">Hello,<br/>World!</span></mtext>
+    </math>
+  </li>
+  <li>PASS if first letter is green:
+    <math>
+      <mtext><span class="firstletter">Hello, World!</span></mtext>
+    </math>
+  </li>
+</ol>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <title>history.pushState/replaceState and referer headers (before onload)</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+    <script type="text/javascript">
+setup({explicit_done:true});
+var iframe = document.createElement('iframe');
+window.onload = function () {
+  iframe.setAttribute('src','010-1.html');
+  document.body.appendChild(iframe)
+};
+    </script>
+
+  </body>
+</html>

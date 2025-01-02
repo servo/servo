@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verify that image orientation is propagated when ImageBitmap objects are replicated.</title>
+<link rel="author" title="Justin Novosad" href="mailto:junov@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<script>
+// This test is most relevant for browser implementations that apply EXIF image
+// orientation lazily. That is to say that the transform is applied at rasterization
+// time rather than at image decode time. This implies that image orientation metadata
+// is stored internally in the decoded image's data structure.  This test ensures
+// that the orientation metadata is correctly carried over when ImageBitmap objects
+// are replicated (serialized/deserialized, copied or transferred).
+
+function checkImageBitmapRotated(bitmap) {
+    assert_equals(bitmap.width, 320, 'Bitmap width');
+    assert_equals(bitmap.height, 160, 'Bitmap height');
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const expected_colors = [
+        // row, col, r, g, b, a
+        [0, 0, 255, 0, 0, 255],
+        [0, 1, 0, 255, 0, 255],
+        [0, 2, 0, 0, 255, 255],
+        [0, 3, 0, 0, 0, 255],
+        [1, 0, 255, 128, 128, 255],
+        [1, 1, 128, 255, 128, 255],
+        [1, 2, 128, 128, 255, 255],
+        [1, 3, 128, 128, 128, 255],
+    ];
+
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    ctx.drawImage(bitmap, 0, 0);
+
+    let data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let [row, col, r, g, b, a] of expected_colors) {
+        let x = col * 80 + 40;
+        let y = row * 80 + 40;
+        let i = (x + y * canvas.width) * 4;
+        let expected = [r, g, b, a];
+        let actual = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+        assert_array_approx_equals(actual, expected, 1, `Pixel value at (${x},${y}) ${expected} =~ ${actual}.`);
+    }
+}
+
+promise_test(async t => {
+    const response = await fetch("resources/squares_6.jpg");
+    const blob = await response.blob();
+    const image = await createImageBitmap(blob)
+    const image_copy = structuredClone(image);
+    checkImageBitmapRotated(image_copy);
+}, "ImageBitmap from file with EXIF rotation, duplicated via structuredClone");
+
+promise_test(async t => {
+    const image = new Image();
+    image.src = "resources/squares_6.jpg"
+    await new Promise(resolve => image.onload = resolve);
+    const image_copy = await createImageBitmap(image);
+    checkImageBitmapRotated(image_copy);
+}, "ImageBitmap from file with EXIF rotation, loaded via <img>");
+
+promise_test(async t => {
+    const image = new Image();
+    image.src = "resources/squares_6.jpg"
+    // The following has no effect because the image's style is not
+    // processed unless the element is connected to the DOM.
+    image.style.imageOrientation = "none";
+    await new Promise(resolve => image.onload = resolve);
+    const image_copy = await createImageBitmap(image);
+    checkImageBitmapRotated(image_copy);
+}, "ImageBitmap from file with EXIF rotation, loaded via <img> not in DOM, imageOrientation = none");
+
+promise_test(async t => {
+    const image = new Image();
+    document.body.appendChild(image);
+    image.src = "resources/squares_6.jpg"
+    // The style is being processed in this case, but the imageOrientation
+    // CSS property must still have no effect because createImageBitmap
+    // accesses the element's underlying media directly, without being
+    // affected by the image's style (unlike drawImage).
+    image.style.imageOrientation = "none";
+    await new Promise(resolve => image.onload = resolve);
+    const image_copy = await createImageBitmap(image);
+    checkImageBitmapRotated(image_copy);
+}, "ImageBitmap from file with EXIF rotation, loaded via <img> in DOM, imageOrientation = none");
+
+
+promise_test(async t => {
+    const response = await fetch("resources/squares_6.jpg");
+    const blob = await response.blob();
+    const image = await createImageBitmap(blob);
+    const image_copy = await createImageBitmap(image);
+    checkImageBitmapRotated(image_copy);
+}, "ImageBitmap from file with EXIF rotation, duplicated via createImageBitmap");
+
+promise_test(async t => {
+    const worker = new Worker("serialize-worker.js");
+    const response = await fetch("resources/squares_6.jpg");
+    const blob = await response.blob()
+    const image = await createImageBitmap(blob);
+    worker.postMessage({bitmap: image});
+    const bitmap = (await new Promise(resolve => {worker.addEventListener("message", resolve)})).data.bitmap;
+    checkImageBitmapRotated(bitmap);
+}, "ImageBitmap from file with EXIF rotation, duplicated via worker serialization round-trip");
+
+promise_test(async t => {
+    const worker = new Worker("transfer-worker.js");
+    let response = await fetch("resources/squares_6.jpg");
+    let blob = await response.blob();
+    let image = await createImageBitmap(blob);
+    worker.postMessage({bitmap: image}, [image]);
+    const bitmap = (await new Promise(resolve => {worker.addEventListener("message", resolve)})).data.bitmap;
+    checkImageBitmapRotated(bitmap);
+}, "ImageBitmap from file with EXIF rotation, duplicated via worker transfer round-trip");
+
+promise_test(async t => {
+    // This test variant ensures additional code coverage.
+    // By creating a canvas pattern, a reference to the ImageBitmap's
+    // underlying pixel data is held in the source realm.  This forces
+    // implementations that do lazy copying to duplicate the pixel
+    // data at transfer time. This test verifies that the lazy
+    // duplication code path (if applicable) carries over the image
+    // orientation metadata.
+    const worker = new Worker("transfer-worker.js");
+    let response = await fetch("resources/squares_6.jpg");
+    let blob = await response.blob();
+    let image = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const pattern = ctx.createPattern(image, 'repeat');
+    worker.postMessage({bitmap: image}, [image]);
+    const bitmap = (await new Promise(resolve => {worker.addEventListener("message", resolve)})).data.bitmap;
+    checkImageBitmapRotated(bitmap);
+}, "ImageBitmap from file with EXIF rotation, duplicated via worker transfer round-trip, while referenced by a CanvasPattern");
+
+
+</script>
+</body>

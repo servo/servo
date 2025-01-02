@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<meta name="variant" content="?designMode">
+<meta name="variant" content="?body">
+<meta name="variant" content="?html">
+<meta name="variant" content="?div-in-body">
+<meta name="variant" content="?nothing">
+<title>Test editing outside of body element</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+// This test creates an editable <div> element, append it to the <html>,
+// i.e., after the <body>, and do something in it.
+
+const tests = [
+  {
+    command: "insertText",
+    arg: "abc",
+    initial: "<div>[]<br></div>",
+    expected: ["<div>abc</div>", "<div>abc<br></div>"],
+  },
+  {
+    command: "delete",
+    initial: "<div>abc[]</div>",
+    expected: ["<div>ab</div>", "<div>ab<br></div>"],
+  },
+  {
+    command: "forwardDelete",
+    initial: "<div>[]abc</div>",
+    expected: ["<div>bc</div>", "<div>bc<br></div>"],
+  },
+  {
+    command: "insertParagraph",
+    initial: "<div>ab[]c</div>",
+    expected: [
+      "<div>ab</div><div>c</div>",
+      "<div>ab<br></div><div>c</div>",
+      "<div>ab</div><div>c<br></div>",
+      "<div>ab<br></div><div>c<br></div>",
+    ],
+  },
+  {
+    command: "insertLineBreak",
+    initial: "<div>ab[]c</div>",
+    expected: ["<div>ab<br>c</div>", "<div>ab<br>c<br></div>"],
+  },
+  {
+    command: "bold",
+    initial: "<div>a[b]c</div>",
+    expected: ["<div>a<b>b</b>c</div>", "<div>a<b>b</b>c<br></div>"],
+  },
+  {
+    command: "italic",
+    initial: "<div>a[b]c</div>",
+    expected: ["<div>a<i>b</i>c</div>", "<div>a<i>b</i>c<br></div>"],
+  },
+  {
+    command: "createLink",
+    arg: "another.html",
+    initial: "<div>a[b]c</div>",
+    expected: [
+      "<div>a<a href=\"another.html\">b</a>c</div>",
+      "<div>a<a href=\"another.html\">b</a>c<br></div>",
+    ],
+  },
+  {
+    command: "unlink",
+    initial: "<div>a[<a href=\"another.html\">b</a>]c</div>",
+    expected: ["<div>abc</div>", "<div>abc<br></div>"],
+  },
+  {
+    command: "insertHTML",
+    arg: "<hr>",
+    initial: "<div>a[b]c</div>",
+    expected: [
+      "<div>a<hr>c</div>",
+      "<div>a<br><hr>c</div>",
+      "<div>a<hr>c<br></div>",
+      "<div>a<br><hr>c<br></div>",
+    ],
+  },
+  // TODO: Add more commands.
+];
+
+let editingHost = () => {
+  switch (document.location.search) {
+    case "?designMode":
+      document.designMode = "on";
+      return document.documentElement;
+    case "?body":
+      document.body.setAttribute("contenteditable", "true");
+      return document.body;
+    case "?html":
+      document.documentElement.setAttribute("contenteditable", "true");
+      return document.documentElement;
+    case "?div-in-body":
+      return document.querySelector("div[contenteditable]");
+    case "?nothing":
+      return null;
+  }
+};
+
+let div;
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener(
+      "load",
+      () => {
+        assert_true(true, "load event is fired");
+        resolve();
+      },
+      { once: true }
+    );
+  });
+
+  div = document.createElement("div");
+  if (editingHost != document.documentElement) {
+    div.setAttribute("contenteditable", "true");
+    editingHost = div;
+  }
+  document.documentElement.appendChild(div);
+  assert_equals(document.documentElement.lastChild, div,
+    "The test target should be last child of the <html>");
+}, "Waiting for load event");
+
+function addPromiseTest(testName, testFunc) {
+  promise_test(async () => {
+    editingHost.focus();
+    await testFunc(new EditorTestUtils(div));
+  }, testName);
+}
+
+for (const test of tests) {
+  addPromiseTest(
+    `Test for execCommand("${test.command}", false, ${
+      typeof test.arg == "string" ? `"${test.arg}"` : test.arg
+    }) in "${test.initial}"`,
+    async (utils) => {
+      utils.setupEditingHost(test.initial);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      document.execCommand(test.command, false, test.arg);
+      if (Array.isArray(test.expected)) {
+        assert_in_array(div.innerHTML, test.expected,
+          "The editing result is different from expected one");
+      } else {
+        assert_equals(div.innerHTML, test.expected,
+          "The editing result is different from expected one");
+      }
+    }
+  );
+}
+</script>
+</head>
+<body></body>
+</html>

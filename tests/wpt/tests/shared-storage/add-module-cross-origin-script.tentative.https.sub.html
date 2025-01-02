@@ -1,0 +1,40 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const sameOrigin = location.origin;
+  const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  const crossOriginScript = crossOrigin
+    + "/shared-storage/resources/simple-module2.js";
+  await sharedStorage.worklet.addModule(crossOriginScript);
+
+  const ancestor_key = token();
+  let url0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key]);
+  let select_url_result = await sharedStorage.selectURL(
+      "test-url-selection-operation", [{url: url0}],
+      {data: {'mockResult': 0, 'setKey': 'a', 'setValue': 'b'},
+       resolveToConfig: true});
+  assert_true(validateSelectURLResult(select_url_result, true));
+  attachFencedFrame(select_url_result, 'opaque-ads');
+  const result = await nextValueFromServer(ancestor_key);
+  assert_equals(result, "frame0_loaded");
+
+  // The invoking context's origin is used as the data origin.
+  await verifyKeyValueForOrigin('a', 'b', sameOrigin);
+  await verifyKeyNotFoundForOrigin('a', crossOrigin);
+
+  // Clean up.
+  return sharedStorage.delete('a');
+}, 'addModule with cross-origin url');
+
+</script>
+</body>

@@ -1,0 +1,298 @@
+button {
+    cursor: default;
+}
+
+button,
+input {
+  background: white;
+  border: solid lightgrey 1px;
+  color: black;
+  font-family: sans-serif;
+  font-size: 0.8333em;
+}
+
+textarea {
+  background: white;
+  border: solid lightgrey 1px;
+  color: black;
+  font-family: sans-serif;
+  font-size: 0.8333em;
+}
+
+input::selection,
+textarea::selection {
+  background: rgba(176, 214, 255, 1.0);
+  color: black;
+}
+
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  background: lightgrey;
+  border-top: solid 1px #EEEEEE;
+  border-left: solid 1px #CCCCCC;
+  border-right: solid 1px #999999;
+  border-bottom: solid 1px #999999;
+  color: black;
+}
+
+input[type="hidden"] { display: none !important }
+
+input[type="checkbox"],
+input[type="radio"] {
+  font-family: monospace !important;
+  border: none !important;
+  background: transparent;
+}
+
+input[type="checkbox"]::before {
+  display: inline-block;
+  border: solid currentcolor 1px;
+  content: "";
+  padding: 0;
+  width: 1em;
+  height: 1em;
+  text-align: center;
+}
+
+input[type="checkbox"]:checked::before { content: "✓"; }
+input[type="checkbox"]:indeterminate::before { content: "-"; }
+
+input[type="radio"]::before {
+  display: inline-block;
+  border: solid currentcolor 1px;
+  content: "";
+  padding: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  text-align: center;
+}
+
+input[type="radio"]:checked::before { content: "●"; line-height: 1em; }
+
+input[type="file"]::before {
+  content: "Choose File";
+}
+
+input[type="file"] {
+  background: lightgrey;
+  text-align: center;
+  vertical-align: middle;
+  color: black;
+}
+
+select {
+  border-style: solid;
+  border-width: 1px;
+  background: white;
+}
+
+select[multiple]              { padding: 0em 0.25em; }
+select:not([multiple])        { padding: 0.25em 0.5em; border-radius: 6px; }
+
+select:not([multiple])::after {
+  content: "";
+  display: inline-block;
+  border-width: 5.2px 3px 0 3px;
+  border-style: solid;
+  border-color: currentcolor transparent transparent transparent;
+  margin-left: 0.5em;
+}
+
+select:not([multiple]) option           { display: none !important; }
+select:not([multiple]) option[selected] { display: inline !important; }
+select[multiple] option                 { display: block !important; }
+select[multiple] option[selected]       { background-color: grey; color: white; }
+select[multiple]:focus option[selected] { background-color: darkblue; }
+
+td[align="left"]    { text-align: left; }
+td[align="center"]  { text-align: center; }
+td[align="right"]   { text-align: right; }
+
+center { text-align: -moz-center; }
+
+label { cursor: default; }
+
+input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]),
+textarea {
+  cursor: text;
+  overflow: hidden;
+  -servo-overflow-clip-box: content-box;
+}
+
+input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]) {
+  white-space: pre;
+}
+
+textarea {
+  overflow: auto;
+}
+
+/* https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements */
+details {
+  display: block;
+}
+
+details::-servo-details-summary {
+  margin-left: 40px;
+  display: list-item;
+  list-style: disclosure-closed;
+}
+
+details[open]::-servo-details-summary {
+  list-style: disclosure-open;
+}
+
+*|*::-servo-details-content {
+  margin-left: 40px;
+  overflow: hidden;
+  display: block;
+}
+
+/*
+ * Until servo supports svg properly, make sure to at least prevent svg
+ * children from being layed out and rendered like usual html.
+ * https://github.com/servo/servo/issues/10646
+ */
+svg > * {
+  display: none;
+}
+
+/*
+ * For most (but not all) anon-boxes, we inherit all values from the
+ * parent.
+ *
+ * Anonymous table flows shouldn't inherit their parents properties in order
+ * to avoid doubling up styles such as transformations. Same for text and such.
+ *
+ * For tables, we do want style to inherit, because TableWrapper is
+ * responsible for handling clipping and scrolling, while Table is
+ * responsible for creating stacking contexts.
+ *
+ * StackingContextCollectionFlags makes sure this is processed
+ * properly.
+ *
+ * FIXME(emilio): inheriting all is a very strong hammer, and it's likely
+ * broken for stuff like table backgrounds and such. Gecko explicitly inherits
+ * what it wants, which seems a bit better off-hand.
+ */
+*|*::-servo-legacy-anonymous-table,
+*|*::-servo-legacy-anonymous-table-wrapper,
+*|*::-servo-legacy-table-wrapper,
+*|*::-servo-legacy-anonymous-block,
+*|*::-servo-legacy-inline-block-wrapper,
+*|*::-servo-legacy-inline-absolute {
+    all: inherit;
+}
+
+*|*::-servo-anonymous-box {
+  unicode-bidi: inherit;
+  direction: inherit;
+  writing-mode: inherit;
+}
+
+/* style for text node. */
+*|*::-servo-legacy-text {
+    text-overflow: inherit;
+    overflow: inherit;
+}
+
+*|*::-servo-legacy-table-wrapper {
+    display: table;
+    border: none;
+}
+
+*|*::-servo-legacy-anonymous-table-wrapper {
+    position: static;
+    margin: 0;
+    counter-increment: none;
+
+    /* We don't want anonymous table parts to inherit hidden overflow, because
+     * they will create extra unnecessary ClipScrollNodes which also throws
+     * off assignment of contained flows. */
+    overflow: visible;
+}
+
+*|*::-servo-legacy-anonymous-table {
+    display: table;
+    position: static;
+    border: none;
+    padding: 0;
+    counter-increment: none;
+    overflow: visible;
+}
+
+*|*::-servo-anonymous-table {
+    display: table;
+}
+
+*|*::-servo-anonymous-table-row {
+    display: table-row;
+}
+
+*|*::-servo-anonymous-table-cell {
+    display: table-cell;
+}
+
+*|*::-servo-table-grid {
+  all: inherit;
+  margin: unset;
+  float: unset;
+  clear: unset;
+  position: unset;
+  z-index: unset;
+  page-break-before: unset;
+  page-break-after: unset;
+  page-break-inside: unset;
+  vertical-align: unset;
+  line-height: unset;
+  transform: unset;
+  transform-origin: unset;
+  backface-visibility: unset;
+  clip: unset;
+  transform-style: unset;
+  rotate: unset;
+  scale: unset;
+  translate: unset;
+  align-self: unset;
+  justify-self: unset;
+  grid-column-start: unset;
+  grid-column-end: unset;
+  grid-row-start: unset;
+  grid-row-end: unset;
+  order: unset;
+  outline: unset;
+  outline-offset: unset;
+  column-span: unset;
+  contain: unset;
+  container: unset;
+  scroll-margin: unset;
+}
+
+*|*::-servo-legacy-anonymous-block {
+    display: block;
+    position: static;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    height: auto;
+}
+
+/* The outer fragment wrapper of an inline-block. */
+*|*::-servo-legacy-inline-block-wrapper {
+    position: static;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* The outer fragment wrapper of an inline absolute hypothetical fragment. */
+*|*::-servo-legacy-inline-absolute {
+    clip: auto;
+    border: none;
+    padding: 0;
+    margin: 0;
+}

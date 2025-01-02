@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>List items that are not being rendered do not participate in numbering</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#list-owner">
+
+<link rel="match" href="grouping-li-reftest-not-being-rendered-ref.html">
+
+<p>This test matches if the list displays similar to the following</p>
+
+<pre>1. A
+2. B
+3. D
+4. E
+5. G</pre>
+
+<hr>
+
+<ol>
+  <li>A</li>
+  <li>B</li>
+  <li hidden>C</li>
+  <li>D</li>
+  <div>
+    <li>E</li>
+    <li hidden>F</li>
+    <li>G</li>
+  </div>
+</ol>

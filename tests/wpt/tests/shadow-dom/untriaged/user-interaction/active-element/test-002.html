@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_07_03_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#active-element">
+<meta name="assert" content="User Interaction: Document's activeElement property must be adjusted">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.setAttribute('id', 'shRoot');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var inp = d.createElement('input');
+    inp.setAttribute('type', 'text');
+    inp.setAttribute('id', 'inpId');
+    inp.setAttribute('value', 'Some text');
+    s.appendChild(inp);
+
+    inp.focus();
+
+    assert_equals(d.activeElement.tagName, 'DIV', 'Point 1: document\'s activeElement property  ' +
+            'must return adjusted the value of the focused element in the shadow tree');
+    assert_equals(d.activeElement.getAttribute('id'), 'shRoot', 'Point 2: document\'s activeElement property  ' +
+            'must return adjusted the value of the focused element in the shadow tree');
+
+}), 'A_07_03_02_T01');
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return Promise.all([
+        window.navigator.bluetooth.requestDevice({filters: [{services: [heart_rate.alias]}]}),
+        window.navigator.bluetooth.requestDevice({filters: [{services: [heart_rate.name]}]}),
+        window.navigator.bluetooth.requestDevice({filters: [{services: [heart_rate.uuid]}]})])
+    .then(devices => {
+        assert_equals(devices[0], devices[1]);
+        assert_equals(devices[1], devices[2]);
+    });
+}, 'Returned device should always be the same.');
+</script>

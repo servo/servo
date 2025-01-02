@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+  <title>CSS Test: :first-letter</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu" />
+  <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+  <link rel="match" href="first-letter-dynamic-001-ref.xht"/>
+  <meta name="flags" content="dom" />
+<script type="text/javascript">function setTextContent(n, t) { n.textContent = t; }
+
+var stylesheets = [];
+function initFuzzerSpecific()
+{
+  var myStylesheetHolder = document.getElementsByTagName("head")[0];
+
+  for (var i = 0; i &lt; 25; ++i) {
+    var s = document.createElementNS("http://www.w3.org/1999/xhtml", 'style');
+    s.style.display = "none";
+    myStylesheetHolder.appendChild(s);
+    stylesheets.push(s);
+  }
+}
+</script>
+<style type="text/css">
+  span:before { content: open-quote; }
+  span:after { content: close-quote; }
+  span { quotes: '"' '"'; }
+</style>
+</head>
+<body>
+
+<p><span>Foo</span></p>
+
+<p id="p2"><span id="q2"></span></p>
+
+<script type="text/javascript">
+  document.body.offsetWidth;
+  initFuzzerSpecific();
+  setTextContent(stylesheets[1], "*:after { border: 3px solid green; } :first-letter { color: green; }");
+  setTextContent(stylesheets[2], "*:before { counter-reset: chicken; }");
+</script>
+
+
+
+</body></html>

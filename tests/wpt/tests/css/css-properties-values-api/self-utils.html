@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Self-test for utils.js</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=outer><div id=inner></div></div>
+<script>
+
+test(function(){
+  let syntaxes = all_syntaxes().concat([
+    'foo',
+    'bar | <length>',
+    '<angle> | <length>'
+  ]);
+  // Don't throw:
+  syntaxes.forEach(generate_property);
+}, 'Default initial values of generated properties are valid (self-test).');
+
+test(function(){
+  try {
+    let inherited = generate_property({ syntax: '<length>', inherits: true });
+    let non_inherited = generate_property({ syntax: '<length>', inherits: false, initialValue: '5px' });
+    outer.style = `${inherited}: 10px; ${non_inherited}: 11px;`;
+    assert_equals(getComputedStyle(outer).getPropertyValue(inherited), '10px');
+    assert_equals(getComputedStyle(outer).getPropertyValue(non_inherited), '11px');
+    assert_equals(getComputedStyle(inner).getPropertyValue(inherited), '10px');
+    assert_equals(getComputedStyle(inner).getPropertyValue(non_inherited), '5px');
+  } finally {
+    outer.style = '';
+    inner.style = '';
+  }
+}, 'Generated properties respect inherits flag');
+
+test(function(){
+  assert_throws_js(Error, () => generate_property({syntax: '<length>', foo: 1}));
+  assert_throws_js(Error, () => generate_property({syntax: '<length>', inherited: false}));
+  assert_throws_js(Error, () => generate_property({syntax: '<length>', initial: '10px'}));
+}, 'Can\'t generate property with unknown fields');
+
+</script>

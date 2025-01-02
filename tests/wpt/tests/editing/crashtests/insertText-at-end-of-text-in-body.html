@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", event => {
+  document.body.focus();
+  const text = document.createTextNode("x".repeat(15));
+  document.body.appendChild(text);
+  getSelection().collapse(text, text.length);
+  document.execCommand("insertText", false, "a");
+});
+</script>
+</head>
+<body contenteditable></body>
+</html>

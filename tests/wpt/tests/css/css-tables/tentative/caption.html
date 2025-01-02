@@ -1,0 +1,137 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<title>caption</title>
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="./support/table-tentative.css">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/tables.html#the-caption-element"/>
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#bounding-box-assignment" />
+<style>
+  main table {
+    border-spacing: 0 0;
+    position:relative;
+    background: gray;
+  }
+  main td {
+    background: #BFB;
+  }
+  main caption {
+    background: yellow;
+  }
+  main caption > div {
+    display: inline-block;
+    background: rgba(0,0,0,0.1);
+  }
+  main caption > div:after {
+    content: "c";
+  }
+  .lh {
+    line-height:30px;
+  }
+</style>
+<h1>Caption sizing and positioning</h1>
+<p class="error">There is a fundamental disagreement between Chrome Legacy and Firefox on caption size influence on table width. Chrome uses caption min width as lower limit of table's grid box, FF does not. Firefox also does not support multiple captions.</p>
+
+<main>
+
+<h2>Caption width limits</h2>
+
+<p class="testdesc">Caption minmax and grid width
+caption.min is lower limit of grid min.</p>
+<table>
+  <caption data-expected-width=50><div style="width:50px"></div><div style="width:30px"></caption>
+  <td data-expected-width=50>auto</td>
+</table>
+
+<p class="testdesc">Caption.min vs caption.css_width
+Caption.css_width is upper limit of caption.min
+Caption.css_width is lower limit of caption.min
+</p>
+<table>
+  <caption style="width:100px" data-expected-width=100><div style="width:200px"></div></caption>
+  <td data-expected-width=100>auto</td>
+</table>
+<table>
+  <caption style="width:300px" data-expected-width=300><div style="width:200px"></div></caption>
+  <td data-expected-width=300>auto</td>
+</table>
+
+
+<p class="testdesc">Caption width:50%
+Percent width is resolved wrt to table width.</p>
+<table style="width:200px">
+  <caption style="width:50%" data-expected-width=100><div></div></caption>
+  <td data-expected-width=200>auto</td>
+</table>
+
+<table style="width:200px">
+  <caption style="width:50%" data-expected-width=100><div style="width:200px"></div></caption>
+  <td data-expected-width=200>auto</td>
+</table>
+
+<p class="testdesc">Caption and size of empty table
+  Larger of table borders, and caption min size.</p>
+<table style="border:50px solid green;border-spacing:10px" data-expected-width=100>
+  <caption><div style="width:50px">c</div><div style="width:50px">c</div></caption>
+</table>
+
+<p class="testdesc">Caption height:80%
+github spec <a href="https://github.com/w3c/csswg-drafts/issues/4676">issue</a>.
+TablesNG will not resolve percentage heights per spec. FF agrees.
+</p>
+<table style="width:200px;height:100px">
+  <caption style="height:80%" data-expected-height=30><div style="height:30px"></div></caption>
+  <td data-expected-width=200>auto</td>
+</table>
+
+<p class="testdesc">Multiple captions
+Do we allow multiple captions? There are 4 in this test.</p>
+<table>
+  <caption class="lh" data-offset-y=0>over1</caption>
+  <caption class="lh" data-offset-y=30>over2</caption>
+  <caption class="lh" style="caption-side:bottom" data-offset-y=90>under1</caption>
+  <caption class="lh" style="caption-side:bottom" data-offset-y=120>under2</caption>
+  <td class="lh" data-offset-y=60>2 above me, 2 below me?</td>
+</table>
+<p class="testdesc">Caption margins
+Margins between captions do not collapse</p>
+<table style="width:200px">
+  <caption class="lh" style="margin:20px;" data-offset-y=20 data-offset-x=20>20px margins</caption>
+  <td data-expected-width=200 data-offset-y=70>1 caption</td>
+</table>
+<table style="width:200px">
+  <caption class="lh" style="margin:20px;" data-offset-y=20 data-offset-x=20>20px margins</caption>
+  <caption class="lh" style="margin:20px;" data-offset-y=90 data-offset-x=20>20px margins</caption>
+  <td data-expected-width=200 data-offset-y=140>2 captions</td>
+</table>
+
+
+<p class="testdesc">Caption margins auto
+auto margins center captions that are less wide than the table.
+</p>
+<table style="width:200px">
+  <caption class="lh" style="margin:auto" data-offset-x=0><div style="width:100px">auto margins</div></caption>
+  <td data-expected-width=200>1 caption</td>
+</table>
+<table style="width:200px">
+  <caption class="lh" style="margin:auto;width:50%" data-offset-x=50><div style="width:100px">auto margins</div></caption>
+  <td data-expected-width=200>1 caption</td>
+</table>
+
+
+<p class="testdesc">Vertical writing mode caption
+</p>
+<table>
+  <caption style="writing-mode:vertical-rl;height:min-content;font:10px Ahem;color:rgba(0,0,0,0.3)" data-expected-height=100 ><div style="height:100px;">vertical</div> caption bigger than table</caption>
+  <tbody data-offset-y=100>
+    <td>vertical!</td>
+  </tbody>
+</table>
+
+</main>
+<script>
+  checkLayout("table");
+</script>

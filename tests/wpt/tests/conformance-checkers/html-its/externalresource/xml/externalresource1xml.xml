@@ -1,0 +1,24 @@
+<doc
+  xmlns:its="http://www.w3.org/2005/11/its" 
+  xmlns:dbk="http://docbook.org/ns/docbook" >
+ <its:rules version="2.0">
+  <its:externalResourceRefRule selector="//dbk:imagedata | //dbk:audiodata |  //dbk:videodata" externalResourceRefPointer="@fileref"/>
+ </its:rules>
+ <dbk:mediaobject>
+  <dbk:videoobject>
+   <dbk:videodata fileref="movie.avi"/>
+  </dbk:videoobject>
+  <dbk:imageobject>
+   <dbk:imagedata fileref="movie-frame.gif"/>
+  </dbk:imageobject>
+  <dbk:textobject>
+   <dbk:para>This video illustrates the proper way to assemble an inverting time distortion
+       device. </dbk:para>
+   <dbk:warning>
+    <dbk:para> It is imperative that the primary and secondary temporal couplings not be
+         mounted in the wrong order. Temporal catastrophe is the likely result. The
+         future you destroy may be your own. </dbk:para>
+   </dbk:warning>
+  </dbk:textobject>
+ </dbk:mediaobject>
+</doc>

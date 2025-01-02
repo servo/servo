@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests interaction with fragmentation in vertical-rl.</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#initial-letter-breaking">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<link rel="match" href="Initial-letter-breaking-vrl-ref.html">
+<style>
+    .sample {
+        border: solid 1px green;
+        font-family: Ahem;
+        font-size: 20px;
+        height: 230px;
+        line-height: 24px;
+        writing-mode: vertical-rl;
+    }
+
+    .float {
+        background: cyan;
+        clear: none;
+        float: left;
+        height: 50px;
+        width: 50px;
+    }
+
+    .mc {
+        columns: 2;
+        direction: ltr;
+        height: 500px;
+        writing-mode: vertical-rl;
+    }
+
+    .initial-letter::first-letter {
+        initial-letter: 3 drop;
+        color: lime;
+        font-size: 100px;   /* should be ignored in rendering */
+        line-height: 50px;  /* should be ignored in rendering */
+    }
+</style>
+</head>
+<body>
+<div class="mc">
+<div class="sample initial-letter">ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC </div>
+<div class="sample initial-letter">ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC </div>
+<div class="sample initial-letter">ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC ABC </div>
+</div>
+</body>
+</html>

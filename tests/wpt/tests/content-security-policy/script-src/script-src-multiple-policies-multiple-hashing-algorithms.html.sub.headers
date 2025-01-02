@@ -1,0 +1,6 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Cache-Control: post-check=0, pre-check=0, false
+Pragma: no-cache
+Content-Security-Policy: script-src 'sha256-EpVP4fTImWaRzBRBw/wrdfLhGTe/1U+CaBP1LNeKUIE=' 'nonce-abc';
+Content-Security-Policy: script-src 'sha384-skw7BVxHbmE2umPGMd1kX+ye6qBeHAb875erPoD8ilKv1LkjKR+WFi7N85ORMdhS' 'nonce-abc';

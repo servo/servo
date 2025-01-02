@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#the-effecttiming-dictionaries">
+<style>
+.scroller {
+  overflow: auto;
+  height: 100px;
+  width: 100px;
+  will-change: transform;
+}
+
+.contents {
+  height: 1000px;
+  width: 100%;
+}
+</style>
+<div class="scroller">
+  <div class="contents"></div>
+</div>
+<script>
+  // Test passes if it does not crash.
+  // Scroll timeline animations are progress-based and not compatible with
+  // delays specified in milliseconds.
+  const timeline = new ScrollTimeline();
+  const options = {
+    timeline: timeline,
+    endDelay: 200
+  };
+  const keyframes = { opacity: [0, 1]};
+  const element = document.querySelector('.contents');
+  element.animate(keyframes, options);
+</script>

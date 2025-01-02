@@ -1,0 +1,9 @@
+--min-version 2.0.1 non-existent-varying.html
+--min-version 2.0.1 default_transform_feedback.html
+transform_feedback.html
+two-unreferenced-varyings.html
+--min-version 2.0.1 too-small-buffers.html
+unwritten-output-defaults-to-zero.html
+--min-version 2.0.1 same-buffer-two-binding-points.html
+--min-version 2.0.1 simultaneous_binding.html
+--min-version 2.0.1 switching-objects.html

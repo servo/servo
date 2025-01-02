@@ -1,0 +1,7 @@
+<!doctype html>
+<script>
+addEventListener('load', _ => {
+  let params = new URLSearchParams(window.location.search);
+  window.opener.postMessage(params.get('name'), '*');
+});
+</script>

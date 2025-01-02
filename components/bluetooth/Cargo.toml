@@ -1,0 +1,37 @@
+[package]
+name = "bluetooth"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "bluetooth"
+path = "lib.rs"
+
+[dependencies]
+bitflags = { workspace = true }
+bluetooth_traits = { workspace = true }
+blurmock = { version = "0.1.2", optional = true }
+embedder_traits = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+servo_config = { path = "../config" }
+servo_rand = { path = "../rand" }
+uuid = { workspace = true }
+
+[features]
+default = ["bluetooth-test"]
+native-bluetooth = ["blurz", "blurdroid", "blurmac", "bluetooth-test"]
+bluetooth-test = ["blurmock"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+blurz = { version = "0.3", optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+blurdroid = { version = "0.1.2", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+blurmac = { path = "../../third_party/blurmac", optional = true }

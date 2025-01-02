@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Dynamic change to layout containment</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1765615">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="assert" content="Verify layout containment is properly updated after dynamic change to the contain property.">
+<style>
+  /* Selectors for contain */
+  #none .wrapper {
+      contain: none;
+  }
+  #layout .wrapper {
+      contain: layout;
+  }
+  #none_to_layout .wrapper {
+      contain: none;
+  }
+  #layout_to_none .wrapper {
+      contain: layout;
+  }
+
+  /* Selectors for testing absolute/fixed positioned elements */
+  #top_spacer {
+      height: 100px;
+      background: lightgray;
+  }
+  .absolute_pos {
+      position: absolute;
+      top: 42px;
+  }
+  .fixed_pos {
+      position: fixed;
+      top: 42px;
+  }
+
+  /* Selectors for testing baseline */
+  .flex {
+      display: inline-flex;
+      align-items: baseline;
+  }
+
+  /* Selectors for testing IFC (floats) */
+  .floatleft {
+      float: left;
+  }
+  .clearleft {
+      clear: left;
+  }
+
+  /* Selectors for testing IFC (margin collapsing) */
+  .blockmargin {
+      margin: 25px 0;
+  }
+  .wrapper.blockmargin {
+      background: lightgray;
+  }
+
+  .rect {
+      background: black;
+      width: 50px;
+      height: 100px;
+  }
+</style>
+<body>
+  <div id="log"></div>
+
+  <div id="top_spacer"></div>
+
+  <div id="none">
+    <div class="wrapper">
+      <div class="absolute_pos"></div>
+      <div class="fixed_pos"></div>
+    </div>
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="wrapper rect">X</div>
+    </div>
+    <div>
+      <div class="floatleft rect"></div>
+      <div class="wrapper">
+        <div class="clearleft rect"></div>
+      </div>
+    </div>
+    <div>
+      <div class="wrapper blockmargin">
+        <div class="rect blockmargin"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="layout">
+    <div class="wrapper">
+      <div class="absolute_pos"></div>
+      <div class="fixed_pos"></div>
+    </div>
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="wrapper rect">X</div>
+    </div>
+    <div>
+      <div class="floatleft rect"></div>
+      <div class="wrapper">
+        <div class="clearleft rect"></div>
+      </div>
+    </div>
+    <div>
+      <div class="wrapper blockmargin">
+        <div class="rect blockmargin"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="none_to_layout">
+    <div class="wrapper">
+      <div class="absolute_pos"></div>
+      <div class="fixed_pos"></div>
+    </div>
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="wrapper rect">X</div>
+    </div>
+    <div>
+      <div class="floatleft rect"></div>
+      <div class="wrapper">
+        <div class="clearleft rect"></div>
+      </div>
+    </div>
+    <div>
+      <div class="wrapper blockmargin">
+        <div class="rect blockmargin"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="layout_to_none">
+    <div class="wrapper">
+      <div class="absolute_pos"></div>
+      <div class="fixed_pos"></div>
+    </div>
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="wrapper rect">X</div>
+    </div>
+    <div>
+      <div class="floatleft rect"></div>
+      <div class="wrapper">
+        <div class="clearleft rect"></div>
+      </div>
+    </div>
+    <div>
+      <div class="wrapper blockmargin">
+        <div class="rect blockmargin"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function verifyLayoutContainment(id, applied) {
+        let container = document.getElementById(id);
+        let wrappers = container.getElementsByClassName("wrapper");
+
+        // To verify the containment box establishes an absolute positioning
+        // containing block and a fixed positioning containing block, we test
+        // positions of absolutely/fixed positioned children (a bit below the
+        // containment box rather than a bit below the top of the viewport).
+        let containingBlockTop = wrappers[0].getBoundingClientRect().top;
+        let absTop = container.getElementsByClassName("absolute_pos")[0]
+            .getBoundingClientRect().top;
+        assert_equals(absTop > containingBlockTop, applied, "absolute positioning containing block");
+        let fixedTop = container.getElementsByClassName("fixed_pos")[0]
+            .getBoundingClientRect().top;
+        assert_equals(fixedTop > containingBlockTop, applied, "fixed positioning containing block");
+
+        // To verify the containment box suppresses baseline, we verify that
+        // the two items in the flex container are properly aligned.
+        let item1 = wrappers[1];
+        let item2 = item1.previousElementSibling;
+        let aligned = Math.abs(item1.getBoundingClientRect().top - item2.getBoundingClientRect().top) <= 1;
+        assert_equals(aligned, applied, "vertical baseline suppressed");
+
+        // To verify the containment box establishes an independent formatting
+        // context, we test position the clear: left div with respect to the
+        // float: left div.
+        let floatLeft = wrappers[2].previousElementSibling;
+        let clearLeft = wrappers[2].firstElementChild;
+        let clearNextToFloat = Math.abs(floatLeft.getBoundingClientRect().top - clearLeft.getBoundingClientRect().top) <= 1;
+        assert_equals(clearNextToFloat, applied, "independent formatting context (floats)");
+
+        // In addition, we verify that the margin inside the containment box
+        // are not collapsed.
+        let IFCWithMargin = wrappers[3];
+        let childWithMargin = IFCWithMargin.firstElementChild;
+        let marginCollapsed = Math.abs(IFCWithMargin.getBoundingClientRect().height - childWithMargin.getBoundingClientRect().height) <= 1;
+        assert_equals(!marginCollapsed, applied, "independent formatting context (margins collapsing)");
+    }
+
+    function setContain(id, value) {
+        let container = document.getElementById(id);
+        Array.from(container.getElementsByClassName("wrapper"))
+            .forEach(element => element.style.contain = value);
+    }
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        verifyLayoutContainment("none", /* applied=*/false);
+    }, "contain: none");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        verifyLayoutContainment("layout", /* applied=*/true);
+    }, "contain: layout");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContain("none_to_layout", "layout");
+        verifyLayoutContainment("none_to_layout", /* applied=*/true)
+    }, "switching contain from none to layout");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContain("layout_to_none", "none");
+        verifyLayoutContainment("layout_to_none", /* applied=*/false);
+    }, "switching contain from layout to none");
+  </script>
+</body>

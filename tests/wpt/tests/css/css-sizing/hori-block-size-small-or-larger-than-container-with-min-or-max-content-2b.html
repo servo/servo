@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+    CSS Test: min-content and max-content for 'block-size' on a container, with various block-sizes on children
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Boris Chiou" href="mailto:boris.chiou@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing/#sizing-values">
+  <link rel="match" href="hori-block-size-small-or-larger-than-container-with-min-or-max-content-2-ref.html">
+  <meta name="flags" content="ahem">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <link rel="stylesheet" type="text/css" href="support/min-content-max-content.css">
+  <style>
+    html,body {
+      margin: 0;
+    }
+
+    .outer * {
+      border: 2px solid lime;
+    }
+
+    .container {
+      width: 80px;
+      border-color: blue;
+      display: inline-block;
+      vertical-align: top;
+
+      font-family: Ahem;
+      font-size: 8px;
+      line-height: 13px;
+    }
+
+    .too-small {
+      block-size: 10px;
+    }
+
+    .too-big {
+      block-size: 100px;
+    }
+  </style>
+</head>
+<body>
+<div class="outer">
+  <div class="container block-min-content">
+    <div>auto<br>container: min-content.</div>
+    <div>auto<br>container: min-content.</div>
+  </div>
+  <div class="container block-min-content">
+    <div class="too-small">10px<br>container: min-content.</div>
+    <div class="too-small">10px<br>container: min-content.</div>
+  </div>
+  <div class="container block-min-content">
+    <div class="too-big">100px<br>container: min-content.</div>
+    <div class="too-big">100px<br>container: min-content.</div>
+  </div>
+
+  <div class="container block-max-content">
+    <div>auto<br>container: max-content.</div>
+    <div>auto<br>container: max-content.</div>
+  </div>
+  <div class="container block-max-content">
+    <div class="too-small">10px<br>container: max-content.</div>
+    <div class="too-small">10px<br>container: max-content.</div>
+  </div>
+  <div class="container block-max-content">
+    <div class="too-big">100px<br>container: max-content.</div>
+    <div class="too-big">100px<br>container: max-content.</div>
+  </div>
+</div>
+
+<div class="outer">
+  <div class="container">
+    <div>auto<br>container: auto.</div>
+    <div>auto<br>container: auto.</div>
+  </div>
+
+  <div class="container min-block-min-content">
+    <div class="too-small">10px<br>container min-size: min-content.</div>
+    <div class="too-small">10px<br>container min-size: min-content.</div>
+  </div>
+  <div class="container min-block-max-content">
+    <div class="too-small">10px<br>container min-size: max-content.</div>
+    <div class="too-small">10px<br>container min-size: max-content.</div>
+  </div>
+
+  <div class="container max-block-min-content">
+    <div class="too-big">100px<br>container max-size: min-content.</div>
+    <div class="too-big">100px<br>container max-size: min-content.</div>
+  </div>
+  <div class="container max-block-max-content">
+    <div class="too-big">100px<br>container max-size: max-content.</div>
+    <div class="too-big">100px<br>container max-size: max-content.</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Testcase for bug 1273593 of Chromium</title>
+<script type="text/javascript">
+    function eventhandle_n0BpsTiUS(){
+        document.getElementById('id_xEmarzXTw').getBoundingClientRect();
+        create_object_mJ9MFgX5.appendChild(document.getElementById('id_nJMWIU7Mp'));
+    }
+    function operate(){
+        document.getElementById('id_VQmNKZL69').addEventListener('pause', eventhandle_n0BpsTiUS);
+        create_object_mJ9MFgX5 = document.createElement("canvas");
+        event = new Event('pause')
+        document.getElementById('id_VQmNKZL69').dispatchEvent(event)
+    }// end exec_event
+</script>
+<body onload="operate();" contentEditable="true">
+    <menu id='id_xEmarzXTw'>
+        <i id='id_VQmNKZL69'  onfocusout='eventhandle_n0BpsTiUS();'>
+            <nobr id='id_nJMWIU7Mp' >
+                <iframe onpointerover='eventhandle_n0BpsTiUS();'></iframe>
+            </nobr>
+        </i>
+    </menu>
+</body>

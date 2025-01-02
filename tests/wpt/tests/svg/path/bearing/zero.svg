@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/svg-paths/#PathDataBearingCommands"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/SVG2/paths.html#PathDataBearingCommands"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://svgwg.org/svg2-draft/changes.html#paths"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="zero-ref.svg"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="path element with bearing 0 renders correctly."/>
+  </metadata>
+  <style>
+    path {
+      stroke-width: 3;
+      stroke: blue;
+    }
+  </style>
+  <path d="M 25 50 h 10 B 0 m 10 0 h 10 b 0 m 10 0 h 10" />
+</svg>

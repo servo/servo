@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test max-age attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.3.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // TODO: there is more to test here, these tests capture the old
+      // ported http-state tests. Feel free to delete this comment when more
+      // are added.
+      const maxAgeTests = [
+        {
+          cookie: "test=1; Max-Age=50,399",
+          expected: "test=1",
+          name: "Ignore max-age attribute with invalid non-zero-digit (containing a comma)",
+        },
+        {
+          cookie: "test=2; max-age=10000",
+          expected: "test=2",
+          name: "Set cookie with age",
+        },
+        {
+          cookie: "test=3; max-age=0",
+          expected: "",
+          name: "Set no cookie with max-age=0",
+        },
+        {
+          cookie: "test=4; max-age=-1",
+          expected: "",
+          name: "Set no cookie with max-age=-1",
+        },
+        {
+          cookie: "test=5; max-age=-20",
+          expected: "",
+          name: "Set no cookie with max-age=-20",
+        },
+        {
+          cookie: ["testA=6; max-age=60", "testB=6; max-age=60"],
+          expected: "testA=6; testB=6",
+          name: "Set multiple cookies with max-age attribute",
+        },
+        {
+          cookie: ["testA=7; max-age=60", "testB=7; max-age=60", "testA=differentvalue; max-age=0"],
+          expected: "testB=7",
+          name: "Expire later cookie with same name and max-age=0",
+        },
+        {
+          cookie: ["testA=8; max-age=60", "testB=8; max-age=60", "testA=differentvalue; max-age=0", "testC=8; max-age=0"],
+          expected: "testB=8",
+          name: "Expire later cookie with same name and max-age=0, and don't set cookie with max-age=0",
+        },
+        {
+          cookie: ['test="9! = foo;bar\";" parser; max-age=6', "test9; max-age=2.63,"],
+          expected: 'test="9! = foo; test9',
+          name: "Set mulitiple cookies with valid max-age values",
+        },
+        {
+          cookie: ["test=10; max-age=0", "test10; max-age=0"],
+          expected: "",
+          name: "Don't set multiple cookies with max-age=0",
+        },
+      ];
+
+      for (const test of maxAgeTests) {
+        httpCookieTest(test.cookie, test.expected, test.name);
+      }
+    </script>
+  </body>
+</html>

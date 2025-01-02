@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>beforeinput should not be fired if there is no selection and builtin editor does nothing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+/**
+ * Currently, browsers do not dispatch `beforeinput` event for user operation
+ * when an editable element has focus but there is no selection ranges.
+ * This checks the result of each basic common features.
+ */
+
+addEventListener("load", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  const utils = new EditorTestUtils(editingHost);
+
+  function promiseFocusAndRemoveAllRanges() {
+    return new Promise(resolve => {
+      document.activeElement?.blur();
+      editingHost.addEventListener("focus", () => {
+        // Chrome and Safari set selection immediately after "focus" event
+        // dispatching.  Therefore, we need to wait for a tick.
+        requestAnimationFrame(() => {
+          getSelection().removeAllRanges();
+          resolve(getSelection().rangeCount);
+        });
+      }, {once: true});
+      editingHost.focus();
+    });
+  }
+
+  async function runTest(t, initialInnerHTML, func) {
+    editingHost.innerHTML = initialInnerHTML;
+    assert_equals(
+      await promiseFocusAndRemoveAllRanges(),
+      0,
+      `${t.name}: Selection.removeAllRanges() should make its rangeCount 0`
+    );
+    let beforeInput;
+    function onBeforeInput(event) {
+      beforeInput = event;
+    }
+    addEventListener("beforeinput", onBeforeInput);
+    await func();
+    removeEventListener("beforeinput", onBeforeInput);
+    assert_equals(
+      beforeInput,
+      undefined,
+      `${t.name}: beforeinput event should not be fired (inputType="${
+        beforeInput?.inputType
+      }", data="${beforeInput?.data}")`
+    );
+  }
+
+  promise_test(async t => {
+    await runTest(t, "<br>", () => utils.sendKey("a"));
+  }, 'Typing "a"');
+
+  promise_test(async t => {
+    await runTest(t, "abc<br>", () => utils.sendBackspaceKey());
+  }, 'Typing Backspace');
+
+  promise_test(async t => {
+    await runTest(t, "abc<br>", () => utils.sendDeleteKey());
+  }, 'Typing Delete');
+
+  promise_test(async t => {
+    await runTest(t, "<br>", () => utils.sendEnterKey());
+  }, 'Typing Enter');
+
+  promise_test(async t => {
+    await runTest(t, "<br>", () => utils.sendEnterKey(utils.kShift));
+  }, 'Typing Shift + Enter');
+}, {once: true});
+</script>
+<head>
+<body>
+<div contenteditable>abc</div>
+</html>

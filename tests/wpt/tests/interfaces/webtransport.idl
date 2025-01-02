@@ -1,0 +1,166 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebTransport (https://w3c.github.io/webtransport/)
+
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportDatagramDuplexStream {
+  readonly attribute ReadableStream readable;
+  readonly attribute WritableStream writable;
+
+  readonly attribute unsigned long maxDatagramSize;
+  attribute unrestricted double? incomingMaxAge;
+  attribute unrestricted double? outgoingMaxAge;
+  attribute unrestricted double incomingHighWaterMark;
+  attribute unrestricted double outgoingHighWaterMark;
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransport {
+  constructor(USVString url, optional WebTransportOptions options = {});
+
+  Promise<WebTransportConnectionStats> getStats();
+  readonly attribute Promise<undefined> ready;
+  readonly attribute WebTransportReliabilityMode reliability;
+  readonly attribute WebTransportCongestionControl congestionControl;
+  [EnforceRange] attribute unsigned short? anticipatedConcurrentIncomingUnidirectionalStreams;
+  [EnforceRange] attribute unsigned short? anticipatedConcurrentIncomingBidirectionalStreams;
+  readonly attribute DOMString protocol;
+
+  readonly attribute Promise<WebTransportCloseInfo> closed;
+  readonly attribute Promise<undefined> draining;
+  undefined close(optional WebTransportCloseInfo closeInfo = {});
+
+  readonly attribute WebTransportDatagramDuplexStream datagrams;
+
+  Promise<WebTransportBidirectionalStream> createBidirectionalStream(
+      optional WebTransportSendStreamOptions options = {});
+  /* a ReadableStream of WebTransportBidirectionalStream objects */
+  readonly attribute ReadableStream incomingBidirectionalStreams;
+
+  Promise<WebTransportSendStream> createUnidirectionalStream(
+      optional WebTransportSendStreamOptions options = {});
+  /* a ReadableStream of WebTransportReceiveStream objects */
+  readonly attribute ReadableStream incomingUnidirectionalStreams;
+  WebTransportSendGroup createSendGroup();
+
+  static readonly attribute boolean supportsReliableOnly;
+};
+
+enum WebTransportReliabilityMode {
+  "pending",
+  "reliable-only",
+  "supports-unreliable",
+};
+
+dictionary WebTransportHash {
+  DOMString algorithm;
+  BufferSource value;
+};
+
+dictionary WebTransportOptions {
+  boolean allowPooling = false;
+  boolean requireUnreliable = false;
+  sequence<WebTransportHash> serverCertificateHashes;
+  WebTransportCongestionControl congestionControl = "default";
+  [EnforceRange] unsigned short? anticipatedConcurrentIncomingUnidirectionalStreams = null;
+  [EnforceRange] unsigned short? anticipatedConcurrentIncomingBidirectionalStreams = null;
+  sequence<DOMString> protocols = [];
+};
+
+enum WebTransportCongestionControl {
+  "default",
+  "throughput",
+  "low-latency",
+};
+
+dictionary WebTransportCloseInfo {
+  unsigned long closeCode = 0;
+  USVString reason = "";
+};
+
+dictionary WebTransportSendStreamOptions {
+  WebTransportSendGroup? sendGroup = null;
+  long long sendOrder = 0;
+  boolean waitUntilAvailable = false;
+};
+
+dictionary WebTransportConnectionStats {
+  unsigned long long bytesSent = 0;
+  unsigned long long packetsSent = 0;
+  unsigned long long bytesLost = 0;
+  unsigned long long packetsLost = 0;
+  unsigned long long bytesReceived = 0;
+  unsigned long long packetsReceived = 0;
+  required DOMHighResTimeStamp smoothedRtt;
+  required DOMHighResTimeStamp rttVariation;
+  required DOMHighResTimeStamp minRtt;
+  required WebTransportDatagramStats datagrams;
+  unsigned long long? estimatedSendRate = null;
+  boolean atSendCapacity = false;
+};
+
+dictionary WebTransportDatagramStats {
+  unsigned long long droppedIncoming = 0;
+  unsigned long long expiredIncoming = 0;
+  unsigned long long expiredOutgoing = 0;
+  unsigned long long lostOutgoing = 0;
+};
+
+[Exposed=(Window,Worker), SecureContext, Transferable]
+interface WebTransportSendStream : WritableStream {
+  attribute WebTransportSendGroup? sendGroup;
+  attribute long long sendOrder;
+  Promise<WebTransportSendStreamStats> getStats();
+  WebTransportWriter getWriter();
+};
+
+dictionary WebTransportSendStreamStats {
+  unsigned long long bytesWritten = 0;
+  unsigned long long bytesSent = 0;
+  unsigned long long bytesAcknowledged = 0;
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportSendGroup {
+  Promise<WebTransportSendStreamStats> getStats();
+};
+
+[Exposed=(Window,Worker), SecureContext, Transferable]
+interface WebTransportReceiveStream : ReadableStream {
+  Promise<WebTransportReceiveStreamStats> getStats();
+};
+
+dictionary WebTransportReceiveStreamStats {
+  unsigned long long bytesReceived = 0;
+  unsigned long long bytesRead = 0;
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface WebTransportBidirectionalStream {
+  readonly attribute WebTransportReceiveStream readable;
+  readonly attribute WebTransportSendStream writable;
+};
+
+[Exposed=*, SecureContext]
+interface WebTransportWriter : WritableStreamDefaultWriter {
+  Promise<undefined> atomicWrite(optional any chunk);
+};
+
+[Exposed=(Window,Worker), Serializable, SecureContext]
+interface WebTransportError : DOMException {
+  constructor(optional DOMString message = "", optional WebTransportErrorOptions options = {});
+
+  readonly attribute WebTransportErrorSource source;
+  readonly attribute unsigned long? streamErrorCode;
+};
+
+dictionary WebTransportErrorOptions {
+  WebTransportErrorSource source = "stream";
+  [Clamp] unsigned long? streamErrorCode = null;
+};
+
+enum WebTransportErrorSource {
+  "stream",
+  "session",
+};

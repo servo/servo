@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<title>View transitions: New content is an inline element (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+:root {
+  background-color: rebeccapurple;
+  font: 20px/1 Ahem;
+}
+
+body { margin: 0; }
+
+.container {
+  position: absolute;
+  left: 100px;
+  width: 400px;
+  height: 100px;
+  background-color: grey;
+}
+
+.container.start {
+  top: 100px;
+}
+
+.container.end {
+  top: 300px;
+}
+
+.container.transitioned {
+  left: 20px;
+  width: 600px;
+  transform: translateY(-50px);
+}
+
+.inline {
+  opacity: 0;
+  background-color: coral;
+  color: rgba(0, 0, 0, 0);
+}
+
+.transitioned .inline {
+  opacity: 1;
+}
+
+#dummyStartInline {
+  position: absolute;
+  left: 100px;
+  top: 100px;
+  width: 600px;
+  /* scale transform applied in script below */
+  transform-origin: top left;
+}
+
+</style>
+
+<div class="container start">
+  <span>FILLER FILLER</span>
+  <span id="start" class="inline">INLINE INLINE INLINE INLINE</span>
+  <p style="margin-top: 50px">START STATE</p>
+</div>
+
+<div class="container end transitioned">
+  <span>FILLER FILLER</span>
+  <span id="end" class="inline">INLINE INLINE INLINE INLINE</span>
+  <p>END STATE</p>
+</div>
+
+<div id="dummyStartInline" class="transitioned">
+  <span style="opacity:0">FILLER FILLER</span>
+  <span class="inline">INLINE INLINE INLINE INLINE</span>
+</div>
+<script>
+  let endWidth = document.getElementById('end').getBoundingClientRect().width;
+  let startWidth = document.getElementById('start').getBoundingClientRect().width;
+  let scale = startWidth / endWidth;
+  /* Default UA CSS scales the image pseudos to match the group in the inline
+     direction. The block direction scales to retain the image's aspect ratio.
+     So have the dummy end line scale to match the start state width and apply
+     the same scale to its height. */
+  document.getElementById('dummyStartInline').style.transform = `scale(${scale})`;
+</script>
+

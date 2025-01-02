@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<title>COEP for WebBundle subresource loading</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/origin.html#coep"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+
+<body>
+  <!--
+       This wpt should run on an origin different from https://www1.web-platform.test:8444/,
+       from where cross-orign WebBundles are served.
+
+       This test uses a cross-origin WebBundle,
+       https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp.wbn,
+       which is served with an Access-Control-Allow-Origin response header.
+
+       `corp.wbn` includes three subresources:
+       a. `no-corp.js`, which doesn't include a Cross-Origin-Resource-Policy response header.
+       b. `corp-same-origin.js`, which includes a Cross-Origin-Resource-Policy: same-origin response header.
+       c. `corp-cross-origin.js`, which includes a Cross-Origin-Resource-Policy: cross-origin response header.
+  -->
+  <script type="webbundle">
+    {
+      "source": "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp.wbn",
+      "resources": [
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/no-corp.js",
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp-same-origin.js",
+        "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/corp-cross-origin.js"
+      ]
+    }
+  </script>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    async function expectCOEPReport(func) {
+      const reportsPromise = new Promise((resolve) => {
+        const observer = new ReportingObserver((reports) => {
+          observer.disconnect();
+          resolve(reports.map((r) => r.toJSON()));
+        });
+        observer.observe();
+      });
+
+      await func();
+
+      const reports = await reportsPromise;
+      assert_equals(reports.length, 1);
+      assert_equals(reports[0].type, "coep");
+      assert_equals(reports[0].url, location.href);
+      return reports[0];
+    }
+
+    const prefix =
+      "https://www1.web-platform.test:8444/web-bundle/resources/wbn/cors/";
+
+    promise_test(async () => {
+      const report = await expectCOEPReport(async () => {
+        await addScriptAndWaitForError(prefix + "no-corp.js");
+      });
+      assert_equals(report.body.blockedURL, prefix + "no-corp.js");
+      assert_equals(report.body.type, "corp");
+      assert_equals(report.body.disposition, "enforce");
+      assert_equals(report.body.destination, "script");
+    }, "Cross-origin subresource without Cross-Origin-Resource-Policy: header should be blocked and generate a report.");
+
+    promise_test(async () => {
+      await addScriptAndWaitForError(prefix + "corp-same-origin.js");
+    }, "Cross-origin subresource with Cross-Origin-Resource-Policy: same-origin should be blocked.");
+
+    promise_test(async () => {
+      await addScriptAndWaitForExecution(prefix + "corp-cross-origin.js");
+    }, "Cross-origin subresource with Cross-Origin-Resource-Policy: cross-origin should be loaded.");
+
+  </script>
+</body>

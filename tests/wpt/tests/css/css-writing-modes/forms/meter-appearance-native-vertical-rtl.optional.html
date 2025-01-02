@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/#the-meter-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Meter appearance native writing mode vertical & RTL direction</title>
+<meta charset="utf-8">
+<link rel="mismatch" href="meter-appearance-native-horizontal-rtl.optional.html">
+<link rel="mismatch" href="meter-appearance-native-vertical.optional.html">
+
+<!-- Note test description should be the same across all files to mismatch on. -->
+<p>The meter element below should match the correct writing mode.</p>
+<meter value="70" min="0" max="100" style="writing-mode: vertical-rl; direction: rtl"></meter>

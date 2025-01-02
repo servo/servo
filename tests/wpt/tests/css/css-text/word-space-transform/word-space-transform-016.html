@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-space-transform:auto-phrase</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="match" href="reference/word-space-transform-016-a-ref.html">
+<link rel="match" href="reference/word-space-transform-016-b-ref.html">
+<meta name="assert" content="word-space-transform:ideographic-space auto-phrase inserts virtual word boundaries at reasonable points, which can then be expanded into ideographic spaces">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+#test {
+  word-space-transform: ideographic-space auto-phrase;
+}
+#ref1 {
+  border-color: blue;
+}
+#ref2 {
+  border-color: orange;
+}
+</style>
+
+<p>Test passes if the black box is identical to either the blue or orange one.
+
+<div id=ref1 lang=ja>東京へ　行きましょう。</div>
+<div id=test lang=ja>東京へ行きましょう。</div>
+<div id=ref2 lang=ja>東京　へ　行きましょう。</div>
+
+<!-- The first reference is preferable,
+    but as the specific algo is up to the UA
+    arguably the second one is OK too.
+-->

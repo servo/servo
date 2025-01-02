@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexbox Test: Test the percentage resolution of a child in a flex item that has an indefinite main size</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1739048">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="Per 9.8.4, once the outer flex container's cross size has been determined, the inner flex container's main size is considered definite. Then per 9.8.1, the item's post-flexing main size is also treated as definite. Therefore, in the final layout, the child's percentage block-size should be treated as resolvable and should be honored.">
+
+  <style>
+  .outer {
+    display: flex;
+  }
+
+  .inner {
+    display: flex;
+    flex-direction: column;
+    inline-size: 100px;
+  }
+
+  .item {
+    overflow: hidden; /* This is essential to reproduce the bug. */
+    min-block-size: 100px;
+    background: red;
+  }
+
+  .child {
+    block-size: 100%;
+    background: green;
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div class="outer">
+    <div class="inner">
+      <div class="item">
+        <div class="child"></div>
+      </div>
+    </div>
+  </div>
+</html>

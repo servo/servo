@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>CSS Reference: Hiragana/Katakana kerning</title>
+    <style>
+      @font-face {
+        font-family: "Noto Sans JP";
+        src: url(resources/NotoSansJP-kana_test-subset.otf);
+      }
+
+      p {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        font-size: 6em;
+        font-family: "Noto Sans JP";
+        font-feature-settings: "palt" on;
+        font-kerning: none;
+
+        margin: 1em;
+      }
+
+      .no-kerning-red {
+        color: red;
+      }
+
+      .no-kerning-green {
+        color: green;
+        mix-blend-mode: multiply;
+      }
+    </style>
+  </head>
+  <body>
+    <span>
+      RED or GREEN text is visible if kerning is applying correctly, with only
+      BLACK otherwise:
+    </span>
+    <p class="no-kerning-red">すペ</p>
+    <p class="no-kerning-green">すペ</p>
+  </body>
+</html>

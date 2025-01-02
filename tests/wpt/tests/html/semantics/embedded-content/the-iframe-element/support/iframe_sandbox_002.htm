@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTML5 video with autoplay attribute.</title>
+    <script src="/common/media.js"></script>
+</head>
+<body>
+    <script>
+    function do_play(event) {
+        parent.window.postMessage("play event fired", "*");
+    }
+
+    document.write(
+        "<video id='video0' src='" + getVideoURI("/media/green-at-15") + "'" +
+        " autoplay onplay='do_play(event);'>"
+    );
+    </script>
+    Your browser does not support HTML5 video.
+    </video>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<script>
+addEventListener("load", () => {
+  const r = document.documentElement;
+  while (r.firstChild) {
+    r.firstChild.remove();
+  }
+
+  document.documentElement.contentEditable = "true";
+  document.documentElement.appendChild(document.createElement("span"));
+  document.documentElement.firstChild.appendChild(document.createTextNode("_"));
+  document.execCommand("forwarddelete");
+});
+</script>
+<body>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Transform of Background Image (propagated body)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <meta name="assert" content="Background images fall within the element's
+    border box, so they need to be transformed along with it.  In this case the
+    transform is applied to the body element, but the root element's background
+    is transparent, so the background is actually on the root element instead
+    of the body.  Therefore, the transform must not affect the background.">
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-background-ref-2.html">
+    <link rel="mismatch" href="transform-background-006-notref.html">
+    <style>
+      body {
+        background: url(support/transform-triangle-up.svg);
+        overflow: hidden;
+        transform: rotate(90deg);
+      }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

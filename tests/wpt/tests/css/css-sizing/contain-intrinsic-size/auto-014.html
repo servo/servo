@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>contain-intrinsic-size: auto none</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<meta name="assert" content="Tests that 'contain-intrinsic-size: auto none' respects the auto keyword">
+
+<style>
+#target {
+  width: max-content;
+  height: max-content;
+}
+.cis-auto {
+  contain-intrinsic-size: auto none;
+}
+.skip-contents {
+  content-visibility: hidden;
+}
+.size-100-50 {
+  width: 100px;
+  height: 50px;
+}
+.size-75-25 {
+  width: 75px;
+  height: 25px;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="parent">
+  <div id="target">
+    <div id="contents"></div>
+  </div>
+</div>
+
+<div id="multicol" style="width: max-content; column-count: 2; column-gap: 50px">
+  <div style="width: 100px"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const parent = document.getElementById("parent");
+const target = document.getElementById("target");
+const contents = document.getElementById("contents");
+const multicol = document.getElementById("multicol");
+
+function checkSize(expectedWidth, expectedHeight, msg) {
+  assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
+  assert_equals(target.clientHeight, expectedHeight, msg + " - clientHeight");
+}
+
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+function cleanup() {
+  parent.className = "";
+  target.className = "";
+  contents.className = "";
+  checkSize(0, 0, "Sizing after cleanup");
+}
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.className = "cis-auto skip-contents";
+  contents.classList.add("size-100-50");
+  checkSize(0, 0, "Size containment with no last remembered size");
+
+  target.classList.remove("skip-contents");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Using last remembered size");
+
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Still using last remembered size");
+
+  target.classList.remove("skip-contents");
+  checkSize(75, 25, "Sizing normally with different size");
+
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Going back to last remembered size");
+
+  target.classList.remove("skip-contents");
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(75, 25, "Using the new last remembered size");
+}, "Basic usage");
+
+promise_test(async function() {
+  multicol.className = "cis-auto skip-contents";
+
+  assert_equals(multicol.clientWidth, 50, "initial multicolumn clientWidth");
+
+  multicol.classList.remove("skip-contents");
+
+  assert_equals(multicol.clientWidth, 250, "multicolumn clientWidth without content-visibility");
+
+  await nextRendering();
+
+  multicol.classList.add("skip-contents");
+
+  assert_equals(multicol.clientWidth, 250, "multicolumn clientWidth last remembered size");
+}, "Multicol test");
+</script>

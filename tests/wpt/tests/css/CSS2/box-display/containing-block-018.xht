@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Containing Blocks - Block-level elements position based on right-to-left direction and parent element is relative</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="author" title="Alan Gresley" href="alan{at}css-class.com" />
+        <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+        <meta name="flags" content="dom interact" />
+        <meta name="assert" content="The containing block of an absolutely positioned block-level element is formed by the padding edge of its nearest (closest) positioned ancestor element." />
+        <style type="text/css">
+            div
+            {
+                border: solid silver;
+                direction: rtl;
+                margin-bottom: 20px;
+                padding: 100px;
+                width: 450px;
+            }
+            #first-box, #last-box
+            {
+                color: silver;
+            }
+            .position
+            {
+                height: 30px;
+                position: absolute;
+                width: 30px;
+            }
+            #tr-control
+            {
+                border-top: 30px solid red;
+                margin-left: 20px;
+                margin-right: -50px;
+                padding: 20px 15px;
+            }
+            #bl-control
+            {
+                border-bottom: 30px solid red;
+                margin-left: -50px;
+                margin-right: 20px;
+                padding: 20px 15px;
+            }
+            .top-right
+            {
+                background: green;
+                right: 0;
+                top: 0;
+            }
+            .bottom-left
+            {
+                background: green;
+                bottom: 0;
+                left: 0;
+            }
+            #test
+            {
+                border: 5px solid silver;
+                padding: 50px;
+                position: relative;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>
+            <span id="test">
+                <span id="first-box"><span id="tr-control"></span><br /></span>
+                <span class="position bottom-left">BL</span>
+                <span class="position top-right">TR</span>
+                <span id="last-box"><span id="bl-control"></span></span>
+            </span>
+        </div>
+    </body>
+</html>

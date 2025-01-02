@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: font-synthesis-small-caps with font that supports small-caps</title>
+<link rel="match" href="font-synthesis-small-caps-not-applied-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-synthesis-small-caps">
+<meta name="assert" content="If font supports small-caps ‘font-synthesis-small-caps’ should not have any effect">
+<!--Exo-DemiBold has small caps in the font-->
+<style>
+    @font-face {
+        font-family: "exo";
+        src: url(support/fonts/Exo-DemiBold.otf);
+    }
+    @supports not (font-synthesis-small-caps: none) {
+        .test {color: red;}
+    }
+    .test {
+        font-family: "exo";
+        font-size: 3em;
+        font-variant: small-caps;
+    }
+    .nosynth {
+        font-synthesis-small-caps: none;
+    }
+</style>
+
+<p>Test passes if the two lines below are identical and there is no red.</p>
+<section class="test">
+    <p>Filler text</p>
+    <p class="nosynth">Filler text</p>
+</section>

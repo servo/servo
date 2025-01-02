@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Reference File</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+        .green {
+            top: 70px;
+            left: 10px;
+            width: 100px;
+            height: 100px;
+            background-color: rgb(0,100,0);
+        }
+        .blue {
+            top: 50px;
+            left: 60px;
+            width: 2px;
+            height: 140px;
+            background-color: blue;
+        }
+        .green, .blue { position: absolute; }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if there are two identical green rectangles on either side of the blue line.
+        There should be no red.
+    </p>
+    <div class="green"></div>
+    <div class="blue"></div>
+</body>
+</html>

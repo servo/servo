@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Text Decoration Test - text-emphasis-style</title>
+        <link rel="author" title="Yu.Taguchi" href="mailto:taguchu@gmail.com">
+        <link rel="help" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property"
+              title="3.1 Emphasis Mark Style: the text-emphasis-style property">
+        <link rel="match" href="reference/text-emphasis-style-010-ref.html">
+        <style>
+            div {
+                font: 1.5em monospace;
+            }
+            span {
+                text-emphasis-style: filled sesame;
+	        }
+        </style>
+        </head>
+        <body>
+                <p>Test passes if &#xFE45; is above every single character of "Text sample".</p>
+		<div><span>Text</span> <span>sample</span></div>
+        </body>
+</html>

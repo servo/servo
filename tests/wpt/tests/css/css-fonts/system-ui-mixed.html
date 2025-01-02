@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Tests that system-ui font-family works for mixed-script content</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#system-ui-def">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="match" href="system-ui-mixed-ref.html">
+<style>
+p {
+  font-family: system-ui, serif;
+  font-size: 4em;
+}
+</style>
+<p lang="zh">你好 ¡hola! سلام</p>

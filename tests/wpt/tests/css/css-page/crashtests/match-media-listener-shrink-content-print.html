@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1503093">
+<style>
+  @page {
+    size: 500px;
+    margin: 0;
+  }
+</style>
+<div id="shrinkme" style="height:5000px;"></div>
+<script>
+  var mediaQuery = window.matchMedia("print");
+  mediaQuery.addListener(function() {
+    shrinkme.style.height = "2000px";
+  });
+</script>

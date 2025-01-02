@@ -1,0 +1,5 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+<its:param name="withinTextParam">firstkeyword</its:param>
+<its:withinTextRule selector="//h:cite" withinText="nested"/>
+<its:withinTextRule selector="//h:section/h:span[@itemprop=$withinTextParam]" withinText="no"/>
+</its:rules>

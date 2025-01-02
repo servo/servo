@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-clip: clip mask image</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-clip">
+    <link rel="match" href="mask-clip-2-ref.html">
+    <meta name="assert" content="fill-box, stroke-box and view-box values of mask-clip should clip to the appropriate boxes.">
+    <style type="text/css">
+      svg {
+        position: absolute;
+        top: 10px;
+        border: 1px solid black;
+      }
+
+      rect.mask {
+        fill: blue;
+        mask-origin: fill-box;
+        mask-repeat: no-repeat;
+        mask-image: url(support/50x50-opaque-blue.svg);
+      }
+
+      rect.view {
+        mask-clip: view-box;
+      }
+
+      rect.fill {
+        mask-clip: fill-box;
+      }
+
+      rect.stroke {
+        mask-clip: stroke-box;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="200" height="200" viewBox="0 0 100 100" preserveAspectRatio="none" style="left: 10px;">
+      <rect class="view mask" x="10" y="10" width="50" height="100"/>
+    </svg>
+    <svg width="200" height="200" style="left: 220px;">
+      <rect class="fill mask" x="50" y="50" width="150" height="150"/>
+    </svg>
+    <svg width="200" height="200" style="left: 10px; top: 220px;">
+      <rect class="stroke mask" x="50" y="50" width="100" height="100" stroke="green" stroke-width="20"/>
+    </svg>
+  </body>
+</html>

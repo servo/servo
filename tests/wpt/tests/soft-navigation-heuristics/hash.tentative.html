@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect hashchange event.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link>Click me!</a>
+    </div>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    testSoftNavigation({
+      addContent: () => {
+        addTextToDivOnMain();
+      },
+      link: link,
+      pushState: (url)=>{location.hash=url;},
+      test: "Location hash changes properly works with SoftNavigationHeuristics"});
+  </script>
+</body>
+</html>

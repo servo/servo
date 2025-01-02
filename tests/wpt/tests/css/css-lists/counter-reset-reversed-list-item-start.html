@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: counter-reset reversed(list-item) with start value</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="match" href="counter-7-ref.html">
+<style>
+  .li { display: list-item; }
+  .reset-reversed { counter-reset: reversed(list-item) 10 }
+  .result::before { content: counter(list-item) }
+  ::marker { content: none; }
+  .li:not(.result) { height: 0 }
+</style>
+<p>You should see the number 7 below.</p>
+<div>
+  <span class="li reset-reversed"></span>
+  <span class="li"></span>
+  <span class="li result"></span>
+  <span class="li"></span>
+  <span class="li"></span>
+  <span class="li"></span>
+  <span class="li"></span>
+</div>

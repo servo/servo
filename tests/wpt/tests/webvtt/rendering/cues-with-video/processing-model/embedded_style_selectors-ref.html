@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Reference for Embedded Style: Selectors</title>
+<style>
+::cue {
+    font-size: 11px;
+    background: lime;
+}
+::cue(b) {
+    background: green;
+    color: green;
+}
+::cue(i) {
+    background: green;
+    color: green;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="support/embedded_style_without_style.vtt" default>
+</video>
+</html>

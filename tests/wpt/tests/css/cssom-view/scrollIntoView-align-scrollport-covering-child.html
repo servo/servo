@@ -1,0 +1,52 @@
+<!doctype html>
+<title>CSSOM View - scrollIntoView aligns scrollport-covering child in both inline and block directions.</title>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1497677">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scroller {
+    width: 200px;
+    height: 200px;
+    background-color: purple;
+    overflow: hidden;
+    position: relative;
+  }
+  #child {
+    width: 400px;
+    height: 400px;
+    background-color: green;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+</style>
+<div id="scroller">
+  <div id="space" style="height:400%; width: 400%"></div>
+  <div id="child"></div>
+</div>
+<script>
+  const scroller = document.getElementById("scroller");
+  const child = document.getElementById("child");
+
+  function test_alignment(alignment, start_offset, expected_offset) {
+    scroller.scrollTop = start_offset.top;
+    scroller.scrollLeft = start_offset.left;
+
+    child.scrollIntoView({block: alignment, inline: alignment});
+
+    assert_equals(scroller.scrollTop, expected_offset.top,
+        `${alignment} sets top`);
+    assert_equals(scroller.scrollLeft, expected_offset.left,
+        `${alignment} sets left`);
+  }
+
+  test(function() {
+    // child, being positioned at (0, 0) and having size 400 x 400 covers the
+    // scrollport at scroll offsets (0,0) and (100, 100).
+    test_alignment("start", {top: 100, left: 100}, {top: 0, left: 0});
+    test_alignment("center", {top: 0, left: 0}, {top: 100, left: 100});
+    test_alignment("end", {top: 100, left: 100}, {top: 200, left: 200});
+  }, "scrollIntoView scrolls scrollport-covering child in both axes");
+</script>

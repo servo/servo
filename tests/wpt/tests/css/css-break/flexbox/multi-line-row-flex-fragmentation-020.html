@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation with break-inside: avoid.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  #flex > div {
+    background: green;
+    width: 25px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 4; column-gap: 0; column-fill: auto; background: red;">
+  <div id="flex">
+    <div>
+      <div style="contain: size; width: 25px; height: 90px;"></div>
+      <div style="contain: size; width: 25px; height: 80px;"></div>
+    </div>
+    <div style="height: 30px; break-inside: avoid;"></div>
+    <div style="height: 170px;"></div>
+    <div style="position: absolute; height: 20px; top: 180px;"></div>
+  </div>
+</div>

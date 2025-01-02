@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <link rel=match href=overflow_simple_b.html>
+    <style>
+      #first {
+      height: 100px;
+      width: 100px;
+      overflow: scroll;
+      position: relative;
+      }
+      #second {
+      position: absolute;
+      height: 100px;
+      width: 90px;
+      top: 0;
+      left: 0;
+      background: green;
+      }
+      #third {
+      position: absolute;
+      height: 100px;
+      width: 110px;
+      top: 0;
+      left: 90px;
+      background: orange;
+      }
+    </style>
+  </head>
+  <body>
+    This element should be scrollable.
+    <div id="first">
+      <div id="second">
+      </div>
+      <div id="third">
+      </div>
+    </div>
+  </body>
+</html>

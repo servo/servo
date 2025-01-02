@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: setRequestHeader() - headers that are forbidden</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method">
+
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var client = new XMLHttpRequest()
+        client.open("POST", "resources/inspect-headers.py?filter_value=TEST", false)
+        client.setRequestHeader("Accept-Charset", "TEST")
+        client.setRequestHeader("Accept-Encoding", "TEST")
+        client.setRequestHeader("Connection", "TEST")
+        client.setRequestHeader("Content-Length", "TEST")
+        client.setRequestHeader("Cookie", "TEST")
+        client.setRequestHeader("Cookie2", "TEST")
+        client.setRequestHeader("Date", "TEST")
+        client.setRequestHeader("DNT", "TEST")
+        client.setRequestHeader("Expect", "TEST")
+        client.setRequestHeader("Host", "TEST")
+        client.setRequestHeader("Keep-Alive", "TEST")
+        client.setRequestHeader("Referer", "TEST")
+        client.setRequestHeader("TE", "TEST")
+        client.setRequestHeader("Trailer", "TEST")
+        client.setRequestHeader("Transfer-Encoding", "TEST")
+        client.setRequestHeader("Upgrade", "TEST")
+        client.setRequestHeader("Via", "TEST")
+        client.setRequestHeader("Proxy-", "TEST")
+        client.setRequestHeader("Proxy-LIES", "TEST")
+        client.setRequestHeader("Proxy-Authorization", "TEST")
+        client.setRequestHeader("Sec-", "TEST")
+        client.setRequestHeader("Sec-X", "TEST")
+        client.send(null)
+        assert_equals(client.responseText, "")
+        })
+
+        test (function() {
+
+        let forbiddenMethods = [
+          "TRACE",
+          "TRACK",
+          "CONNECT",
+          "trace",
+          "track",
+          "connect",
+          "trace,",
+          "GET,track ",
+          " connect",
+        ];
+
+        let overrideHeaders = [
+          "x-http-method-override",
+          "x-http-method",
+          "x-method-override",
+          "X-HTTP-METHOD-OVERRIDE",
+          "X-HTTP-METHOD",
+          "X-METHOD-OVERRIDE",
+        ];
+
+        for (forbiddenMethod of forbiddenMethods) {
+          for (overrideHeader of overrideHeaders) {
+             var client = new XMLHttpRequest()
+             client.open("POST",
+                     `resources/inspect-headers.py?filter_value=${forbiddenMethod}`, false)
+             client.setRequestHeader(overrideHeader, forbiddenMethod)
+             client.send(null)
+             assert_equals(client.responseText, "")
+          }
+        }
+
+        let permittedValues = [
+        "GETTRACE",
+        "GET",
+        "\",TRACE\",",
+        ];
+
+        for (permittedValue of permittedValues) {
+          for (overrideHeader of overrideHeaders) {
+             var client = new XMLHttpRequest()
+             client.open("POST",
+                     `resources/inspect-headers.py?filter_name=${overrideHeader}`, false)
+             client.setRequestHeader(overrideHeader, permittedValue)
+             client.send(null)
+             assert_equals(client.responseText, overrideHeader + ": " + permittedValue + "\n")
+          }
+        }
+      })
+    </script>
+  </body>
+</html>

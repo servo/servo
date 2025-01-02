@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<style>
+#output {
+  width: 100px;
+  height: 100px;
+}
+body {
+  -webkit-mask-box-image-source: url(resources/dot.png);
+  column-count: 3;
+}
+.test-wait {
+  column-count: 600;
+}
+</style>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('green', class {
+    paint(ctx, geom) {}
+});
+</script>
+
+<script>
+// Regression test for crbug.com/1095163, the test passes as long as it doesn't
+// crash.
+var el = document.getElementById('output');
+el.style.backgroundImage = 'paint(green)';
+
+var blob = new Blob([document.getElementById('code').textContent],
+                    {type: 'text/javascript'});
+CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+  document.documentElement.classList.remove("test-wait");
+});
+</script>
+</body>
+</html>

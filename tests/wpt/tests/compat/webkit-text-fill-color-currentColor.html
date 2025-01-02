@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Test that currentColor is not affected by -webkit-text-fill-color</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p id="target" style="text-decoration-color: currentColor; color: blue; -webkit-text-fill-color: red;"></p>
+<script>
+test(function() {
+  var target = document.getElementById("target");
+  var cs = window.getComputedStyle(target, null);
+
+  var textDecorationColor = cs.getPropertyValue('text-decoration-color');
+  var color = cs.getPropertyValue('color');
+  var webkiTextFillColor = cs.getPropertyValue('-webkit-text-fill-color');
+
+  assert_equals(textDecorationColor, color);
+  assert_not_equals(textDecorationColor, webkiTextFillColor);
+});
+
+</script>

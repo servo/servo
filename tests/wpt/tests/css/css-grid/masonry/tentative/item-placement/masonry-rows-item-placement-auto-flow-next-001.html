@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid masonry rows masonry-auto-flow next</title>
+  <link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#masonry-auto-flow">
+  <link rel="match" href="masonry-rows-item-placement-auto-flow-next-001-ref.html">
+  <meta name="assert" content="Placing item that would span outside the grid using masonry-auto-flow-next should place the item at the first grid axis track" />
+  <style>
+html,body {
+  color:black; background-color:white; font:25px/1 monospace; padding:0; margin:0;
+}
+
+grid {
+  display: inline-grid;
+  gap: 10px 20px;
+  grid-template-columns: repeat(4,80px);
+  grid-template-rows: masonry;
+  color: #444;
+  border: 1px solid;
+  padding: 2px;
+  masonry-auto-flow: next;
+}
+
+item {
+  background-color: #444;
+  color: #fff;
+  padding: 20px;
+  margin: 3px;
+  border: 5px solid blue;
+}
+</style>
+</head>
+<body>
+
+<grid>
+  <item>1</item>
+  <item style="grid-column: span 3">2</item>
+  <item>3</item>
+  <item style="grid-column: span 4">4</item>
+</grid>
+
+</body>
+</html>

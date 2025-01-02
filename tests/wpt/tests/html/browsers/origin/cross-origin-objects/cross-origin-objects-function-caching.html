@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Cross-origin methods and accessors are cached per Realm via[[CrossOriginPropertyDescriptorMap]]</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#crossorigingetownpropertyhelper-(-o,-p-)">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="cross-origin-objects-function-common.js"></script>
+<div id=log></div>
+<script>
+"use strict";
+
+promise_test(async t => {
+    const w = await makeCrossOriginWindow(t);
+    for (const {key} of crossOriginWindowMethods) {
+        assert_equals(w[key], w[key], `w.${key} via [[Get]]`);
+        const desc1 = Object.getOwnPropertyDescriptor(w, key);
+        const desc2 = Object.getOwnPropertyDescriptor(w, key);
+        assert_equals(desc1.value, desc2.value, `w.${key} via [[GetOwnProperty]]`);
+    }
+}, "Cross-origin Window methods are cached");
+
+promise_test(async t => {
+    const w = await makeCrossOriginWindow(t);
+    for (const {key} of crossOriginWindowAccessors) {
+        const desc1 = Object.getOwnPropertyDescriptor(w, key);
+        const desc2 = Object.getOwnPropertyDescriptor(w, key);
+        assert_equals(desc1.get, desc2.get, `w.${key} getter`);
+        if (key === "location") {
+            assert_equals(desc1.set, desc2.set, `w.${key} setter`);
+        }
+    }
+}, "Cross-origin Window accessors are cached");
+
+promise_test(async t => {
+    const w = await makeCrossOriginWindow(t);
+    assert_equals(w.location.replace, w.location.replace, "via [[Get]]");
+    const desc1 = Object.getOwnPropertyDescriptor(w.location, "replace");
+    const desc2 = Object.getOwnPropertyDescriptor(w.location, "replace");
+    assert_equals(desc1.value, desc2.value, "via [[GetOwnProperty]]");
+}, "Cross-origin Location `replace` method is cached");
+
+promise_test(async t => {
+    const w = await makeCrossOriginWindow(t);
+    const desc1 = Object.getOwnPropertyDescriptor(w.location, "href");
+    const desc2 = Object.getOwnPropertyDescriptor(w.location, "href");
+    assert_equals(desc1.set, desc2.set);
+}, "Cross-origin Location `href` setter is cached");
+</script>

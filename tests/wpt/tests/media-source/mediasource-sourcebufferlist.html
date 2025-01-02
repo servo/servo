@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>SourceBufferList test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          function verifySourceBufferLists(mediaSource, expected)
+          {
+              assert_equals(mediaSource.sourceBuffers.length, expected.length, "sourceBuffers length");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "activeSourceBuffers length");
+              for (var i = 0; i < expected.length; ++i) {
+                assert_equals(mediaSource.sourceBuffers[i], expected[i], "Verifying mediaSource.sourceBuffers[" + i + "]");
+              }
+              assert_equals(mediaSource.sourceBuffers[expected.length], undefined,
+                "If index is greater than or equal to the length attribute then return undefined.");
+          }
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBufferA = mediaSource.addSourceBuffer(MediaSourceUtil.VIDEO_ONLY_TYPE);
+              verifySourceBufferLists(mediaSource, [sourceBufferA]);
+
+              var sourceBufferB = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+              verifySourceBufferLists(mediaSource, [sourceBufferA, sourceBufferB]);
+              test.done();
+          }, "Test SourceBufferList getter method");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              test.expectEvent(mediaSource.sourceBuffers, "addsourcebuffer", "sourceBuffers");
+              var sourceBufferA = mediaSource.addSourceBuffer(MediaSourceUtil.VIDEO_ONLY_TYPE);
+              var sourceBufferB = null;
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.expectEvent(mediaSource.sourceBuffers, "addsourcebuffer", "sourceBuffers");
+                  sourceBufferB = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+
+                  verifySourceBufferLists(mediaSource, [sourceBufferA, sourceBufferB]);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.expectEvent(mediaSource.sourceBuffers, "removesourcebuffer", "sourceBuffers");
+                  mediaSource.removeSourceBuffer(sourceBufferA);
+
+                  verifySourceBufferLists(mediaSource, [sourceBufferB]);
+
+                  test.expectEvent(mediaSource.sourceBuffers, "addsourcebuffer", "sourceBuffers");
+                  sourceBufferA = mediaSource.addSourceBuffer(MediaSourceUtil.VIDEO_ONLY_TYPE);
+
+                  verifySourceBufferLists(mediaSource, [sourceBufferB, sourceBufferA]);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.done();
+              });
+          }, "Test SourceBufferList event dispatching.");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              test.expectEvent(mediaSource.sourceBuffers, "addsourcebuffer", "sourceBuffers");
+              test.expectEvent(mediaSource.sourceBuffers, "addsourcebuffer", "sourceBuffers");
+              var sourceBufferA = mediaSource.addSourceBuffer(MediaSourceUtil.VIDEO_ONLY_TYPE);
+              var sourceBufferB = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+
+              verifySourceBufferLists(mediaSource, [sourceBufferA, sourceBufferB]);
+
+              test.waitForExpectedEvents(function()
+              {
+                  verifySourceBufferLists(mediaSource, [sourceBufferA, sourceBufferB]);
+
+                  // Force the media element to close the MediaSource object.
+                  test.expectEvent(mediaSource.sourceBuffers, "removesourcebuffer", "sourceBuffers");
+                  test.expectEvent(mediaSource, "sourceclose", "mediaSource closing");
+                  mediaElement.src = "";
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.readyState, "closed", "mediaSource is closed.");
+
+                  verifySourceBufferLists(mediaSource, []);
+                  test.done();
+              });
+          }, "Test that only 1 removesourcebuffer event fires on each SourceBufferList when the MediaSource closes.");
+
+        </script>
+    </body>
+</html>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Moving text between tel inputs</title>
+<script type="application/ecmascript">
+function check()
+  {var input = document.querySelectorAll('input');
+  document.querySelector('p').firstChild.nodeValue = (input[0].value == '' &amp;&amp; input[1].value == '123456789')?'PASS':'FAIL';}
+</script>
+</head>
+<body onload="document.querySelector('input').select()">
+<p>Drag selected number to the blue box. Copy of selection should end up in the blue box once you drop it there.</p>
+<p><input type="tel" value="123456789"/></p>
+<p><input ondragenter="event.preventDefault()" ondragover="event.preventDefault();event.dataTransfer.effectAllowed = 'move'" ondrop="window.setTimeout('check()',100)" type="tel" placeholder="Drop selection here"/></p>
+</body>
+</html>

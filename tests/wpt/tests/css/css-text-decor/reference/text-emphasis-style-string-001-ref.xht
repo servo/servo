@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-style - string - basic cases Reftest Reference</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<style type="text/css"><![CDATA[
+				.parent
+				{
+					border: solid 1px gray;
+					font: 1.5em monospace;
+					width: 10em;
+				}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of upper and lower "Filler Text" in the square box is identical.</p>
+			string
+			<div class="parent">
+				<div>
+					<ruby><rb>F</rb><rt>!</rt><rb>i</rb><rt>!</rt><rb>l</rb><rt>!</rt><rb>l</rb><rt>!</rt><rb>e</rb><rt>!</rt><rb>r</rb><rt>!</rt></ruby>
+					Text
+				</div>
+				<br />
+				<div>
+					<ruby><rb>F</rb><rt>!</rt><rb>i</rb><rt>!</rt><rb>l</rb><rt>!</rt><rb>l</rb><rt>!</rt><rb>e</rb><rt>!</rt><rb>r</rb><rt>!</rt></ruby>
+					Text
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Table column background image geometry</title>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#drawing-backgrounds-and-borders" />
+<link rel="match" href="background-image-column-ref.html" />
+<meta name="assert" content="Column backgrounds get painted into cells with correct geometry.">
+<style>
+  body {
+    --peek: LightGreen;
+  }
+  .bg {
+    background-color: var(--peek);
+    background-image: linear-gradient(45deg, orange 0px, orange 10px, gainsboro 3px, gainsboro 25%, rgba(160,160,160,0.5) 25%, rgba(160,160,160,0.5) 50%, silver 50%, silver 75%, darkgray 75%, darkgray 220px, blue 220px);
+    background-repeat: no-repeat;
+  }
+  main * {
+    box-sizing: border-box;
+  }
+  main table {
+    border-spacing: 10px;
+    border: 10px solid yellow;
+    padding: 10px;
+  }
+  main td {
+    width: 50px;
+    height: 50px;
+    padding: 0px;
+    border: 4px solid black;
+  }
+</style>
+<body>
+<main>
+  <table>
+    <col class="bg">
+    <col class="bg">
+    <tr>
+      <td rowspan=4></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td rowspan=2 colspan=2></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
+</main>
+</body>

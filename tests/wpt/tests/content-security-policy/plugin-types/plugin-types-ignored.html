@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <!-- Test that the old CSP directive 'plugin-types' has no effect anymore -->
+  <object type="application/pdf"></object>
+  <!-- we rely on the report because we can't rely on the onload event for
+         "allowed" tests as it is not fired for object and embed -->
+   <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+
+</html>

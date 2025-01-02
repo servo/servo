@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>currentColor used in border repaints properly when parent color changes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-color/#currentcolor-color">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+    #container {
+        color: red;
+    }
+
+    #container.green {
+        color: green;
+    }
+
+    #target {
+        border: 50px solid currentColor;
+        width: 0;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="container">
+    <div id="target"></div>
+</div>
+
+<script>
+  addEventListener("load", () => {
+    requestAnimationFrame(() => {
+      container.classList.add("green");
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  });
+</script>
+</html>

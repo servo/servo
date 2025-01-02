@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-mode with vector image</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#propdef-mask-mode">
+    <link rel="match" href="mask-mode-to-mask-type-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-30000">
+    <meta name="assert" content="Test checks the fallback logic between mask-mode and mask-type.">
+    <style type="text/css">
+      div {
+        background-color: blue;
+        position: absolute;
+        margin: 0px;
+        padding: 0px;
+        width: 100px;
+        height: 100px;
+        top: 10px;
+      }
+
+      div.match-luminance {
+        left: 10px;
+        mask-mode: match-source;
+        mask-image: url("#svg-luminance");
+      }
+
+      div.match-alpha {
+        left: 120px;
+        mask-mode: match-source;
+        mask-image: url("#svg-alpha");
+      }
+
+      div.luminance-luminance {
+        top: 120px;
+        left: 10px;
+        mask-mode: luminance;
+        mask-image: url("#svg-luminance");
+      }
+
+      div.luminance-alpha {
+        top: 120px;
+        left: 120px;
+        mask-mode: luminance;
+        mask-image: url("#svg-alpha");
+      }
+
+      div.alpha-luminance {
+        top: 230px;
+        left: 10px;
+        mask-mode: alpha;
+        mask-image: url("#svg-luminance");
+      }
+
+      div.alpha-alpha {
+        top: 230px;
+        left: 120px;
+        mask-mode: alpha;
+        mask-image: url("#svg-alpha");
+      }
+
+      #svg-luminance {
+        mask-type: luminance;
+      }
+
+      #svg-alpha {
+        mask-type: alpha;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="match-luminance"></div>
+    <div class="match-alpha"></div>
+    <div class="luminance-luminance"></div>
+    <div class="luminance-alpha"></div>
+    <div class="alpha-luminance"></div>
+    <div class="alpha-alpha"></div>
+    <svg xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <mask id="svg-luminance">
+          <rect x="0" y="0" width="100%" height="100%" fill="blue"/>
+        </mask>
+        <mask id="svg-alpha">
+          <rect x="0" y="0" width="100%" height="100%" fill="blue"/>
+        </mask>
+      </defs>
+    </svg>
+  </body>
+</html>

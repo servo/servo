@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Test: Absolutely positioned object in a negative margin box</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos">
+<link rel="match" href="abspos-negative-margin-001-ref.html">
+<style>
+html {
+  font-size: 10px;
+  line-height: 1;
+}
+.abspos {
+  position:absolute;
+  width: 10px;
+  height: 10px;
+  background: blue;
+}
+</style>
+<body>
+  <div>
+    <span>
+      <span style="margin-right: -10px;">
+        x<span class="abspos"></span>
+      </span>
+    </span>
+  </div>
+  <div>
+    <span>
+      <span style="margin-right: -10px;">
+        x<div class="abspos"></div>
+      </span>
+    </span>
+  </div>
+</body>

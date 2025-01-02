@@ -1,0 +1,32 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>CSS Content Visibility: focus selects content-visibility element</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-focus-ref.html">
+<meta name="assert" content="The elements with content-visibility are still focusable">
+
+<style>
+#container {
+  content-visibility: hidden;
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+}
+#child {
+  width: 50px;
+  height: 50px;
+  background: lightgreen;
+}
+</style>
+
+<p>Test passes if the light blue box below has focus.
+<div id=container tabindex=0>
+  <div id=child></div>
+</div>
+
+<script>
+onload = () => container.focus();
+</script>
+</html>

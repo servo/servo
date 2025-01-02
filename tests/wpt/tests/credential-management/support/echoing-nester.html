@@ -1,0 +1,16 @@
+<body>
+  <script>
+    window.addEventListener('message', m => {
+      window.parent.postMessage(m.data, '*');
+    });
+
+    var u = new URL(window.location.href);
+    var origin = u.searchParams.has('origin') ? u.searchParams.get('origin') : window.origin;
+    var file = u.searchParams.has('file') ? u.searchParams.get('file') : 'passwordcredential-get.html';
+
+    var url = origin + "/credential-management/support/" + file;
+    var i = document.createElement('iframe');
+    i.src = url;
+    document.body.appendChild(i);
+  </script>
+</body>

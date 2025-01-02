@@ -1,0 +1,785 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+
+group variables "Order of qualification in variable declarations."
+
+	group valid "Valid orderings."
+
+		case invariant_storage_precision
+			expect pass
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				invariant varying lowp float x0;
+
+				 uniform mediump float x1;
+
+				 attribute mediump float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				invariant varying lowp float x0;
+
+				 uniform mediump float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision
+			expect pass
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				varying lowp float x0;
+
+				uniform mediump float x1;
+
+				attribute mediump float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				varying lowp float x0;
+
+				uniform mediump float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case invariant_storage
+			expect pass
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				invariant varying float x0;
+
+				 uniform float x1;
+
+				 attribute float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				invariant varying float x0;
+
+				 uniform float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+
+	end # valid
+	group invalid "Invalid orderings."
+
+		case invariant_precision_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				invariant lowp varying float x0;
+
+				 mediump uniform float x1;
+
+				 mediump attribute float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				invariant lowp varying float x0;
+
+				 mediump uniform float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_invariant_precision
+			expect compile_fail
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				varying invariant lowp float x0;
+
+				uniform mediump float x1;
+
+				attribute mediump float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				varying invariant lowp float x0;
+
+				uniform mediump float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_precision_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				varying lowp invariant float x0;
+
+				uniform mediump float x1;
+
+				attribute mediump float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				varying lowp invariant float x0;
+
+				uniform mediump float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_invariant_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				lowp invariant varying float x0;
+
+				mediump uniform float x1;
+
+				mediump attribute float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				lowp invariant varying float x0;
+
+				mediump uniform float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_storage_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				lowp varying invariant float x0;
+
+				mediump uniform float x1;
+
+				mediump attribute float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				lowp varying invariant float x0;
+
+				mediump uniform float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case precision_storage
+			expect compile_fail
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				lowp varying float x0;
+
+				mediump uniform float x1;
+
+				mediump attribute float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				lowp varying float x0;
+
+				mediump uniform float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+		case storage_invariant
+			expect compile_fail
+			values {}
+
+			vertex ""
+				precision mediump float;
+				attribute highp vec4 dEQP_Position;
+
+				varying invariant float x0;
+
+				uniform float x1;
+
+				attribute float x2;
+
+				void main()
+				{
+					x0 = 1.0;
+					gl_Position = dEQP_Position;
+				}
+			""
+
+			fragment ""
+				precision mediump float;
+
+				varying invariant float x0;
+
+				uniform float x1;
+
+				void main()
+				{
+					float result = x0 + x1;
+					gl_FragColor = vec4(result, result, result, 1.0);
+				}
+			""
+		end
+
+	end # invalid
+
+end # variables
+group parameters "Order of qualification in function parameters."
+
+	group valid "Valid orderings."
+
+		case storage_parameter_precision
+			expect pass
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const in lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( inout mediump float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case storage_parameter
+			expect pass
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case storage_precision
+			expect pass
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( mediump float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_precision
+			expect pass
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout mediump float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+
+	end # valid
+	group invalid "Invalid orderings."
+
+		case storage_precision_parameter
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (const lowp in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 ( mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 ( mediump inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_storage_precision
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in const lowp float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout mediump float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_precision_storage
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in lowp const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout mediump float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_storage_parameter
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp const in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (mediump inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_parameter_storage
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp in const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (mediump inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case parameter_storage
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (in const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_storage
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp const float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (mediump float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+		case precision_parameter
+			expect compile_fail
+			values {}
+
+			both ""
+				precision mediump float;
+				${DECLARATIONS}
+
+				float foo0 (lowp in float x)
+				{
+					return x + 1.0;
+				}
+
+				void foo1 (mediump out float x)
+				{
+					x = 1.0;
+				}
+
+				float foo2 (mediump inout float x)
+				{
+					return x + 1.0;
+				}
+
+				void main()
+				{
+					${SETUP}
+					float result;
+					foo1(result);
+					float x0 = foo0(1.0);
+					foo2(result);
+					${OUTPUT}
+				}
+			""
+		end
+
+	end # invalid
+
+end # parameters

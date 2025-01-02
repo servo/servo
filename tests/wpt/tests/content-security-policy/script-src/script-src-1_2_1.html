@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Inline script attached by DOM manipulation should not run without an 'unsafe-inline' script-src policy, even with default-src *</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src *;">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Inline script attached by DOM manipulation should not run without an 'unsafe-inline' script-src policy, even with default-src *</h1>
+    <div id="log"></div>
+
+    <div id=attachHere></div>
+
+    <script id=emptyScript></script>
+
+    <div id=emptyDiv></div>
+
+    <script src="addInlineTestsWithDOMManipulation.js"></script>
+</body>
+</html>

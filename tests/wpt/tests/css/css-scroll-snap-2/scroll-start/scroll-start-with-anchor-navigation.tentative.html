@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start interaction with anchor navigation</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/browsers/browsing-the-web/resources/helpers.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+
+<body>
+  <iframe id="frame" src="scroll-start-with-anchor-navigation-inner-frame.html" onload="runTest()"></iframe>
+  <script>
+    function runTest() {
+      promise_test(async (t) => {
+        let scroller = frame.contentDocument.scrollingElement;
+        // anchor_target is at the bottom of the frame so the frame should be
+        // fully scrolled down to bring it into view.
+        let anchor_target_scrolltop = scroller.scrollHeight - scroller.clientHeight;
+        let anchor_target_link = frame.contentDocument.getElementById("anchor_target_link");
+
+        // Expect scroll offset of 100px per scroll-start.
+        assert_equals(scroller.scrollTop, 100,
+          "scroll-start sets initial scroll offset");
+
+        // Scroll away from start position.
+        scroller.scrollTop = 200;
+        await waitForCompositorCommit();
+        assert_equals(scroller.scrollTop, 200,
+          "scroll-start sets initial scroll offset");
+
+        anchor_target_link.click();
+        await waitForHashchange(frame.contentWindow);
+        assert_equals(frame.contentWindow.location.hash, "#anchor_target",
+          "clicking anchor link navigates to target");
+
+        // Expect page to be fully scrolled as anchor_target is at the bottom of
+        // the document.
+        assert_equals(scroller.scrollTop, anchor_target_scrolltop,
+          "anchor navigation sets scroll offset");
+
+        frame.contentWindow.history.back();
+        await waitForHashchange(frame.contentWindow);
+        assert_equals(frame.contentWindow.location.hash, "");
+
+        scroller = frame.contentDocument.scrollingElement;
+        assert_equals(scroller.scrollTop, 200,
+          "scroller returns to previous scroll position, not " +
+          "scroll-start");
+      }, "scroll-start does not override anchor navigation.");
+    }
+  </script>
+</body>

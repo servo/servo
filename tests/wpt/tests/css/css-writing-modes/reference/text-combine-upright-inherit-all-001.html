@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Writing Modes Test: text-combine-upright:all inherits</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<style>
+#container {
+    font-size:50px;
+}
+.vrl {
+    writing-mode:vertical-rl;
+}
+.tcy {
+    text-combine-upright:all;
+}
+</style>
+<p>Test passes if all two-digit numbers are <b>upright</b> in <b>horizontal</b> flow.
+<div id=container>
+    <div>66</div>
+    <div class=vrl><span class=tcy>66</span></div>
+    <div class=vrl><span class=tcy>66</span></div>
+</div>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus wraps from first to last element when 'wrap' is specified (jumping into extending focusgroup).</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup=wrap>
+  <div focusgroup=extend>
+    <span id=item1 tabindex=0>item1</span>
+    <div focusgroup=extend>
+      <span id=item2 tabindex=-1>item2</span>
+      <span id=item3 tabindex=-1>item3</span>
+    </div>
+  </div>
+  <span id=item4 tabindex=-1>item4</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item3 = document.getElementById("item3");
+
+    await focusAndKeyPress(item1, kArrowUp);
+    assert_equals(document.activeElement, item4);
+
+    await focusAndKeyPress(item2, kArrowUp);
+    assert_equals(document.activeElement, item1);
+
+    await focusAndKeyPress(item1, kArrowLeft);
+    assert_equals(document.activeElement, item4);
+
+    await focusAndKeyPress(item2, kArrowLeft);
+    assert_equals(document.activeElement, item1);
+  }, "When the focus is set on the first item of an extending focusgroup that inherited its wrapping behavior, it should only wrap if the focused item is also the first item of that parent focusgroup. If it is, then it should wrap within the parent focusgroup, not within the extending focusgroup.");
+
+</script>

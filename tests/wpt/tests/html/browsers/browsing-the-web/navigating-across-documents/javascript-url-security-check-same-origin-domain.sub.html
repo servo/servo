@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>javascript: URL security check for same-origin-domain but not same-origin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe src="http://{{hosts[][www]}}:{{ports[http][0]}}/html/browsers/browsing-the-web/navigating-across-documents/resources/document-domain-set-to-site.sub.html"></iframe>
+<script>
+"use strict";
+document.domain = "{{host}}";
+
+setup({ explicit_done: true });
+
+window.onload = () => {
+  async_test(t => {
+    assert_equals(frames[0].document.body.textContent, "", "before");
+
+    window.onmessage = t.step_func_done(() => {
+      assert_equals(frames[0].document.body.textContent, "new", "after");
+    });
+
+    frames[0].location.href = "javascript:parent.postMessage('done', '*'); 'new';";
+  });
+  done();
+};
+</script>

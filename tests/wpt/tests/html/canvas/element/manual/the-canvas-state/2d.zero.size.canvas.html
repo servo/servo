@@ -1,0 +1,16 @@
+<html>
+<head>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="canvas" width="0" height="0"></canvas>
+<body>
+<script>
+test(function() {
+    var context = document.getElementById("canvas").getContext("2d");
+    context.fillStyle = "green";
+}, 'This test ensures that accessing the context of a zero sized canvas does not crash.');
+</script>
+</body>
+</html>
+

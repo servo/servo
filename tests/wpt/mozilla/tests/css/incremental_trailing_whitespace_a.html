@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>incremental trailing whitespace test</title>
+    <link rel="match" href="incremental_trailing_whitespace_ref.html">
+    <style>
+      #a {
+        border: 0 solid;
+      }
+      #a.go {
+        border-bottom-width: 4px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="display: inline-block; width: 33.3333%;"></div>
+    <div style="display: inline-block; width: 66.66%;">
+      <div id="a" style="transition: all .1s ease-out;">Hello</div>
+    </div>
+    <script>
+      document.body.offsetWidth; // force layout
+      document.querySelector('#a').classList.add('go');
+      // FIXME (#10245): Wait for the "transitionend" event.
+    </script>
+  </body>
+</html>

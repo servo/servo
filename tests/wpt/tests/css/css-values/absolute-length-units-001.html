@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>absolute length units test</title>
+<meta name="author" title="Hwanseung Lee" href="mailto:hs1217.lee@samsung.com">
+<link rel="help" href="https://drafts.csswg.org/css-values-3/#absolute-lengths"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #t1 { width: 96px; height: 2.54cm; }
+    #t2 { width: 2.54cm; height: 25.4mm; }
+    #t3 { width: 25.4mm; height: 101.6q; }
+    #t4 { width: 101.6q; height: 1in; }
+    #t5 { width: 1in; height: 6pc; }
+    #t6 { width: 6pc; height: 72pt; }
+    #t7 { width: 72pt; height: 96px; }
+</style>
+
+<div id="t1"> </div>
+<div id="t2"> </div>
+<div id="t3"> </div>
+<div id="t4"> </div>
+<div id="t5"> </div>
+<div id="t6"> </div>
+<div id="t7"> </div>
+
+<script>
+  var test_items = ["t1", "t2", "t3", "t4", "t5", "t6", "t7"]
+
+  for (var i = 0; i < test_items.length; i++) {
+    test(function(){
+      var elem = document.getElementById(test_items[i]);
+      assert_equals(getComputedStyle(elem).width, getComputedStyle(elem).height, elem.id);
+    }, test_items[i])
+  }
+</script>

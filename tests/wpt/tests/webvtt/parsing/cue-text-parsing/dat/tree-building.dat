@@ -1,0 +1,88 @@
+#data
+test
+#errors
+#document-fragment
+| "test"
+
+#data
+<ruby>test<rt>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     "test"
+
+#data
+<ruby>test<rt>test</rt>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     "test"
+|   "test"
+
+#data
+<ruby>test<rt>test</rt></ruby>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     "test"
+| "test"
+
+#data
+<ruby>test<rt>test</ruby>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     "test"
+| "test"
+
+#data
+<ruby>test<rt><b>test</rt></ruby>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     <b>
+|       "test"
+|       "test"
+
+#data
+<ruby>test<rt><b>test</ruby>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     <b>
+|       "test"
+|       "test"
+
+#data
+<ruby>test<rt><b>test</rt></ruby></b>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     <b>
+|       "test"
+|     "test"
+
+#data
+<ruby>test<rt><b>test</rt></b></ruby>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+|   <rt>
+|     <b>
+|       "test"
+| "test"

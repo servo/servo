@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Motion Path: offset-path:url() to rectangles</title>
+    <link rel="help" href="https://drafts.fxtf.org/motion/#valdef-offset-path-url">
+    <link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#RectElement">
+    <link rel="match" href="offset-path-url-002-ref.html">
+    <meta name="assert" content="This tests that url() referenced to a rect
+      generates a rotation and translation.">
+    <style>
+      #outer {
+        width: 400px;
+        height: 200px;
+      }
+      #target {
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        offset-path: url(#svgRect);
+        offset-distance: 37.5%;
+        border-radius: 50% 50% 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="outer">
+      <div id="target"></div>
+    </div>
+    <svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <rect id="svgRect" width="200" height="200" x="100"/>
+      </defs>
+    </svg>
+  </body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<meta name="test" content="text-indent supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  text-indent: 70px;
+}
+.target {
+  font: 10px sans-serif;
+  text-indent: 10px;
+  margin-left: 20px;
+}
+.expected {
+  color: green;
+}
+</style>
+
+<body>
+  <template id="target-template">T</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'text-indent',
+  from: neutralKeyframe,
+  to: '40px',
+}, [
+  {at: -0.3, expect: '1px'},
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '19px'},
+  {at: 0.6, expect: '28px'},
+  {at: 1, expect: '40px'},
+  {at: 1.5, expect: '55px'},
+]);
+
+test_interpolation({
+  property: 'text-indent',
+  from: 'initial',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '-6px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '6px'},
+  {at: 0.6, expect: '12px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '30px'},
+]);
+
+test_interpolation({
+  property: 'text-indent',
+  from: 'inherit',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '85px'},
+  {at: 0, expect: '70px'},
+  {at: 0.3, expect: '55px'},
+  {at: 0.6, expect: '40px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '-5px'},
+]);
+
+test_interpolation({
+  property: 'text-indent',
+  from: 'unset',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '85px'},
+  {at: 0, expect: '70px'},
+  {at: 0.3, expect: '55px'},
+  {at: 0.6, expect: '40px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '-5px'},
+]);
+
+test_interpolation({
+  property: 'text-indent',
+  from: '0px',
+  to: '50px'
+}, [
+  {at: -0.3, expect: '-15px'},
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '15px'},
+  {at: 0.6, expect: '30px'},
+  {at: 1, expect: '50px'},
+  {at: 1.5, expect: '75px'},
+]);
+
+test_interpolation({
+  property: 'text-indent',
+  from: '0px hanging',
+  to: '50px hanging',
+}, [
+  {at: -0.3, expect: '-15px hanging'},
+  {at: 0, expect: '0 hanging'},
+  {at: 0.3, expect: '15px hanging'},
+  {at: 0.6, expect: '30px hanging'},
+  {at: 1, expect: '50px hanging'},
+  {at: 1.5, expect: '75px hanging'},
+]);
+
+test_interpolation({
+  property: 'text-indent',
+  from: '0px hanging each-line',
+  to: '50px each-line hanging',
+}, [
+  {at: -0.3, expect: '-15px hanging each-line'},
+  {at: 0, expect: '0 hanging each-line'},
+  {at: 0.3, expect: '15px hanging each-line'},
+  {at: 0.6, expect: '30px hanging each-line'},
+  {at: 1, expect: '50px hanging each-line'},
+  {at: 1.5, expect: '75px hanging each-line'},
+]);
+
+test_no_interpolation({
+  property: 'text-indent',
+  from: '0px each-line',
+  to: '50px hanging',
+});
+
+test_no_interpolation({
+  property: 'text-indent',
+  from: '0px',
+  to: '50px each-line hanging',
+});
+</script>

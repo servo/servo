@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Shouldn't panic when transform is non-invertible</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        #test {
+            width: 100px;
+            height: 100px;
+            transform: scale(0);
+        }
+    </style>
+</head>
+<body>
+<div id="test"></div>
+<script>
+    async_test(function(t) {
+        setTimeout(t.step_func_done(function() {
+            var elements = document.elementsFromPoint(10, 10);
+        }), 500);
+    }, "Shouldn't panic when transform is non-invertible");
+</script>
+</body>
+</html>

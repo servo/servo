@@ -1,0 +1,7 @@
+spec: https://xhr.spec.whatwg.org/
+suggested_reviewers:
+  - caitp
+  - Manishearth
+  - jdm
+  - annevk
+  - wisniewskit

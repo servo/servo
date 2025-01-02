@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/41477900">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-object-element">
+<!--
+  Based on step 2 of the spec algorithm:
+  "... if the element is not being rendered,
+  then jump to the step below labeled fallback."
+-->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  const t = async_test(
+    "Test that object image not displayed is not loaded unnecessarily."
+  );
+
+  function obj_onload() {
+    t.unreached_func(
+      "Object image not displayed on screen should not load."
+    )();
+  }
+
+  t.step_timeout(() => {
+    t.done();
+  }, 2000);
+</script>
+
+<style>
+  #target {
+    display: none;
+  }
+</style>
+
+<object
+  data="/images/red.png"
+  id="target"
+  onload="obj_onload();"
+  type="image/png"
+>
+  Fallback Text
+</object>

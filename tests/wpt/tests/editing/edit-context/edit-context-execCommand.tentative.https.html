@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: document.execCommand</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../clipboard-apis/resources/user-activation.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async function() {
+      const editContext = new EditContext();
+      const test = document.createElement("div");
+      document.body.appendChild(test);
+      let firedTextUpdate = false;
+      editContext.addEventListener("textupdate", e => {
+        firedTextUpdate = true;
+      });
+      test.editContext = editContext;
+      test.focus();
+
+      assert_true(document.queryCommandSupported("inserttext"), "'inserttext' should be supported regardless of focus position");
+      assert_false(document.queryCommandEnabled("inserttext"), "'inserttext' should not be supported in EditContext");
+
+      document.execCommand("inserttext", false, "a");
+      assert_equals(test.innerHTML, "", "DOM should not be updated from execCommand('inserttext')");
+      assert_false(firedTextUpdate, "textupdate should not fire for to execCommand('inserttext')");
+      test.remove();
+    }, 'document.execCommand("inserttext") should not change the DOM or fire textupdate');
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      const test = document.createElement("div");
+      test.innerHTML = "abc";
+      document.body.appendChild(test);
+      let firedTextUpdate = false;
+      editContext.addEventListener("textupdate", e => {
+        firedTextUpdate = true;
+      });
+      test.editContext = editContext;
+      test.focus();
+
+      assert_true(document.queryCommandSupported("bold"), "'bold' should be supported regardless of focus position");
+      assert_false(document.queryCommandEnabled("bold"), "'bold' should not be supported in EditContext");
+
+      document.execCommand("bold");
+      assert_equals(test.innerHTML, "abc", "DOM should not be updated from execCommand('bold')");
+      assert_false(firedTextUpdate, "textupdate should not fire for execCommand('bold')");
+      test.remove();
+    }, 'document.execCommand("bold") should not change the DOM or fire textupdate');
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      const test = document.createElement("div");
+      test.innerHTML = "<b>ab</b>c";
+      document.body.appendChild(test);
+      let firedTextUpdate = false;
+      editContext.addEventListener("textupdate", e => {
+        firedTextUpdate = true;
+      });
+      test.editContext = editContext;
+      const selection = window.getSelection();
+      selection.setBaseAndExtent(test.firstChild.firstChild, 0, test.firstChild.firstChild, 1);
+
+      assert_false(document.queryCommandState("bold"), "queryCommandState should always return false in EditContext");
+      assert_equals(document.queryCommandValue("bold"), "false", "queryCommandValue should always return 'false' in EditContext for commands that return booleans");
+      assert_equals(document.queryCommandValue("forecolor"), "", "queryCommandValue should always return empty string in EditContext for commands that return strings");
+
+      selection.setBaseAndExtent(test.firstChild.firstChild, 1, test.lastChild, 1);
+      assert_false(document.queryCommandIndeterm("bold"), "'queryCommandInterm should always return false in EditContext");
+
+      test.remove();
+    }, 'queryCommandState, queryCommandvalue, and queryCommandInterm should always return false');
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      const test = document.createElement("div");
+      test.innerHTML = "abc";
+      document.body.appendChild(test);
+      let firedTextUpdate = false;
+      editContext.addEventListener("textupdate", e => {
+        firedTextUpdate = true;
+      });
+      test.editContext = editContext;
+      test.focus();
+
+      const selection = window.getSelection();
+      selection.setBaseAndExtent(test.firstChild, 0, test.firstChild, 1);
+
+      await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+      assert_true(document.execCommand("copy"), "'copy' always returns true regardless of whether it did anything");
+      await waitForUserActivation();
+      let clipboardText = await navigator.clipboard.readText();
+      assert_equals(clipboardText, "a", "'copy' should work in EditContext");
+
+      selection.setBaseAndExtent(test.firstChild, 1, test.firstChild, 2);
+
+      assert_true(document.execCommand("cut"), "'cut' always returns true regardless of whether it did anything");
+      assert_equals(test.innerHTML, "abc", "DOM should not be updated from execCommand('cut')");
+      await waitForUserActivation();
+      clipboardText = await navigator.clipboard.readText();
+      assert_equals(clipboardText, "a", "Failed 'cut' should not change clipboard");
+
+      test.remove();
+    }, 'document.execCommand("copy") should work but document.execCommand("cut") should not change the DOM or the clipboard');
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(String(Event).indexOf("function Event("), 0);
+
+  var ev = new Event("foopy", {cancelable: true});
+  assert_true(ev instanceof Event, "Should be Event");
+
+  assert_equals(ev.type, 'foopy');
+  assert_equals(ev.defaultPrevented, false);
+  ev.preventDefault();
+  assert_equals(ev.defaultPrevented, true);
+});
+</script>
+</head>
+</html>

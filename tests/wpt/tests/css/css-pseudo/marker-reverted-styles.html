@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Reverted styles for ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-4/#default">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that ::marker styles can be reverted to UA origin." />
+<style>
+.revert::marker { all: revert }
+.outside { list-style-position: outside }
+.inside { list-style-position: inside }
+.symbol { list-style-type: symbol }
+.decimal { list-style-type: decimal }
+.string { list-style-type: "string" }
+.marker::marker { content: "marker" }
+</style>
+<div id="log"></div>
+<ul>
+  <li class="outside symbol">outside symbol</li>
+  <li class="outside decimal">outside decimal</li>
+  <li class="outside string">outside string</li>
+  <li class="outside marker">outside marker</li>
+  <li class="inside symbol">inside symbol</li>
+  <li class="inside decimal">inside decimal</li>
+  <li class="inside string">inside string</li>
+  <li class="inside marker">inside marker</li>
+</ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script>
+function getStyles(style) {
+  const obj = {};
+  for (let i = 0; i < style.length; ++i) {
+    const prop = style.item(i);
+    obj[prop] = style.getPropertyValue(prop);
+  }
+  return obj;
+}
+for (const target of document.querySelectorAll("li")) {
+  test(function() {
+    const cs = getComputedStyle(target, "::marker");
+    const defaultStyles = getStyles(cs);
+    target.classList.add("revert");
+    const revertedStyles = getStyles(cs);
+    assert_object_equals(revertedStyles, defaultStyles);
+  }, `Reverted computed values for ${target.className}`);
+}
+</script>

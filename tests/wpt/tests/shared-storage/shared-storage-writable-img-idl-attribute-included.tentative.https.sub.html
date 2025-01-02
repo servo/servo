@@ -1,0 +1,35 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script>
+    const sameOrigin = new URL("", location.href).origin;
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+    promise_test(async t => {
+      await loadSharedStorageImage({
+        key: 'a', value: 'b',
+        hasSharedStorageWritableAttribute: true,
+        isSameOrigin: true,
+      });
+
+      await verifyKeyValueForOrigin('a', 'b', sameOrigin);
+      await deleteKeyForOrigin('a', sameOrigin);
+    }, 'test <img sharedstoragewritable src=[url]> via JS for same origin img');
+
+    promise_test(async t => {
+      await loadSharedStorageImage({
+        key: 'c', value: 'd',
+        hasSharedStorageWritableAttribute: true,
+        isSameOrigin: false,
+      });
+
+      await verifyKeyValueForOrigin('c', 'd', crossOrigin);
+      await deleteKeyForOrigin('d', crossOrigin);
+    }, 'test <img sharedstoragewritable src=[url]> via JS for cross origin img');
+  </script>
+</body>

@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  return promise_rejects_dom(t, "DataError",
+    sharedStorage.worklet.addModule("https://"));
+}, 'addModule with invalid url');
+
+promise_test(() => {
+  return sharedStorage.worklet.addModule(
+      "/shared-storage/resources/simple-module.js");
+}, 'addModule');
+
+</script>
+</body>

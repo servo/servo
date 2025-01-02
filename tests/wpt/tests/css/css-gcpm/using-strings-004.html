@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: using 'first-except' property of named strings</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-gcpm-3/#string-first-except">
+<meta name="flags" content="paged">
+<meta name="assert" content="Test checks that if string is set to first-except, it is omitted on the page where the string is set, but appears on subsequent pages">
+<style>
+  @page {
+   @top-center {
+   content: string(title, first-except);
+   }
+  }
+
+ h1 {
+ string-set: title content();
+ }
+
+#s2, #s3, #s4 { page-break-before: always; }
+
+</style>
+</head>
+<body>
+<h1>Chapter Title</h1>
+<p>Test passes if the running head is omitted on page one, and is “Chapter Title” on all other pages.</p>
+<h2 id="s1">Section One</h2>
+<h2 id="s2">Section Two</h2>
+<h2 id="s3">Section Three</h2>
+<h2 id="s4">Section Four</h2>
+<h2 id="s5">Section Five</h2>
+<h2 id="s6">Section Six</h2>
+</body>
+</html>

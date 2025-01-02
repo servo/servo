@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Test Content-Security-Policy frame-ancestors</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  // The fenced frame loads with a frame-ancestors policy set. The only way for
+  // the fenced frame to know that it can't load is if it checks its parent's
+  // policy across the fenced frame boundary.
+  const frame = await attachFencedFrameContext({
+    headers: [[
+      'Content-Security-Policy',
+      'frame-ancestors {{hosts[alt][www1]}}:{{ports[https][0]}}'
+    ]]
+  });
+  let timeout_promise =
+      new Promise(resolve => t.step_timeout(() => resolve('timeout'), 1000));
+  let execute_promise = frame.execute(() => {});
+  const result = await Promise.race([timeout_promise, execute_promise]);
+  assert_equals(result, 'timeout', 'The fenced frame should not load');
+}, 'Fenced frames check beyond fenced boundary for CSP frame-ancestors');
+
+promise_test(async () => {
+  // The Protected Audience fenced frame loads with a frame-ancestors policy
+  // set. It should be allowed to load even though the parent's origin isn't
+  // part of the policy.
+  const frame = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    headers: [[
+      'Content-Security-Policy',
+      'frame-ancestors {{hosts[alt][www1]}}:{{ports[https][0]}}'
+    ]]
+  });
+  await frame.execute(() => {});
+}, 'Protected Audience fenced frames do not check beyond fenced boundary for ' +
+   'CSP frame-ancestors');
+</script>
+</body>

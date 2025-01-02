@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: size' applies to inline-block (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-size">
+  <link rel="match" href="reference/contain-size-023-ref.html">
+
+  <meta content="This test checks that when laying out an inline-block element with 'contain: size', the inline-block element must be treated as if it would have no contents. In this test, the inline-block element has text and no in-flow block descendant." name="assert">
+
+  <!--
+
+  contain-size-021: inline-block with 1 image and no in-flow block descendant: width comparison
+
+  contain-size-022: inline-block with 1 image and no in-flow block descendant: height comparison
+
+  contain-size-023: inline-block with text and no in-flow block descendant: width comparison
+
+  contain-size-024: inline-block with text and no in-flow block descendant: height comparison
+
+  contain-size-025: inline-block and 2 in-flow block descendants made of images: width comparison
+
+  contain-size-026: inline-block and 2 in-flow block descendants made of images: height comparison
+
+  contain-size-027: inline-block and 2 in-flow block descendants made of text: width comparison
+
+  contain-size-028: inline-block and 2 in-flow block descendants made of text: height comparison
+
+  -->
+
+  <style>
+  div.inline-block
+    {
+      display: inline-block;
+    }
+
+  div#blue-test
+    {
+      background-color: blue;
+      color: transparent;
+      contain: size;
+      font-size: 100px;
+      padding: 50px;
+    }
+
+  div#orange-reference
+    {
+      background-color: orange;
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <p>This test passes if the painted blue area is <strong>exactly as wide as</strong> the orange square.
+
+  <div>
+    <div id="blue-test" class="inline-block">B</div>
+  </div>
+
+  <div>
+    <div id="orange-reference" class="inline-block"></div>
+  </div>

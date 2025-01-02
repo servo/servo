@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Crash when going from non-viewport to viewport units</title>
+<link rel="help" href="https://crbug.com/1322613">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="elem" style="padding-left: 1vh">Test passes if there is no crash.</div>
+
+<script>
+
+test((t) => {
+  assert_not_equals(getComputedStyle(elem).paddingLeft, '0px');
+  elem.style.paddingLeft = '0';
+  assert_equals(getComputedStyle(elem).paddingLeft, '0px');
+  elem.style.paddingLeft = '1vh';
+  assert_not_equals(getComputedStyle(elem).paddingLeft, '0px');
+});
+
+</script>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>The range is repainted if its list attribute changes</title>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1805105">
+<link rel=author href="mailto:zach@zrhoffman.net" title="Zach Hoffman">
+<link rel=match href=range-tick-marks-05-ref.html>
+<script src=/common/reftest-wait.js></script>
+<input type=range step=3 value=1 min=-5 max=5 list=firstlist>
+<datalist id=firstlist>
+  <option value=1></option>
+  <option value=-5></option>
+</datalist>
+<datalist id=secondlist>
+  <option value=-2>
+  <option value=4>
+</datalist>
+<script>
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const range = document.querySelector("input[type=range]");
+      range.setAttribute("list", "secondlist");
+      takeScreenshot();
+    }));
+</script>

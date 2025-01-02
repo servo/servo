@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait"
+     width="100" height="100">
+  <title>Mutating the 'pathLength' attribute ('rect' element)</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+  <h:link rel="match" href="reference/pathlength-rect-mutating-ref.svg"/>
+  <rect y="50" width="200" height="100" fill="red"
+        stroke="green" stroke-width="100" stroke-dasharray="100"
+        pathLength="4800"/>
+  <script>
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelector('rect').setAttribute('pathLength', 600);
+        document.documentElement.classList.toggle("reftest-wait");
+      });
+    });
+  </script>
+</svg>

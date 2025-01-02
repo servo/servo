@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Embellished operators - tree change and relayout</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://w3c.github.io/mathml-core/#embellished-operators">
+<link rel="help" href="https://w3c.github.io/mathml-core/#definition-of-space-like-elements">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-mrow">
+<script src="/mathml/support/mathml-fragments.js"></script>
+<meta name="assert" content="Verify relayout of an mrow with a child that has a deeply nested <mo> element.">
+<link rel="match" href="embellished-operator-dynamic-001-ref.html">
+<style>
+  math, math * {
+      font: 25px/1 Ahem;
+  }
+  mn {
+      color: black;
+  }
+  mo {
+      color: blue;
+  }
+</style>
+</head>
+<body>
+  <p>There should be the five 1em squares on the same line, with colors
+    black, orange, blue, orange, black:</p>
+  <math display="block">
+    <mrow style="background: yellow">
+      <mn>1</mn>
+      <mrow style="background: orange">
+        <mrow id="change_to_not_embellished_operator">
+          <mrow>
+            <mo lspace="1em" rspace="1em">X</mo>
+          </mrow>
+        </mrow>
+      </mrow>
+      <mn>2</mn>
+    </mrow>
+  </math>
+
+  <p>There should be the five 1em squares on the same line, with colors
+    black, yellow, blue, yellow, black:</p>
+  <math display="block">
+    <mrow style="background: yellow">
+      <mn>3</mn>
+      <mrow style="background: orange">
+        <mrow id="change_to_embellished_operator">
+          <mrow>
+            <mo lspace="1em" rspace="1em">X</mo>
+          </mrow>
+          <mn></mn>
+        </mrow>
+      </mrow>
+      <mn>4</mn>
+    </mrow>
+  </math>
+
+  <p>There should be the five 1em squares on the same line, with colors
+    black, orange, blue, orange, black:</p>
+  <math display="block">
+    <mrow style="background: yellow">
+      <mn>5</mn>
+      <mrow style="background: orange">
+        <mrow>
+          <mrow>
+            <mo lspace="1em" rspace="1em">X</mo>
+          </mrow>
+        </mrow>
+          <mrow id="change_to_not_space_like">
+            <mspace></mspace>
+            <mtext></mtext>
+          </mrow>
+      </mrow>
+      <mn>6</mn>
+    </mrow>
+  </math>
+
+  <p>There should be the five 1em squares on the same line, with colors
+    black, yellow, blue, yellow, black:</p>
+  <math display="block">
+    <mrow style="background: yellow">
+      <mn>7</mn>
+      <mrow style="background: orange">
+        <mrow>
+          <mrow>
+            <mo lspace="1em" rspace="1em">X</mo>
+          </mrow>
+          <mrow id="change_to_space_like">
+            <mspace></mspace>
+            <mtext></mtext>
+            <mn></mn>
+          </mrow>
+        </mrow>
+      </mrow>
+      <mn>8</mn>
+    </mrow>
+  </math>
+
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>
+    MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");
+
+    // After adding a not space-like element to mrow1, it is no longer an
+    // embellished operator : lspace/rspace should be around its mrow child.
+    let mrow1 = document.getElementById("change_to_not_embellished_operator");
+    mrow1.appendChild(FragmentHelper.createElement("mn"));
+
+    // Removing the not space-like element from mrow2 makes its orange parent
+    // an embellished operator. lspace/rspace should be around this parent.
+    let mrow2 = document.getElementById("change_to_embellished_operator");
+    mrow2.removeChild(mrow2.lastElementChild);
+
+    // Same as above, but changing the space-like nature of one child.
+    let mrow3 = document.getElementById("change_to_not_space_like");
+    mrow3.appendChild(FragmentHelper.createElement("mn"));
+    let mrow4 = document.getElementById("change_to_space_like");
+    mrow4.removeChild(mrow4.lastElementChild);
+
+    document.documentElement.classList.remove('reftest-wait');
+  </script>
+</body>
+</html>

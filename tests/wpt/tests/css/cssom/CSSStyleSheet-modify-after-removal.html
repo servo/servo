@@ -1,0 +1,29 @@
+<!doctype html>
+<title>CSS Test: CSSStyleSheet modifications after removal</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstylesheet-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssrule-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="frm"></iframe>
+<iframe id="frm2"></iframe>
+<script>
+  test(() => {
+    frm.contentDocument.body.innerHTML = "<style>div {color:red}</style>";
+    let sheet = frm.contentDocument.querySelector("style").sheet;
+    assert_equals(sheet.cssRules.length, 1);
+    frm.remove();
+    document.body.offsetTop;
+    sheet.insertRule("span {color: green}", 0);
+    assert_equals(sheet.cssRules.length, 2);
+  }, "Modify sheet from removed iframe");
+
+  test(() => {
+    frm2.contentWindow.eval("let sheet = new CSSStyleSheet(); document.adoptedStyleSheets = [ sheet ];");
+    let sheet = frm2.contentDocument.adoptedStyleSheets[0];
+    assert_equals(sheet.cssRules.length, 0);
+    frm2.remove();
+    document.body.offsetTop;
+    sheet.insertRule("span {color: green}", 0);
+    assert_equals(sheet.cssRules.length, 1);
+  }, "Modify constructed sheet from removed iframe");
+</script>

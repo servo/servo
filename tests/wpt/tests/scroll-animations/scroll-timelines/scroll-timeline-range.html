@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<title>Scroll timelines and animation attachment ranges</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#animation-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow-y: scroll;
+    width: 200px;
+    height: 200px;
+    scroll-timeline: --t1;
+  }
+  .spacer {
+    height: 1100px;
+  }
+  #target {
+    height:  100px;
+    width: 0;
+    font-size: 10px;
+    background-color: green;
+  }
+  @keyframes grow {
+    to { width: 200px }
+  }
+  .anim-1 {
+    animation: auto grow linear;
+    animation-timeline: --t1;
+    animation-range-start:  25%;
+    animation-range-end:  75%;
+  }
+  .anim-2 {
+    animation: auto grow linear;
+    animation-timeline: --t1;
+    animation-range-start: 40px;
+    animation-range-end:  700px;
+  }
+  .anim-3 {
+    animation: auto grow linear;
+    animation-timeline: --t1;
+    animation-range-start:  calc(30% + 40px);
+    animation-range-end:  calc(70% - 20px);
+  }
+  .anim-4 {
+    animation: auto grow linear;
+    animation-timeline: --t1;
+    animation-range-start:  5em;
+    animation-range-end:  calc(100% - 5em);
+  }
+
+</style>
+<div id=scroller>
+  <div id=target></div>
+  <div class=spacer></div>
+</div>
+<script>
+  // Test via web-animation API.
+
+  async function test_range_waapi(t, options) {
+    const timeline = new ScrollTimeline({source: scroller, axis: 'block'});
+    const anim =
+        target.animate([{ width: "200px" }],
+                       {
+                         timeline: timeline,
+                         rangeStart: options.rangeStart,
+                         rangeEnd: options.rangeEnd
+                       });
+    t.add_cleanup(() => {
+      anim.cancel();
+    });
+    await anim.ready;
+    scroller.scrollTop = 600;
+    await waitForNextFrame();
+
+    const expectedProgress =
+        (600 - options.startOffset) / (options.endOffset - options.startOffset);
+    assert_approx_equals(anim.effect.getComputedTiming().progress,
+                         expectedProgress, 0.001);
+  }
+
+  promise_test(async t => {
+    await test_range_waapi(t, {
+      rangeStart: "25%",
+      rangeEnd: "75%",
+      startOffset: 250,
+      endOffset: 750
+    });
+  }, 'Scroll timeline with percentage range [JavaScript API]');
+
+  promise_test(async t => {
+    await test_range_waapi(t, {
+      rangeStart: "40px",
+      rangeEnd: "700px",
+      startOffset: 40,
+      endOffset: 700
+    });
+  }, 'Scroll timeline with px range [JavaScript API]');
+
+  promise_test(async t => {
+    await test_range_waapi(t, {
+      rangeStart: "calc(30% + 40px)",
+      rangeEnd: "calc(70% - 20px)",
+      startOffset: 340,
+      endOffset: 680
+    });
+  }, 'Scroll timeline with calculated range [JavaScript API]');
+
+promise_test(async t => {
+    t.add_cleanup(() => {
+      target.style.fontSize = '';
+    });
+    await test_range_waapi(t, {
+      rangeStart: "5em",
+      rangeEnd: "calc(100% - 5em)",
+      startOffset: 50,
+      endOffset: 950
+    });
+    target.style.fontSize =  '20px';
+    await waitForNextFrame();
+    const anim = target.getAnimations()[0];
+    const expectedProgress = (600 - 100) / (900 - 100);
+    assert_approx_equals(anim.effect.getComputedTiming().progress,
+                         expectedProgress, 0.001);
+  }, 'Scroll timeline with EM range [JavaScript API]');
+
+  // Test via CSS.
+  async function test_range_css(t, options) {
+    t.add_cleanup(() => {
+      target.classList.remove(options.animation);
+    });
+    target.classList.add(options.animation);
+    const anim = target.getAnimations()[0];
+    await anim.ready;
+    scroller.scrollTop = 600;
+    await waitForNextFrame();
+
+    const expectedProgress =
+        (600 - options.startOffset) / (options.endOffset - options.startOffset);
+    assert_approx_equals(anim.effect.getComputedTiming().progress,
+                         expectedProgress, 0.001);
+  }
+
+  promise_test(async t => {
+    await test_range_css(t, {
+      animation: "anim-1",
+      startOffset: 250,
+      endOffset: 750
+    });
+  }, 'Scroll timeline with percentage range [CSS]');
+
+  promise_test(async t => {
+    await test_range_css(t, {
+      animation: "anim-2",
+      startOffset: 40,
+      endOffset: 700
+    });
+  }, 'Scroll timeline with px range [CSS]');
+
+  promise_test(async t => {
+    await test_range_css(t, {
+      animation: "anim-3",
+      startOffset: 340,
+      endOffset: 680
+    });
+  }, 'Scroll timeline with calculated range [CSS]');
+
+promise_test(async t => {
+    t.add_cleanup(() => {
+      target.style.fontSize = '';
+    });
+    await test_range_css(t, {
+      animation: "anim-4",
+      startOffset: 50,
+      endOffset: 950
+    });
+    target.style.fontSize =  '20px';
+    await waitForNextFrame();
+    const anim = target.getAnimations()[0];
+    const expectedProgress = (600 - 100) / (900 - 100);
+    assert_approx_equals(anim.effect.getComputedTiming().progress,
+                         expectedProgress, 0.001);
+  }, 'Scroll timeline with EM range [CSS]');
+</script>

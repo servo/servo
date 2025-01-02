@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS-Writing Modes Test: propagation of the writing-mode property from body to root</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel=help href="https://drafts.csswg.org/css-writing-modes-3/#principal-flow">
+  <link rel="match" href="block-flow-direction-025-ref.xht">
+  <meta name=assert content="The writing mode of the body must be propagated to the root with the dynamic change.">
+
+  <script>
+  function runTest() {
+    document.body.offsetHeight;
+    document.body.style.writingMode = "vertical-rl";
+  }
+  </script>
+
+  <style>
+  div {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+  }
+  </style>
+
+  <body onload="runTest();">
+    <div></div>
+
+    <p><img src="support/block-flow-direction-025-exp-res.png" width="359" height="36" alt="Image download support must be enabled"></p>
+    <!--
+         The image says:
+         Test passes if there is a blue square in the
+         <strong>upper-right corner</strong> of the page.
+    -->
+  </body>
+</html>

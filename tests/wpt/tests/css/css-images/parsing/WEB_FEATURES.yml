@@ -1,0 +1,8 @@
+features:
+- name: image-orientation
+  files:
+  - image-orientation-*
+features:
+- name: gradient-interpolation
+  files:
+  - "gradient-interpolation-*"

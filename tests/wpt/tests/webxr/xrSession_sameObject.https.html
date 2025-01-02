@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRSession attributes meet [SameObject] requirement";
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve) => {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: VALID_POINTER_TRANSFORM,
+      gripOrigin: VALID_GRIP_TRANSFORM,
+      profiles: ["foo", "bar"]
+    });
+
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
+      let renderState = session.renderState;
+      let sources = session.inputSources;
+
+      t.step(() => {
+        assert_not_equals(renderState, null, "renderState must not be null.");
+        assert_not_equals(sources, null, "inputSources must not be null.");
+
+        // Make sure [SameObject] attributes actually have the same object
+        // returned each time they are accessed.
+        assert_equals(renderState, session.renderState,
+          "XRSession.renderState returns the same object.");
+        assert_equals(sources, session.inputSources,
+          "XRSession.inputSources returns the same object.");
+      });
+
+      session.requestAnimationFrame((time, xrFrame) => {
+        t.step(() => {
+          // Make sure the attributes still return the same object on the next
+          // frame.
+          assert_equals(renderState, session.renderState,
+            "XRSession.renderState returns the same object.");
+          assert_equals(sources, session.inputSources,
+            "XRSession.inputSources returns the same object.");
+        });
+
+        // Even though changing handedness on the input source should cause that
+        // source to be re-created, it should not cause the entire
+        // XRInputSourceArray object on XRSession to be re-created.
+        input_source.setHandedness("left");
+        session.requestAnimationFrame((time, xrFrame) => {
+          t.step(() => {
+            assert_equals(renderState, session.renderState,
+              "XRSession.renderState returns the same object.");
+            assert_equals(sources, session.inputSources,
+              "XRSession.inputSources returns the same object.");
+          });
+          resolve();
+        });
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: Whitespace should not count as contentful</title>
+<style>
+    #main {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        background-image: url(../resources/circles.png);
+        background-size: 0 0;
+    }
+
+    #text {
+        display: none;
+    }
+
+    /* contentful class is defined in test_fcp script. */
+    #main.contentful #text{
+        display: block;
+    }
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main">
+    <div id="whitespace">   </div>
+    <div id="text">TEXT</div>
+</div>
+<script>
+    // Load the image into memory first to make sure it's decoded.
+    function load_image() {
+      const img = document.createElement("img");
+      img.src = "../resources/circles.png";
+
+      return new Promise(resolve => {
+        img.onload = async () => resolve();
+      });
+    }
+
+    test_fcp("Whitespace should not count as contentful.", load_image)
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Invalidation test on resetting &lt;select></title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#the-select-element:concept-form-reset-control">
+<link rel="help" href="http://crbug.com/1087031">
+<link rel="match" href="reset-algorithm-rendering-ref.html">
+<body>
+
+<form>
+<select>
+<option>Default</option>
+<option>Another</option>
+</select>
+
+<select>
+<option>Another</option>
+<option selected>Default</option>
+</select>
+
+<select multiple>
+<option>option 1</option>
+<option>option 2</option>
+</select>
+</form>
+
+<script>
+const selects = document.querySelectorAll('select');
+selects[0].selectedIndex = 1;
+selects[1].selectedIndex = 0;
+selects[2].options[1].selected = true;
+
+document.documentElement.addEventListener('TestRendered', e => {
+  document.querySelector('form').reset();
+  e.target.removeAttribute('class');
+});
+</script>
+
+</body>
+</html>

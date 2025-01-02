@@ -1,0 +1,110 @@
+<!doctype HTML>
+<meta charset=utf8>
+<title>CSS Content Visibility: hidden never anchors</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-relevance">
+<script src="/web-animations/testcommon.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#anchor, #positioned {
+  width: 200px;
+  height: 200px;
+}
+
+#lock {
+  height: 400px;
+  width: 400px;
+  content-visibility: hidden;
+  border: 1px solid black;
+}
+
+pre {
+  position: relative;
+  top: 200px;
+}
+
+#container {
+  position:relative;
+  height: 10000px;
+}
+
+#anchor {
+  anchor-name: --anchor;
+  background-color: lightblue;
+}
+
+#positioned {
+  position: absolute;
+  background-color: lightgreen;
+  left: anchor(right);
+}
+</style>
+<div id=container>
+  <div id=lock>
+    <div id=anchor></div>
+    <div id=anchor2></div>
+  </div>
+  <div id=positioned></div>
+</div>
+
+<pre id=output>
+</pre>
+<script>
+"use strict";
+
+promise_test(async t => {
+  window.scrollTo(0, 10000);
+  await waitForAnimationFrames(1);
+
+  // When the anchor applies, the positioned element is moved right by 200px.
+  positioned.style.positionAnchor = "--anchor";
+  assert_equals(positioned.getBoundingClientRect().left, 8,
+    '#positioned should not be anchored because #anchor is hidden (always skipped).');
+
+  window.scrollTo(0, 0);
+  await waitForAnimationFrames(2);
+
+  assert_equals(positioned.getBoundingClientRect().left, 8,
+    '#positioned should not be anchored because #anchor is hidden (always skipped).');
+
+  window.scrollTo(0, 10000);
+  await waitForAnimationFrames(2);
+
+  assert_equals(positioned.getBoundingClientRect().left, 8,
+    '#positioned should not be anchored because #anchor is hidden (always skipped).');
+
+  lock.style.contentVisibility = "visible";
+
+  assert_equals(positioned.getBoundingClientRect().left, 209,
+    "#positioned should be anchored because it's not under a content-visibility ancestor");
+
+  window.scrollTo(0, 0);
+  await waitForAnimationFrames(2);
+  assert_equals(positioned.getBoundingClientRect().left, 209,
+    '#positioned should be anchored regardless of scroll offset.');
+
+  window.scrollTo(0, 10000);
+  await waitForAnimationFrames(2);
+
+  assert_equals(positioned.getBoundingClientRect().left, 209,
+    '#positioned should be anchored regardless of scroll offset.');
+
+  lock.style.contentVisibility = "hidden";
+  await waitForAnimationFrames(1);
+
+  assert_equals(positioned.getBoundingClientRect().left, 8,
+    '#positioned should not be anchored because #anchor is hidden (always skipped).');
+
+  positioned.style.right = 'anchor(--anchor2 left)';
+  assert_equals(positioned.getBoundingClientRect().left, 8,
+    '#positioned should not be anchored because #anchor is hidden (always skipped).');
+
+  positioned.style.left = 'auto';
+  assert_equals(positioned.getBoundingClientRect().right, 208,
+    '#positioned should not be anchored because #anchor is hidden (always skipped).');
+
+});
+
+</script>

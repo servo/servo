@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel=match href=absolute_hypothetical_with_intervening_inline_block_ref.html>
+<style>
+em {
+    position: relative;
+}
+main {
+    display: inline-block;
+}
+section {
+    display: inline;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: white;
+    width: 48px;
+    height: 48px;
+}
+strong {
+    color: red;
+    font-weight: normal;
+}
+</style>
+There should be no red.<em><main><section></section></main></em><strong>_</strong>
+

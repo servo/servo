@@ -1,0 +1,54 @@
+<!doctype html>
+<head>
+	<title>CSS Test (Conditional Rules): Validity of namespaces in @supports</title>
+	<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#contents-of">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#use">
+	<link rel="help" href="https://www.w3.org/TR/css-namespaces/">
+	<link rel="help" href="https://www.w3.org/TR/CSS2/generate.html#content">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#at-supports">
+	<link rel="match" href="at-supports-001-ref.html">
+	<meta name="assert"
+	      content="Test passes if namespaces used within @supports are valid only if declared in a valid @namespace rule.">
+	<style>
+		@namespace x "http://www.w3.org/1999/xlink";
+		@supports (background: green) {}
+		@namespace y "http://www.w3.org/1999/xlink";
+
+		div {
+			height: 20px;
+			width: 100px;
+		}
+
+		.test1 { background: red; }
+		@supports (content: attr(x|href)) {
+			.test1 { background: green; }
+		}
+
+		.test2 { background: green; }
+		@supports (content: attr(y|href)) {
+			.test2 { background: red; }
+		}
+
+		.test3 { background: red; }
+		@supports not (content: attr(y|href)) {
+			.test3 { background: green; }
+		}
+
+		.test4 { background: red; }
+		.test5 { background: green; }
+		@supports (background: red) {
+			x|y, .test4 { background: green; }
+			y|x, .test5 { background: red; }
+		}
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+	<div class="test1"></div>
+	<div class="test2"></div>
+	<div class="test3"></div>
+	<div class="test4"></div>
+	<div class="test5"></div>
+</body>
+</html>

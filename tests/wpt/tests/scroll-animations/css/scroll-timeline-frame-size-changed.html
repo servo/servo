@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>The default scroll() timeline when the frame size changed</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-timeline">
+<meta name="assert" content="CSS animation correctly updates values when using
+                             the default scroll() timeline and update the
+                             frame size">
+<link rel="match" href="scroll-timeline-frame-size-changed-ref.html">
+
+<style>
+  @keyframes update {
+    from { transform: translateY(0px); }
+    to { transform: translateY(200px); }
+  }
+
+  html {
+    min-height: 100%;
+    padding-bottom: 100px;
+  }
+
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: update 1s linear;
+    animation-timeline: scroll();
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  * {
+    margin-top: 0px;
+    margin-bottom: 0px;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+
+<script src="/web-animations/testcommon.js"></script>
+<script>
+  document.documentElement.addEventListener('TestRendered', async () => {
+    runTest();
+  }, { once: true });
+
+  async function runTest() {
+    const scroller = document.scrollingElement;
+
+    await waitForCompositorReady();
+
+    // Move the scroller to the 25% point.
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.25 * maxScroll;
+    await waitForNextFrame();
+
+    // Update scroll range to make the current position become 50% point.
+    scroller.style.paddingBottom = "50px";
+    await waitForNextFrame();
+
+    document.documentElement.classList.remove("reftest-wait");
+  }
+</script>

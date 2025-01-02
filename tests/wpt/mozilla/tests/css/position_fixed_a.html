@@ -1,0 +1,47 @@
+<html>
+  <head>
+    <link rel=match href=position_fixed_b.html>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+    <style>
+    body, html {
+        margin: 0;
+    }
+    .container {
+      display: block;
+      background: blue;
+
+      /* Use font available on all hosts, instead of system font,
+         because test reference depends on dynamic sizing, and different
+         fonts change the required margins. */
+      font-family: 'Ahem';
+      font-size: 20px;
+    }
+    .fixed_block {
+      background: green;
+      position: fixed;
+    }
+    .positioned_fixed_block {
+      background: yellow;
+      position: fixed;
+      top: 292px;
+      left: 25px;
+    }
+    .sized_fixed_block {
+      background: red;
+      position: fixed;
+      height: 50px;
+      width: 50px;
+      left: 0;
+      right: 10px;
+      top: 100px;
+    }
+  </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="fixed_block"> a </div>
+      <div class="sized_fixed_block"> b </div>
+      <div class="positioned_fixed_block"> c </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values Test: computed value of 8 calc() values that involve mixed units</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-computed-value">
+
+  <meta name="flags" content="">
+  <meta content="This meta-test verifies that terms with a length value that can be resolved at computed-value time must be resolved and must be absolutized to 'px'. In this meta-test, we test percentage unit (%), three font-relative length units (em, rem, lh) and some absolute length units (pc, pt, px, cm, mm, Q, in). " name="assert">
+
+  <!--
+
+     NOT Tested in this test are:
+
+     Viewport-percentage Length units:
+     vh, svh, lvh, dvh,
+     vw, svw, lvw, dvw,
+     vmin, svmin, lvmin, dvmin,
+     vmax, svmax, lvmax, dvmax,
+     vi, svi, lvi, dvi,
+     vb, svb, lvb, dvb
+
+     and these of font-relative length units:
+     ex, rex,
+     cap, rcap,
+     ch, rch,
+     ic, ric,
+     rlh
+
+  -->
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  html
+    {
+      font-size: 30px; /* for checking rem unit */
+    }
+
+  body
+    {
+      font-size: 16px;
+      line-height: 1.25; /* computed value: 20px; for checking lh unit */
+      height: 500px;
+      margin: 20px;
+      width: 520px;
+    }
+
+  div#target
+    {
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifyComputedStyle(property_name, specified_value, expected_value)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, "initial");
+
+      targetElement.style.setProperty(property_name, specified_value);
+
+      assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
+
+      }, `testing ${property_name}: ${specified_value}`);
+    }
+
+    verifyComputedStyle("width", "calc(10% + 2em)", "84px");
+
+    /*
+
+     520px mult 10% == 52px
+
+                    +
+
+        16px mult 2 == 32px
+
+                     =======
+
+                       84px
+
+    */
+
+
+    verifyComputedStyle("width", "calc(5% + 4rem)", "146px");
+
+    /*
+
+     520px mult 5% ==  26px
+
+                    +
+
+       30px mult 4 == 120px
+
+                     =======
+
+                      146px
+
+    */
+
+
+    verifyComputedStyle("width", "calc(8lh + 7px)", "167px");
+
+    /*
+
+     8 mult 20px ==  160px
+
+                    +
+
+                       7px
+
+                     =======
+
+                     167px
+
+    */
+
+
+    verifyComputedStyle("height", "calc(10% + 6pt)", "58px");
+
+    /*
+
+    10% mult 500 == 50px
+
+                  +
+
+             6pt ==  8px
+
+                  ========
+
+                    58px
+
+    */
+
+
+    verifyComputedStyle("width", "calc(4em + 2.6458333cm)", "164px");
+
+    /*
+
+     4 mult 16px ==   64px
+
+          +
+
+     2.6458333cm ==  100px
+
+                   ========
+
+                     164px
+
+    */
+
+
+    verifyComputedStyle("height", "calc(5em + 26.458333mm)", "180px");
+
+    /*
+
+     5 mult 16px == 80px
+
+          +
+
+    26.458333mm == 100px
+
+                 ========
+
+                   180px
+
+    */
+
+
+    verifyComputedStyle("width", "calc(2in + 101.6Q)", "288px");
+
+    /*
+
+     2 mult 96px == 192px
+
+          +
+
+       101.6Q    ==  96px
+
+                   ========
+
+                    288px
+
+    */
+
+
+    verifyComputedStyle("height", "calc(1pc + 3pt)", "20px");
+
+    /*
+
+       1pc == 16px
+
+          +
+
+       3pt ==  4px
+
+             =======
+
+              20px
+
+    */
+
+  }
+
+  startTesting();
+
+  </script>

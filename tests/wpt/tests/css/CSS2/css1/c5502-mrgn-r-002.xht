@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin-right</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#margin-right"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <meta name="flags" content="image scroll should"/>
+  <style type="text/css"><![CDATA[
+   html { margin: 0; padding: 0; }
+   body { margin: 0; padding: 0; }
+   .five { margin-right: -2em; padding-right: 2em; color: navy;
+           background: url(support/swatch-green.png) no-repeat right; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+ </head>
+ <body>
+  <p class="five">Test passes if you can scroll to the right and see a green square.</p>
+ </body>
+</html>

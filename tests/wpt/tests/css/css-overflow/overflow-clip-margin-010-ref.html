@@ -1,0 +1,40 @@
+<!doctype html>
+<html class="reftest">
+<meta charset="utf-8">
+<title>Overflow-clip-margin corner shape (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+
+  position: relative;
+  top: 30px;
+  left: 30px;
+
+  border: 5px solid green;
+
+  border-radius: 0px 15px 25px 35px;
+}
+.clipper {
+  width: 140px;
+  height: 140px;
+
+  margin: -20px;
+  border-radius:0px 27.5px 40px 50px;
+  overflow: clip;
+}
+.child {
+  width: 400px;
+  height: 400px;
+  background: lightblue;
+  opacity: 0.8;
+}
+</style>
+
+<div class=container>
+  <div class=clipper>
+    <div class=child></div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Text Test: Removing collapsible space before a float element cause Chrome to crash</title>
+<link rel="help" href="https://crbug.com/1131470">
+<style type="text/css">
+    .CLASS9 {
+        zoom:1.3%;
+        padding:8589934592%;
+    }
+    .CLASS13 { float:left; }
+</style>
+<b class="CLASS9">
+>
+a C
+</b>
+<input class="CLASS13"/>
+c

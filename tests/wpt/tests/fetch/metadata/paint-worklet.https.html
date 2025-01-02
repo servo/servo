@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
+<script>
+
+  promise_test(async t => {
+    const nonce = token();
+    const key = "worklet-destination" + nonce;
+
+    await CSS.paintWorklet.addModule("/fetch/metadata/resources/record-header.py?file=" + key);
+    const expected = {"site": "same-origin", "user": "", "mode": "cors", "dest": "paintworklet"};
+    await validate_expectations(key, expected);
+  }, "The fetch metadata for paint worklet");
+
+</script>
+<body></body>

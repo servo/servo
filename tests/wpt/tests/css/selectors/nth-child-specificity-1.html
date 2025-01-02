@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<title>:nth-child with selector list specificity</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<link rel="match" href="nth-child-specificity-1-ref.html">
+<style>
+    /* The following 3 rules should all have the same specificity when matching <target>. They should be be applied in order. */
+    foo:nth-child(n), bar:nth-child(n), target:nth-child(n) {
+        background-color: red;
+        color: red;
+    }
+    :nth-child(3n of foo, bar, target) {
+        background-color: green;
+        color: blue;
+    }
+    foo.target, bar.target, target.target {
+        color: white;
+    }
+    * {
+        background-color: white;
+        color: black;
+    }
+</style>
+</head>
+<body>
+    <p>This test the specificity of :nth-child() with static specificity. The test passes if the text "target" is displayed white on green background. There should be 2 red rects on each side.</p>
+    <div>
+        <foo>Not target</foo>
+        <padding></padding>
+        <bar>Not target</bar>
+        <more-padding></more-padding>
+        <target class="target">Target</target>
+        <more-padding></more-padding>
+        <foo>Not target</foo>
+        <padding></padding>
+        <bar>Not target</bar>
+    </div>
+</body>
+</html>

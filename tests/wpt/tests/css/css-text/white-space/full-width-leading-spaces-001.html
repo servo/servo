@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: handling leading ideographic space sequence</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/full-width-leading-spaces-001-ref.html">
+<meta name="assert" content="An ideographic space (U+3000) sequence at the beginning of the line must not be collapsed.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+div { font: 20px/1 Ahem; }
+.test {
+    width: 5em;
+    color: green;
+    background: green;
+}
+.ref {
+    position: absolute;
+    z-index: -1;
+    color: red;
+}
+</style>
+
+<p>Test passes if the characters below are arranged in a green rectangle and if there is no red.
+<div class="ref">XXXXX</div>
+<div class="test">&#x3000;&#x3000;&#x3000;XX</div>

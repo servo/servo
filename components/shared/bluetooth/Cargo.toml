@@ -1,0 +1,18 @@
+[package]
+name = "bluetooth_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "bluetooth_traits"
+path = "lib.rs"
+
+[dependencies]
+embedder_traits = { workspace = true }
+ipc-channel = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }

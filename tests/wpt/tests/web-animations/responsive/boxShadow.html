@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='container'>
+    <div id='element'></div>
+</div>
+<script>
+
+var container = document.getElementById('container');
+var element = document.getElementById('element');
+
+test(function() {
+    container.style.fontSize = '10px';
+    container.style.color = 'red';
+
+    var keyframes = [
+        {boxShadow: '10em 10em currentColor'},
+        {boxShadow: '10em 10em currentColor'}
+    ];
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+
+    var boxShadow = getComputedStyle(element).boxShadow;
+    container.style.fontSize = '20px';
+    container.style.color = 'green';
+    assert_not_equals(getComputedStyle(element).boxShadow, boxShadow);
+}, 'boxShadow responsive to style changes');
+
+</script>

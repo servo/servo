@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - styling SVG from external stylesheet via
+           ProcessingInstruction</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <!-- Helper functions for referrer-policy css tests. -->
+    <script src="/referrer-policy/css-integration/css-test-helper.js"></script>
+    <meta name="referrer" content="origin">
+  </head>
+  <body>
+    <p>Check that resources from external stylesheets (referenced from a
+    ProcessingInstruction) are loaded with the referrer and referrer policy
+    from the external stylesheet.</p>
+    <script>
+      function addProcessingInstruction(test) {
+        let svg_url = url_prefix + "svg.py?id=" + test.id + "&type=svg" +
+                      "&property=" + test.property + "&embedded-svg";
+        let iframe = document.createElement("iframe");
+        test.expected = url_prefix + "stylesheet.py?id=" + test.id +
+                        "&type=svg" + "&property=" + test.property;
+        iframe.src = svg_url;
+        document.body.appendChild(iframe);
+      }
+
+      runSvgTests(svg_test_properties,
+                  "Styling SVG from ProcessingInstruction",
+                  addProcessingInstruction);
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>
+

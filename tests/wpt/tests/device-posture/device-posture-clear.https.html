@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => {
+    await test_driver.clear_device_posture();
+  });
+  const originalPosture = navigator.devicePosture.type;
+  const posture = originalPosture ? 'folded' : 'continuous';
+
+  const watcher = new EventWatcher(t, navigator.devicePosture, ['change']);
+  await Promise.all([
+    watcher.wait_for('change'),
+    test_driver.set_device_posture(posture)
+  ]);
+  assert_equals(navigator.devicePosture.type, posture);
+
+  await Promise.all([
+    watcher.wait_for('change'),
+    test_driver.clear_device_posture()
+  ]);
+  assert_equals(navigator.devicePosture.type, originalPosture);
+}, 'Tests that device posture override can be removed.');
+</script>

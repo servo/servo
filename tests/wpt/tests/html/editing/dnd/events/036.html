@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Drag and drop passing over body with all events handled at body</title>
+    <style type="text/css">
+div:first-child {
+  height: 100px;
+  width: 100px;
+  background: orange;
+  display: inline-block;
+}
+div:first-child + div {
+  height: 100px;
+  width: 100px;
+  margin-left: 200px;
+  background: blue;
+  display: inline-block;
+}
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  var drag = document.getElementsByTagName('div')[0], drop = document.getElementsByTagName('div')[1], sequence = [];
+  function targ(el) {
+    if( el == drag ) { return 'drag'; }
+    else if( el == drop ) { return 'drop'; }
+    else if( el == document.body ) { return 'body'; }
+    else { return el; }
+  }
+  document.body.ondragstart = function (e) {
+    e.dataTransfer.setData('text','data');
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+  document.body.ondragenter = function (e) {
+    e.preventDefault();
+    sequence[sequence.length] = targ(e.target)+'.ondragenter';
+  };
+  document.body.ondragover = function (e) {
+    e.preventDefault();
+    var seqname = targ(e.target)+'.ondragover';
+    if( sequence[sequence.length-1] != seqname ) {
+      sequence[sequence.length] = seqname;
+    }
+  };
+  document.body.ondrop = function (e) {
+    e.preventDefault();
+    sequence[sequence.length] = targ(e.target)+'.ondrop';
+    sequence[sequence.length] = e.dataTransfer.getData('text');
+  };
+  document.body.ondragend = function (e) {
+    sequence[sequence.length] = targ(e.target)+'.ondragend';
+    sequence = sequence.join('=&gt;')
+    var desiredsequence = (['drag.ondragenter','drag.ondragover','body.ondragenter','body.ondragover','drop.ondragenter','drop.ondragover','drop.ondrop','data','drag.ondragend']).join('=&gt;')
+    if( sequence == desiredsequence ) {
+      document.getElementsByTagName('div')[2].innerHTML = 'PASS';
+    } else {
+      document.getElementsByTagName('div')[2].innerHTML = 'FAIL, got:<br>'+sequence+'<br>instead of:<br>'+desiredsequence;
+    }
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <div draggable="true"></div><div></div>
+    <div>&nbsp;</div>
+    <p>Drag the orange square onto the blue square and release it. For the entire duration of the drag, if supported by the platform, the mouse cursor should show as a drop-allowed or drop-copy-allowed cursor.</p>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+
+  </body>
+</html>

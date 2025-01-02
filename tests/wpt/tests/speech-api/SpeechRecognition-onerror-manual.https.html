@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>SpeechRecognition.onerror no-speech</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      var TIMEOUT_OVERRIDE = 10000;  // In milliseconds.
+    </script>
+    <script src='webspeech.js'></script>
+  </head>
+  <body>
+    <p><b>Instructions:</b> Do NOT speak. Run test in silence.
+      This test may fail if too much noise.</p>
+    <div id="log"></div>
+    <div id="notes"></div>
+    <script>
+var audioTest = new CycleTest('onaudio');
+reco.onaudiostart = audioTest.startEvent();
+reco.onaudioend = audioTest.endEvent();
+
+reco.onsoundstart = neverFireEvent('onsoundstart');
+reco.onsoundend = neverFireEvent('onsoundend');
+reco.onspeechstart = neverFireEvent('onspeechstart');
+reco.onspeechend = neverFireEvent('onsspeechend');
+reco.onresult = neverFireEvent('onresult');
+reco.onnomatch = neverFireEvent('onnomatch');
+
+var errorTest = new CountTest('onerror no-speech', 1, 1);
+reco.onerror = errorTest.test().step_func(function(event) {
+  errorTest.count(1);
+  assert_equals(typeof(event.message), 'string', 'typeof(event.message)');
+  notes.innerHTML += 'onerror message is "' + event.message + '"' + '<br>';
+  assert_equals(event.error, 'no-speech', 'onerror event.error');
+});
+
+reco.start();
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>::first-letter text crash during size query change</title>
+<link rel="help" href="https://crbug/com/372358471">
+<style>
+  body {
+    &::first-letter { color: green; }
+    &::before { content: "."; }
+  }
+  canvas {
+    float: left;
+    container-type: inline-size;
+    &::first-line {
+      color: pink;
+    }
+  }
+  :first-of-type {}
+</style>
+<body> <canvas></canvas><span id="id_1"></span><span>x</span>
+<script>
+  document.body.offsetTop;
+  id_1.remove();
+  document.body.offsetTop;
+</script>
+

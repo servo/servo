@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<style>
+body {
+  margin: 20px;
+  background: linear-gradient(lightgray 0%, lightgray 50%, white 50%, white 100%)
+}
+@page {
+  size: 800px 600px;
+  margin: 0;
+}
+</style>
+<p style="writing-mode:horizontal-tb; position:absolute; right:0; top:0; width:200px;">
+  There should be a bottom-left-aligned blue box on the first page, and a
+  bottom-left-aligned hotpink box on the second page.
+  The background of the first page is lightgray, and the background of the
+  second page is white.
+</p>
+<div style="width:600px; height:100px; break-inside:avoid; background:blue; margin-top:480px;"></div>
+<div style="height:500px"></div>
+<div style="width:800px; height:100px; break-inside:avoid; background:hotpink; margin-left:-20px;"></div>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - 304 Responses</title>
+<meta name="timeout" content="long">
+<meta name=author title="Mark Nottingham" href="mailto:mnot@mnot.net">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>CORS - 304 Responses</h1>
+<div id=log></div>
+<script>
+
+
+/*
+ * 304 Responses
+ */
+
+// A header used to correlate requests and responses
+var state_header = "content-language"
+
+/* Make a request; call ready(client) when done */
+function req(url, id, t, ready) {
+  var client = new XMLHttpRequest()
+  client.open('GET', url, true)
+  client.setRequestHeader(state_header, id)
+  client.send()
+  client.onreadystatechange = function() {
+    if (client.readyState == client.DONE) {
+      t.step(function() {
+        assert_not_equals(client.status, 299, "req " + id + " server says: " + client.responseText)
+      })
+      ready(client)
+    }
+  }
+  return client
+}
+
+/*
+ * Make two requests to test cache behaviour.
+ * The second is made after the first is done and a delay, to make sure it gets into cache.
+ */
+function two_reqs(id1, id2, should_have_same_body, t, done) {
+  var rand = Date.now()
+  var url = CROSSDOMAIN + 'resources/304.py?id=' + id1 + '&r=%s' + rand
+
+  var client1 = req(url, id1, t, function(client1) {
+    t.step(function() {
+      assert_equals(client1.response, "Success", "didn't get successful 1st response;")
+      assert_equals(client1.getResponseHeader(state_header), id1, "1st response didn't come from server;")
+    })
+
+    t.step_timeout(function() {
+      req(url, id2, t, function(client2) {
+        t.step(function() {
+          if (should_have_same_body) {
+            assert_equals(client1.response, client2.response, "response bodies were different;")
+//            var res_id2 = client2.getResponseHeader(state_header)
+//            assert_not_equals(res_id2, id1, "2nd response doesn't appear to have updated cached headers;")
+//            assert_not_equals(res_id2, null, "2nd response didn't expose request identifier;")
+//            assert_equals(res_id2, id2, "2nd response is associated with a different request (!);")
+          }
+          done(client1, client2)
+        })
+        t.done()
+      })
+    }, 5000)
+  })
+}
+
+async_test(function(t) {
+  two_reqs('1', '2', true, t, function(client1, client2) {
+    assert_equals(client1.getResponseHeader("A"), null, "'A' header exposed without permission;")
+  })
+}, "A 304 response with no CORS headers inherits from the stored response")
+
+async_test(function(t) {
+  two_reqs('3', '4', true, t, function(client1, client2) {
+    assert_equals(client2.getResponseHeader("A"), "4", "304 didn't expose 'A' header, even though allowed;")
+    assert_equals(client2.getResponseHeader("B"), "4", "304 didn't expose 'B' header even though allowed;")
+  })
+}, "A 304 can expand Access-Control-Expose-Headers")
+
+async_test(function(t) {
+  two_reqs('5', '6', true, t, function(client1, client2) {
+    assert_equals(client2.getResponseHeader("B"), null, "2nd 304 exposed 'B' header;")
+  })
+}, "A 304 can contract Access-Control-Expose-Headers")
+
+async_test(function(t) {
+  two_reqs('7', '8', false, t, function(client1, client2) {
+    assert_not_equals(client1.response, client2.response, "Access granted even though 304 updated it to disallow;")
+  })
+}, "A 304 can change Access-Control-Allow-Origin")
+
+
+</script>

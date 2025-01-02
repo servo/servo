@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html lang="ja">
+<meta charset="utf-8">
+<title>CSS Reference File</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  font:10px/1 monospace;
+}
+
+ruby { display: ruby; background: lightblue; }
+rbb { display: block ruby; background: lightblue; }
+grid { display: grid; }
+.mbp {
+  margin: 1px 3px 5px 7px;
+  padding: 3px 5px 7px 1px;
+  border-width: 3px 1px 7px 5px;
+  border-style: solid;
+}
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+}
+rtc {
+  display: ruby-text-container;
+  unicode-bidi: isolate;
+}
+</style>
+
+<ruby class=mbp>X<rt>る</rt></ruby>
+<grid>A<ruby class=mbp>X<rt>る</rt></ruby>B</grid>
+<grid>A<ruby class=mbp>X<rt>る</rt></ruby>B</grid>
+<grid>A<ruby>X<rt>る</rt></ruby><ruby>X<rbc></rbc></ruby>B</grid>
+<grid>A<ruby>X</ruby><ruby>X<rbc><rt>る</rt></rbc></ruby>B</grid>
+<ruby>X<rt><rbb>Xる</rbb></rt></ruby>
+<ruby>X<rbc><rbb>Xる</rbb></rbc></ruby>
+<ruby>X<rtc><rbb>Xる</rbb></rtc></ruby>
+<rbb class=mbp>X</rbb>
+<rbb class=mbp>X<rt>る</rt></rbb>
+<rbb class=mbp>X<rb>X</rb></rbb>
+
+</html>

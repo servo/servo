@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>anchor-name only applies to elements which generate a principal box</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#target-anchor-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin-top: 0; }
+  #outer {
+    anchor-name: --anchor;
+    display: contents;
+  }
+  #inner {
+    anchor-name: --anchor;
+  }
+  #filler {
+    height: 100px;
+  }
+  #anchored {
+    position: absolute;
+    top: anchor(--anchor top);
+  }
+</style>
+<div id="outer">
+  <div id="filler"></div>
+  <div id="inner"></div>
+</div>
+<div id="anchored"></div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetTop, 100, "#anchored is positioned against #inner");
+  }, "anchor-name should only apply to elements which generate a principal box");
+</script>

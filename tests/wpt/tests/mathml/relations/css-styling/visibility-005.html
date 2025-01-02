@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>visibility</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+<link rel="match" href="visibility-005-ref.html"/>
+<meta name="assert" content="Verify that visibility=hidden is used for normal, stretchy and large operators.">
+<style>
+  math {
+      font: 20px/1 Ahem;
+  }
+  @font-face {
+      font-family: operators;
+      src: url("/fonts/math/operators.woff");
+  }
+  mo {
+      font-family: operators;
+  }
+</style>
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="background: green; color: red; width: 200px; height: 200px;">
+    <math>
+      <!-- unstretched operators -->
+      <mo style="visibility: hidden">⥯</mo>
+      <mo style="visibility: hidden">+</mo>
+      <mo style="visibility: hidden">-</mo>
+    </math>
+    <math displaystyle="true">
+      <!-- large operator -->
+      <mo largeop="true" style="visibility: hidden">⥯</mo>
+    </math>
+    <math>
+      <mrow>
+        <!-- stretchy, small size -->
+        <mspace height="2em"/>
+        <mo style="visibility: hidden">⥯</mo>
+      </mrow>
+    </math>
+    <math>
+      <mrow>
+        <!-- stretchy, large size -->
+        <mspace height="4em"/>
+        <mo style="visibility: hidden">⥯</mo>
+      </mrow>
+    </math>
+    <div id="dynamic">
+      <math>
+        <!-- unstretched operators -->
+        <mo stretchy="false">⥯</mo>
+        <mo>+</mo>
+        <mo>-</mo>
+      </math>
+      <math displaystyle="true">
+        <!-- large operator -->
+        <mo largeop="true">⥯</mo>
+      </math>
+      <math>
+        <mrow>
+          <!-- stretchy, small size -->
+          <mspace height="2em"/>
+          <mo>⥯</mo>
+        </mrow>
+      </math>
+      <math>
+        <mrow>
+          <!-- stretchy, large size -->
+          <mspace height="4em"/>
+          <mo>⥯</mo>
+        </mrow>
+      </math>
+    </div>
+  </div>
+  <script src="/mathml/support/fonts.js"></script>
+  <script>
+    window.addEventListener("load", () => loadAllFonts().then(() => {
+        document.getElementById("dynamic").style.visibility = "hidden";
+        document.documentElement.classList.remove("reftest-wait");
+    }));
+  </script>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_menclose");</script>
+</body>
+</html>

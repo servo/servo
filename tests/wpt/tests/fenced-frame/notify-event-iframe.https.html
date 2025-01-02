@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test fenced frame notifyEvent() functionality with iframes</title>
+
+<body>
+  <script>
+    async function runNestedIFrameTest(frame_type) {
+      // Create a fenced frame that will respond to window.fence.notifyEvent().
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      let notified = false;
+      fencedframe.element.addEventListener('fencedtreeclick', () => notified = true);
+
+      await fencedframe.execute(async (frame_type) => {
+        window.click_error = new Promise((resolve, reject) => {
+          window.addEventListener('message', (event) => {
+            resolve(event.data);
+          });
+        });
+
+        let iframe = null;
+        if (frame_type === 'same-origin') {
+          iframe = await attachIFrameContext({
+            origin: get_host_info().HTTPS_ORIGIN
+          });
+        } else if (frame_type === 'cross-origin') {
+          iframe = await attachIFrameContext({
+            origin: get_host_info().HTTPS_REMOTE_ORIGIN
+          });
+        }
+
+        // Calling notifyEvent() on click in the iframe should fail, but we need
+        // to move the exception out of the click handler to assert on it.
+        await iframe.execute(() => {
+          document.addEventListener('click', (e) => {
+            try {
+              window.fence.notifyEvent(e);
+            } catch (err) {
+              window.parent.postMessage(err, '*');
+              return;
+            }
+            window.parent.postMessage(new TypeError('No exception'), '*');
+          });
+        });
+      }, [frame_type]);
+
+      await multiClick(10, 10, fencedframe.element);
+
+      // Ensure the correct exception was thrown.
+      await fencedframe.execute(async () => {
+        let err = await window.click_error;
+        assert_equals(err.name, 'SecurityError');
+        assert_equals(err.message,
+          "Failed to execute 'notifyEvent' on 'Fence': notifyEvent is only available in fenced frame roots.");
+      });
+
+      // Because the notifyEvent() call failed, no event was sent to the
+      // top-level fenced frame.
+      assert_false(notified);
+    }
+
+    promise_test(async (t) => {
+      return runNestedIFrameTest('same-origin');
+    }, "Test that fenced frame notifyEvent() fails in a nested same-origin iframe.");
+
+    promise_test(async (t) => {
+      return runNestedIFrameTest('cross-origin');
+    }, "Test that fenced frame notifyEvent() fails in a nested cross-origin iframe.");
+
+    promise_test(async (t) => {
+      window.click_error = new Promise((resolve, reject) => {
+        window.addEventListener('message', (event) => {
+           resolve(event.data);
+        });
+      });
+
+      const urn_iframe = await attachIFrameContext(
+                  {generator_api: 'fledge'});
+
+      await urn_iframe.execute(() => {
+        document.addEventListener('click', (e) => {
+          try {
+            window.fence.notifyEvent(e);
+          } catch (err) {
+            window.parent.postMessage(err, '*');
+            return;
+          }
+          window.parent.postMessage(new TypeError('No exception'), '*');
+        });
+      });
+
+      await multiClick(10, 10, urn_iframe.element);
+
+      let err = await window.click_error
+      assert_equals(err.name, 'SecurityError');
+      assert_equals(err.message,
+        "Failed to execute 'notifyEvent' on 'Fence': notifyEvent is only available in fenced frame roots.");
+    }, "Test that notifyEvent() fails in a URN iframe.");
+  </script>
+</body>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Security-Policy"
+        content="script-src 'self' 'unsafe-inline';">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+
+<p>
+  Eval should be blocked in the iframe, but inline script should be allowed.
+</p>
+
+<script>
+  promise_test(async t => {
+    const document_loaded = new Promise(resolve => window.onload = resolve);
+    await document_loaded;
+
+    const eval_error = new Promise(resolve => {
+      window.addEventListener('message', function(e) {
+        assert_not_equals(e.data, 'FAIL', 'eval was executed in the frame');
+        if (e.data === 'PASS')
+          resolve();
+      });
+    });
+    const csp_violation_report = new Promise(resolve => {
+      window.addEventListener('message', function(e) {
+        if (e.data["violated-directive"]) {
+          assert_equals(e.data["violated-directive"], "script-src");
+          resolve();
+        }
+      });
+    });
+
+    frames[0].document.write(`
+      <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+          parent.postMessage({ 'violated-directive': e.violatedDirective });
+        });
+        try {
+          eval('parent.postMessage(\"FAIL\", \"*\");');
+        } catch (e) {
+          if (e instanceof EvalError)
+            parent.postMessage(\"PASS\", \"*\");
+        }
+      </sc` + `ript>`
+    );
+    frames[0].document.close();
+
+    await eval_error;
+    await csp_violation_report;
+  });
+</script>
+<iframe src="about:blank"></iframe>
+
+</body>
+
+</html>

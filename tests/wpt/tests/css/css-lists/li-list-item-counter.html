@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Lists: 'counter-increment:list-item' on LI</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
+  <link rel="match" href="li-list-item-counter-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+body { margin-left: 10em; }
+li { counter-increment: list-item 0; }
+.dec { counter-increment:list-item -1; }
+.zero { counter-increment:list-item 1 list-item -1; }
+.two { counter-increment:list-item 3 list-item -1; }
+  </style>
+</head>
+<body>
+
+<ol><li>a<li value=4>b<li>c</ol>
+<ol><li>a<li value=4 style="counter-increment:list-item 5">b<li>c</ol>
+<ol><li class=dec>a<li value=4 class=dec>b<li class=dec>c</ol>
+<ol><li class=zero>a<li value=4 class=zero>b<li class=zero>c</ol>
+<ol><li class=two>a<li value=4 class=two>b<li class=two>c</ol>
+
+</body>
+</html>

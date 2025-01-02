@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/client-hints/resources/export.js"></script>
+<script src="resources/util.js"></script>
+
+<script>
+
+sandbox_iframe_test("allow-scripts allow-popups",
+                    "resources/iframe-with-embedded-popup-expect-no-hints.html",
+                    "Popup from an iframe within a sandboxed iframe does not send hints");
+
+</script>
+
+</body>
+</html>

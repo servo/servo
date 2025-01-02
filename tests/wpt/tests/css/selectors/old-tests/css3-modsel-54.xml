@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED substring matching attribute selector on beginning</title>
+  <style type="text/css"><![CDATA[div.stub > * { color : red }
+div.stub *:not([title^="si on"]) { color : lime }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <link rel="match" href="reference/three-paragraph-lime-characters.xht"/>
+ </head>
+ <body>
+<div class="stub">
+<p>This paragraph should be in green characters.</p>
+<p title="on chante?">This paragraph should be in green characters.</p>
+<p title="si on chantait">
+     <span title="si il chantait">This paragraph should be in green characters.</span>
+</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  await navigation.navigate("#1").finished;
+
+  let navigateerror_called = false;
+  navigation.onnavigateerror = t.step_func(() => {
+    navigateerror_called = true;
+    assert_equals(location.hash, "#1");
+  });
+
+  // Go back and wait for the navigate event to fire. This traversal will be deferred.
+  let promises_should_not_commit = assertBothRejectDOM(t, navigation.back(), "AbortError");
+  navigation.addEventListener("navigate", e => e.intercept({ commit: "after-transition", handler: () => new Promise(r => t.step_timeout(r, 1000)) }), { once: "true" });
+  await new Promise(resolve => navigation.addEventListener("navigate", resolve, { once: "true" }));
+
+  // While the traversal is deferred, start a new navigation and commit immediately.
+  navigation.addEventListener("navigate", e => e.intercept(), { once: "true" });
+  let promises_fulfilled = navigation.navigate("#2");
+
+  await promises_should_not_commit;
+  await assertBothFulfill(t, promises_fulfilled, navigation.currentEntry);
+
+  assert_equals(location.hash, "#2");
+  assert_true(navigateerror_called);
+}, "Cancel a { commit: 'after-transition' } traversal before commit() by starting a new navigation");
+</script>
+</body>

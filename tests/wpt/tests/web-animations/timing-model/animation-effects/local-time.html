@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Local time</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#local-time">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<script>
+'use strict';
+
+test(t => {
+  const anim = createDiv(t).animate(null, 10 * MS_PER_SEC);
+  for (const seconds of [-1, 0, 5, 10, 20]) {
+    anim.currentTime = seconds * MS_PER_SEC;
+    assert_equals(
+      anim.effect.getComputedTiming().localTime,
+      seconds * MS_PER_SEC
+    );
+  }
+}, 'Local time is current time for animation effects associated with an animation');
+
+test(t => {
+  const effect = new KeyframeEffect(createDiv(t), null, 10 * MS_PER_SEC);
+  assert_equals(effect.getComputedTiming().localTime, null);
+}, 'Local time is unresolved for animation effects not associated with an animation');
+
+</script>
+</body>

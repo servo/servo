@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  getSelection().collapse(document.querySelector("code[contenteditable]").firstChild, 0);
+  window.top.find("A");
+  document.querySelector("table").insertRow(1);
+  document.querySelector("table").insertRow(1);
+  document.execCommand("subscript");
+  document.execCommand("foreColor", false, "currentColor");
+  document.execCommand("insertHTML", false, document.querySelector("h5").outerHTML);
+  document.execCommand("subscript");
+  document.execCommand("foreColor", false, "currentColor");
+  document.execCommand("insertHTML", false, document.querySelector("h5").outerHTML);
+  document.execCommand("insertText", false, "A");
+});
+</script>
+</head>
+<body>
+<table>
+<tr>
+<td>
+<code contenteditable>
+A
+<h5>
+</h5>
+</code>
+</body>
+</html>

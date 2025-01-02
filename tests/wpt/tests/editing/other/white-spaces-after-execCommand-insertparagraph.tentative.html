@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Testing normalizing white-space sequence after execCommand("insertparagraph", false, "foo")</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+"use strict";
+
+setup({explicit_done: true});
+
+function runTests() {
+  // README:
+  // These tests based on the behavior of Chrome 83.  This test does NOT define
+  // nor suggest any standard behavior (actually, some expected results might
+  // look odd), but this test must help you to understand how other browsers
+  // use different logic to normalize white-space sequence.
+
+  document.body.innerHTML = "<div contenteditable></div>";
+  let editor = document.querySelector("div[contenteditable]");
+  editor.focus();
+  let selection = document.getSelection();
+
+  function escape(str) {
+    return typeof(str) === "string" ? str.replace(/\u00A0/ig, "&nbsp;") : "";
+  }
+
+  function generateWhiteSpaces(num, lastIsAlwaysNBSP) {
+    let str = "";
+    for (let i = 0; i < num - 1; i++) {
+      str += i % 2 ? " " : "\u00A0";
+    }
+    str += lastIsAlwaysNBSP || num % 2 ? "\u00A0" : " ";
+    return escape(str);
+  }
+  function getDescriptionForTextNode(textNode) {
+    return selection.focusNode === textNode ?
+      `${escape(textNode.data.slice(0, selection.focusOffset))}[]${escape(textNode.data.slice(selection.focusOffset))}` :
+      escape(textNode);
+  }
+
+  editor.innerHTML = "<div>a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b</div>";
+  selection.collapse(editor.firstChild.firstChild, 0);
+  test(function () {
+    document.execCommand("insertparagraph", false, "");
+    assert_equals(editor.innerHTML,
+                  `<div><br></div><div>a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b</div>`,
+                  "Modified text is wrong");
+  }, `execCommand("insertparagraph", false, "") at "<div>${getDescriptionForTextNode(editor.firstChild.firstChild)}</div>"`);
+
+  for (let i = 1; i <= 10; i++) {
+    editor.innerHTML = "<div>a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b</div>";
+    selection.collapse(editor.firstChild.firstChild, i);
+    test(function () {
+      let text = editor.firstChild.firstChild.data;
+      document.execCommand("insertparagraph", false, "");
+      assert_equals(editor.innerHTML,
+                    `<div>${escape(text.slice(0, i))}</div><div>${escape(text.slice(i))}</div>`,
+                    "Modified text is wrong");
+    }, `execCommand("insertparagraph", false, "") at "<div>${getDescriptionForTextNode(editor.firstChild.firstChild)}</div>"`);
+  }
+
+  done();
+}
+
+window.addEventListener("load", runTests, {once: true});
+</script>
+</body>
+</html>

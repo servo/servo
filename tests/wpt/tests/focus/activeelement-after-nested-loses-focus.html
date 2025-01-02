@@ -1,0 +1,83 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Use focusout and click events to test ancestors' activeElements are cleared and updated correctly when nested child loses focus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<h1 id="my-h1">text</h1>
+
+<iframe
+  id="first-iframe"
+  src="about:blank"
+  srcdoc="
+    <!DOCTYPE html>
+    <html>
+      <body id='iframe-body' contentEditable='true'>
+        lorem ipsum
+        <iframe
+          id='nested-iframe'
+          srcdoc='
+            <html>
+              <body id=&quot;iframe-body-2&quot; contentEditable=&quot;true&quot;>
+                nested lorem ipsum
+              </body>
+            </html>'>
+        </iframe>
+      </body>
+    </html>
+  ">
+</iframe>
+
+<script>
+  async_test(t => {
+    window.onload = function() {
+      const iframe = document.querySelector("iframe");
+      const nestedIframe = iframe.contentDocument.getElementById("nested-iframe");
+
+      nestedIframe.contentDocument.getElementById("iframe-body-2").addEventListener('focusout', () => {
+        t.step(function() {
+          assert_equals(
+            nestedIframe.contentDocument.activeElement,
+            nestedIframe.contentDocument.body,
+            "nestedIframe should still have focus on its body");
+          assert_equals(
+            iframe.contentDocument.activeElement, nestedIframe,
+            "iframe should still think the nestedIframe is focused");
+          assert_equals(
+            document.activeElement, iframe,
+            "top level document should still think the iframe is focused");
+        });
+      });
+
+      const h1 = document.getElementById("my-h1");
+      h1.addEventListener("click", t.step_func_done(function() {
+          assert_equals(
+            nestedIframe.contentDocument.activeElement,
+            nestedIframe.contentDocument.body,
+            "nestedIframe originally has the focus on its body, and should still have the focus on its body after it loses the focus");
+          assert_equals(
+            iframe.contentDocument.activeElement,
+            iframe.contentDocument.body,
+            "Since nestedIframe loses the focus, iframe's activeElement should move from the nestedIframe to be its body"
+          );
+          assert_equals(
+            document.activeElement, document.body,
+            "top level document gains the focus");
+      }));
+
+      // Step 1: Focus the body of the nestedIframe
+      nestedIframe.contentDocument.body.focus();
+
+      // Step 2: Click focus the <h1> in the top level document
+      test_driver.click(h1);
+
+      // Now the focusout event for nestedIframe, and the
+      // click event for h1 should be triggered.
+    }
+  })
+</script>
+</body>

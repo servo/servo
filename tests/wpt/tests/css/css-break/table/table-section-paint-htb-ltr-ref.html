@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<style>
+.multicol {
+  inline-size: 400px;
+  block-size: 100px;
+  columns: 4;
+  column-fill: auto;
+  gap: 0;
+}
+.pattern {
+  background: repeating-linear-gradient(orange, orange 30px, dodgerblue 30px, dodgerblue 60px);
+}
+</style>
+<div class="multicol">
+  <div style="position: relative; inline-size: 100%; block-size: 400px;">
+    <div style="position: absolute; inset-block-start: 0; inline-size: 100%; background: red; block-size: 50px;"></div>
+    <div class="pattern" style="position: absolute; inset-block-start: 60px; inset-inline-start: 10px; inline-size: calc(100% - 20px); block-size: 255px;"></div>
+    <div style="position: absolute; inset-block-start: 170px; inline-size: 100%; block-size: 10px; background: white;"></div>
+    <div style="position: absolute; inset-block-start: 60px; inset-inline-start: 45px; inline-size: 10px; block-size: 255px; background: white;"></div>
+    <div style="position: absolute; inset-block-end: 0; inline-size: 100%; background: red; block-size: 75px;"></div>
+  </div>
+</div>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { width: 500px }
+
+#child { width: 20px }
+
+</style>
+
+<div id='container'>
+  <div id='element'>
+    <div id='child'>
+    </div>
+  </div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{width: '3em'}, {width: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).width, '80px');
+}, 'width responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{width: '40px'}, {width: 'calc(40px - 2em)'}], 10);
+    player.pause();
+
+    player.currentTime = 5;
+    element.style.fontSize = '40px';
+    assert_equals(getComputedStyle(element).width, '20px');
+
+    player.currentTime = 7.5;
+    assert_equals(getComputedStyle(element).width, '10px');
+}, 'width clamped to 0px on keyframes');
+
+test(function() {
+    container.style.width = 'auto';
+    var player = element.animate([{width: 'inherit'}, {width: '20px'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    assert_equals(getComputedStyle(element).width, '500px');
+
+    container.style.width = '100px';
+    assert_equals(getComputedStyle(element).width, '80px');
+
+    container.style.width = 'min-content';
+    assert_equals(getComputedStyle(element).width, '20px');
+
+    container.style.width = '100px';
+    assert_equals(getComputedStyle(element).width, '80px');
+
+    container.style.width = 'max-content';
+    assert_equals(getComputedStyle(element).width, '20px');
+
+    container.style.width = '100px';
+    assert_equals(getComputedStyle(element).width, '80px');
+
+    container.style.width = 'fit-content';
+    assert_equals(getComputedStyle(element).width, '20px');
+}, 'width responsive to inherited changes from keyword');
+
+test(function() {
+    container.style.fontSize = '10px';
+    container.style.width = '100px';
+    var player = element.animate([{width: 'inherit'}, {width: '200px'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    assert_equals(getComputedStyle(element).width, '125px');
+
+    container.style.width = '120px';
+    assert_equals(getComputedStyle(element).width, '140px');
+
+    container.style.width = '100px';
+    assert_equals(getComputedStyle(element).width, '125px');
+}, 'width responsive to inherited changes from length');
+
+</script>

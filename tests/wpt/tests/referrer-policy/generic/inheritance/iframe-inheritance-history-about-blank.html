@@ -1,0 +1,80 @@
+<!doctype html>
+<title>Referrer Policy: navigating back to an about:blank iframe reuses the original referrer policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="referrer" content="no-referrer">
+<div id="log"></div>
+<script>
+  let checkReferrer = document => {
+    let script = document.createElement('script');
+    script.innerText = `
+      fetch("${origin}/common/security-features/subresource/xhr.py",
+            {referrer: "${location.origin}/custom"})
+        .then(r => r.json())
+        .then(j => {
+          top.postMessage({referrer: j.headers.referer}, "*")
+        }).catch(e => {
+          top.postMessage({referrer: "FAILURE"}, "*");
+        });
+    `
+
+    let referrer = new Promise(resolve => {
+      window.addEventListener("message", function listener(msg) {
+        window.removeEventListener("message", listener, false);
+        resolve(msg.data.referrer);
+      });
+    });
+
+    document.body.appendChild(script);
+
+    return referrer;
+  };
+
+  let iframeLoaded = iframe => {
+    return new Promise(resolve => {
+      iframe.onload = resolve;
+    });
+  };
+
+  promise_test(async t => {
+    // 1. Create an iframe and navigate it to about:blank.
+    // (We cannot just create an empty iframe since the initial empty
+    // document will get its history entry replaced, so we cannot
+    // navigate back to it.)
+    const iframe = document.createElement("iframe");
+    iframe.name = 'test_frame';
+    iframe.src = "/referrer-policy";
+    document.body.appendChild(iframe);
+    await iframeLoaded(iframe);
+
+    window.open('about:blank', 'test_frame');
+    await iframeLoaded(iframe);
+    let referrer_1 = await checkReferrer(iframe.contentDocument);
+    assert_equals(referrer_1, undefined,
+                  "First navigation uses correct policy.");
+
+    // 2. Change the referrer policy of the iframe.
+    let meta = iframe.contentDocument.createElement('meta');
+    meta.name = 'referrer';
+    meta.content = "unsafe-url";
+    iframe.contentDocument.head.appendChild(meta);
+
+    let referrer_2 = await checkReferrer(iframe.contentDocument);
+    assert_equals(referrer_2, location.origin + '/custom',
+                  "Referrer policy correctly changed.");
+
+    // 3. Navigate the iframe elsewhere.
+    window.open('/referrer-policy', 'test_frame');
+    await iframeLoaded(iframe);
+
+    // 4. Navigate the iframe back.
+    iframe.contentWindow.history.back();
+    await iframeLoaded(iframe);
+
+    let referrer_3 = await checkReferrer(iframe.contentDocument);
+    assert_equals(referrer_3, undefined,
+                  "History navigation reuses original policy.");
+    document.body.removeChild(iframe);
+  }, "History navigation reuses original policy.");
+
+</script>

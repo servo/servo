@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: Empty layer statements before import rules</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-cascade-5/#layering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"></div>
+<div id="reference" style="color: green"></div>
+
+<script>
+// In all test cases, the 'color' property value of #target should be green.
+
+const testCases = [
+  {
+    title: 'length and item',
+    style: `
+      @layer first, second;
+      @import url(data:text/css,);
+      @layer second {
+        #target { color: green; }
+      }
+      @layer first {
+        #target { color: red; }
+      }
+    `,
+    operations: function(sheet) {
+      assert_equals(sheet.cssRules.length, 4);
+      assert_equals(sheet.cssRules.item(0).cssText, '@layer first, second;');
+      assert_equals(sheet.cssRules.item(1).cssText, `@import url("data:text/css,");`);
+      assert_equals(sheet.cssRules.item(2).cssText,
+                    '@layer second {\n  #target { color: green; }\n}');
+      assert_equals(sheet.cssRules.item(3).cssText,
+                    '@layer first {\n  #target { color: red; }\n}');
+    }
+  },
+  {
+    title: 'insertRule before imports',
+    style: `
+      @import url(data:text/css,);
+      @layer second {
+        #target { color: green; }
+      }
+      @layer first {
+        #target { color: red; }
+      }
+    `,
+    operations: function(sheet) {
+      sheet.insertRule('@layer first, second', 0);
+    }
+  },
+  {
+    title: 'insertRule after imports',
+    style: `
+      @layer first, second;
+      @import url(data:text/css,);
+      @layer first {
+        #target { color: red; }
+      }
+    `,
+    operations: function(sheet) {
+      sheet.insertRule('@layer second { #target { color: green; } }', 2);
+    }
+  },
+  {
+    title: 'insert other rules to pre-import layer statements fails',
+    style: `
+      @layer first, second;
+      @import url(data:text/css,);
+      @layer second {
+        #target { color: green; }
+      }
+      @layer first {
+        #target { color: red; }
+      }
+    `,
+    operations: function(sheet) {
+      assert_throws_dom('HierarchyRequestError',
+                        () => sheet.insertRule('#target { color: red !important; }', 0));
+      assert_throws_dom('HierarchyRequestError',
+                        () => sheet.insertRule('#target { color: red !important; }', 1));
+    }
+  },
+  {
+    title: 'insert other rules before the first layer statement without imports',
+    style: `
+      @layer first, second;
+      @layer second {
+        #target { color: red !important; }
+      }
+    `,
+    operations: function(sheet) {
+      sheet.insertRule(`@layer first {
+        #target { color: green !important; }
+      }`, 0);
+    }
+  },
+  {
+    title: 'deleteRule before imports',
+    style: `
+      @layer second, first;
+      @import url(data:text/css,);
+      @layer first {
+        #target { color: red; }
+      }
+      @layer second {
+        #target { color: green; }
+      }
+    `,
+    operations: function(sheet) {
+      sheet.deleteRule(0);
+    }
+  },
+  {
+    title: 'deleteRule after imports',
+    style: `
+      @layer first, second;
+      @import url(data:text/css,);
+      @layer second {
+        #target { color: green; }
+      }
+      @layer first {
+        #target { color: red; }
+      }
+      #target {
+        color: red;
+      }
+    `,
+    operations: function(sheet) {
+      sheet.deleteRule(4);
+    }
+  },
+];
+
+const target = document.getElementById('target');
+const reference = document.getElementById('reference');
+
+for (let testCase of testCases) {
+  promise_test(async t => {
+    let styleElement = document.createElement('style');
+    styleElement.textContent = testCase.style;
+    await new Promise(resolve => {
+      styleElement.onload = resolve;
+      styleElement.onerror = resolve;
+      document.head.append(styleElement);
+    });
+    let sheet = styleElement.sheet;
+
+    try {
+      testCase.operations(sheet);
+      assert_equals(getComputedStyle(target).color, getComputedStyle(reference).color);
+    } finally {
+      styleElement.remove();
+    }
+  }, testCase.title);
+}
+</script>

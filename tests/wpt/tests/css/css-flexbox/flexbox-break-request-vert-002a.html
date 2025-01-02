@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Testing page-break-before in vertical single-line flex containers (should have no effect)</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#algo-line-break">
+  <link rel="match" href="flexbox-break-request-vert-002-ref.html">
+  <meta charset="utf-8">
+  <style>
+    div.flexbox {
+      display: flex;
+      flex-direction: column;
+      border: 1px dashed black;
+      width: 20px;
+      height: 60px;
+      margin: 2px;
+      float: left;
+    }
+    div.item {
+      height: 28px;
+      border: 1px solid blue;
+      background: lightblue;
+    }
+  </style>
+</head>
+<body>
+  <!-- page-break-before specified on first (and only) item, at a point where
+       we're already "breaking" (the beginning): -->
+  <!-- * With 'page-break-before: auto, avoid' (not requesting a break): -->
+  <div class="flexbox">
+    <div class="item" style="page-break-before: auto"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item" style="page-break-before: avoid"></div>
+  </div>
+  <!-- * With 'page-break-before: always, left, right' (requesting a break): -->
+  <div class="flexbox">
+    <div class="item" style="page-break-before: always"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item" style="page-break-before: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item" style="page-break-before: right"></div>
+  </div>
+  <div style="clear: both"></div>
+
+  <!-- page-break-before specified on second item, at a point where breaking
+       would otherwise be unnecessary: -->
+  <!-- * With 'page-break-before: auto, avoid' (not requesting a break): -->
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item" style="page-break-before: auto"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item" style="page-break-before: avoid"></div>
+  </div>
+  <!-- * With 'page-break-before: always, left, right' (requesting a break): -->
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item" style="page-break-before: always"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item" style="page-break-before: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item" style="page-break-before: right"></div>
+  </div>
+  <div style="clear: both"></div>
+
+  <!-- page-break-before specified on third item, at a point where breaking
+       is already necessary: -->
+  <!-- * With 'page-break-before: auto, avoid' (not requesting a break): -->
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item" style="page-break-before: auto"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item" style="page-break-before: avoid"></div>
+  </div>
+  <!-- * With 'page-break-before: always, left, right' (requesting a break): -->
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item" style="page-break-before: always"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item" style="page-break-before: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item" style="page-break-before: right"></div>
+  </div>
+</body>
+</html>

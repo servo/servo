@@ -1,0 +1,24 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const key = navigation.currentEntry.key;
+  const entry = navigation.currentEntry;
+  await navigation.navigate("#1").committed;
+
+  const result1 = navigation.traverseTo(key);
+  const result2 = navigation.traverseTo(key);
+
+  await assertBothFulfill(t, result1, entry);
+  assert_not_equals(result1, result2);
+  assert_equals(result2.committed, result1.committed, "committed promises must be equal");
+  assert_equals(result2.finished, result1.finished, "finished promises must be equal");
+}, "Repeated navigation.traverseTo() with the same key");
+</script>

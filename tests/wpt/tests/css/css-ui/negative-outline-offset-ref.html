@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<style>
+  div {
+    border: 2px solid black;
+    padding: 5px 0; /* No horizontal padding as outline-offset is not affected by it and span simulates it */
+    font-size: 16px;
+  }
+
+  span {
+    display: block;
+
+    /* 3/6px offset for border */
+    height: 2px;
+    width: calc(100% - 20em + 6px);
+    margin: -1px calc(10em - 3px); /* -1px vertical to remove height of span from div height */
+    background: red;
+  }
+</style>
+
+<p>PASS if there is a thin red line in the middle of the box.</p>
+<div>
+  <span></span>
+</div>

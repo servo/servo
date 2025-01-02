@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Cascade: 'revert' keyword in transition</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#default">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html, body { margin: 0 }
+h1 {
+  margin: 0;
+  transition: margin 10s;
+  transition-delay: -5s; /* So we can expect it to be half-way the transition when toggling the property */
+}
+</style>
+<h1>This is a header that should get some margin</h1>
+<script>
+test(function() {
+  const el = document.querySelector("h1");
+  const cs = getComputedStyle(el);
+  assert_equals(cs.marginTop, "0px", "Margin before transition");
+  el.style.margin = "revert";
+  const midTransition = cs.marginTop;
+  assert_not_equals(midTransition, "0px", "Margin mid transition");
+  el.style.transition = "none";
+  assert_not_equals(cs.marginTop, midTransition, "Default margin");
+}, "revert works with transitions");
+</script>

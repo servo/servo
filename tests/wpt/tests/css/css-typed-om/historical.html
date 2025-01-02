@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Historical features</title>
+<link rel=help href="https://drafts.css-houdini.org/css-typed-om/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  // https://github.com/w3c/css-houdini-drafts/commit/5261c1a323ea062d69cb5a3f1e69734fd176948a
+  assert_false("CSSPositionValue" in self);
+}, "Support for CSSPositionValue");
+</script>

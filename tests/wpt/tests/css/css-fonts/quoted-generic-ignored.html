@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset=utf-8>
+<title>CSS Test: quoted font-family names must not be treated as generics</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jfkthame@gmail.com"/>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+<link rel="match" href="quoted-generic-ignored-ref.html"/>
+<meta name="assert" content="Font family names that happen to be the same as keyword value must be quoted to prevent confusion with the keywords with the same names"/>
+<style>
+body { font-size: 36px; }
+/* Note that this test assumes that the system does not have an actual
+   font named "Fantasy" or "Cursive" installed! */
+.fantasy-test1 { font-family: "fantasy", serif; }
+.fantasy-test2 { font-family: "fantasy", sans-serif; }
+.fantasy-test3 { font-family: "fantasy", monospace; }
+.cursive-test1 { font-family: "cursive", serif; }
+.cursive-test2 { font-family: "cursive", sans-serif; }
+.cursive-test3 { font-family: "cursive", monospace; }
+</style>
+</head>
+<body>
+<p>The following lines should be rendered with the generic font-families as named:</p>
+<div class="fantasy-test1">serif</div>
+<div class="fantasy-test2">sans-serif</div>
+<div class="fantasy-test3">monospace</div>
+<div class="cursive-test1">serif</div>
+<div class="cursive-test2">sans-serif</div>
+<div class="cursive-test3">monospace</div>

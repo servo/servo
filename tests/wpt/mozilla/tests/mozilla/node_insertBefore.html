@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Node.insertBefore</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            test(function() {
+                var root = document.createElement("div");
+                var after = document.createElement("div");
+                var before = document.createElement("div");
+
+                root.appendChild(after);
+
+                assert_equals(root.insertBefore(before, after), before, "test1-0, insertBefore");
+                assert_equals(root.childNodes[0], before, "test1-1, insertBefore");
+                assert_equals(root.childNodes[1], after, "test1-2, insertBefore");
+            });
+        </script>
+    </body>
+</html>

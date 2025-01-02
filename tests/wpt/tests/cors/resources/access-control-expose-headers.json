@@ -1,0 +1,62 @@
+[
+  {
+    "input": "access-control-expose-headers: BB-8",
+    "exposed": true
+  },
+  {
+    "input": "Access-Control-Expose-Headers: bb-8,,@#$#%%&^&^*()()11!",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: bb-8, no no",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: @#$#%%&^&^*()()11!,bb-8",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: bb-8\r\nAccess-Control-Expose-Headers: no",
+    "exposed": true
+  },
+  {
+    "input": "Access-Control-Expose-Headers: bb-8\r\nAccess-Control-Expose-Headers: no no",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: no\r\nAccess-Control-Expose-Headers: bb-8",
+    "exposed": true
+  },
+  {
+    "input": "Access-Control-Expose-Headers:\r\nAccess-Control-Expose-Headers: bb-8",
+    "exposed": true
+  },
+  {
+    "input": "Access-Control-Expose-Headers: ,bb-8",
+    "exposed": true
+  },
+  {
+    "input": "Access-Control-Expose-Headers: bb-8\u000C",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: bb-8\u000B",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: bb-8\u000B,bb-8",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: 'bb-8'",
+    "exposed": false
+  },
+  {
+    "input": "Access-Control-Expose-Headers: 'bb-8',bb-8",
+    "exposed": true
+  },
+  {
+    "input": "Access-Control-Expose-Headers: \"bb-8\",bb-8",
+    "exposed": false
+  }
+]

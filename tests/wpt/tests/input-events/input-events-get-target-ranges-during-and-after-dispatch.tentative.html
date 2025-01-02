@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>InputEvent.getTargetRanges() should return same array in various timings</title>
+<div contenteditable></div>
+<script src="input-events-get-target-ranges.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+// https://github.com/w3c/input-events/issues/114
+function checkGetTargetRangesKeepReturningSameValue(event, desc) {
+  assert_equals(
+      getArrayOfRangesDescription(event.getTargetRanges()),
+      getArrayOfRangesDescription(event.cachedRanges),
+      `getTargetRanges() of ${event.type} event should keep returning the same array of ranges ${desc}`);
+}
+
+promise_test(async () => {
+  initializeTest("<p>abc</p>");
+  let textNode = gEditor.firstChild.firstChild;
+  gSelection.collapse(textNode, 2);
+  await sendBackspaceKey();
+  assert_equals(gEditor.innerHTML, "<p>ac</p>", 'Should "b" be deleted');
+  checkGetTargetRangesKeepReturningSameValue(gBeforeinput[0], "even after its propagation");
+  checkGetTargetRangesKeepReturningSameValue(gInput[0], "even after its propagation");
+}, "Check consistency of getTargetRanges() result between during propagation and after propagation");
+
+promise_test(async () => {
+  initializeTest("<p>abc</p>");
+  let textNode = gEditor.firstChild.firstChild;
+  gSelection.collapse(textNode, 2);
+  gEditor.addEventListener("beforeinput", (event) => {
+    assert_false(typeof event.cachedRanges === "undefined", "The beforeinput event should have cache of getTargetRanges()");
+    gSelection.collapse(textNode, 3);
+    checkGetTargetRangesKeepReturningSameValue(event, "even after changing selection");
+  }, {once: true});
+  await sendBackspaceKey();
+  assert_equals(gEditor.innerHTML, "<p>ab</p>", 'Should "c" be deleted');
+}, "Check consistency of getTargetRanges() result between before and after changing selection in an event listener");
+
+promise_test(async () => {
+  initializeTest("<p>abc</p>");
+  let textNode = gEditor.firstChild.firstChild;
+  gSelection.collapse(textNode, 2);
+  window.addEventListener("beforeinput", (event) => {
+    assert_true(typeof event.cachedRanges === "undefined", "The beforeinput event shouldn't have cached ranges yet");
+    gSelection.collapse(textNode, 3);
+  }, {once: true, capture: true});
+  await sendBackspaceKey();
+  assert_equals(gEditor.innerHTML, "<p>ab</p>", 'Should "c" be deleted');
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: textNode,
+    startOffset: 1,
+    endContainer: textNode,
+    endOffset: 2,
+  });
+}, "The result of getTargetRanges() of beforeinput event should be fixed at being dispatched");
+
+</script>

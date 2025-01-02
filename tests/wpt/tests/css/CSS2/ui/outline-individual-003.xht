@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline-bottom is not valid</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="Outline does not support setting individual values for the outline like 'outline-bottom'." />
+        <style type="text/css">
+            div
+            {
+                background: black;
+                height: 100px;
+                margin: 40px;
+                outline-bottom: 10px solid red;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div></div>
+    </body>
+</html>

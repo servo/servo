@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Audio element src attribute must match src list - negative test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline'; media-src 'self';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Audio element src attribute must match src list - negative test</h1>
+    <div id='log'></div>
+
+  <script>
+      var src_test = async_test("Disallaowed audio src");
+      var source_test = async_test("Disallowed audio source element");
+      var t_spv = async_test("Test that securitypolicyviolation events are fired");
+      var test_count = 2;
+      window.addEventListener("securitypolicyviolation", t_spv.step_func(function(e) {
+          assert_equals(e.violatedDirective, "media-src");
+          assert_equals(e.blockedURI, mediaURL);
+          if (--test_count <= 0) {
+              t_spv.done();
+          }
+      }));
+
+      // we assume tests are run from 'hostname' and 'www.hostname' or 'www2.hostname' is a valid alias
+      var mediaURL = location.protocol + "//{{domains[www2]}}:{{ports[http][0]}}/media/sound_5.oga";
+
+    function media_loaded(t) {
+      t.step( function () {
+          assert_unreached("Media error handler should be triggered for non-allowed domain.");
+      });
+      t.done();
+    }
+
+    function media_error_handler(t) {
+      t.done();
+    }
+  </script>
+
+    <audio id="audioObject" width="320" height="240" controls
+           onloadeddata="media_loaded(source_test)">
+    </audio>
+    <audio id="audioObject2" width="320" height="240" controls
+           onerror="media_error_handler(src_test)"
+           onloadeddata="media_loaded(src_test)">
+    </audio>
+    <script>
+        let source = document.createElement("source");
+        source.src = mediaURL;
+        source.type = "audio/webm";
+        source.onerror = _ => { media_error_handler(source_test); }
+        document.getElementById("audioObject").appendChild(source);
+        document.getElementById("audioObject2").src = mediaURL;
+    </script>
+
+</body>
+</html>

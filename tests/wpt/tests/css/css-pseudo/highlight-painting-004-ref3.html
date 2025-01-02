@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+    * {
+        text-decoration-skip-ink: none;
+        text-decoration-skip: none;
+    }
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+        width: min-content;
+    }
+    .unselected {
+        text-decoration: #E03838C0 wavy underline;
+        color: #C0C000C0;
+    }
+    .selected {
+        background: #38E038C0;
+        text-decoration: #3838E0C0 wavy underline;
+    }
+    .selected, .selected * {
+        color: #3838E0C0;
+    }
+    .selection {
+        text-decoration: #663399C0 wavy line-through;
+    }
+</style>
+<!--
+    In this ref, two wavy lines appear to be painted, with one
+    clipped to the selected part and one spanning the whole text. The
+    latter changes color where selected and unselected meet.
+-->
+<main class="highlight_reftest">
+    <div class="hrt_layers">
+        <!--
+            While the selection starts from the very first letter, we
+            still include a layer for the left unselected part, just
+            in case the wavy line has a long tip like in Blink.
+        -->
+        <div><span class="unselected">quick</span></div>
+        <div><span class="hrt_cover">quick</span>quick</div>
+        <div><span class="hrt_hider"><div><span class="selected"><span class="selection">quick</span></span></div>quick</span></div>
+        <div><span class="hrt_cover">ck</span>quick</div>
+        <div>qui<span class="hrt_hider"><span class="unselected">quick</span>ck</span></div>
+        quick
+    </div>
+</main>

@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<script>
+  const channel = new MessageChannel();
+  window.parent.postMessage({ state: "port1", data: channel.port1 }, '*', [channel.port1]);
+  window.onmessage = () => window.parent.postMessage({ state: "port2", data: channel.port2 }, '*', [channel.port2]);
+</script>

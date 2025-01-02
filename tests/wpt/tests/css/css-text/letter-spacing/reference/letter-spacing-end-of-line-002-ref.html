@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text reference</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+div {
+  margin: 1em;
+  font: 24px monospace;
+  white-space: pre;
+  display: inline-block;
+  outline: 1px solid gray;
+}
+.letterspc {
+  letter-spacing: 10px;
+}
+.nospc {
+  letter-spacing: 0px;
+}
+</style>
+
+<p>None of these examples should wrap to a second line:</p>
+<div class=letterspc>1. a</div>
+<br>
+<div class=letterspc>2. b</div>
+<br>
+<div class=nospc>3. c</div>

@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(t => {
+  let oncurrententrychange_count = 0;
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_count++;
+    assert_equals(e.from, navigation.currentEntry);
+    assert_equals(e.navigationType, null);
+    assert_equals(navigation.currentEntry.getState(), "newState");
+  });
+  navigation.updateCurrentEntry({ state: "newState" });
+  assert_equals(oncurrententrychange_count, 1);
+
+  // "Updating" the state to the current state should still fire currententrychange.
+  navigation.updateCurrentEntry({ state: navigation.currentEntry.getState() });
+  assert_equals(oncurrententrychange_count, 2);
+}, "currententrychange fires for navigation.updateCurrentEntry()");
+</script>

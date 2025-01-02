@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: widows property syntax - one</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#break-inside"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#breaks-inside"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'widows' property accepts the integer one."/>
+<style type="text/css">
+	html, body {
+		height: 100%;
+		line-height: 1;
+		font-size: 20px;
+	}
+	* {
+		margin:0;
+		padding:0;
+	}
+	div.spacer {
+		height:50%;
+	}
+	div.backup {
+		margin-top:-3.5em;
+	}
+
+	.test {
+		color: blue;
+		width: 1em;
+		widows: 2;
+		widows: 01;
+	}
+
+</style>
+</head>
+<body>
+	<div class="spacer">This test requires 2 pages. The blue text must
+		denote accurate page numbers. Lines A-C must appear on this page;
+		line D must appear on the next page.</div>
+
+	<div class="spacer backup"></div>
+	<div class="test">
+		Page&nbsp;1&nbsp;Line&nbsp;A
+		Page&nbsp;1&nbsp;Line&nbsp;B
+		Page&nbsp;1&nbsp;Line&nbsp;C
+		Page&nbsp;2&nbsp;Line&nbsp;D
+	</div>
+</body>
+</html>

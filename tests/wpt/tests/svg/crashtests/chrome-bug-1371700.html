@@ -1,0 +1,10 @@
+<!doctype html>
+<p>This test should not crash.</p>
+<svg id="svgvar00001">
+  <clipPath>
+    <image xlink:href="#nothing" onerror="foo()"/>
+  </clipPath>
+</svg>
+<svg>
+  <use xlink:href="#svgvar00001"/>
+</svg>

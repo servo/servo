@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>test wildcard port number matching</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' {{host}}:* 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='wildcardPortTest.js'></script>
+    <script>
+      var t = async_test("Test that script does not fire violation event");
+      window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have fired a violation event"));
+      window.addEventListener("load", function() {
+        t.done();
+      });
+
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://" + location.hostname + ":{{ports[http][1]}}/content-security-policy/generic/wildcardPortTestSuceeds.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>test wildcard port number matching</h1>
+    <div id='log'></div>
+</body>
+</html>

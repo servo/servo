@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<script src="/web-animations/resources/keyframe-utils.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<title>Animation range updates play state</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    from { background-color:  blue; }
+    to { background-color:  white; }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin-top:  800px;
+    margin-bottom: 800px;
+    margin-left:  10px;
+    margin-right:  10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation:  anim auto linear;
+    animation-timeline:  --t1;
+    view-timeline:  --t1;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    promise_test(async t => {
+      const anim = target.getAnimations()[0];
+      await anim.ready;
+
+      let duration = anim.effect.getComputedTiming().duration;
+      assert_percents_equal(duration, CSS.percent(100),
+                            'Default duration is 100%');
+
+      // Start and end boundaries coincide.
+      anim.rangeStart = "entry 100%";
+      anim.rangeEnd = "contain 0%";
+      duration = anim.effect.getComputedTiming().duration;
+      assert_percents_equal(duration, CSS.percent(0),
+                            "Duration is zero when boundaries coincide");
+
+      // Start > end, clamp at zero duration.
+      anim.rangeEnd = "entry 0%"
+      duration = anim.effect.getComputedTiming().duration;
+      assert_percents_equal(duration, CSS.percent(0),
+                            "Duration is zero when start > end");
+
+      anim.rangeStart = "normal";
+      anim.rangeEnd = "normal";
+      duration = anim.effect.getComputedTiming().duration;
+      assert_percents_equal(duration, CSS.percent(100),
+                            "Duration is 100% after range reset");
+
+      // Consumed 100% of timeline duration with delays
+      anim.effect.updateTiming({
+        delay: CSS.percent(60),
+        endDelay: CSS.percent(40)
+      });
+      duration = anim.effect.getComputedTiming().duration;
+      assert_percents_equal(duration, CSS.percent(0),
+                            "Duration is 0% after delays sum to 100%");
+
+      // Delays sum to > 100%
+      anim.effect.updateTiming({
+        delay: CSS.percent(60),
+        endDelay: CSS.percent(60)
+      });
+      duration = anim.effect.getComputedTiming().duration;
+      assert_percents_equal(duration, CSS.percent(0),
+                            "Duration is 0% after delays sum to > 100%");
+
+      anim.effect.updateTiming({
+        delay: CSS.percent(40),
+        endDelay: CSS.percent(40)
+      });
+      duration = anim.effect.getComputedTiming().duration;
+      assert_percents_equal(
+          duration, CSS.percent(20),
+          "Duration is 20% if normal range and delays sum to 80%");
+
+    }, 'Intrinsic iteration duration is non-negative');
+  }
+
+
+  window.onload = runTest;
+</script>

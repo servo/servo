@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<title>position-area to include current scroll position at first layout</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+<iframe id="iframe" width="500" height="500" srcdoc='
+<style>
+  body {
+    overflow: hidden;
+    margin: 0;
+  }
+  .pos {
+    position: absolute;
+    box-sizing: border-box;
+    border: solid;
+    position-anchor: --anchor;
+    width: 50%;
+    height: 50%;
+    background: cyan;
+  }
+  #container.thicker > .pos {
+    border-width: thick;
+  }
+</style>
+<div style="width:1000px; height:1000px;">
+  <div id="container">
+    <div style="height:200px;"></div>
+    <div style="anchor-name:--anchor; margin-left:200px; width:100px; height:100px; background:gray;"></div>
+    <div id="e1" class="pos" style="position-area:top left;"></div>
+    <div id="e2" class="pos" style="position-area:top center;"></div>
+    <div id="e3" class="pos" style="position-area:top right;"></div>
+    <div id="e4" class="pos" style="position-area:center left;"></div>
+    <div id="e5" class="pos" style="position-area:center center;"></div>
+    <div id="e6" class="pos" style="position-area:center right;"></div>
+    <div id="e7" class="pos" style="position-area:bottom left;"></div>
+    <div id="e8" class="pos" style="position-area:bottom center;"></div>
+    <div id="e9" class="pos" style="position-area:bottom right;"></div>
+  </div>
+</div>
+'></iframe>
+<script>
+  // Wait for the iframe to load:
+  onload = function() {
+    const doc = iframe.contentWindow.document;
+    const container = doc.getElementById('container');
+    const e1 = doc.getElementById('e1');
+    const e2 = doc.getElementById('e2');
+    const e3 = doc.getElementById('e3');
+    const e4 = doc.getElementById('e4');
+    const e5 = doc.getElementById('e5');
+    const e6 = doc.getElementById('e6');
+    const e7 = doc.getElementById('e7');
+    const e8 = doc.getElementById('e8');
+    const e9 = doc.getElementById('e9');
+
+    function assert_rects_equal(elm, x, y, width, height) {
+      assert_equals(elm.offsetLeft, x, (elm.id + " x"));
+      assert_equals(elm.offsetTop, y, (elm.id + " y"));
+      assert_equals(elm.offsetWidth, width, (elm.id + " width"));
+      assert_equals(elm.offsetHeight, height, (elm.id + " height"));
+    }
+
+    function assert_at_initial() {
+      assert_rects_equal(e1, 100, 100, 100, 100);
+      assert_rects_equal(e2, 225, 100, 50, 100);
+      assert_rects_equal(e3, 300, 100, 100, 100);
+      assert_rects_equal(e4, 100, 225, 100, 50);
+      assert_rects_equal(e5, 225, 225, 50, 50);
+      assert_rects_equal(e6, 300, 225, 100, 50);
+      assert_rects_equal(e7, 100, 300, 100, 100);
+      assert_rects_equal(e8, 225, 300, 50, 100);
+      assert_rects_equal(e9, 300, 300, 100, 100);
+    }
+
+    function assert_at_40_60() {
+      assert_rects_equal(e1, 120, 130, 80, 70);
+      assert_rects_equal(e2, 225, 130, 50, 70);
+      assert_rects_equal(e3, 300, 130, 120, 70);
+      assert_rects_equal(e4, 120, 225, 80, 50);
+      assert_rects_equal(e5, 225, 225, 50, 50);
+      assert_rects_equal(e6, 300, 225, 120, 50);
+      assert_rects_equal(e7, 120, 300, 80, 130);
+      assert_rects_equal(e8, 225, 300, 50, 130);
+      assert_rects_equal(e9, 300, 300, 120, 130);
+    }
+
+    promise_test(async() => {
+      assert_at_initial();
+    }, "Initial scroll position");
+
+    promise_test(async() => {
+      await waitUntilNextAnimationFrame();
+      await waitUntilNextAnimationFrame();
+      iframe.contentWindow.scrollTo(40, 60);
+      await waitUntilNextAnimationFrame();
+      await waitUntilNextAnimationFrame();
+      assert_at_initial();
+    }, "Scroll to 40,60");
+
+    promise_test(async() => {
+      // As long as we're within the same animation frame (and therefore haven't
+      // run ResizeObserver events), there will be no anchor recalculation point.
+      container.style.display = "flow-root";
+      assert_at_initial();
+      container.style.display = "none";
+      document.body.offsetTop;
+      container.style.display = "block";
+      assert_at_initial();
+    }, "Reattach at 40,60");
+
+    promise_test(async() => {
+      container.style.display = "none";
+      await waitUntilNextAnimationFrame();
+      await waitUntilNextAnimationFrame();
+      container.style.display = "block";
+      await waitUntilNextAnimationFrame();
+      await waitUntilNextAnimationFrame();
+      assert_at_40_60();
+    }, "Redisplay at 40,60");
+
+    promise_test(async() => {
+      iframe.contentWindow.scrollTo(0, 0);
+      container.className = "thicker";
+      container.style.display = "block";
+      await waitUntilNextAnimationFrame();
+      await waitUntilNextAnimationFrame();
+      assert_at_40_60();
+    }, "Scroll to 0,0 and relayout");
+
+    promise_test(async() => {
+      container.style.display = "none";
+      await waitUntilNextAnimationFrame();
+      container.style.display = "block";
+      await waitUntilNextAnimationFrame();
+      await waitUntilNextAnimationFrame();
+      assert_at_initial();
+    }, "Redisplay at 0,0");
+  }
+</script>

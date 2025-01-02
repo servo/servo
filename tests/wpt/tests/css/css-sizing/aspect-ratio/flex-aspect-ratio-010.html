@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Row flexbox main size with auto margins</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#line-sizing" title="9.2.3.B">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="As auto-margin items do not stretch, this item should not be considered to have definite height and thus not trigger aspect ratio.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex; height: 100px;">
+  <div style="background: red; aspect-ratio: 1/1; min-width: 0; margin: auto 0;"></div>
+  <div style="background: green; height: 100px; width: 100px;"></div>
+</div>

@@ -1,0 +1,27 @@
+<script>
+window.onmessage = async (e) => {
+  if (e.data.type === "run") {
+    let token = e.data.token;
+    const test_url =
+      `http://{{hosts[alt][]}}:{{ports[http][0]}}/cors/resources/preflight-partitioning.py?token=${token}`;
+
+    let response = await fetch(
+      new Request(test_url, {
+        mode: "cors",
+        method: "GET",
+        headers: [["x-print", token]],
+      })
+    );
+
+    let result = await response.text();
+
+    if (result === "1") {
+      parent.postMessage({ type: "pass", msg: "The CORS preflight was sent" }, "*");
+    } else {
+      parent.postMessage({ type: "fail", msg: "The CORS preflight wasn't sent" }, "*");
+    }
+  }
+};
+
+parent.postMessage({ type: "loaded" }, "*");
+</script>

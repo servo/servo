@@ -1,0 +1,44 @@
+#!/bin/sh
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# The beginning of this script is both valid shell and valid python, such that
+# the script starts with the shell and is reexecuted with `uv run`. This
+# ensures that the Python provided by the virtual environment (in the .venv
+# directory) is used. If the virtual environment does not exist, `uv run` will
+# still use the correct version of Python given in `.python-version` and
+# python/mach_bootstrap.py will provision a new environment that will be used
+# for the subsequent runs.
+''':' && {
+    MACH_DIR=$(dirname "$0");
+    run_in_nix_if_needed() {
+        if { [ -f /etc/NIXOS ] || [ -n "${MACH_USE_NIX}" ]; } && [ -z "${IN_NIX_SHELL}" ]; then
+            EXTRA_NIX_ARGS=${SERVO_ANDROID_BUILD:+'--arg buildAndroid true'}
+            echo "NOTE: Entering nix-shell ${MACH_DIR}/shell.nix"
+            exec nix-shell "${MACH_DIR}/shell.nix" $EXTRA_NIX_ARGS --run "$*"
+        else
+            exec "$@"
+        fi
+    }
+
+    run_in_nix_if_needed uv run python ${MACH_DIR}/mach "$@"
+}
+'''
+
+import os
+import sys
+
+def main(args):
+    topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    sys.path.insert(0, os.path.join(topdir, "python"))
+    import mach_bootstrap
+    if len(sys.argv) > 1 and sys.argv[1] == "bootstrap":
+        sys.exit(mach_bootstrap.bootstrap_command_only(topdir))
+    else:
+        mach = mach_bootstrap.bootstrap(topdir)
+        sys.exit(mach.run(sys.argv[1:]))
+
+
+if __name__ == '__main__':
+    main(sys.argv)

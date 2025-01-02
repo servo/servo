@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>Service Worker: Check if dedicated workers are controlled</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+  <script>
+    const frameUrl = './resources/serviceWorker-dedicated-worker-inner.html';
+    const unregisterAllSW = async () => {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      return Promise.all(regs.map(reg => reg.unregister()));
+    };
+
+    promise_test(async t => {
+      t.add_cleanup(unregisterAllSW);
+      const key = token();
+
+      // Inside the fenced frame, the service worker is registered and fetch
+      // request is triggered from the dedicated worker to the url that is
+      // handled in the service worker.
+      const url = `${frameUrl}?useServiceWorkerInFencedFrame=true`;
+      attachFencedFrame(generateURL(url, [key]));
+      const result = await nextValueFromServer(key);
+      assert_equals(result, "OK");
+    }, "Fenced frame's service workers can control fenced frame's dedicated workers");
+
+    promise_test(async t => {
+      t.add_cleanup(unregisterAllSW);
+      const key = token();
+
+      // Set a service worker in the fenced frame. Inside the fenced frame, a
+      // dedicated worker is created and triggers a fetch request. But we don't
+      // use the fetch request result in this test. This test will check if the
+      // dedicated worker in the parent frame is controlled by the SW in FF.
+      const url = `${frameUrl}?useServiceWorkerInFencedFrame=true`;
+      attachFencedFrame(generateURL(url, [key]));
+      await nextValueFromServer(key);
+
+      const checkIfWorkerIsControlled = async () => {
+        const dedicated_worker = new Worker('resources/serviceWorker-dedicated-worker.js');
+        return new Promise((resolve, reject) => {
+          dedicated_worker.addEventListener('message', e => {
+            resolve(e.data)
+          });
+          dedicated_worker.postMessage('fetch');
+        });
+      }
+
+      const result = await checkIfWorkerIsControlled()
+      assert_equals(result, "Not Found");
+    }, "Fenced frame's service workers can not control the dedicated workers in the parent frame");
+
+    promise_test(async t => {
+      t.add_cleanup(unregisterAllSW);
+      const key = token();
+
+      // Register a service worker in the parent frame.
+      await navigator.serviceWorker.register('resources/serviceWorker-dedicated-worker-sw.js', { scope: '/' });
+      await navigator.serviceWorker.ready;
+
+      // Inside the fenced frame, fetch request to unexisting URL is triggered
+      // from the dedicated worker.
+      attachFencedFrame(generateURL(frameUrl, [key]));
+
+      const result = await nextValueFromServer(key);
+      assert_equals(result, "Not Found");
+    }, "Service workers in the parent frame of fenced frames can not control dedicated workers in fenced frames");
+  </script>
+</body>

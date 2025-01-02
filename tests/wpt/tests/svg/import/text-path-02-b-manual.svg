@@ -1,0 +1,101 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" author="ED" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: text-path-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html">
+        <p>
+          This tests the <a>'textPath/startOffset'</a> with both negative and positive values, and
+          compares it to the case where a <a>'tspan/dx'</a> attribute is used with the same values.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required. Make sure scripting is enabled.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        You should see four paths with text following each path.
+        The top two paths should show the text "Negative offset", and the bottom two paths should show the text
+        "Positive offset".
+      </p>
+      <p>
+        The test has passed if:
+      </p>
+      <ul>
+        <li>the top two paths show the text "Negative offset"</li>
+        <li>the bottom two paths show the text "Positive offset"</li>
+        <li>the text on the bottom two paths starts a bit along the path</li>
+        <li>the text on the top two paths starts close to where the path starts (the first character is allowed to be slightly off the path)</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-path-02-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII, FreeSansWoff, sans-serif" font-size="18">
+    <defs>
+      <style type="text/css">
+      @font-face {
+        font-family: FreeSansWoff;
+        src: url(woffs/FreeSans.woff) format("woff");
+        }
+      </style>
+      <path id="Path1" fill="none" stroke="blue"  d="M199 89.3 C206.6 66.6 235.8 13.2 270 30.3 286.6 38.6 298.9 59.4 310 73.3 321.7 87.9 338.6      99 356 103.3 387.3 111.1 396.6 90.4 418 74.3"/>
+      <path id="Path2" fill="none" stroke="blue"  d="M33.5 145.8 C41 123 70.3 69.7 104.5 86.8 121 95 133 116 144.5 129.8 156.2 144.4 173 155.5     190.5 159.8 221.8 167.6 231 146.9 252.5 130.8"/>
+    </defs>
+    <g id="text-on-path-01">
+      <use xlink:href="#Path1" fill="none" stroke="blue" />
+      <text font-size="36" fill="black" >
+        <textPath xlink:href="#Path1"><tspan dx="-240">Positive offset Negative offset</tspan></textPath>
+      </text>
+    </g>
+    <g id="text-on-path-02">
+      <use xlink:href="#Path2" fill="none" stroke="blue" />
+      <text font-size="36" fill="black" >
+        <textPath xlink:href="#Path2" startOffset="-240">Positive offset Negative offset</textPath>
+      </text>
+    </g>
+    <g transform="translate(0 150)">
+    <g id="text-on-path-03">
+      <use xlink:href="#Path1" fill="none" stroke="blue" />
+      <text font-size="36" fill="black" >
+        <textPath xlink:href="#Path1"><tspan dx="60">Positive offset Negative offset</tspan></textPath>
+      </text>
+    </g>
+    <g id="text-on-path-04">
+      <use xlink:href="#Path2" fill="none" stroke="blue" />
+      <text font-size="36" fill="black" >
+        <textPath xlink:href="#Path2" startOffset="60">Positive offset Negative offset</textPath>
+      </text>
+    </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

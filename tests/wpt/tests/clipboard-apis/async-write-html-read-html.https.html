@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard write ([text/html ClipboardItem]) -> readHtml tests
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+<script>
+'use strict';
+// This function removes extra spaces between tags in html. For example, the
+// following html: "<p> Hello </p>   <body> World </body>" would turn into this
+//           html: "<p> Hello </p> <body> World </body>"
+// We remove the extra spaces because in html they are considered equivalent,
+// but when we are comparing for equality the spaces make a difference.
+function reformatHtml(html) {
+  const parser = new DOMParser();
+  const htmlString =
+        parser.parseFromString(html, 'text/html').documentElement.innerHTML;
+  const reformattedString = htmlString.replace(/\>\s*\</g, '> <');
+  return reformattedString;
+}
+
+async function readWriteTest(textInput) {
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
+  const blobInput = new Blob([textInput], {type: 'text/html'});
+  const clipboardItem = new ClipboardItem({'text/html': blobInput});
+  await waitForUserActivation();
+  await navigator.clipboard.write([clipboardItem]);
+  await waitForUserActivation();
+  const clipboardItems = await navigator.clipboard.read({type: 'text/html'});
+
+  const html = clipboardItems[0];
+  assert_equals(html.types.length, 1);
+  assert_equals(html.types[0], 'text/html');
+
+  const blobOutput = await html.getType('text/html');
+  assert_equals(blobOutput.type, 'text/html');
+
+  const blobText = await (new Response(blobOutput)).text();
+
+  const outputHtml = reformatHtml(blobText);
+  const inputHtml = reformatHtml(textInput);
+  assert_equals(outputHtml, inputHtml);
+}
+const testCases = [`<!doctype html> <html> <head> <title>Title of the
+                    document</title> </head> <body> <p>Hello World</p>
+                    </body> </html>`,
+                   '<title>Title of the document</title> <p>Hello World</p>'];
+
+promise_test(async t => {
+  for (const testCase of testCases) {
+    await readWriteTest(testCase);
+  }
+}, 'Verify read and write of some text/html content');
+
+</script>

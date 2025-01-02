@@ -1,0 +1,35 @@
+<!doctype html>
+<title>File drag and tab change during prompt for upload</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    display: inline-block;
+  }
+</style>
+<script type="text/javascript">
+window.onload = function () {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragenter = orange.ondragover = function (e) {
+    e.preventDefault();
+  };
+  orange.ondrop = function (e) {
+    e.preventDefault();
+    document.getElementsByTagName('ol')[0].innerHTML = ( e.dataTransfer.files[0] && e.dataTransfer.files[0].name );
+  };
+};
+</script>
+<div draggable="true"></div>
+
+<ol>
+  <li>Save <a href="file1.txt">file1.txt</a> and <a href="file2.txt">file2.txt</a> onto your computer.</li>
+  <li>Open this page in two separate tabs, and start on tab #1.</li>
+  <li>Drag file1.txt from your computer onto the orange square.</li>
+  <li>A prompt should appear. Do not dismiss it. If a prompt does not appear, ignore any further steps, and check the tests in ../../file/</li>
+  <li>Click the other tab to focus it (or focus it in whatever way works). If you cannot change tabs, PASS, and ignore any further steps.</li>
+  <li>Drag file2.txt from your computer onto the orange square. Fail if this text (but not the orange square) is replaced without any prompt.</li>
+  <li>If a prompt appears, do not dismiss it.</li>
+  <li>Return to tab #1.</li>
+  <li>Accept the prompt. Fail if it cannot be accepted. Pass if this text (but not the orange square) is replaced with the text: file1.txt</li>
+</ol>

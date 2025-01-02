@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Start a MediaRecorder</title>
+<html>
+<body>
+<script src="../utils/sources.js"></script>
+<script>
+    var context;
+    var recorder;
+    var video;
+    var control;
+
+    function prepareForTest(test) {
+        const obj = createVideoStream(test);
+        video = obj.stream;
+        control = obj.control;
+        recorder = new MediaRecorder(video);
+    }
+</script>
+</body>
+</html>

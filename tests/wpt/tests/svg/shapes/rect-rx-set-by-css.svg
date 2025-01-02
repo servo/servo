@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="http://www.w3.org/TR/SVG/shapes.html#RectElement"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="rect-rx-set-by-css-ref.svg"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="rx can be set via CSS."/>
+  </metadata>
+  <rect width="100" height="100" style="rx: 40px" />
+</svg>

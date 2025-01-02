@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focus() on shadow host within an iframe with delegatesFocus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+test(() => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  iframe.addEventListener("load", () => {
+    iframe.contentDocument.body.innerHTML =
+            `<div id="host"></div>`;
+    const host = iframe.contentDocument.getElementById("host");
+    const firstInput = iframe.contentDocument.createElement("input");
+    const secondInput = iframe.contentDocument.createElement("input");
+
+    host.attachShadow({mode: 'open', delegatesFocus: true});
+    host.shadowRoot.appendChild(firstInput);
+    host.shadowRoot.appendChild(secondInput);
+
+    iframe.contentDocument.body.appendChild(host);
+
+    secondInput.focus();
+    assert_equals(host.shadowRoot.activeElement, secondInput);
+
+    // host is a shadow-including-ancestor of secondInput, so
+    // the focus should remain secondInput.
+    host.focus();
+    assert_equals(host.shadowRoot.activeElement, secondInput);
+  });
+}, "focus delegate step should not be run when the focus target is a shadow-including inclusive ancestor of the current focus.");
+</script>
+</body>

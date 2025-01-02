@@ -1,0 +1,20 @@
+<!doctype html>
+<title>overflow:auto containers shouldn't grow due to scrollbars, even if there's out of flow content that overflows</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1637511">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="/css/reference/blank.html">
+
+<!--
+  If we create a horizontal scrollbar it'd cause overflow in the vertical
+  direction as well, due to the svg's aspect-ratio.
+-->
+<div style="width: 300px;">
+  <div style="overflow:auto">
+    <div style="height: 0; position: relative;">
+      <svg style="top: 0; left: 0; position: absolute" width="300" height="300"></svg>
+    </div>
+  </div>
+</div>
+

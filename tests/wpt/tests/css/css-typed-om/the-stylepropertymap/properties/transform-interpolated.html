@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'transform' property with an interpolated value</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// TODO: Try to support this sort of test with testsuite.js
+test(t => {
+  let elem = createDivWithStyle(t);
+  elem.animate({
+    transform: ['translate(1px, 1%)', 'rotate(45deg)']
+  }, {
+    fill: 'forwards',
+    iterationStart: 0.5,
+  });
+
+  // TODO: The computed value in this case is not fully spec'd
+  // See https://github.com/w3c/css-houdini-drafts/issues/425
+  const result = elem.computedStyleMap().get('transform');
+  assert_not_equals(result, null);
+}, 'Computed value for interpolated transforms is not null');
+
+</script>

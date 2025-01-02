@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>A script element with both async and defer set should execute asynchronously</title>
+        <meta name="timeout" content="long">
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+        <meta description="This test ensures a script element with both async and defer set should execute asynchronously." />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-script-async"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+ <div id=log></div>
+        <script type="text/javascript">
+        var t = async_test("A script element with both async and defer set should execute asynchronously");
+
+        function timeout()
+        {
+            t.step(function(){
+                var actual = document.getElementById("testresult").innerHTML;
+                assert_in_array(actual, ["2134", "2341"]);
+            });
+            t.done();
+        }
+
+        var timer = setTimeout(timeout, 5000);
+
+        function log(text)
+        {
+            var textNode = document.createTextNode(text);
+            document.getElementById("testresult").appendChild(textNode);
+        }
+        </script>
+
+        <span id="testresult"></span>
+
+        <script type="text/javascript" src="log.py?sec=1&id=1" defer async></script>
+        <script type="text/javascript">log('2');</script>
+        <script type="text/javascript" src="log.py?sec=3&id=3"></script>
+        <script type="text/javascript">log('4');</script>
+    </body>
+</html>

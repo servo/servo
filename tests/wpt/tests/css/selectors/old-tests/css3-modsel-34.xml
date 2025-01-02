@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:first-of-type pseudo-class</title>
+  <style type="text/css"><![CDATA[.red { background-color : red }
+address { margin-bottom : 1em ; margin-left : 1em }
+address:first-of-type { background-color : lime }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+ </head>
+ <body>
+<div>This div contains 3 addresses:
+<address class="red">A first address that should have a green background</address>
+<address>A second address with normal background</address>
+<address>A third address with normal background</address>
+</div>
+</body>
+</html>

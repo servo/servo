@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Logical properties with deferred <code>writing-mode</code></title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-logical-1/#box">
+<link rel="help" href="https://drafts.csswg.org/css-variables-1/">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#common-keywords">
+<meta name="assert" content="Checks that logical properties are resolved correctly when the writing mode isn't known until computed-value time.">
+<style>
+#parent {
+  writing-mode: vertical-lr;
+}
+
+@layer {
+  .revert-layer {
+    writing-mode: vertical-rl;
+  }
+}
+@layer {
+  .revert-layer {
+    writing-mode: horizontal-tb;
+    writing-mode: revert-layer;
+  }
+}
+</style>
+<div id="parent">
+  <div id="target"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+const computedStyle = getComputedStyle(target);
+
+function check(expected) {
+  for (let [prop, value] of Object.entries(expected)) {
+    assert_equals(computedStyle.getPropertyValue(prop), value, prop);
+  }
+}
+
+test(function() {
+  target.style.cssText = `
+    --wm: vertical-rl;
+    writing-mode: var(--wm);
+    margin-block-start: 1px;
+    margin-block-end: 2px;
+    margin-inline-start: 3px;
+    margin-inline-end: 4px;
+  `;
+  check({
+    // Logicals
+    "margin-block-start": "1px",
+    "margin-block-end": "2px",
+    "margin-inline-start": "3px",
+    "margin-inline-end": "4px",
+    // Physicals
+    "margin-right": "1px",
+    "margin-left": "2px",
+    "margin-top": "3px",
+    "margin-bottom": "4px",
+  });
+}, "Writing mode with variable");
+
+test(function() {
+  target.style.cssText = `
+    --wm1: vertical-rl;
+    --wm2: var(--wm1);
+    writing-mode: var(--wm2);
+    margin-block-start: 1px;
+    margin-block-end: 2px;
+    margin-inline-start: 3px;
+    margin-inline-end: 4px;
+  `;
+  check({
+    // Logicals
+    "margin-block-start": "1px",
+    "margin-block-end": "2px",
+    "margin-inline-start": "3px",
+    "margin-inline-end": "4px",
+    // Physicals
+    "margin-right": "1px",
+    "margin-left": "2px",
+    "margin-top": "3px",
+    "margin-bottom": "4px",
+  });
+}, "Writing mode with nested variables");
+
+test(function() {
+  target.style.cssText = `
+    writing-mode: inherit;
+    margin-block-start: 1px;
+    margin-block-end: 2px;
+    margin-inline-start: 3px;
+    margin-inline-end: 4px;
+  `;
+  check({
+    // Logicals
+    "margin-block-start": "1px",
+    "margin-block-end": "2px",
+    "margin-inline-start": "3px",
+    "margin-inline-end": "4px",
+    // Physicals
+    "margin-left": "1px",
+    "margin-right": "2px",
+    "margin-top": "3px",
+    "margin-bottom": "4px",
+  });
+}, "Writing mode with 'inherit'");
+
+test(function() {
+  target.style.cssText = `
+    writing-mode: initial;
+    margin-block-start: 1px;
+    margin-block-end: 2px;
+    margin-inline-start: 3px;
+    margin-inline-end: 4px;
+  `;
+  check({
+    // Logicals
+    "margin-block-start": "1px",
+    "margin-block-end": "2px",
+    "margin-inline-start": "3px",
+    "margin-inline-end": "4px",
+    // Physicals
+    "margin-top": "1px",
+    "margin-bottom": "2px",
+    "margin-left": "3px",
+    "margin-right": "4px",
+  });
+}, "Writing mode with 'initial'");
+
+test(function() {
+  target.style.cssText = `
+    writing-mode: revert;
+    margin-block-start: 1px;
+    margin-block-end: 2px;
+    margin-inline-start: 3px;
+    margin-inline-end: 4px;
+  `;
+  check({
+    // Logicals
+    "margin-block-start": "1px",
+    "margin-block-end": "2px",
+    "margin-inline-start": "3px",
+    "margin-inline-end": "4px",
+    // Physicals
+    "margin-left": "1px",
+    "margin-right": "2px",
+    "margin-top": "3px",
+    "margin-bottom": "4px",
+  });
+}, "Writing mode with 'revert'");
+
+test(function() {
+  target.className = "revert-layer";
+  target.style.cssText = `
+    margin-block-start: 1px;
+    margin-block-end: 2px;
+    margin-inline-start: 3px;
+    margin-inline-end: 4px;
+  `;
+  check({
+    // Logicals
+    "margin-block-start": "1px",
+    "margin-block-end": "2px",
+    "margin-inline-start": "3px",
+    "margin-inline-end": "4px",
+    // Physicals
+    "margin-right": "1px",
+    "margin-left": "2px",
+    "margin-top": "3px",
+    "margin-bottom": "4px",
+  });
+}, "Writing mode with 'revert-layer'");
+</script>

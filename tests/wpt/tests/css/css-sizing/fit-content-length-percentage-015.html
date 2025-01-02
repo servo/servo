@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS fit-content(): max-content contribution for min-size</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-fit-content-length-percentage">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+
+<div style="width: max-content; height: 50px; background: green;">
+  <div style="width: 50px; min-width: fit-content(100px);">
+    <div style="display: inline-block; width: 60px;"></div>
+    <div style="display: inline-block; width: 60px;"></div>
+  </div>
+</div>
+
+<!-- Cyclic percentage intrinsic size contribution, we treat min-width as 0
+  for max content contribution. However, fit-content() should be clamped by
+  min-content size and max-content size, so the result min-width is equal to
+  min-content size here -->
+<div style="width: max-content; height: 50px; background: green;">
+  <div style="width: 50px; min-width: fit-content(50%);">
+    <div style="display: inline-block; width: 100px;"></div>
+    <div style="display: inline-block; width: 100px;"></div>
+  </div>
+</div>

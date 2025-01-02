@@ -1,0 +1,11 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebAssembly Web API (https://webassembly.github.io/spec/web-api/)
+
+[Exposed=(Window,Worker)]
+partial namespace WebAssembly {
+  Promise<Module> compileStreaming(Promise<Response> source);
+  Promise<WebAssemblyInstantiatedSource> instantiateStreaming(
+      Promise<Response> source, optional object importObject);
+};

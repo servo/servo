@@ -1,0 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Prerendering Revamped (https://wicg.github.io/nav-speculation/prerendering.html)
+
+partial interface Document {
+    readonly attribute boolean prerendering;
+
+    // Under "special event handler IDL attributes that only apply to Document objects"
+    attribute EventHandler onprerenderingchange;
+};
+
+partial interface PerformanceNavigationTiming {
+    readonly attribute DOMHighResTimeStamp activationStart;
+};

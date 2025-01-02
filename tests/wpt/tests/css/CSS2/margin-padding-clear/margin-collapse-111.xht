@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: in flow (simple combinations with collapse-through)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-17 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/011.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-110-ref.xht" />
+
+  <style type="text/css">
+   table { border-spacing: 0; font-size: 50px; border: solid 3px; background: orange; }
+   td { padding: 0; }
+   .a, .b { height: 1em; width: 1em; }
+   .a { background: yellow; }
+   .b { background: lime; }
+   .c { background: red; margin: 1em 0 1em; }
+   .t1 .a { margin: 1em 0 1em; }
+   .t1 .b { margin: 1em 0 1em; }
+   .t2 .a { margin: 1em 0 1em; }
+   .t2 .b { margin: 0em 0 1em; }
+   .t3 .a { margin: 1em 0 0em; }
+   .t3 .b { margin: 1em 0 1em; }
+   .t4 .a { margin: 1em 0 2em; }
+   .t4 .b { margin: -1em 0 1em; }
+   .t5 .a { margin: 1em 0 -1em; }
+   .t5 .b { margin: 2em 0 1em; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a stack of 5 bands which are <strong>from top to bottom: orange, yellow, orange, lime, orange</strong>.</p>
+  <table>
+   <tr>
+    <td class="t1">
+     <div class="a"></div>
+     <div class="c"></div>
+     <div class="b"></div>
+    </td>
+    <td class="t2">
+     <div class="a"></div>
+     <div class="c"></div>
+     <div class="b"></div>
+    </td>
+    <td class="t3">
+     <div class="a"></div>
+     <div class="c"></div>
+     <div class="b"></div>
+    </td>
+    <td class="t4">
+     <div class="a"></div>
+     <div class="c"></div>
+     <div class="b"></div>
+    </td>
+    <td class="t5">
+     <div class="a"></div>
+     <div class="c"></div>
+     <div class="b"></div>
+    </td>
+   </tr>
+  </table>
+
+</body>
+</html>

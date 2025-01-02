@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1843883">
+<link rel="match" href="svg-use-symbol-animateMotion-print-ref.html">
+<html>
+<head>
+<style>
+ body { margin: 0 }
+</style>
+</head>
+<body>
+<!-- Should see a blue square inside the top left quarter of a purple square -->
+<svg width=200 height=200 viewBox="0 0 200 200">
+  <defs>
+    <symbol id="r" viewBox="0 0 200 200">
+      <rect fill="blue" x="-40" width=100 height=100>
+        <animateMotion dur="1s" fill="freeze" from="40,0" to="40,0" />
+      </rect>
+    </symbol>
+  </defs>
+  <rect fill="purple" width=100 height=100 />
+  <use href="#r" width="100" height="100" />
+</svg>
+</body>
+</html>

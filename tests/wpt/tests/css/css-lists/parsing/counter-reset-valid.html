@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: parsing counter-reset with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
+<meta name="assert" content="counter-reset supports the full grammar '[ <counter-name> <integer>? | <reversed-counter-name> <integer>? ]+ | none'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value('counter-reset', 'none');
+test_valid_value('counter-reset', 'chapter', 'chapter 0');
+test_valid_value('counter-reset', 'chapter chapter 9', 'chapter 0 chapter 9');
+test_valid_value('counter-reset', 'reversed(chapter)');
+test_valid_value('counter-reset', 'chapter reversed(chapter)', 'chapter 0 reversed(chapter)');
+test_valid_value('counter-reset', 'reversed(chapter) 9 chapter', 'reversed(chapter) 9 chapter 0');
+test_valid_value('counter-reset', 'section -1');
+test_valid_value('counter-reset', 'reversed(section) -1');
+test_valid_value('counter-reset', 'first -1 second third 99', 'first -1 second 0 third 99');
+test_valid_value('counter-reset', 'reversed(first) -1 reversed(second) third 99', 'reversed(first) -1 reversed(second) third 99');
+</script>
+</body>
+</html>

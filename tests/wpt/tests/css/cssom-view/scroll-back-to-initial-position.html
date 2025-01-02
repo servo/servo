@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Scroll back to initial position</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Yupei Wang" href="mailto:perryuwang@tencent.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#smooth-scrolling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/scroll-behavior.js"></script>
+<style>
+  .filler { height: 1000px }
+
+  #scrollable {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="log"></div>
+<div id="testContainer">
+  <div id="scrollable">
+    <div class="filler"></div>
+  </div>
+</div>
+<script>
+  promise_test(() => {
+    resetScroll(scrollable);
+    assert_equals(scrollable.scrollTop, 0, "Inital value of scrollTop");
+    scrollNode(scrollable, "scroll", "smooth", 0, 500);
+    scrollNode(scrollable, "scroll", "smooth", 0, 0);
+    return waitForScrollEnd(scrollable).then(() => {
+      assert_equals(scrollable.scrollTop, 0, "Final value of scrollTop");
+    });
+  }, "Element should scroll back to initial position with smooth behavior");
+
+  promise_test(() => {
+    resetScroll(scrollable);
+    assert_equals(scrollable.scrollTop, 0, "Inital value of scrollTop");
+    scrollNode(scrollable, "scroll", "smooth", 0, 500);
+    scrollNode(scrollable, "scroll", "auto", 0, 0);
+    return waitForScrollEnd(scrollable).then(() => {
+      assert_equals(scrollable.scrollTop, 0, "Final value of scrollTop");
+    });
+  }, "Element should scroll back to initial position with auto behavior");
+</script>

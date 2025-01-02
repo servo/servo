@@ -1,0 +1,199 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSColorValue Tests</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#csscolorvalue">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/testhelper.js"></script>
+<script>
+'use strict';
+
+const TEST_COLORS = [
+  {name: "magenta", rgb: [1, 0, 1], hsl: [300, 1, 0.5], hwb: [300, 0, 0]},
+  {name: "dark cyan", rgb: [0, 0.545, 0.545], hsl: [180, 1, 0.2725], hwb: [180, 0, 0.455]},
+  {name: "light goldenrod yellow", rgb: [1, 1, 0.82], hsl: [60, 1, 0.91], hwb: [60, 0.82, 0]},
+  {name: "medium purple", rgb: [0.58, 0.44, 0.86], hsl: [260, 0.5977, 0.649], hwb: [260, 0.44, 0.14]},
+]
+const rgb_attributes = ['r', 'g', 'b', 'alpha']
+const hsl_attributes = ['h', 's', 'l', 'alpha']
+const hwb_attributes = ['h', 'w', 'b', 'alpha']
+
+for (const color of TEST_COLORS) {
+  const hsl_color_degrees = new CSSHSL(CSS.deg(color.hsl[0]), color.hsl[1], color.hsl[2])
+  const hsl_color_radians = new CSSHSL(CSS.rad(color.hsl[0]/360 * 2 * Math.PI), color.hsl[1], color.hsl[2])
+  const hsl_color_gradians = new CSSHSL(CSS.grad(color.hsl[0]/360 * 400), color.hsl[1], color.hsl[2])
+
+  const hwb_color_degrees = new CSSHWB(CSS.deg(color.hwb[0]), color.hwb[1], color.hwb[2])
+  const hwb_color_radians = new CSSHWB(CSS.rad(color.hwb[0]/360 * 2 * Math.PI), color.hwb[1], color.hwb[2])
+  const hwb_color_gradians = new CSSHWB(CSS.grad(color.hwb[0]/360 * 400), color.hwb[1], color.hwb[2])
+
+  const rgb_color = new CSSRGB(color.rgb[0], color.rgb[1], color.rgb[2])
+
+  // Test conversion from CSSHSL to others.
+  test(() => {
+    const hsl_to_rgb = hsl_color_degrees.toRGB();
+    for (const attr of rgb_attributes) {
+      assert_color_channel_approx_equals(hsl_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HSL using degrees to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hsl_to_rgb = hsl_color_radians.toRGB();
+    for (const attr of rgb_attributes) {
+      assert_color_channel_approx_equals(hsl_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HSL using radians to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hsl_to_rgb = hsl_color_gradians.toRGB();
+    for (const attr of rgb_attributes) {
+      assert_color_channel_approx_equals(hsl_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HSL using gradians to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hsl_to_hwb = hsl_color_degrees.toHWB();
+    for (const attr of hwb_attributes) {
+      assert_color_channel_approx_equals(hwb_color_degrees[attr], hsl_to_hwb[attr]);
+    }
+  }, `Converting HSL to HWB works for ${color.name}.`);
+
+  // Test conversion from CSSHWB to others.
+  test(() => {
+    const hwb_to_rgb = hwb_color_degrees.toRGB();
+    for (const attr of rgb_attributes) {
+      assert_color_channel_approx_equals(hwb_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HWB using degrees to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hwb_to_rgb = hwb_color_radians.toRGB();
+    for (const attr of rgb_attributes) {
+      assert_color_channel_approx_equals(hwb_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HWB using radians to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hwb_to_rgb = hwb_color_gradians.toRGB();
+    for (const attr of rgb_attributes) {
+      assert_color_channel_approx_equals(hwb_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HWB using gradians to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hwb_to_hsl = hwb_color_degrees.toHSL();
+    for (const attr of hsl_attributes) {
+      assert_color_channel_approx_equals(hsl_color_degrees[attr], hwb_to_hsl[attr]);
+    }
+  }, `Converting HWB to HSL works for ${color.name}.`);
+
+  // Test conversion from CSSRGB to others
+  test(() => {
+    const rgb_to_hsl = rgb_color.toHSL();
+    for (const attr of hsl_attributes) {
+      assert_color_channel_approx_equals(hsl_color_degrees[attr], rgb_to_hsl[attr]);
+    }
+  }, `Converting RGB to HSL works for ${color.name}.`);
+
+  test(() => {
+
+    const rgb_to_hwb = rgb_color.toHWB();
+    for (const attr of hwb_attributes) {
+      assert_color_channel_approx_equals(hwb_color_degrees[attr], rgb_to_hwb[attr]);
+    }
+  }, `Converting RGB to HWB works for ${color.name}.`);
+}
+
+const PARSING_COLOR_TEST_CASES = [
+  {
+    value: 'rgb(255,255,255)',
+    expected: new CSSRGB(CSS.number(255), CSS.number(255), CSS.number(255)),
+  },
+  {
+    value: 'rgba(100,255,255, 1)',
+    expected: new CSSRGB(CSS.number(100), CSS.number(255), CSS.number(255), CSS.percent(100)),
+  },
+  {
+    value: "#00bfff",
+    expected: new CSSRGB(CSS.number(0), CSS.number(191), CSS.number(255)),
+  },
+  {
+    value: "hsl(195, 100%, 50%)",
+    expected: new CSSHSL(CSS.deg(195), CSS.percent(100), CSS.percent(50)),
+  },
+  {
+    value: "hsla(123, 100%, 20%, .5)",
+    expected: new CSSHSL(CSS.deg(123), CSS.percent(100), CSS.percent(20), CSS.percent(50)),
+  },
+  {
+    value: "hwb(200 31% 38%)",
+    expected: new CSSHWB(CSS.deg(200), CSS.percent(31), CSS.percent(38)),
+  },
+  {
+    value: "hwb(200 31% 38% / 0.5)",
+    expected: new CSSHWB(CSS.deg(200), CSS.percent(31), CSS.percent(38), CSS.percent(50)),
+  },
+  {
+    value: "blue",
+    expected: new CSSRGB(CSS.number(0), CSS.number(0), CSS.number(255)),
+  },
+  {
+    value: "transparent",
+    expected: new CSSRGB(CSS.number(0), CSS.number(0), CSS.number(0), CSS.percent(0)),
+  },
+]
+
+for(const testCase of PARSING_COLOR_TEST_CASES) {
+  test(()=> {
+    const parsedColor = CSSColorValue.parse(testCase.value)
+    let attrs;
+    switch(testCase.expected.constructor.name) {
+      case "CSSRGB":
+        attrs = rgb_attributes;
+        break;
+      case "CSSHSL":
+        attrs = hsl_attributes;
+        break;
+      case "CSSHWB":
+        attrs = hwb_attributes
+    }
+
+    for (const attr of attrs) {
+      assert_color_channel_approx_equals(parsedColor[attr], testCase.expected[attr]);
+    }
+  }, `Parsing the color string "${testCase.value}"`)
+}
+
+const INVALID_COLOR_TEST_CASES = [
+  "abcdef",
+  "--foo",
+  "--bar",
+  "abc()",
+  "initial",
+  "inherit",
+  "unset",
+  "revert",
+  "revert-layer"
+]
+
+for(const testCase of INVALID_COLOR_TEST_CASES) {
+test(()=> {
+  assert_throws_dom("SyntaxError",
+  () => CSSColorValue.parse(testCase));
+}, `throwing invalid color string "${testCase}`)
+}
+
+const SYSTEM_COLORS = [
+  'GrayText',
+  'Canvas'
+]
+
+for(const testCase of SYSTEM_COLORS) {
+  test(()=>{
+    const parsedColor = CSSColorValue.parse(testCase)
+    assert_equals(parsedColor.constructor.name, 'CSSKeywordValue')
+    assert_equals(parsedColor.toString(), testCase.toLowerCase())
+  })
+}
+
+</script>

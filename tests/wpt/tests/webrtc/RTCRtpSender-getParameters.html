@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender.prototype.getParameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+promise_test(async t => {
+  const stream = await getNoiseStream({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const [track] = stream.getTracks();
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  caller.addTrack(track);
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  callee.addTrack(track);
+  var callerSender = caller.getTransceivers()[0].sender;
+  assert_equals(callerSender.getParameters().codecs.length, 0);
+  const offer = await caller.createOffer();
+  await caller.setLocalDescription(offer);
+  await callee.setRemoteDescription(offer);
+  // Check that it is a single 2-way transceiver.
+  assert_equals(callee.getTransceivers().length, 1);
+  var calleeSender = callee.getTransceivers()[0].sender;
+  assert_equals(calleeSender.getParameters().codecs.length, 0);
+  const answer = await callee.createAnswer();
+  await callee.setLocalDescription(answer);
+  assert_greater_than(calleeSender.getParameters().codecs.length, 0,
+                      "callee codecs after answer");
+  await caller.setRemoteDescription(answer);
+  assert_greater_than(callerSender.getParameters().codecs.length, 0,
+                      "caller codecs after answer");
+}, 'getParameters() surfaces codecs on two-way sender with addTrack at the right time');
+
+</script>

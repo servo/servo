@@ -1,0 +1,3513 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html class="reftest-wait">
+ <title>The Acid3 Test</title>
+ <link rel="match" href="reference.sub.html">
+ <script type="text/javascript">
+  var startTime = new Date();
+ </script>
+ <style type="text/css">
+
+  /* set some basic styles so that we can get reliably exact results */
+  * { margin: 0; border: 1px blue; padding: 0; border-spacing: 0; font: inherit; line-height: 1.2; color: inherit; background: transparent; }
+  :link, :visited { color: blue; }
+
+  /* header and general layout */
+  html { font: 20px Arial, sans-serif; border: 2cm solid gray; width: 32em; margin: 1em; }
+  :root { background: silver; color: black; border-width: 0 0.2em 0.2em 0; } /* left and top content edges: 1*20px = 20px */
+  body { padding: 2em 2em 0; background: url(data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAABGdBTUEAAK%2FINwWK6QAAAAlwSFlzAAAASAAAAEgARslrPgAAABtJREFUOMtj%2FM9APmCiQO%2Bo5lHNo5pHNVNBMwAinAEnIWw89gAAACJ6VFh0U29mdHdhcmUAAHjac0zJT0pV8MxNTE8NSk1MqQQAL5wF1K4MqU0AAAAASUVORK5CYII%3D) no-repeat 99.8392283% 1px white; border: solid 1px black; margin: -0.2em 0 0 -0.2em; } /* left and top content edges: 20px-0.2*20px+1px+2*20px = 57px */
+  h1:first-child { cursor: help; font-size: 5em; font-weight: bolder; margin-bottom: -0.4em; text-shadow: rgba(192, 192, 192, 1.0) 3px 3px; } /* (left:57px, top:57px) */
+  #result { font-weight: bolder; width: 5.68em; text-align: right; }
+  #result { font-size: 5em; margin: -2.19em 0 0; } /* (right:57px+5.2*5*20px = 577px, top:57px+1.2*5*20px-0.4*5*20px+1px+1*40px+1*40px+1px+2*40px+150px-2.19*5*20px = 230px) */
+  .hidden { visibility: hidden; }
+  #slash { color: red; color: hsla(0, 0%, 0%, 1.0); }
+  #instructions { margin-top: 0; font-size: 0.8em; color: gray; color: -acid3-bogus; height: 6.125em; } /* (left:57px, top:230px+1.2*5*20+0 = 350px) */
+  #instructions { margin-right: -20px; padding-right: 20px; background: url(data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAABGdBTUEAAK%2FINwWK6QAAAAlwSFlzAAAASAAAAEgARslrPgAAABtJREFUOMtj%2FM9APmCiQO%2Bo5lHNo5pHNVNBMwAinAEnIWw89gAAACJ6VFh0U29mdHdhcmUAAHjac0zJT0pV8MxNTE8NSk1MqQQAL5wF1K4MqU0AAAAASUVORK5CYII%3D) no-repeat top right; }
+  #instructions span { float: right; width: 20px; margin-right: -20px; background: white; height: 20px; }
+  @font-face { font-family: "AcidAhemTest"; src: url(/fonts/Ahem.ttf); }
+  map::after { position: absolute; top: 18px; left: 638px; content: "X"; background: fuchsia; color: white; font: 20px/1 AcidAhemTest; }
+  iframe { float: left; height: 0; width: 0; } /* hide iframes but don't make them display: none */
+  object { position: fixed; left: 130.5px; top: 84.3px; background: transparent; } /* show objects if they have content */
+  .removed { position: absolute; top: 80px; left: 380px; height: 100px; width: 100px; opacity: 0; }
+
+  /* set the line height of the line of coloured boxes so we can add them without the layout changing height */
+  .buckets { font: 0/0 Arial, sans-serif; }
+  .buckets { padding: 0 0 150px 3px; }
+
+  /* the next two rules give the six coloured blocks their default styles (they match the same elements); the third hides them */
+  :first-child + * .buckets p { display: inline-block; vertical-align: 2em; border: 2em dotted red; padding: 1.0em 0 1.0em 2em; }
+  * + * > * > p { margin: 0; border: 1px solid ! important; }
+  .z { visibility: hidden; } /* only matches the buckets with no score */
+
+  /* sizes for the six buckets */
+  #bucket1 { font-size: 20px; margin-left: 0.2em; padding-left: 1.3em; padding-right: 1.3em; margin-right: 0.0001px; }
+  #bucket2 { font-size: 24px; margin-left: 0.375em; padding-left: 30px; padding-right: 32px; margin-right: 2px; }
+  #bucket3 { font-size: 28px; margin-left: 8.9999px; padding-left: 17px; padding-right: 55px; margin-right: 12px; }
+  #bucket4 { font-size: 32px; margin-left: 0; padding-left: 84px; padding-right: 0; margin-right: 0; }
+  #bucket5 { font-size: 36px; margin-left: 13px; padding-left: 0; padding-right: 94px; margin-right: 25px; }
+  #bucket6 { font-size: 40px; margin-left: -10px; padding-left: 104px; padding-right: -10px; }
+
+  /* colours for them */
+  .z, .zP, .zPP, .zPPP, .zPPPP, .zPPPPP { background: black; }
+  .zPPPPPP, .zPPPPPPP, .zPPPPPPPP, .zPPPPPPPP, .zPPPPPPPPP,
+  .zPPPPPPPPPP { background: grey; }
+  .zPPPPPPPPPPP, .zPPPPPPPPPPPP, .zPPPPPPPPPPPPP,
+  .zPPPPPPPPPPPPPP, .zPPPPPPPPPPPPPPP { background: silver; }
+  #bucket1.zPPPPPPPPPPPPPPPP { background: red; }
+  #bucket2.zPPPPPPPPPPPPPPPP { background: orange; }
+  #bucket3.zPPPPPPPPPPPPPPPP { background: yellow; }
+  #bucket4.zPPPPPPPPPPPPPPPP { background: lime; }
+  #bucket5.zPPPPPPPPPPPPPPPP { background: blue; }
+  #bucket6.zPPPPPPPPPPPPPPPP { background: purple; }
+
+  /* The line-height for the .bucket div is worked out as follows:
+   *
+   * The div.bucket element has a line box with a few
+   * inline-blocks. Each inline-block consists of:
+   *
+   *     2.0em vertical-align from baseline to bottom of inline-block
+   *     1px bottom border
+   *     1.0em bottom padding
+   *     1.0em top padding
+   *     1px top border
+   *
+   * The biggest inline-block has font-size: 40px.
+   *
+   * Thus the distance from the baseline to the top of the biggest
+   * inline-block is (2em+1em+1em)*2em*20px+2px = 162px.
+   *
+   * The line box itself has no other contents, and its strut has zero
+   * height and there is no half-leading, so the height of the
+   * div.bucket is 162px.
+   *
+   * (Why use line-height:0 and font-size:0? Well:
+   *
+   * The div.bucket line box would have a height that is the maximum
+   * of the following two sums:
+   *
+   *  1: half-leading + font descent at 1em + font ascent at 1em + half-leading
+   *  2: half-leading + font descent at 1em + 162px
+   *
+   * Now the half-leading is (line-height - (font-ascent + font-descent))/2, so that is really:
+   *
+   *  1: (line-height - (font-ascent + font-descent))/2 + font descent + font ascent + (line-height - (font-ascent + font-descent))/2
+   *  2: (line-height - (font-ascent + font-descent))/2 + font descent + 162px
+   *
+   * Which simplify to:
+   *
+   *  1: line-height
+   *  2: line-height/2 + (font descent - font-ascent)/2 + 162px
+   *
+   * So if the following expression is true:
+   *
+   *    line-height > line-height/2 + (font descent - font-ascent)/2 + 162px
+   *
+   * That is, if this is true:
+   *
+   *    line-height > font descent - font-ascent + 324px
+   *
+   * ...then the line-height matters, otherwise the font does. Note
+   * that font descent - font-ascent will be in the region of
+   * 10px-30px (with Ahem, exactly 12px). However, if we make the
+   * line-height big, then the _positioning_ of the inline-blocks will
+   * depend on the font descent, since that is what will decide the
+   * distance from the bottom of the line box to the baseline of the
+   * block (since the baseline is set by the strut).
+   *
+   * However, in Acid2 a dependency on the font metrics was introduced
+   * and this caused all kinds of problems. And we can't require Ahem
+   * in the Acid tests, since it's unlikely most people will have it
+   * installed.
+   *
+   * What we want is for the font to not matter, and the baseline to
+   * be as high as possible. We can do that by saying that the font
+   * and the line-height are zero.
+   *
+   * One word of warning. If your browser has a minimum font size feature
+   * that forces font sizes up even when there is no text, you will need
+   * to disable it before running this test.
+   *
+   */
+
+  /* rules specific to the tests below */
+  #instructions:last-child { white-space: pre-wrap; white-space: x-bogus; }
+  /* replaced for http://dbaron.org/mozilla/visited-privacy with the three rules after it:
+     #linktest:link { display: block; color: red; text-align: center; text-decoration: none; }
+     #linktest.pending, #linktest:visited { display: none; } */
+  #linktest { position: absolute; left: 17px; top: 18px; color: red; width: 80px; text-decoration: none; font: 900 small-caps 10px sans-serif; }
+  #linktest:link { color: red; }
+  #linktest.pending, #linktest:visited { color: white; }
+  #\ { color: transparent; color: hsla(0, 0, 0, 1); position: fixed; top: 10px; left: 10px; font: 40px Arial, sans-serif; }
+  #\  #result, #\  #score { position: fixed; top: 10%; left: 10%; width: 4em; z-index: 1; color: yellow; font-size: 50px; background: fuchsia; border: solid 1em purple; }
+ </style>
+
+ <!-- part of the HTTP tests -->
+ <link rel="stylesheet" href="empty.css"><!-- text/html file (should be ignored, <h1> will go red if it isn't) -->
+
+ <!-- the next five script blocks are part of one of the tests -->
+ <script type="text/javascript">
+  var d1 = "fail";
+  var d2 = "fail";
+  var d3 = "fail";
+  var d4 = "fail";
+  var d5 = "fail";
+ </script>
+ <script type="text/javascript" src="data:text/javascript,d1%20%3D%20'one'%3B"></script>
+ <script type="text/javascript" src="data:text/javascript;base64,ZDIgPSAndHdvJzs%3D"></script>
+ <script type="text/javascript" src="data:text/javascript;base64,%5a%44%4d%67%50%53%41%6e%64%47%68%79%5a%57%55%6e%4f%77%3D%3D"></script>
+ <script type="text/javascript" src="data:text/javascript;base64,%20ZD%20Qg%0D%0APS%20An%20Zm91cic%0D%0A%207%20"></script>
+ <script type="text/javascript" src="data:text/javascript,d5%20%3D%20'five%5Cu0027s'%3B"></script>
+
+ <!-- part of the JS regexp and \0 value tests test -->
+ <script type="text/javascript">
+  var nullInRegexpArgumentResult = 0 < /script/.test('\0script') ? "passed" : "failed";
+ </script>
+
+ <!-- main test body -->
+ <script type="text/javascript">
+  var notifications = {};
+  function notify(file) {
+    // used in cross-file tests
+    notifications[file] = 1;
+  }
+  function fail(message) {
+    throw { message: message };
+  }
+  function assert(condition, message) {
+    if (!condition)
+      fail(message);
+  }
+  function assertEquals(expression, value, message) {
+    if (expression != value) {
+      expression = (""+expression).replace(/[\r\n]+/g, "\\n");
+      value = (""+value).replace(/\r?\n/g, "\\n");
+      fail("expected '" + value + "' but got '" + expression + "' - " + message);
+    }
+  }
+  function getTestDocument() {
+    var iframe = document.getElementById("selectors");
+    var doc = iframe.contentDocument;
+    for (var i = doc.documentElement.childNodes.length-1; i >= 0; i -= 1)
+      doc.documentElement.removeChild(doc.documentElement.childNodes[i]);
+    doc.documentElement.appendChild(doc.createElement('head'));
+    doc.documentElement.firstChild.appendChild(doc.createElement('title'));
+    doc.documentElement.appendChild(doc.createElement('body'));
+    return doc;
+  }
+  function selectorTest(tester) {
+    var doc = getTestDocument();
+    var style = doc.createElement('style');
+    style.appendChild(doc.createTextNode("* { z-index: 0; position: absolute; }\n"));
+    doc.documentElement.firstChild.appendChild(style);
+    var ruleCount = 0;
+    tester(doc, function (selector) {
+        ruleCount += 1;
+        style.appendChild(doc.createTextNode(selector + " { z-index: " + ruleCount + "; }\n"));
+        return ruleCount;
+      }, function(node, rule, message) {
+        var value = doc.defaultView.getComputedStyle(node, "").zIndex;
+        assert(value != 'auto', "underlying problems prevent this test from running properly");
+        assertEquals(value, rule, message);
+    });
+  }
+  var kungFuDeathGrip = null; // used to hold things from test to test
+  var tests = [
+
+    // there are 6 buckets with 16 tests each, plus four special tests (0, 97, 98, and 99).
+
+    // Remove the "JS required" message and the <script> element in the <body>
+    function () {
+      // test 0: whether removing an element that is the last child correctly recomputes styles for the new last child
+      // also tests support for getComputedStyle, :last-child, pre-wrap, removing a <script> element
+      // removing script:
+      var scripts = document.getElementsByTagName('script');
+      document.body.removeChild(scripts[scripts.length-1]);
+      // removing last child:
+      var last = document.getElementById('remove-last-child-test');
+      var penultimate = last.previousSibling; // this should be the whitespace node
+      penultimate = penultimate.previousSibling; // this should now be the actual penultimate element
+      last.parentNode.removeChild(last);
+      assertEquals(document.defaultView.getComputedStyle(penultimate, '').whiteSpace, 'pre-wrap', "found unexpected computed style");
+      return 7;
+    },
+
+    // bucket 1: DOM Traversal, DOM Range, HTTP
+    // DOM Traversal
+    function () {
+      // test 1: NodeFilters and Exceptions
+      var doc = getTestDocument(); // looks like <!DOCTYPE><html><head><title/><\head><body/><\html>     (the '\'s are to avoid validation errors)
+      var iteration = 0;
+      var exception = "Roses";
+      var test = function(node) {
+        iteration += 1;
+        switch (iteration) {
+          case 1: case 3: case 4: case 6: case 7: case 8: case 9: case 14: case 15: throw exception;
+          case 2: case 5: case 10: case 11: case 12: case 13: return true; // ToNumber(true) => 1
+          default: throw 0;
+        };
+      };
+      var check = function(o, method) {
+        var ok = false;
+        try {
+          o[method]();
+        } catch (e) {
+          if (e === exception)
+            ok = true;
+        }
+        assert(ok, "method " + o + "." + method + "() didn't forward exception");
+      };
+      var i = doc.createNodeIterator(doc.documentElement, 0xFFFFFFFF, test, true);
+      check(i, "nextNode"); // 1
+      assertEquals(i.nextNode(), doc.documentElement, "i.nextNode() didn't return the right node"); // 2
+      check(i, "previousNode"); // 3
+      var w = document.createTreeWalker(doc.documentElement, 0xFFFFFFFF, test, true);
+      check(w, "nextNode"); // 4
+      assertEquals(w.nextNode(), doc.documentElement.firstChild, "w.nextNode() didn't return the right node"); // 5
+      check(w, "previousNode"); // 6
+      check(w, "firstChild"); // 7
+      check(w, "lastChild"); // 8
+      check(w, "nextSibling"); // 9
+      assertEquals(iteration, 9, "iterations went wrong");
+      assertEquals(w.previousSibling(), null, "w.previousSibling() didn't return the right node"); // doesn't call filter
+      assertEquals(iteration, 9, "filter called incorrectly for previousSibling()");
+      assertEquals(w.lastChild(), doc.getElementsByTagName('title')[0], "w.lastChild() didn't return the right node"); // 10
+      assertEquals(w.nextSibling(), null, "w.nextSibling() didn't return the right node"); // 11 (filter called on parent, to see if it's included, otherwise it could skip that and find a nextsibling elsewhere)
+      assertEquals(iteration, 11, "filter called incorrectly for nextSibling()");
+      assertEquals(w.parentNode(), doc.documentElement.firstChild, "w.parentNode() didn't return the right node"); // 12
+      assertEquals(w.nextSibling(), doc.documentElement.lastChild, "w.nextSibling() didn't return the right node"); // 13
+      check(w, "previousSibling"); // 14
+      check(w, "parentNode"); // 15
+      return 1;
+    },
+    function () {
+      // test 2: Removing nodes during iteration
+      var count = 0;
+      var expect = function(n, node1, node2) {
+        count += 1;
+        assert(n == count, "reached expectation " + n + " when expecting expectation " + count);
+        assertEquals(node1, node2, "expectation " + count + " failed");
+      };
+      var doc = getTestDocument();
+      var t1 = doc.body.appendChild(doc.createElement('t1'));
+      var t2 = doc.body.appendChild(doc.createElement('t2'));
+      var t3 = doc.body.appendChild(doc.createElement('t3'));
+      var t4 = doc.body.appendChild(doc.createElement('t4'));
+      var callCount = 0;
+      var filterFunctions = [
+        function (node) { expect(1, node, doc.body); return true; }, // filter 0
+        function (node) { expect(3, node, t1); return true; }, // filter 1
+        function (node) { expect(5, node, t2); return true; }, // filter 2
+        function (node) { expect(7, node, t3); doc.body.removeChild(t4); return true; }, // filter 3
+        function (node) { expect(9, node, t4); return true; }, // filter 4
+        function (node) { expect(11, node, t4); doc.body.removeChild(t4); return 2 /* REJECT */; }, // filter 5
+        function (node) { expect(12, node, t3); return true; }, // filter 6
+        function (node) { expect(14, node, t2); doc.body.removeChild(t2); return true; }, // filter 7
+        function (node) { expect(16, node, t1); return true; }, // filter 8
+      ];
+      var i = doc.createNodeIterator(doc.documentElement.lastChild, 0xFFFFFFFF, function (node) { return filterFunctions[callCount++](node); }, true);
+      // * B 1 2 3 4
+      expect(2, i.nextNode(), doc.body); // filter 0
+      // [B] * 1 2 3 4
+      expect(4, i.nextNode(), t1); // filter 1
+      // B [1] * 2 3 4
+      expect(6, i.nextNode(), t2); // filter 2
+      // B 1 [2] * 3 4
+      expect(8, i.nextNode(), t3); // filter 3
+      // B 1 2 [3] *
+      doc.body.appendChild(t4);
+      // B 1 2 [3] * 4
+      expect(10, i.nextNode(), t4); // filter 4
+      // B 1 2 3 [4] *
+      expect(13, i.previousNode(), t3); // filters 5, 6
+        // B 1 2 3 * (4) // filter 5
+        // B 1 2 [3] *   // between 5 and 6
+        // B 1 2 * (3)   // filter 6
+      // B 1 2 * [3]
+      expect(15, i.previousNode(), t2); // filter 7
+        // B 1 * (2) [3]
+        // -- spec says "For instance, if a NodeFilter removes a node
+        //    from a document, it can still accept the node, which
+        //    means that the node may be returned by the NodeIterator
+        //    or TreeWalker even though it is no longer in the subtree
+        //    being traversed."
+        // -- but it also says "If changes to the iterated list do not
+        //    remove the reference node, they do not affect the state
+        //    of the NodeIterator."
+      // B 1 * [3]
+      expect(17, i.previousNode(), t1); // filter 8
+      // B [1] * 3
+      return 1;
+    },
+    function () {
+      // test 3: the infinite iterator
+      var doc = getTestDocument();
+      for (var i = 0; i < 5; i += 1) {
+        doc.body.appendChild(doc.createElement('section'));
+        doc.body.lastChild.title = i;
+      }
+      var count = 0;
+      var test = function() {
+        if (count > 3 && count < 12)
+          doc.body.appendChild(doc.body.firstChild);
+        count += 1;
+        return (count % 2 == 0) ? 1 : 2;
+      };
+      var i = doc.createNodeIterator(doc.body, 0xFFFFFFFF, test, true);
+      assertEquals(i.nextNode().title, "0", "failure 1");
+      assertEquals(i.nextNode().title, "2", "failure 2");
+      assertEquals(i.nextNode().title, "4", "failure 3");
+      assertEquals(i.nextNode().title, "1", "failure 4");
+      assertEquals(i.nextNode().title, "3", "failure 5");
+      assertEquals(i.nextNode().title, "0", "failure 6");
+      assertEquals(i.nextNode().title, "2", "failure 7");
+      assertEquals(i.nextNode(), null, "failure 8");
+      return 1;
+    },
+    function () {
+      // test 4: ignoring whitespace text nodes with node iterators
+      var count = 0;
+      var expect = function(node1, node2) {
+        count += 1;
+        assertEquals(node1, node2, "expectation " + count + " failed");
+      };
+      var allButWS = function (node) {
+        if (node.nodeType == 3 && node.data.match(/^\s*$/))
+          return 2;
+        return 1;
+      };
+      var i = document.createNodeIterator(document.body, 0x01 | 0x04 | 0x08 | 0x10 | 0x20, allButWS, true);
+      // now walk the document body and make sure everything is in the right place
+      expect(i.nextNode(), document.body); // 1
+      expect(i.nextNode(), document.getElementsByTagName('h1')[0]);
+      expect(i.nextNode(), document.getElementsByTagName('h1')[0].firstChild);
+      expect(i.nextNode(), document.getElementsByTagName('div')[0]);
+      expect(i.nextNode(), document.getElementById('bucket1'));
+      expect(i.nextNode(), document.getElementById('bucket2'));
+      expect(i.nextNode(), document.getElementById('bucket3'));
+      expect(i.nextNode(), document.getElementById('bucket4'));
+      expect(i.nextNode(), document.getElementById('bucket5'));
+      expect(i.nextNode(), document.getElementById('bucket6')); // 10
+      expect(i.nextNode(), document.getElementById('result'));
+      expect(i.nextNode(), document.getElementById('score'));
+      expect(i.nextNode(), document.getElementById('score').firstChild);
+      expect(i.nextNode(), document.getElementById('slash'));
+      expect(i.nextNode(), document.getElementById('slash').firstChild);
+      expect(i.nextNode(), document.getElementById('slash').nextSibling);
+      expect(i.nextNode(), document.getElementById('slash').nextSibling.firstChild);
+      expect(i.nextNode(), document.getElementsByTagName('map')[0]);
+      expect(i.nextNode(), document.getElementsByTagName('area')[0]);
+      expect(i.nextNode(), document.getElementsByTagName('iframe')[0]); // 20
+      expect(i.nextNode(), document.getElementsByTagName('iframe')[0].firstChild);
+      expect(i.nextNode(), document.getElementsByTagName('iframe')[1]);
+      expect(i.nextNode(), document.getElementsByTagName('iframe')[1].firstChild);
+      expect(i.nextNode(), document.getElementsByTagName('iframe')[2]);
+      expect(i.nextNode(), document.forms[0]);
+      expect(i.nextNode(), document.forms.form.elements[0]);
+      expect(i.nextNode(), document.getElementsByTagName('table')[0]);
+      expect(i.nextNode(), document.getElementsByTagName('tbody')[0]);
+      expect(i.nextNode(), document.getElementsByTagName('tr')[0]);
+      expect(i.nextNode(), document.getElementsByTagName('td')[0]);
+      expect(i.nextNode(), document.getElementsByTagName('td')[0].getElementsByTagName('p')[0]);
+      expect(i.nextNode(), document.getElementById('instructions'));
+      expect(i.nextNode(), document.getElementById('instructions').firstChild);
+      expect(i.nextNode().nodeName, "SPAN");
+      expect(i.nextNode().nodeName, "#text");
+      expect(i.nextNode(), document.links[1]);
+      expect(i.nextNode(), document.links[1].firstChild);
+      expect(i.nextNode(), document.getElementById('instructions').lastChild);
+      expect(i.nextNode(), null);
+      // walk it backwards for good measure
+      expect(i.previousNode(), document.getElementById('instructions').lastChild);
+      expect(i.previousNode(), document.links[1].firstChild);
+      expect(i.previousNode(), document.links[1]);
+      expect(i.previousNode().nodeName, "#text");
+      expect(i.previousNode().nodeName, "SPAN");
+      expect(i.previousNode(), document.getElementById('instructions').firstChild);
+      expect(i.previousNode(), document.getElementById('instructions'));
+      expect(i.previousNode(), document.getElementsByTagName('td')[0].getElementsByTagName('p')[0]);
+      expect(i.previousNode(), document.getElementsByTagName('td')[0]);
+      expect(i.previousNode(), document.getElementsByTagName('tr')[0]);
+      expect(i.previousNode(), document.getElementsByTagName('tbody')[0]);
+      expect(i.previousNode(), document.getElementsByTagName('table')[0]);
+      expect(i.previousNode(), document.forms.form.elements[0]);
+      expect(i.previousNode(), document.forms[0]);
+      expect(i.previousNode(), document.getElementsByTagName('iframe')[2]);
+      expect(i.previousNode(), document.getElementsByTagName('iframe')[1].firstChild);
+      expect(i.previousNode(), document.getElementsByTagName('iframe')[1]);
+      expect(i.previousNode(), document.getElementsByTagName('iframe')[0].firstChild);
+      expect(i.previousNode(), document.getElementsByTagName('iframe')[0]); // 20
+      expect(i.previousNode(), document.getElementsByTagName('area')[0]);
+      expect(i.previousNode(), document.getElementsByTagName('map')[0]);
+      expect(i.previousNode(), document.getElementById('slash').nextSibling.firstChild);
+      expect(i.previousNode(), document.getElementById('slash').nextSibling);
+      expect(i.previousNode(), document.getElementById('slash').firstChild);
+      expect(i.previousNode(), document.getElementById('slash'));
+      expect(i.previousNode(), document.getElementById('score').firstChild);
+      expect(i.previousNode(), document.getElementById('score'));
+      expect(i.previousNode(), document.getElementById('result'));
+      expect(i.previousNode(), document.getElementById('bucket6'));
+      expect(i.previousNode(), document.getElementById('bucket5'));
+      expect(i.previousNode(), document.getElementById('bucket4'));
+      expect(i.previousNode(), document.getElementById('bucket3'));
+      expect(i.previousNode(), document.getElementById('bucket2'));
+      expect(i.previousNode(), document.getElementById('bucket1'));
+      expect(i.previousNode(), document.getElementsByTagName('div')[0]);
+      expect(i.previousNode(), document.getElementsByTagName('h1')[0].firstChild);
+      expect(i.previousNode(), document.getElementsByTagName('h1')[0]);
+      expect(i.previousNode(), document.body);
+      expect(i.previousNode(), null);
+      return 1;
+    },
+    function () {
+      // test 5: ignoring whitespace text nodes with tree walkers
+      var count = 0;
+      var expect = function(node1, node2) {
+        count += 1;
+        assertEquals(node1, node2, "expectation " + count + " failed");
+      };
+      var allButWS = function (node) {
+        if (node.nodeType == 3 && node.data.match(/^\s*$/))
+          return 3;
+        return 1;
+      };
+      var w = document.createTreeWalker(document.body, 0x01 | 0x04 | 0x08 | 0x10 | 0x20, allButWS, true);
+      expect(w.currentNode, document.body);
+      expect(w.parentNode(), null);
+      expect(w.currentNode, document.body);
+      expect(w.firstChild(), document.getElementsByTagName('h1')[0]);
+      expect(w.firstChild().nodeType, 3);
+      expect(w.parentNode(), document.getElementsByTagName('h1')[0]);
+      expect(w.nextSibling().previousSibling.nodeType, 3);
+      expect(w.nextSibling(), document.getElementsByTagName('p')[6]);
+      expect(w.nextSibling(), document.getElementsByTagName('map')[0]);
+      expect(w.lastChild(), document.getElementsByTagName('table')[0]);
+      expect(w.lastChild(), document.getElementsByTagName('tbody')[0]);
+      expect(w.nextNode(), document.getElementsByTagName('tr')[0]);
+      expect(w.nextNode(), document.getElementsByTagName('td')[0]);
+      expect(w.nextNode(), document.getElementsByTagName('p')[7]);
+      expect(w.nextNode(), document.getElementsByTagName('p')[8]); // instructions.inc paragraph
+      expect(w.previousSibling(), document.getElementsByTagName('map')[0]);
+      expect(w.previousNode().data, "100");
+      expect(w.parentNode().tagName, "SPAN");
+      expect(w.parentNode(), document.getElementById('result'));
+      expect(w.parentNode(), document.body);
+      expect(w.lastChild().id, "instructions");
+      expect(w.lastChild().data.substr(0,1), ".");
+      expect(w.previousNode(), document.links[1].firstChild);
+      return 1;
+    },
+    function () {
+      // test 6: walking outside a tree
+      var doc = getTestDocument();
+      var p = doc.createElement('p');
+      doc.body.appendChild(p);
+      var b = doc.body;
+      var w = document.createTreeWalker(b, 0xFFFFFFFF, null, true);
+      assertEquals(w.currentNode, b, "basic use of TreeWalker failed: currentNode");
+      assertEquals(w.lastChild(), p, "basic use of TreeWalker failed: lastChild()");
+      assertEquals(w.previousNode(), b, "basic use of TreeWalker failed: previousNode()");
+      doc.documentElement.removeChild(b);
+      assertEquals(w.lastChild(), p, "TreeWalker failed after removing the current node from the tree");
+      assertEquals(w.nextNode(), null, "failed to walk into the end of a subtree");
+      doc.documentElement.appendChild(p);
+      assertEquals(w.previousNode(), doc.getElementsByTagName('title')[0], "failed to handle regrafting correctly");
+      p.appendChild(b);
+      assertEquals(w.nextNode(), p, "couldn't retrace steps");
+      assertEquals(w.nextNode(), b, "couldn't step back into root");
+      assertEquals(w.previousNode(), null, "root didn't retake its rootish position");
+      return 1;
+    },
+
+    // DOM Range
+    function () {
+      // test 7: basic ranges tests
+      var r = document.createRange();
+      assert(r, "range not created");
+      assert(r.collapsed, "new range wasn't collapsed");
+      assertEquals(r.commonAncestorContainer, document, "new range's common ancestor wasn't the document");
+      assertEquals(r.startContainer, document, "new range's start container wasn't the document");
+      assertEquals(r.startOffset, 0, "new range's start offset wasn't zero");
+      assertEquals(r.endContainer, document, "new range's end container wasn't the document");
+      assertEquals(r.endOffset, 0, "new range's end offset wasn't zero");
+      assert(r.cloneContents(), "cloneContents() didn't return an object");
+      assertEquals(r.cloneContents().childNodes.length, 0, "nothing cloned was more than nothing");
+      assertEquals(r.cloneRange().toString(), "", "nothing cloned stringifed to more than nothing");
+      r.collapse(true); // no effect
+      assertEquals(r.compareBoundaryPoints(r.START_TO_END, r.cloneRange()), 0, "starting boundary point of range wasn't the same as the end boundary point of the clone range");
+      r.deleteContents(); // no effect
+      assertEquals(r.extractContents().childNodes.length, 0, "nothing removed was more than nothing");
+      var endOffset = r.endOffset;
+      r.insertNode(document.createComment("commented inserted to test ranges"));
+      r.setEnd(r.endContainer, endOffset + 1); // added to work around spec bug that smaug is blocking the errata for
+      try {
+        assert(!r.collapsed, "range with inserted comment is collapsed");
+        assertEquals(r.commonAncestorContainer, document, "range with inserted comment has common ancestor that isn't the document");
+        assertEquals(r.startContainer, document, "range with inserted comment has start container that isn't the document");
+        assertEquals(r.startOffset, 0, "range with inserted comment has start offset that isn't zero");
+        assertEquals(r.endContainer, document, "range with inserted comment has end container that isn't the document");
+        assertEquals(r.endOffset, 1, "range with inserted comment has end offset that isn't after the comment");
+      } finally {
+        document.removeChild(document.firstChild);
+      }
+      return 1;
+    },
+    function () {
+      // test 8: moving boundary points
+      var doc = document.implementation.createDocument(null, null, null);
+      var root = doc.createElement("root");
+      doc.appendChild(root);
+      var e1 = doc.createElement("e");
+      root.appendChild(e1);
+      var e2 = doc.createElement("e");
+      root.appendChild(e2);
+      var e3 = doc.createElement("e");
+      root.appendChild(e3);
+      var r = doc.createRange();
+      r.setStart(e2, 0);
+      r.setEnd(e3, 0);
+      assert(!r.collapsed, "non-empty range claims to be collapsed");
+      r.setEnd(e1, 0);
+      assert(r.collapsed, "setEnd() didn't collapse the range");
+      assertEquals(r.startContainer, e1, "startContainer is wrong after setEnd()");
+      assertEquals(r.startOffset, 0, "startOffset is wrong after setEnd()");
+      assertEquals(r.endContainer, e1, "endContainer is wrong after setEnd()");
+      assertEquals(r.endOffset, 0, "endOffset is wrong after setEnd()");
+      r.setStartBefore(e3);
+      assert(r.collapsed, "setStartBefore() didn't collapse the range");
+      assertEquals(r.startContainer, root, "startContainer is wrong after setStartBefore()");
+      assertEquals(r.startOffset, 2, "startOffset is wrong after setStartBefore()");
+      assertEquals(r.endContainer, root, "endContainer is wrong after setStartBefore()");
+      assertEquals(r.endOffset, 2, "endOffset is wrong after setStartBefore()");
+      r.setEndAfter(root);
+      assert(!r.collapsed, "setEndAfter() didn't uncollapse the range");
+      assertEquals(r.startContainer, root, "startContainer is wrong after setEndAfter()");
+      assertEquals(r.startOffset, 2, "startOffset is wrong after setEndAfter()");
+      assertEquals(r.endContainer, doc, "endContainer is wrong after setEndAfter()");
+      assertEquals(r.endOffset, 1, "endOffset is wrong after setEndAfter()");
+      r.setStartAfter(e2);
+      assert(!r.collapsed, "setStartAfter() collapsed the range");
+      assertEquals(r.startContainer, root, "startContainer is wrong after setStartAfter()");
+      assertEquals(r.startOffset, 2, "startOffset is wrong after setStartAfter()");
+      assertEquals(r.endContainer, doc, "endContainer is wrong after setStartAfter()");
+      assertEquals(r.endOffset, 1, "endOffset is wrong after setStartAfter()");
+      var msg = '';
+      try {
+        r.setEndBefore(doc);
+        msg = "no exception thrown for setEndBefore() the document itself";
+      } catch (e) {
+// COMMENTED OUT FOR 2011 UPDATE - we may want to merge RangeException and DOMException
+//        if (e.BAD_BOUNDARYPOINTS_ERR != 1)
+//          msg = 'not a RangeException';
+//        else
+//        if (e.INVALID_NODE_TYPE_ERR != 2)
+//          msg = 'RangeException has no INVALID_NODE_TYPE_ERR';
+//        else
+//        if ("INVALID_ACCESS_ERR" in e)
+//          msg = 'RangeException has DOMException constants';
+//        else
+        if (e.code != e.INVALID_NODE_TYPE_ERR)
+          msg = 'wrong exception raised from setEndBefore()';
+      }
+      assert(msg == "", msg);
+      assert(!r.collapsed, "setEndBefore() collapsed the range");
+      assertEquals(r.startContainer, root, "startContainer is wrong after setEndBefore()");
+      assertEquals(r.startOffset, 2, "startOffset is wrong after setEndBefore()");
+      assertEquals(r.endContainer, doc, "endContainer is wrong after setEndBefore()");
+      assertEquals(r.endOffset, 1, "endOffset is wrong after setEndBefore()");
+      r.collapse(false);
+      assert(r.collapsed, "collapse() collapsed the range");
+      assertEquals(r.startContainer, doc, "startContainer is wrong after collapse()");
+      assertEquals(r.startOffset, 1, "startOffset is wrong after collapse()");
+      assertEquals(r.endContainer, doc, "endContainer is wrong after collapse()");
+      assertEquals(r.endOffset, 1, "endOffset is wrong after collapse()");
+      r.selectNodeContents(root);
+      assert(!r.collapsed, "collapsed is wrong after selectNodeContents()");
+      assertEquals(r.startContainer, root, "startContainer is wrong after selectNodeContents()");
+      assertEquals(r.startOffset, 0, "startOffset is wrong after selectNodeContents()");
+      assertEquals(r.endContainer, root, "endContainer is wrong after selectNodeContents()");
+      assertEquals(r.endOffset, 3, "endOffset is wrong after selectNodeContents()");
+      r.selectNode(e2);
+      assert(!r.collapsed, "collapsed is wrong after selectNode()");
+      assertEquals(r.startContainer, root, "startContainer is wrong after selectNode()");
+      assertEquals(r.startOffset, 1, "startOffset is wrong after selectNode()");
+      assertEquals(r.endContainer, root, "endContainer is wrong after selectNode()");
+      assertEquals(r.endOffset, 2, "endOffset is wrong after selectNode()");
+      return 1;
+    },
+    function () {
+      // test 9: extractContents() in a Document
+      var doc = getTestDocument();
+      var h1 = doc.createElement('h1');
+      var t1 = doc.createTextNode('Hello ');
+      h1.appendChild(t1);
+      var em = doc.createElement('em');
+      var t2 = doc.createTextNode('Wonderful');
+      em.appendChild(t2);
+      h1.appendChild(em);
+      var t3 = doc.createTextNode(' Kitty');
+      h1.appendChild(t3);
+      doc.body.appendChild(h1);
+      var p = doc.createElement('p');
+      var t4 = doc.createTextNode('How are you?');
+      p.appendChild(t4);
+      doc.body.appendChild(p);
+      var r = doc.createRange();
+      r.selectNodeContents(doc);
+      assertEquals(r.toString(), "Hello Wonderful KittyHow are you?", "toString() on range selecting Document gave wrong output");
+      r.setStart(t2, 6);
+      r.setEnd(p, 0);
+      // <body><h1>Hello <em>Wonder ful<\em> Kitty<\h1><p> How are you?<\p><\body>     (the '\'s are to avoid validation errors)
+      //                           ^----------------------^
+      assertEquals(r.toString(), "ful Kitty", "toString() on range crossing text nodes gave wrong output");
+      var f = r.extractContents();
+      // <h1><em>ful<\em> Kitty<\h1><p><\p>
+      // ccccccccccccccccMMMMMMcccccccccccc
+      assertEquals(f.nodeType, 11, "failure 1");
+      assert(f.childNodes.length == 2, "expected two children in the result, got " + f.childNodes.length);
+      assertEquals(f.childNodes[0].tagName, "H1", "failure 3");
+      assert(f.childNodes[0] != h1, "failure 4");
+      assertEquals(f.childNodes[0].childNodes.length, 2, "failure 5");
+      assertEquals(f.childNodes[0].childNodes[0].tagName, "EM", "failure 6");
+      assert(f.childNodes[0].childNodes[0] != em, "failure 7");
+      assertEquals(f.childNodes[0].childNodes[0].childNodes.length, 1, "failure 8");
+      assertEquals(f.childNodes[0].childNodes[0].childNodes[0].data, "ful", "failure 9");
+      assert(f.childNodes[0].childNodes[0].childNodes[0] != t2, "failure 10");
+      assertEquals(f.childNodes[0].childNodes[1], t3, "failure 11");
+      assert(f.childNodes[0].childNodes[1] != em, "failure 12");
+      assertEquals(f.childNodes[1].tagName, "P", "failure 13");
+      assertEquals(f.childNodes[1].childNodes.length, 0, "failure 14");
+      assert(f.childNodes[1] != p, "failure 15");
+      return 1;
+    },
+    function () {
+      // test 10: Ranges and Attribute Nodes
+// COMMENTED OUT FOR 2011 UPDATE - turns out instead of dropping Attr entirely, as Acid3 originally expected, the API is just being refactored
+//      var e = document.getElementById('result');
+//      if (!e.getAttributeNode)
+//        return 1; // support for attribute nodes is optional in Acid3, because attribute nodes might be removed from DOM Core in the future.
+//      // however, if they're supported, they'd better work:
+//      var a = e.getAttributeNode('id');
+//      var r = document.createRange();
+//      r.selectNodeContents(a);
+//      assertEquals(r.toString(), "result", "toString() didn't work for attribute node");
+//      var t = a.firstChild;
+//      var f = r.extractContents();
+//      assertEquals(f.childNodes.length, 1, "extracted contents were the wrong length");
+//      assertEquals(f.childNodes[0], t, "extracted contents were the wrong node");
+//      assertEquals(t.textContent, 'result', "extracted contents didn't match old attribute value");
+//      assertEquals(r.toString(), '', "extracting contents didn't empty attribute value; instead equals '" + r.toString() + "'");
+//      assertEquals(e.getAttribute('id'), '', "extracting contents didn't change 'id' attribute to empty string");
+//      e.id = 'result';
+      return 1;
+    },
+    function () {
+      // test 11: Ranges and Comments
+      var msg;
+      var doc = getTestDocument();
+      var c1 = doc.createComment("11111");
+      doc.appendChild(c1);
+      var r = doc.createRange();
+      r.selectNode(c1);
+      msg = 'wrong exception raised';
+      try {
+        r.surroundContents(doc.createElement('a'));
+        msg = 'no exception raised';
+      } catch (e) {
+        if ('code' in e)
+          msg += '; code = ' + e.code;
+        if (e.code == 3) // HIERARCHY_REQUEST_ERR
+          msg = '';
+      }
+      assert(msg == '', "when inserting <a> into Document with another child: " + msg);
+      var c2 = doc.createComment("22222");
+      doc.body.appendChild(c2);
+      var c3 = doc.createComment("33333");
+      doc.body.appendChild(c3);
+      r.setStart(c2, 2);
+      r.setEnd(c3, 3);
+      var msg = 'wrong exception raised';
+      try {
+        r.surroundContents(doc.createElement('a'));
+        msg = 'no exception raised';
+      } catch (e) {
+// COMMENTED OUT FOR 2011 UPDATE - DOM Core changes the exception from RangeException.BAD_BOUNDARYPOINTS_ERR (1) to DOMException.INVALID_STATE_ERR (11)
+//        if ('code' in e)
+//          msg += '; code = ' + e.code;
+//        if (e.code == 1)
+          msg = '';
+      }
+      assert(msg == '', "when trying to surround two halves of comment: " + msg);
+      assertEquals(r.toString(), "", "comments returned text");
+      return 1;
+    },
+    function () {
+      // test 12: Ranges under mutations: insertion into text nodes
+      var doc = getTestDocument();
+      var p = doc.createElement('p');
+      var t1 = doc.createTextNode('12345');
+      p.appendChild(t1);
+      var t2 = doc.createTextNode('ABCDE');
+      p.appendChild(t2);
+      doc.body.appendChild(p);
+      var r = doc.createRange();
+      r.setStart(p.firstChild, 2);
+      r.setEnd(p.firstChild, 3);
+      assert(!r.collapsed, "collapsed is wrong at start");
+      assertEquals(r.commonAncestorContainer, p.firstChild, "commonAncestorContainer is wrong at start");
+      assertEquals(r.startContainer, p.firstChild, "startContainer is wrong at start");
+      assertEquals(r.startOffset, 2, "startOffset is wrong at start");
+      assertEquals(r.endContainer, p.firstChild, "endContainer is wrong at start");
+      assertEquals(r.endOffset, 3, "endOffset is wrong at start");
+      assertEquals(r.toString(), "3", "range in text node stringification failed");
+      r.insertNode(p.lastChild);
+      assertEquals(p.childNodes.length, 3, "insertion of node made wrong number of child nodes");
+      assertEquals(p.childNodes[0], t1, "unexpected first text node");
+      assertEquals(p.childNodes[0].data, "12", "unexpected first text node contents");
+      assertEquals(p.childNodes[1], t2, "unexpected second text node");
+      assertEquals(p.childNodes[1].data, "ABCDE", "unexpected second text node");
+      assertEquals(p.childNodes[2].data, "345", "unexpected third text node contents");
+      // The spec is very vague about what exactly should be in the range afterwards:
+      // the insertion results in a splitText(), which it says is equivalent to a truncation
+      // followed by an insertion, but it doesn't say what to do when you have a truncation,
+      // so we don't know where either the start or the end boundary points end up.
+      // The spec really should be clarified for how to handle splitText() and
+      // text node truncation in general
+      // The only thing that seems very clear is that the inserted text node should
+      // be in the range, and it has to be at the start, since insertion always puts it at
+      // the start.
+      assert(!r.collapsed, "collapsed is wrong after insertion");
+      assert(r.toString().match(/^ABCDE/), "range didn't start with the expected text; range stringified to '" + r.toString() + "'");
+      return 1;
+    },
+    function () {
+      // test 13: Ranges under mutations: deletion
+      var doc = getTestDocument();
+      var p = doc.createElement('p');
+      p.appendChild(doc.createTextNode("12345"));
+      doc.body.appendChild(p);
+      var r = doc.createRange();
+      r.setEnd(doc.body, 1);
+      r.setStart(p.firstChild, 2);
+      assert(!r.collapsed, "collapsed is wrong at start");
+      assertEquals(r.commonAncestorContainer, doc.body, "commonAncestorContainer is wrong at start");
+      assertEquals(r.startContainer, p.firstChild, "startContainer is wrong at start");
+      assertEquals(r.startOffset, 2, "startOffset is wrong at start");
+      assertEquals(r.endContainer, doc.body, "endContainer is wrong at start");
+      assertEquals(r.endOffset, 1, "endOffset is wrong at start");
+      doc.body.removeChild(p);
+      assert(r.collapsed, "collapsed is wrong after deletion");
+      assertEquals(r.commonAncestorContainer, doc.body, "commonAncestorContainer is wrong after deletion");
+      assertEquals(r.startContainer, doc.body, "startContainer is wrong after deletion");
+      assertEquals(r.startOffset, 0, "startOffset is wrong after deletion");
+      assertEquals(r.endContainer, doc.body, "endContainer is wrong after deletion");
+      assertEquals(r.endOffset, 0, "endOffset is wrong after deletion");
+      return 1;
+    },
+
+    // HTTP
+    function () {
+      // test 14: HTTP - Content-Type: image/png
+      assert(!notifications['empty.png'], "privilege escalation security bug: PNG ran script");
+      var iframe = document.getElementsByTagName('iframe')[0];
+      assert(iframe, "no <iframe> support");
+      if (iframe && iframe.contentDocument) {
+        var ps = iframe.contentDocument.getElementsByTagName('p');
+        if (ps.length > 0) {
+          if (ps[0].firstChild && ps[0].firstChild.data && ps[0].firstChild.data == 'FAIL')
+            fail("PNG was parsed as HTML.");
+        }
+      }
+      return 1;
+    },
+    function () {
+      // test 15: HTTP - Content-Type: text/plain
+      assert(!notifications['empty.txt'], "privilege escalation security bug: text file ran script");
+      var iframe = document.getElementsByTagName('iframe')[1];
+      assert(iframe, "no <iframe> support");
+      if (iframe && iframe.contentDocument) {
+        var ps = iframe.contentDocument.getElementsByTagName('p');
+        if (ps.length > 0) {
+          if (ps[0].firstChild && ps[0].firstChild.data && ps[0].firstChild.data == 'FAIL')
+            fail("text/plain file was parsed as HTML");
+        }
+      }
+      return 1;
+    },
+    function () {
+      // test 16: <object> handling and HTTP status codes
+      var oC = document.createElement('object');
+      oC.appendChild(document.createTextNode("FAIL"));
+      var oB = document.createElement('object');
+      var oA = document.createElement('object');
+      oA.data = "support-a.png?pipe=status(404)";
+      oB.data = "support-b.png";
+      oB.appendChild(oC);
+      oC.data = "support-c.png";
+      oA.appendChild(oB);
+      document.getElementsByTagName("map")[0].appendChild(oA);
+      // assuming the above didn't raise any exceptions, this test has passed
+      // (the real test is whether the rendering is correct)
+      return 1;
+    },
+
+    // bucket 2: DOM2 Core and DOM2 Events
+    // Core
+    function () {
+      // test 17: hasAttribute
+      // missing attribute
+      assert(!document.getElementsByTagName('map')[0].hasAttribute('id'), "hasAttribute failure for 'id' on map");
+      // implied attribute
+      assert(!document.getElementsByTagName('form')[0].hasAttribute('method'), "hasAttribute failure for 'method' on form");
+      // actually present attribute
+      assert(document.getElementsByTagName('form')[0].hasAttribute('action'), "hasAttribute failure for 'action' on form");
+      assertEquals(document.getElementsByTagName('form')[0].getAttribute('action'), '', "attribute 'action' on form has wrong value");
+      return 2;
+    },
+    function () {
+      // test 18: nodeType (this test also relies on accurate parsing of the document)
+      assertEquals(document.nodeType, 9, "document nodeType wrong");
+      assertEquals(document.documentElement.nodeType, 1, "element nodeType wrong");
+// COMMENTED OUT FOR 2011 UPDATE - turns out instead of dropping Attr entirely, as Acid3 originally expected, the API is just being refactored
+//      if (document.createAttribute) // support for attribute nodes is optional in Acid3, because attribute nodes might be removed from DOM Core in the future.
+//        assertEquals(document.createAttribute('test').nodeType, 2, "attribute nodeType wrong"); // however, if they're supported, they'd better work
+      assertEquals(document.getElementById('score').firstChild.nodeType, 3, "text node nodeType wrong");
+      assertEquals(document.firstChild.nodeType, 10, "DOCTYPE nodeType wrong");
+      return 2;
+    },
+    function () {
+      // test 19: value of constants
+      var e = null;
+      try {
+        document.body.appendChild(document.documentElement);
+         // raises a HIERARCHY_REQUEST_ERR
+      } catch (err) {
+        e = err;
+      }
+      assertEquals(document.DOCUMENT_FRAGMENT_NODE, 11, "document DOCUMENT_FRAGMENT_NODE constant missing or wrong");
+      assertEquals(document.body.COMMENT_NODE, 8, "element COMMENT_NODE constant missing or wrong");
+      assertEquals(document.createTextNode('').ELEMENT_NODE, 1, "text node ELEMENT_NODE constant missing or wrong");
+      assert(e.HIERARCHY_REQUEST_ERR == 3, "exception HIERARCHY_REQUEST_ERR constant missing or wrong")
+      assertEquals(e.code, 3, "incorrect exception raised from appendChild()");
+      return 2;
+    },
+    function () {
+      // test 20: nulls bytes in various places
+      assert(!document.getElementById('bucket1\0error'), "null in getElementById() probably terminated string");
+      var ok = true;
+      try {
+        document.createElement('form\0div');
+        ok = false;
+      } catch (e) {
+        if (e.code != 5)
+          ok = false;
+      }
+      assert(ok, "didn't raise the right exception for null byte in createElement()");
+      return 2;
+    },
+    function () {
+      // test 21: basic namespace stuff
+      var element = document.createElementNS('http://ns.example.com/', 'prefix:localname');
+      assertEquals(element.tagName, 'prefix:localname', "wrong tagName");
+      assertEquals(element.nodeName, 'prefix:localname', "wrong nodeName");
+      assertEquals(element.prefix, 'prefix', "wrong prefix");
+      assertEquals(element.localName, 'localname', "wrong localName");
+      assertEquals(element.namespaceURI, 'http://ns.example.com/', "wrong namespaceURI");
+      return 2;
+    },
+    function () {
+      // test 22: createElement() with invalid tag names
+      var test = function (name) {
+        var result;
+        try {
+          var div = document.createElement(name);
+        } catch (e) {
+          result = e;
+        }
+        assert(result, "no exception for createElement('" + name + "')");
+        assertEquals(result.code, 5, "wrong exception for createElement('" + name + "')"); // INVALID_CHARACTER_ERR
+      }
+      test('<div>');
+      test('0div');
+      test('di v');
+      test('di<v');
+      test('-div');
+      test('.div');
+      return 2;
+    },
+    function () {
+      // test 23: createElementNS() with invalid tag names
+      var test = function (name, ns, code) {
+        var result;
+        try {
+          var div = document.createElementNS(ns, name);
+        } catch (e) {
+          result = e;
+        }
+        assert(result, "no exception for createElementNS('" + ns + "', '" + name + "')");
+        assertEquals(result.code, code, "wrong exception for createElementNS('" + ns + "', '" + name + "')");
+      }
+      test('<div>', null, 5);
+      test('0div', null, 5);
+      test('di v', null, 5);
+      test('di<v', null, 5);
+      test('-div', null, 5);
+      test('.div', null, 5);
+      test('<div>', "http://example.com/", 5);
+      test('0div', "http://example.com/", 5);
+      test('di<v', "http://example.com/", 5);
+      test('-div', "http://example.com/", 5);
+      test('.div', "http://example.com/", 5);
+      //test(':div', null, 14);
+      //test(':div', "http://example.com/", 14);
+      test('d:iv', null, 14);
+      test('xml:test', "http://example.com/", 14);
+      test('xmlns:test', "http://example.com/", 14); // (technically a DOM3 Core test)
+      test('x:test', "http://www.w3.org/2000/xmlns/", 14); // (technically a DOM3 Core test)
+      document.createElementNS("http://www.w3.org/2000/xmlns/", 'xmlns:test'); // (technically a DOM3 Core test)
+      return 2;
+    },
+    function () {
+      // test 24: event handler attributes
+      assertEquals(document.body.getAttribute('onload'), "update()  /* this attribute's value is tested in one of the tests */ ", "onload value wrong");
+      return 2;
+    },
+    function () {
+      // test 25: test namespace checking in createDocumentType, and
+      // check that exceptions that are thrown are DOMException objects
+      var message = "";
+      try {
+        document.implementation.createDocumentType('a:', '', ''); /* doesn't contain an illegal character; is malformed */
+        message = "failed to raise exception";
+      } catch (e) {
+        /*if (e.code != e.NAMESPACE_ERR)
+          message = "wrong exception";
+        else if (e.INVALID_ACCESS_ERR != 15)
+          message = "exceptions don't have all the constants";*/
+      }
+      if (message)
+        fail(message);
+      return 2;
+    },
+    function () {
+      // test 26: check that document tree survives while still accessible
+      var d;
+      // e1 - an element that's in a document
+      d = document.implementation.createDocument(null, null, null);
+      var e1 = d.createElement('test');
+      d.appendChild(d.createElement('root'));
+      d.documentElement.appendChild(e1);
+      assert(e1.parentNode, "e1 - parent element doesn't exist");
+      assert(e1.parentNode.ownerDocument, "e1 - document doesn't exist");
+      // e2 - an element that's not in a document
+      d = document.implementation.createDocument(null, null, null);
+      var e2 = d.createElement('test');
+      d.createElement('root').appendChild(e2);
+      assert(e2.parentNode, "e2 - parent element doesn't exist");
+      assert(e2.parentNode.ownerDocument, "e2 - document doesn't exist");
+      // now try to decouple them
+      d = null;
+      kungFuDeathGrip = [e1, e2];
+      assert(e1.parentNode, "e1 - parent element doesn't exist after dropping reference to document");
+      assert(e1.parentNode.ownerDocument, "e1 - document doesn't exist after dropping reference to document");
+      assert(e2.parentNode, "e2 - parent element doesn't exist after dropping reference to document");
+      assert(e2.parentNode.ownerDocument, "e2 - document doesn't exist after dropping reference to document");
+      var loops = new Date().valueOf() * 2.813435e-9 - 2412; // increases linearly over time
+      for (var i = 0; i < loops; i += 1) {
+        // we want to force a GC here, so we use up lots of memory
+        // we take the opportunity to sneak in a perf test to make DOM and JS stuff faster...
+        d = new Date();
+        d = new (function (x) { return { toString: function () { return x.toString() } } })(d.valueOf());
+        d = document.createTextNode("iteration " + i + " at " + d);
+        document.createElement('a').appendChild(d);
+        d = d.parentNode;
+        document.body.insertBefore(d, document.getElementById('bucket1').parentNode);
+        assert(document.getElementById('bucket2').nextSibling.parentNode.previousSibling.firstChild.data.match(/AT\W/i), "iteration " + i + " failed");
+        d.setAttribute('class', d.textContent);
+        document.body.removeChild(d);
+      }
+      assert(e1.parentNode, "e1 - parent element doesn't exist after looping");
+      assert(e1.parentNode.ownerDocument, "e1 - document doesn't exist after looping");
+      assertEquals(e1.parentNode.ownerDocument.nodeType, 9, "e1 - document node type has wrong node type");
+      assert(e2.parentNode, "e2 - parent element doesn't exist after looping");
+      assert(e2.parentNode.ownerDocument, "e2 - document doesn't exist after looping");
+      assertEquals(e2.parentNode.ownerDocument.nodeType, 9, "e2 - document node type has wrong node type");
+      return 2;
+    },
+    function () {
+      // test 27: a continuation of the previous test
+      var e1 = kungFuDeathGrip[0];
+      var e2 = kungFuDeathGrip[1];
+      kungFuDeathGrip = null;
+      assert(e1, "e1 - element itself didn't survive across tests");
+      assert(e1.parentNode, "e1 - parent element doesn't exist after waiting");
+      assert(e1.parentNode.ownerDocument, "e1 - document doesn't exist after waiting");
+      assertEquals(e1.parentNode.ownerDocument.nodeType, 9, "e1 - document node type has wrong node type after waiting");
+      assert(e2, "e2 - element itself didn't survive across tests");
+      assert(e2.parentNode, "e2 - parent element doesn't exist after waiting");
+      assert(e2.parentNode.ownerDocument, "e2 - document doesn't exist after waiting");
+      assertEquals(e2.parentNode.ownerDocument.nodeType, 9, "e2 - document node type has wrong node type after waiting");
+      return 2;
+    },
+    function () {
+      // test 28: getElementById()
+      // ...and name=""
+      assert(document.getElementById('form') !== document.getElementsByTagName('form')[0], "getElementById() searched on 'name'");
+      // ...and a space character as the ID
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode('FAIL'));
+      div.id = " ";
+      document.body.appendChild(div); // it's hidden by CSS
+      assert(div === document.getElementById(" "), "getElementById() didn't return the right element");
+      return 2;
+    },
+    function () {
+      // test 29: check that whitespace survives cloning
+      var t1 = document.getElementsByTagName('table')[0];
+      var t2 = t1.cloneNode(true);
+      assertEquals(t2.tBodies[0].rows[0].cells[0].firstChild.tagName, 'P', "<p> didn't clone right");
+      assertEquals(t2.tBodies[0].rows[0].cells[0].firstChild.childNodes.length, 0, "<p> got child nodes after cloning");
+      assertEquals(t2.childNodes.length, 2, "cloned table had wrong number of children");
+      assertEquals(t2.lastChild.data, " ", "cloned table lost whitespace text node");
+      return 2;
+    },
+
+    // Events
+    function () {
+      // test 30: dispatchEvent()
+      var count = 0;
+      var ok = true;
+      var test = function (event) {
+        if (event.detail != 6)
+          ok = false;
+        count++;
+      };
+      // test event listener addition
+      document.getElementById('result').addEventListener('test', test, false);
+      // test event creation
+      var event = document.createEvent('UIEvents');
+      event.initUIEvent('test', true, false, null, 6);
+      // test event dispatch on elements and text nodes
+      assert(document.getElementById('score').dispatchEvent(event), "dispatchEvent #1 failed");
+      assert(document.getElementById('score').nextSibling.dispatchEvent(event), "dispatchEvent #2 failed");
+      // test event listener removal
+      document.getElementById('result').removeEventListener('test', test, false);
+      assert(document.getElementById('score').dispatchEvent(event), "dispatchEvent #3 failed");
+      assertEquals(count, 2, "unexpected number of events handled");
+      assert(ok, "unexpected events handled");
+      return 2;
+    },
+    function () {
+      // test 31: event.stopPropagation() and capture
+      // we're going to use an input element because we can cause events to bubble from it
+      var input = document.createElement('input');
+      var div = document.createElement('div');
+      div.appendChild(input);
+      document.body.appendChild(div);
+      // the test will consist of two event handlers:
+      var ok = true;
+      var captureCount = 0;
+      var testCapture = function (event) {
+        ok = ok &&
+             (event.type == 'click') &&
+             (event.target == input) &&
+             (event.currentTarget == div) &&
+             (event.eventPhase == 1) &&
+             (event.bubbles) &&
+             (event.cancelable);
+        captureCount++;
+        event.stopPropagation(); // this shouldn't stop it from firing both times on the div element
+      };
+      var testBubble = function (event) {
+        ok = false;
+      };
+      // one of which is added twice:
+      div.addEventListener('click', function (event) { testCapture(event) }, true);
+      div.addEventListener('click', function (event) { testCapture(event) }, true);
+      div.addEventListener('click', testBubble, false);
+      // we cause an event to bubble like this:
+      input.type = 'reset';
+      input.click();
+      // cleanup afterwards
+      document.body.removeChild(div);
+      // capture handler should have been called twice
+      assertEquals(captureCount, 2, "capture handler called the wrong number of times");
+      assert(ok, "capture handler called incorrectly");
+      return 2;
+    },
+    function () {
+      // test 32: events bubbling through Document node
+      // event handler:
+      var ok = true;
+      var count = 0;
+      var test = function (event) {
+        count += 1;
+        if (event.eventPhase != 3)
+          ok = false;
+      }
+      // register event handler
+      document.body.addEventListener('click', test, false);
+      // create an element that bubbles an event, and bubble it
+      var input = document.createElement('input');
+      var div = document.createElement('div');
+      div.appendChild(input);
+      document.body.appendChild(div);
+      input.type = 'reset';
+      input.click();
+      // unregister event handler
+      document.body.removeEventListener('click', test, false);
+      // check that it's removed for good
+      input.click();
+      // remove the newly added elements
+      document.body.removeChild(div);
+      assertEquals(count, 1, "capture handler called the wrong number of times");
+      assert(ok, "capture handler called incorrectly");
+      return 2;
+    },
+
+    // bucket 3: DOM2 Views, DOM2 Style, and Selectors
+    function () {
+      // test 33: basic tests for selectors - classes, attributes
+      var p;
+      var builder = function(doc) {
+        p = doc.createElement("p");
+        doc.body.appendChild(p);
+      };
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        p.className = "selectorPingTest";
+        var good = add(".selectorPingTest");
+        add(".SelectorPingTest");
+        add(".selectorpingtest");
+        expect(doc.body, 0, "failure 1");
+        expect(p, good, "failure 2");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        p.className = 'a\u0020b\u0009c\u000Ad\u000De\u000Cf\u2003g\u3000h';
+        var good = add(".a.b.c.d.e.f\\2003g\\3000h");
+        expect(p, good, "whitespace error in class processing");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        p.className = "selectorPingTest";
+        var good = add("[class=selectorPingTest]");
+        add("[class=SelectorPingTest]");
+        add("[class=selectorpingtest]");
+        expect(doc.body, 0, "failure 3");
+        expect(p, good, "class attribute matching failed");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        p.className = "selectorPingTest";
+        var good = add("[title=selectorPingTest]");
+        add("[title=SelectorPingTest]");
+        add("[title=selectorpingtest]");
+        expect(doc.body, 0, "failure 4");
+        expect(p, 0, "failure 5");
+        p.title = "selectorPingTest";
+        expect(doc.body, 0, "failure 6");
+        expect(p, good, "failure 7");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        p.setAttribute('align', 'right and left');
+        var good = add("[align=\"right and left\"]");
+        add("[align=left]");
+        add("[align=right]");
+        expect(p, good, "align attribute mismatch");
+      });
+      return 3;
+    },
+    function () {
+      // test 34: :lang() and [|=]
+      var div1;
+      var div2;
+      var p;
+      var builder = function(doc) {
+        div1 = doc.createElement('div');
+        div1.setAttribute("lang", "english");
+        div1.setAttribute("class", "widget-tree");
+        doc.body.appendChild(div1);
+        div2 = doc.createElement('div');
+        div2.setAttribute("lang", "en-GB");
+        div2.setAttribute("class", "WIDGET");
+        doc.body.appendChild(div2);
+        p = doc.createElement('p');
+        div2.appendChild(p);
+      };
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var lang_en = add(":lang(en)");
+        expect(div1, 0, "lang=english should not be matched by :lang(en)");
+        expect(div2, lang_en, "lang=en-GB should be matched by :lang(en)");
+        expect(p, lang_en, "descendants inheriting lang=en-GB should be matched by :lang(en)");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var class_widget = add("[class|=widget]");
+        expect(div1, class_widget, "class attribute should be supported by |= attribute selectors");
+        expect(div2, 0, "class attribute is case-sensitive");
+      });
+      return 3;
+    },
+    function () {
+      // test 35: :first-child
+      selectorTest(function (doc, add, expect) {
+        var notFirst = 0;
+        var first = add(":first-child");
+        var p1 = doc.createElement("p");
+        doc.body.appendChild(doc.createTextNode(" TEST "));
+        doc.body.appendChild(p1);
+        //expect(doc.documentElement, notFirst, "root element, with no parent node, claims to be a :first-child");
+        expect(doc.documentElement.firstChild, first, "first child of root node didn't match :first-child");
+        expect(doc.documentElement.firstChild.firstChild, first, "failure 3");
+        expect(doc.body, notFirst, "failure 4");
+        expect(p1, first, "failure 5");
+        var p2 = doc.createElement("p");
+        doc.body.appendChild(p2);
+        expect(doc.body, notFirst, "failure 6");
+        expect(p1, first, "failure 7");
+        expect(p2, notFirst, "failure 8");
+        var p0 = doc.createElement("p");
+        doc.body.insertBefore(p0, p1);
+        expect(doc.body, notFirst, "failure 9");
+        expect(p0, first, "failure 10");
+        expect(p1, notFirst, ":first-child still applies to element that was previously a first child");
+        expect(p2, notFirst, "failure 12");
+        doc.body.insertBefore(p0, p2);
+        expect(doc.body, notFirst, "failure 13");
+        expect(p1, first, "failure 14");
+        expect(p0, notFirst, "failure 15");
+        expect(p2, notFirst, "failure 16");
+      });
+      return 3;
+    },
+    function () {
+      // test 36: :last-child
+      var p1;
+      var p2;
+      var builder = function(doc) {
+        p1 = doc.createElement('p');
+        p2 = doc.createElement('p');
+        doc.body.appendChild(p1);
+        doc.body.appendChild(p2);
+      };
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var last = add(":last-child");
+        expect(p1, 0, "control test for :last-child failed");
+        expect(p2, last, "last child did not match :last-child");
+        doc.body.appendChild(p1);
+        expect(p2, 0, ":last-child matched element with a following sibling");
+        expect(p1, last, "failure 4");
+        p1.appendChild(p2);
+        expect(p2, last, "failure 5");
+        expect(p1, last, "failure 6");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var last = add(":last-child");
+        expect(p1, 0, "failure 7");
+        expect(p2, last, "failure 8");
+        doc.body.insertBefore(p2, p1);
+        expect(p2, 0, "failure 9");
+        expect(p1, last, "failure 10");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var last = add(":last-child");
+        expect(p1, 0, "failure 11");
+        expect(p2, last, "failure 12");
+        doc.body.removeChild(p2);
+        expect(p1, last, "failure 13");
+        assertEquals(p1.nextSibling, null, "failure 14");
+        assertEquals(p2.parentNode, null, "failure 15");
+      });
+      return 3;
+    },
+    function () {
+      // test 37: :only-child
+      var p1;
+      var p2;
+      var builder = function(doc) {
+        p1 = doc.createElement('p');
+        p2 = doc.createElement('p');
+        doc.body.appendChild(p1);
+        doc.body.appendChild(p2);
+      };
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var only = add(":only-child");
+        expect(p1, 0, "control test for :only-child failed");
+        expect(p2, 0, "failure 2");
+        doc.body.removeChild(p2);
+        expect(p1, only, ":only-child did not match only child");
+        p1.appendChild(p2);
+        expect(p2, only, "failure 4");
+        expect(p1, only, "failure 5");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var only = add(":only-child");
+        expect(p1, 0, "failure 6");
+        expect(p2, 0, "failure 7");
+        doc.body.removeChild(p1);
+        expect(p2, only, "failure 8");
+        p2.appendChild(p1);
+        expect(p2, only, "failure 9");
+        expect(p1, only, "failure 10");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var only = add(":only-child");
+        expect(p1, 0, "failure 11");
+        expect(p2, 0, "failure 12");
+        var span1 = doc.createElement('span');
+        p1.appendChild(span1);
+        expect(p1, 0, "failure 13");
+        expect(p2, 0, "failure 14");
+        expect(span1, only, "failure 15");
+        var span2 = doc.createElement('span');
+        p1.appendChild(span2);
+        expect(p1, 0, "failure 16");
+        expect(p2, 0, "failure 17");
+        expect(span1, 0, "failure 18");
+        expect(span2, 0, "failure 19");
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var only = add(":only-child");
+        expect(p1, 0, "failure 20");
+        expect(p2, 0, "failure 21");
+        var span1 = doc.createElement('span');
+        p2.appendChild(span1);
+        expect(p1, 0, "failure 22");
+        expect(p2, 0, "failure 23");
+        expect(span1, only, "failure 24");
+        var span2 = doc.createElement('span');
+        p2.insertBefore(span2, span1);
+        expect(p1, 0, "failure 25");
+        expect(p2, 0, "failure 26");
+        expect(span1, 0, "failure 27");
+        expect(span2, 0, "failure 28");
+      });
+      return 3;
+    },
+    function () {
+      // test 38: :empty
+      selectorTest(function (doc, add, expect) {
+        var empty = add(":empty");
+        var p = doc.createElement('p');
+        doc.body.appendChild(p);
+        expect(p, empty, "empty p element didn't match :empty");
+        var span = doc.createElement('span');
+        p.appendChild(span);
+        expect(p, 0, "adding children didn't stop the element matching :empty");
+        expect(span, empty, "empty span element didn't match :empty");
+        p.removeChild(span);
+        expect(p, empty, "removing all children didn't make the element match :empty");
+        p.appendChild(doc.createComment("c"));
+        p.appendChild(doc.createTextNode(""));
+        expect(p, empty, "element with a comment node and an empty text node didn't match :empty");
+        p.appendChild(doc.createTextNode(""));
+        expect(p, empty, "element with a comment node and two empty text nodes didn't match :empty");
+        p.lastChild.data = " ";
+        expect(p, 0, "adding text to a text node didn't make the element non-:empty");
+        assertEquals(p.childNodes.length, 3, "text nodes may have merged");
+// COMMENTED OUT FOR 2011 UPDATE - replaceWholeText() might go away entirely
+//        p.childNodes[1].replaceWholeText("");
+//        assertEquals(p.childNodes.length, 1, "replaceWholeText('') didn't remove text nodes");
+// REPLACEMENT:
+        assertEquals(p.childNodes[1].nodeType, 3, "missing text node before first removal");
+        p.removeChild(p.childNodes[1]);
+        assertEquals(p.childNodes[1].nodeType, 3, "missing text node before second removal");
+        p.removeChild(p.childNodes[1]);
+// END REPLACEMENT TEST
+        expect(p, empty, "element with a comment node only didn't match :empty");
+        p.appendChild(doc.createElementNS("http://example.com/", "test"));
+        expect(p, 0, "adding an element in a namespace didn't make the element non-:empty");
+      });
+      return 3;
+    },
+    function () {
+      // test 39: :nth-child, :nth-last-child
+      var ps;
+      var builder = function(doc) {
+        ps = [
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p')
+        ];
+        for (var i = 0; i < ps.length; i += 1)
+          doc.body.appendChild(ps[i]);
+      };
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-child(odd)");
+        for (var i = 0; i < ps.length; i += 1)
+          expect(ps[i], i % 2 ? 0 : match, ":nth-child(odd) failed with child " + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-child(even)");
+        for (var i = 0; i < ps.length; i += 1)
+          expect(ps[i], i % 2 ? match : 0 , ":nth-child(even) failed with child " + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-child(odd)");
+        doc.body.removeChild(ps[5]);
+        for (var i = 0; i < 5; i += 1)
+          expect(ps[i], i % 2 ? 0 : match, ":nth-child(odd) failed after removal with child " + i);
+        for (var i = 6; i < ps.length; i += 1)
+          expect(ps[i], i % 2 ? match : 0, ":nth-child(odd) failed after removal with child " + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-child(even)");
+        doc.body.removeChild(ps[5]);
+        for (var i = 0; i < 5; i += 1)
+          expect(ps[i], i % 2 ? match : 0, ":nth-child(even) failed after removal with child " + i);
+        for (var i = 6; i < ps.length; i += 1)
+          expect(ps[i], i % 2 ? 0 : match, ":nth-child(even) failed after removal with child " + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-child(-n+3)");
+        for (var i = 0; i < 3; i += 1)
+          expect(ps[i], match, ":nth-child(-n+3) failed with child " + i);
+        for (var i = 3; i < ps.length; i += 1)
+          expect(ps[i], 0, ":nth-child(-n+3) failed with child " + i);
+      });
+      return 3;
+    },
+    function () {
+      // test 40: :first-of-type, :last-of-type, :only-of-type, :nth-of-type, :nth-last-of-type
+      var elements;
+      var builder = function(doc) {
+        elements = [
+          doc.createElement('p'),
+          doc.createElement('div'),
+          doc.createElement('div'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('p'),
+          doc.createElement('div'),
+          doc.createElement('address'),
+          doc.createElement('div'),
+          doc.createElement('div'),
+          doc.createElement('div'),
+          doc.createElement('p'),
+          doc.createElement('div'),
+          doc.createElement('p')
+        ];
+        for (var i = 0; i < elements.length; i += 1)
+          doc.body.appendChild(elements[i]);
+      };
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":first-of-type");
+        var values = [1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 1:" + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":last-of-type");
+        var values = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 2:" + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":only-of-type");
+        var values = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 3:" + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-of-type(3n-1)");
+        var values = [0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 4:" + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-of-type(3n+1)");
+        var values = [1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 5:" + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-last-of-type(2n)");
+        var values = [1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 6:" + i);
+      });
+      selectorTest(function (doc, add, expect) {
+        builder(doc);
+        var match = add(":nth-last-of-type(-5n+3)");
+        var values;
+        values = [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 7:" + i);
+        doc.body.appendChild(doc.createElement('blockquote'));
+        values = [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 8:" + i);
+        doc.body.appendChild(doc.createElement('div'));
+        values = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0];
+        for (var i = 0; i < elements.length; i += 1)
+          expect(elements[i], values[i] ? match : 0, "part 9:" + i);
+      });
+      return 3;
+    },
+    function () {
+      // test 41: :root, :not()
+      selectorTest(function (doc, add, expect) {
+        var match = add(":not(:root)");
+        var p = doc.createElement('p');
+        doc.body.appendChild(p);
+        expect(doc.documentElement, 0, "root was :not(:root)");
+        expect(doc.documentElement.childNodes[0], match,"head was not :not(:root)");
+        expect(doc.documentElement.childNodes[1], match,"body was not :not(:root)");
+        expect(doc.documentElement.childNodes[0].firstChild, match,"title was not :not(:root)");
+        expect(p, match,"p was not :not(:root)");
+      });
+      return 3;
+    },
+    function () {
+      // test 42: +, ~, >, and ' ' in dynamic situations
+      selectorTest(function (doc, add, expect) {
+        var div1 = doc.createElement('div');
+        div1.id = "div1";
+        doc.body.appendChild(div1);
+        var div2 = doc.createElement('div');
+        doc.body.appendChild(div2);
+        var div3 = doc.createElement('div');
+        doc.body.appendChild(div3);
+        var div31 = doc.createElement('div');
+        div3.appendChild(div31);
+        var div311 = doc.createElement('div');
+        div31.appendChild(div311);
+        var div3111 = doc.createElement('div');
+        div311.appendChild(div3111);
+        var match = add("#div1 ~ div div + div > div");
+        expect(div1, 0, "failure 1");
+        expect(div2, 0, "failure 2");
+        expect(div3, 0, "failure 3");
+        expect(div31, 0, "failure 4");
+        expect(div311, 0, "failure 5");
+        expect(div3111, 0, "failure 6");
+        var div310 = doc.createElement('div');
+        div31.insertBefore(div310, div311);
+        expect(div1, 0, "failure 7");
+        expect(div2, 0, "failure 8");
+        expect(div3, 0, "failure 9");
+        expect(div31, 0, "failure 10");
+        expect(div310, 0, "failure 11");
+        expect(div311, 0, "failure 12");
+        expect(div3111, match, "rule did not start matching after change");
+      });
+      selectorTest(function (doc, add, expect) {
+        var div1 = doc.createElement('div');
+        div1.id = "div1";
+        doc.body.appendChild(div1);
+        var div2 = doc.createElement('div');
+        div1.appendChild(div2);
+        var div3 = doc.createElement('div');
+        div2.appendChild(div3);
+        var div4 = doc.createElement('div');
+        div3.appendChild(div4);
+        var div5 = doc.createElement('div');
+        div4.appendChild(div5);
+        var div6 = doc.createElement('div');
+        div5.appendChild(div6);
+        var match = add("#div1 > div div > div");
+        expect(div1, 0, "failure 14");
+        expect(div2, 0, "failure 15");
+        expect(div3, 0, "failure 16");
+        expect(div4, match, "failure 17");
+        expect(div5, match, "failure 18");
+        expect(div6, match, "failure 19");
+        var p34 = doc.createElement('p');
+        div3.insertBefore(p34, div4);
+        p34.insertBefore(div4, null);
+        expect(div1, 0, "failure 20");
+        expect(div2, 0, "failure 21");
+        expect(div3, 0, "failure 22");
+        expect(p34, 0, "failure 23");
+        expect(div4, 0, "failure 24");
+        expect(div5, match, "failure 25");
+        expect(div6, match, "failure 26");
+      });
+      selectorTest(function (doc, add, expect) {
+        var div1 = doc.createElement('div');
+        div1.id = "div1";
+        doc.body.appendChild(div1);
+        var div2 = doc.createElement('div');
+        div1.appendChild(div2);
+        var div3 = doc.createElement('div');
+        div2.appendChild(div3);
+        var div4 = doc.createElement('div');
+        div3.appendChild(div4);
+        var div5 = doc.createElement('div');
+        div4.appendChild(div5);
+        var div6 = doc.createElement('div');
+        div5.appendChild(div6);
+        var match = add("#div1 > div div > div");
+        expect(div1, 0, "failure 27");
+        expect(div2, 0, "failure 28");
+        expect(div3, 0, "failure 29");
+        expect(div4, match, "failure 30");
+        expect(div5, match, "failure 31");
+        expect(div6, match, "failure 32");
+        var p23 = doc.createElement('p');
+        div2.insertBefore(p23, div3);
+        p23.insertBefore(div3, null);
+        expect(div1, 0, "failure 33");
+        expect(div2, 0, "failure 34");
+        expect(div3, 0, "failure 35");
+        expect(p23, 0, "failure 36");
+        expect(div4, match, "failure 37");
+        expect(div5, match, "failure 38");
+        expect(div6, match, "failure 39");
+      });
+      return 3;
+    },
+    function () {
+      // test 43: :enabled, :disabled, :checked, etc
+      selectorTest(function (doc, add, expect) {
+        var input = doc.createElement('input');
+        input.type = 'checkbox';
+        doc.body.appendChild(input);
+        var neither = 0;
+        var both = add(":checked:enabled");
+        var checked = add(":checked");
+        var enabled = add(":enabled");
+        expect(doc.body, neither, "control failure");
+        expect(input, enabled, "input element didn't match :enabled");
+        input.click();
+        expect(input, both, "input element didn't match :checked");
+        input.disabled = true;
+        expect(input, checked, "failure 3");
+        input.checked = false;
+        expect(input, neither, "failure 4");
+        expect(doc.body, neither, "failure 5");
+      });
+      selectorTest(function (doc, add, expect) {
+        var input1 = doc.createElement('input');
+        input1.type = 'radio';
+        input1.name = 'radio';
+        doc.body.appendChild(input1);
+        var input2 = doc.createElement('input');
+        input2.type = 'radio';
+        input2.name = 'radio';
+        doc.body.appendChild(input2);
+        var checked = add(":checked");
+        expect(input1, 0, "failure 6");
+        expect(input2, 0, "failure 7");
+        input2.click();
+        expect(input1, 0, "failure 6");
+        expect(input2, checked, "failure 7");
+        input1.checked = true;
+        expect(input1, checked, "failure 8");
+        expect(input2, 0, "failure 9");
+        input2.setAttribute("checked", "checked"); // sets defaultChecked, doesn't change actual state
+        expect(input1, checked, "failure 10");
+        expect(input2, 0, "failure 11");
+        input1.type = "text";
+        expect(input1, 0, "text field matched :checked");
+      });
+      selectorTest(function (doc, add, expect) {
+        var input = doc.createElement('input');
+        input.type = 'button';
+        doc.body.appendChild(input);
+        var neither = 0;
+        var enabled = add(":enabled");
+        var disabled = add(":disabled");
+        add(":enabled:disabled");
+        expect(input, enabled, "failure 12");
+        input.disabled = true;
+        expect(input, disabled, "failure 13");
+        input.removeAttribute("disabled");
+        expect(input, enabled, "failure 14");
+        expect(doc.body, neither, "failure 15");
+      });
+      return 3;
+    },
+    function () {
+      // test 44: selectors without spaces before a "*"
+      selectorTest(function (doc, add, expect) {
+        doc.body.className = "test";
+        var p = doc.createElement('p');
+        p.className = "test";
+        doc.body.appendChild(p);
+        add("html*.test");
+        expect(doc.body, 0, "misparsed selectors");
+        expect(p, 0, "really misparsed selectors");
+      });
+      return 3;
+    },
+    function () {
+      // test 45: cssFloat and the style attribute
+      assert(!document.body.style.cssFloat, "body has floatation");
+      document.body.setAttribute("style", "float: right");
+      assertEquals(document.body.style.cssFloat, "right", "body doesn't have floatation");
+      document.body.setAttribute("style", "float: none");
+      assertEquals(document.body.style.cssFloat, "none", "body didn't lose floatation");
+      return 3;
+    },
+    function () {
+      // test 46: media queries
+      var doc = getTestDocument();
+      var style = doc.createElement('style');
+      style.setAttribute('type', 'text/css');
+      style.appendChild(doc.createTextNode('@media all and (min-color: 0) { #a { text-transform: uppercase; } }'));                         // matches
+      style.appendChild(doc.createTextNode('@media not all and (min-color: 0) { #b { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media only all and (min-color: 0) { #c { text-transform: uppercase; } }'));                    // matches
+      style.appendChild(doc.createTextNode('@media (bogus) { #d { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media all and (bogus) { #e { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media not all and (bogus) { #f { text-transform: uppercase; } }'));                         // commentd out but should not match
+      style.appendChild(doc.createTextNode('@media only all and (bogus) { #g { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media (bogus), all { #h { text-transform: uppercase; } }'));                                   // matches
+      style.appendChild(doc.createTextNode('@media all and (bogus), all { #i { text-transform: uppercase; } }'));                           // matches
+      style.appendChild(doc.createTextNode('@media not all and (bogus), all { #j { text-transform: uppercase; } }'));                       // matches
+      style.appendChild(doc.createTextNode('@media only all and (bogus), all { #k { text-transform: uppercase; } }'));                      // matches
+      style.appendChild(doc.createTextNode('@media all, (bogus) { #l { text-transform: uppercase; } }'));                                   // matches
+      style.appendChild(doc.createTextNode('@media all, all and (bogus) { #m { text-transform: uppercase; } }'));                           // matches
+      style.appendChild(doc.createTextNode('@media all, not all and (bogus) { #n { text-transform: uppercase; } }'));                       // matches
+      style.appendChild(doc.createTextNode('@media all, only all and (bogus) { #o { text-transform: uppercase; } }'));                      // matches
+      style.appendChild(doc.createTextNode('@media all and color { #p { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media all and min-color: 0 { #q { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media all, all and color { #r { text-transform: uppercase; } }'));                          // commented out but should match
+      style.appendChild(doc.createTextNode('@media all, all and min-color: 0 { #s { text-transform: uppercase; } }'));                   // commented out but should match
+      style.appendChild(doc.createTextNode('@media all and min-color: 0, all { #t { text-transform: uppercase; } }'));                   // commented out but should match
+      style.appendChild(doc.createTextNode('@media (max-color: 0) and (max-monochrome: 0) { #u { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media (min-color: 1), (min-monochrome: 1) { #v { text-transform: uppercase; } }'));            // matches
+      style.appendChild(doc.createTextNode('@media all and (min-color: 0) and (min-monochrome: 0) { #w { text-transform: uppercase; } }')); // matches
+      style.appendChild(doc.createTextNode('@media not all and (min-color: 1), not all and (min-monochrome: 1) { #x { text-transform: uppercase; } }')); // matches
+      style.appendChild(doc.createTextNode('@media all and (min-height: 1em) and (min-width: 1em) { #y1 { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media all and (max-height: 1em) and (min-width: 1em) { #y2 { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media all and (min-height: 1em) and (max-width: 1em) { #y3 { text-transform: uppercase; } }'));
+      style.appendChild(doc.createTextNode('@media all and (max-height: 1em) and (max-width: 1em) { #y4 { text-transform: uppercase; } }')); // matches
+      doc.getElementsByTagName('head')[0].appendChild(style);
+      var names = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y1', 'y2', 'y3', 'y4'];
+      for (var i in names) {
+        var p = doc.createElement('p');
+        p.id = names[i];
+        doc.body.appendChild(p);
+      }
+      var count = 0;
+      var check = function (c, e) {
+        count += 1;
+        var p = doc.getElementById(c);
+        assertEquals(doc.defaultView.getComputedStyle(p, '').textTransform, e ? 'uppercase' : 'none', "case " + c + " failed (index " + count + ")");
+      }
+      check('a', true); // 1
+      check('b', false);
+      check('c', true);
+      check('d', false);
+      check('e', false);
+/* COMMENTED OUT BECAUSE THE CSSWG KEEP CHANGING THE RIGHT ANSWER FOR THIS CASE
+ *      check('f', false);
+ */
+      check('g', false);
+      check('h', true);
+      check('i', true);
+      check('j', true); // 10
+      check('k', true);
+      check('l', true);
+      check('m', true);
+      check('n', true);
+      check('o', true);
+      check('p', false);
+      check('q', false);
+/* COMMENTED OUT BECAUSE THE CSSWG KEEP CHANGING THE RIGHT ANSWER FOR THESE TOO APPARENTLY
+ *      check('r', true);
+ *      check('s', true);
+ *      check('t', true); // 20
+ */
+      check('u', false);
+      check('v', true);
+      check('w', true);
+      check('x', true);
+      // here the viewport is 0x0
+      check('y1', false); // 25
+      check('y2', false);
+      check('y3', false);
+      check('y4', true);
+      document.getElementById("selectors").setAttribute("style", "height: 100px; width: 100px");
+      // now the viewport is more than 1em by 1em
+      check('y1', true); // 29
+      check('y2', false);
+      check('y3', false);
+      check('y4', false);
+      document.getElementById("selectors").removeAttribute("style");
+      // here the viewport is 0x0 again
+      check('y1', false); // 33
+      check('y2', false);
+      check('y3', false);
+      check('y4', true);
+      return 3;
+    },
+    function () {
+      // test 47: 'cursor' and CSS3 values
+      var doc = getTestDocument();
+      var style = doc.createElement('style');
+      style.setAttribute('type', 'text/css');
+      var cursors = ['auto', 'default', 'none', 'context-menu', 'help', 'pointer', 'progress', 'wait', 'cell', 'crosshair', 'text', 'vertical-text', 'alias', 'copy', 'move', 'no-drop', 'not-allowed', 'e-resize', 'n-resize', 'ne-resize', 'nw-resize', 's-resize', 'se-resize', 'sw-resize', 'w-resize', 'ew-resize', 'ns-resize', 'nesw-resize', 'nwse-resize', 'col-resize', 'row-resize', 'all-scroll'];
+      for (var i in cursors) {
+        var c = cursors[i];
+        style.appendChild(doc.createTextNode('#' + c + ' { cursor: ' + c + '; }'));
+      }
+      style.appendChild(doc.createTextNode('#bogus { cursor: bogus; }'));
+      doc.body.previousSibling.appendChild(style);
+      doc.body.id = "bogus";
+      assertEquals(doc.defaultView.getComputedStyle(doc.body, '').cursor, "auto", "control failed");
+      for (var i in cursors) {
+        var c = cursors[i];
+        doc.body.id = c;
+        assertEquals(doc.defaultView.getComputedStyle(doc.body, '').cursor, c, "cursor " + c + " not supported");
+      }
+      return 3;
+    },
+    function () {
+      // test 48: :link and :visited
+      var iframe = document.getElementById("selectors");
+      var number = (new Date()).valueOf();
+      var a = document.createElement('a');
+      a.appendChild(document.createTextNode('YOU SHOULD NOT SEE THIS AT ALL')); // changed text when fixing http://dbaron.org/mozilla/visited-privacy
+      a.setAttribute('id', 'linktest');
+      a.setAttribute('class', 'pending');
+      a.setAttribute('href', iframe.getAttribute('src') + "?" + number);
+      document.getElementsByTagName('map')[0].appendChild(a);
+      iframe.setAttribute("onload", "document.getElementById('linktest').removeAttribute('class')");
+      iframe.src = a.getAttribute("href");
+      return 3;
+    },
+
+    // bucket 4: HTML and the DOM
+    // Tables
+    function () {
+      // test 49: basic table accessor ping test create*, delete*, and *
+      // where * is caption, tHead, tFoot.
+      var table = document.createElement('table');
+      assert(!table.caption, "initially: caption");
+      assert(table.tBodies, "initially: tBodies");
+      assertEquals(table.tBodies.length, 0, "initially: tBodies.length");
+      assert(table.rows, "initially: rows");
+      assertEquals(table.rows.length, 0, "initially: rows.length");
+      assert(!table.tFoot, "initially: tFoot");
+      assert(!table.tHead, "initially: tHead");
+      var caption = table.createCaption();
+      var thead = table.createTHead();
+      var tfoot = table.createTFoot();
+      assertEquals(table.caption, caption, "after creation: caption");
+      assert(table.tBodies, "after creation: tBodies");
+      assertEquals(table.tBodies.length, 0, "after creation: tBodies.length");
+      assert(table.rows, "after creation: rows");
+      assertEquals(table.rows.length, 0, "after creation: rows.length");
+      assertEquals(table.tFoot, tfoot, "after creation: tFoot");
+      assertEquals(table.tHead, thead, "after creation: tHead");
+      assertEquals(table.childNodes.length, 3, "after creation: childNodes.length");
+      table.caption = caption; // no-op
+      table.tHead = thead; // no-op
+      table.tFoot = tfoot; // no-op
+      assertEquals(table.caption, caption, "after setting: caption");
+      assert(table.tBodies, "after setting: tBodies");
+      assertEquals(table.tBodies.length, 0, "after setting: tBodies.length");
+      assert(table.rows, "after setting: rows");
+      assertEquals(table.rows.length, 0, "after setting: rows.length");
+      assertEquals(table.tFoot, tfoot, "after setting: tFoot");
+      assertEquals(table.tHead, thead, "after setting: tHead");
+      assertEquals(table.childNodes.length, 3, "after setting: childNodes.length");
+      table.deleteCaption();
+      table.deleteTHead();
+      table.deleteTFoot();
+      assert(!table.caption, "after deletion: caption");
+      assert(table.tBodies, "after deletion: tBodies");
+      assertEquals(table.tBodies.length, 0, "after deletion: tBodies.length");
+      assert(table.rows, "after deletion: rows");
+      assertEquals(table.rows.length, 0, "after deletion: rows.length");
+      assert(!table.tFoot, "after deletion: tFoot");
+      assert(!table.tHead, "after deletion: tHead");
+      assert(!table.hasChildNodes(), "after deletion: hasChildNodes()");
+      assertEquals(table.childNodes.length, 0, "after deletion: childNodes.length");
+      return 4;
+    },
+    function () {
+      // test 50: construct a table, and see if the table is as expected
+      var table = document.createElement('table');
+      table.appendChild(document.createElement('tbody'));
+      var tr1 = document.createElement('tr');
+      table.appendChild(tr1);
+      table.appendChild(document.createElement('caption'));
+      table.appendChild(document.createElement('thead'));
+      // <table><tbody/><tr/><caption/><thead/>
+      table.insertBefore(table.firstChild.nextSibling, null); // move the <tr/> to the end
+      // <table><tbody/><caption/><thead/><tr/>
+      table.replaceChild(table.firstChild, table.lastChild); // move the <tbody/> to the end and remove the <tr>
+      // <table><caption/><thead/><tbody/>
+      var tr2 = table.tBodies[0].insertRow(0);
+      // <table><caption/><thead/><tbody><tr/><\tbody>     (the '\' is to avoid validation errors)
+      assertEquals(table.tBodies[0].rows[0].rowIndex, 0, "rowIndex broken");
+      assertEquals(table.tBodies[0].rows[0].sectionRowIndex, 0, "sectionRowIndex broken");
+      assertEquals(table.childNodes.length, 3, "wrong number of children");
+      assert(table.caption, "caption broken");
+      assert(table.tHead, "tHead broken");
+      assert(!table.tFoot, "tFoot broken");
+      assertEquals(table.tBodies.length, 1, "wrong number of tBodies");
+      assertEquals(table.rows.length, 1, "wrong number of rows");
+      assert(!tr1.parentNode, "orphan row has unexpected parent");
+      assertEquals(table.caption, table.createCaption(), "caption creation failed");
+      assertEquals(table.tFoot, null, "table has unexpected footer");
+      assertEquals(table.tHead, table.createTHead(), "header creation failed");
+      assertEquals(table.createTFoot(), table.tFoot, "footer creation failed");
+      // either: <table><caption/><thead/><tbody><tr/><\tbody><tfoot/>
+      //     or: <table><caption/><thead/><tfoot/><tbody><tr/><\tbody>
+      table.tHead.appendChild(tr1);
+      // either: <table><caption/><thead><tr/><\thead><tbody><tr/><\tbody><tfoot/>
+      //     or: <table><caption/><thead><tr/><\thead><tfoot/><tbody><tr/><\tbody>
+      assertEquals(table.rows[0], table.tHead.firstChild, "top row not in expected position");
+      assertEquals(table.rows.length, 2, "wrong number of rows after appending one");
+      assertEquals(table.rows[1], table.tBodies[0].firstChild, "second row not in expected position");
+      return 4;
+    },
+    function () {
+      // test 51: test the ordering and creation of rows
+      var table = document.createElement('table');
+      var rows = [
+        document.createElement('tr'),    // 0: ends up first child of the tfoot
+        document.createElement('tr'),    // 1: goes at the end of the table
+        document.createElement('tr'),    // 2: becomes second child of thead
+        document.createElement('tr'),    // 3: becomes third child of the thead
+        document.createElement('tr'),    // 4: not in the table
+        table.insertRow(0),              // 5: not in the table
+        table.createTFoot().insertRow(0) // 6: ends up second in the tfoot
+      ];
+      rows[6].parentNode.appendChild(rows[0]);
+      table.appendChild(rows[1]);
+      table.insertBefore(document.createElement('thead'), table.firstChild);
+      table.firstChild.appendChild(rows[2]);
+      rows[2].parentNode.appendChild(rows[3]);
+      rows[4].appendChild(rows[5].parentNode);
+      table.insertRow(0);
+      table.tFoot.appendChild(rows[6]);
+      assertEquals(table.rows.length, 6, "wrong number of rows");
+      assertEquals(table.getElementsByTagName('tr').length, 6, "wrong number of tr elements");
+      assertEquals(table.childNodes.length, 3, "table has wrong number of children");
+      assertEquals(table.childNodes[0], table.tHead, "tHead isn't first");
+      assertEquals(table.getElementsByTagName('tr')[0], table.tHead.childNodes[0], "first tr isn't in tHead correctly");
+      assertEquals(table.getElementsByTagName('tr')[1], table.tHead.childNodes[1], "second tr isn't in tHead correctly");
+      assertEquals(table.getElementsByTagName('tr')[1], rows[2], "second tr is the wrong row");
+      assertEquals(table.getElementsByTagName('tr')[2], table.tHead.childNodes[2], "third tr isn't in tHead correctly");
+      assertEquals(table.getElementsByTagName('tr')[2], rows[3], "third tr is the wrong row");
+      assertEquals(table.childNodes[1], table.tFoot, "tFoot isn't second");
+      assertEquals(table.getElementsByTagName('tr')[3], table.tFoot.childNodes[0], "fourth tr isn't in tFoot correctly");
+      assertEquals(table.getElementsByTagName('tr')[3], rows[0], "fourth tr is the wrong row");
+      assertEquals(table.getElementsByTagName('tr')[4], table.tFoot.childNodes[1], "fifth tr isn't in tFoot correctly");
+      assertEquals(table.getElementsByTagName('tr')[4], rows[6], "fifth tr is the wrong row");
+      assertEquals(table.getElementsByTagName('tr')[5], table.childNodes[2], "sixth tr isn't in tFoot correctly");
+      assertEquals(table.getElementsByTagName('tr')[5], rows[1], "sixth tr is the wrong row");
+      assertEquals(table.tBodies.length, 0, "non-zero number of tBodies");
+      return 4;
+    },
+
+    // Forms
+    function () {
+      // test 52: <form> and .elements
+      test = document.getElementsByTagName('form')[0];
+      assert(test.elements !== test, "form.elements === form");
+      assert(test.elements !== test.getAttribute('elements'), "form element has an elements content attribute");
+      assertEquals(test.elements.length, 1, "form element has unexpected number of controls");
+      assertEquals(test.elements.length, test.length, "form element has inconsistent numbers of controls");
+      return 4;
+    },
+    function () {
+      // test 53: changing an <input> dynamically
+      var f = document.createElement('form');
+      var i = document.createElement('input');
+      i.name = 'first';
+      i.type = 'text';
+      i.value = 'test';
+      f.appendChild(i);
+      assertEquals(i.getAttribute('name'), 'first', "name attribute wrong");
+      assertEquals(i.name, 'first', "name property wrong");
+      assertEquals(i.getAttribute('type'), 'text', "type attribute wrong");
+      assertEquals(i.type, 'text', "type property wrong");
+      assert(!i.hasAttribute('value'), "value attribute wrong");
+      assertEquals(i.value, 'test', "value property wrong");
+      assertEquals(f.elements.length, 1, "form's elements array has wrong size");
+      assertEquals(f.elements[0], i, "form's element array doesn't have input control by index");
+      assertEquals(f.elements.first, i, "form's element array doesn't have input control by name");
+      assertEquals(f.elements.second, null, "form's element array has unexpected controls by name");
+      i.name = 'second';
+      i.type = 'password';
+      i.value = 'TEST';
+      assertEquals(i.getAttribute('name'), 'second', "name attribute wrong after change");
+      assertEquals(i.name, 'second', "name property wrong after change");
+      assertEquals(i.getAttribute('type'), 'password', "type attribute wrong after change");
+      assertEquals(i.type, 'password', "type property wrong after change");
+      assert(!i.hasAttribute('value'), "value attribute wrong after change");
+      assertEquals(i.value, 'TEST', "value property wrong after change");
+      assertEquals(f.elements.length, 1, "form's elements array has wrong size after change");
+      assertEquals(f.elements[0], i, "form's element array doesn't have input control by index after change");
+      assertEquals(f.elements.second, i, "form's element array doesn't have input control by name after change");
+      assertEquals(f.elements.first, null, "form's element array has unexpected controls by name after change");
+      return 4;
+    },
+    function () {
+      // test 54: changing a parsed <input>
+      var i = document.getElementsByTagName('input')[0];
+      // initial values
+      assertEquals(i.getAttribute('type'), 'HIDDEN', "input control's type content attribute was wrong");
+      assertEquals(i.type, 'hidden', "input control's type DOM attribute was wrong");
+      // change values
+      i.name = 'test';
+      assertEquals(i.parentNode.elements.test, i, "input control's form didn't update");
+      // check event handlers
+      i.parentNode.action = 'javascript:';
+      var called = false;
+      i.parentNode.onsubmit = function (arg) {
+        arg.preventDefault();
+        called = true;
+      };
+      i.type = 'submit';
+      i.click(); // synchronously dispatches a click event to the submit button, which submits the form, which calls onsubmit
+      assert(called, "click handler didn't dispatch properly");
+      i.type = 'hIdDeN';
+      // check numeric attributes
+      i.setAttribute('maxLength', '2');
+      var s = i.getAttribute('maxLength');
+      assert(s.match, "attribute is not a String");
+      assert(!s.MIN_VALUE, "attribute is a Number");
+      return 4;
+    },
+    function () {
+      // test 55: moved checkboxes should keep their state
+      var container = document.getElementsByTagName("iframe")[0];
+      var input1 = document.createElement('input');
+      container.appendChild(input1);
+      input1.type = "checkbox";
+      input1.checked = true;
+      assert(input1.checked, "checkbox not checked after being checked (inserted first)");
+      var input2 = document.createElement('input');
+      input2.type = "checkbox";
+      container.appendChild(input2);
+      input2.checked = true;
+      assert(input2.checked, "checkbox not checked after being checked (inserted after type set)");
+      var input3 = document.createElement('input');
+      input3.type = "checkbox";
+      input3.checked = true;
+      container.appendChild(input3);
+      assert(input3.checked, "checkbox not checked after being checked (inserted after being checked)");
+      var target = document.getElementsByTagName("iframe")[1];
+      target.appendChild(input1);
+      target.appendChild(input2);
+      target.appendChild(input3);
+      assert(input1.checked, "checkbox 1 not checked after being moved");
+      assert(input2.checked, "checkbox 2 not checked after being moved");
+      assert(input3.checked, "checkbox 3 not checked after being moved");
+      return 4;
+    },
+    function () {
+      // test 56: cloned radio buttons should keep their state
+      var form = document.getElementsByTagName("form")[0];
+      var input1 = document.createElement('input');
+      input1.type = "radio";
+      input1.name = "radioGroup1";
+      form.appendChild(input1);
+      var input2 = input1.cloneNode(true);
+      input1.parentNode.appendChild(input2);
+      input1.checked = true;
+      assert(form.elements.radioGroup1, "radio group absent");
+      assert(input1.checked, "first radio button not checked");
+      assert(!input2.checked, "second radio button checked");
+      input2.checked = true;
+      assert(!input1.checked, "first radio button checked");
+      assert(input2.checked, "second radio button not checked");
+      var input3 = document.createElement('input');
+      input3.type = "radio";
+      input3.name = "radioGroup2";
+      form.appendChild(input3);
+      assert(!input3.checked, "third radio button checked");
+      input3.checked = true;
+      assert(!input1.checked, "first radio button newly checked");
+      assert(input2.checked, "second radio button newly not checked");
+      assert(input3.checked, "third radio button not checked");
+      input1.checked = true;
+      assert(input1.checked, "first radio button ended up not checked");
+      assert(!input2.checked, "second radio button ended up checked");
+      assert(input3.checked, "third radio button ended up not checked");
+      input1.parentNode.removeChild(input1);
+      input2.parentNode.removeChild(input2);
+      input3.parentNode.removeChild(input3);
+      return 4;
+    },
+    function () {
+      // test 57: HTMLSelectElement.add()
+      var s = document.createElement('select');
+      var o = document.createElement('option');
+      s.add(o, null);
+      assert(s.firstChild === o, "add() didn't add to firstChild");
+      assertEquals(s.childNodes.length, 1, "add() didn't add to childNodes");
+      assert(s.childNodes[0] === o, "add() didn't add to childNodes correctly");
+      assertEquals(s.options.length, 1, "add() didn't add to options");
+      assert(s.options[0] === o, "add() didn't add to options correctly");
+      return 4;
+    },
+    function () {
+      // test 58: HTMLOptionElement.defaultSelected
+      var s = document.createElement('select');
+      var o1 = document.createElement('option');
+      var o2 = document.createElement('option');
+      o2.defaultSelected = true;
+      var o3 = document.createElement('option');
+      s.appendChild(o1);
+      s.appendChild(o2);
+      s.appendChild(o3);
+      assert(s.options[s.selectedIndex] === o2, "defaultSelected didn't take");
+      return 4;
+    },
+    function () {
+      // test 59: attributes of <button> elements
+      var button = document.createElement('button');
+      assertEquals(button.type, "submit", "<button> doesn't have type=submit");
+      button.setAttribute("type", "button");
+      assertEquals(button.type, "button", "<button type=button> doesn't have type=button");
+      button.removeAttribute("type");
+      assertEquals(button.type, "submit", "<button> doesn't have type=submit back");
+      button.setAttribute('value', 'apple');
+      button.appendChild(document.createTextNode('banana'));
+      assertEquals(button.value, 'apple', "wrong button value");
+      return 4;
+    },
+
+    // Misc DOM2 HTML
+    function () {
+      // test 60: className vs "class" vs attribute nodes
+      var span = document.getElementsByTagName('span')[0];
+      span.setAttribute('class', 'kittens');
+// COMMENTED OUT FOR 2011 UPDATE - turns out instead of dropping Attr entirely, as Acid3 originally expected, the API is just being refactored
+//      if (!span.getAttributeNode)
+//        return 4; // support for attribute nodes is optional in Acid3, because attribute nodes might be removed from DOM Core in the future.
+//      var attr = span.getAttributeNode('class');
+//      // however, if they're supported, they'd better work:
+//      assert(attr.specified, "attribute not specified");
+//      assertEquals(attr.value, 'kittens', "attribute value wrong");
+//      assertEquals(attr.name, 'class', "attribute name wrong");
+//      attr.value = 'ocelots';
+//      assertEquals(attr.value, 'ocelots', "attribute value wrong");
+//      assertEquals(span.className, 'ocelots', "setting attribute value failed to be reflected in className");
+      span.className = 'cats';
+//      assertEquals(attr.ownerElement.getAttribute('class'), 'cats', "setting attribute value failed to be reflected in getAttribute()");
+//      span.removeAttributeNode(attr);
+//      assert(attr.specified, "attribute not specified after removal");
+//      assert(!attr.ownerElement, "attribute still owned after removal");
+//      assert(!span.className, "element had class after removal");
+      return 4;
+    },
+    function () {
+      // test 61: className and the class attribute: space preservation
+      var p = document.createElement('p');
+      assert(!p.hasAttribute('class'), "element had attribute on creation");
+      p.setAttribute('class', ' te  st ');
+      assert(p.hasAttribute('class'), "element did not have attribute after setting");
+      assertEquals(p.getAttribute('class'), ' te  st ', "class attribute's value was wrong");
+      assertEquals(p.className, ' te  st ', "className was wrong");
+      p.className = p.className.replace(/ /g, '\n');
+      assert(p.hasAttribute('class'), "element did not have attribute after replacement");
+      assertEquals(p.getAttribute('class'), '\nte\n\nst\n', "class attribute's value was wrong after replacement");
+      assertEquals(p.className, '\nte\n\nst\n', "className was wrong after replacement");
+      p.className = '';
+      assert(p.hasAttribute('class'), "element lost attribute after being set to empty string");
+      assertEquals(p.getAttribute('class'), '', "class attribute's value was wrong after being emptied");
+      assertEquals(p.className, '', "className was wrong after being emptied");
+      return 4;
+    },
+    function () {
+      // test 62: check that DOM attributes and content attributes aren't equivalent
+      var test;
+      // <div class="">
+      test = document.getElementsByTagName('div')[0];
+      assertEquals(test.className, 'buckets', "buckets: className wrong");
+      assertEquals(test.getAttribute('class'), 'buckets', "buckets: class wrong");
+      assert(!test.hasAttribute('className'), "buckets: element has className attribute");
+      assert(test.className != test.getAttribute('className'), "buckets: className attribute equals className property");
+      assert(!('class' in test), "buckets: element has class property")
+      test['class'] = "oil";
+      assert(test.className != "oil", "buckets: class property affected className");
+      // <label for="">
+      test = document.createElement('label');
+      test.htmlFor = 'jars';
+      assertEquals(test.htmlFor, 'jars', "jars: htmlFor wrong");
+      assertEquals(test.getAttribute('for'), 'jars', "jars: for wrong");
+      assert(!test.hasAttribute('htmlFor'), "jars: element has htmlFor attribute");
+      assert(test.htmlFor != test.getAttribute('htmlFor'), "jars: htmlFor attribute equals htmlFor property");
+      test = document.createElement('label');
+      test.setAttribute('for', 'pots');
+      assertEquals(test.htmlFor, 'pots', "pots: htmlFor wrong");
+      assertEquals(test.getAttribute('for'), 'pots', "pots: for wrong");
+      assert(!test.hasAttribute('htmlFor'), "pots: element has htmlFor attribute");
+      assert(test.htmlFor != test.getAttribute('htmlFor'), "pots: htmlFor attribute equals htmlFor property");
+      assert(!('for' in test), "pots: element has for property");
+      test['for'] = "oil";
+      assert(test.htmlFor != "oil", "pots: for property affected htmlFor");
+      // <meta http-equiv="">
+      test = document.createElement('meta');
+      test.setAttribute('http-equiv', 'boxes');
+      assertEquals(test.httpEquiv, 'boxes', "boxes: httpEquiv wrong");
+      assertEquals(test.getAttribute('http-equiv'), 'boxes', "boxes: http-equiv wrong");
+      assert(!test.hasAttribute('httpEquiv'), "boxes: element has httpEquiv attribute");
+      assert(test.httpEquiv != test.getAttribute('httpEquiv'), "boxes: httpEquiv attribute equals httpEquiv property");
+      test = document.createElement('meta');
+      test.httpEquiv = 'cans';
+      assertEquals(test.httpEquiv, 'cans', "cans: httpEquiv wrong");
+      assertEquals(test.getAttribute('http-equiv'), 'cans', "cans: http-equiv wrong");
+      assert(!test.hasAttribute('httpEquiv'), "cans: element has httpEquiv attribute");
+      assert(test.httpEquiv != test.getAttribute('httpEquiv'), "cans: httpEquiv attribute equals httpEquiv property");
+      assert(!('http-equiv' in test), "cans: element has http-equiv property");
+      test['http-equiv'] = "oil";
+      assert(test.httpEquiv != "oil", "cans: http-equiv property affected httpEquiv");
+      return 4;
+    },
+    function () {
+      // test 63: attributes of the <area> element
+      var area = document.getElementsByTagName('area')[0];
+      assertEquals(area.getAttribute('href'), '', "wrong value for href=''");
+      assertEquals(area.getAttribute('shape'), 'rect', "wrong value for shape=''");
+      assertEquals(area.getAttribute('coords'), '2,2,4,4', "wrong value for coords=''");
+      assertEquals(area.getAttribute('alt'), '<\'>', "wrong value for alt=''");
+      return 4;
+    },
+    function () {
+      // test 64: more attribute tests
+      // attributes of the <object> element
+      var obj1 = document.createElement('object');
+      obj1.setAttribute('data', 'test.html');
+      var obj2 = document.createElement('object');
+      obj2.setAttribute('data', './test.html');
+      assertEquals(obj1.data, obj2.data, "object elements didn't resolve URIs correctly");
+      assert(obj1.data.match(/^http:/), "object.data isn't absolute");
+      obj1.appendChild(document.createElement('param'));
+      assertEquals(obj1.getElementsByTagName('param').length, 1, "object is missing its only child");
+      // non-existent attributes
+      var test = document.createElement('p');
+      assert(!('TWVvdywgbWV3Li4u' in test), "TWVvdywgbWV3Li4u unexpectedly found");
+      assertEquals(test.TWVvdywgbWV3Li4u, undefined, ".TWVvdywgbWV3Li4u wasn't undefined");
+      assertEquals(test['TWVvdywgbWV3Li4u'], undefined, "['TWVvdywgbWV3Li4u'] wasn't undefined");
+      test.setAttribute('TWVvdywgbWV3Li4u', 'woof');
+      assert(!('TWVvdywgbWV3Li4u' in test), "TWVvdywgbWV3Li4u unexpectedly found after setting");
+      assertEquals(test.TWVvdywgbWV3Li4u, undefined, ".TWVvdywgbWV3Li4u wasn't undefined after setting");
+      assertEquals(test['TWVvdywgbWV3Li4u'], undefined, "['TWVvdywgbWV3Li4u'] wasn't undefined after setting");
+      assertEquals(test.getAttribute('TWVvdywgbWV3Li4u'), 'woof', "TWVvdywgbWV3Li4u has wrong value after setting");
+      return 4;
+    },
+
+    // bucket 5: Tests from the Acid3 Competition
+    function () {
+      // test 65: bring in a couple of SVG files and some HTML files dynamically - preparation for later tests in this bucket
+      // NOTE FROM 2011 UPDATE: The svg.xml file still contains the SVG font, but it is no longer used
+      kungFuDeathGrip = document.createElement('p');
+      kungFuDeathGrip.className = 'removed';
+      var iframe, object;
+      // svg iframe
+      iframe = document.createElement('iframe');
+      iframe.onload = function () { kungFuDeathGrip.title += '1' };
+      iframe.src = "svg.xml";
+      kungFuDeathGrip.appendChild(iframe);
+      // object iframe
+      object = document.createElement('object');
+      object.onload = function () { kungFuDeathGrip.title += '2' };
+      object.data = "svg.xml";
+      kungFuDeathGrip.appendChild(object);
+      // xml iframe
+      iframe = document.createElement('iframe');
+      iframe.onload = function () { kungFuDeathGrip.title += '3' };
+      iframe.src = "empty.xml";
+      kungFuDeathGrip.appendChild(iframe);
+      // html iframe
+      iframe = document.createElement('iframe');
+      iframe.onload = function () { kungFuDeathGrip.title += '4' };
+      iframe.src = "empty.html";
+      kungFuDeathGrip.appendChild(iframe);
+      // html iframe
+      iframe = document.createElement('iframe');
+      iframe.onload = function () { kungFuDeathGrip.title += '5' };
+      iframe.src = "xhtml.1";
+      kungFuDeathGrip.appendChild(iframe);
+      // html iframe
+      iframe = document.createElement('iframe');
+      iframe.onload = function () { kungFuDeathGrip.title += '6' };
+      iframe.src = "xhtml.2";
+      kungFuDeathGrip.appendChild(iframe);
+      // html iframe
+      iframe = document.createElement('iframe');
+      iframe.onload = function () { kungFuDeathGrip.title += '7' };
+      iframe.src = "xhtml.3";
+      kungFuDeathGrip.appendChild(iframe);
+      // add the lot to the document
+      document.getElementsByTagName('map')[0].appendChild(kungFuDeathGrip);
+      return 5;
+    },
+    function () {
+      // test 66: localName on text nodes (and now other things), from Sylvain Pasche
+      assertEquals(document.createTextNode("test").localName, null, 'wrong localName for text node');
+      assertEquals(document.createComment("test").localName, null, 'wrong localName for comment node');
+      assertEquals(document.localName, null, 'wrong localName for document node');
+      return 5;
+    },
+    function () {
+// COMMENTED OUT IN NOV 2013 BECAUSE DOM SPEC REMOVED THIS FEATURE
+//       // test 67: removedNamedItemNS on missing attributes, from Sylvain Pasche
+//       var p = document.createElement("p");
+//       var msg = 'wrong exception raised';
+//       try {
+//         p.attributes.removeNamedItemNS("http://www.example.com/", "absent");
+//         msg = 'no exception raised';
+//       } catch (e) {
+//         if ('code' in e) {
+//           if (e.code == 8)
+//             msg = '';
+//           else
+//             msg += '; code = ' + e.code;
+//         }
+//       }
+//       assert(msg == '', "when calling removeNamedItemNS in a non existent attribute: " + msg);
+      return 5;
+    },
+    function () {
+      // test 68: UTF-16 surrogate pairs, from David Chan
+      //
+      // In The Unicode Standard 5.0, it is explicitly permitted to
+      // allow malformed UTF-16, that is, to leave the string alone.
+      // (http://www.unicode.org/versions/Unicode5.0.0):
+      //
+      // section 2.7: "...strings in ... ECMAScript are Unicode 16-bit
+      // strings, but are not necessarily well-formed UTF-16
+      // sequences.  In normal processing, it can be far more
+      // efficient to allow such strings to contain code unit
+      // sequences that are not well-formed UTF-16 -- that is,
+      // isolated surrogates"
+      //
+      // On the other hand, if the application wishes to ensure
+      // well-formed character sequences, it may not permit the
+      // malformed sequence and it must regard the first codepoint as
+      // an error:
+      //
+      // Section 3.2: "C10. When a process interprets a code sequence
+      // which purports to be in a Unicode character encoding form, it
+      // shall treat ill-formed code unit sequences as an error
+      // condition and shall not interpret such sequences as
+      // characters.
+      // [...]
+      // For example, in UTF-8 every code unit of the form 110....2
+      // must be followed by a code unit of the form 10......2. A
+      // sequence such as 110.....2 0.......2 is ill-formed and must
+      // never be generated. When faced with this ill-formed code unit
+      // sequence while transforming or interpreting text, a
+      // conformant process must treat the first code unit 110.....2
+      // as an illegally terminated code unit sequence~Wfor example,
+      // by signaling an error, filtering the code unit out, or
+      // representing the code unit with a marker such as U+FFFD
+      // replacement character."
+      //
+      // So it would be permitted to do any of the following:
+      // 1) Leave the string alone
+      // 2) Remove the unpaired surrogate
+      // 3) Replace the unpaired surrogate with U+FFFD
+      // 4) Throw an exception
+
+      try {
+        var unpaired = String.fromCharCode(0xd863); // half a surrogate pair
+        var before = unpaired + "text";
+        var elt = document.createElement("input");
+        elt.value = before;
+        var after = elt.value;
+      }
+      catch(ex) {
+        return 5; // Unpaired surrogate caused an exception - ok
+      }
+      if (after == before && before.length == 5)
+        return 5; // Unpaired surrogate kept - ok
+      if (after == "text")
+        return 5; // Unpaired surrogate removed - ok
+      var replacement = String.fromCharCode(0xfffd);
+      if (after == replacement + "text")
+        return 5; // Unpaired surrogate replaced - ok
+      fail("Unpaired surrogate handled wrongly (input was '" + before + "', output was '" + after + "')");
+    },
+    function () {
+      // test 69: check that the support files loaded -- preparation for the rest of the tests in this bucket
+      assert(!(kungFuDeathGrip == null), "kungFuDeathGrip was null");
+      assert(!(kungFuDeathGrip.title == null), "kungFuDeathGrip.title was null");
+      if (kungFuDeathGrip.title.length < 7)
+        return "retry";
+      assert(!(kungFuDeathGrip.firstChild == null), "kungFuDeathGrip.firstChild was null");
+      assert(!(kungFuDeathGrip.firstChild.contentDocument == null), "kungFuDeathGrip.firstChild.contentDocument was null");
+      assert(!(kungFuDeathGrip.firstChild.contentDocument.getElementsByTagName == null), "kungFuDeathGrip.firstChild.contentDocument.getElementsByTagName was null");
+      var t = kungFuDeathGrip.firstChild.contentDocument.getElementsByTagName('text')[0];
+      assert(!(t == null), "t was null");
+      assert(!(t.parentNode == null), "t.parentNode was null");
+      assert(!(t.parentNode.removeChild == null), "t.parentNode.removeChild was null");
+      t.parentNode.removeChild(t);
+      return 5;
+    },
+    function () {
+      // test 70: XML encoding test
+      // the third child in kungFuDeathGrip is an ISO-8859-1 document sent as UTF-8.
+      // q.v. XML 1.0, section 4.3.3 Character Encoding in Entities
+      // this only tests one of a large number of conditions that should cause fatal errors
+      var doc = kungFuDeathGrip.childNodes[2].contentDocument;
+      if (!doc)
+        return 5;
+      if (doc.documentElement.tagName != "root")
+        return 5;
+      if (doc.documentElement.getElementsByTagName('test').length < 1)
+        return 5;
+      fail("UTF-8 encoded XML document with invalid character did not have a well-formedness error");
+    },
+    function () {
+      // test 71: HTML parsing, from Simon Pieters and Anne van Kesteren
+      var doc = kungFuDeathGrip.childNodes[3].contentDocument;
+      assert(doc, "missing document for test");
+      try {
+        // siblings
+        doc.open();
+        doc.write("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\"><title><\/title><span><\/span><script type=\"text/javascript\"><\/script>");
+        doc.close();
+        assertEquals(doc.childNodes.length, 2, "wrong number of children in #document (first test)");
+        assertEquals(doc.firstChild.name.toUpperCase(), "HTML", "name wrong (first test)"); // changed 2009-08-13 to add .toUpperCase() for HTML5 compat
+        assertEquals(doc.firstChild.publicId, "-//W3C//DTD HTML 4.0 Transitional//EN", "publicId wrong (first test)");
+        if ((doc.firstChild.systemId != null) && (doc.firstChild.systemId != ""))
+          fail("systemId wrong (first test)");
+        if (('internalSubset' in doc.firstChild) || doc.firstChild.internalSubset)
+          assertEquals(doc.firstChild.internalSubset, null, "internalSubset wrong (first test)");
+        assertEquals(doc.documentElement.childNodes.length, 2, "wrong number of children in HTML (first test)");
+        assertEquals(doc.documentElement.firstChild.nodeName, "HEAD", "misplaced HEAD element (first test)");
+        assertEquals(doc.documentElement.firstChild.childNodes.length, 1, "wrong number of children in HEAD (first test)");
+        assertEquals(doc.documentElement.firstChild.firstChild.tagName, "TITLE", "misplaced TITLE element (first test)");
+        assertEquals(doc.documentElement.lastChild.nodeName, "BODY", "misplaced BODY element (first test)");
+        assertEquals(doc.documentElement.lastChild.childNodes.length, 2, "wrong number of children in BODY (first test)");
+        assertEquals(doc.documentElement.lastChild.firstChild.tagName, "SPAN", "misplaced SPAN element (first test)");
+        assertEquals(doc.documentElement.lastChild.lastChild.tagName, "SCRIPT", "misplaced SCRIPT element (first test)");
+        // parent/child
+        doc.open();
+        doc.write("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\"><title><\/title><span><script type=\"text/javascript\"><\/script><\/span>");
+        doc.close();
+        assertEquals(doc.childNodes.length, 2, "wrong number of children in #document (second test)");
+        assertEquals(doc.firstChild.name.toUpperCase(), "HTML", "name wrong (second test)"); // changed 2009-08-13 to add .toUpperCase() for HTML5 compat
+        assertEquals(doc.firstChild.publicId, "-//W3C//DTD HTML 4.01 Transitional//EN", "publicId wrong (second test)");
+        assertEquals(doc.firstChild.systemId, "http://www.w3.org/TR/html4/loose.dtd", "systemId wrong (second test)");
+        if (('internalSubset' in doc.firstChild) || doc.firstChild.internalSubset)
+          assertEquals(doc.firstChild.internalSubset, null, "internalSubset wrong (second test)");
+        assertEquals(doc.documentElement.childNodes.length, 2, "wrong number of children in HTML (second test)");
+        assertEquals(doc.documentElement.firstChild.nodeName, "HEAD", "misplaced HEAD element (second test)");
+        assertEquals(doc.documentElement.firstChild.childNodes.length, 1, "wrong number of children in HEAD (second test)");
+        assertEquals(doc.documentElement.firstChild.firstChild.tagName, "TITLE", "misplaced TITLE element (second test)");
+        assertEquals(doc.documentElement.lastChild.nodeName, "BODY", "misplaced BODY element (second test)");
+        assertEquals(doc.documentElement.lastChild.childNodes.length, 1, "wrong number of children in BODY (second test)");
+        assertEquals(doc.documentElement.lastChild.firstChild.tagName, "SPAN", "misplaced SPAN element (second test)");
+        assertEquals(doc.documentElement.lastChild.firstChild.firstChild.tagName, "SCRIPT", "misplaced SCRIPT element (second test)");
+      } finally {
+        // prepare the file for the next test
+        doc.open();
+        doc.write("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\"><head><title><\/title><style type=\"text/css\">img { height: 10px; }<\/style><body><p><img src=\"data:image/gif;base64,R0lGODlhAQABAID%2FAMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw%3D%3D\" alt=\"\">");
+        doc.close();
+      }
+      return 5;
+    },
+    function () {
+      // test 72: dynamic modification of <style> blocks' text nodes, from Jonas Sicking and Garret Smith
+      var doc = kungFuDeathGrip.childNodes[3].contentDocument;
+      assert(doc, "missing document for test");
+      assert(doc.images[0], "prerequisite failed: no image");
+      assertEquals(doc.images[0].height, 10, "prerequisite failed: style didn't affect image");
+      doc.styleSheets[0].ownerNode.firstChild.data = "img { height: 20px; }";
+      assertEquals(doc.images[0].height, 20, "change failed to take effect");
+      doc.styleSheets[0].ownerNode.appendChild(doc.createTextNode("img { height: 30px; }"));
+      assertEquals(doc.images[0].height, 30, "append failed to take effect");
+      var rules = doc.styleSheets[0].cssRules; // "All CSS objects in the DOM are "live"" says section 2.1, Overview of the DOM Level 2 CSS Interfaces
+      doc.styleSheets[0].insertRule("img { height: 40px; }", 2);
+      assertEquals(doc.images[0].height, 40, "insertRule failed to take effect");
+      assertEquals(doc.styleSheets[0].cssRules.length, 3, "count of rules is wrong");
+      assertEquals(rules.length, 3, "cssRules isn't live");
+      // while we're at it, check some other things on doc.styleSheets:
+      assert(doc.styleSheets[0].href === null, "internal stylesheet had a URI: " + doc.styleSheets[0].href);
+      assert(document.styleSheets[0].href === null, "internal acid3 stylesheet had a URI: " + document.styleSheets[0].href);
+      return 5;
+    },
+    function () {
+      // test 73: nested events, from Jonas Sicking
+      var doc = kungFuDeathGrip.childNodes[3].contentDocument;
+      // implied events
+      var up = 0;
+      var down = 0;
+      var button = doc.createElement("button");
+      button.type = "button";
+      button.onclick = function () { up += 1; if (up < 10) button.click(); down += up; }; // not called
+      button.addEventListener('test', function () { up += 1; var e = doc.createEvent("HTMLEvents"); e.initEvent('test', false, false); if (up < 20) button.dispatchEvent(e); down += up; }, false);
+      var evt = doc.createEvent("HTMLEvents");
+      evt.initEvent('test', false, false);
+      button.dispatchEvent(evt);
+      assertEquals(up, 20, "test event handler called the wrong number of times");
+      assertEquals(down, 400, "test event handler called in the wrong order");
+      return 5;
+    },
+    function () {
+      // test 74: check getSVGDocument(), from Erik Dahlstrom
+      // GetSVGDocument[6]: "In the case where an SVG document is
+      // embedded by reference, such as when an XHTML document has an
+      // 'object' element whose href (or equivalent) attribute
+      // references an SVG document (i.e., a document whose MIME type
+      // is "image/svg+xml" and whose root element is thus an 'svg'
+      // element), the SVG user agent is required to implement the
+      // GetSVGDocument interface for the element which references the
+      // SVG document (e.g., the HTML 'object' or comparable
+      // referencing elements)."
+      //
+      // [6] http://www.w3.org/TR/SVG11/struct.html#InterfaceGetSVGDocument
+      //
+      // iframe
+      var iframe = kungFuDeathGrip.childNodes[0];
+      assert(iframe, "Failed finding svg iframe.");
+      assert(iframe.contentDocument, "contentDocument failed for <iframe> referencing an svg document.");
+      if (!iframe.getSVGDocument)
+        fail("getSVGDocument missing on <iframe> element.");
+      assert(iframe.getSVGDocument(), "getSVGDocument failed for <iframe> referencing an svg document.");
+      assert(iframe.getSVGDocument() == iframe.contentDocument, "Mismatch between getSVGDocument and contentDocument #1.");
+      // object
+      var object = kungFuDeathGrip.childNodes[1];
+      assert(object, "Failed finding svg object.");
+      assert(object.contentDocument, "contentDocument failed for <object> referencing an svg document.");
+      if (!object.getSVGDocument)
+        fail("getSVGDocument missing on <object> element.");
+      assert(object.getSVGDocument(), "getSVGDocument failed for <object> referencing an svg document.");
+      assert(object.getSVGDocument() == object.contentDocument, "Mismatch between getSVGDocument and contentDocument #2.");
+      return 5;
+    },
+    function () {
+// PARTS COMMENTED OUT FOR 2011 UPDATE - SVG Fonts, SVG SMIL animation, and XLink have met with some implementor malaise even amongst those that shipped them
+// This affects tests 75 to 79
+//      // test 75: SMIL in SVG, from Erik Dahlstrom
+//      //
+//      // The test begins by creating a few elements, among those is a
+//      // <set> element.  This element is prevented from running by
+//      // setting begin="indefinite", which means that the animation
+//      // doesn't start until the 'beginElement' DOM method is called
+//      // on the <set> element. The animation is a simple animation
+//      // that sets the value of the width attribute to 0. The duration
+//      // of the animation is 'indefinite' which means that the value
+//      // will stay 0 indefinitely. The target of the animation is the
+//      // 'width' attribute of the <rect> element that is the parent of
+//      // the <set> element. When 'width' is 0 the rect is not rendered
+//      // according to the spec[7].
+//      //
+//      // Some properties of the SVGAnimatedLength[2] and SVGLength[8]
+//      // are also inspected. Before the animation starts both baseVal
+//      // and animVal contain the same values[2]. Then the animation is
+//      // started by calling the beginElement method[9]. To make sure
+//      // that time passes between the triggering of the animation and
+//      // the time that the values are read out (in test #66), the
+//      // current time is set to 1000 seconds using the setCurrentTime
+//      // method[10].
+//      //
+//      // [2] http://www.w3.org/TR/SVG11/types.html#InterfaceSVGAnimatedLength
+//      // [7] http://www.w3.org/TR/SVG11/shapes.html#RectElement
+//      // [8] http://www.w3.org/TR/SVG11/types.html#InterfaceSVGLength
+//      // [9] http://www.w3.org/TR/SVG11/animate.html#DOMInterfaces
+//      // [10] http://www.w3.org/TR/SVG11/struct.html#InterfaceSVGSVGElement
+//
+      var svgns = "http://www.w3.org/2000/svg";
+      var svgdoc = kungFuDeathGrip.firstChild.contentDocument;
+      assert(svgdoc, "contentDocument failed on <iframe> for svg document.");
+      var svg = svgdoc.documentElement;
+      var rect = svgdoc.createElementNS(svgns, "rect");
+      rect.setAttribute("fill", "red");
+      rect.setAttribute("width", "100");
+      rect.setAttribute("height", "100");
+      rect.setAttribute("id", "rect");
+//      var anim = svgdoc.createElementNS(svgns, "set");
+//      anim.setAttribute("begin", "indefinite");
+//      anim.setAttribute("to", "0");
+//      anim.setAttribute("attributeName", "width");
+//      anim.setAttribute("dur", "indefinite");
+//      anim.setAttribute("fill", "freeze");
+//      rect.appendChild(anim);
+      svg.appendChild(rect);
+      assert(rect.width, "SVG DOM interface SVGRectElement not supported.");
+//      assert(rect.width.baseVal, "SVG DOM base type SVGAnimatedLength not supported.");
+//      assert(rect.width.animVal, "SVG DOM base type SVGAnimatedLength not supported.");
+//      assertEquals(SVGLength.SVG_LENGTHTYPE_NUMBER, 1, "Incorrect SVGLength.SVG_LENGTHTYPE_NUMBER constant value.");
+//      assertEquals(rect.width.baseVal.unitType, SVGLength.SVG_LENGTHTYPE_NUMBER, "Incorrect unitType on width attribute.");
+      assertEquals(rect.getAttribute("width"), "100", "Incorrect value from getAttribute.");
+//      assertEquals(rect.width.baseVal.valueInSpecifiedUnits, 100, "Incorrect valueInSpecifiedUnits value.");
+//      assertEquals(rect.width.baseVal.value, 100, "Incorrect baseVal value before animation.");
+//      assertEquals(rect.width.animVal.value, 100, "Incorrect animVal value before animation.");
+//      anim.beginElement();
+//      assertEquals(rect.width.baseVal.value, 100, "Incorrect baseVal value after starting animation.");
+//      svg.setCurrentTime(1000); // setting 1 second to make sure that time != 0s when we check the animVal value
+//      // the animation is then tested in the next test
+      return 5;
+    },
+    function () {
+//      // test 76: SMIL in SVG, part 2, from Erik Dahlstrom
+//      //
+//      // About animVal[2]: "If the given attribute or property is
+//      // being animated, contains the current animated value of the
+//      // attribute or property, and both the object itself and its
+//      // contents are readonly. If the given attribute or property is
+//      // not currently being animated, contains the same value as
+//      // 'baseVal'."
+//      //
+//      // Since the duration of the animation is indefinite the value
+//      // is still being animated at the time it's queried. Now since
+//      // the 'width' attribute was animated from its original value of
+//      // "100" to the new value of "0" the animVal property must
+//      // contain the value 0.
+//      //
+//      // [2] http://www.w3.org/TR/SVG11/types.html#InterfaceSVGAnimatedLength
+//
+      var svgdoc = kungFuDeathGrip.firstChild.contentDocument;
+      assert(svgdoc, "contentDocument failed on <object> for svg document.");
+      var rect = svgdoc.getElementById("rect");
+      assert(rect, "Failed to find <rect> element in svg document.");
+//      assertEquals(rect.width.animVal.value, 0, "Incorrect animVal value after svg animation.");
+      return 5;
+    },
+    function () {
+//      // test 77: external SVG fonts, from Erik Dahlstrom
+//      //
+//      // SVGFonts are described here[3], and the relevant DOM methods
+//      // used in the test are defined here[4].
+//      //
+//      // Note that in order to be more predictable the svg should be
+//      // visible, so that clause "For non-rendering environments, the
+//      // user agent shall make reasonable assumptions about glyph
+//      // metrics." doesn't influence the results. We use 'opacity:0'
+//      // to hide the SVG, but arguably it's still a "rendering
+//      // environment".
+//      //
+//      // The font-size 4000 was chosen because that matches the
+//      // unitsPerEm value in the svgfont, which makes it easy to check
+//      // the glyph advances since they will then be exactly what was
+//      // specified in the svgfont.
+//      //
+//      // [3] http://www.w3.org/TR/SVG11/fonts.html
+//      // [4] http://www.w3.org/TR/SVG11/text.html#InterfaceSVGTextContentElement
+//
+      var svgns = "http://www.w3.org/2000/svg";
+//      var xlinkns = "http://www.w3.org/1999/xlink";
+      var svgdoc = kungFuDeathGrip.firstChild.contentDocument;
+      assert(svgdoc, "contentDocument failed on <object> for svg document.");
+      var svg = svgdoc.documentElement;
+      var text = svgdoc.createElementNS(svgns, "text");
+      text.setAttribute("y", "1em");
+      text.setAttribute("font-size", "4000");
+      text.setAttribute("font-family", "ACID3svgfont");
+      var textContent = svgdoc.createTextNode("abc");
+      text.appendChild(textContent);
+      svg.appendChild(text);
+      // The font-size 4000 was chosen because that matches the unitsPerEm value in the svgfont,
+      // which makes it easy to check the glyph advances since they will then be exactly what was specified in the svgfont.
+      assert(text.getNumberOfChars, "SVGTextContentElement.getNumberOfChars() not supported.");
+      assertEquals(text.getNumberOfChars(), 3, "getNumberOfChars returned incorrect string length.");
+//      assertEquals(text.getComputedTextLength(), 4711+42+23, "getComputedTextLength failed.");
+//      assertEquals(text.getSubStringLength(0,1), 42, "getSubStringLength #1 failed.");
+//      assertEquals(text.getSubStringLength(0,2), 42+23, "getSubStringLength #2 failed.");
+//      assertEquals(text.getSubStringLength(1,1), 23, "getSubStringLength #3 failed.");
+//      assertEquals(text.getSubStringLength(1,0), 0, "getSubStringLength #4 failed.");
+///* COMMENTED OUT BECAUSE SVGWG KEEPS CHANGING THIS
+// *     var code = -1000;
+// *     try {
+// *       var sl = text.getSubStringLength(1,3);
+// *     } catch(e) {
+// *       code = e.code;
+// *     }
+// *     assertEquals(code, DOMException.INDEX_SIZE_ERR, "getSubStringLength #1 didn't throw exception.");
+// *     code = -1000;
+// *     try {
+// *       var sl = text.getSubStringLength(0,4);
+// *     } catch(e) {
+// *       code = e.code;
+// *     }
+// *     assertEquals(code, DOMException.INDEX_SIZE_ERR, "getSubStringLength #2 didn't throw exception.");
+// *     code = -1000;
+// *     try {
+// *       var sl = text.getSubStringLength(3,0);
+// *     } catch(e) {
+// *       code = e.code;
+// *     }
+// *     assertEquals(code, DOMException.INDEX_SIZE_ERR, "getSubStringLength #3 didn't throw exception.");
+// */
+//      code = -1000;
+//      try {
+//        var sl = text.getSubStringLength(-17,20);
+//      } catch(e) {
+//        code = 0; // negative values might throw native exception since the api accepts only unsigned values
+//      }
+//      assert(code == 0, "getSubStringLength #4 didn't throw exception.");
+//      assertEquals(text.getStartPositionOfChar(0).x, 0, "getStartPositionOfChar(0).x returned invalid value.");
+//      assertEquals(text.getStartPositionOfChar(1).x, 42, "getStartPositionOfChar(1).x returned invalid value.");
+//      assertEquals(text.getStartPositionOfChar(2).x, 42+23, "getStartPositionOfChar(2).x returned invalid value.");
+//      assertEquals(text.getStartPositionOfChar(0).y, 4000, "getStartPositionOfChar(0).y returned invalid value.");
+//      code = -1000;
+//      try {
+//        var val = text.getStartPositionOfChar(-1);
+//      } catch(e) {
+//        code = 0; // negative values might throw native exception since the api accepts only unsigned values
+//      }
+//      assert(code == 0, "getStartPositionOfChar #1 exception failed.");
+//      code = -1000;
+//      try {
+//        var val = text.getStartPositionOfChar(4);
+//      } catch(e) {
+//        code = e.code;
+//      }
+//      assertEquals(code, DOMException.INDEX_SIZE_ERR, "getStartPositionOfChar #2 exception failed.");
+//      assertEquals(text.getEndPositionOfChar(0).x, 42, "getEndPositionOfChar(0).x returned invalid value.");
+//      assertEquals(text.getEndPositionOfChar(1).x, 42+23, "getEndPositionOfChar(1).x returned invalid value.");
+//      assertEquals(text.getEndPositionOfChar(2).x, 42+23+4711, "getEndPositionOfChar(2).x returned invalid value.");
+//      code = -1000;
+//      try {
+//        var val = text.getEndPositionOfChar(-17);
+//      } catch(e) {
+//        code = 0; // negative values might throw native exception since the api accepts only unsigned values
+//      }
+//      assert(code == 0, "getEndPositionOfChar #1 exception failed.");
+//      code = -1000;
+//      try {
+//        var val = text.getEndPositionOfChar(4);
+//      } catch(e) {
+//        code = e.code;
+//      }
+//      assertEquals(code, DOMException.INDEX_SIZE_ERR, "getEndPositionOfChar #2 exception failed.");
+      return 5;
+    },
+    function () {
+//      // test 78: SVG textPath and getRotationOfChar(), from Erik Dahlstrom
+//      //
+//      // The getRotationOfChar[4] method fetches the midpoint rotation
+//      // of a glyph defined by a character (in this testcase there is
+//      // a simple 1:1 correspondence between the two). The path is
+//      // defined in the svg.xml file, and consists of first a line
+//      // going down, then followed by a line that has a 45 degree
+//      // slope and then followed by a horizontal line. The length of
+//      // each path segment have been paired with the advance of each
+//      // glyph, so that each glyph will be on each of the three
+//      // different path segments (see text on a path layout rules[5]).
+//      // Thus the rotation of the first glyph is 90 degrees, the
+//      // second 45 degrees and the third 0 degrees.
+//      //
+//      // [4] http://www.w3.org/TR/SVG11/text.html#InterfaceSVGTextContentElement
+//      // [5] http://www.w3.org/TR/SVG11/text.html#TextpathLayoutRules
+//
+      var svgns = "http://www.w3.org/2000/svg";
+//      var xlinkns = "http://www.w3.org/1999/xlink";
+      var svgdoc = kungFuDeathGrip.firstChild.contentDocument;
+      assert(svgdoc, "contentDocument failed on <object> for svg document.");
+      var svg = svgdoc.documentElement;
+//      var text = svgdoc.createElementNS(svgns, "text");
+//      text.setAttribute("font-size", "4000");
+//      text.setAttribute("font-family", "ACID3svgfont");
+//      var textpath = svgdoc.createElementNS(svgns, "textPath");
+//      textpath.setAttributeNS(xlinkns, "xlink:href", "#path");
+//      var textContent = svgdoc.createTextNode("abc");
+//      textpath.appendChild(textContent);
+//      text.appendChild(textpath);
+//      svg.appendChild(text);
+//      assertEquals(text.getRotationOfChar(0), 90, "getRotationOfChar(0) failed.");
+//      assertEquals(text.getRotationOfChar(1), 45, "getRotationOfChar(1) failed.");
+//      assertEquals(text.getRotationOfChar(2), 0, "getRotationOfChar(2) failed.");
+//      var code = -1000;
+//      try {
+//        var val = text.getRotationOfChar(-1)
+//      } catch(e) {
+//        code = e.code;
+//      }
+//      assertEquals(code, DOMException.INDEX_SIZE_ERR, "getRotationOfChar #1 exception failed.");
+//      code = -1000;
+//      try {
+//        var val = text.getRotationOfChar(4)
+//      } catch(e) {
+//        code = e.code;
+//      }
+//      assertEquals(code, DOMException.INDEX_SIZE_ERR, "getRotationOfChar #2 exception failed.");
+      return 5;
+    },
+    function () {
+//      // test 79: a giant test for <svg:font>, from Cameron McCormack
+//      // This tests various features of SVG fonts from SVG 1.1.  It consists of
+//      // a <text> element with 33 characters, styled using an SVG font that has
+//      // different advance values for each glyph.  The script uses
+//      // SVGTextElementContent.getStartPositionOfChar() to determine where the
+//      // glyph corresponding to each character was placed, and thus to work out
+//      // whether the SVG font was used correctly.
+//      //
+//      // The font uses 100 units per em, and the text is set in 100px.  Since
+//      // font-size gives the size of the em box
+//      // (http://www.w3.org/TR/SVG11/text.html#DOMInterfaces), the scale of the
+//      // coordinate system for the glyphs is the same as the SVG document.
+//      //
+//      // The expectedAdvances array holds the expected advance value for each
+//      // character, and expectedKerning holds the (negative) kerning for each
+//      // character.  getPositionOfChar() returns the actual x coordinate for the
+//      // glyph, corresponding to the given character, and if multiple characters
+//      // correspond to the same glyph, the same position value is returned for
+//      // each of those characters.
+//      //
+//      // Here are the reasonings for the advance/kerning values.  Note that for
+//      // a given character at index i, the expected position is
+//      // sum(expectedAdvances[0:i-1] + expectedKerning[0:i-1]).
+//      //
+//      // char     advance  kerning  reasoning
+//      // -------  -------  -------  --------------------------------------------------
+//      // A        10000    0        Normal character mapping to a single glyph.
+//      // B        0        0        First character of a two character glyph, so the
+//      //                            current position isn't advanced until the second
+//      //                            character.
+//      // C        200      0        Second character of a two character glyph, so now
+//      //                            the position is advanced.
+//      // B        300      0        Although there is a glyph for "BC" in the font,
+//      //                            it appears after the glyph for "B", so the single
+//      //                            character glyph for "B" should be chosen instead.
+//      // D        1100     0        Normal character mapping to a single glyph.
+//      // A        10000    200      Kerning of -200 is specified in the font between
+//      //                            the "A" and "EE" glyphs.
+//      // E        0        0        The first character of a two character glyph "EE".
+//      // E        1300     0        The second character of a two character glyph.
+//      // U        0        0        This is a glyph for the six characters "U+0046",
+//      //                            which happen to look like a valid unicode range.
+//      //                            This tests that the <glyph unicode=""> in the
+//      //                            font matches exact strings rather than a range,
+//      //                            as used in the kerning elements.
+//      // +        0        0        Second character of six character glyph.
+//      // 0        0        0        Third character of six character glyph.
+//      // 0        0        0        Fourth character of six character glyph.
+//      // 4        0        0        Fifth character of six character glyph.
+//      // 6        1700     0        Sixth character of six character glyph.
+//      // U        0        0        The same six character glyph that looks like a
+//      //                            Unicode range.  One of the kerning elements has
+//      //                            u1="U+0046" u2="U+0046", which shouldn't match
+//      //                            this, because those attributes are interpreted
+//      //                            as Unicode ranges if they are, and normal
+//      //                            strings otherwise.  Thus there should be no
+//      //                            kerning between these two glyphs.
+//      // G        2300     200      Kerning is between this character and the next
+//      //                            "G", since there is an <hkern> element that
+//      //                            uses a Unicode range on its u1="" attribute
+//      //                            and a glyph name on its g2="" attribute which
+//      //                            both match "G".
+//      // G        2300     0        Normal character with kerning before it.
+//      // H        3100     0        A glyph with graphical content describing the
+//      //                            glyph, rather than a d="" attribute.
+//      // I        4300     0        Glyphs are checked in document order for one
+//      //                            that matches, but the first glyph with
+//      //                            unicode="I" also has lang="zh", which disqualifies
+//      //                            it.  Thus the second glyph with unicode="I"
+//      //                            is chosen.
+//      // I        4100     0        Since this I has xml:lang="zh" on it in the text,
+//      //                            the first glyph with lang="zh" matches.
+//      // J        4700     -4700    A normal glyph with kerning between the "J" and the
+//      //                            next glyph "A" equal to the advance of the "J"
+//      //                            glyph, so the position should stay the same.
+//      // A        10000    0        Normal glyph with kerning before it.
+//      // K        5900     0        The first glyph with unicode="K" does not match,
+//      //                            since it has orientation="v", so the second
+//      //                            glyph with unicode="K" is chosen.
+//      // <spc>    6100     0        The space character should select the glyph with
+//      //                            unicode=" ", despite it having a misleading
+//      //                            glyph-name="L".
+//      // L        6700     0        The "L" character should select the glyph with
+//      //                            unicode=" ", despite it having a misleading
+//      //                            glyph-name="spacev".
+//      // A        2900     0        An <altGlyph> element is used to select the
+//      //                            glyph for U+10085 instead of the one for "A".
+//      // U+10085  2900     0        Tests glyph selection with a non-plane-0
+//      //                            character.
+//      // A        10000    0        A final normal character.
+//      //
+//      // In addition, the script tests the value returned by
+//      // SVGTextContentElement.getNumberOfChars(), which in this case should be 34.
+//      // If it returned 33, then it incorrectly counted Unicode characters instead
+//      // of UTF-16 codepoints (probably).
+//      //
+//      // See http://www.w3.org/TR/SVG11/fonts.html for a description of the glyph
+//      // matching rules, and http://www.w3.org/TR/SVG11/text.html#DOMInterfaces
+//      // for a description of getStartPositionOfChar() and getNumberOfChars().
+//      //
+//      // Note also that the test uses DOMImplementation.createDocument() to create
+//      // the SVG document.  This seems to cause browsers trouble for the SVG DOM
+//      // interfaces, since the document isn't being "rendered" as it might be
+//      // if it were in an <iframe>.  Changing the test to use an <iframe> will
+//      // at least let you see the main part of the test running.
+//
+      var NS = {
+        svg: 'http://www.w3.org/2000/svg',
+        xml: 'http://www.w3.org/XML/1998/namespace',
+//        xlink: 'http://www.w3.org/1999/xlink'
+      };
+
+      var doc = kungFuDeathGrip.childNodes[1].contentDocument;
+      while (doc.hasChildNodes())
+        doc.removeChild(doc.firstChild);
+      doc.appendChild(doc.createElementNS(NS.svg, "svg:svg"));
+//
+//      var e = function (n, as, cs) {
+//        var elt = doc.createElementNS(NS.svg, n);
+//        if (as) {
+//          for (var an in as) {
+//            var idx = an.indexOf(':');
+//            var ns = null;
+//            if (idx != -1)
+//              ns = NS[an.substring(0, idx)];
+//            elt.setAttributeNS(ns, an, as[an]);
+//          }
+//        }
+//        if (cs) {
+//          for (var i in cs) {
+//            var c = cs[i];
+//            elt.appendChild(typeof c == 'string' ? doc.createTextNode(c) : c);
+//          }
+//        }
+//        return elt;
+//      }
+//
+//      doc.documentElement.appendChild(e('font', { 'horiz-adv-x': '10000'}, [e('font-face', { 'font-family': 'HCl', 'units-per-em': '100', 'ascent': '1000', 'descent': '500'}), e('missing-glyph', null, [e('path', { 'd': 'M100,0 h800 v-100 h-800 z'})]), e('glyph', { 'unicode': 'A', 'd': 'M100,0 h100 v-100 h-100 z'}), e('glyph', { 'unicode': 'BC', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '200'}), e('glyph', { 'unicode': 'B', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '300'}), e('glyph', { 'unicode': 'C', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '500'}), e('glyph', { 'unicode': 'BD', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '700'}), e('glyph', { 'unicode': 'D', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '1100'}), e('glyph', { 'unicode': 'EE', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '1300',  'glyph-name': 'grapefruit'}), e('glyph', { 'unicode': 'U+0046', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '1700'}), e('glyph', { 'unicode': 'F', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '1900'}), e('glyph', { 'unicode': 'G', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '2300', 'glyph-name': 'gee'}), e('glyph', { 'unicode': '\uD800\uDC85', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '2900', 'id': 'astral'}), e('glyph', { 'unicode': 'H', 'horiz-adv-x': '3100'}, [e('path', { 'd': 'M100,0 h100 v-100 h-100 z'})]), e('glyph', { 'unicode': 'I', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '4100', 'lang': 'zh'}), e('glyph', { 'unicode': 'I', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '4300'}), e('glyph', { 'unicode': 'J', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '4700'}), e('glyph', { 'unicode': 'K', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '5300', 'orientation': 'v'}), e('glyph', { 'unicode': 'K', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '5900'}), e('glyph', { 'unicode': ' ', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '6100', 'glyph-name': 'L'}), e('glyph', { 'unicode': 'L', 'd': 'M100,0 h100 v-100 h-100 z', 'horiz-adv-x': '6700', 'glyph-name': 'space'}), e('hkern', { 'u1': 'A', 'u2': 'EE', 'k': '1000'}), e('hkern', { 'u1': 'A', 'g2': 'grapefruit', 'k': '-200'}), e('hkern', { 'u1': 'U+0046', 'u2': 'U+0046', 'k': '-200'}), e('hkern', { 'u1': 'U+0047-0047', 'g2': 'gee', 'k': '-200'}), e('hkern', { 'u1': 'J', 'u2': 'A', 'k': '4700'})]));
+//      doc.documentElement.appendChild(e('text', { 'y': '100', 'font-family': 'HCl', 'font-size': '100px', 'letter-spacing': '0px', 'word-spacing': '0px'}, ['ABCBDAEEU+0046U+0046GGHI', e('tspan', { 'xml:lang': 'zh'}, ['I']), 'JAK L', e('altGlyph', { 'xlink:href': '#astral'}, ['A']), '\uD800\uDC85A']));
+//
+//      var t = doc.documentElement.lastChild;
+//
+//      var characterDescriptions = [
+//        "a normal character",
+//        "the first character of a two-character glyph",
+//        "the second character of a two-character glyph",
+//        "a normal character, which shouldn't be the first character of a two-character glyph",
+//        "a normal character, which shouldn't be the second character of a two-character glyph",
+//        "a normal character, which has some kerning after it",
+//        "the first character of a two-character glyph, which has some kerning before it",
+//        "the second character of a two-character glyph, which has some kerning before it",
+//        "the first character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning after it, but this glyph does not",
+//        "the second character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning after it, but this glyph does not",
+//        "the third character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning after it, but this glyph does not",
+//        "the fourth character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning after it, but this glyph does not",
+//        "the fifth character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning after it, but this glyph does not",
+//        "the sixth character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning after it, but this glyph does not",
+//        "the first character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning before it, but this glyph does not",
+//        "the second character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning before it, but this glyph does not",
+//        "the third character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning before it, but this glyph does not",
+//        "the fourth character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning before it, but this glyph does not",
+//        "the fifth character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning before it, but this glyph does not",
+//        "the sixth character of a six-character glyph, which happens to look like a Unicode range, where the range-specified glyph has kerning before it, but this glyph does not",
+//        "a normal character, which has some kerning after it that is specified by glyph name",
+//        "a normal character, which has some kerning before it that is specified by glyph name",
+//        "a normal character, whose glyph is given by child graphical content of the <glyph> element",
+//        "a normal character, whose glyph should not match the one with a lang=\"\" attribute on it",
+//        "a normal character, whose glyph should match the one with a lang=\"\" attribute on it",
+//        "a normal character, which has some kerning after it that is equal to the advance of the character",
+//        "a normal character, which has some kerning before it that is equal to the advance of the previous character",
+//        "a normal character, whose glyph should not match the one with an orientation=\"v\" attribute on it",
+//        "a space character, which has a misleading glyph-name=\"\" attribute",
+//        "a normal character, which has a misleading glyph-name=\"\" attribute",
+//        "a normal character, whose glyph is chosen to be another by using <altGlyph>",
+//        "a character not in Plane 0 (high surrogate pair)",
+//        "a character not in Plane 0 (low surrogate pair)",
+//        "a normal character",
+//      ];
+//
+//      var expectedAdvances = [
+//        10000,       // A
+//        0,           // BC [0]
+//        200,         // BC [1]
+//        300,         // B
+//        1100,        // D
+//        10000,       // A
+//        0,           // EE [0]
+//        1300,        // EE [1]
+//        0,           // U+0046 [0]
+//        0,           // U+0046 [1]
+//        0,           // U+0046 [2]
+//        0,           // U+0046 [3]
+//        0,           // U+0046 [4]
+//        1700,        // U+0046 [5]
+//        0,           // U+0046 [0]
+//        0,           // U+0046 [1]
+//        0,           // U+0046 [2]
+//        0,           // U+0046 [3]
+//        0,           // U+0046 [4]
+//        1700,        // U+0046 [5]
+//        2300,        // G
+//        2300,        // G
+//        3100,        // H
+//        4300,        // I
+//        4100,        // I (zh)
+//        4700,        // J
+//        10000,       // A
+//        5900,        // K
+//        6100,        // <space>
+//        6700,        // L
+//        2900,        // A (using &#x10085; altGlyph)
+//        0,           // &#x10085; high surrogate pair
+//        2900,        // &#x10085; low surrogate pair
+//        10000,       // A
+//      ];
+//
+//      var expectedKerning = [
+//        0,           // A
+//        0,           // BC [0]
+//        0,           // BC [1]
+//        0,           // B
+//        0,           // D
+//        200,         // A
+//        0,           // EE [0]
+//        0,           // EE [1]
+//        0,           // U+0046 [0]
+//        0,           // U+0046 [1]
+//        0,           // U+0046 [2]
+//        0,           // U+0046 [3]
+//        0,           // U+0046 [4]
+//        0,           // U+0046 [5]
+//        0,           // U+0046 [0]
+//        0,           // U+0046 [1]
+//        0,           // U+0046 [2]
+//        0,           // U+0046 [3]
+//        0,           // U+0046 [4]
+//        0,           // U+0046 [5]
+//        200,         // G
+//        0,           // G
+//        0,           // H
+//        0,           // I
+//        0,           // I (zh)
+//        -4700,       // J
+//        0,           // A
+//        0,           // K
+//        0,           // <space>
+//        0,           // L
+//        0,           // A (using &#x10085; altGlyph)
+//        0,           // &#x10085; high surrogate pair
+//        0,           // &#x10085; low surrogate pair
+//        0,           // A
+//      ];
+//
+//      assertEquals(t.getNumberOfChars(), expectedAdvances.length, 'SVGSVGTextElement.getNumberOfChars() incorrect');
+//
+//      var expectedPositions = [0];
+//      for (var i = 0; i < expectedAdvances.length; i++)
+//        expectedPositions.push(expectedPositions[i] + expectedAdvances[i] + expectedKerning[i]);
+//
+//      var actualPositions = [];
+//      for (var i = 0; i < t.getNumberOfChars(); i++)
+//        actualPositions.push(t.getStartPositionOfChar(i).x);
+//      actualPositions.push(t.getEndPositionOfChar(t.getNumberOfChars() - 1).x);
+//
+//      for (var i = 0; i < expectedPositions.length; i++) {
+//        if (expectedPositions[i] != actualPositions[i]) {
+//          var s = "character position " + i + ", which is ";
+//          if (i == 0) {
+//            s += "before " + characterDescriptions[0];
+//          } else if (i == expectedPositions.length - 1) {
+//            s += "after " + characterDescriptions[characterDescriptions.length - 1];
+//          } else {
+//            s += "between " + characterDescriptions[i - 1] + " and " + characterDescriptions[i];
+//          }
+//          s += ", is " + actualPositions[i] + " but should be " + expectedPositions[i] + ".";
+//          fail(s);
+//        }
+//      }
+      return 5;
+    },
+    function () {
+      // test 80: remove the iframes and the object
+      // (when fixing the test for http://dbaron.org/mozilla/visited-privacy,
+      // this section was flipped around so the linktest check is done first;
+      // this is to prevent the 'retry' from failing the second time since by
+      // then the kungFuDeathGrip has been nullified, if we do it first)
+      // first, check that the linktest is loaded
+      var a = document.links[1];
+      assert(!(a == null), "linktest was null");
+      assert(a.textContent == "YOU SHOULD NOT SEE THIS AT ALL", "linktest link couldn't be found"); // changed text when fixing http://dbaron.org/mozilla/visited-privacy
+      if (a.hasAttribute('class'))
+        return "retry"; // linktest onload didn't fire -- could be a networking issue, check that first
+      assert(!(kungFuDeathGrip == null), "kungFuDeathGrip was null");
+      assert(!(kungFuDeathGrip.parentNode == null), "kungFuDeathGrip.parentNode was null");
+      // ok, now remove the iframes
+      kungFuDeathGrip.parentNode.removeChild(kungFuDeathGrip);
+      kungFuDeathGrip = null;
+      // check that the xhtml files worked right
+      assert(notifications['xhtml.1'], "Script in XHTML didn't execute");
+      assert(!notifications['xhtml.2'], "XML well-formedness error didn't stop script from executing");
+      assert(!notifications['xhtml.3'], "Script executed despite having wrong namespace");
+      return 5;
+    },
+
+    // bucket 6: ECMAScript
+    function () {
+      // test 81: length of arrays with elisions at end
+      var t1 = [,];
+      var t2 = [,,];
+      assertEquals(t1.length, 1, "[,] doesn't have length 1");
+      assertEquals(t2.length, 2, "[,,] doesn't have length 2");
+      return 6;
+    },
+    function () {
+      // test 82: length of arrays with elisions in the middle
+      var t3 = ['a', , 'c'];
+      assertEquals(t3.length, 3, "['a',,'c'] doesn't have length 3");
+      assert(0 in t3, "no 0 in t3");
+      assert(!(1 in t3), "unexpected 1 in t3");
+      assert(2 in t3, "no 2 in t3");
+      assertEquals(t3[0], 'a', "t3[0] wrong");
+      assertEquals(t3[2], 'c', "t3[2] wrong");
+      return 6;
+    },
+    function () {
+      // test 83: array methods
+      var x = ['a', 'b', 'c'];
+      assertEquals(x.unshift('A', 'B', 'C'), 6, "array.unshift() returned the wrong value");
+      var s = x.join(undefined);
+      assertEquals(s, 'A,B,C,a,b,c', "array.join(undefined) used wrong separator"); // qv 15.4.4.5:3
+      return 6;
+    },
+    function () {
+      // test 84: converting numbers to strings
+      assertEquals((0.0).toFixed(4), "0.0000", "toFixed(4) wrong for 0");
+      assertEquals((-0.0).toFixed(4), "0.0000", "toFixed(4) wrong for -0");
+      assertEquals((0.00006).toFixed(4), "0.0001", "toFixed(4) wrong for 0.00006");
+      assertEquals((-0.00006).toFixed(4), "-0.0001", "toFixed(4) wrong for -0.00006");
+      assertEquals((0.0).toExponential(4), "0.0000e+0", "toExponential(4) wrong for 0");
+      assertEquals((-0.0).toExponential(4), "0.0000e+0", "toExponential(4) wrong for -0");
+      var x = 7e-4;
+      assertEquals(x.toPrecision(undefined), x.toString(undefined), "toPrecision(undefined) was wrong");
+      return 6;
+    },
+    function () {
+      // test 85: strings and string-related operations
+      // substr() and negative numbers
+      assertEquals("scathing".substr(-7, 3), "cat", "substr() wrong with negative numbers");
+      return 6;
+    },
+    function () {
+      // test 86: Date tests -- methods passed no arguments
+      var d = new Date();
+      assert(isNaN(d.setMilliseconds()), "calling setMilliseconds() with no arguments didn't result in NaN");
+      assert(isNaN(d), "date wasn't made NaN");
+      assert(isNaN(d.getDay()), "date wasn't made NaN");
+      return 6;
+    },
+    function () {
+      // test 87: Date tests -- years
+      var d1 = new Date(Date.UTC(99.9, 6));
+      assertEquals(d1.getUTCFullYear(), 1999, "Date.UTC() didn't do proper 1900 year offsetting");
+      var d2 = new Date(98.9, 6);
+      assertEquals(d2.getFullYear(), 1998, "new Date() didn't do proper 1900 year offsetting");
+      return 6;
+    },
+    function () {
+      // test 88: ES3 section 7.6:3 (unicode escapes can't be used to put non-identifier characters into identifiers)
+      // and there's no other place for them in the syntax (other than strings, of course)
+      var ok = false;
+      try {
+        eval("var test = { };\ntest.i= 0;\ntest.i\\u002b= 1;\ntest.i;\n");
+      } catch (e) {
+        ok = true;
+      }
+      assert(ok, "\\u002b was not considered a parse error in script");
+      return 6;
+    },
+    function () {
+      // test 89: Regular Expressions
+      var ok = true;
+      // empty classes in regexps
+      try {
+        eval("/TA[])]/.exec('TA]')");
+        // JS regexps aren't like Perl regexps, if their character
+        // classes start with a ] that means they're empty. So this
+        // is a syntax error; if we get here it's a bug.
+        ok = false;
+      } catch (e) { }
+      assert(ok, "orphaned bracket not considered parse error in regular expression literal");
+      try {
+        if (eval("/[]/.exec('')"))
+          ok = false;
+      } catch (e) {
+        ok = false;
+      }
+      assert(ok, "/[]/ either failed to parse or matched something");
+      return 6;
+    },
+    function () {
+      // test 90: Regular Expressions
+      // not back references.
+      assert(!(/(1)\0(2)/.test("12")), "NUL in regexp incorrectly ignored");
+      assert((/(1)\0(2)/.test("1" + "\0" + "2")), "NUL in regexp didn't match correctly");
+      assert(!(/(1)\0(2)/.test("1\02")), "octal 2 unexpectedly matched NUL");
+      assertEquals(nullInRegexpArgumentResult, "passed", "failed //.test() check"); // nothing to see here, move along now
+      // back reference to future capture
+      var x = /(\3)(\1)(a)/.exec('cat'); // the \3 matches the empty string, qv. ES3:15.10.2.9
+      assert(x, "/(\\3)(\\1)(a)/ failed to match 'cat'");
+      assertEquals(x.length, 4, "/(\\3)(\\1)(a)/ failed to return four components");
+      assertEquals(x[0], "a", "/(\\3)(\\1)(a)/ failed to find 'a' in 'cat'");
+      assert(x[1] === "", "/(\\3)(\\1)(a)/ failed to find '' in 'cat' as first part");
+      assert(x[2] === "", "/(\\3)(\\1)(a)/ failed to find '' in 'cat' as second part");
+      assertEquals(x[3], "a", "/(\\3)(\\1)(a)/ failed to find 'a' in 'cat' as third part");
+      // negative lookahead
+      x = /(?!(text))(te.t)/.exec("text testing");
+      assertEquals(x.length, 3, "negative lookahead test failed to return the right number of bits");
+      assertEquals(x[0], "test", "negative lookahead test failed to find the right text");
+      assert(x[1] === undefined, "negative lookahead test failed to return undefined for negative lookahead capture");
+      assert(x[2] === "test", "negative lookahead test failed to find the right second capture");
+      return 6;
+    },
+    function () {
+      // test 91: check that properties are enumerable by default
+      var test = {
+        constructor: function() { return 1; },
+        toString: function() { return 2; },
+        toLocaleString: function() { return 3; },
+        valueOf: function() { return 4; },
+        hasOwnProperty: function() { return 5; },
+        isPrototypeOf: function() { return 6; },
+        propertyIsEnumerable: function() { return 7; },
+        prototype: function() { return 8; },
+        length: function() { return 9; },
+        unique: function() { return 10; }
+      };
+      var results = [];
+      for (var property in test)
+        results.push([test[property](), property]);
+      results.sort(function(a, b) {
+        if (a[0] < b[0]) return -1;
+        if (a[0] > b[0]) return 1;
+        return 0;
+      });
+      assertEquals(results.length, 10, "missing properties");
+      for (var index = 0; index < 10; index += 1)
+        assertEquals(results[index][0], index+1, "order wrong at results["+index+"] == ");
+      var index = 0;
+      assertEquals(results[index++][1], "constructor", "failed to find constructor in expected position");
+      assertEquals(results[index++][1], "toString", "failed to find toString in expected position");
+      assertEquals(results[index++][1], "toLocaleString", "failed to find toLocaleString in expected position");
+      assertEquals(results[index++][1], "valueOf", "failed to find valueOf in expected position");
+      assertEquals(results[index++][1], "hasOwnProperty", "failed to find hasOwnProperty in expected position");
+      assertEquals(results[index++][1], "isPrototypeOf", "failed to find isPrototypeOf in expected position");
+      assertEquals(results[index++][1], "propertyIsEnumerable", "failed to find propertyIsEnumerable in expected position");
+      assertEquals(results[index++][1], "prototype", "failed to find prototype in expected position");
+      assertEquals(results[index++][1], "length", "failed to find length in expected position");
+      assertEquals(results[index++][1], "unique", "failed to find unique in expected position");
+      return 6;
+    },
+    function () {
+      // test 92: internal properties of Function objects
+      // constructor is not ReadOnly
+      var f1 = function () { 1 };
+      f1.prototype.constructor = "hello world";
+      var f1i = new f1();
+      assert(f1i.constructor === "hello world", "Function object's prototype's constructor was ReadOnly");
+      // constructor is DontEnum (indeed, no properties at all on a new Function object)
+      var f2 = function () { 2 };
+      var f2i = new f2();
+      var count = 0;
+      for (var property in f2i) {
+        assert(property != "constructor", "Function object's prototype's constructor was not DontEnum");
+        count += 1;
+      }
+      assertEquals(count, 0, "Function object had unexpected properties");
+      // constructor is not DontDelete
+      var f3 = function (a, b) { 3 };
+      delete f3.prototype.constructor;
+      var f3i = new f3();
+      assertEquals(f3i.constructor, Object.prototype.constructor, "Function object's prototype's constructor was DontDelete (or got magically replaced)");
+      return 6;
+    },
+    function () {
+      // test 93: FunctionExpression semantics
+      var functest;
+      var vartest = 0;
+      var value = (function functest(arg) {
+        if (arg)
+          return 1;
+        vartest = 1;
+        functest = function (arg) { return 2; }; // this line does nothing as 'functest' is ReadOnly here
+        return functest(true); // this is therefore tail recursion and returns 1
+      })(false);
+      assertEquals(vartest, 1, "rules in 10.1.4 not followed in FunctionBody");
+      assertEquals(value, 1, "semantics of FunctionExpression: function Identifier ... not followed");
+      assert(!functest, "Property in step 4 of FunctionExpression: function Identifier ... leaked to parent scope");
+      return 6;
+    },
+    function () {
+      // test 94: exception scope
+      var test = 'pass';
+      try {
+        throw 'fail';
+      } catch (test) {
+        test += 'ing';
+      }
+      assertEquals(test, 'pass', 'outer scope poisoned by exception catch{} block');
+      return 6;
+    },
+    function () {
+      // test 95: types of expressions
+      var a = []; var s;
+      s = a.length = "2147483648";
+      assertEquals(typeof s, "string", "type of |\"2147483648\"| is not string");
+      return 6;
+    },
+    function () {
+      // test 96: encodeURI() and encodeURIComponent() and null bytes
+      assertEquals(encodeURIComponent(String.fromCharCode(0)), '%00', "encodeURIComponent failed to encode U+0000");
+      assertEquals(encodeURI(String.fromCharCode(0)), '%00', "encodeURI failed to encode U+0000");
+      return 6;
+    },
+
+    // URIs
+    function () {
+      // test 97: data: URI parsing
+      assertEquals(d1, "one", "data: failed as escaped");
+      assertEquals(d2, "two", "data: failed as base64");
+      assertEquals(d3, "three", "data: failed as base64 escaped");
+      assertEquals(d4, "four", "data: failed as base64 with spaces");
+      assertEquals(d5, "five's", "data: failed with backslash");
+      return 7;
+    },
+
+    // XHTML
+    function () {
+      // test 98: XHTML and the DOM
+      // (special test)
+      var doctype = document.implementation.createDocumentType("html", "-//W3C//DTD XHTML 1.0 Strict//EN", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd");
+// COMMENTED OUT FOR 2011 UPDATE - doctypes are moving towards having an owner, like other nodes
+//      assertEquals(doctype.ownerDocument, null, "doctype's ownerDocument was wrong after creation");
+      var doc = document.implementation.createDocument("http://www.w3.org/1999/xhtml", "html", doctype);
+      doc.documentElement.appendChild(doc.createElementNS("http://www.w3.org/1999/xhtml", "head"));
+      doc.documentElement.appendChild(doc.createElementNS("http://www.w3.org/1999/xhtml", "body"));
+      var t = doc.createElementNS("http://www.w3.org/1999/xhtml", "title");
+      doc.documentElement.firstChild.appendChild(t);
+      // ok we have a conforming XHTML1 doc in |doc| now.
+      assertEquals(doctype.ownerDocument, doc, "doctype's ownerDocument didn't change when it was assigned to another document");
+      assertEquals(doc.title, "", "document had unexpected title");
+      t.textContent = "Sparrow";
+      assertEquals(doc.title, "Sparrow", "document.title did not update dynamically");
+      doc.body.appendChild(doc.createElementNS("http://www.w3.org/1999/xhtml", "form"));
+      assertEquals(doc.forms.length, 1, "document.forms not updated after inserting a form");
+      return 7;
+    },
+
+    // Sanity
+    function () {
+      // test 99: check for the weirdest bug ever
+      var a = document.createElement('a');
+      a.setAttribute('href', 'http://www.example.com/');
+      a.appendChild(document.createTextNode('www.example.com'));
+      a.href = 'http://hixie.ch/';
+      assertEquals(a.firstChild.data, "www.example.com", "sanity did not prevail");
+      a.href = 'http://damowmow.com/';
+      assertEquals(a.firstChild.data, "www.example.com", "final test failed");
+      return 7;
+    }
+
+  ];
+  window.parent.postMessage({num_tests: tests.length}, "*");
+  var log = '';
+  var delay = 10;
+  var score = 0, index = 0, retry = 0, errors = 0;
+  function update() {
+    var span = document.getElementById('score'); // not cached by JS
+    span.nextSibling.removeAttribute('class'); // no-op after first loop
+    span.nextSibling.nextSibling.firstChild.data = tests.length; // no-op after first loop
+    if (index < tests.length) {
+      var zeroPaddedIndex = index < 10 ? '0' + index : index;
+      try {
+        var beforeTest = new Date();
+        var result = tests[index]();
+        var elapsedTest = new Date() - beforeTest;
+        if (result == "retry") {
+          // some tests uses this magical mechanism to wait for support files to load
+          // we will give this test 500 attempts (5000ms) before aborting
+          retry += 1;
+          if (retry < 500) {
+            setTimeout(update, delay);
+            return;
+          }
+          fail("timeout -- could be a networking issue");
+        } else if (result) {
+          var bucket = document.getElementById('bucket' + result);
+          if (bucket)
+            bucket.className += 'P';
+          score += 1;
+          if (retry > 0) {
+            errors += 1;
+            log += "Test " + zeroPaddedIndex + " passed, but took " + retry + " attempts (less than perfect).\n";
+          } else if (elapsedTest > 33) { // 30fps
+            errors += 1;
+            log += "Test " + zeroPaddedIndex + " passed, but took " + elapsedTest + "ms (less than 30fps)\n";
+          }
+        } else {
+          fail("no error message");
+        }
+        window.parent.postMessage({test: index, result: "pass"}, "*");
+      } catch (e) {
+        var s;
+        if (e.message)
+          s = e.message.replace(/\s+$/, "");
+        else
+          s = e;
+        errors += 1;
+        log += "Test " + zeroPaddedIndex + " failed: " + s + "\n";
+        window.parent.postMessage({test: index, result: "fail", message: s}, "*");
+      };
+      retry = 0;
+      index += 1;
+      span.firstChild.data = score;
+      setTimeout(update, delay);
+    } else {
+      var endTime = new Date();
+      var elapsedTime = ((endTime - startTime) - (delay * tests.length)) / 1000;
+      log += "Total elapsed time: " + elapsedTime.toFixed(2) + "s";
+      if (errors == 0)
+        log += "\nNo JS errors and no timing issues.\nWas the rendering pixel-for-pixel perfect too?";
+      document.documentElement.classList.remove("reftest-wait");
+    }
+  }
+  function report(event) {
+    // for debugging either click the "A" in "Acid3" (to get an alert) or shift-click it (to get a report)
+    if (event.shiftKey) {
+      var w = window.open();
+      w.document.write('<pre>Failed ' + (tests.length - score) + ' of ' + tests.length + ' tests.\n' +
+                       log.replace(/&/g,'&amp;').replace(RegExp('<', 'g'), '&lt;').replace('\0', '\\0') +
+                       '<\/pre>');
+      w.document.close();
+    } else {
+      alert('Failed ' + (tests.length - score) + ' test' + (score == 1 ? '' : 's') + '.\n' + log)
+    }
+  }
+ </script>
+ <body onload="update()  /* this attribute's value is tested in one of the tests */ ">
+  <h1 onclick="report(event)">Acid3</h1>
+  <div class="buckets"
+   ><p id="bucket1" class="z"></p
+   ><p id="bucket2" class="z"></p
+   ><p id="bucket3" class="z"></p
+   ><p id="bucket4" class="z"></p
+   ><p id="bucket5" class="z"></p
+   ><p id="bucket6" class="z"></p>
+  </div>
+  <p id="result"><span id="score">JS</span><span id="slash" class="hidden">/</span><span>?</span></p>
+  <!-- The following line is used in a number of the tests. It is done using document.write() to sidestep complaints of validity. -->
+  <script type="text/javascript">document.write('<map name=""><area href="" shape="rect" coords="2,2,4,4" alt="<\'>"><iframe src="empty.png">FAIL<\/iframe><iframe src="empty.txt">FAIL<\/iframe><iframe src="empty.html" id="selectors"><\/iframe><form action="" name="form"><input type=HIDDEN><\/form><table><tr><td><p><\/tbody> <\/table><\/map>');</script>
+  <p id="instructions">To pass the test,<span></span> a browser must use its default settings, the animation has to be smooth, the score has to end on 100/100, and the final page has to look exactly, pixel for pixel, like <a href="reference.sub.html">this reference rendering</a>.</p>
+  <p id="remove-last-child-test">Scripting must be enabled to use this test.</p>
+ </body>
+</html>

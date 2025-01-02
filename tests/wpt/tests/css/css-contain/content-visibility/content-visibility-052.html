@@ -1,0 +1,73 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: hidden starts painting when removed</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-with-pos-children-ref.html">
+<meta name="assert" content="content-visibility subtrees start painting when hidden is removed">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.container {
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+  contain: layout;
+}
+.hidden {
+  content-visibility: hidden;
+}
+#child {
+  width: 50px;
+  height: 50px;
+  background: lightgreen;
+}
+.abspos { position: absolute; }
+.relpos { position: relative; }
+.fixedpos { position: fixed; }
+.start { top: 0; left: 0; }
+.mid { top: 10px; left: 10px; }
+.end { bottom: 0; right: 0; }
+.zindex { z-index: 1; }
+.small { width: 10px; height: 10px; background: blue; }
+.medium { width: 20px; height: 20px; background: green; }
+.large { width: 30px; height: 30px; background: pink; }
+</style>
+
+<p>This test passes if the two light blue boxes below have the same content.
+<div id=container class="container hidden">
+  Text.
+  <div id=child></div>
+  <span>inline child</span>
+  <div class="abspos start small"></div>
+  <div class="relpos mid medium"></div>
+  <div class="fixedpos end large"></div>
+  <div class=relpos>
+    <div class="abspos mid small zindex"></div>
+  </div>
+</div>
+<br>
+<div class="container">
+  Text.
+  <div id=child></div>
+  <span>inline child</span>
+  <div class="abspos start small"></div>
+  <div class="relpos mid medium"></div>
+  <div class="fixedpos end large"></div>
+  <div class=relpos>
+    <div class="abspos mid small zindex"></div>
+  </div>
+</div>
+
+<script>
+function runTest() {
+  const container = document.getElementById("container");
+  container.classList.remove("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = runTest;
+</script>
+</html>

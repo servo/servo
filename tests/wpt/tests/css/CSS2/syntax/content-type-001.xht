@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: text/css content type</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Daniel Schattenkirchner" href="mailto:crazy-daniel@gmx.de" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/conform.html#text-css" />
+  <link rel="match" href="content-type-000-ref.xht" />
+  <meta content="http" name="flags" />
+  <meta content="A stylesheet sent as text/plain should not be interpreted by user agents as CSS. It should instead be ignored." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: lime;
+  font-size: 2em;
+  }
+  ]]></style>
+
+  <link href="support/plaintext-css.txt" rel="stylesheet" type="text/css" />
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the background of the text sample is bright green. There should be <strong>no red</strong>.</p>
+
+  <div>Text sample</div>
+
+ </body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+  <meta charset="utf-8" />
+  <meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+  <link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+
+  <script>
+    idl_test(["observable.tentative"], ["dom"], (idl_array) => {
+      idl_array.add_objects({
+        Observable: ["new Observable(() => {})"],
+        Subscriber: [
+          "(() => { let s = null; new Observable(_s => s = _s).subscribe({}); return s })()",
+        ],
+      });
+    });
+  </script>
+</t>

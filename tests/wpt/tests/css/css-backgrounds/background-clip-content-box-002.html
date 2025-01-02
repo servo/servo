@@ -1,0 +1,32 @@
+<!doctype html>
+<title>background-clip: content-box with fractional width/position</title>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-clip">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+.back {
+  background-color: red;
+  width: 100px;
+  display: flex;
+}
+
+.left {
+  flex-basis: 50%;
+  border-left: 5px solid green;
+}
+
+.right {
+  flex-basis: 50%;
+  border-right: 6px solid green;
+}
+
+.left, .right {
+  background-color: green;
+  background-clip: content-box;
+  height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="back">
+  <div class="left"></div>
+  <div class="right"></div>
+</div>

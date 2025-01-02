@@ -1,0 +1,3 @@
+Reporting-Endpoints: group1="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=6c2131d0-1e9b-4ee8-a196-952f2ae4ae97"
+Report-To: { "group": "group1", "max_age": 10886400, "endpoints": [{ "url": "/reporting/resources/report.py?reportID=caddb022-90ea-48e8-a675-4cebaf7e8388" }] }
+Document-Policy-Report-Only: sync-xhr=?0;report-to=group1

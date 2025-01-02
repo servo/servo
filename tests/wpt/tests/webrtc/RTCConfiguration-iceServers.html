@@ -1,0 +1,304 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCConfiguration iceServers</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='RTCConfiguration-helper.js'></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor's draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper function is called from
+  // RTCConfiguration-helper.js:
+  //   config_test
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        ...
+      };
+
+    4.2.1.  RTCConfiguration Dictionary
+      dictionary RTCConfiguration {
+        sequence<RTCIceServer>   iceServers = [];
+        ...
+      };
+
+    4.2.4.  RTCIceServer Dictionary
+      dictionary RTCIceServer {
+        required (DOMString or sequence<DOMString>) urls;
+                 DOMString                          username;
+                 DOMString                          credential;
+      };
+   */
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    assert_array_equals(pc.getConfiguration().iceServers, []);
+  }, 'new RTCPeerConnection() should have default configuration.iceServers of undefined');
+
+  config_test(makePc => {
+    makePc({});
+  }, '{} should succeed');
+
+  config_test(makePc => {
+    assert_throws_js(TypeError, () =>
+      makePc({ iceServers: null }));
+  }, '{ iceServers: null } should throw TypeError');
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: undefined });
+    assert_array_equals(pc.getConfiguration().iceServers, []);
+  }, '{ iceServers: undefined } should succeed');
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [] });
+    assert_array_equals(pc.getConfiguration().iceServers, []);
+  }, '{ iceServers: [] } should succeed');
+
+  config_test(makePc => {
+    assert_throws_js(TypeError, () =>
+      makePc({ iceServers: [null] }));
+  }, '{ iceServers: [null] } should throw TypeError');
+
+  config_test(makePc => {
+    assert_throws_js(TypeError, () =>
+      makePc({ iceServers: [undefined] }));
+  }, '{ iceServers: [undefined] } should throw TypeError');
+
+  config_test(makePc => {
+    assert_throws_js(TypeError, () =>
+      makePc({ iceServers: [{}] }));
+  }, '{ iceServers: [{}] } should throw TypeError');
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [{
+      urls: 'stun:stun1.example.net'
+    }] });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 1);
+
+    const server = iceServers[0];
+    assert_array_equals(server.urls, ['stun:stun1.example.net']);
+
+  }, `with stun server should succeed`);
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [{
+      urls: ['stun:stun1.example.net']
+    }] });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 1);
+
+    const server = iceServers[0];
+    assert_array_equals(server.urls, ['stun:stun1.example.net']);
+
+  }, `with stun server array should succeed`);
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [{
+      urls: ['stun:stun1.example.net', 'stun:stun2.example.net']
+    }] });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 1);
+
+    const server = iceServers[0];
+    assert_array_equals(server.urls, ['stun:stun1.example.net', 'stun:stun2.example.net']);
+
+  }, `with 2 stun servers should succeed`);
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [{
+      urls: 'turn:turn.example.org',
+      username: 'user',
+      credential: 'cred'
+    }] });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 1);
+
+    const server = iceServers[0];
+    assert_array_equals(server.urls, ['turn:turn.example.org']);
+    assert_equals(server.username, 'user');
+    assert_equals(server.credential, 'cred');
+
+  }, `with turn server, username, credential should succeed`);
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [{
+      urls: 'turns:turn.example.org',
+      username: '',
+      credential: ''
+    }] });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 1);
+
+    const server = iceServers[0];
+    assert_array_equals(server.urls, ['turns:turn.example.org']);
+    assert_equals(server.username, '');
+    assert_equals(server.credential, '');
+
+  }, `with turns server and empty string username, credential should succeed`);
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [{
+      urls: 'turn:turn.example.org',
+      username: '',
+      credential: ''
+    }] });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 1);
+
+    const server = iceServers[0];
+    assert_array_equals(server.urls, ['turn:turn.example.org']);
+    assert_equals(server.username, '');
+    assert_equals(server.credential, '');
+
+  }, `with turn server and empty string username, credential should succeed`);
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [{
+      urls: ['turns:turn.example.org', 'turn:turn.example.net'],
+      username: 'user',
+      credential: 'cred'
+    }] });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 1);
+
+    const server = iceServers[0];
+    assert_array_equals(server.urls, ['turns:turn.example.org', 'turn:turn.example.net']);
+    assert_equals(server.username, 'user');
+    assert_equals(server.credential, 'cred');
+
+  }, `with one turns server, one turn server, username, credential should succeed`);
+
+  /*
+    4.3.2.  To set a configuration
+      11.4. If scheme name is turn or turns, and either of server.username or
+            server.credential are omitted, then throw an InvalidAccessError.
+   */
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turn:turn.example.net'
+      }] }));
+  }, 'with turn server and no credentials should throw InvalidAccessError');
+
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turn:turn.example.net',
+        username: 'user'
+      }] }));
+  }, 'with turn server and only username should throw InvalidAccessError');
+
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turn:turn.example.net',
+        credential: 'cred'
+      }] }));
+  }, 'with turn server and only credential should throw InvalidAccessError');
+
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turns:turn.example.net'
+      }] }));
+  }, 'with turns server and no credentials should throw InvalidAccessError');
+
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turns:turn.example.net',
+        username: 'user'
+      }] }));
+  }, 'with turns server and only username should throw InvalidAccessError');
+
+  config_test(makePc => {
+    assert_throws_dom('InvalidAccessError', () =>
+      makePc({ iceServers: [{
+        urls: 'turns:turn.example.net',
+        credential: 'cred'
+      }] }));
+  }, 'with turns server and only credential should throw InvalidAccessError');
+
+  /*
+    4.3.2.  To set a configuration
+      11.3. For each url in server.urls parse url and obtain scheme name.
+        - If the scheme name is not implemented by the browser, throw a SyntaxError.
+        - or if parsing based on the syntax defined in [ RFC7064] and [RFC7065] fails,
+          throw a SyntaxError.
+
+    [RFC7064] URI Scheme for the Session Traversal Utilities for NAT (STUN) Protocol
+    3.1.  URI Scheme Syntax
+      stunURI       = scheme ":" host [ ":" port ]
+      scheme        = "stun" / "stuns"
+
+    [RFC7065] Traversal Using Relays around NAT (TURN) Uniform Resource Identifiers
+    3.1.  URI Scheme Syntax
+      turnURI       = scheme ":" host [ ":" port ]
+                      [ "?transport=" transport ]
+      scheme        = "turn" / "turns"
+      transport     = "udp" / "tcp" / transport-ext
+      transport-ext = 1*unreserved
+   */
+  config_test(makePc => {
+    assert_throws_dom("SyntaxError", () =>
+      makePc({ iceServers: [{
+        urls: ''
+      }] }));
+  }, 'with "" url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws_dom("SyntaxError", () =>
+      makePc({ iceServers: [{
+        urls: ['stun:stun1.example.net', '']
+      }] }));
+  }, 'with ["stun:stun1.example.net", ""] url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws_dom("SyntaxError", () =>
+      makePc({ iceServers: [{
+        urls: 'relative-url'
+      }] }));
+  }, 'with relative url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws_dom("SyntaxError", () =>
+      makePc({ iceServers: [{
+        urls: 'http://example.com'
+      }] }));
+  }, 'with http url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws_dom("SyntaxError", () =>
+      makePc({ iceServers: [{
+        urls: 'turn://example.org/foo?x=y'
+      }] }));
+  }, 'with invalid turn url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws_dom("SyntaxError", () =>
+      makePc({ iceServers: [{
+        urls: 'stun://example.org/foo?x=y'
+      }] }));
+  }, 'with invalid stun url should throw SyntaxError');
+
+  config_test(makePc => {
+    assert_throws_dom("SyntaxError", () =>
+      makePc({ iceServers: [{
+        urls: []
+      }] }));
+  }, `with empty urls should throw SyntaxError`);
+
+</script>

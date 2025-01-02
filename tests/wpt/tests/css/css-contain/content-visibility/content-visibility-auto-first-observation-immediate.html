@@ -1,0 +1,53 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: first visibility determination happens before resize observer.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="first visibility determination happens before resize observer">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#target {
+  content-visibility: auto;
+  contain-intrinsic-size: 10px;
+}
+#child {
+  height: 100px;
+}
+</style>
+
+<div id=container></div>
+
+<script>
+promise_test(t => new Promise(async (resolve, reject) => {
+  requestAnimationFrame(() => {
+    let target = document.createElement("div");
+    target.id = "target";
+
+    let child = document.createElement("div");
+    child.id = "child";
+    target.appendChild(child);
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentBoxSize) {
+          if (entry.contentBoxSize[0].blockSize == 100) {
+            resolve();
+            return;
+          } else {
+            reject(`unexpected size ${entry.contentBoxSize[0].blockSize}`);
+            return;
+          }
+        }
+      }
+      reject("no content boxes or no entries");
+    });
+
+    container.appendChild(target);
+    resizeObserver.observe(target);
+  });
+}), "Target is sized and laid out before resize observer");
+</script>

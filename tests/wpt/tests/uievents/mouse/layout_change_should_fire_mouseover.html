@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Mouseover/enter is sent on layout change</title>
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <style>
+            #spacer {
+                height: 100px;
+                width: 100px;
+            }
+            #red {
+                background-color: rgb(255, 0, 0);
+                position: absolute;
+                z-index: 0;
+                left: 0px;
+                top: 0px;
+                height: 100px;
+                width: 100px;
+            }
+            #blue {
+                background-color: rgb(0, 0, 255);
+                position: absolute;
+                z-index: 1;
+                left: 0px;
+                top: 0px;
+                height: 100px;
+                width: 100px;
+            }
+            #blue:hover {
+                background-color: rgb(255, 255, 0);
+            }
+        </style>
+    </head>
+    <body onload="run();">
+        <div id="spacer"></div>
+        <div id="red"></div>
+        <h4>Test Description: Tests that the mouseover event is fired and the element has a hover effect when the element underneath the mouse cursor is changed.
+            <ol>
+                <li>Put your mouse over the red rectangle</li>
+                <li>Click the primary mouse button</li>
+            </ol>
+        </h4>
+        <script type="text/javascript">
+            var testMouseOver = async_test('Tests that the mouseover event is fired and the element has a hover effect when the element underneath the mouse cursor is changed.');
+            var actions_promise;
+
+            var eventList = [];
+            function addBlue() {
+                document.body.innerHTML += '<div id="blue"></div>';
+                var blue = document.getElementById("blue");
+                var events = ['mouseover', 'mousemove', 'mouseout', 'mouseenter', 'mouseleave'];
+                events.forEach(function (event) {
+                    blue.addEventListener(event, checkHoverEffect);
+                });
+                testMouseOver.step_timeout(function () {
+                   checkEventSequence();
+                }, 2500);
+            }
+
+            function checkEventSequence() {
+                var result = eventList.join();
+                assert_equals(result, 'mouseover,mouseenter');
+                // Make sure the test finishes after all the input actions are completed.
+                actions_promise.then( () => {
+                    testMouseOver.done();
+                });
+            }
+
+            function run() {
+                document.addEventListener('click', addBlue);
+            }
+
+            function checkHoverEffect(event) {
+                eventList.push(event.type);
+                testMouseOver.step(function () {
+                  assert_equals(event.target.id, "blue");
+                  assert_equals(getComputedStyle(event.target).backgroundColor, "rgb(255, 255, 0)");
+                  if (event.type == "mouseenter") {
+                      checkEventSequence();
+                  }
+              });
+            }
+
+            // Inject mouse inputs.
+            actions_promise = new test_driver.Actions()
+                .pointerMove(0, 0, {origin: red})
+                .pointerDown()
+                .pointerUp()
+                .send();
+        </script>
+    </body>
+</html>

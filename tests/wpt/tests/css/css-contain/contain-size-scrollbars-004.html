@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment scrollbars</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="reference/contain-size-scrollbars-004-ref.html">
+<meta name=assert content="This test checks that contain:size element's content and padding are considered for scrollbars.">
+<style>
+#scroller {
+  contain: size;
+  background: lightgreen;
+  overflow: scroll;
+  padding-bottom: 50px;
+  width: 100px;
+  height: 100px;
+}
+#content {
+  background: lightblue;
+  width: 50px;
+  height: 130px;
+}
+</style>
+
+<div id=scroller>
+  <div id=content>
+  </div>
+</div>
+
+<p>This test passes if it has the same output as the reference.</p>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>contain:inline-size and fieldset</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#containment-inline-size">
+<p>The fieldset below has inline-size containment. It should not make any
+  inline-size room for the blue legend line, but it should fit the hotpink
+  square in the block direction (but not in the inline direction, where it
+  should overflow the right border of the fieldset.</p>
+<fieldset style="border:20px solid; width:0; min-width:0;">
+  <legend>
+    <div style="width:200px; height:2px; background:blue;"></div>
+  </legend>
+  <div style="width:100px; height:100px; background:hotpink;"></div>
+</fieldset>

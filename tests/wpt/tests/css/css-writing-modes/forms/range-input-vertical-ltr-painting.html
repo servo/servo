@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://html.spec.whatwg.org/#range-state-(type=range)">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Test that painting of input[type=range] does not happen outside of its bounds</title>
+<meta charset="utf-8">
+<link rel="match" href="range-input-painting-ref.html">
+
+<style>
+    #container {
+        position: relative;
+    }
+    #cover {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: red;
+    }
+    @supports (writing-mode: vertical-lr) {
+        #cover {
+            background-color: Canvas;
+        }
+    }
+    input {
+        appearance: none;
+        writing-mode: vertical-lr;
+    }
+</style>
+
+<p>The range input below should be fully covered.</p>
+
+<div id="container">
+    <input type="range">
+    <div id="cover"></div>
+</div>

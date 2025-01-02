@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>getInnerHTML </title>
+<link rel='author' href='mailto:masonf@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../../html/resources/common.js'></script>
+
+<body>
+
+<script>
+function testElementType(allowsShadowDom, elementType, applyToShadow, mode, delegatesFocus) {
+  const t = test(t => {
+    // Create and attach element
+    let wrapper;
+    if (applyToShadow) {
+      const host = document.createElement('div');
+      t.add_cleanup(function() { host.remove(); });
+      document.body.appendChild(host);
+      wrapper = host.attachShadow({mode: 'open'});
+    } else {
+      wrapper = document.createElement('div');
+      t.add_cleanup(function() { wrapper.remove(); });
+      document.body.appendChild(wrapper);
+    }
+    const element = document.createElement(elementType);
+    wrapper.appendChild(element);
+
+    const isOpen = mode === 'open';
+    if (allowsShadowDom) {
+      const delegatesAttr = delegatesFocus ? ' shadowrootdelegatesfocus=""' : '';
+      const correctShadowHtml = `<template shadowrootmode="${mode}"${delegatesAttr}><slot></slot></template>`;
+      const correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
+      const emptyElement = `<${elementType}></${elementType}>`;
+      const shadowRoot = element.attachShadow({mode: mode, delegatesFocus: delegatesFocus});
+      shadowRoot.appendChild(document.createElement('slot'));
+      if (isOpen) {
+        // We can only test this for open roots
+        assert_equals(wrapper.getInnerHTML(),correctHtml,'The default for includeShadowRoots should be true');
+      } else {
+        // Closed shadow roots should not be returned unless closedRoots contains the shadow root:
+        assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}), emptyElement);
+        assert_equals(wrapper.getInnerHTML({includeShadowRoots: true, closedRoots: []}), emptyElement);
+      }
+      assert_equals(wrapper.getInnerHTML({includeShadowRoots: true, closedRoots: [shadowRoot]}),correctHtml);
+      // ClosedRoots are not included if includeShadowRoots is false:
+      assert_equals(wrapper.getInnerHTML({includeShadowRoots: false, closedRoots: [shadowRoot]}),emptyElement);
+    } else {
+      // For non-shadow hosts, getInnerHTML() should also match .innerHTML
+      assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}),wrapper.innerHTML);
+      assert_equals(wrapper.getInnerHTML(),wrapper.innerHTML);
+    }
+
+    // Either way, make sure getInnerHTML({includeShadowRoots: false}) matches .innerHTML
+    assert_equals(wrapper.getInnerHTML({includeShadowRoots: false}),wrapper.innerHTML,'getInnerHTML() with includeShadowRoots false should return the same as .innerHTML');
+
+  }, `${applyToShadow ? 'ShadowRoot' : 'Element'}.getInnerHTML() on <${elementType}>${allowsShadowDom ? `, with mode=${mode}, delegatesFocus=${delegatesFocus}.` : ''}`);
+}
+
+function runAllTests() {
+  const allElements = [...HTML5_ELEMENTS, 'htmlunknown'];
+  const safelisted = HTML5_SHADOW_ALLOWED_ELEMENTS;
+  for (const elementName of allElements) {
+    const allowsShadowDom = safelisted.includes(elementName);
+    for (const applyToShadow of [false, true]) {
+      if (allowsShadowDom) {
+        for (const delegatesFocus of [false, true]) {
+          for (const mode of ['open', 'closed']) {
+            testElementType(true, elementName, applyToShadow, mode, delegatesFocus);
+          }
+        }
+      } else {
+        testElementType(false, elementName, applyToShadow);
+      }
+    }
+  }
+}
+
+runAllTests();
+
+</script>

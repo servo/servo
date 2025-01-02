@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Absolute Positioning: Containing Block of Top Level Absolutely Positioned Block</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+  <link rel="match" href="abspos-containing-block-010-ref.xht" />
+
+     <style type="text/css">
+   html { margin: 0; border: 0; padding: 0; background: white; color: yellow; }
+   body { margin: 1em; border: 1em solid red; padding: 1em; background: red; color: yellow; }
+   p { margin: 1em; padding: 1em; }
+   div { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: green; color: white; }
+  </style>
+ </head>
+ <body>
+  <p>FAIL</p>
+  <p>This page should be completely green.</p>
+  <div>Test passes if there is <strong>no red</strong>.</div>
+  <!-- the <div> element should exactly overlap the <html> element,
+  since they have the same dimensions and the same containing block
+  and the same origin. -->
+ </body>
+</html>

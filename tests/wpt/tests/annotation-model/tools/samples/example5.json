@@ -1,0 +1,12 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno5",
+  "type":"Annotation",
+  "body": {
+    "type" : "TextualBody",
+    "value" : "<p>j'adore !</p>",
+    "format" : "text/html",
+    "language" : "fr"
+  },
+  "target": "http://example.org/photo1"
+}

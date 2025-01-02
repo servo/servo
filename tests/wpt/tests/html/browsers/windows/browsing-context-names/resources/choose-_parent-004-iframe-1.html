@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: browsing context name - parent</title>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<body>
+<script>
+var prefixedStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+var iframe = document.createElement('iframe');
+iframe.src = prefixedStorage.url('choose-_parent-004-iframe-2.html');
+document.body.appendChild(iframe);
+</script>
+</body>

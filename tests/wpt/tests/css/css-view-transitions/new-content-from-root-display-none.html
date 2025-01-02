@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait style="display: none">
+<title>View transitions: capture starts with root being display none</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="new-content-from-root-display-none-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.tb { writing-mode: horizontal-tb; }
+.lr { writing-mode: vertical-lr; }
+.rl { writing-mode: vertical-rl; }
+.shared {
+  margin: 2px;
+  width: 100px;
+  height: 50px;
+  background: green;
+  contain: paint;
+  border: 1px solid black;
+}
+
+html::view-transition-group(root) { animation-duration: 500s; }
+html::view-transition-new(root) {
+  animation: unset;
+  opacity: 1;
+}
+html::view-transition-old(root) {
+  animation: unset;
+  opacity: 0;
+}
+
+</style>
+
+<div class=tb><div id=one class=shared>T</div></div>
+<div class=lr><div id=two class=shared>T</div></div>
+<div class=rl><div id=three class=shared>T</div></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition(() => {
+    document.documentElement.style = "";
+  });
+  transition.ready.then(() => requestAnimationFrame(takeScreenshot));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+

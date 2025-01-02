@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Line-height applied to elements with 'display' set to 'list-item'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-line-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="assert" content="The 'line-height' property applies to elements with 'display' set to 'list-item'." />
+        <style type="text/css">
+            #div1
+            {
+                margin-left: 1em;
+                position: relative;
+            }
+            div div
+            {
+                background: orange;
+                height: 2in;
+                left: 1in;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+            span
+            {
+                background: blue;
+                display: list-item;
+                line-height: 2in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange boxes below are the same height and there is a marker bullet on the left-hand side of the blue box.</p>
+        <div id="div1">
+            <span>&nbsp;</span>
+            <div></div>
+        </div>
+    </body>
+</html>

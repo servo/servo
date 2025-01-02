@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bug test page 1</title>
+</head>
+<body>
+<h1>Bug test page 1</h1>
+<!-- This image will cause a CSP violation, which will trigger an immediate report -->
+<img src="missing1.png">
+<script>
+setTimeout(()=>{
+  var img = document.createElement('img');
+  img.src = "missing2.png";
+  // Appending this image will cause a second CSP violation, which will trigger
+  // a second report.
+  document.body.appendChild(img);
+  location.href = "second-csp-report.https.sub.html";
+}, 1);
+</script>
+</body>
+</html>
+

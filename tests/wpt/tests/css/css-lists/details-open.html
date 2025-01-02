@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: list-item counter with details open </title>
+<link rel="author" href="mailto:sakhapov@chromium.org">
+<link rel="match" href="details-open-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/grouping-content.html#the-li-element">
+<details>
+  <summary>Expand me</summary>
+  <ol style="margin: 0; padding: 0; list-style-position: inside;">
+    <li value="5">Should be numbered 5</li>
+  </ol>
+</details>
+<script>
+  document.documentElement.offsetTop;
+  document.querySelector("details").setAttribute("open", "");
+</script>

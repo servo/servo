@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Grid Layout Test: z order</title>
+    <link rel="author" title="Leo Deng" href="mailto:myst.dg@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-grid-1/#z-order">
+    <link rel="match" href="../reference/grid-layout-z-order-ref.html">
+    <meta name="assert" content="the layout should behave the same as reference.">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #caseTitle {
+        margin: 10px;
+        height: 40px;
+      }
+      #grid {
+        width: 150px;
+        background: #eee;
+        display: grid;
+        grid-template-columns: 50px 50px 50px;
+        color:white;
+      }
+      .a {
+        background: blue;
+        grid-row: 1;
+        grid-column: 1 / 3;
+        z-index:10
+      }
+      .b {
+        background: yellow;
+        grid-row: 1;
+        grid-column: 2 / 4;
+        z-index:1
+      }
+    </style>
+  </head>
+  <body>
+    <p id="caseTitle">The test passes if it has the same visual effect as reference.</p>
+    <div id="grid">
+      <div class="b">down</div>
+      <div class="a">up</div>
+    </div>
+  </body>
+</html>

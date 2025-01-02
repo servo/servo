@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=cp1252>
+<style>
+::first-letter {}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  let a = document.createElement("pre")
+  a.innerHTML = "<a dir='rtl'><i"
+  let b = document.createElement("a")
+  a.appendChild(b)
+  document.documentElement.appendChild(a)
+  b.insertAdjacentText("beforebegin", "�\nۭ")
+})
+</script>

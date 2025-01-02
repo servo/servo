@@ -1,0 +1,20 @@
+<resource
+  xmlns:its="http://www.w3.org/2005/11/its" >
+ <its:rules version="2.0">
+  <its:idValueRule selector="//text" idValue="../@name"/>
+ </its:rules>
+<webform>
+ <entry name="btn.OK">
+    <text>OK</text>
+    <pos>1, 1</pos>
+    <trig>sendOK</trig>
+  </entry>
+</webform>
+<webform>
+  <entry name="btn.CANCEL">
+    <text>Cancel</text>
+    <pos>2, 1</pos>
+    <trig>cancelAll</trig>
+  </entry>
+</webform>
+</resource>

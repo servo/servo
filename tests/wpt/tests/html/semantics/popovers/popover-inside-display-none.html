@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel=match href="popover-inside-display-none-ref.html">
+
+No popover should be displayed here.<p>
+
+<div style="display:none">
+    <div popover>This content should be hidden</div>
+</div>
+
+<script>
+  const popover = document.querySelector('[popover]');
+  popover.showPopover();
+  if (!popover.matches(':popover-open'))
+    document.body.appendChild(document.createTextNode('FAIL'));
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: position-visibility: anchors-valid</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-valid-ref.html">
+<style>
+  .anchor {
+    width: 100px;
+    height: 100px;
+    background: orange;
+    display: inline-block;
+  }
+
+  .target {
+    position: absolute;
+    position-visibility: anchors-valid;
+    position-area: block-end;
+    width: 100px;
+    height: 100px;
+    background: red;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<!-- #target1 should be visible. -->
+<div class="anchor" style="anchor-name: --a1;">anchor1</div>
+<div id="target1" class="target" style="position-anchor: --a1; background: green">target1</div>
+
+<!-- #target2 should not be visible because anchor name does not exist. -->
+<div id="target2" class="target" style="top: anchor(--does-not-exist bottom);">target2</div>

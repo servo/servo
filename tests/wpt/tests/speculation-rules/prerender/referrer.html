@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test default referrer</title>
+<meta name="timeout" content="long">
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<script src="resources/referrer-test.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+// Tests that the referrer on the prerendering navigation request is the
+// triggering page's URL by default.
+promise_test(async t => {
+  await referrer_test(window.location.href, token());
+}, 'default referrer');
+</script>

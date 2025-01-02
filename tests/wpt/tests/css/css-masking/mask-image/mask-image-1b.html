@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-image: mask layer image</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+    <link rel="match" href="mask-image-1-ref.html">
+    <meta name="assert" content="Test checks whether SVG image as mask layer works correctly or not.">
+    <style type="text/css">
+      div {
+        background-color: purple;
+        width: 100px;
+        height: 100px;
+      }
+
+      div.mask-by-svg {
+        mask-image: url(support/transparent-100x50-blue-100x50.svg);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mask-by-svg"></div>
+  </body>
+</html>

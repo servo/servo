@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-font-size-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    font-size: 10px;
+    background-color: green;
+    /* Use a long animation that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animation in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated property value. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animation is ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+    animation: clippath 20s steps(2, jump-end) -9.999999s;
+  }
+
+  @keyframes clippath {
+    0% {
+      clip-path: circle(20px);
+    }
+
+    100% {
+      clip-path: circle(2em);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+
+<body>
+  <div id="target" class="container"></div>
+
+  <script>
+    document.getAnimations()[0].ready.then(() => {
+      document.getElementById('target').style.fontSize = "20px";
+      window.requestAnimationFrame(() => {
+        takeScreenshot();
+      })
+    });
+  </script>
+</body>
+
+</html>

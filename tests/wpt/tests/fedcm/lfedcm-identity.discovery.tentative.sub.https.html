@@ -1,0 +1,111 @@
+<!doctype html>
+<head>
+<title>Test discovery of 'identity' credentials</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/lfedcm-helpers.js"></script>
+<script type="module">
+'use strict';
+
+import {fedcm_select_account_promise} from './support/fedcm-helper.sub.js';
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
+  credentialGotten = await getCredentialPromise;
+  fedcm_select_account_promise(t, 0);
+  assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
+
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+}, "Cross-origin identity credential discovery works");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
+
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+}, "Origin inferred from loginURL for discovery");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await test_driver.bless();
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&url=cors&close=true`, loginTarget : "popup", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py"}]}});
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
+
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+}, "Cross-origin identity credential discovery works using the effectiveQueryURL");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.data == "created") {
+          resolve();
+        }
+      }
+    );
+  });
+
+  await test_driver.bless();
+  let state = "pending";
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&postMessage&origin=${encodeURIComponent("https://{{hosts[alt][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
+  getCredentialPromise.finally(() => {state = "fulfilled"});
+  await createdPromise;
+  assert_equals(state, "pending", "promise is not fulfilled during discovery window by get.");
+
+  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`);
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+
+  assert_not_equals(credentialGotten, null, "Resolved with credential because the credential was stored.");
+
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+}, "Cross-origin identity credential discovery does not resolve with ineffective store from the right origin");
+
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  let createdPromise = new Promise((resolve) => {
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (event.data == "created") {
+          resolve();
+        }
+      }
+    );
+  });
+
+  await test_driver.bless();
+  let state = "pending";
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][www]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&postMessage&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
+  getCredentialPromise.finally(() => {state = "fulfilled"});
+  await createdPromise;
+  assert_equals(state, "pending", "promise is not fulfilled during discovery window by get.");
+
+  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}")}&close=true`);
+  credentialGotten = await getCredentialPromise;
+  fedcm_select_account_promise(t, 0);
+  assert_not_equals(credentialGotten, null, "Resolved with credential because the credential was stored.");
+
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+}, "Cross-origin identity credential discovery does not resolve with effective store from the wrong origin");
+
+</script>

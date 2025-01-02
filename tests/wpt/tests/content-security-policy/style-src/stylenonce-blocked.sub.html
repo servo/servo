@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="style-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>stylenonce-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="stylesheet" type="text/css" href="../style-src/resources/allowed.css">
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script>
+        var t_spv = async_test("Should fire securitypolicyviolation");
+        window.addEventListener('securitypolicyviolation', t_spv.step_func_done(function(e) {
+            assert_equals(e.violatedDirective, "style-src-elem");
+        }));
+    </script>
+    <style nonce="noncynonce">
+        #test {
+            color: red;
+        }
+
+    </style>
+</head>
+
+<body>
+    <p id="test">This text should be green.</p>
+    <script>
+        var el = document.querySelector('#test');
+        test(function() {
+            assert_equals(window.getComputedStyle(el).color, "rgb(0, 128, 0)")
+        });
+
+    </script>
+    <p>Style that does not match a 'nonce-*' expression in 'style-src' should not be applied to the page.</p>
+    <div id="log"></div>
+</body>
+
+</html>

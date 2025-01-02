@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Drag and drop of overlapping links: zero height</title>
+<style type="text/css">
+span, strong
+  {color:green;
+  background-color:yellow;}
+strong
+  {color:red;}
+div
+  {width:4em;
+  padding:1em;
+  line-height:0;}
+a
+  {background-color:white;
+  padding:1ex;}
+</style>
+<script type="application/ecmascript">
+function start(event,feedback)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.addElement(document.querySelector(feedback));}
+</script>
+</head>
+<body>
+<div>
+  <a href="data:text/plain,1" ondragstart="start(event,'strong')">    </a>
+  <a href="data:text/plain,2" ondragstart="start(event,'span')">Link</a>
+</div>
+<p>Try to drag link above. You should see word <span>PASS</span> not <strong>FAIL</strong> in feedback overlay all the time.</p>
+</body>
+</html>

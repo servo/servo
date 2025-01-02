@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: Changing src of defer script before it runs </title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="test"></div>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script id="defer-script" defer src="scripts/include-1.js"></script>
+
+        <script>
+          var t = async_test();
+
+          document.getElementById("defer-script").src = "scripts/include-2.js"
+
+          addEventListener("load", t.step_func(function () {
+            assert_array_equals(eventOrder, ["external script #1"]);
+            t.done();
+          }), false);
+        </script>
+
+</body></html>

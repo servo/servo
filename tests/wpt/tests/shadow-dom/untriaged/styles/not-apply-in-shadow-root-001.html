@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test - Tests CSS rules must not apply in a shadow root</title>
+<link rel="match" href="not-apply-in-shadow-root-001-ref.html">
+<link rel="author" title="Kazuhito Hokamura" href="mailto:k.hokamura@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#styles">
+<meta name="assert" content="Styles: CSS rules declared in an enclosing tree must not apply in a shadow tree if apply-author-styles flag is not set.">
+<script src="../../../html/resources/common.js"></script>
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+</head>
+<body>
+<p>Test passes if following box is green.</p>
+<div id="shadow-host"></div>
+<script>
+var shadowHost = document.getElementById('shadow-host');
+var shadowRoot = shadowHost.attachShadow({mode: 'open'});
+var style = document.createElement('style');
+style.innerHTML = 'div { background: red }';
+
+shadowRoot.appendChild(style);
+</script>
+</body>
+</html>

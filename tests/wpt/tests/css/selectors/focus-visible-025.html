@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Test (Selectors): Element matches :focus-visiblel after accesskey after previous mouse focus</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+<meta name="assert" content="This test checks that :focus-visible matches after focusing an element using accesskey, even when previously another element has been focused by mouse click.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/accesskey.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  :focus-visible {
+    outline: green solid 5px;
+  }
+</style>
+
+<div id="initial" tabindex="0">Initial</div>
+<div id="targetA" tabindex="0" accesskey="a">Target A</div>
+<button id="targetB" tabindex="0" accesskey="b">Target B</button>
+<script>
+  // Check that :focus-visible is supported.
+  test_valid_selector(':focus-visible');
+
+  promise_test(async t => {
+    await test_driver.click(initial);
+    assert_equals(getComputedStyle(initial).outlineStyle, "none", `outline-style for ${initial.tagName}#${initial.id} should be none`);
+
+    await pressAccessKey("a");
+    assert_equals(getComputedStyle(targetA).outlineStyle, "solid", `outline-style for ${targetA.tagName}#${targetA.id} should be solid`);
+    assert_equals(getComputedStyle(targetA).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${targetA.tagName}#${targetA.id} should be green`);
+    t.done();
+  }, ":focus-visible matches after accesskey on DIV after previous mouse focus");
+
+  promise_test(async t => {
+    await test_driver.click(initial);
+    assert_equals(getComputedStyle(initial).outlineStyle, "none", `outline-style for ${initial.tagName}#${initial.id} should be none`);
+
+    await pressAccessKey("b");
+    assert_equals(getComputedStyle(targetB).outlineStyle, "solid", `outline-style for ${targetB.tagName}#${targetB.id} should be solid`);
+    assert_equals(getComputedStyle(targetB).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${targetB.tagName}#${targetB.id} should be green`);
+    t.done();
+  }, ":focus-visible matches after accesskey on BUTTON after previous mouse focus");
+</script>
+

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>View transitions: element with content less than box size (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+}
+#inner {
+  width: 10px;
+  height: 10px;
+  background: blue;
+  position: relative;
+  top: 10px;
+  left: 10px;
+}
+</style>
+
+<div id=target>
+  <div id=inner></div>
+</div>

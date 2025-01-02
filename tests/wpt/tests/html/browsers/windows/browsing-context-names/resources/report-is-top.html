@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+prefixedStorage.setItem('isTop', window === window.top);
+prefixedStorage.setItem('name', window.name);
+</script>

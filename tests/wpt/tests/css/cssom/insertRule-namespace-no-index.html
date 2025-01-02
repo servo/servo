@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: CSSOM StyleSheet insertRule with namespace and omitted second argument</title>
+    <link rel="author" title="Sendil Kumar N" href="mailto:sendilkumarn.opensource@gmail.com">
+    <link rel="help" href="https://drafts.csswg.org/cssom/">
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssrule-interface">
+    <meta name="flags" content="dom">
+    <script src="/resources/testharness.js" type="text/javascript"></script>
+    <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+    <style id="styleElement">
+        @namespace svg url(http://servo);
+        @namespace url(http://servo1);
+        @namespace svg url("http://servo2");
+    </style>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+    var sheet = document.getElementById("styleElement").sheet;
+    test(function() {
+        assert_equals(sheet.cssRules.length, 3);
+        assert_throws_dom("HierarchyRequestError", function() { sheet.insertRule("p { color: green; }"); });
+        assert_equals(sheet.cssRules.length, 3);
+    }, "insertRule with namespace and omitted index argument");
+
+    test(function() {
+        assert_equals(sheet.cssRules.length, 3);
+        assert_throws_dom("HierarchyRequestError", function() { sheet.insertRule("p { color: yellow; }", undefined); });
+        assert_equals(sheet.cssRules.length, 3);
+    }, "insertRule with namespace and undefined index argument");
+
+    test(function() {
+        assert_equals(sheet.cssRules.length, 3);
+        sheet.insertRule("@import url(\"support/a-green.css\");");
+        assert_equals(sheet.cssRules.length, 4);
+    }, "insertRule with namespace and omitted index argument should insert import");
+</script>
+</body>
+</html>

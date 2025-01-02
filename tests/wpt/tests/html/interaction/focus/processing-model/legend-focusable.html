@@ -1,0 +1,17 @@
+<!doctype html>
+<title>legend focusable</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+ const t = async_test();
+</script>
+<fieldset>
+ <legend tabindex=0 onfocus="t.step(() => { t.done(); })">
+  legend
+  <input onfocus="t.unreached_func('input in legend was focused')();">
+ </legend>
+ <input onfocus="t.unreached_func('input after legend was focused')();">
+</fieldset>
+<script>
+  document.querySelector('legend').focus();
+</script>

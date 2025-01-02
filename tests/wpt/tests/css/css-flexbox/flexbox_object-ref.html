@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>flexbox | object fallback as a flex item</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+div {
+	background: #ffcc00;
+	justify-content: space-around;
+	display: flex;
+}
+div>* {
+	background: #3366cc;
+	margin: 0;
+}
+
+.clip {
+	overflow: clip;
+}
+</style>
+
+<div>
+	<p class="clip">this is supposed to be a flex item</p>
+	<p>this is supposed to be a flex item</p>
+</div>

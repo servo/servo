@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSStyleDeclaration for a CSSFontRule</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#cssfontfacerule">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5649#issuecomment-755796005">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {}
+</style>
+<script>
+
+const fontFaceRule = document.styleSheets[0].cssRules[0];
+
+test(() => {
+  assert_true("unicode-range" in fontFaceRule.style);
+  assert_idl_attribute(fontFaceRule.style, "unicode-range");
+}, "a CSSStyleDeclaration for a CSSFontRule contains a unicode-range attribute");
+
+
+test(() => {
+  assert_true("flex-direction" in fontFaceRule.style);
+  assert_idl_attribute(fontFaceRule.style, "flex-direction");
+}, "a CSSStyleDeclaration for a CSSFontRule contains a flex-direction attribute");
+
+</script>

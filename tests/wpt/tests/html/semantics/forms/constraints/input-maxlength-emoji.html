@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests pasting an emoji in a text field with a maxlength attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=252900">
+<input id="target" type="text" maxlength="10" />
+<script>
+test(function() {
+  let target = document.getElementById("target");
+  target.focus();
+  document.execCommand("InsertHTML", false, "👨‍👩‍👧‍👦");
+  assert_equals(target.value, "👨‍👩‍👧‍");
+}, "Emoji gets truncated due to maxlength attribute");
+</script>

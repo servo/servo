@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect simple soft navigation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link><img src="/images/lcp-256x256.png"></a>
+    </div>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    testSoftNavigation({
+      addContent: async () => {
+        let lcp_element_painted;
+        const lcp_element_paint_promise = new Promise((r) => { lcp_element_painted = r; });
+        // Add an LCP element, but have it be small enough to not trigger the
+        // Soft Navigation heuristics.
+        const p = addTextParagraphToMain("Lorem Ipsu", /*element_timing=*/"lcp");
+        (new PerformanceObserver(list => {
+          // Once the first element is fully painted:
+          lcp_element_painted();
+        })).observe({type: "element", buffered: true});
+        await lcp_element_paint_promise;
+        // Add a smaller element that gets us over that threshold.
+        addTextParagraphToMain("m");
+      },
+      link: link,
+      test: "Test that an image LCP followed by a smaller soft navigation LCP"
+        + " properly queues an LCP entry, even when the soft navigation is"
+        + " detected after the LCP."});
+  </script>
+</body>
+</html>

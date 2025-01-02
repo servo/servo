@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="help" href="https://crbug.com/1316517">
+<meta name="assert" content="Ensure content-visibility: hidden doesn't apply to <output> elements">
+<style>
+output {
+ content-visibility: hidden;
+}
+</style>
+<output>
+  <iframe></iframe>

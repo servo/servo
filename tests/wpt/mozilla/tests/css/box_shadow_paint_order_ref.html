@@ -1,0 +1,30 @@
+<head>
+<!-- Tests paint order of multiple box shadows. -->
+<style>
+section {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+}
+#a {
+    top: 50px;
+    left: 50px;
+    background: turquoise;
+}
+#b {
+    top: 75px;
+    left: 75px;
+    background: purple;
+}
+#c {
+    top: 100px;
+    left: 100px;
+    background: white;
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c></section>
+</body>

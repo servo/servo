@@ -1,0 +1,10 @@
+[MASTER]
+ignore=tests
+
+[MESSAGES CONTROL]
+# messages up to fixme should probably be fixed somehow
+disable = redefined-builtin,attribute-defined-outside-init,anomalous-backslash-in-string,no-self-use,redefined-outer-name,bad-continuation,wrong-import-order,superfluous-parens,no-member,duplicate-code,super-init-not-called,abstract-method,property-on-old-class,wrong-import-position,no-name-in-module,no-init,bad-mcs-classmethod-argument,bad-classmethod-argument,fixme,invalid-name,import-error,too-few-public-methods,too-many-ancestors,too-many-arguments,too-many-boolean-expressions,too-many-branches,too-many-instance-attributes,too-many-locals,too-many-lines,too-many-public-methods,too-many-return-statements,too-many-statements,missing-docstring,line-too-long,locally-disabled,locally-enabled,bad-builtin,deprecated-lambda
+
+[FORMAT]
+max-line-length=139
+single-line-if-stmt=no

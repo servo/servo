@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>A page opened in a pop-up that sends a FencedFrameConfig</title>
+<script>
+  async function init() {
+    const [key] = parseKeylist();
+
+    const config = await generateURNFromFledge(
+          "embeddee.html", [key], [], true);
+
+    window.opener.postMessage(config, "*");
+  }
+  init();
+</script>

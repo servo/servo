@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: details children blockification</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">
+<meta name="assert" content="Ensure blockification of <details> children">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+
+/* continue testing the old behavior that this was intended to test */
+details[open]::details-content {
+  display: contents;
+}
+
+</style>
+
+<div id="example1">
+  <details style="display: grid" open>
+    <summary style="display: inline">foo</summary>
+    <div style="display: inline">bar</span>
+  </details>
+</div>
+
+<div id="example2" style="display: grid">
+  <details style="display: contents" open>
+    <summary style="display: inline">foo</summary>
+    <div style="display: inline">bar</span>
+  </details>
+</div>
+
+<script>
+  function checkDetails(details) {
+    assert_equals(getComputedStyle(details.querySelector('summary')).display, "block");
+    assert_equals(getComputedStyle(details.querySelector('div')).display, "block");
+  }
+  test(() => {
+    checkDetails(document.querySelector('#example1'));
+    checkDetails(document.querySelector('#example2'));
+    assert_equals(getComputedStyle(document.querySelector('#example2>details')).display, "contents");
+  }, "Summary and content should have display:block computed value");
+
+</script>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>Test that user activation propagation is fenced.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+// Simulate a click in frame context `frame`.
+async function click(frame) {
+  var actions = new test_driver.Actions();
+  await actions.pointerMove(0, 0, {origin: frame})
+               .pointerDown()
+               .pointerUp()
+               .send();
+}
+
+assert_activation = (should_be_active, frame_name) => {
+  if (should_be_active) {
+    assert_true(navigator.userActivation.hasBeenActive,
+                frame_name + " has been activated.");
+    assert_true(navigator.userActivation.isActive,
+                frame_name + " is currently active.");
+  } else {
+    assert_false(navigator.userActivation.hasBeenActive,
+                 frame_name + " has not been activated yet.");
+    assert_false(navigator.userActivation.isActive,
+                 frame_name + " is not currently active.");
+  }
+};
+
+promise_test(async () => {
+  // This test ensures that user activations (e.g. click events) don't
+  // propagate across fenced frame boundaries. Specifically, activations
+  // are visible through the `navigator.userActivation` object.
+  //
+  // The layout of the page is as follows:
+  // A: top-level frame
+  //   B: iframe
+  //   C: fencedframe
+  //   D: iframe
+  //   E: fencedframe
+  //
+  // This order is chosen to test all kinds of fenced tree traversal. We:
+  // - Click in C and check that only C gets activated (not A, B, D, or E)
+  // - Click in A and check that only A, B, and D get activated (not E)
+  // - Click in B and D and check that E wasn't activated
+
+  const B = attachIFrameContext();
+  const C = attachFencedFrameContext();
+  const D = attachIFrameContext();
+  const E = attachFencedFrameContext();
+
+  // Define some helpers to check activations more concisely.
+  const frames = [[B, "B"], [C, "C"], [D, "D"], [E, "E"]];
+  const assert_activations = async (should_be_actives) => {
+    assert_equals(frames.length, should_be_actives.length);
+    for ([i, [frame, frame_name]] of frames.entries()) {
+      await frame.execute(assert_activation, [should_be_actives[i], frame_name]);
+    }
+  };
+
+  // Check that all the frames  are inactive before we start.
+  assert_activation(false, "A");
+  await assert_activations([false/*B*/, false/*C*/, false/*D*/, false/*E*/]);
+
+  // Simulate a click in C (the first fenced frame).
+  await click(C.element);
+
+  // Check that only C has been activated.
+  assert_activation(false, "A");
+  await assert_activations([false/*B*/, true/*C*/, false/*D*/, false/*E*/]);
+
+  // Simulate a click in A (the top-level site).
+  await click(document.documentElement);
+
+  // Check that A, B, and D were activated.
+  assert_activation(true, "A");
+  await assert_activations([true/*B*/, true/*C*/, true/*D*/, false/*E*/]);
+
+  // Simulate a click in B and D (the two iframes).
+  await click(B.element);
+  await click(D.element);
+
+  // Check that E has still not been activated.
+  assert_activation(true, "A");
+  await assert_activations([true/*B*/, true/*C*/, true/*D*/, false/*E*/]);
+}, 'user-activation');
+</script>
+</body>

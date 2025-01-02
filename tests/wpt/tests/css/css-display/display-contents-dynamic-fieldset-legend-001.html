@@ -1,0 +1,171 @@
+<!doctype html>
+<title>CSS Display Module Test: display:contents on fieldset/legend</title>
+<link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1694459">
+<link rel="help" href="https://drafts.csswg.org/css-display/#box-generation">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1694459">
+<link rel="match" href="display-contents-dynamic-fieldset-legend-001-ref.html">
+<style>
+  body { font-size: 10px; }
+  fieldset {
+    border:1px solid;
+    padding: 1px 0;
+  }
+  #test10 { padding: 0; }
+</style>
+<script>
+window.onload = () => {
+  document.body.getClientRects();
+  o = document.getElementById("test1")
+  o.setAttribute("style", "display:contents")
+  o.getClientRects()
+  o.style.cssText = ""
+  o.getClientRects()
+
+  o = document.getElementById("test2")
+  o.setAttribute("style", "")
+  o.getClientRects()
+
+  o = document.getElementById("test3")
+  o.setAttribute("style", "")
+  o.getClientRects()
+
+  o = document.getElementById("test4")
+  o.setAttribute("style", "")
+  o.getClientRects()
+
+  o = document.getElementById("test5")
+  o.setAttribute("style", "")
+  o.getClientRects()
+
+  o = document.getElementById("test6")
+  o.setAttribute("style", "")
+  o.getClientRects()
+
+  o = document.getElementById("test7")
+  o.setAttribute("style", "display:contents")
+  o.getClientRects()
+
+  o = document.getElementById("test8")
+  o.setAttribute("style", "display:contents")
+  o.getClientRects()
+
+  o = document.getElementById("test9")
+  o.setAttribute("style", "display:contents")
+  o.getClientRects()
+  o.style.cssText = ""
+  o.getClientRects()
+
+  o = document.getElementById("test10")
+  o.setAttribute("style", "display:contents")
+  o.getClientRects()
+
+  o = document.getElementById("test11")
+  set = document.createDocumentFragment()
+  set.append(document.createElement("div"))
+  legend = document.createElement("legend")
+  legend.append(document.createTextNode("LEGEND"))
+  set.append(legend)
+  legend = document.createElement("legend")
+  legend.append(document.createTextNode("NOT LEGEND"))
+  set.append(legend)
+  o.append(set)
+  o.getClientRects()
+
+  o = document.getElementById("test12")
+  o.setAttribute("style", "")
+  o.getClientRects()
+
+  o = document.getElementById("test13")
+  o.setAttribute("style", "")
+  o.getClientRects()
+
+  o = document.getElementById("test14");
+  o.appendChild(document.createElement('legend')).textContent = "LEGEND";
+  o.getClientRects();
+
+  o = document.getElementById("test15");
+  o.textContent = "";
+  o.getClientRects()
+}
+</script>
+<fieldset>
+<fieldset id='test1'>
+<legend>LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<fieldset id='test2' style="display:contents">
+<legend>LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<legend>OUTER LEGEND</legend>
+<fieldset id='test3' style="display:contents">
+<legend>INNER LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<fieldset style="display:contents">
+<legend id='test4' style="display:contents">LEGEND</legend>
+<legend>NOT LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<legend>LEGEND</legend>
+<fieldset style="display:contents">
+<legend id='test5' style="display:contents">NOT LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<legend id='test6' style="display:contents">LEGEND</legend>
+<fieldset style="display:contents">
+<legend>NOT LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<div id='test7'><legend>LEGEND</legend></div>
+<legend>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<fieldset style="display:contents">
+<div id='test8'><legend>LEGEND</legend></div>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<fieldset style="display:contents">
+<div id='test9'><legend>NOT LEGEND</legend></div>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<div style="display:contents"><legend id='test10'>NOT LEGEND</legend></div>
+<legend>LEGEND</legend>
+</fieldset>
+
+<fieldset id='test11'></fieldset>
+
+<fieldset>
+    <legend id='test12' style="display:none">LEGEND</legend>
+</fieldset>
+
+<fieldset>
+    <div style="display:contents"><legend id='test13' style="display:none">LEGEND</legend></div>
+</fieldset>
+
+<fieldset>
+    <div style="display:contents"><div style="display:contents" id="test14"></div></div>
+    <legend>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+    <div style="display:contents"><div style="display:contents" id="test15"><legend>NOT LEGEND</legend></div></div>
+    <legend>LEGEND</legend>
+</fieldset>

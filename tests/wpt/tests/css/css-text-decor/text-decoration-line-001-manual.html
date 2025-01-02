@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>text-decoration-line underline</title>
+<meta name="assert" content="text-decoration-line:underline; there is a line at or under the alphabetic baseline">
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#line-decoration">
+<!-- cosmetic styling -->
+<style>
+#htmlsrc { margin: 2em; }
+#htmlsrc p {
+	font-size: 28px;
+	border-radius: 5px;
+	line-height: 1.5;
+	}
+</style>
+<!-- the test -->
+<style>
+div span {
+text-decoration-line:underline;
+}
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if there is a line at or under the alphabetic baseline.</p>
+<div id="htmlsrc">
+
+<div>
+<p lang="en"><span>The quick brown fox jumps over the lazy dog.</span></p>
+</div>  </div>
+</body>
+</html>

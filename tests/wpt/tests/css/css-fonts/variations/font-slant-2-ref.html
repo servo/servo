@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS reference file: mapping of font-style:oblique to opentype 'slnt' axis</title>
+<style>
+@font-face {
+  font-family: test;
+  src: url(resources/Inter.var.subset.ttf);
+}
+.test {
+  font: 32px/1.5 test;
+}
+</style>
+<body>
+<p>Test passes if none of the following lines are displayed with a slanted font.</p>
+<div class="test">slant</div>
+<div class="test">slant</div>
+<div class="test">slant</div>
+<div class="test">slant</div>

@@ -1,0 +1,6 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+            <its:domainRule selector="/text/body"
+                domainPointer="/text/head/meta[@name='DC.subject']/@content"
+                domainMapping="'sports law' law, 'labor law' law, 'contract law' law, 'competition law' law,'tort law' law"  
+	 />
+        </its:rules>

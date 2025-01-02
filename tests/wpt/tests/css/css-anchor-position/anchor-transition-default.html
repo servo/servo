@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Transition when position-anchor changes</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9598">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #cb {
+    display: inline-block;
+    position: relative;
+    width: 250px;
+    height: 250px;
+    border: 1px solid black;
+  }
+  #anchor1, #anchor2 {
+    width: 100px;
+  }
+  #anchor1 {
+    background: wheat;
+    height: 50px;
+    anchor-name: --a1;
+  }
+  #anchor2 {
+    background: tomato;
+    height: 90px;
+    anchor-name: --a2;
+  }
+  #anchored {
+    position: absolute;
+    width: anchor-size(width);
+    height: anchor-size(height);
+    top: anchor(top);
+    left: anchor(right);
+    transition-duration: 1000s;
+    transition-timing-function: steps(2, start);
+    transition-property: top, height;
+    background-color: skyblue;
+    position-anchor: --a1;
+  }
+</style>
+<div id=cb>
+  <div id=anchor1>Anchor1</div>
+  <div id=anchor2>Anchor2</div>
+  <div id=anchored></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetTop, 0);
+    assert_equals(anchored.offsetHeight, 50);
+    anchored.style.positionAnchor = '--a2';
+    assert_equals(anchored.offsetTop, 25);
+    assert_equals(anchored.offsetHeight, 70);
+  }, 'Transition when position-anchor changes');
+</script>

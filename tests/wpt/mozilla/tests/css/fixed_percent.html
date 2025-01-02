@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Table with fixed layout gives according to percentages</title>
+<link rel="match" href="fixed_percent_ref.html">
+<link rel="spec" href="https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns">
+<style>
+#c {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+#d {
+  width: 100%;
+}
+</style>
+<div id=c><div id=d>Test text</div></div>

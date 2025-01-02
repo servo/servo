@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>An img's current request should be updated in a microtask after selecting an image source</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<script>
+async_test(function(t) {
+  const picture = document.createElement("picture");
+
+  const nonMatchingSource = document.createElement("source");
+  nonMatchingSource.media = "not all";
+  nonMatchingSource.srcset = "data:,a";
+  picture.append(nonMatchingSource);
+
+  const matchingSource = document.createElement("source");
+  matchingSource.media = "all";
+  matchingSource.srcset = "data:,b";
+  picture.append(matchingSource);
+
+  const img = document.createElement("img");
+  img.src = "data:,c";
+
+  assert_equals(img.currentSrc, "", "after assigning to img.src but before the corresponding microtask is run");
+
+  queueMicrotask(t.step_func(function() {
+    assert_equals(img.currentSrc, "data:,c", "after assigning to img.src and after corresponding microtask is run");
+
+    picture.append(img);
+    assert_equals(img.currentSrc, "data:,c", "after appending img to picture but before the corresponding microtask is run");
+
+    queueMicrotask(t.step_func(function() {
+      assert_equals(img.currentSrc, "data:,b", "after appending img to picture and after the corresponding microtask is run");
+      t.done();
+    }));
+  }));
+}, "currentSrc is updated only after the microtask that updates the current request is run");
+</script>

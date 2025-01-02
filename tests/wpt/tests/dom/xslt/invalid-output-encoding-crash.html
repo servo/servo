@@ -1,0 +1,26 @@
+<body>
+
+<script id=o_xml type="text/plain">
+  <?xml version="1.0" encoding="UTF-8"?>
+</script>
+
+<script id=o_xslt type="text/plain"><?xml version="1.0" encoding="UTF-8"?>
+  <xsl:transform version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:output indent="no" omit-xml-declaration="no" encoding="bad-encoding" standalone="yes" />
+  </xsl:transform>
+</script>
+
+<script>
+addEventListener("load", function() {
+  const doc = new DOMParser();
+  const xml = doc.parseFromString(o_xml.textContent, "text/xml");
+  const xsl = doc.parseFromString(o_xslt.textContent, "text/xml");
+  const xsltPrs = new XSLTProcessor();
+  xsltPrs.importStylesheet(xsl);
+  xsltPrs.transformToDocument(xml);
+
+  document.body.appendChild(document.createTextNode("PASS: renderer didn't crash"));
+});
+</script>
+
+</body>

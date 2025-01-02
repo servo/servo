@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset='utf-8'>
+<title>Async Cookies: cookieStore basic API across origins</title>
+<link rel='help' href='https://github.com/WICG/cookie-store'>
+<link rel='author' href='jarrydg@chromium.org' title='Jarryd Goodman'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='resources/helpers.js'></script>
+<style>iframe { display: none; }</style>
+
+<script>
+'use strict';
+
+const kPath = '/cookie-store/resources/helper_iframe.sub.html';
+const kCorsBase = `https://{{domains[www1]}}:{{ports[https][0]}}`;
+const kCorsUrl = `${kCorsBase}${kPath}`;
+
+promise_test(async t => {
+  const iframe = await createIframe(kCorsUrl, t);
+  assert_true(iframe != null);
+
+  iframe.contentWindow.postMessage({
+    opname: 'set-cookie',
+    name: 'cookie-name',
+    value: 'cookie-value',
+  }, kCorsBase);
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: 'cookie-name', domain: '{{host}}' });
+  });
+  await waitForMessage();
+
+  const cookies = await cookieStore.getAll();
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
+}, 'cookieStore.get() sees cookieStore.set() in cross-origin frame');
+
+promise_test(async t => {
+  const iframe = await createIframe(kCorsUrl, t);
+  assert_true(iframe != null);
+
+  await cookieStore.set({
+    name: 'cookie-name',
+    value: 'cookie-value',
+    domain: '{{host}}',
+  });
+
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie.value, 'cookie-value');
+
+  iframe.contentWindow.postMessage({
+    opname: 'get-cookie',
+    name: 'cookie-name',
+  }, kCorsBase);
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: 'cookie-name', domain: '{{host}}' });
+  });
+
+  const message = await waitForMessage();
+
+  const { frameCookie } = message;
+  assert_not_equals(frameCookie, null);
+  assert_equals(frameCookie.name, 'cookie-name');
+  assert_equals(frameCookie.value, 'cookie-value');
+}, 'cookieStore.get() in cross-origin frame sees cookieStore.set()');
+</script>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<body>
+  <script src="/resources/testharness.js"
+          type="text/javascript{{GET[in-iframe]}}"></script>
+  <script src="/resources/testharnessreport.js"
+          type="text/javascript{{GET[in-iframe]}}"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+  'use strict';
+
+  async function testSelectAudioOutput() {
+    await test_driver.bless('transient activation for selectAudioOutput()');
+    const selected = await navigator.mediaDevices.selectAudioOutput();
+
+    let devices;
+    try {
+      devices = await navigator.mediaDevices.enumerateDevices();
+    } catch (e) {
+      // Throw a unique error to avoid risk of false-pass if e should match
+      // an expected error from selectAudioOutput().
+      throw Error(`enumerateDevices() failed with ${e}`);
+    }
+    const selected_devices =
+          devices.filter(info => info.deviceId == selected.deviceId);
+    // Don't use assert_not_equals() because testharness.js cannot be
+    // loaded in the iframe with testdriver.js.
+    if (selected_devices.length != 1) {
+      throw Error('Device count matching selected is ' +
+                  selected_devices.length);
+    }
+  }
+
+  if (page_loaded_in_iframe()) {
+    test_driver.set_test_context(window.parent);
+  }
+  const cross_domain = get_host_info().HTTPS_REMOTE_ORIGIN;
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'speaker-selection',
+    'NotAllowedError',
+    testSelectAudioOutput
+  );
+  </script>
+</body>

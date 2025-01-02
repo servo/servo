@@ -1,0 +1,52 @@
+<!doctype html>
+<title>computed style on buttons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div class="tests">
+ <input type="reset">
+ <input type="button">
+ <input type="submit">
+ <input type="color">
+ <input type="image">
+ <button></button>
+</div>
+<script>
+// "behave as" doesn't change computed value.
+const displayValues = ['inline', 'block', 'list-item', 'inline-block', 'table', 'inline-table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-column-group', 'table-column', 'table-cell', 'table-caption', 'none', 'contents', 'flow', 'flow-root', 'flex', 'grid', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container', 'inline-flex', 'inline-grid'];
+for (const val of displayValues) {
+  [].slice.call(document.querySelectorAll('.tests > *')).forEach(el => {
+    el.style.display = ''
+    el.style.display = val;
+    const attrs = el.type ? ` type=${el.type}` : '';
+    const tag = `<${el.localName}${attrs}>`;
+    test(() => {
+     assert_not_equals(el.style.display, '', `display: ${val} is not supported`)
+      let expectedVal = val;
+      if (el instanceof HTMLInputElement && val === 'contents') {
+        expectedVal = 'none'; // https://drafts.csswg.org/css-display/#unbox-html
+      }
+      if (val == 'flow') {
+        // Use the more backwards-compatible form, `block` is better than `flow`
+        // https://drafts.csswg.org/cssom/#serializing-css-values
+        expectedVal = 'block';
+      }
+      assert_equals(getComputedStyle(el).display, expectedVal);
+    }, `computed display of ${tag} with display: ${val}`);
+  });
+}
+
+for (let input of document.querySelectorAll("input")) {
+  test(() => {
+    if (input.type == "image") {
+      assert_equals(getComputedStyle(input).overflow, "visible", "Should not be clip by default");
+      return;
+    }
+    assert_equals(getComputedStyle(input).overflow, "clip", "Should be clip by default");
+    assert_equals(getComputedStyle(input).overflowClipMargin, "0px", "Should use 0 margin");
+    input.style.overflow = "visible";
+    input.style.overflowClipMargin = "10px";
+    assert_equals(getComputedStyle(input).overflow, "clip", "Clip be !important");
+    assert_equals(getComputedStyle(input).overflowClipMargin, "0px", "Clip margin should be !important too");
+  }, `<input type=${input.type}> overflow/overflow-clip-margin`);
+}
+</script>

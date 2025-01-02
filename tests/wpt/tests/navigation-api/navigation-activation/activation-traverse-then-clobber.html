@@ -1,0 +1,47 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  i.contentWindow.navigation.navigate("/common/blank.html?a");
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+
+  i.contentWindow.navigation.back();
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+
+  // activation.entry is the current entry. activation.from is the entry the
+  // traverse came from.
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+  assert_equals(i.contentWindow.navigation.activation.entry, i.contentWindow.navigation.currentEntry);
+  assert_equals(i.contentWindow.navigation.activation.entry.index, 0);
+  assert_equals(i.contentWindow.navigation.activation.from,
+                i.contentWindow.navigation.entries()[1]);
+  assert_equals(i.contentWindow.navigation.activation.navigationType, "traverse");
+
+  let from_key_before_push = i.contentWindow.navigation.activation.from.key;
+  let from_id_before_push = i.contentWindow.navigation.activation.from.id;
+  let from_url_before_push = i.contentWindow.navigation.activation.from.url;
+  await i.contentWindow.navigation.navigate("/common/blank.html#fragment").finished;
+
+  // pushing same document will not change activation.entry, but it will cut
+  // activation.from out of the entries array. Its parameters should not change
+  //except for its index, which becomes -1.
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+  assert_equals(i.contentWindow.navigation.activation.entry, i.contentWindow.navigation.entries()[0]);
+  assert_equals(i.contentWindow.navigation.activation.entry.index, 0);
+  assert_not_equals(i.contentWindow.navigation.activation.from,
+                    i.contentWindow.navigation.entries()[1]);
+  assert_equals(i.contentWindow.navigation.activation.from.key, from_key_before_push);
+  assert_equals(i.contentWindow.navigation.activation.from.id, from_id_before_push);
+  assert_equals(i.contentWindow.navigation.activation.from.url, from_url_before_push);
+  assert_equals(i.contentWindow.navigation.activation.from.index, -1);
+  assert_equals(i.contentWindow.navigation.activation.navigationType, "traverse");
+}, "navigation.activation - traverse, then push same-document");
+</script>

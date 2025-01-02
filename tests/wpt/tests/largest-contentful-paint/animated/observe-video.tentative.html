@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Largest Contentful Paint: observe video.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/largest-contentful-paint-helpers.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async () => {
+      assert_implements(window.LargestContentfulPaint,
+                        "LargestContentfulPaint is not implemented");
+      const beforeLoad = performance.now();
+      // 136 is the size of the animated GIF up until the first frame.
+      // The trickle pipe delays the response after the first frame by 1 second.
+      const url = window.location.origin +
+                  `/media/test-1s.webm?pipe=trickle(1500:d${delay_pipe_value})`;
+      const entry = await load_video_and_observe(url);
+      // Video is 320 x 184.
+      const size = 320 * 184;
+      // TODO(yoav): Validate size as well as load and render times. "skip" is
+      // currently causing those checks to be skipped.
+      checkImage(entry, url, 'video_id', size, beforeLoad, ["skip"]);
+    }, "Same origin animated image is observable and has a first frame.");
+  </script>
+</body>
+</html>
+

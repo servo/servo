@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/329118508">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=mypopover popover=auto>popover</div>
+
+<iframe name=foo></iframe>
+<form target=foo action="about:blank">
+  <button id=reset-in-form type=reset popovertarget=mypopover>reset</button>
+  <button id=submit-in-form type=submit popovertarget=mypopover>submit</button>
+  <button id=button-in-form type=button popovertarget=mypopover>type=button</button>
+</form>
+
+<button id=reset-outside-form type=reset popovertarget=mypopover>reset</button>
+<button id=submit-outside-form type=submit popovertarget=mypopover>submit</button>
+<button id=button-outside-form type=button popovertarget=mypopover>type=button</button>
+
+<script>
+test(() => {
+  const testButton = (id, expectedToToggle) => {
+    document.getElementById(id).click();
+    if (expectedToToggle) {
+      assert_true(mypopover.matches(':popover-open'),
+        `${id}: button should open the popover.`);
+    } else {
+      assert_false(mypopover.matches(':popover-open'),
+        `${id}: button should not open the popover.`);
+    }
+    if (mypopover.matches(':popover-open')) {
+      mypopover.hidePopover();
+    }
+  };
+
+  testButton('reset-in-form', false);
+  testButton('submit-in-form', false);
+  testButton('button-in-form', true);
+  testButton('reset-outside-form', true);
+  testButton('submit-outside-form', true);
+  testButton('button-outside-form', true);
+}, 'Button type=reset and type=submit should not run popover algorithms when in a form.');
+</script>

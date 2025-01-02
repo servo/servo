@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect soft navigation adding content to a main descendent.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <a id=link>Click me!</a>
+  <div id=descendent></div>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    testSoftNavigation({
+      addContent: () => {
+        const descendent= document.getElementById("descendent");
+        const content = document.createTextNode("Lorem Ipsum");
+        descendent.appendChild(content);
+      },
+      link: link,
+      test: "Test that a soft navigation is detected even when DOM change is "
+        + "done on a main descendent"});
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>Test canLoadOpaqueURL API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+async function runTest(expected_result, generator_api, attribute_list, header_list, use_fencedframe=false) {
+  const frame = use_fencedframe ?
+      await attachFencedFrameContext({generator_api: generator_api, attributes:attribute_list, headers:header_list}) :
+      await attachIFrameContext({generator_api: generator_api, attributes:attribute_list, headers:header_list});
+  await frame.execute(async (expected_result, attribute_list) => {
+    assert_equals(navigator.canLoadAdAuctionFencedFrame(), expected_result,
+    "A frame with attributes " + attribute_list + " should return " +
+    expected_result + " for canLoadOpaqueURL.");
+  }, [expected_result, attribute_list]);
+}
+
+promise_test(async(t) => {
+  assert_true(navigator.canLoadAdAuctionFencedFrame());
+}, 'canLoadOpaqueURL called on a page that can load a FF should return true');
+
+promise_test(async(t) => {
+  await runTest(true, "sharedstorage",
+     [["width", "300"],
+      ["height", "200"]],
+      [], use_fencedframe=true);
+}, 'canLoadOpaqueURL returns true inside an opaque-ads fenced frame');
+
+promise_test(async(t) => {
+  await runTest(false, "default", [], [], use_fencedframe=true);
+}, 'canLoadOpaqueURL returns false inside an default fenced frame');
+
+promise_test(async(t) => {
+  await runTest(true, "default", [], [["Content-Security-Policy", "fenced-frame-src *"]]);
+  await runTest(true, "default", [], [["Content-Security-Policy", "fenced-frame-src https:"]]);
+  await runTest(true, "default", [], [["Content-Security-Policy", "fenced-frame-src https://*:*"]]);
+}, 'canLoadOpaqueURL returns true for all 3 fenced-frame-src allowed values');
+
+promise_test(async(t) => {
+  await runTest(true, "default", [], [["Content-Security-Policy", "fenced-frame-src *; frame-src 'self'"]]);
+  await runTest(false, "default", [], [["Content-Security-Policy", "fenced-frame-src 'self'; frame-src *"]]);
+  await runTest(true, "default", [], [["Content-Security-Policy", "child-src 'self'; fenced-frame-src https:"]]);
+  await runTest(false, "default", [], [["Content-Security-Policy", "child-src *; fenced-frame-src 'self'"]]);
+}, 'canLoadOpaqueURL ignores fallback CSPs');
+
+promise_test(async(t) => {
+  await runTest(true, "default", [], [["Content-Security-Policy", "img-src 'none';"]]);
+  await runTest(true, "default", [], [["Content-Security-Policy", "font-src 'none';"]]);
+}, 'canLoadOpaqueURL ignores unrelated CSPs');
+
+promise_test(async(t) => {
+  const iframe = attachIFrame("resources/dummy.html");
+  const iframe_ff_class = iframe.contentWindow.HTMLFencedFrameElement;
+
+  // Sanity check to make sure the function returns true as we expect it to
+  // before we remove the frame.
+  assert_true(iframe_ff_class.canLoadOpaqueURL());
+
+  // The one variable we're changing is whether the frame is attached or not.
+  iframe.remove();
+  assert_false(iframe_ff_class.canLoadOpaqueURL());
+}, 'canLoadOpaqueURL returns false in a detached frame');
+</script>
+</body>

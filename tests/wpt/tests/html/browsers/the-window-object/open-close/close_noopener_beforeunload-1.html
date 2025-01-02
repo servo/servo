@@ -1,0 +1,8 @@
+<!doctype html>
+<script>
+let chan = new BroadcastChannel("close_noopener_beforeunload" + location.search);
+onload = function() { window.close(); };
+onbeforeunload = function() {
+  chan.postMessage({ name: "beforeunload", history: history.length });
+}
+</script>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name='author' title='Google' href='http://www.google.com'>
+<meta name='assert' content='document attributes that returns HTMLCollection should not expose nodes in shadow tree.'>
+<link rel='help' href='https://w3c.github.io/webcomponents/spec/shadow/'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+<template id='collection-template'>
+  <img>
+  <embed></embed>
+  <applet></applet>
+  <object type='application/x-java-applet'></object>
+  <a href='http://example.com'></a>
+  <a name='test'></a>
+  <form name='test'></form>
+  <script></script>
+</template>
+<div id='doc'></div>
+<div id='host-open'></div>
+<div id='host-closed'></div>
+</body>
+<script>
+'use strict';
+
+function fillTemplate(root, prefix) {
+    var tmpl = document.getElementById('collection-template');
+    root.appendChild(document.importNode(tmpl.content, true));
+    for (var i = 0; i < root.childNodes.length; ++i) {
+        var el = root.childNodes[i];
+        if (el.nodeType != 1)
+            continue;
+        el.id = prefix + el.tagName.toLowerCase();
+    }
+}
+
+// Construct subtree with 'doc-*' ids.
+var doc = document.getElementById('doc');
+fillTemplate(doc, 'doc-');
+
+// Construct shadow subtree with 'shadow-*' ids.
+var host = document.getElementById('host-open');
+var shadow = host.attachShadow({mode: 'open'});
+fillTemplate(shadow, 'shadow-open-');
+
+host = document.getElementById('host-closed');
+shadow = host.attachShadow({mode: 'closed'});
+fillTemplate(shadow, 'shadow-closed-');
+
+function testCollection(collection) {
+    var elements = document[collection];
+    assert_greater_than(elements.length, 0, 'document.' + collection + ' should have at least 1 element.');
+    for (var i = 0; i < elements.length; ++i) {
+        if (elements[i].id) {
+            assert_equals(elements[i].id.indexOf('shadow-'), -1, 'document.' + collection + ' should not contain elements in shadow tree.');
+        }
+    }
+}
+
+var testParams = [
+    ['document.scripts should not contain shadow nodes', 'scripts'],
+    ['document.all should not contain shadow nodes', 'all'],
+    ['document.forms should not contain shadow nodes', 'forms'],
+    ['document.images should not contain shadow nodes', 'images'],
+    ['document.links should not contain shadow nodes', 'links'],
+    ['document.anchors should not contain shadow nodes', 'anchors'],
+    ['document.embeds should not contain shadow nodes', 'embeds'],
+    ['document.plugins should not contain shadow nodes', 'plugins']];
+
+generate_tests(testCollection, testParams);
+
+test(() => {
+  assert_equals(document.applets.length, 0);
+}, 'document.applets should not contain any nodes');
+
+</script>
+</html>

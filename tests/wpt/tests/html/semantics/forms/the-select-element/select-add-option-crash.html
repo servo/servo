@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1178128">
+
+<script>
+function iframeloadhandler() {
+  selectid[5] = optionid;
+}
+</script>
+<option id="optionid" selected>
+  <select id="selectid">
+    <select>
+      <iframe onload="iframeloadhandler()">

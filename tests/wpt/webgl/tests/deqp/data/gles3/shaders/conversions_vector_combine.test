@@ -1,0 +1,3480 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-conversions.js
+
+group vector_combine "Vector Combine Constructors"
+
+	case vec2_vec2_to_vec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.75, -0.0322580645161) ];
+			input vec2 in1 = [ vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.5, -2.25) | vec2(-0.75, -0.0322580645161) ];
+			output vec4 out0 = [ vec4(-0.5, -2.25, -32.0, 64.0) | vec4(-32.0, 64.0, 1.0, 1.25) | vec4(1.0, 1.25, 0.0, 0.5) | vec4(0.0, 0.5, -0.5, -2.25) | vec4(-0.75, -0.0322580645161, -0.75, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_vec2_to_ivec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.75, -0.0322580645161) ];
+			input vec2 in1 = [ vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.5, -2.25) | vec2(-0.75, -0.0322580645161) ];
+			output ivec4 out0 = [ ivec4(0, -2, -32, 64) | ivec4(-32, 64, 1, 1) | ivec4(1, 1, 0, 0) | ivec4(0, 0, 0, -2) | ivec4(0, 0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_vec2_to_bvec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.75, -0.0322580645161) ];
+			input vec2 in1 = [ vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.5, -2.25) | vec2(-0.75, -0.0322580645161) ];
+			output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, false, true) | bvec4(false, true, true, true) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_bvec2_to_vec4
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(false, false) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(true, true) ];
+			input bvec2 in1 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output vec4 out0 = [ vec4(0.0, 0.0, 1.0, 0.0) | vec4(1.0, 0.0, 0.0, 0.0) | vec4(0.0, 1.0, 0.0, 1.0) | vec4(0.0, 0.0, 1.0, 1.0) | vec4(1.0, 1.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_bvec2_to_ivec4
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(false, false) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(true, true) ];
+			input bvec2 in1 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output ivec4 out0 = [ ivec4(0, 0, 1, 0) | ivec4(1, 0, 0, 0) | ivec4(0, 1, 0, 1) | ivec4(0, 0, 1, 1) | ivec4(1, 1, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_bvec2_to_bvec4
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(false, false) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(true, true) ];
+			input bvec2 in1 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+			output bvec4 out0 = [ bvec4(false, false, true, false) | bvec4(true, false, false, false) | bvec4(false, true, false, true) | bvec4(false, false, true, true) | bvec4(true, true, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_float_to_vec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 1.0 | 0.0 | -0.5 | -8.25 | 3.5 | -20.125 | 36.8125 | 2.0 ];
+			input float in1 = [ 0.0 | 36.8125 | -8.25 | 2.0 | 3.5 | 1.0 | -20.125 | -0.5 ];
+			input float in2 = [ 3.5 | 36.8125 | -8.25 | 1.0 | 2.0 | 0.0 | -20.125 | -0.5 ];
+			input float in3 = [ 3.5 | 36.8125 | 1.0 | -8.25 | 2.0 | 0.0 | -0.5 | -20.125 ];
+			output vec4 out0 = [ vec4(1.0, 0.0, 3.5, 3.5) | vec4(0.0, 36.8125, 36.8125, 36.8125) | vec4(-0.5, -8.25, -8.25, 1.0) | vec4(-8.25, 2.0, 1.0, -8.25) | vec4(3.5, 3.5, 2.0, 2.0) | vec4(-20.125, 1.0, 0.0, 0.0) | vec4(36.8125, -20.125, -20.125, -0.5) | vec4(2.0, -0.5, -0.5, -20.125) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_float_to_ivec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 1.0 | 0.0 | -0.5 | -8.25 | 3.5 | -20.125 | 36.8125 | 2.0 ];
+			input float in1 = [ 0.0 | 36.8125 | -8.25 | 2.0 | 3.5 | 1.0 | -20.125 | -0.5 ];
+			input float in2 = [ 3.5 | 36.8125 | -8.25 | 1.0 | 2.0 | 0.0 | -20.125 | -0.5 ];
+			input float in3 = [ 3.5 | 36.8125 | 1.0 | -8.25 | 2.0 | 0.0 | -0.5 | -20.125 ];
+			output ivec4 out0 = [ ivec4(1, 0, 3, 3) | ivec4(0, 36, 36, 36) | ivec4(0, -8, -8, 1) | ivec4(-8, 2, 1, -8) | ivec4(3, 3, 2, 2) | ivec4(-20, 1, 0, 0) | ivec4(36, -20, -20, 0) | ivec4(2, 0, 0, -20) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_float_to_bvec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 1.0 | 0.0 | -0.5 | -8.25 | 3.5 | -20.125 | 36.8125 | 2.0 ];
+			input float in1 = [ 0.0 | 36.8125 | -8.25 | 2.0 | 3.5 | 1.0 | -20.125 | -0.5 ];
+			input float in2 = [ 3.5 | 36.8125 | -8.25 | 1.0 | 2.0 | 0.0 | -20.125 | -0.5 ];
+			input float in3 = [ 3.5 | 36.8125 | 1.0 | -8.25 | 2.0 | 0.0 | -0.5 | -20.125 ];
+			output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_int_to_vec4
+		version 300 es
+		values
+		{
+			input int in0 = [ -12 | -66 | 2 | 5 | 8 | -192 | 255 | 1 | 0 | 11 ];
+			input int in1 = [ 2 | 5 | -66 | 11 | -192 | 8 | -12 | 1 | 255 | 0 ];
+			input int in2 = [ 11 | 255 | 5 | 8 | 2 | -192 | -12 | -66 | 1 | 0 ];
+			input int in3 = [ -192 | -66 | 8 | -12 | 1 | 2 | 0 | 255 | 5 | 11 ];
+			output vec4 out0 = [ vec4(-12.0, 2.0, 11.0, -192.0) | vec4(-66.0, 5.0, 255.0, -66.0) | vec4(2.0, -66.0, 5.0, 8.0) | vec4(5.0, 11.0, 8.0, -12.0) | vec4(8.0, -192.0, 2.0, 1.0) | vec4(-192.0, 8.0, -192.0, 2.0) | vec4(255.0, -12.0, -12.0, 0.0) | vec4(1.0, 1.0, -66.0, 255.0) | vec4(0.0, 255.0, 1.0, 5.0) | vec4(11.0, 0.0, 0.0, 11.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_int_to_ivec4
+		version 300 es
+		values
+		{
+			input int in0 = [ -12 | -66 | 2 | 5 | 8 | -192 | 255 | 1 | 0 | 11 ];
+			input int in1 = [ 2 | 5 | -66 | 11 | -192 | 8 | -12 | 1 | 255 | 0 ];
+			input int in2 = [ 11 | 255 | 5 | 8 | 2 | -192 | -12 | -66 | 1 | 0 ];
+			input int in3 = [ -192 | -66 | 8 | -12 | 1 | 2 | 0 | 255 | 5 | 11 ];
+			output ivec4 out0 = [ ivec4(-12, 2, 11, -192) | ivec4(-66, 5, 255, -66) | ivec4(2, -66, 5, 8) | ivec4(5, 11, 8, -12) | ivec4(8, -192, 2, 1) | ivec4(-192, 8, -192, 2) | ivec4(255, -12, -12, 0) | ivec4(1, 1, -66, 255) | ivec4(0, 255, 1, 5) | ivec4(11, 0, 0, 11) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_int_to_bvec4
+		version 300 es
+		values
+		{
+			input int in0 = [ -12 | -66 | 2 | 5 | 8 | -192 | 255 | 1 | 0 | 11 ];
+			input int in1 = [ 2 | 5 | -66 | 11 | -192 | 8 | -12 | 1 | 255 | 0 ];
+			input int in2 = [ 11 | 255 | 5 | 8 | 2 | -192 | -12 | -66 | 1 | 0 ];
+			input int in3 = [ -192 | -66 | 8 | -12 | 1 | 2 | 0 | 255 | 5 | 11 ];
+			output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, false) | bvec4(true, true, true, true) | bvec4(false, true, true, true) | bvec4(true, false, false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_uint_to_vec4
+		version 300 es
+		values
+		{
+			input uint in0 = [ 193 | 3 | 255 | 8 | 10 | 9 | 2 | 12 | 0 | 45 ];
+			input uint in1 = [ 12 | 45 | 193 | 2 | 8 | 255 | 0 | 3 | 9 | 10 ];
+			input uint in2 = [ 9 | 8 | 12 | 2 | 255 | 45 | 3 | 0 | 193 | 10 ];
+			input uint in3 = [ 3 | 9 | 12 | 2 | 255 | 193 | 0 | 10 | 45 | 8 ];
+			output vec4 out0 = [ vec4(193.0, 12.0, 9.0, 3.0) | vec4(3.0, 45.0, 8.0, 9.0) | vec4(255.0, 193.0, 12.0, 12.0) | vec4(8.0, 2.0, 2.0, 2.0) | vec4(10.0, 8.0, 255.0, 255.0) | vec4(9.0, 255.0, 45.0, 193.0) | vec4(2.0, 0.0, 3.0, 0.0) | vec4(12.0, 3.0, 0.0, 10.0) | vec4(0.0, 9.0, 193.0, 45.0) | vec4(45.0, 10.0, 10.0, 8.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_uint_to_ivec4
+		version 300 es
+		values
+		{
+			input uint in0 = [ 193 | 3 | 255 | 8 | 10 | 9 | 2 | 12 | 0 | 45 ];
+			input uint in1 = [ 12 | 45 | 193 | 2 | 8 | 255 | 0 | 3 | 9 | 10 ];
+			input uint in2 = [ 9 | 8 | 12 | 2 | 255 | 45 | 3 | 0 | 193 | 10 ];
+			input uint in3 = [ 3 | 9 | 12 | 2 | 255 | 193 | 0 | 10 | 45 | 8 ];
+			output ivec4 out0 = [ ivec4(193, 12, 9, 3) | ivec4(3, 45, 8, 9) | ivec4(255, 193, 12, 12) | ivec4(8, 2, 2, 2) | ivec4(10, 8, 255, 255) | ivec4(9, 255, 45, 193) | ivec4(2, 0, 3, 0) | ivec4(12, 3, 0, 10) | ivec4(0, 9, 193, 45) | ivec4(45, 10, 10, 8) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_uint_to_bvec4
+		version 300 es
+		values
+		{
+			input uint in0 = [ 193 | 3 | 255 | 8 | 10 | 9 | 2 | 12 | 0 | 45 ];
+			input uint in1 = [ 12 | 45 | 193 | 2 | 8 | 255 | 0 | 3 | 9 | 10 ];
+			input uint in2 = [ 9 | 8 | 12 | 2 | 255 | 45 | 3 | 0 | 193 | 10 ];
+			input uint in3 = [ 3 | 9 | 12 | 2 | 255 | 193 | 0 | 10 | 45 | 8 ];
+			output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, false, true, false) | bvec4(true, true, false, true) | bvec4(false, true, true, true) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_bool_to_vec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			input bool in2 = [ false | true ];
+			input bool in3 = [ false | true ];
+			output vec4 out0 = [ vec4(1.0, 1.0, 0.0, 0.0) | vec4(0.0, 0.0, 1.0, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_bool_to_ivec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			input bool in2 = [ false | true ];
+			input bool in3 = [ false | true ];
+			output ivec4 out0 = [ ivec4(1, 1, 0, 0) | ivec4(0, 0, 1, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_bool_to_bvec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			input bool in2 = [ false | true ];
+			input bool in3 = [ false | true ];
+			output bvec4 out0 = [ bvec4(true, true, false, false) | bvec4(false, false, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_bool_to_vec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | false | true | false | false | true | true ];
+			input float in1 = [ 36.8125 | 0.0 | -8.25 | 1.0 | -0.5 | 0.0 | 2.0 | -20.125 | 3.5 | 1.0 ];
+			input int in2 = [ -66 | 2 | 255 | 11 | 1 | 8 | -192 | -12 | 0 | 5 ];
+			input bool in3 = [ true | true | false | false | true | true | false | true | false | false ];
+			output vec4 out0 = [ vec4(1.0, 36.8125, -66.0, 1.0) | vec4(1.0, 0.0, 2.0, 1.0) | vec4(0.0, -8.25, 255.0, 0.0) | vec4(0.0, 1.0, 11.0, 0.0) | vec4(0.0, -0.5, 1.0, 1.0) | vec4(1.0, 0.0, 8.0, 1.0) | vec4(0.0, 2.0, -192.0, 0.0) | vec4(0.0, -20.125, -12.0, 1.0) | vec4(1.0, 3.5, 0.0, 0.0) | vec4(1.0, 1.0, 5.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_bool_to_ivec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | false | true | false | false | true | true ];
+			input float in1 = [ 36.8125 | 0.0 | -8.25 | 1.0 | -0.5 | 0.0 | 2.0 | -20.125 | 3.5 | 1.0 ];
+			input int in2 = [ -66 | 2 | 255 | 11 | 1 | 8 | -192 | -12 | 0 | 5 ];
+			input bool in3 = [ true | true | false | false | true | true | false | true | false | false ];
+			output ivec4 out0 = [ ivec4(1, 36, -66, 1) | ivec4(1, 0, 2, 1) | ivec4(0, -8, 255, 0) | ivec4(0, 1, 11, 0) | ivec4(0, 0, 1, 1) | ivec4(1, 0, 8, 1) | ivec4(0, 2, -192, 0) | ivec4(0, -20, -12, 1) | ivec4(1, 3, 0, 0) | ivec4(1, 1, 5, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_bool_to_bvec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | false | true | false | false | true | true ];
+			input float in1 = [ 36.8125 | 0.0 | -8.25 | 1.0 | -0.5 | 0.0 | 2.0 | -20.125 | 3.5 | 1.0 ];
+			input int in2 = [ -66 | 2 | 255 | 11 | 1 | 8 | -192 | -12 | 0 | 5 ];
+			input bool in3 = [ true | true | false | false | true | true | false | true | false | false ];
+			output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, false, true, true) | bvec4(false, true, true, false) | bvec4(false, true, true, false) | bvec4(false, true, true, true) | bvec4(true, false, true, true) | bvec4(false, true, true, false) | bvec4(false, true, true, true) | bvec4(true, true, false, false) | bvec4(true, true, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_ivec2_to_vec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(0.0, 0.5) | vec2(-0.75, -0.0322580645161) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) ];
+			input ivec2 in1 = [ ivec2(0, 0) | ivec2(0, -2) | ivec2(0, 0) | ivec2(-32, 64) | ivec2(1, 1) ];
+			output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(-0.75, -0.0322580645161, 0.0, -2.0) | vec4(-0.5, -2.25, 0.0, 0.0) | vec4(-32.0, 64.0, -32.0, 64.0) | vec4(1.0, 1.25, 1.0, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_ivec2_to_ivec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(0.0, 0.5) | vec2(-0.75, -0.0322580645161) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) ];
+			input ivec2 in1 = [ ivec2(0, 0) | ivec2(0, -2) | ivec2(0, 0) | ivec2(-32, 64) | ivec2(1, 1) ];
+			output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(0, 0, 0, -2) | ivec4(0, -2, 0, 0) | ivec4(-32, 64, -32, 64) | ivec4(1, 1, 1, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_ivec2_to_bvec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(0.0, 0.5) | vec2(-0.75, -0.0322580645161) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) ];
+			input ivec2 in1 = [ ivec2(0, 0) | ivec2(0, -2) | ivec2(0, 0) | ivec2(-32, 64) | ivec2(1, 1) ];
+			output bvec4 out0 = [ bvec4(false, true, false, false) | bvec4(true, true, false, true) | bvec4(true, true, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bvec2_to_vec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(-0.75, -0.0322580645161) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.5, -2.25) ];
+			input bvec2 in1 = [ bvec2(false, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(true, false) ];
+			output vec4 out0 = [ vec4(-0.75, -0.0322580645161, 0.0, 1.0) | vec4(-32.0, 64.0, 0.0, 0.0) | vec4(1.0, 1.25, 0.0, 0.0) | vec4(0.0, 0.5, 1.0, 1.0) | vec4(-0.5, -2.25, 1.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bvec2_to_ivec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(-0.75, -0.0322580645161) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.5, -2.25) ];
+			input bvec2 in1 = [ bvec2(false, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(true, false) ];
+			output ivec4 out0 = [ ivec4(0, 0, 0, 1) | ivec4(-32, 64, 0, 0) | ivec4(1, 1, 0, 0) | ivec4(0, 0, 1, 1) | ivec4(0, -2, 1, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bvec2_to_bvec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(-0.75, -0.0322580645161) | vec2(-32.0, 64.0) | vec2(1.0, 1.25) | vec2(0.0, 0.5) | vec2(-0.5, -2.25) ];
+			input bvec2 in1 = [ bvec2(false, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(true, false) ];
+			output bvec4 out0 = [ bvec4(true, true, false, true) | bvec4(true, true, false, false) | bvec4(true, true, false, false) | bvec4(false, true, true, true) | bvec4(true, true, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_float_to_vec4
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, false, false) | bvec3(false, true, false) ];
+			input float in1 = [ -0.5 | 3.5 | 2.0 | 0.0 | -8.25 | 1.0 | 36.8125 | -20.125 ];
+			output vec4 out0 = [ vec4(1.0, 0.0, 0.0, -0.5) | vec4(0.0, 0.0, 0.0, 3.5) | vec4(0.0, 1.0, 0.0, 2.0) | vec4(1.0, 1.0, 1.0, 0.0) | vec4(0.0, 0.0, 0.0, -8.25) | vec4(0.0, 0.0, 0.0, 1.0) | vec4(1.0, 0.0, 0.0, 36.8125) | vec4(0.0, 1.0, 0.0, -20.125) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_float_to_ivec4
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, false, false) | bvec3(false, true, false) ];
+			input float in1 = [ -0.5 | 3.5 | 2.0 | 0.0 | -8.25 | 1.0 | 36.8125 | -20.125 ];
+			output ivec4 out0 = [ ivec4(1, 0, 0, 0) | ivec4(0, 0, 0, 3) | ivec4(0, 1, 0, 2) | ivec4(1, 1, 1, 0) | ivec4(0, 0, 0, -8) | ivec4(0, 0, 0, 1) | ivec4(1, 0, 0, 36) | ivec4(0, 1, 0, -20) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_float_to_bvec4
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, false, false) | bvec3(false, true, false) ];
+			input float in1 = [ -0.5 | 3.5 | 2.0 | 0.0 | -8.25 | 1.0 | 36.8125 | -20.125 ];
+			output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, true) | bvec4(true, true, true, false) | bvec4(false, false, false, true) | bvec4(false, false, false, true) | bvec4(true, false, false, true) | bvec4(false, true, false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_float_to_vec4
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(0.0, 0.5, 0.75) | vec3(-0.5, -2.25, -4.875) | vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) ];
+			input float in1 = [ -0.5 | 0.0 | 3.5 | -20.125 | 2.0 | -8.25 | 1.0 | 36.8125 ];
+			output vec4 out0 = [ vec4(-32.0, 64.0, -51.0, -0.5) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.0) | vec4(1.0, 1.25, 1.125, 3.5) | vec4(-0.5, -2.25, -4.875, -20.125) | vec4(0.0, 0.5, 0.75, 2.0) | vec4(-0.5, -2.25, -4.875, -8.25) | vec4(0.0, 0.5, 0.75, 1.0) | vec4(1.0, 1.25, 1.125, 36.8125) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_float_to_ivec4
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(0.0, 0.5, 0.75) | vec3(-0.5, -2.25, -4.875) | vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) ];
+			input float in1 = [ -0.5 | 0.0 | 3.5 | -20.125 | 2.0 | -8.25 | 1.0 | 36.8125 ];
+			output ivec4 out0 = [ ivec4(-32, 64, -51, 0) | ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 3) | ivec4(0, -2, -4, -20) | ivec4(0, 0, 0, 2) | ivec4(0, -2, -4, -8) | ivec4(0, 0, 0, 1) | ivec4(1, 1, 1, 36) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_float_to_bvec4
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(0.0, 0.5, 0.75) | vec3(-0.5, -2.25, -4.875) | vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) ];
+			input float in1 = [ -0.5 | 0.0 | 3.5 | -20.125 | 2.0 | -8.25 | 1.0 | 36.8125 ];
+			output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, true, true, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, true, true, true) | bvec4(true, true, true, true) | bvec4(false, true, true, true) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_ivec2_int_to_vec4
+		version 300 es
+		values
+		{
+			input int in0 = [ -12 | 11 | 8 | 255 | 0 | 1 | -66 | 2 | -192 | 5 ];
+			input ivec2 in1 = [ ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) | ivec2(0, -2) | ivec2(1, 1) | ivec2(0, 0) | ivec2(-32, 64) | ivec2(1, 1) | ivec2(0, 0) | ivec2(0, 0) ];
+			input int in2 = [ 1 | 11 | 2 | -66 | -192 | 0 | -12 | 255 | 5 | 8 ];
+			output vec4 out0 = [ vec4(-12.0, 0.0, -2.0, 1.0) | vec4(11.0, -32.0, 64.0, 11.0) | vec4(8.0, 0.0, 0.0, 2.0) | vec4(255.0, 0.0, -2.0, -66.0) | vec4(0.0, 1.0, 1.0, -192.0) | vec4(1.0, 0.0, 0.0, 0.0) | vec4(-66.0, -32.0, 64.0, -12.0) | vec4(2.0, 1.0, 1.0, 255.0) | vec4(-192.0, 0.0, 0.0, 5.0) | vec4(5.0, 0.0, 0.0, 8.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_ivec2_int_to_ivec4
+		version 300 es
+		values
+		{
+			input int in0 = [ -12 | 11 | 8 | 255 | 0 | 1 | -66 | 2 | -192 | 5 ];
+			input ivec2 in1 = [ ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) | ivec2(0, -2) | ivec2(1, 1) | ivec2(0, 0) | ivec2(-32, 64) | ivec2(1, 1) | ivec2(0, 0) | ivec2(0, 0) ];
+			input int in2 = [ 1 | 11 | 2 | -66 | -192 | 0 | -12 | 255 | 5 | 8 ];
+			output ivec4 out0 = [ ivec4(-12, 0, -2, 1) | ivec4(11, -32, 64, 11) | ivec4(8, 0, 0, 2) | ivec4(255, 0, -2, -66) | ivec4(0, 1, 1, -192) | ivec4(1, 0, 0, 0) | ivec4(-66, -32, 64, -12) | ivec4(2, 1, 1, 255) | ivec4(-192, 0, 0, 5) | ivec4(5, 0, 0, 8) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_ivec2_int_to_bvec4
+		version 300 es
+		values
+		{
+			input int in0 = [ -12 | 11 | 8 | 255 | 0 | 1 | -66 | 2 | -192 | 5 ];
+			input ivec2 in1 = [ ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) | ivec2(0, -2) | ivec2(1, 1) | ivec2(0, 0) | ivec2(-32, 64) | ivec2(1, 1) | ivec2(0, 0) | ivec2(0, 0) ];
+			input int in2 = [ 1 | 11 | 2 | -66 | -192 | 0 | -12 | 255 | 5 | 8 ];
+			output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(true, true, true, true) | bvec4(true, false, false, true) | bvec4(true, false, true, true) | bvec4(false, true, true, true) | bvec4(true, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(true, false, false, true) | bvec4(true, false, false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_ivec2_to_vec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false | false | false | true | true | true | false ];
+			input float in1 = [ 1.0 | 0.0 | 2.0 | 3.5 | -20.125 | -0.5 | 36.8125 | -8.25 ];
+			input ivec2 in2 = [ ivec2(1, 1) | ivec2(-32, 64) | ivec2(0, 0) | ivec2(0, 0) | ivec2(0, -2) | ivec2(0, -2) | ivec2(0, 0) | ivec2(1, 1) ];
+			output vec4 out0 = [ vec4(1.0, 1.0, 1.0, 1.0) | vec4(0.0, 0.0, -32.0, 64.0) | vec4(0.0, 2.0, 0.0, 0.0) | vec4(0.0, 3.5, 0.0, 0.0) | vec4(1.0, -20.125, 0.0, -2.0) | vec4(1.0, -0.5, 0.0, -2.0) | vec4(1.0, 36.8125, 0.0, 0.0) | vec4(0.0, -8.25, 1.0, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_ivec2_to_ivec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false | false | false | true | true | true | false ];
+			input float in1 = [ 1.0 | 0.0 | 2.0 | 3.5 | -20.125 | -0.5 | 36.8125 | -8.25 ];
+			input ivec2 in2 = [ ivec2(1, 1) | ivec2(-32, 64) | ivec2(0, 0) | ivec2(0, 0) | ivec2(0, -2) | ivec2(0, -2) | ivec2(0, 0) | ivec2(1, 1) ];
+			output ivec4 out0 = [ ivec4(1, 1, 1, 1) | ivec4(0, 0, -32, 64) | ivec4(0, 2, 0, 0) | ivec4(0, 3, 0, 0) | ivec4(1, -20, 0, -2) | ivec4(1, 0, 0, -2) | ivec4(1, 36, 0, 0) | ivec4(0, -8, 1, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_ivec2_to_bvec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false | false | false | true | true | true | false ];
+			input float in1 = [ 1.0 | 0.0 | 2.0 | 3.5 | -20.125 | -0.5 | 36.8125 | -8.25 ];
+			input ivec2 in2 = [ ivec2(1, 1) | ivec2(-32, 64) | ivec2(0, 0) | ivec2(0, 0) | ivec2(0, -2) | ivec2(0, -2) | ivec2(0, 0) | ivec2(1, 1) ];
+			output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(false, false, true, true) | bvec4(false, true, false, false) | bvec4(false, true, false, false) | bvec4(true, true, false, true) | bvec4(true, true, false, true) | bvec4(true, true, false, false) | bvec4(false, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec3_to_vec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 1.0 | -20.125 | -8.25 | -0.5 | 0.0 | 2.0 | 3.5 | 36.8125 ];
+			input uvec3 in1 = [ uvec3(0, 0, 0) | uvec3(0, 0, 0) | uvec3(1, 1, 1) | uvec3(0, 2, 4) | uvec3(0, 0, 0) | uvec3(1, 1, 1) | uvec3(0, 2, 4) | uvec3(32, 64, 51) ];
+			output vec4 out0 = [ vec4(1.0, 0.0, 0.0, 0.0) | vec4(-20.125, 0.0, 0.0, 0.0) | vec4(-8.25, 1.0, 1.0, 1.0) | vec4(-0.5, 0.0, 2.0, 4.0) | vec4(0.0, 0.0, 0.0, 0.0) | vec4(2.0, 1.0, 1.0, 1.0) | vec4(3.5, 0.0, 2.0, 4.0) | vec4(36.8125, 32.0, 64.0, 51.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec3_to_ivec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 1.0 | -20.125 | -8.25 | -0.5 | 0.0 | 2.0 | 3.5 | 36.8125 ];
+			input uvec3 in1 = [ uvec3(0, 0, 0) | uvec3(0, 0, 0) | uvec3(1, 1, 1) | uvec3(0, 2, 4) | uvec3(0, 0, 0) | uvec3(1, 1, 1) | uvec3(0, 2, 4) | uvec3(32, 64, 51) ];
+			output ivec4 out0 = [ ivec4(1, 0, 0, 0) | ivec4(-20, 0, 0, 0) | ivec4(-8, 1, 1, 1) | ivec4(0, 0, 2, 4) | ivec4(0, 0, 0, 0) | ivec4(2, 1, 1, 1) | ivec4(3, 0, 2, 4) | ivec4(36, 32, 64, 51) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec3_to_bvec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 1.0 | -20.125 | -8.25 | -0.5 | 0.0 | 2.0 | 3.5 | 36.8125 ];
+			input uvec3 in1 = [ uvec3(0, 0, 0) | uvec3(0, 0, 0) | uvec3(1, 1, 1) | uvec3(0, 2, 4) | uvec3(0, 0, 0) | uvec3(1, 1, 1) | uvec3(0, 2, 4) | uvec3(32, 64, 51) ];
+			output bvec4 out0 = [ bvec4(true, false, false, false) | bvec4(true, false, false, false) | bvec4(true, true, true, true) | bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, false, true, true) | bvec4(true, true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uvec2_bool_to_vec4
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | -192 | -66 | -12 | 0 | 2 | 11 | 8 | 255 | 5 ];
+			input uvec2 in1 = [ uvec2(0, 2) | uvec2(1, 1) | uvec2(0, 0) | uvec2(0, 2) | uvec2(32, 64) | uvec2(0, 0) | uvec2(32, 64) | uvec2(0, 0) | uvec2(1, 1) | uvec2(0, 0) ];
+			input bool in2 = [ false | false | true | true | true | true | true | false | false | false ];
+			output vec4 out0 = [ vec4(1.0, 0.0, 2.0, 0.0) | vec4(-192.0, 1.0, 1.0, 0.0) | vec4(-66.0, 0.0, 0.0, 1.0) | vec4(-12.0, 0.0, 2.0, 1.0) | vec4(0.0, 32.0, 64.0, 1.0) | vec4(2.0, 0.0, 0.0, 1.0) | vec4(11.0, 32.0, 64.0, 1.0) | vec4(8.0, 0.0, 0.0, 0.0) | vec4(255.0, 1.0, 1.0, 0.0) | vec4(5.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uvec2_bool_to_ivec4
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | -192 | -66 | -12 | 0 | 2 | 11 | 8 | 255 | 5 ];
+			input uvec2 in1 = [ uvec2(0, 2) | uvec2(1, 1) | uvec2(0, 0) | uvec2(0, 2) | uvec2(32, 64) | uvec2(0, 0) | uvec2(32, 64) | uvec2(0, 0) | uvec2(1, 1) | uvec2(0, 0) ];
+			input bool in2 = [ false | false | true | true | true | true | true | false | false | false ];
+			output ivec4 out0 = [ ivec4(1, 0, 2, 0) | ivec4(-192, 1, 1, 0) | ivec4(-66, 0, 0, 1) | ivec4(-12, 0, 2, 1) | ivec4(0, 32, 64, 1) | ivec4(2, 0, 0, 1) | ivec4(11, 32, 64, 1) | ivec4(8, 0, 0, 0) | ivec4(255, 1, 1, 0) | ivec4(5, 0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uvec2_bool_to_bvec4
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | -192 | -66 | -12 | 0 | 2 | 11 | 8 | 255 | 5 ];
+			input uvec2 in1 = [ uvec2(0, 2) | uvec2(1, 1) | uvec2(0, 0) | uvec2(0, 2) | uvec2(32, 64) | uvec2(0, 0) | uvec2(32, 64) | uvec2(0, 0) | uvec2(1, 1) | uvec2(0, 0) ];
+			input bool in2 = [ false | false | true | true | true | true | true | false | false | false ];
+			output bvec4 out0 = [ bvec4(true, false, true, false) | bvec4(true, true, true, false) | bvec4(true, false, false, true) | bvec4(true, false, true, true) | bvec4(false, true, true, true) | bvec4(true, false, false, true) | bvec4(true, true, true, true) | bvec4(true, false, false, false) | bvec4(true, true, true, false) | bvec4(true, false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_vec2_to_uvec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(32.0, 64.0) | vec2(0.75, 0.0322580645161) | vec2(0.0, 0.5) | vec2(0.5, 2.25) | vec2(1.0, 1.25) ];
+			input vec2 in1 = [ vec2(0.5, 2.25) | vec2(1.0, 1.25) | vec2(32.0, 64.0) | vec2(0.0, 0.5) | vec2(0.75, 0.0322580645161) ];
+			output uvec4 out0 = [ uvec4(32, 64, 0, 2) | uvec4(0, 0, 1, 1) | uvec4(0, 0, 32, 64) | uvec4(0, 2, 0, 0) | uvec4(1, 1, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_bvec2_to_uvec4
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) | bvec2(false, false) ];
+			input bvec2 in1 = [ bvec2(true, true) | bvec2(false, false) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) ];
+			output uvec4 out0 = [ uvec4(1, 0, 1, 1) | uvec4(0, 1, 0, 0) | uvec4(1, 1, 1, 0) | uvec4(0, 0, 0, 1) | uvec4(0, 0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_float_to_uvec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 2.0 | 36.8125 | 0.0 | 20.125 | 1.0 | 0.5 | 8.25 | 3.5 ];
+			input float in1 = [ 1.0 | 8.25 | 2.0 | 20.125 | 36.8125 | 0.0 | 0.5 | 3.5 ];
+			input float in2 = [ 0.0 | 8.25 | 2.0 | 1.0 | 36.8125 | 20.125 | 0.5 | 3.5 ];
+			input float in3 = [ 1.0 | 8.25 | 0.0 | 2.0 | 20.125 | 3.5 | 0.5 | 36.8125 ];
+			output uvec4 out0 = [ uvec4(2, 1, 0, 1) | uvec4(36, 8, 8, 8) | uvec4(0, 2, 2, 0) | uvec4(20, 20, 1, 2) | uvec4(1, 36, 36, 20) | uvec4(0, 0, 20, 3) | uvec4(8, 0, 0, 0) | uvec4(3, 3, 3, 36) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_int_to_uvec4
+		version 300 es
+		values
+		{
+			input int in0 = [ 192 | 2 | 12 | 11 | 0 | 8 | 5 | 66 | 1 | 255 ];
+			input int in1 = [ 66 | 12 | 5 | 1 | 0 | 192 | 8 | 255 | 11 | 2 ];
+			input int in2 = [ 192 | 5 | 1 | 66 | 255 | 11 | 8 | 12 | 2 | 0 ];
+			input int in3 = [ 255 | 5 | 11 | 12 | 2 | 1 | 66 | 0 | 8 | 192 ];
+			output uvec4 out0 = [ uvec4(192, 66, 192, 255) | uvec4(2, 12, 5, 5) | uvec4(12, 5, 1, 11) | uvec4(11, 1, 66, 12) | uvec4(0, 0, 255, 2) | uvec4(8, 192, 11, 1) | uvec4(5, 8, 8, 66) | uvec4(66, 255, 12, 0) | uvec4(1, 11, 2, 8) | uvec4(255, 2, 0, 192) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_uint_to_uvec4
+		version 300 es
+		values
+		{
+			input uint in0 = [ 255 | 8 | 3 | 193 | 45 | 2 | 0 | 12 | 9 | 10 ];
+			input uint in1 = [ 255 | 45 | 0 | 12 | 2 | 10 | 8 | 9 | 193 | 3 ];
+			input uint in2 = [ 3 | 0 | 2 | 9 | 12 | 10 | 255 | 45 | 193 | 8 ];
+			input uint in3 = [ 2 | 255 | 10 | 193 | 8 | 12 | 3 | 9 | 0 | 45 ];
+			output uvec4 out0 = [ uvec4(255, 255, 3, 2) | uvec4(8, 45, 0, 255) | uvec4(3, 0, 2, 10) | uvec4(193, 12, 9, 193) | uvec4(45, 2, 12, 8) | uvec4(2, 10, 10, 12) | uvec4(0, 8, 255, 3) | uvec4(12, 9, 45, 9) | uvec4(9, 193, 193, 0) | uvec4(10, 3, 8, 45) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_bool_to_uvec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ false | true ];
+			input bool in1 = [ false | true ];
+			input bool in2 = [ true | false ];
+			input bool in3 = [ true | false ];
+			output uvec4 out0 = [ uvec4(0, 0, 1, 1) | uvec4(1, 1, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_bool_to_uvec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false | false | true | false | true | true | true | false | false ];
+			input float in1 = [ 20.125 | 0.0 | 1.0 | 3.5 | 1.0 | 0.0 | 0.5 | 8.25 | 2.0 | 36.8125 ];
+			input int in2 = [ 66 | 192 | 1 | 2 | 5 | 11 | 8 | 12 | 255 | 0 ];
+			input bool in3 = [ true | true | true | true | false | true | false | false | false | false ];
+			output uvec4 out0 = [ uvec4(1, 20, 66, 1) | uvec4(0, 0, 192, 1) | uvec4(0, 1, 1, 1) | uvec4(1, 3, 2, 1) | uvec4(0, 1, 5, 0) | uvec4(1, 0, 11, 1) | uvec4(1, 0, 8, 0) | uvec4(1, 8, 12, 0) | uvec4(0, 2, 255, 0) | uvec4(0, 36, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2, in3);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_ivec2_to_uvec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(0.5, 2.25) | vec2(1.0, 1.25) | vec2(32.0, 64.0) | vec2(0.75, 0.0322580645161) | vec2(0.0, 0.5) ];
+			input ivec2 in1 = [ ivec2(1, 1) | ivec2(0, 2) | ivec2(32, 64) | ivec2(0, 0) | ivec2(0, 0) ];
+			output uvec4 out0 = [ uvec4(0, 2, 1, 1) | uvec4(1, 1, 0, 2) | uvec4(32, 64, 32, 64) | uvec4(0, 0, 0, 0) | uvec4(0, 0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bvec2_to_uvec4
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(32.0, 64.0) | vec2(0.75, 0.0322580645161) | vec2(0.5, 2.25) | vec2(0.0, 0.5) | vec2(1.0, 1.25) ];
+			input bvec2 in1 = [ bvec2(false, false) | bvec2(false, false) | bvec2(true, false) | bvec2(false, true) | bvec2(true, true) ];
+			output uvec4 out0 = [ uvec4(32, 64, 0, 0) | uvec4(0, 0, 0, 0) | uvec4(0, 2, 1, 0) | uvec4(0, 0, 0, 1) | uvec4(1, 1, 1, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_float_to_uvec4
+		version 300 es
+		values
+		{
+			input bvec3 in0 = [ bvec3(true, false, false) | bvec3(true, true, true) | bvec3(false, true, false) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, false, false) | bvec3(false, false, false) ];
+			input float in1 = [ 2.0 | 0.0 | 36.8125 | 0.5 | 1.0 | 8.25 | 3.5 | 20.125 ];
+			output uvec4 out0 = [ uvec4(1, 0, 0, 2) | uvec4(1, 1, 1, 0) | uvec4(0, 1, 0, 36) | uvec4(0, 0, 0, 0) | uvec4(0, 0, 0, 1) | uvec4(0, 1, 0, 8) | uvec4(1, 0, 0, 3) | uvec4(0, 0, 0, 20) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_float_to_uvec4
+		version 300 es
+		values
+		{
+			input vec3 in0 = [ vec3(0.5, 2.25, 4.875) | vec3(1.0, 1.25, 1.125) | vec3(0.0, 0.5, 0.75) | vec3(0.5, 2.25, 4.875) | vec3(32.0, 64.0, 51.0) | vec3(1.0, 1.25, 1.125) | vec3(0.75, 0.0322580645161, 0.0526315789474) | vec3(0.0, 0.5, 0.75) ];
+			input float in1 = [ 8.25 | 1.0 | 0.0 | 36.8125 | 2.0 | 0.5 | 20.125 | 3.5 ];
+			output uvec4 out0 = [ uvec4(0, 2, 4, 8) | uvec4(1, 1, 1, 1) | uvec4(0, 0, 0, 0) | uvec4(0, 2, 4, 36) | uvec4(32, 64, 51, 2) | uvec4(1, 1, 1, 0) | uvec4(0, 0, 0, 20) | uvec4(0, 0, 0, 3) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_ivec2_int_to_uvec4
+		version 300 es
+		values
+		{
+			input int in0 = [ 8 | 1 | 11 | 192 | 255 | 12 | 66 | 2 | 0 | 5 ];
+			input ivec2 in1 = [ ivec2(1, 1) | ivec2(0, 0) | ivec2(1, 1) | ivec2(32, 64) | ivec2(0, 2) | ivec2(0, 2) | ivec2(0, 0) | ivec2(0, 0) | ivec2(32, 64) | ivec2(0, 0) ];
+			input int in2 = [ 2 | 192 | 12 | 0 | 8 | 1 | 66 | 255 | 11 | 5 ];
+			output uvec4 out0 = [ uvec4(8, 1, 1, 2) | uvec4(1, 0, 0, 192) | uvec4(11, 1, 1, 12) | uvec4(192, 32, 64, 0) | uvec4(255, 0, 2, 8) | uvec4(12, 0, 2, 1) | uvec4(66, 0, 0, 66) | uvec4(2, 0, 0, 255) | uvec4(0, 32, 64, 11) | uvec4(5, 0, 0, 5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_ivec2_to_uvec4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | true | false | false | true ];
+			input float in1 = [ 8.25 | 0.5 | 2.0 | 20.125 | 0.0 | 36.8125 | 3.5 | 1.0 ];
+			input ivec2 in2 = [ ivec2(32, 64) | ivec2(1, 1) | ivec2(0, 2) | ivec2(0, 0) | ivec2(0, 0) | ivec2(0, 2) | ivec2(1, 1) | ivec2(0, 0) ];
+			output uvec4 out0 = [ uvec4(1, 8, 32, 64) | uvec4(1, 0, 1, 1) | uvec4(0, 2, 0, 2) | uvec4(0, 20, 0, 0) | uvec4(1, 0, 0, 0) | uvec4(0, 36, 0, 2) | uvec4(0, 3, 1, 1) | uvec4(1, 1, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec3_to_uvec4
+		version 300 es
+		values
+		{
+			input float in0 = [ 8.25 | 20.125 | 1.0 | 0.5 | 3.5 | 2.0 | 36.8125 | 0.0 ];
+			input uvec3 in1 = [ uvec3(0, 0, 0) | uvec3(0, 0, 0) | uvec3(0, 2, 4) | uvec3(32, 64, 51) | uvec3(0, 2, 4) | uvec3(1, 1, 1) | uvec3(1, 1, 1) | uvec3(0, 0, 0) ];
+			output uvec4 out0 = [ uvec4(8, 0, 0, 0) | uvec4(20, 0, 0, 0) | uvec4(1, 0, 2, 4) | uvec4(0, 32, 64, 51) | uvec4(3, 0, 2, 4) | uvec4(2, 1, 1, 1) | uvec4(36, 1, 1, 1) | uvec4(0, 0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uvec2_bool_to_uvec4
+		version 300 es
+		values
+		{
+			input int in0 = [ 2 | 1 | 11 | 66 | 192 | 12 | 8 | 255 | 0 | 5 ];
+			input uvec2 in1 = [ uvec2(1, 1) | uvec2(0, 0) | uvec2(0, 0) | uvec2(0, 2) | uvec2(0, 0) | uvec2(0, 2) | uvec2(32, 64) | uvec2(1, 1) | uvec2(32, 64) | uvec2(0, 0) ];
+			input bool in2 = [ true | false | false | false | false | true | true | true | false | true ];
+			output uvec4 out0 = [ uvec4(2, 1, 1, 1) | uvec4(1, 0, 0, 0) | uvec4(11, 0, 0, 0) | uvec4(66, 0, 2, 0) | uvec4(192, 0, 0, 0) | uvec4(12, 0, 2, 1) | uvec4(8, 32, 64, 1) | uvec4(255, 1, 1, 1) | uvec4(0, 32, 64, 0) | uvec4(5, 0, 0, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec4(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_to_vec3
+		version 300 es
+		values
+		{
+			input float in0 = [ -0.5 | 1.0 | 3.5 | -8.25 | 36.8125 | 0.0 | 2.0 | -20.125 ];
+			input float in1 = [ 2.0 | -20.125 | 3.5 | 36.8125 | -8.25 | 1.0 | -0.5 | 0.0 ];
+			input float in2 = [ 1.0 | 3.5 | 2.0 | -8.25 | -20.125 | -0.5 | 36.8125 | 0.0 ];
+			output vec3 out0 = [ vec3(-0.5, 2.0, 1.0) | vec3(1.0, -20.125, 3.5) | vec3(3.5, 3.5, 2.0) | vec3(-8.25, 36.8125, -8.25) | vec3(36.8125, -8.25, -20.125) | vec3(0.0, 1.0, -0.5) | vec3(2.0, -0.5, 36.8125) | vec3(-20.125, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_to_ivec3
+		version 300 es
+		values
+		{
+			input float in0 = [ -0.5 | 1.0 | 3.5 | -8.25 | 36.8125 | 0.0 | 2.0 | -20.125 ];
+			input float in1 = [ 2.0 | -20.125 | 3.5 | 36.8125 | -8.25 | 1.0 | -0.5 | 0.0 ];
+			input float in2 = [ 1.0 | 3.5 | 2.0 | -8.25 | -20.125 | -0.5 | 36.8125 | 0.0 ];
+			output ivec3 out0 = [ ivec3(0, 2, 1) | ivec3(1, -20, 3) | ivec3(3, 3, 2) | ivec3(-8, 36, -8) | ivec3(36, -8, -20) | ivec3(0, 1, 0) | ivec3(2, 0, 36) | ivec3(-20, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_to_bvec3
+		version 300 es
+		values
+		{
+			input float in0 = [ -0.5 | 1.0 | 3.5 | -8.25 | 36.8125 | 0.0 | 2.0 | -20.125 ];
+			input float in1 = [ 2.0 | -20.125 | 3.5 | 36.8125 | -8.25 | 1.0 | -0.5 | 0.0 ];
+			input float in2 = [ 1.0 | 3.5 | 2.0 | -8.25 | -20.125 | -0.5 | 36.8125 | 0.0 ];
+			output bvec3 out0 = [ bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(false, true, true) | bvec3(true, true, true) | bvec3(true, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_to_vec3
+		version 300 es
+		values
+		{
+			input int in0 = [ -192 | 5 | -12 | 0 | 11 | 8 | 1 | -66 | 255 | 2 ];
+			input int in1 = [ 5 | 1 | 8 | 0 | 2 | -192 | -12 | 255 | -66 | 11 ];
+			input int in2 = [ -192 | 1 | 2 | 5 | -12 | 8 | 11 | 0 | 255 | -66 ];
+			output vec3 out0 = [ vec3(-192.0, 5.0, -192.0) | vec3(5.0, 1.0, 1.0) | vec3(-12.0, 8.0, 2.0) | vec3(0.0, 0.0, 5.0) | vec3(11.0, 2.0, -12.0) | vec3(8.0, -192.0, 8.0) | vec3(1.0, -12.0, 11.0) | vec3(-66.0, 255.0, 0.0) | vec3(255.0, -66.0, 255.0) | vec3(2.0, 11.0, -66.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_to_ivec3
+		version 300 es
+		values
+		{
+			input int in0 = [ -192 | 5 | -12 | 0 | 11 | 8 | 1 | -66 | 255 | 2 ];
+			input int in1 = [ 5 | 1 | 8 | 0 | 2 | -192 | -12 | 255 | -66 | 11 ];
+			input int in2 = [ -192 | 1 | 2 | 5 | -12 | 8 | 11 | 0 | 255 | -66 ];
+			output ivec3 out0 = [ ivec3(-192, 5, -192) | ivec3(5, 1, 1) | ivec3(-12, 8, 2) | ivec3(0, 0, 5) | ivec3(11, 2, -12) | ivec3(8, -192, 8) | ivec3(1, -12, 11) | ivec3(-66, 255, 0) | ivec3(255, -66, 255) | ivec3(2, 11, -66) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_to_bvec3
+		version 300 es
+		values
+		{
+			input int in0 = [ -192 | 5 | -12 | 0 | 11 | 8 | 1 | -66 | 255 | 2 ];
+			input int in1 = [ 5 | 1 | 8 | 0 | 2 | -192 | -12 | 255 | -66 | 11 ];
+			input int in2 = [ -192 | 1 | 2 | 5 | -12 | 8 | 11 | 0 | 255 | -66 ];
+			output bvec3 out0 = [ bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(false, false, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, false) | bvec3(true, true, true) | bvec3(true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_to_vec3
+		version 300 es
+		values
+		{
+			input uint in0 = [ 8 | 45 | 2 | 3 | 255 | 193 | 12 | 0 | 9 | 10 ];
+			input uint in1 = [ 193 | 2 | 9 | 8 | 0 | 255 | 45 | 3 | 10 | 12 ];
+			input uint in2 = [ 12 | 2 | 193 | 255 | 8 | 10 | 45 | 0 | 3 | 9 ];
+			output vec3 out0 = [ vec3(8.0, 193.0, 12.0) | vec3(45.0, 2.0, 2.0) | vec3(2.0, 9.0, 193.0) | vec3(3.0, 8.0, 255.0) | vec3(255.0, 0.0, 8.0) | vec3(193.0, 255.0, 10.0) | vec3(12.0, 45.0, 45.0) | vec3(0.0, 3.0, 0.0) | vec3(9.0, 10.0, 3.0) | vec3(10.0, 12.0, 9.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_to_ivec3
+		version 300 es
+		values
+		{
+			input uint in0 = [ 8 | 45 | 2 | 3 | 255 | 193 | 12 | 0 | 9 | 10 ];
+			input uint in1 = [ 193 | 2 | 9 | 8 | 0 | 255 | 45 | 3 | 10 | 12 ];
+			input uint in2 = [ 12 | 2 | 193 | 255 | 8 | 10 | 45 | 0 | 3 | 9 ];
+			output ivec3 out0 = [ ivec3(8, 193, 12) | ivec3(45, 2, 2) | ivec3(2, 9, 193) | ivec3(3, 8, 255) | ivec3(255, 0, 8) | ivec3(193, 255, 10) | ivec3(12, 45, 45) | ivec3(0, 3, 0) | ivec3(9, 10, 3) | ivec3(10, 12, 9) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_to_bvec3
+		version 300 es
+		values
+		{
+			input uint in0 = [ 8 | 45 | 2 | 3 | 255 | 193 | 12 | 0 | 9 | 10 ];
+			input uint in1 = [ 193 | 2 | 9 | 8 | 0 | 255 | 45 | 3 | 10 | 12 ];
+			input uint in2 = [ 12 | 2 | 193 | 255 | 8 | 10 | 45 | 0 | 3 | 9 ];
+			output bvec3 out0 = [ bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_to_vec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			input bool in2 = [ true | false ];
+			output vec3 out0 = [ vec3(1.0, 1.0, 1.0) | vec3(0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_to_ivec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			input bool in2 = [ true | false ];
+			output ivec3 out0 = [ ivec3(1, 1, 1) | ivec3(0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_to_bvec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			input bool in2 = [ true | false ];
+			output bvec3 out0 = [ bvec3(true, true, true) | bvec3(false, false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_to_vec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | true | false | true | false | false | true ];
+			input float in1 = [ 0.0 | 36.8125 | 0.0 | -8.25 | 1.0 | 3.5 | 1.0 | -0.5 | -20.125 | 2.0 ];
+			input int in2 = [ 8 | -192 | -66 | 2 | 1 | -12 | 11 | 255 | 5 | 0 ];
+			output vec3 out0 = [ vec3(1.0, 0.0, 8.0) | vec3(1.0, 36.8125, -192.0) | vec3(0.0, 0.0, -66.0) | vec3(0.0, -8.25, 2.0) | vec3(1.0, 1.0, 1.0) | vec3(0.0, 3.5, -12.0) | vec3(1.0, 1.0, 11.0) | vec3(0.0, -0.5, 255.0) | vec3(0.0, -20.125, 5.0) | vec3(1.0, 2.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_to_ivec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | true | false | true | false | false | true ];
+			input float in1 = [ 0.0 | 36.8125 | 0.0 | -8.25 | 1.0 | 3.5 | 1.0 | -0.5 | -20.125 | 2.0 ];
+			input int in2 = [ 8 | -192 | -66 | 2 | 1 | -12 | 11 | 255 | 5 | 0 ];
+			output ivec3 out0 = [ ivec3(1, 0, 8) | ivec3(1, 36, -192) | ivec3(0, 0, -66) | ivec3(0, -8, 2) | ivec3(1, 1, 1) | ivec3(0, 3, -12) | ivec3(1, 1, 11) | ivec3(0, 0, 255) | ivec3(0, -20, 5) | ivec3(1, 2, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_to_bvec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | true | false | true | false | false | true ];
+			input float in1 = [ 0.0 | 36.8125 | 0.0 | -8.25 | 1.0 | 3.5 | 1.0 | -0.5 | -20.125 | 2.0 ];
+			input int in2 = [ 8 | -192 | -66 | 2 | 1 | -12 | 11 | 255 | 5 | 0 ];
+			output bvec3 out0 = [ bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, true) | bvec3(false, true, true) | bvec3(true, true, true) | bvec3(false, true, true) | bvec3(true, true, true) | bvec3(false, true, true) | bvec3(false, true, true) | bvec3(true, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bool_to_vec3
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(1.0, 1.25) | vec2(-0.75, -0.0322580645161) | vec2(-32.0, 64.0) | vec2(-0.5, -2.25) | vec2(0.0, 0.5) ];
+			input bool in1 = [ false | true | true | true | false ];
+			output vec3 out0 = [ vec3(1.0, 1.25, 0.0) | vec3(-0.75, -0.0322580645161, 1.0) | vec3(-32.0, 64.0, 1.0) | vec3(-0.5, -2.25, 1.0) | vec3(0.0, 0.5, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bool_to_ivec3
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(1.0, 1.25) | vec2(-0.75, -0.0322580645161) | vec2(-32.0, 64.0) | vec2(-0.5, -2.25) | vec2(0.0, 0.5) ];
+			input bool in1 = [ false | true | true | true | false ];
+			output ivec3 out0 = [ ivec3(1, 1, 0) | ivec3(0, 0, 1) | ivec3(-32, 64, 1) | ivec3(0, -2, 1) | ivec3(0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bool_to_bvec3
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(1.0, 1.25) | vec2(-0.75, -0.0322580645161) | vec2(-32.0, 64.0) | vec2(-0.5, -2.25) | vec2(0.0, 0.5) ];
+			input bool in1 = [ false | true | true | true | false ];
+			output bvec3 out0 = [ bvec3(true, true, false) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(true, true, true) | bvec3(false, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_float_to_vec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, true) | bvec2(false, true) | bvec2(true, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+			input float in1 = [ -20.125 | 2.0 | 36.8125 | 1.0 | 3.5 | 0.0 | -8.25 | -0.5 ];
+			output vec3 out0 = [ vec3(1.0, 0.0, -20.125) | vec3(0.0, 1.0, 2.0) | vec3(0.0, 1.0, 36.8125) | vec3(1.0, 0.0, 1.0) | vec3(0.0, 0.0, 3.5) | vec3(0.0, 0.0, 0.0) | vec3(1.0, 1.0, -8.25) | vec3(0.0, 0.0, -0.5) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_float_to_ivec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, true) | bvec2(false, true) | bvec2(true, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+			input float in1 = [ -20.125 | 2.0 | 36.8125 | 1.0 | 3.5 | 0.0 | -8.25 | -0.5 ];
+			output ivec3 out0 = [ ivec3(1, 0, -20) | ivec3(0, 1, 2) | ivec3(0, 1, 36) | ivec3(1, 0, 1) | ivec3(0, 0, 3) | ivec3(0, 0, 0) | ivec3(1, 1, -8) | ivec3(0, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_float_to_bvec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, false) | bvec2(false, true) | bvec2(false, true) | bvec2(true, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+			input float in1 = [ -20.125 | 2.0 | 36.8125 | 1.0 | 3.5 | 0.0 | -8.25 | -0.5 ];
+			output bvec3 out0 = [ bvec3(true, false, true) | bvec3(false, true, true) | bvec3(false, true, true) | bvec3(true, false, true) | bvec3(false, false, true) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_int_to_vec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(true, true) ];
+			input int in1 = [ 1 | -66 | 255 | 8 | -192 | 2 | 5 | 11 | -12 | 0 ];
+			output vec3 out0 = [ vec3(1.0, 1.0, 1.0) | vec3(0.0, 0.0, -66.0) | vec3(0.0, 0.0, 255.0) | vec3(1.0, 0.0, 8.0) | vec3(0.0, 0.0, -192.0) | vec3(0.0, 1.0, 2.0) | vec3(1.0, 0.0, 5.0) | vec3(0.0, 1.0, 11.0) | vec3(0.0, 0.0, -12.0) | vec3(1.0, 1.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_int_to_ivec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(true, true) ];
+			input int in1 = [ 1 | -66 | 255 | 8 | -192 | 2 | 5 | 11 | -12 | 0 ];
+			output ivec3 out0 = [ ivec3(1, 1, 1) | ivec3(0, 0, -66) | ivec3(0, 0, 255) | ivec3(1, 0, 8) | ivec3(0, 0, -192) | ivec3(0, 1, 2) | ivec3(1, 0, 5) | ivec3(0, 1, 11) | ivec3(0, 0, -12) | ivec3(1, 1, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_int_to_bvec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(true, true) ];
+			input int in1 = [ 1 | -66 | 255 | 8 | -192 | 2 | 5 | 11 | -12 | 0 ];
+			output bvec3 out0 = [ bvec3(true, true, true) | bvec3(false, false, true) | bvec3(false, false, true) | bvec3(true, false, true) | bvec3(false, false, true) | bvec3(false, true, true) | bvec3(true, false, true) | bvec3(false, true, true) | bvec3(false, false, true) | bvec3(true, true, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_ivec2_to_vec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | true ];
+			input ivec2 in1 = [ ivec2(0, -2) | ivec2(0, 0) | ivec2(0, 0) | ivec2(1, 1) | ivec2(-32, 64) ];
+			output vec3 out0 = [ vec3(1.0, 0.0, -2.0) | vec3(1.0, 0.0, 0.0) | vec3(0.0, 0.0, 0.0) | vec3(0.0, 1.0, 1.0) | vec3(1.0, -32.0, 64.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_ivec2_to_ivec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | true ];
+			input ivec2 in1 = [ ivec2(0, -2) | ivec2(0, 0) | ivec2(0, 0) | ivec2(1, 1) | ivec2(-32, 64) ];
+			output ivec3 out0 = [ ivec3(1, 0, -2) | ivec3(1, 0, 0) | ivec3(0, 0, 0) | ivec3(0, 1, 1) | ivec3(1, -32, 64) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_ivec2_to_bvec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | true | false | false | true ];
+			input ivec2 in1 = [ ivec2(0, -2) | ivec2(0, 0) | ivec2(0, 0) | ivec2(1, 1) | ivec2(-32, 64) ];
+			output bvec3 out0 = [ bvec3(true, false, true) | bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, true) | bvec3(true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec2_to_vec3
+		version 300 es
+		values
+		{
+			input float in0 = [ -20.125 | 36.8125 | -8.25 | 2.0 | -0.5 | 0.0 | 3.5 | 1.0 ];
+			input uvec2 in1 = [ uvec2(0, 0) | uvec2(0, 2) | uvec2(32, 64) | uvec2(0, 0) | uvec2(0, 2) | uvec2(0, 0) | uvec2(1, 1) | uvec2(1, 1) ];
+			output vec3 out0 = [ vec3(-20.125, 0.0, 0.0) | vec3(36.8125, 0.0, 2.0) | vec3(-8.25, 32.0, 64.0) | vec3(2.0, 0.0, 0.0) | vec3(-0.5, 0.0, 2.0) | vec3(0.0, 0.0, 0.0) | vec3(3.5, 1.0, 1.0) | vec3(1.0, 1.0, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec2_to_ivec3
+		version 300 es
+		values
+		{
+			input float in0 = [ -20.125 | 36.8125 | -8.25 | 2.0 | -0.5 | 0.0 | 3.5 | 1.0 ];
+			input uvec2 in1 = [ uvec2(0, 0) | uvec2(0, 2) | uvec2(32, 64) | uvec2(0, 0) | uvec2(0, 2) | uvec2(0, 0) | uvec2(1, 1) | uvec2(1, 1) ];
+			output ivec3 out0 = [ ivec3(-20, 0, 0) | ivec3(36, 0, 2) | ivec3(-8, 32, 64) | ivec3(2, 0, 0) | ivec3(0, 0, 2) | ivec3(0, 0, 0) | ivec3(3, 1, 1) | ivec3(1, 1, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec2_to_bvec3
+		version 300 es
+		values
+		{
+			input float in0 = [ -20.125 | 36.8125 | -8.25 | 2.0 | -0.5 | 0.0 | 3.5 | 1.0 ];
+			input uvec2 in1 = [ uvec2(0, 0) | uvec2(0, 2) | uvec2(32, 64) | uvec2(0, 0) | uvec2(0, 2) | uvec2(0, 0) | uvec2(1, 1) | uvec2(1, 1) ];
+			output bvec3 out0 = [ bvec3(true, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(true, false, false) | bvec3(true, false, true) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(true, true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_float_to_uvec3
+		version 300 es
+		values
+		{
+			input float in0 = [ 8.25 | 20.125 | 2.0 | 3.5 | 0.5 | 36.8125 | 1.0 | 0.0 ];
+			input float in1 = [ 1.0 | 0.0 | 3.5 | 36.8125 | 8.25 | 2.0 | 0.5 | 20.125 ];
+			input float in2 = [ 20.125 | 0.5 | 8.25 | 36.8125 | 1.0 | 0.0 | 3.5 | 2.0 ];
+			output uvec3 out0 = [ uvec3(8, 1, 20) | uvec3(20, 0, 0) | uvec3(2, 3, 8) | uvec3(3, 36, 36) | uvec3(0, 8, 1) | uvec3(36, 2, 0) | uvec3(1, 0, 3) | uvec3(0, 20, 2) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_int_to_uvec3
+		version 300 es
+		values
+		{
+			input int in0 = [ 1 | 255 | 192 | 2 | 5 | 12 | 0 | 11 | 8 | 66 ];
+			input int in1 = [ 192 | 66 | 5 | 8 | 11 | 1 | 0 | 255 | 12 | 2 ];
+			input int in2 = [ 192 | 5 | 1 | 11 | 66 | 8 | 12 | 0 | 2 | 255 ];
+			output uvec3 out0 = [ uvec3(1, 192, 192) | uvec3(255, 66, 5) | uvec3(192, 5, 1) | uvec3(2, 8, 11) | uvec3(5, 11, 66) | uvec3(12, 1, 8) | uvec3(0, 0, 12) | uvec3(11, 255, 0) | uvec3(8, 12, 2) | uvec3(66, 2, 255) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_uint_to_uvec3
+		version 300 es
+		values
+		{
+			input uint in0 = [ 193 | 9 | 45 | 255 | 2 | 0 | 10 | 8 | 12 | 3 ];
+			input uint in1 = [ 3 | 45 | 2 | 9 | 10 | 0 | 8 | 12 | 255 | 193 ];
+			input uint in2 = [ 2 | 3 | 9 | 10 | 255 | 8 | 12 | 0 | 193 | 45 ];
+			output uvec3 out0 = [ uvec3(193, 3, 2) | uvec3(9, 45, 3) | uvec3(45, 2, 9) | uvec3(255, 9, 10) | uvec3(2, 10, 255) | uvec3(0, 0, 8) | uvec3(10, 8, 12) | uvec3(8, 12, 0) | uvec3(12, 255, 193) | uvec3(3, 193, 45) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_bool_to_uvec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ false | true ];
+			input bool in1 = [ false | true ];
+			input bool in2 = [ true | false ];
+			output uvec3 out0 = [ uvec3(0, 0, 1) | uvec3(1, 1, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_float_int_to_uvec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false | true | false | false | true | false | true | true | false ];
+			input float in1 = [ 36.8125 | 20.125 | 1.0 | 0.0 | 3.5 | 1.0 | 2.0 | 0.5 | 0.0 | 8.25 ];
+			input int in2 = [ 1 | 0 | 8 | 66 | 2 | 11 | 192 | 5 | 12 | 255 ];
+			output uvec3 out0 = [ uvec3(1, 36, 1) | uvec3(0, 20, 0) | uvec3(1, 1, 8) | uvec3(0, 0, 66) | uvec3(0, 3, 2) | uvec3(1, 1, 11) | uvec3(0, 2, 192) | uvec3(1, 0, 5) | uvec3(1, 0, 12) | uvec3(0, 8, 255) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1, in2);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_bool_to_uvec3
+		version 300 es
+		values
+		{
+			input vec2 in0 = [ vec2(0.0, 0.5) | vec2(32.0, 64.0) | vec2(0.5, 2.25) | vec2(1.0, 1.25) | vec2(0.75, 0.0322580645161) ];
+			input bool in1 = [ false | false | true | true | true ];
+			output uvec3 out0 = [ uvec3(0, 0, 0) | uvec3(32, 64, 0) | uvec3(0, 2, 1) | uvec3(1, 1, 1) | uvec3(0, 0, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_float_to_uvec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, true) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(true, false) | bvec2(false, true) | bvec2(false, false) | bvec2(false, false) ];
+			input float in1 = [ 8.25 | 36.8125 | 20.125 | 2.0 | 0.0 | 1.0 | 0.5 | 3.5 ];
+			output uvec3 out0 = [ uvec3(1, 1, 8) | uvec3(1, 0, 36) | uvec3(0, 1, 20) | uvec3(0, 0, 2) | uvec3(1, 0, 0) | uvec3(0, 1, 1) | uvec3(0, 0, 0) | uvec3(0, 0, 3) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_int_to_uvec3
+		version 300 es
+		values
+		{
+			input bvec2 in0 = [ bvec2(true, true) | bvec2(false, true) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) | bvec2(true, false) | bvec2(false, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, false) ];
+			input int in1 = [ 255 | 1 | 2 | 5 | 0 | 11 | 192 | 12 | 8 | 66 ];
+			output uvec3 out0 = [ uvec3(1, 1, 255) | uvec3(0, 1, 1) | uvec3(0, 0, 2) | uvec3(1, 1, 5) | uvec3(0, 0, 0) | uvec3(1, 0, 11) | uvec3(0, 0, 192) | uvec3(0, 0, 12) | uvec3(0, 1, 8) | uvec3(1, 0, 66) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_ivec2_to_uvec3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false | true | true | false ];
+			input ivec2 in1 = [ ivec2(0, 0) | ivec2(0, 2) | ivec2(1, 1) | ivec2(0, 0) | ivec2(32, 64) ];
+			output uvec3 out0 = [ uvec3(1, 0, 0) | uvec3(0, 0, 2) | uvec3(1, 1, 1) | uvec3(1, 0, 0) | uvec3(0, 32, 64) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_uvec2_to_uvec3
+		version 300 es
+		values
+		{
+			input float in0 = [ 2.0 | 8.25 | 20.125 | 3.5 | 0.0 | 0.5 | 36.8125 | 1.0 ];
+			input uvec2 in1 = [ uvec2(0, 2) | uvec2(1, 1) | uvec2(32, 64) | uvec2(0, 0) | uvec2(0, 2) | uvec2(0, 0) | uvec2(1, 1) | uvec2(0, 0) ];
+			output uvec3 out0 = [ uvec3(2, 0, 2) | uvec3(8, 1, 1) | uvec3(20, 32, 64) | uvec3(3, 0, 0) | uvec3(0, 0, 2) | uvec3(0, 0, 0) | uvec3(36, 1, 1) | uvec3(1, 0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec3(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_to_vec2
+		version 300 es
+		values
+		{
+			input float in0 = [ -0.5 | -20.125 | 1.0 | 2.0 | 3.5 | 36.8125 | -8.25 | 0.0 ];
+			input float in1 = [ 1.0 | -20.125 | 0.0 | 3.5 | -8.25 | 36.8125 | -0.5 | 2.0 ];
+			output vec2 out0 = [ vec2(-0.5, 1.0) | vec2(-20.125, -20.125) | vec2(1.0, 0.0) | vec2(2.0, 3.5) | vec2(3.5, -8.25) | vec2(36.8125, 36.8125) | vec2(-8.25, -0.5) | vec2(0.0, 2.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_to_ivec2
+		version 300 es
+		values
+		{
+			input float in0 = [ -0.5 | -20.125 | 1.0 | 2.0 | 3.5 | 36.8125 | -8.25 | 0.0 ];
+			input float in1 = [ 1.0 | -20.125 | 0.0 | 3.5 | -8.25 | 36.8125 | -0.5 | 2.0 ];
+			output ivec2 out0 = [ ivec2(0, 1) | ivec2(-20, -20) | ivec2(1, 0) | ivec2(2, 3) | ivec2(3, -8) | ivec2(36, 36) | ivec2(-8, 0) | ivec2(0, 2) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_to_bvec2
+		version 300 es
+		values
+		{
+			input float in0 = [ -0.5 | -20.125 | 1.0 | 2.0 | 3.5 | 36.8125 | -8.25 | 0.0 ];
+			input float in1 = [ 1.0 | -20.125 | 0.0 | 3.5 | -8.25 | 36.8125 | -0.5 | 2.0 ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(true, true) | bvec2(true, false) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(false, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_to_vec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 2 | -66 | 0 | 5 | -12 | 8 | -192 | 1 | 11 | 255 ];
+			input int in1 = [ -192 | 8 | 1 | 0 | 5 | -66 | 2 | 255 | 11 | -12 ];
+			output vec2 out0 = [ vec2(2.0, -192.0) | vec2(-66.0, 8.0) | vec2(0.0, 1.0) | vec2(5.0, 0.0) | vec2(-12.0, 5.0) | vec2(8.0, -66.0) | vec2(-192.0, 2.0) | vec2(1.0, 255.0) | vec2(11.0, 11.0) | vec2(255.0, -12.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_to_ivec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 2 | -66 | 0 | 5 | -12 | 8 | -192 | 1 | 11 | 255 ];
+			input int in1 = [ -192 | 8 | 1 | 0 | 5 | -66 | 2 | 255 | 11 | -12 ];
+			output ivec2 out0 = [ ivec2(2, -192) | ivec2(-66, 8) | ivec2(0, 1) | ivec2(5, 0) | ivec2(-12, 5) | ivec2(8, -66) | ivec2(-192, 2) | ivec2(1, 255) | ivec2(11, 11) | ivec2(255, -12) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_to_bvec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 2 | -66 | 0 | 5 | -12 | 8 | -192 | 1 | 11 | 255 ];
+			input int in1 = [ -192 | 8 | 1 | 0 | 5 | -66 | 2 | 255 | 11 | -12 ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(true, true) | bvec2(false, true) | bvec2(true, false) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_to_vec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 9 | 12 | 0 | 255 | 8 | 45 | 3 | 2 | 10 | 193 ];
+			input uint in1 = [ 8 | 9 | 45 | 2 | 12 | 193 | 255 | 0 | 3 | 10 ];
+			output vec2 out0 = [ vec2(9.0, 8.0) | vec2(12.0, 9.0) | vec2(0.0, 45.0) | vec2(255.0, 2.0) | vec2(8.0, 12.0) | vec2(45.0, 193.0) | vec2(3.0, 255.0) | vec2(2.0, 0.0) | vec2(10.0, 3.0) | vec2(193.0, 10.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_to_ivec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 9 | 12 | 0 | 255 | 8 | 45 | 3 | 2 | 10 | 193 ];
+			input uint in1 = [ 8 | 9 | 45 | 2 | 12 | 193 | 255 | 0 | 3 | 10 ];
+			output ivec2 out0 = [ ivec2(9, 8) | ivec2(12, 9) | ivec2(0, 45) | ivec2(255, 2) | ivec2(8, 12) | ivec2(45, 193) | ivec2(3, 255) | ivec2(2, 0) | ivec2(10, 3) | ivec2(193, 10) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_to_bvec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 9 | 12 | 0 | 255 | 8 | 45 | 3 | 2 | 10 | 193 ];
+			input uint in1 = [ 8 | 9 | 45 | 2 | 12 | 193 | 255 | 0 | 3 | 10 ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(true, true) | bvec2(false, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, false) | bvec2(true, true) | bvec2(true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_to_vec2
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			output vec2 out0 = [ vec2(1.0, 1.0) | vec2(0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_to_ivec2
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			output ivec2 out0 = [ ivec2(1, 1) | ivec2(0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_to_bvec2
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_int_to_vec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 3.5 | 0.0 | 2.0 | -8.25 | 36.8125 | -20.125 | 1.0 | 1.0 | -0.5 ];
+			input int in1 = [ -66 | 1 | 255 | -192 | 8 | 2 | 0 | 5 | -12 | 11 ];
+			output vec2 out0 = [ vec2(0.0, -66.0) | vec2(3.5, 1.0) | vec2(0.0, 255.0) | vec2(2.0, -192.0) | vec2(-8.25, 8.0) | vec2(36.8125, 2.0) | vec2(-20.125, 0.0) | vec2(1.0, 5.0) | vec2(1.0, -12.0) | vec2(-0.5, 11.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_int_to_ivec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 3.5 | 0.0 | 2.0 | -8.25 | 36.8125 | -20.125 | 1.0 | 1.0 | -0.5 ];
+			input int in1 = [ -66 | 1 | 255 | -192 | 8 | 2 | 0 | 5 | -12 | 11 ];
+			output ivec2 out0 = [ ivec2(0, -66) | ivec2(3, 1) | ivec2(0, 255) | ivec2(2, -192) | ivec2(-8, 8) | ivec2(36, 2) | ivec2(-20, 0) | ivec2(1, 5) | ivec2(1, -12) | ivec2(0, 11) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_int_to_bvec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 3.5 | 0.0 | 2.0 | -8.25 | 36.8125 | -20.125 | 1.0 | 1.0 | -0.5 ];
+			input int in1 = [ -66 | 1 | 255 | -192 | 8 | 2 | 0 | 5 | -12 | 11 ];
+			output bvec2 out0 = [ bvec2(false, true) | bvec2(true, true) | bvec2(false, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, false) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_bool_to_vec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 2.0 | 3.5 | 1.0 | -20.125 | -8.25 | 0.0 | -0.5 | 36.8125 ];
+			input bool in1 = [ false | true | true | false | false | true | false | true ];
+			output vec2 out0 = [ vec2(2.0, 0.0) | vec2(3.5, 1.0) | vec2(1.0, 1.0) | vec2(-20.125, 0.0) | vec2(-8.25, 0.0) | vec2(0.0, 1.0) | vec2(-0.5, 0.0) | vec2(36.8125, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_bool_to_ivec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 2.0 | 3.5 | 1.0 | -20.125 | -8.25 | 0.0 | -0.5 | 36.8125 ];
+			input bool in1 = [ false | true | true | false | false | true | false | true ];
+			output ivec2 out0 = [ ivec2(2, 0) | ivec2(3, 1) | ivec2(1, 1) | ivec2(-20, 0) | ivec2(-8, 0) | ivec2(0, 1) | ivec2(0, 0) | ivec2(36, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_bool_to_bvec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 2.0 | 3.5 | 1.0 | -20.125 | -8.25 | 0.0 | -0.5 | 36.8125 ];
+			input bool in1 = [ false | true | true | false | false | true | false | true ];
+			output bvec2 out0 = [ bvec2(true, false) | bvec2(true, true) | bvec2(true, true) | bvec2(true, false) | bvec2(true, false) | bvec2(false, true) | bvec2(true, false) | bvec2(true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_bool_to_vec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 255 | 2 | -12 | 1 | -192 | 5 | 8 | 0 | -66 | 11 ];
+			input bool in1 = [ true | false | false | false | true | false | true | false | true | true ];
+			output vec2 out0 = [ vec2(255.0, 1.0) | vec2(2.0, 0.0) | vec2(-12.0, 0.0) | vec2(1.0, 0.0) | vec2(-192.0, 1.0) | vec2(5.0, 0.0) | vec2(8.0, 1.0) | vec2(0.0, 0.0) | vec2(-66.0, 1.0) | vec2(11.0, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_bool_to_ivec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 255 | 2 | -12 | 1 | -192 | 5 | 8 | 0 | -66 | 11 ];
+			input bool in1 = [ true | false | false | false | true | false | true | false | true | true ];
+			output ivec2 out0 = [ ivec2(255, 1) | ivec2(2, 0) | ivec2(-12, 0) | ivec2(1, 0) | ivec2(-192, 1) | ivec2(5, 0) | ivec2(8, 1) | ivec2(0, 0) | ivec2(-66, 1) | ivec2(11, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_bool_to_bvec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 255 | 2 | -12 | 1 | -192 | 5 | 8 | 0 | -66 | 11 ];
+			input bool in1 = [ true | false | false | false | true | false | true | false | true | true ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(true, false) | bvec2(true, false) | bvec2(true, false) | bvec2(true, true) | bvec2(true, false) | bvec2(true, true) | bvec2(false, false) | bvec2(true, true) | bvec2(true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uint_to_vec2
+		version 300 es
+		values
+		{
+			input int in0 = [ -66 | 1 | -192 | -12 | 5 | 255 | 11 | 0 | 2 | 8 ];
+			input uint in1 = [ 193 | 0 | 2 | 10 | 255 | 12 | 45 | 8 | 9 | 3 ];
+			output vec2 out0 = [ vec2(-66.0, 193.0) | vec2(1.0, 0.0) | vec2(-192.0, 2.0) | vec2(-12.0, 10.0) | vec2(5.0, 255.0) | vec2(255.0, 12.0) | vec2(11.0, 45.0) | vec2(0.0, 8.0) | vec2(2.0, 9.0) | vec2(8.0, 3.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uint_to_ivec2
+		version 300 es
+		values
+		{
+			input int in0 = [ -66 | 1 | -192 | -12 | 5 | 255 | 11 | 0 | 2 | 8 ];
+			input uint in1 = [ 193 | 0 | 2 | 10 | 255 | 12 | 45 | 8 | 9 | 3 ];
+			output ivec2 out0 = [ ivec2(-66, 193) | ivec2(1, 0) | ivec2(-192, 2) | ivec2(-12, 10) | ivec2(5, 255) | ivec2(255, 12) | ivec2(11, 45) | ivec2(0, 8) | ivec2(2, 9) | ivec2(8, 3) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uint_to_bvec2
+		version 300 es
+		values
+		{
+			input int in0 = [ -66 | 1 | -192 | -12 | 5 | 255 | 11 | 0 | 2 | 8 ];
+			input uint in1 = [ 193 | 0 | 2 | 10 | 255 | 12 | 45 | 8 | 9 | 3 ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(true, false) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(false, true) | bvec2(true, true) | bvec2(true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_float_to_vec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 12 | 0 | 8 | 193 | 3 | 10 | 9 | 2 | 45 | 255 ];
+			input float in1 = [ -20.125 | 0.0 | 3.5 | -8.25 | 0.0 | 1.0 | 2.0 | 36.8125 | -0.5 | 1.0 ];
+			output vec2 out0 = [ vec2(12.0, -20.125) | vec2(0.0, 0.0) | vec2(8.0, 3.5) | vec2(193.0, -8.25) | vec2(3.0, 0.0) | vec2(10.0, 1.0) | vec2(9.0, 2.0) | vec2(2.0, 36.8125) | vec2(45.0, -0.5) | vec2(255.0, 1.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = vec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_float_to_ivec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 12 | 0 | 8 | 193 | 3 | 10 | 9 | 2 | 45 | 255 ];
+			input float in1 = [ -20.125 | 0.0 | 3.5 | -8.25 | 0.0 | 1.0 | 2.0 | 36.8125 | -0.5 | 1.0 ];
+			output ivec2 out0 = [ ivec2(12, -20) | ivec2(0, 0) | ivec2(8, 3) | ivec2(193, -8) | ivec2(3, 0) | ivec2(10, 1) | ivec2(9, 2) | ivec2(2, 36) | ivec2(45, 0) | ivec2(255, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = ivec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_float_to_bvec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 12 | 0 | 8 | 193 | 3 | 10 | 9 | 2 | 45 | 255 ];
+			input float in1 = [ -20.125 | 0.0 | 3.5 | -8.25 | 0.0 | 1.0 | 2.0 | 36.8125 | -0.5 | 1.0 ];
+			output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(true, true) | bvec2(true, true) | bvec2(true, false) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) | bvec2(true, true) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = bvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_float_to_uvec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 8.25 | 36.8125 | 1.0 | 0.5 | 20.125 | 0.0 | 2.0 | 3.5 ];
+			input float in1 = [ 0.5 | 36.8125 | 0.0 | 2.0 | 8.25 | 20.125 | 1.0 | 3.5 ];
+			output uvec2 out0 = [ uvec2(8, 0) | uvec2(36, 36) | uvec2(1, 0) | uvec2(0, 2) | uvec2(20, 8) | uvec2(0, 20) | uvec2(2, 1) | uvec2(3, 3) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_int_to_uvec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 12 | 8 | 11 | 255 | 66 | 192 | 2 | 5 | 1 ];
+			input int in1 = [ 11 | 12 | 2 | 5 | 66 | 192 | 255 | 0 | 1 | 8 ];
+			output uvec2 out0 = [ uvec2(0, 11) | uvec2(12, 12) | uvec2(8, 2) | uvec2(11, 5) | uvec2(255, 66) | uvec2(66, 192) | uvec2(192, 255) | uvec2(2, 0) | uvec2(5, 1) | uvec2(1, 8) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_uint_to_uvec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 3 | 9 | 10 | 193 | 8 | 0 | 255 | 45 | 2 | 12 ];
+			input uint in1 = [ 0 | 2 | 12 | 3 | 10 | 9 | 45 | 193 | 255 | 8 ];
+			output uvec2 out0 = [ uvec2(3, 0) | uvec2(9, 2) | uvec2(10, 12) | uvec2(193, 3) | uvec2(8, 10) | uvec2(0, 9) | uvec2(255, 45) | uvec2(45, 193) | uvec2(2, 255) | uvec2(12, 8) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_bool_to_uvec2
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			input bool in1 = [ true | false ];
+			output uvec2 out0 = [ uvec2(1, 1) | uvec2(0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_int_to_uvec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 8.25 | 1.0 | 0.5 | 3.5 | 2.0 | 0.0 | 36.8125 | 1.0 | 0.0 | 20.125 ];
+			input int in1 = [ 0 | 255 | 12 | 5 | 192 | 2 | 66 | 11 | 1 | 8 ];
+			output uvec2 out0 = [ uvec2(8, 0) | uvec2(1, 255) | uvec2(0, 12) | uvec2(3, 5) | uvec2(2, 192) | uvec2(0, 2) | uvec2(36, 66) | uvec2(1, 11) | uvec2(0, 1) | uvec2(20, 8) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_bool_to_uvec2
+		version 300 es
+		values
+		{
+			input float in0 = [ 3.5 | 1.0 | 8.25 | 0.5 | 2.0 | 36.8125 | 0.0 | 20.125 ];
+			input bool in1 = [ true | false | true | false | true | false | false | true ];
+			output uvec2 out0 = [ uvec2(3, 1) | uvec2(1, 0) | uvec2(8, 1) | uvec2(0, 0) | uvec2(2, 1) | uvec2(36, 0) | uvec2(0, 0) | uvec2(20, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_bool_to_uvec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 12 | 11 | 0 | 5 | 8 | 255 | 2 | 1 | 66 | 192 ];
+			input bool in1 = [ true | true | false | false | false | true | false | false | true | true ];
+			output uvec2 out0 = [ uvec2(12, 1) | uvec2(11, 1) | uvec2(0, 0) | uvec2(5, 0) | uvec2(8, 0) | uvec2(255, 1) | uvec2(2, 0) | uvec2(1, 0) | uvec2(66, 1) | uvec2(192, 1) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_uint_to_uvec2
+		version 300 es
+		values
+		{
+			input int in0 = [ 8 | 5 | 1 | 0 | 11 | 12 | 192 | 66 | 255 | 2 ];
+			input uint in1 = [ 8 | 10 | 45 | 255 | 9 | 193 | 2 | 3 | 0 | 12 ];
+			output uvec2 out0 = [ uvec2(8, 8) | uvec2(5, 10) | uvec2(1, 45) | uvec2(0, 255) | uvec2(11, 9) | uvec2(12, 193) | uvec2(192, 2) | uvec2(66, 3) | uvec2(255, 0) | uvec2(2, 12) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_float_to_uvec2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 9 | 45 | 8 | 3 | 10 | 2 | 193 | 12 | 255 | 0 ];
+			input float in1 = [ 3.5 | 20.125 | 2.0 | 0.0 | 1.0 | 36.8125 | 8.25 | 1.0 | 0.0 | 0.5 ];
+			output uvec2 out0 = [ uvec2(9, 3) | uvec2(45, 20) | uvec2(8, 2) | uvec2(3, 0) | uvec2(10, 1) | uvec2(2, 36) | uvec2(193, 8) | uvec2(12, 1) | uvec2(255, 0) | uvec2(0, 0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = uvec2(in0, in1);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # vector_combine

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Select All in focused editor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  test(() => {
+    editingHost.focus();
+    document.execCommand("selectAll");
+    assert_false(
+      getSelection().isCollapsed,
+      'Selection should not be collapsed after calling document.execCommand("selectAll")'
+    );
+    const rangeText = getSelection().toString();
+    assert_false(
+      rangeText.includes("preceding text"),
+      "Selection should not contain the preceding text of the editing host"
+    );
+    assert_true(
+      rangeText.includes("editable text"),
+      "Selection should contain the editable text in the editing host"
+    );
+    assert_false(
+      rangeText.includes("following text"),
+      "Selection should not contain the following text of the editing host"
+    );
+    getSelection().removeAllRanges();
+  }, "execCommand('selectAll') should select all content in the editing host");
+
+  test(() => {
+    editingHost.focus();
+    getSelection().removeAllRanges();
+    document.execCommand("selectAll");
+    assert_false(
+      getSelection().isCollapsed,
+      'Selection should not be collapsed after calling document.execCommand("selectAll")'
+    );
+    const rangeText = getSelection().toString();
+    assert_false(
+      rangeText.includes("preceding text"),
+      "Selection should not contain the preceding text of the editing host"
+    );
+    assert_true(
+      rangeText.includes("editable text"),
+      "Selection should contain the editable text in the editing host"
+    );
+    assert_false(
+      rangeText.includes("following text"),
+      "Selection should not contain the following text of the editing host"
+    );
+    getSelection().removeAllRanges();
+  }, "execCommand('selectAll') should select all content in the editing host when it has focus but no selection range");
+
+  test(() => {
+    editingHost.focus();
+    editingHost.innerHTML = "preceding editable text<input value='input value'>following editable text";
+    getSelection().collapse(editingHost.querySelector("input"), 0);
+    document.execCommand("selectAll");
+    assert_false(
+      getSelection().isCollapsed,
+      'Selection should not be collapsed after calling document.execCommand("selectAll")'
+    );
+    const rangeText = getSelection().toString();
+    assert_false(
+      rangeText.includes("preceding text"),
+      "Selection should not contain the preceding text of the editing host"
+    );
+    assert_true(
+      rangeText.includes("preceding editable text"),
+      "Selection should contain the preceding editable text of <input> in the editing host"
+    );
+    assert_true(
+      rangeText.includes("following editable text"),
+      "Selection should contain the following editable text of <input> in the editing host"
+    );
+    assert_false(
+      rangeText.includes("following text"),
+      "Selection should not contain the following text of the editing host"
+    );
+    getSelection().removeAllRanges();
+  }, "execCommand('selectAll') should select all content in the editing host when selection collapsed in the <input>");
+
+  test(() => {
+    editingHost.focus();
+    editingHost.innerHTML = "preceding editable text<textarea>textarea value</textarea>following editable text";
+    getSelection().collapse(editingHost.querySelector("textarea"), 0);
+    document.execCommand("selectAll");
+    assert_false(
+      getSelection().isCollapsed,
+      'Selection should not be collapsed after calling document.execCommand("selectAll")'
+    );
+    const rangeText = getSelection().toString();
+    assert_false(
+      rangeText.includes("preceding text"),
+      "Selection should not contain the preceding text of the editing host"
+    );
+    assert_true(
+      rangeText.includes("preceding editable text"),
+      "Selection should contain the preceding editable text of <textarea> in the editing host"
+    );
+    assert_true(
+      rangeText.includes("following editable text"),
+      "Selection should contain the following editable text of <textarea> in the editing host"
+    );
+    assert_false(
+      rangeText.includes("following text"),
+      "Selection should not contain the following text of the editing host"
+    );
+    getSelection().removeAllRanges();
+  }, "execCommand('selectAll') should select all content in the editing host when selection collapsed in the <textarea>");
+});
+</script>
+</head>
+<body>
+<p>preceding text</p>
+<div contenteditable>editable text</div>
+<p>following text</p>
+</body>
+</html>

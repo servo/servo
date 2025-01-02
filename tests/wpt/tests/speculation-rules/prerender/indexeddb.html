@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering can access Indexed Database</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/indexedb-utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const db = await openIndexedDatabase(t);
+  assert_not_equals(db, null, 'Failed to open database.');
+  await addData(db, INITIATOR_KEY, INITIATOR_VALUE);
+
+  const {exec} = await create_prerendered_page(t);
+
+  const result = await exec(async () => {
+    await import_script_to_prerendered_page("indexedb-utils.js");
+    const db = await openIndexedDatabase();
+
+    await addData(db, PRERENDER_KEY, PRERENDER_VALUE);
+    const result = await readData(db, INITIATOR_KEY);
+    db.close();
+    return result;
+  });
+
+  assert_equals(
+    result, INITIATOR_VALUE,
+    'prerendering page should be able to read from Indexed DataBase');
+  const initiatorReadResult = await readData(db, PRERENDER_KEY);
+  assert_equals(
+    initiatorReadResult, PRERENDER_VALUE,
+    'prerendering page should be able to write to Indexed DataBase');
+  db.close();
+}, 'prerendering page should be able to access Indexed DataBase')
+</script>

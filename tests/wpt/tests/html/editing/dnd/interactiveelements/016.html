@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Draggable contenteditable element</title>
+    <style type="text/css">
+div div { border: 1px solid orange; border-top-width: 20px; }
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  document.getElementsByTagName('div')[1].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <p>Press your mouse button down on the orange block and drag downwards. It should <strong>not</strong> drag the text or the orange block. Use your mouse to select the dummy text. It should <strong>not</strong> drag the text or the orange block.</p>
+    <div>
+      <div draggable="true" contenteditable="true">Dummy text</div>
+    </div>
+
+  </body>
+</html>

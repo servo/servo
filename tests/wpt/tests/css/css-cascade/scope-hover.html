@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>@scope and :hover</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<main id=main></main>
+
+<script>
+  async function hover(element) {
+    let actions = new test_driver.Actions().pointerMove(0, 0, {origin: element});
+    await actions.send();
+  }
+</script>
+
+<template id=test_subject>
+  <div>
+    <style>
+        @scope (.a:hover) {
+          :scope { z-index: 1; }
+        }
+    </style>
+    <div class=a>1</div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_subject.content.cloneNode(true));
+  let a = main.querySelector('.a');
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+  await hover(a);
+  assert_equals(getComputedStyle(a).zIndex, '1');
+}, ':hover via :scope in subject');
+</script>
+
+<template id=test_non_subject>
+  <div>
+    <style>
+        @scope (.a:hover) {
+          :scope .b { z-index: 1; }
+        }
+    </style>
+    <div class=a>
+      <div class=b>2</div>
+    </div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_non_subject.content.cloneNode(true));
+
+  let a = main.querySelector('.a');
+  let b = main.querySelector('.b');
+
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
+  await hover(a);
+  assert_equals(getComputedStyle(b).zIndex, '1');
+}, ':hover via :scope in non-subject');
+</script>
+
+<template id=test_subject_limit>
+  <div>
+    <style>
+        @scope (.a) to (:scope:hover) {
+          :scope { z-index: 1; }
+        }
+    </style>
+    <div class=a tabindex=0>3</div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_subject_limit.content.cloneNode(true));
+
+  let a = main.querySelector('.a');
+
+  assert_equals(getComputedStyle(a).zIndex, '1');
+  await hover(a);
+  // After hover, we're no longer in scope because the limit (to-selector)
+  // kicks in.
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+}, ':hover in limit, :scope in subject');
+</script>
+
+<template id=test_non_subject_limit>
+  <div>
+    <style>
+        @scope (.a) to (.b:hover) {
+          .b { z-index: 1; }
+        }
+    </style>
+    <div class=a tabindex=0>
+      <div class=b tabindex=1>4</div>
+    </div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_non_subject_limit.content.cloneNode(true));
+
+  let a = main.querySelector('.a');
+  let b = main.querySelector('.b');
+
+  assert_equals(getComputedStyle(b).zIndex, '1');
+  await hover(b);
+  // After hover, we're no longer in scope because the limit (to-selector)
+  // kicks in.
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
+}, ':hover in intermediate limit, :scope in subject');
+</script>

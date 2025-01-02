@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, line integer and percent mixed with overlap move up</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    font-size: 9px;
+}
+#cue1 {
+    position: absolute;
+    top: 90px;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+#cue2 {
+    position: absolute;
+    top: 81px;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+}
+</style>
+<div class="video"><span id="cue1" class="cue"><span>This is a test subtitle</span></span><span id="cue2" class="cue"><span>This is another test subtitle</span></span></div>

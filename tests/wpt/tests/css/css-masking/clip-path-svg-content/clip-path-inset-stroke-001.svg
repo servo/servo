@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+  <title>CSS Masking: Basic shape without a geometry-box should default to stroke-box</title>
+  <html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path"/>
+  <html:link rel="match" href="reference/clip-path-square-002-ref.svg" />
+  <desc class="assert">The spec states: "If no reference box is specified, the
+  border-box will be used as reference box", and "For SVG elements without
+  an associated CSS layout box, the used value for ... border-box and margin-box
+  is stroke-box." In this testcase, no reference box is specified, so the
+  clip-path of "inset(0)" should be equivalent to "inset(0) stroke-box", and
+  should not clip out the stroke. You should see a 100x100 green square formed
+  by a stroked rect.</desc>
+</g>
+<rect x="75" y="75" width="50" height="50" stroke-width="50" stroke="green" style="clip-path: inset(0)"></rect>
+</svg>

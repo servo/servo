@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset=UTF-8>
+<title>CSS Painting API Level 1: parsing paint() with valid values</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/#paint-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<body>
+
+<!--
+
+This test registers the paint function it uses.  However, for access
+to specified and computed values, this doesn't appear to be required
+by the specification.  However, it does appear to be required by the
+current implementation in Chromium.  See https://crbug.com/1344490 .
+
+-->
+
+<script id="code" type="text/worklet">
+
+registerPaint('mypaint', class {
+    paint(ctx, size, properties, args) { }
+});
+
+</script>
+
+<script>
+
+setup({ explicit_done: true });
+
+let worklet_code = document.getElementById('code').textContent;
+importWorklet(CSS.paintWorklet, worklet_code).then(() => {
+  test_valid_value("background-image", "paint(mypaint)");
+  test_valid_value("background-image", "paint( mypaint )", "paint(mypaint)");
+  test_valid_value("background-image", "paint(mypaint ", "paint(mypaint)");
+  test_valid_value("background-image", "paint( mypaint", "paint(mypaint)");
+  test_valid_value("background-image", "paint(mypaint, blue)");
+  test_valid_value("background-image", "paint(mypaint, {})");
+  test_valid_value("background-image", "paint(mypaint, [])");
+  test_valid_value("background-image", "paint(mypaint, ())");
+
+  done();
+});
+
+</script>

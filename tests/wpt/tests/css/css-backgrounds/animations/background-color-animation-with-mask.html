@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-with-mask-ref.html">
+<style>
+@keyframes blue-anim {
+  0% { background-color: rgb(0, 0, 100); }
+  100% { background-color: rgb(0, 0, 200); }
+}
+.container {
+  width: 100px;
+  height: 100px;
+  -webkit-mask-image: url('../resources/stripes-100.png');
+  -webkit-mask-size: 100px 100px;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: url('../resources/stripes-100.png');
+  mask-size: 100px 100px;
+  mask-repeat: no-repeat;
+
+  /* force animation to start effectively stalled at the midpoint */
+  animation: blue-anim 10000s cubic-bezier(0, 1, 1, 0) -5000s;
+}
+
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+  <div class="container"></div>
+<script>
+document.getAnimations()[0].ready.then(() => {
+  takeScreenshot();
+});
+</script>
+</body>
+</html>

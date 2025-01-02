@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Text Decoration Test: text-decoration-style: double invalidation on style change, reference</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/">
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<style>
+    div {
+        display: block;
+        margin-top: 30px;
+        margin-bottom: 30px;
+        will-change: transform;
+    }
+    .underline {
+        text-decoration-line: underline;
+        text-decoration-color: green;
+        text-decoration-style: double;
+        text-decoration-thickness: 5px;
+    }
+    .overline {
+        text-decoration-line: overline;
+        text-decoration-color: green;
+        text-decoration-style: double;
+        text-decoration-thickness: 5px;
+    }
+    .throughline {
+        text-decoration-line: line-through;
+        text-decoration-color: green;
+        text-decoration-style: double;
+        text-decoration-thickness: 5px;
+    }
+</style>
+</head>
+<body>
+<div id="top-underline-div">
+There should be no sign of an underline when the test completes.
+</div>
+<div id="bottom-underline-div" class="underline">
+There should be a 5px green double underline when the test completes.
+</div>
+<div id="top-overline-div">
+There should be no sign of an overline when the test completes.
+</div>
+<div id="bottom-overline-div" class="overline">
+There should be a 5px green double overline when the test completes.
+</div>
+<div id="top-throughline-div">
+There should be no sign of an through-line when the test completes.
+</div>
+<div id="bottom-throughline-div" class="throughline">
+There should be a 5px green double through-line when the test completes.
+</div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: font-face unicode-range</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="http://www.w3.org/TR/css-fonts-3/#unicode-range-desc">
+<meta name="assert" content="Check if the font-face unicode-range value impacts the content style">
+<style>
+  @font-face {
+    font-family: IMPACT;
+    src: url(support/fonts/LigatureSymbolsWithSpaces.woff);
+    unicode-range: U+0041-0044;
+  }
+  @font-face {
+    font-family: NOIMPACT;
+    src: url(support/fonts/LigatureSymbolsWithSpaces.woff);
+    unicode-range: U+0061-0064;
+  }
+  .impact {
+    font-family: IMPACT;
+  }
+  .noimpact {
+    font-family: NOIMPACT;
+  }
+</style>
+<body>
+  <p>Test passes if the letters size of two lines are different</p>
+  <div class="impact">ABCDEFG</div>
+  <div class="noimpact">ABCDEFG</div>
+</body>

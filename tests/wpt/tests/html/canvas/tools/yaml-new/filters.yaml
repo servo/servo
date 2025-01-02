@@ -1,0 +1,996 @@
+- name: 2d.filter.value
+  desc: test if ctx.filter works correctly
+  code: |
+    @assert ctx.filter == 'none';
+    ctx.filter = 'blur(5px)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.save();
+    ctx.filter = 'none';
+    @assert ctx.filter == 'none';
+    ctx.restore();
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = 'blur(10)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'blur 10px';
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = 'inherit';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'initial';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'unset';
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = '';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = null;
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = undefined;
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = 'blur(  5px)';
+    assert_equals(ctx.filter, 'blur(  5px)');
+
+- name: 2d.filter.drop-shadow-globalAlpha
+  desc: Tests the context drop-shadow filter with a globalAlpha
+  code: |
+    ctx.filter = 'drop-shadow(10px 5px 0px rgb(255, 165, 0))';
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = 'rgb(128, 0, 128)';
+    ctx.fillRect(10, 10, 60, 30);
+  reference: |
+    ctx.fillStyle = 'rgba(255, 165, 0, 0.5)';
+    ctx.fillRect(20, 15, 60, 30);
+    ctx.fillStyle = 'rgba(128, 0, 128, 0.5)'
+    ctx.fillRect(10, 10, 60, 30);
+
+- name: 2d.filter.canvasFilterObject.tentative
+  desc: Test CanvasFilter() object
+  canvas_types: ['HtmlCanvas']
+  code: |
+    @assert ctx.filter == 'none';
+    ctx.filter = 'blur(5px)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1, 2]});
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = new CanvasFilter([
+        {name: 'gaussianBlur', stdDeviation: 5},
+        {name: 'gaussianBlur', stdDeviation: 10}
+    ]);
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    var canvas2 = document.createElement('canvas');
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.filter = ctx.filter;
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = 'blur(5px)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'none';
+    @assert ctx.filter == 'none';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
+    ctx.filter = 'this string is not a filter and should do nothing';
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+
+- name: 2d.filter.canvasFilterObject.tentative
+  desc: Test CanvasFilter() object
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    @assert ctx.filter == 'none';
+    ctx.filter = 'blur(5px)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1, 2]});
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = new CanvasFilter([
+        {name: 'gaussianBlur', stdDeviation: 5},
+        {name: 'gaussianBlur', stdDeviation: 10}
+    ]);
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    var canvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.filter = ctx.filter;
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = 'blur(5px)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'none';
+    @assert ctx.filter == 'none';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
+    ctx.filter = 'this string is not a filter and should do nothing';
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
+
+- name: 2d.filter.{{ variant_name }}.blur.exceptions.tentative
+  desc: Test exceptions on gaussianBlur filter
+  code: |
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'gaussianBlur'}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'gaussianBlur', stdDeviation: undefined}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'gaussianBlur', stdDeviation: 'foo'}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'gaussianBlur', stdDeviation: [1,2,3]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'gaussianBlur', stdDeviation: NaN}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'gaussianBlur', stdDeviation: {}}") }};
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter:
+          param})
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(
+          param)
+
+- name: 2d.filter.{{ variant_name }}.colorMatrix.tentative
+  desc: Test the functionality of ColorMatrix filters
+  code: |
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', values: undefined}") }};
+
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', values: 'foo'}") }};
+
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', values: null}") }};
+
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', values: [1, 2, 3]}") }};
+
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix',
+       values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                19, 'a']}") }};
+
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix',
+       values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                19, Infinity]}") }};
+
+    ctx.fillStyle = '#f00';
+    {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', type: 'hueRotate', values: 0}") }};
+    ctx.fillRect(0, 0, 100, 50);
+    {{ close_layer -}}
+    @assert pixel 10,10 ==~ 255,0,0,255;
+
+    {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', type: 'hueRotate', values: 90}") }};
+    ctx.fillRect(0, 0, 100, 50);
+    {{ close_layer -}}
+    @assert pixel 10,10 ==~ 0,91,0,255;
+
+    {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', type: 'hueRotate', values: 180}") }};
+    ctx.fillRect(0, 0, 100, 50);
+    {{ close_layer -}}
+    @assert pixel 10,10 ==~ 0,109,109,255;
+
+    {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', type: 'hueRotate', values: 270}") }};
+    ctx.fillRect(0, 0, 100, 50);
+    {{ close_layer -}}
+    @assert pixel 10,10 ==~ 109,18,255,255;
+
+    {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', type: 'saturate', values: 0.5}") }};
+    ctx.fillRect(0, 0, 100, 50);
+    {{ close_layer -}}
+    @assert pixel 10,10 ==~ 155,27,27,255;
+
+    ctx.clearRect(0, 0, 100, 50);
+    {{ filter_declaration | replace("param",
+      "{name: 'colorMatrix', type: 'luminanceToAlpha'}") }};
+    ctx.fillRect(0, 0, 100, 50);
+    {{ close_layer -}}
+    @assert pixel 10,10 ==~ 0,0,0,54;
+
+    {{ filter_declaration | replace("param", "{name: 'colorMatrix', values: [
+        0, 0, 0, 0, 0,
+        1, 1, 1, 1, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0
+      ]}") }};
+    ctx.fillRect(0, 0, 50, 25);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(50, 0, 50, 25);
+    ctx.fillStyle = '#00f';
+    ctx.fillRect(0, 25, 50, 25);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(50, 25, 50, 25);
+    {{ close_layer -}}
+    @assert pixel 10,10 ==~ 0,255,0,255;
+    @assert pixel 60,10 ==~ 0,255,0,255;
+    @assert pixel 10,30 ==~ 0,255,0,255;
+    @assert pixel 60,30 ==~ 0,255,0,255;
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter:
+          param})
+      close_layer: |
+        ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(
+          param)
+
+- name: 2d.filter.{{ variant_name }}.convolveMatrix.exceptions.tentative
+  desc: Test exceptions on CanvasFilter() convolveMatrix
+  code: |
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix'}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', divisor: 2}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: null}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: 1}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[1, 0], [0]]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[1, 'a'], [0]]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[1, 0], 0]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[1, 0], [0, Infinity]]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: []}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [1]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [1, 2, 3, 4]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[], []]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[1, 2], []]}") }};
+    @assert throws TypeError {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[], [1, 2]]}") }};
+    // This should not throw an error
+    {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[]]}") }};
+    {{ close_layer -}}
+    {{ filter_declaration | replace("param",
+      "{name: 'convolveMatrix', kernelMatrix: [[1]]}") }};
+    {{ close_layer -}}
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter:
+          param})
+      close_layer: |
+        ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(
+          param)
+
+- name: >-
+    2d.filter.{{ variant_name }}.componentTransfer.linear.tentative
+  desc: Test pixels on CanvasFilter() componentTransfer with linear type
+  size: [100, 100]
+  fuzzy: maxDifference=0-2; totalPixels=0-500
+  code: |
+    const slopes = [0.5, 1.2, -0.2];
+    const intercepts = [0.25, 0, 0.5];
+    {{ filter_declaration | replace("param", "{name: 'componentTransfer',
+        funcR: {type: 'linear', slope: slopes[0], intercept: intercepts[0]},
+        funcG: {type: 'linear', slope: slopes[1], intercept: intercepts[1]},
+        funcB: {type: 'linear', slope: slopes[2], intercept: intercepts[2]},
+    }") }};
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+    {{ close_layer }}
+  reference: |
+    // From https://www.w3.org/TR/SVG11/filters.html#feComponentTransferElement
+    function getColor(inputColor, slopes, intercepts) {
+        return [
+            Math.max(0, Math.min(1,
+              inputColor[0]/255 * slopes[0] + intercepts[0])) * 255,
+            Math.max(0, Math.min(1,
+              inputColor[1]/255 * slopes[1] + intercepts[1])) * 255,
+            Math.max(0, Math.min(1,
+              inputColor[2]/255 * slopes[2] + intercepts[2])) * 255,
+        ];
+    }
+
+    const slopes = [0.5, 1.2, -0.2];
+    const intercepts = [0.25, 0, 0.5];
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        let outputColor = getColor(color, slopes, intercepts);
+        ctx.fillStyle = `rgb(${outputColor[0]}, ${outputColor[1]},
+          ${outputColor[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+    {{ close_layer }}
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param})
+      close_layer: ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param)
+
+- name: >-
+    2d.filter.{{ variant_name }}.componentTransfer.identity.tentative
+  desc: Test pixels on CanvasFilter() componentTransfer with identity type
+  size: [100, 100]
+  code: |
+    {{ filter_declaration | replace("param", "{name: 'componentTransfer',
+        funcR: {type: 'identity'},
+        funcG: {type: 'identity'},
+        funcB: {type: 'identity'},
+    }") }};
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+    {{ close_layer }}
+  reference: |
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        let outputColor = inputColors[i];
+        ctx.fillStyle = `rgb(${outputColor[0]}, ${outputColor[1]},
+          ${outputColor[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param})
+      close_layer: ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param)
+
+- name: >-
+    2d.filter.{{ variant_name }}.componentTransfer.gamma.tentative
+  desc: Test pixels on CanvasFilter() componentTransfer with gamma type
+  size: [100, 100]
+  fuzzy: maxDifference=0-2; totalPixels=0-500
+  code: |
+    const amplitudes = [2, 1.1, 0.5];
+    const exponents = [5, 3, 1];
+    const offsets = [0.25, 0, 0.5];
+    {{ filter_declaration | replace("param", "{name: 'componentTransfer',
+        funcR: {type: 'gamma', amplitude: amplitudes[0],
+          exponent: exponents[0], offset: offsets[0]},
+        funcG: {type: 'gamma', amplitude: amplitudes[1],
+          exponent: exponents[1], offset: offsets[1]},
+        funcB: {type: 'gamma', amplitude: amplitudes[2],
+          exponent: exponents[2], offset: offsets[2]},
+    }") }};
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+    {{ close_layer }}
+  reference: |
+    // From https://www.w3.org/TR/SVG11/filters.html#feComponentTransferElement
+    function getColor(inputColor, amplitude, exponent, offset) {
+        return [
+            Math.max(0, Math.min(1, Math.pow(inputColor[0]/255,
+              exponent[0]) * amplitude[0] + offset[0])) * 255,
+            Math.max(0, Math.min(1, Math.pow(inputColor[1]/255,
+              exponent[1]) * amplitude[1] + offset[1])) * 255,
+            Math.max(0, Math.min(1, Math.pow(inputColor[2]/255,
+              exponent[2]) * amplitude[2] + offset[2])) * 255,
+        ];
+    }
+
+    const amplitudes = [2, 1.1, 0.5];
+    const exponents = [5, 3, 1];
+    const offsets = [0.25, 0, 0.5];
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        let outputColor = getColor(color, amplitudes, exponents, offsets);
+        ctx.fillStyle = `rgb(${outputColor[0]}, ${outputColor[1]},
+          ${outputColor[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param})
+      close_layer: ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param)
+
+- name: >-
+    2d.filter.{{ variant_name }}.componentTransfer.table.tentative
+  desc: Test pixels on CanvasFilter() componentTransfer with table type
+  size: [100, 100]
+  fuzzy: maxDifference=0-2; totalPixels=0-500
+  code: |
+    tableValuesR = [0, 0, 1, 1];
+    tableValuesG = [2, 0, 0.5, 3];
+    tableValuesB = [1, -1, 5, 0];
+    {{ filter_declaration | replace("param", "{name: 'componentTransfer',
+        funcR: {type: 'table', tableValues: tableValuesR},
+        funcG: {type: 'table', tableValues: tableValuesG},
+        funcB: {type: 'table', tableValues: tableValuesB},
+    }") }};
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+    {{ close_layer }}
+  reference: |
+    // From https://www.w3.org/TR/SVG11/filters.html#feComponentTransferElement
+    function getTransformedValue(C, V) {
+        // Get the right interval
+        const n = V.length - 1;
+        const k = C == 1 ? n - 1 : Math.floor(C * n);
+        return V[k] + (C - k/n) * n * (V[k + 1] - V[k]);
+    }
+
+    function getColor(inputColor, tableValues) {
+        const result = [0, 0, 0];
+        for (const i in inputColor) {
+            const C = inputColor[i]/255;
+            const Cprime = getTransformedValue(C, tableValues[i]);
+            result[i] = Math.max(0, Math.min(1, Cprime)) * 255;
+        }
+        return result;
+    }
+
+    tableValuesR = [0, 0, 1, 1];
+    tableValuesG = [2, 0, 0.5, 3];
+    tableValuesB = [1, -1, 5, 0];
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        let outputColor = getColor(
+            color, [tableValuesR, tableValuesG, tableValuesB]);
+        ctx.fillStyle = `rgb(${outputColor[0]}, ${outputColor[1]},
+          ${outputColor[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param})
+      close_layer: ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param)
+
+- name: >-
+    2d.filter.{{ variant_name }}.componentTransfer.discrete.tentative
+  desc: Test pixels on CanvasFilter() componentTransfer with discrete type
+  size: [100, 100]
+  fuzzy: maxDifference=0-2; totalPixels=0-500
+  code: |
+    tableValuesR = [0, 0, 1, 1];
+    tableValuesG = [2, 0, 0.5, 3];
+    tableValuesB = [1, -1, 5, 0];
+    {{ filter_declaration | replace("param", "{name: 'componentTransfer',
+        funcR: {type: 'discrete', tableValues: tableValuesR},
+        funcG: {type: 'discrete', tableValues: tableValuesG},
+        funcB: {type: 'discrete', tableValues: tableValuesB},
+    }") }};
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+    {{ close_layer }}
+  reference: |
+    // From https://www.w3.org/TR/SVG11/filters.html#feComponentTransferElement
+    function getTransformedValue(C, V) {
+        // Get the right interval
+        const n = V.length;
+        const k = C == 1 ? n - 1 : Math.floor(C * n);
+        return V[k];
+    }
+
+    function getColor(inputColor, tableValues) {
+        const result = [0, 0, 0];
+        for (const i in inputColor) {
+            const C = inputColor[i]/255;
+            const Cprime = getTransformedValue(C, tableValues[i]);
+            result[i] = Math.max(0, Math.min(1, Cprime)) * 255;
+        }
+        return result;
+    }
+
+    tableValuesR = [0, 0, 1, 1];
+    tableValuesG = [2, 0, 0.5, 3];
+    tableValuesB = [1, -1, 5, 0];
+
+    const inputColors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [127, 0, 34],
+        [252, 186, 3],
+        [50, 68, 87],
+    ];
+    for (let i = 0 ; i < inputColors.length ; ++i) {
+        const color = inputColors[i];
+        let outputColor = getColor(
+            color, [tableValuesR, tableValuesG, tableValuesB]);
+        ctx.fillStyle = `rgb(${outputColor[0]}, ${outputColor[1]},
+          ${outputColor[2]})`;
+        ctx.fillRect(i * 10, i * 10, 10, 10);
+    }
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param})
+      close_layer: ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param)
+
+- name: >-
+    2d.filter.{{ variant_names[0] }}.gaussianBlur.tentative
+  desc: Test CanvasFilter() with gaussianBlur.
+  size: [100, 100]
+  code: |
+    ctx.fillStyle = 'teal';
+    {{ filter_declaration | replace("param", "{
+        name: 'gaussianBlur',
+        stdDeviation: [{{ blur_x }}, {{blur_y}}],
+    }") }}
+    ctx.fillRect(25, 25, 50, 50);
+    {{ close_layer }}
+  html_reference: |
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="{{ size[0] }}" height="{{ size[1] }}"
+         color-interpolation-filters="sRGB">
+      <filter id="blur{{ id }}" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="{{ blur_x }} {{blur_y}}" />
+      </filter>
+      <rect x="25" y="25" width="50" height="50"
+            fill="teal" filter="url(#blur{{ id }})" />
+    </svg>
+  append_variants_to_name: false
+  variants_layout: [multi_files, single_file]
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param});
+      close_layer: ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param);
+  - x-only:
+      blur_x: 4
+      blur_y: 0
+    mostly-x:
+      blur_x: 4
+      blur_y: 1
+    isotropic:
+      blur_x: 4
+      blur_y: 4
+    mostly-y:
+      blur_x: 1
+      blur_y: 4
+    y-only:
+      blur_x: 0
+      blur_y: 4
+
+- name: 2d.filter.{{ variant_name }}.dropShadow.tentative
+  desc: Test CanvasFilter() dropShadow object.
+  size: [520, 420]
+  code: |
+    ctx.fillStyle = 'teal';
+    ctx.fillRect(0, 0, {{ size[0] }}, 50);
+    ctx.fillRect(0, 100, {{ size[0] }}, 50);
+    ctx.fillRect(0, 200, {{ size[0] }}, 50);
+    ctx.fillRect(0, 300, {{ size[0] }}, 50);
+
+    ctx.fillStyle = 'crimson';
+
+    // Parameter defaults.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow'}") }}
+    ctx.fillRect(10, 10, 80, 80);
+    {{ close_layer -}}
+
+    // All parameters specified.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
+       floodColor: 'purple', floodOpacity: 0.7}") }}
+    ctx.fillRect(110, 10, 80, 80);
+    {{ close_layer -}}
+
+    // Named color.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+       floodColor: 'purple'}") }}
+    ctx.fillRect(10, 110, 80, 80);
+    {{ close_layer -}}
+
+    // System color.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+       floodColor: 'LinkText'}") }}
+    ctx.fillRect(110, 110, 80, 80);
+    {{ close_layer -}}
+
+    // Numerical color.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+       floodColor: 'rgba(20, 50, 130, 1)'}") }}
+    ctx.fillRect(210, 110, 80, 80);
+    {{ close_layer -}}
+
+    // Transparent floodColor.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+       floodColor: 'rgba(20, 50, 130, 0.7)'}") }}
+    ctx.fillRect(310, 110, 80, 80);
+    {{ close_layer -}}
+
+    // Transparent floodColor and floodOpacity.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 3,
+       floodColor: 'rgba(20, 50, 130, 0.7)', floodOpacity: 0.7}") }}
+    ctx.fillRect(410, 110, 80, 80);
+    {{ close_layer -}}
+
+    // No blur.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 0,
+       floodColor: 'purple'}") }}
+    ctx.fillRect(10, 210, 80, 80);
+    {{ close_layer -}}
+
+    // Single float blur.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: 5,
+       floodColor: 'purple'}") }}
+    ctx.fillRect(110, 210, 80, 80);
+    {{ close_layer -}}
+
+    // Single negative float blur.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: -5,
+       floodColor: 'purple'}") }}
+    ctx.fillRect(210, 210, 80, 80);
+    {{ close_layer -}}
+
+    // Two floats (X&Y) blur.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: [3, 5],
+       floodColor: 'purple'}") }}
+    ctx.fillRect(310, 210, 80, 80);
+    {{ close_layer -}}
+
+    // Two negative floats (X&Y) blur.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: 9, dy: 12, stdDeviation: [-3, -5],
+       floodColor: 'purple'}") }}
+    ctx.fillRect(410, 210, 80, 80);
+    {{ close_layer -}}
+
+    // Degenerate parameter values.
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: [-5], dy: [], stdDeviation: null,
+       floodColor: 'purple', floodOpacity: [2]}") }}
+    ctx.fillRect(10, 310, 80, 80);
+    {{ close_layer -}}
+
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: null, dy: '5', stdDeviation: [[-5], ['3']],
+       floodColor: 'purple', floodOpacity: '0.8'}") }}
+    ctx.fillRect(110, 310, 80, 80);
+    {{ close_layer -}}
+
+    {{ filter_declaration | replace("param", "{name: 'dropShadow', dx: true, dy: ['10'], stdDeviation: false,
+       floodColor: 'purple', floodOpacity: ['0.4']}") }}
+    ctx.fillRect(210, 310, 80, 80);
+    {{ close_layer -}}
+  html_reference: |
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width={{ size[0] }} height={{ size[1] }}
+         color-interpolation-filters="sRGB">
+      <rect x=0 y=0 width=100% height=50 fill="teal" />
+      <rect x=0 y=100 width=100% height=50 fill="teal" />
+      <rect x=0 y=200 width=100% height=50 fill="teal" />
+      <rect x=0 y=300 width=100% height=50 fill="teal" />
+
+      <rect x=10 y=10 width=80 height=80 fill="crimson"
+            filter="drop-shadow(2px 2px 2px black)"/>
+      <rect x=110 y=10 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 5px rgba(128, 0, 128, 0.7))"/>
+
+      <rect x=10 y=110 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 3px purple)"/>
+      <rect x=110 y=110 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 3px LinkText)"/>
+      <rect x=210 y=110 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 3px rgba(20, 50, 130, 1))"/>
+      <rect x=310 y=110 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 3px rgba(20, 50, 130, 0.7))"/>
+      <rect x=410 y=110 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 3px rgba(20, 50, 130, 0.49))"/>
+
+      <rect x=10 y=210 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 0px purple)"/>
+      <rect x=110 y=210 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 5px purple)"/>
+      <rect x=210 y=210 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 0px purple)"/>
+      <filter id="separable-filter"
+              x="-100%" y="-100%" width="300%" height="300%">
+        <feDropShadow dx=9 dy=12 stdDeviation="3 5" flood-color="purple"/>
+      </filter>
+      <rect x=310 y=210 width=80 height=80 fill="crimson"
+            filter="url(#separable-filter)"/>
+      <rect x=410 y=210 width=80 height=80 fill="crimson"
+            filter="drop-shadow(9px 12px 0px purple)"/>
+
+      <rect x=10 y=310 width=80 height=80 fill="crimson"
+            filter="drop-shadow(-5px 0px 0px purple)"/>
+      <filter id="separable-filter-degenerate"
+              x="-100%" y="-100%" width="300%" height="300%">
+        <feDropShadow dx=0 dy=5 stdDeviation="0 3"
+            flood-color="rgba(128, 0, 128, 0.8)"/>
+      </filter>
+      <rect x=110 y=310 width=80 height=80 fill="crimson"
+            filter="url(#separable-filter-degenerate)"/>
+      <rect x=210 y=310 width=80 height=80 fill="crimson"
+            filter="drop-shadow(1px 10px 0px rgba(128, 0, 128, 0.4))"/>
+    </svg>
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param});
+      close_layer: |
+        ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param);
+
+- name: 2d.filter.{{ variant_name }}.dropShadow.exceptions.tentative
+  desc: Test exceptions on CanvasFilter() dropShadow object
+  code: |
+    // Should not throw an error.
+    @unroll {{ filter_declaration | replace("param", "{\-
+        name: 'dropShadow', \-
+        <dx | dy | floodOpacity>: \-
+        <10 | -1 | 0.5 | null | true | false | [] | [20] | '30'>}") }};
+    @unroll {{ filter_declaration | replace("param", "{\-
+        name: 'dropShadow', \-
+        <stdDeviation>: \-
+        <10 | -1 | 0.5 | null | true | false | [] | [20] | '30' | \-
+         [10, -1] | [0.5, null] | [true, false] | [[], [20]] | \-
+         ['30', ['40']]>}") }};
+    @unroll {{ filter_declaration | replace("param", "{\-
+        name: 'dropShadow', \-
+        <floodColor>: \-
+        <'red' | 'canvas' | 'rgba(4, -3, 0.5, 1)' | '#aabbccdd' |
+          '#abcd'>}") }};
+
+    // Should throw a TypeError.
+    @unroll @assert throws TypeError {{ filter_declaration | replace("param", \-
+        "{name: 'dropShadow', \-
+        <dx | dy | floodOpacity>: \-
+        <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2]>}") }};
+    @unroll @assert throws TypeError {{ filter_declaration | replace("param", \-
+        "{name: 'dropShadow', \-
+        <stdDeviation>: \-
+        <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2, 3] | \-
+         [1, NaN] | [1, Infinity] | [1, -Infinity] | [1, undefined] | \-
+         [1, 'test'] | [1, {}] | [1, [2, 3]]>}") }};
+    @unroll @assert throws TypeError {{ filter_declaration | replace("param", \-
+        "{name: 'dropShadow', \-
+        <floodColor>: \-
+        <'test' | 'rgba(NaN, 3, 2, 1)' | 10 | undefined | null | NaN>}") }};
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter:
+          param}); ctx.endLayer()
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(
+          param)
+
+- name: 2d.filter.{{ variant_name }}.turbulence.inputTypes.tentative
+  desc: Test exceptions on CanvasFilter() turbulence object
+  code: |
+    const errorTestCases = [
+      {baseFrequency: {}},
+      {baseFrequency: -1},
+      {baseFrequency: [0, -1]},
+      {baseFrequency: NaN},
+      {baseFrequency: Infinity},
+      {baseFrequency: undefined},
+      {baseFrequency: -Infinity},
+      {baseFrequency: 'test'},
+
+      {numOctaves: {}},
+      {numOctaves: -1},
+      {numOctaves: NaN},
+      {numOctaves: Infinity},
+      {numOctaves: undefined},
+      {numOctaves: -Infinity},
+      {numOctaves: [1, 1]},
+      {numOctaves: 'test'},
+
+      {seed: {}},
+      {seed: NaN},
+      {seed: Infinity},
+      {seed: undefined},
+      {seed: -Infinity},
+      {seed: [1, 1]},
+      {seed: 'test'},
+
+      {stitchTiles: {}},
+      {stitchTiles: NaN},
+      {stitchTiles: Infinity},
+      {stitchTiles: undefined},
+      {stitchTiles: -Infinity},
+      {stitchTiles: [1, 1]},
+      {stitchTiles: 'test'},
+      {stitchTiles: null},
+      {stitchTiles: []},
+      {stitchTiles: [10]},
+      {stitchTiles: 30},
+      {stitchTiles: false},
+      {stitchTiles: true},
+      {stitchTiles: '10'},
+      {stitchTiles: -1},
+
+      {type: {}},
+      {type: NaN},
+      {type: Infinity},
+      {type: undefined},
+      {type: -Infinity},
+      {type: [1, 1]},
+      {type: 'test'},
+      {type: null},
+      {type: []},
+      {type: [10]},
+      {type: 30},
+      {type: false},
+      {type: true},
+      {type: '10'},
+      {type: -1},
+    ]
+
+    // null and [] = 0 when parsed as number
+    const workingTestCases = [
+      {baseFrequency: null},
+      {baseFrequency: []},
+      {baseFrequency: [10]},
+      {baseFrequency: [10, 3]},
+      {baseFrequency: 30},
+      {baseFrequency: false},
+      {baseFrequency: true},
+      {baseFrequency: '10'},
+
+      {numOctaves: null},
+      {numOctaves: []},
+      {numOctaves: [10]},
+      {numOctaves: 30},
+      {numOctaves: false},
+      {numOctaves: true},
+      {numOctaves: '10'},
+
+      {seed: null},
+      {seed: []},
+      {seed: [10]},
+      {seed: 30},
+      {seed: false},
+      {seed: true},
+      {seed: '10'},
+      {seed: -1},
+
+      {stitchTiles: 'stitch'},
+      {stitchTiles: 'noStitch'},
+
+      {type: 'fractalNoise'},
+      {type: 'turbulence'},
+    ]
+
+    for (testCase of errorTestCases) {
+      const filterOptions = {...{name: 'turbulence'}, ...testCase};
+      @assert throws TypeError {{ filter_declaration |
+        replace("param", "filterOptions") }};
+    }
+
+    for (testCase of workingTestCases) {
+      const filterOptions = {...{name: 'turbulence'}, ...testCase};
+      {{ filter_declaration | replace("param", "filterOptions") }};
+      {{- close_layer }}
+    }
+  append_variants_to_name: false
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param})
+      close_layer: "\n  ctx.endLayer();"
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param)

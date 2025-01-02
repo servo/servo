@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6056#issuecomment-951767882">
+<meta name="assert" content="">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="columns:2; column-gap:0; column-fill:auto; height:75px;">
+    <div style="height:50px; background:green;"></div>
+    <div style="background:red;">
+      <div style="height:25px; background:red;">
+        <div style="contain:size; height:50px; background:green;"></div>
+        <div style="contain:size; height:100px; background:green;"></div>
+      </div>
+    </div>
+  </div>
+</div>

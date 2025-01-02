@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>&lt;script&gt; with CSS src</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  window.log = [];
+
+  const test_load = async_test(
+      "Test that <script> doesn't load when the src is CSS.");
+  window.addEventListener("load", test_load.step_func_done(ev => {
+    assert_array_equals(log, ["error"]);
+  }));
+</script>
+<script type="module" src="./resources/basic.css" onload="t.unreached_func('CSS src should fail to load')" onerror="log.push('error')"></script>

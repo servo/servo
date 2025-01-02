@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <link rel=match href=hide_after_load_ref.html>
+    <body style="background: green;">
+        <iframe style="border: 0" src="hide_after_load_inner_frame.html"></iframe>
+        <script type="text/javascript">
+            var iframe = document.getElementsByTagName('iframe')[0];
+            iframe.onload = function() {
+                iframe.style.display = "none";
+
+                // We do this in a timeout, so that the compositor has a chance
+                // to update the layer tree.
+                setTimeout(function() {
+                    document.documentElement.classList.remove("reftest-wait");
+                }, 0);
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,27 @@
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+
+<head>
+<script>
+function boom()
+{
+  var math = document.getElementById("math");
+  var div = document.getElementById("div")
+
+  math.setAttribute("color", "g");
+  document.body.appendChild(div);
+
+  document.documentElement.removeAttribute("class");
+}
+</script>
+</head>
+
+<body onload="setTimeout(boom, 30);">
+
+<div id="div">
+
+<mo xmlns='http://www.w3.org/1998/Math/MathML'>+<math id="math"><mn>1</mn></math></mo>
+
+</div>
+
+</body>
+</html>

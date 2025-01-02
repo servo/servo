@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let log = [];
+</script>
+<script type="importmap">
+{
+  "integrity": {
+    "./resources/log.js?pipe=sub&name=ModuleNoIntegrity": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=ModuleIntegrity": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=ModuleEmptyIntegrity": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=ModuleBadIntegrityAttribute": "sha384-COhDkp+ybIZ9wz9hUaSJ5NzKcn8wOMZMpsACZfTeEdBRtNcX5yWJnFn+lIK77Tay",
+    "./resources/log.js?pipe=sub&name=ModulePreloadNoIntegrity": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=ModulePreloadIntegrity": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=ModulePreloadEmptyIntegrity": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=ModulePreloadBadIntegrityAttribute": "sha384-026dlUs9+KSmPb0Uc7oUPOlWBO67o7vSFdfLJZWEVTvKCly5NXO8+CsOXl54ZBqJ",
+    "./resources/log.js?pipe=sub&name=NonModule": "sha384-foobar",
+    "/images/green.png": "sha384-foobar"
+  }
+}
+</script>
+<script type="module">
+const test_not_loaded = async (elem) => {
+  const promise = new Promise((resolve, reject) => {
+    elem.onload = () =>  {
+       reject(new Error("It shouldn't have loaded"));
+     };
+    elem.onerror = resolve;
+  });
+  document.head.appendChild(elem);
+  const event = await promise;
+  assert_equals(event.type, "error");
+};
+
+promise_test(async t => {
+  log = [];
+  const script = document.createElement("script");
+  script.type = "module";
+  script.src = "./resources/log.js?pipe=sub&name=ModuleNoIntegrity";
+  await test_not_loaded(script);
+}, "Script was not loaded as its integrity check was not ignored");
+
+promise_test(async () => {
+  log = [];
+  const script = document.createElement("script");
+  script.type = "module";
+  script.integrity = "sha384-QtZrhNFOSmHASHnBdmGg+zrVz5hjukCBakaqwT2pcG7w+QTa/niK16csP6kXAeXI";
+  script.src = "./resources/log.js?pipe=sub&name=ModuleIntegrity";
+  const promise = new Promise((resolve, reject) => {
+    script.onload = resolve;
+    script.onerror = reject;
+  });
+  document.head.appendChild(script);
+  await promise;
+  assert_equals(log.length, 1);
+  assert_equals(log[0], "log:ModuleIntegrity");
+}, "Script was loaded as its correct integrity attribute was not ignored");
+
+promise_test(async () => {
+  log = [];
+  const script = document.createElement("script");
+  script.type = "module";
+  script.integrity = "";
+  script.src = "./resources/log.js?pipe=sub&name=ModuleEmptyIntegrity";
+  const promise = new Promise((resolve, reject) => {
+    script.onload = resolve;
+    script.onerror = reject;
+  });
+  document.head.appendChild(script);
+  await promise;
+  assert_equals(log.length, 1);
+  assert_equals(log[0], "log:ModuleEmptyIntegrity");
+}, "Script was loaded as its empty integrity attribute was not ignored");
+
+promise_test(async t => {
+  log = [];
+  const script = document.createElement("script");
+  script.type = "module";
+  script.integrity = "sha384-foobar";
+  script.src = "./resources/log.js?pipe=sub&name=ModuleBadIntegrityAttribute";
+  await test_not_loaded(script);
+}, "Script was not loaded as its bad integrity attribute was not overridden");
+
+promise_test(async t => {
+  const link = document.createElement("link");
+  link.rel = "modulepreload";
+  link.href = "./resources/log.js?pipe=sub&name=ModulePreloadNoIntegrity";
+  const promise = new Promise((resolve, reject) => {
+    link.onload = resolve;
+    link.onerror = () => { reject(Error()); };
+  });
+  document.head.appendChild(link);
+  await promise_rejects_js(t, Error, promise);
+}, "Modulepreload was not loaded as its integrity check was not ignored");
+
+promise_test(async () => {
+  const link = document.createElement("link");
+  link.rel = "modulepreload";
+  link.integrity = "sha384-iDG3WysExtjWvD9QwQrC7nGXRvO0jM+r7Z2cOLMDO2geMlEtmN9j9xfqHfzT45+9";
+  link.href = "./resources/log.js?pipe=sub&name=ModulePreloadIntegrity";
+  const promise = new Promise((resolve, reject) => {
+    link.onload = resolve;
+    link.onerror = reject;
+  });
+  document.head.appendChild(link);
+  await promise;
+}, "Modulepreload was loaded as its correct integrity attribute was not ignored");
+
+promise_test(async () => {
+  const link = document.createElement("link");
+  link.rel = "modulepreload";
+  link.integrity = "";
+  link.href = "./resources/log.js?pipe=sub&name=ModulePreloadEmptyIntegrity";
+  const promise = new Promise((resolve, reject) => {
+    link.onload = resolve;
+    link.onerror = reject;
+  });
+  document.head.appendChild(link);
+  await promise;
+}, "Modulepreload was loaded as its empty integrity attribute was not ignored");
+
+promise_test(async t => {
+  const link = document.createElement("link");
+  link.rel = "modulepreload";
+  link.integrity = "sha384-foobar";
+  link.href = "./resources/log.js?pipe=sub&name=ModulePreloadBadIntegrityAttribute";
+  await test_not_loaded(link);
+}, "Modulepreload was not loaded as its bad integrity attribute was not ignored");
+
+promise_test(async () => {
+  log = [];
+  const script = document.createElement("script");
+  script.src = "./resources/log.js?pipe=sub&name=NonModule";
+  const promise = new Promise((resolve, reject) => {
+    script.onload = resolve;
+    script.onerror = reject;
+  });
+  document.head.appendChild(script);
+  await promise;
+  assert_equals(log.length, 1);
+  assert_equals(log[0], "log:NonModule");
+}, "Classic script was loaded as its integrity check was ignored");
+
+promise_test(async () => {
+  const img = document.createElement("img");
+  const promise = new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+  img.src = "/images/green.png";
+  document.head.appendChild(img);
+  await promise;
+}, "Image was loaded as its integrity check was ignored");
+</script>
+</head>

@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let abort_signal;
+  let events = [];
+  navigation.onnavigateerror = () => events.push("onnavigateerror");
+  navigation.onnavigate = t.step_func(e => {
+    abort_signal = e.signal;
+    abort_signal.onabort = () => events.push("onabort");
+    e.preventDefault();
+  });
+
+  await promise_rejects_dom(t, 'AbortError', navigation.navigate("?1").committed);
+  assert_true(abort_signal.aborted);
+  assert_array_equals(events, ["onabort", "onnavigateerror"]);
+}, "event.preventDefault() signals event.signal");
+</script>

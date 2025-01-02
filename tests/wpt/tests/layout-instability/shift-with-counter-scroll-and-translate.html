@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift with counter scroll and translate not counted</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+.scroller {
+  overflow: scroll;
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 200px;
+  height: 200px;
+}
+.content {
+  width: 600px;
+  height: 600px;
+}
+.changer {
+  position: relative;
+  background: yellow;
+  left: 10px;
+  top: 100px;
+  width: 150px;
+  height: 150px;
+}
+
+</style>
+<div id="scroller1" class="scroller">
+  <div class="content">
+    <div id="changer1" class="changer"></div>
+  </div>
+</div>
+<div id="scroller2" class="scroller">
+  <div class="content">
+    <div id="changer2" class="changer"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  changer1.style.top = "250px";
+  changer1.style.translate = "0 -50px";
+  // 250 - 50 = 200; old position is 100; hence scrollTop to counter is 100.
+  scroller1.scrollTop = 100;
+
+  changer2.style.left = "220px";
+  changer2.style.translate = "80px 0";
+  // 220 + 80 = 300; old position is 10; hence scrollTop to counter is 290.
+  scroller2.scrollLeft = 290;
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Shift with counter scroll and translate not counted.");
+
+</script>

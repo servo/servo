@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: @page size descriptor with named page</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#using-named-pages">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1874947">
+<link rel="match" href="page-name-001-ref.html">
+<style>
+@page a {
+  size: 2in 3in;
+  margin: 0.1in;
+}
+html {
+  height: 100%;
+  box-sizing: border-box;
+  border: 5px solid black;
+}
+</style>
+<div style="page: a">
+Text
+</div>

@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+  let start_history_length = history.length;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  await i.contentWindow.navigation.navigate("#").finished;
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+  assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
+  assert_equals(navigation.entries().length, start_length);
+  assert_equals(navigation.currentEntry.index, start_index);
+  assert_equals(history.length, start_history_length + 1);
+
+  i.remove();
+  assert_equals(navigation.entries().length, start_length);
+  assert_equals(navigation.currentEntry.index, start_index);
+  assert_equals(history.length, start_history_length + 1);
+
+  // back() here should do nothing. The iframe that would have navigated has
+  // been removed. No navigate event should be fired.
+  navigation.onnavigate = t.unreached_func("navigate must not fire");
+  navigation.oncurrententrychange = t.unreached_func("currententrychange must not fire");
+  history.back();
+
+  // Give time for the navigation to proceed.
+  await new Promise(resolve => t.step_timeout(resolve, 20));
+}, "history.back() does not fire a navigate event when there's nothing to navigate");
+</script>

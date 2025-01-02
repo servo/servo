@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="assert" content="Position-visibility: anchors-visible should hide an element with an out-of-view anchor and a relpos scroller." />
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-visible-ref.html">
+<style>
+  #scroll-container {
+    overflow: hidden scroll;
+    width: 300px;
+    height: 100px;
+    /* Same as position-visibility-anchors-visible.html, but with relpos here */
+    position: relative;
+  }
+
+  #anchor {
+    anchor-name: --a1;
+    width: 100px;
+    height: 100px;
+    background: orange;
+  }
+
+  #spacer {
+    height: 100px;
+  }
+
+  #target {
+    position-anchor: --a1;
+    position-visibility: anchors-visible;
+    position-area: bottom right;
+    width: 100px;
+    height: 100px;
+    background: red;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id="scroll-container">
+  <div id="anchor">anchor</div>
+  <div id="spacer"></div>
+  <div id="target">target</div>
+</div>
+
+<script>
+  const scroller = document.getElementById('scroll-container');
+  scroller.scrollTop = 100;
+  // #target should not be visible because #anchor is scrolled out of view.
+</script>

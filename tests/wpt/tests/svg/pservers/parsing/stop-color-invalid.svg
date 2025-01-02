@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVG Paint Servers: parsing stop-color with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#StopColorProperty"/>
+  </metadata>
+  <g id="target" style="color: blue"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("stop-color", "auto");
+test_invalid_value("stop-color", "123");
+test_invalid_value("stop-color", "#12");
+test_invalid_value("stop-color", "#123456789");
+test_invalid_value("stop-color", "rgb");
+test_invalid_value("stop-color", "rgb(1)");
+test_invalid_value("stop-color", "rgb(1,2,3,4,5)");
+test_invalid_value("stop-color", "hsla(1,2,3,4,5)");
+test_invalid_value("stop-color", "rgb(10%, 20, 30%)");
+test_invalid_value("stop-color", "rgba(-2, 300, 400%, -0.5)");
+
+  ]]></script>
+</svg>

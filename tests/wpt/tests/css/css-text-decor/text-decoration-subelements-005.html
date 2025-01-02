@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test case for text-decoration with subelements</title>
+<meta name="assert" content="Test decorations propagate to block-in-inline, as in the EXAMPLE 1 of the spec">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property">
+<link rel="match" href="reference/text-decoration-subelements-005-ref.html">
+<style>
+div {
+  text-decoration: underline;
+}
+span {
+  display: block;
+}
+</style>
+<div>
+  From EXAMPLE 1 of the spec.
+  <span>
+    This text is also underlined,
+    as it is in an in-flow block to which the underline is propagated.
+  </span>
+</div>

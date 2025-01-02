@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Cursor property, image-set() value</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#cursor">
+<meta name="flags" content="interact image">
+<meta charset="UTF-8">
+<meta name="assert" content="For cursors, UAs must support image-set() containing simple url() based images">
+
+<style>
+div.test{
+  background: #D2B48C; border: 2px solid #555;
+  cursor: image-set( "support/cursors/woolly-64.ico" 1x), image-set( "support/cursors/woolly-64.png" 1x), help;
+  width: 128px; height: 128px;
+}
+</style>
+<body>
+  <p>The test passes if, when moved inside the colored rectangle, the cursor looks like
+  a sheep.</p>
+  <p>If inside the rectangle the cursor does not change, or looks like a help cursor, the test fails.</p>
+  <div class="test"> </div>
+</body>

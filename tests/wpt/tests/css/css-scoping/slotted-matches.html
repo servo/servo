@@ -1,0 +1,16 @@
+<!doctype html>
+<title>CSS Test: ::slotted() should not match via the matches() API, since it's in the wrong scope</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-element-matches">
+<link rel="help" href="https://bugzil.la/1544242">
+<div id="host"><div id="slotted"></div></div>
+<script>
+test(function() {
+  let slotted = document.getElementById("slotted");
+  host.attachShadow({ mode: "open" }).innerHTML = `<slot></slot>`;
+  assert_false(slotted.matches("::slotted(div)"), "Shouldn't match ::slotted from the outer tree")
+}, "::slotted() doesn't reveal the presence of shadow DOM via matches()");
+</script>

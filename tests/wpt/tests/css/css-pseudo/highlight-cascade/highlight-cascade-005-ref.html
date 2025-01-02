@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight cascade: inheritance with both universal and non-universal rules</title>
+<link rel="author" title="Delan Azabani" href="mailto:dazabani@igalia.com">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    nav::selection,
+    span::selection,
+    b::selection,
+    aside::selection {
+        background-color: green;
+        color: white;
+    }
+    main::selection,
+    i::selection {
+        background-color: green;
+        color: yellow;
+    }
+</style>
+<nav class="highlight_reftest">white</nav>
+<main class="highlight_reftest">yellow <span>white <b>white</b></span></main>
+<aside class="highlight_reftest">white <i>yellow</i></aside>
+<script>selectNodeContents(document.body);</script>

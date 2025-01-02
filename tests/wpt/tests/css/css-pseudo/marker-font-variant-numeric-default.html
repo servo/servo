@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker has 'font-variant-numeric: tabular-nums' by default</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="match" href="marker-font-variant-numeric-default-ref.html">
+<meta name="assert" content="Checks that the markers have the same width thanks to 'font-variant-numeric: tabular-nums', and thus the black boxes are perfectly aligned">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+@font-face {
+  /* This font looks different with 'font-variant-numeric: tabular-nums' */
+  font-family: 'Exo 2';
+  src: local('Exo 2'),
+       url('/css/css-fonts/support/fonts/Exo2-SemiBold.otf') format("opentype");
+}
+ol {
+  float: left;
+  width: 50px;
+  line-height: 25px;
+  list-style-position: inside;
+  font-family: "Exo 2";
+}
+span {
+  display: inline-block;
+  font: 25px/1 Ahem;
+  vertical-align: top;
+}
+
+li:nth-child(1) { --marker: "1. " }
+li:nth-child(2) { --marker: "2. " }
+li:nth-child(3) { --marker: "3. " }
+li:nth-child(4) { --marker: "4. " }
+li:nth-child(5) { --marker: "5. " }
+li:nth-child(6) { --marker: "6. " }
+li:nth-child(7) { --marker: "7. " }
+li:nth-child(8) { --marker: "8. " }
+li:nth-child(9) { --marker: "9. " }
+
+.string > li {
+  list-style-type: var(--marker);
+}
+.marker > li::marker {
+  content: var(--marker);
+}
+.before > li, .after > li {
+  display: block;
+}
+.before > li::before, .after > li::after {
+  content: "\200B"; /* zero-width space */
+  display: list-item;
+  float: left;
+}
+</style>
+<ol class="decimal">
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+</ol>
+<ol class="string">
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+</ol>
+<ol class="marker">
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+</ol>
+<ol class="before">
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+</ol>
+<ol class="after">
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+  <li><span>X</span></li>
+</ol>

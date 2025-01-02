@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Google LLC" href="http://www.google.com" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#cross-sizing" />
+<link rel="help" href="https://crbug.com/967061" />
+<title>css-flexbox: Tests that we correctly size a flex item when we have a percentage-sized abspos element</title>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex;">
+  <div style="overflow: hidden; position: relative;">
+    <div style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"></div>
+    <div style="width: 100px; height: 100px; background: green;"></div>
+  </div>
+</div>

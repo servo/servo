@@ -1,0 +1,34 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web Periodic Background Synchronization (https://wicg.github.io/periodic-background-sync/)
+
+partial interface ServiceWorkerGlobalScope {
+    attribute EventHandler onperiodicsync;
+};
+
+[Exposed=(Window,Worker)]
+partial interface ServiceWorkerRegistration {
+  readonly attribute PeriodicSyncManager periodicSync;
+};
+
+[Exposed=(Window,Worker)]
+interface PeriodicSyncManager {
+    Promise<undefined> register(DOMString tag, optional BackgroundSyncOptions options = {});
+    Promise<sequence<DOMString>> getTags();
+    Promise<undefined> unregister(DOMString tag);
+};
+
+dictionary BackgroundSyncOptions {
+    [EnforceRange] unsigned long long minInterval = 0;
+};
+
+dictionary PeriodicSyncEventInit : ExtendableEventInit {
+    required DOMString tag;
+};
+
+[Exposed=ServiceWorker]
+interface PeriodicSyncEvent : ExtendableEvent {
+    constructor(DOMString type, PeriodicSyncEventInit init);
+    readonly attribute DOMString tag;
+};

@@ -1,0 +1,29 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/licenses/publicdomain/
+
+     Test painting elements recursively using each other as background.
+-->
+<html>
+<link rel="match" href="element-paint-recursion-ref.html">
+<body>
+  <p id="d" style="width:100px; height:100px; border:10px solid black;
+                   background:-moz-element(#d);"></p>
+  <div id="e">
+    <div style="width:100px; height:100px; border:10px solid blue;
+                background:-moz-element(#e);"></div>
+  </div>
+  <div id="f"></div>
+  <!-- test zero-sized images -->
+  <p style="width:100px; height:100px; border:10px solid green;
+            background:-moz-element(#f) yellow;"></div>
+  <div id="g">
+    <div style="width:100px; height:100px; border:10px solid cyan;
+                background:-moz-element(#h);"></div>
+  </div>
+  <div id="h">
+    <div style="width:100px; height:100px; border:10px solid magenta;
+                background:-moz-element(#g);"></div>
+  </div>
+</body>
+</html>

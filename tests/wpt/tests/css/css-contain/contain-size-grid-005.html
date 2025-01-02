@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on grid elements should cause them to be sized as if they had no contents.</title>
+  <link rel="author" title="Gerald Squelart" href="mailto:gsquelart@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="reference/contain-size-grid-005-ref.html">
+  <style>
+  .contain {
+    display: grid;
+    contain:size;
+    border: 1em solid green;
+    background: red;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .minHeight {
+    min-height: 40px;
+    background: lightblue;
+  }
+  .height {
+    height: 40px;
+    background: lightblue;
+  }
+  .maxWidth {
+    max-width: 40px;
+  }
+  .width {
+    width: 40px;
+  }
+  .floatLBasic {
+    float: left;
+  }
+  .floatLWidth {
+    float: left;
+    width: 40px;
+  }
+  </style>
+</head>
+<body>
+  <!--CSS Test: A size-contained grid element with no specified size should render at 0 height regardless of content.-->
+  <div class="contain"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained grid element with specified min-height should render at given min-height regardless of content.-->
+  <div class="contain minHeight"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained grid element with specified height should render at given height regardless of content.-->
+  <div class="contain height"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained grid element with specified max-width should render at given max-width and zero height regardless of content.-->
+  <div class="contain maxWidth"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained grid element with specified width should render at given width and zero height regardless of content.-->
+  <div class="contain width"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained floated grid element with no specified size should render at 0px by 0px regardless of content.-->
+  <div class="contain floatLBasic"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained floated grid element with specified width and no specified height should render at given width and 0 height regardless of content.-->
+  <div class="contain floatLWidth"><div class="innerContents">inner</div></div>
+</body>
+</html>

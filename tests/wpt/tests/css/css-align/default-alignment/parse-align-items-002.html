@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Default-Alignment: align-items - 'initial' value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#default-alignment" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items" />
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#initial-values" />
+<meta name="assert" content="Check the 'initial' value in diferent scenarios."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+container = document.createElement("div");
+element = document.createElement("div");
+container.appendChild(element);
+document.body.appendChild(container);
+
+test(function() {
+    element = document.createElement("div");
+    document.body.appendChild(element);
+    checkValues(element, "alignItems", "align-items", "", "normal");
+}, "Test 'initial' value when nothing is specified");
+
+test(function() {
+    container.style.display = "";
+    checkInitialValues(element, "alignItems", "align-items", "center", "normal");
+}, "Test align-items: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    checkInitialValues(element, "alignItems", "align-items", "safe start", "normal");
+}, "Test grid items align-items: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    checkInitialValues(element, "alignItems", "align-items", "unsafe end", "normal");
+}, "Test flex items align-items: 'initial'");
+
+test(function() {
+    container.style.display = "";
+    element.style.position = "absolute";
+    checkInitialValues(element, "alignItems", "align-items", "start", "normal");
+}, "Test absolute positioned elements align-items: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    element.style.position = "absolute";
+    checkInitialValues(element, "alignItems", "align-items", "end", "normal");
+}, "Test absolute positioned grid items align-items: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    element.style.position = "absolute";
+    checkInitialValues(element, "alignItems", "align-items", "end", "normal");
+}, "Test absolute positioned flex items align-items: 'initial'");
+</script>

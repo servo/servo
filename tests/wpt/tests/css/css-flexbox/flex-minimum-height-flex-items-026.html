@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="dgrogan@chromium.org" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html" />
+<meta name="assert" content="Child in nested column flexbox's grows to its parent's flex height, not its parent's specified height.">
+<link href="support/flexbox.css" rel="stylesheet">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div class="flexbox column" style="height: 100px;">
+  <!-- min-height: auto resolves to 0 because content-size suggestion is 0. -->
+  <div class="flexbox column" style="flex: 1 0 0px; height: 200px">
+    <!-- min-height: auto resolves to 0 because content-size suggestion is 0. -->
+    <div style="flex: 1 0 0px; width: 100px; background: green;"></div>
+  </div>
+</div>

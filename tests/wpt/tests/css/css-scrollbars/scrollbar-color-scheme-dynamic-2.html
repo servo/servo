@@ -1,0 +1,36 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Dynamically set color-scheme and ensure viewport scrollbars update</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars/#valdef-scrollbar-color-auto" />
+<link rel="match" href="scrollbar-color-scheme-dynamic-2-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  body {
+    display: flex;
+    flex-wrap: wrap;
+    overflow: scroll;
+  }
+  .container {
+    scrollbar-gutter: stable;
+    overflow: scroll;
+    flex: 0 0;
+    height: 200px;
+    min-width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+</style>
+<div class="container"></div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.style.colorScheme = 'dark';
+
+    takeScreenshot();
+  }));
+</script>

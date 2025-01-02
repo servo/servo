@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/cssom-view-1/#dom-htmlelement-offsettop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.square {
+  width: 10px;
+  height: 10px;
+  background-color: red;
+}
+#one {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+#two {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+}
+span.square {
+  display: inline-block;
+}
+</style>
+
+<div id=one class=square>
+  <div id=two class=square>
+    <div class=square></div>
+    <span class=square></span><span id=target></span>
+  </div>
+</div>
+
+<script>
+test(() => {
+  assert_equals(target.offsetTop, 10, 'target.offsetTop');
+  assert_equals(target.offsetLeft, 10, 'target.offsetLeft');
+}, 'Verifies that offsetTop and offsetLeft only go up one offsetParent when there are multiple nested offsetParents.');
+</script>

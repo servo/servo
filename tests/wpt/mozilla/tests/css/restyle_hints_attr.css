@@ -1,0 +1,44 @@
+div {
+  background-color: black;
+  padding: 10px;
+  width: 50px;
+  height: 50px;
+  color: gray;
+}
+
+div[foo=kokosnuss] {
+  background: black;
+}
+
+div[foo][bar] {
+  background: red;
+}
+
+div[foo=kokosnuss][bar~=fett] {
+  background: green;
+}
+
+div[bar] > div[baz] div {
+  color: cyan;
+}
+
+div[foo][bar~=butter] div {
+  background: purple;
+  color: white;
+}
+
+div[foo][bar~=butter] > div {
+  background: yellow;
+}
+
+div[bar~=butter][foo=kokosnuss] + div {
+  background: pink;
+}
+
+div[foo=kokosnuss] ~ div {
+  background: green;
+}
+
+div + div[foo=keine][bar=ahnung] {
+  background: lavender;
+}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - dropping folders</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+var fails = [], finished = false;
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = 'No dataTransfer.files for '+e.type;
+    }
+    if( !window.FileList ) {
+      fails[fails.length] = 'No FileList interface object';
+      return;
+    }
+    if( !( e.dataTransfer.files instanceof FileList ) ) {
+      fails[fails.length] = 'dataTransfer.files is not a FileList';
+    } else if( e.dataTransfer.files.length ) {
+      fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 0 for '+e.type;
+    }
+  };
+  orange.ondrop = function(e) {
+    e.preventDefault();
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = 'No dataTransfer.files for '+e.type;
+    }
+    if( !window.FileList ) {
+      fails[fails.length] = 'No FileList interface object';
+      finish();
+      return;
+    }
+    if( !( e.dataTransfer.files instanceof FileList ) ) {
+      fails[fails.length] = 'dataTransfer.files is not a FileList';
+    }
+    //browsers represent it as a single file (name matching the folder)
+    //also allow no files, since that is a valid solution
+    if( e.dataTransfer.files.length > 1 ) {
+      //dropping the contents of the folder would be crazy, since there could literally be millions of files, or the entire disk contents
+      fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 1 for '+e.type;
+    }
+    if( !e.dataTransfer.files[0] ) {
+      finish();
+      return;
+    }
+    /*
+    Windows 7 sometimes randomly assigns size to folders, and that is presented to the browser.
+    Strangely, packing and unpacking that folder can remove its size.
+    Since this is an OS quirk that we have no control over, the test will not check the size.
+    if( e.dataTransfer.files[0].size ) {
+      fails[fails.length] = 'dataTransfer.files[0].size '+e.dataTransfer.files[0].size+' instead of 0';
+    }
+    */
+    /*
+    if( !e.dataTransfer.files[0].lastModified ) {
+      fails[fails.length] = 'no dataTransfer.files[0].lastModified';
+    }
+    */
+    if( !window.FileReader ) {
+      fails[fails.length] = 'No FileReader constructor';
+      finish();
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      fails[fails.length] = 'File managed to load even though it was a folder '+e.type;
+      finish();
+    };
+    reader.onerror = function () {
+      finish();
+    };
+    try {
+      reader.readAsBinaryString(e.dataTransfer.files[0]);
+    } catch(err) {
+      fails[fails.length] = 'Threw an error when trying to read the file '+e.type;
+      finish();
+      return;
+    }
+    setTimeout(function () {
+      fails[fails.length] = 'Onerror failed to fire '+reader.error.code;
+      finish();
+    },1000);
+  };
+
+};
+function finish() {
+  if( finished ) { return; }
+  finished = true;
+  document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+}
+</script>
+
+<div></div>
+
+<p>Drag a folder containing at least 2 files, from your computer's file manager, onto the orange box above. If a no-drop cursor was shown and no text changes when the folder is dropped, pass and ignore further conditions. If a prompt appears, accept it. Fail if the mouse cursor makes it look like it will work but nothing happens.</p>
+<p>This test needs to be repeated with:</p>
+<ul>
+  <li>A regular folder containing at least 2 items</li>
+  <li>A disk drive (if your OS exposes them) containing at least 2 items</li>
+  <li>The system trash/recycle bin folder (if your OS exposes one) containing at least 2 items</li>
+  <li>The &quot;My Computer&quot; folder (if your OS provides it)</li>
+  <li>Your &quot;My Documents&quot; folder (if your OS provides it)</li>
+  <li>A folder that you do not have permissions to access</li>
+</ul>
+<noscript><p>Enable JavaScript and reload</p></noscript>

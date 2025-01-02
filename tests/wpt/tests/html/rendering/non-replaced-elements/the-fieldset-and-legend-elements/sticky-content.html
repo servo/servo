@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="http://crbug.com/1146925">
+<link rel="match" href="sticky-content-ref.html">
+<body>
+<style>
+body {
+  margin: 0;
+}
+
+fieldset div {
+  height:1000px;
+}
+
+span {
+  background: lime;
+  display: block;
+  height: 40px;
+  position: sticky;
+  top: 4px;
+  width: 40px;
+}
+
+fieldset {
+  border: none;
+  height: 400px;
+  margin: 0;
+  overflow: scroll;
+  padding: 0;
+}
+</style>
+<fieldset><div><span></span></div></fieldset>
+<script>
+document.querySelector('fieldset').scrollTop = 1000;
+</script>
+</body>

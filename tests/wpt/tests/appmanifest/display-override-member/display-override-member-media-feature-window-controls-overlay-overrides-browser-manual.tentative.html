@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Test "window-controls-overlay" in display-override member + "browser" in display member + media feature</title>
+<link rel="help" href="https://w3c.github.io/manifest#display-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#the-display-mode-media-feature" />
+<link rel="help" href="https://w3c.github.io/manifest/#dom-displaymodetype-browser" />
+<link rel="manifest" href="resources/display-override-member-media-feature-window-controls-overlay-overrides-browser.webmanifest" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="resources/display-override-member-media-feature-manual.js"></script>
+<h1>Test "window-controls-overlay" in display-override member + "browser" in display member + media feature</h1>
+<style>
+  .fail {
+    background-color: red;
+  }
+
+  @media all and (display-mode: standalone) {
+    body {
+      background-color: green;
+    }
+  }
+</style>
+<script>
+const standalone = matchMedia("(display-mode: standalone)");
+
+standalone.onchange = () => {
+  if (standalone.matches) {
+    document.body.classList.remove("fail");
+  }
+}
+
+if (!standalone.matches) {
+  document.body.classList.add("fail");
+}
+</script>
+
+<p>This test validates that the display-mode property is 'standalone' when the
+   installed app is running in "window-controls-overlay" mode.</p>
+<h2>Manual Test Steps:</h2>
+<p>
+  <ol>
+    <li>Install this app, and toggle into "window-controls-overlay" mode.</li>
+    <li>The background will be green if the test pases, otherwise red.</li>
+  </ol>
+</p>

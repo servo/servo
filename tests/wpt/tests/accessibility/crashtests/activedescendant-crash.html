@@ -1,0 +1,7 @@
+<iframe></iframe>
+<script>
+let frame = document.querySelector("iframe");
+window.xyz = frame.contentWindow.accessibilityController.focusedElement;
+frame.remove();
+window.xyz.activeDescendant;
+</script>

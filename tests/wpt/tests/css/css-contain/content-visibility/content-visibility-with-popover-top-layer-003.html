@@ -1,0 +1,37 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: popover shows when rendered</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-with-popover-top-layer-ref.html">
+<meta name="assert" content="top layer popovers start rendering when c-v is removed">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.box { width: 100px; height: 100px; border: 1px solid black; }
+.hidden { content-visibility: hidden }
+#popover { outline: none; }
+</style>
+
+<div id=container class=box>
+This test passes if you can see “PASS” in a white box.
+<div popover id=popover>PASS<div id=inner></div></div>
+</div>
+text
+
+<script>
+function unhide() {
+  container.classList.remove("hidden");
+  takeScreenshot();
+}
+
+function runTest() {
+  container.classList.add("hidden");
+  popover.showPopover();
+  requestAnimationFrame(unhide);
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

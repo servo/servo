@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<title>scrollbar-color with transparent colors works</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<link rel="match" href="scrollbar-color-012-ref.html" />
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars" />
+<style>
+  html {scrollbar-color: transparent transparent;}
+  body {height: 200vh}
+  .container {
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+    background-color: red;
+  }
+
+  .content {
+    height: 300px;
+    width: 300px;
+  }
+</style>
+<div class="container">
+  <div class="content"></div>
+</div>

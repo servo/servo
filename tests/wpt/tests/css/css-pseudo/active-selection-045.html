@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and image</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-painting">
+  <link rel="match" href="../reference/ref-nothing-below.xht">
+
+  <meta name="assert" content="This test checks that the associated overlay for image must not cover (or leak) outside the image's content box.">
+
+  <style>
+  /*
+  Chromium 80+ highlights the
+  top of line box minus
+  content box and the bottom
+  of line box minus content
+  box.
+  Firefox 72+ consistently highlights
+  only the image content box itself.
+  */
+
+  div
+    {
+      font-size: 300px;
+    }
+
+  img::selection
+    {
+      background-color: red;
+    }
+
+  span#masking
+    {
+      background-color: white;
+      display: inline-block;
+      height: 100px;
+      position: relative;
+      right: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  document.documentElement.className = "";
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if there is nothing below.
+
+  <div id="test"><img src="support/100x100-red.png" alt="Image download support must be enabled"><span id="masking"></span></div>

@@ -1,0 +1,1 @@
+Permissions-Policy: ch-device-memory=("https://{{host}}:{{ports[https][0]}}")

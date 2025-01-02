@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: view-transition-name is limited to document root (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<head>
+<style>
+html {
+  view-transition-name: none;
+}
+
+:root {
+  view-transition-name: root;
+}
+
+.foo {
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: red;
+  width: 100px;
+  height: 100px;
+  z-index: 1000;
+}
+
+.bar {
+  position: fixed;
+  left: 50px;
+  top: 50px;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+</style>
+</head>
+<body>
+<script>
+const extraHTML = document.createElement('html');
+
+const foo = document.createElement('div');
+foo.className = 'foo';
+
+const bar = document.createElement('div');
+bar.className = 'bar';
+
+extraHTML.append(foo);
+document.body.append(extraHTML, bar);
+</script>
+</body>
+</html>
+

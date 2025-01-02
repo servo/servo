@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#propdef-min-height">
+<link rel="match" href="grid-item-image-percentage-min-height-computes-as-0-ref.html">
+<meta name="assert" content="Image percentage min-height cannot be resolved and used value should be 0">
+<style>
+.grid {
+  display: grid;
+}
+.grid-item {
+    display: grid;
+}
+.grid-item img {
+    height: var(--grid-item-height, auto);
+    min-height: 100%;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="grid-item">
+        <img src="/css/support/60x60-green.png">
+    </div>
+</div>
+</body>
+</html>

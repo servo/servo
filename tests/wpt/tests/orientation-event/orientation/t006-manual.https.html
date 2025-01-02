@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Rotate the device frame around its z axis</title>
+    <meta name=viewport content="width=device-width, maximum-scale=1.0">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author" title="Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-12 -->
+  </head>
+  <body>
+    <p>Rotate the device frame around its z axis to run the test.</p>
+    <div id="log"></div>
+    <script>
+      var t1 = async_test("Alpha is in [0, 360)");
+      var run = false;
+      window.addEventListener("deviceorientation", function(e) {
+        if (!run && e.alpha !== null) {
+          run = true;
+          t1.step(function() {
+            assert_greater_than_equal(e.alpha, 0);
+            assert_less_than(e.alpha, 360);
+          });
+          t1.done();
+        }
+      }, false);
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,23 @@
+name: close needs-information issues
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/stale@v9
+        with:
+          debug-only: false
+          days-before-issue-stale: 14
+          days-before-issue-close: 7
+          only-labels: "status: needs information"
+          stale-issue-label: "stale"
+          stale-issue-message: "This issue is stale because it has the `status: needs information` label and requested follow-up information was not provided for 14 days."
+          close-issue-message: "This issue was closed because it has the `status: needs information` label and follow-up information has not been provided for 7 days since being marked as stale."
+          days-before-pr-stale: -1
+          days-before-pr-close: -1

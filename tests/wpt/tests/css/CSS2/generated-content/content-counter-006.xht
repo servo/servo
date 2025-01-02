@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: content: counter(c, decimal-leading-zero)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counter-styles"/>
+  <link rel="match" href="content-counter-006-ref.xht"/>
+  <meta http-equiv="Content-Style-Type" content="text/css"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  #test { counter-reset: c; }
+  #test span { counter-increment: c; }
+  #test span:before { content: counter(c, decimal-leading-zero); }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The following two lines should look the same:</p>
+
+ <div id="test">
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span style="counter-reset: c 98"></span>
+   <span></span>
+   <span></span>
+ </div>
+
+ <div>
+   01
+   02
+   03
+   04
+   05
+   06
+   07
+   08
+   09
+   10
+   11
+   12
+   99
+   100
+   101
+ </div>
+
+ </body>
+</html>

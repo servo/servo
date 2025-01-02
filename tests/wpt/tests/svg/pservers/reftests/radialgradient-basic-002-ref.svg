@@ -1,0 +1,50 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Radial gradient: Basic three stop gradient with 'fr'.</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("../fonts/FreeSans.woff") format("woff");
+    }
+    text {
+      font-family: FreeSans, sans-serif;
+      text-anchor: middle;
+      fill: black;
+    }
+    #title {
+      font-size: 24px;
+    }
+    .label {
+      font-size: 18px;
+    }
+  </style>
+
+  <defs>
+    <radialGradient id="RadialGradient1" gradientUnits="userSpaceOnUse" cx="120" cy="240" fx="120" fy="240" r="100">
+      <stop style="stop-color:#0000ff" offset="50%"/>
+      <stop style="stop-color:#00ffff" offset="75%"/>
+      <stop style="stop-color:#ffff00" offset="100%"/>
+    </radialGradient>
+    <radialGradient id="RadialGradient2" gradientUnits="objectBoundingBox" cx="0.5" cy="0.5" rx="0.5" y2="0.5" r="0.5">
+      <stop style="stop-color:#0000ff" offset="50%"/>
+      <stop style="stop-color:#00ffff" offset="75%"/>
+      <stop style="stop-color:#ffff00" offset="100%"/>
+    </radialGradient>
+  </defs>
+
+  <g id="test-reference" font-size="16">
+    <rect x="20"  y="140" width="200" height="200" style="fill:url(#RadialGradient1)" />
+    <rect x="260" y="140" width="200" height="200" style="fill:url(#RadialGradient2)" />
+  </g>
+
+</svg>

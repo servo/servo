@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` clamp between two fixed-height blocks</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-036-ref.html">
+<meta name="assert" content="With `line-clamp: auto`, there can be a clamp point between two fixed-height blocks. And when the clamp point immediately follows a block that ends with a line box, that line box is ellipsized, even if there is space between the end of the line box and the end of the parent block.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 7lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.with-height {
+  height: 3lh;
+  background-color: orange;
+}
+.red {
+  background-color: red;
+}
+</style>
+
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+<div class="with-height">Line 5
+Line 6</div><div class="with-height red">Line 7
+Line 8</div>Line 9</div>

@@ -1,0 +1,118 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Placing selection and typing inside empty elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<style>
+  #border {
+    display: inline-block;
+    border: 2px red solid;
+  }
+
+  #padding {
+    display: inline-block;
+    padding: 1em;
+  }
+
+  #unstyled-before::before,
+  #unstyled-after::after,
+  #unstyled-both::before,
+  #unstyled-both::after {
+    content: '';
+    display: inline-block;
+    border: 2px red solid;
+  }
+</style>
+<div contenteditable></div>
+
+<script>
+  const utils = new EditorTestUtils( document.querySelector( 'div[contenteditable]' ) );
+
+  promise_test( async () => {
+    utils.setupEditingHost( `<p><strong id="border"></strong></p>` );
+
+    const target = document.querySelector( '#border' );
+    const actions = new test_driver.Actions();
+    await actions
+      .pointerMove( 0, 0, { origin: target } )
+      .pointerDown( { button: actions.ButtonType.LEFT } )
+      .pointerUp( { button: actions.ButtonType.LEFT } )
+      .send();
+    document.execCommand( 'insertText', false, 'a' );
+    assert_greater_than( target.innerHTML.length, 0, 'The text should be inserted into the styled <strong> element' );
+  }, 'Insert text into the inline element styled with border' );
+
+  promise_test( async () => {
+    utils.setupEditingHost( `<p><strong id="padding"></strong></p>` );
+
+    const target = document.querySelector( '#padding' );
+    const actions = new test_driver.Actions();
+    await actions
+      .pointerMove( 0, 0, { origin: target } )
+      .pointerDown( { button: actions.ButtonType.LEFT } )
+      .pointerUp( { button: actions.ButtonType.LEFT } )
+      .send();
+    document.execCommand( 'insertText', false, 'a' );
+    assert_greater_than( target.innerHTML.length, 0, 'The text should be inserted into the styled <strong> element' );
+  }, 'Insert text into the inline element styled with padding' );
+
+  promise_test( async () => {
+    utils.setupEditingHost( `<p><strong id="unstyled"></strong></p>` );
+
+    const target = document.querySelector( '#unstyled' );
+    const actions = new test_driver.Actions();
+    await actions
+      .pointerMove( 0, 0, { origin: target } )
+      .pointerDown( { button: actions.ButtonType.LEFT } )
+      .pointerUp( { button: actions.ButtonType.LEFT } )
+      .send();
+    document.execCommand( 'insertText', false, 'a' );
+    assert_greater_than( target.innerHTML.length, 0, 'The text should be inserted into the unstyled <strong> element' );
+  }, 'Insert text into the unstyled inline element' );
+
+  promise_test( async () => {
+    utils.setupEditingHost( `<p><strong id="unstyled-before"></strong></p>` );
+
+    const target = document.querySelector( '#unstyled-before' );
+    const actions = new test_driver.Actions();
+    await actions
+      .pointerMove( 0, 0, { origin: target } )
+      .pointerDown( { button: actions.ButtonType.LEFT } )
+      .pointerUp( { button: actions.ButtonType.LEFT } )
+      .send();
+    document.execCommand( 'insertText', false, 'a' );
+    assert_greater_than( target.innerHTML.length, 0, 'The text should be inserted into the <strong> element' );
+  }, 'Insert text into the unstyled inline element with the styled ::before pseudoelement' );
+
+  promise_test( async () => {
+    utils.setupEditingHost( `<p><strong id="unstyled-after"></strong></p>` );
+
+    const target = document.querySelector( '#unstyled-after' );
+    const actions = new test_driver.Actions();
+    await actions
+      .pointerMove( 0, 0, { origin: target } )
+      .pointerDown( { button: actions.ButtonType.LEFT } )
+      .pointerUp( { button: actions.ButtonType.LEFT } )
+      .send();
+    document.execCommand( 'insertText', false, 'a' );
+    assert_greater_than( target.innerHTML.length, 0, 'The text should be inserted into the <strong> element' );
+  }, 'Insert text into the unstyled inline element with the styled ::after pseudoelement' );
+
+  promise_test( async () => {
+    utils.setupEditingHost( `<p><strong id="unstyled-both"></strong></p>` );
+
+    const target = document.querySelector( '#unstyled-both' );
+    const actions = new test_driver.Actions();
+    await actions
+      .pointerMove( 0, 0, { origin: target } )
+      .pointerDown( { button: actions.ButtonType.LEFT } )
+      .pointerUp( { button: actions.ButtonType.LEFT } )
+      .send();
+    document.execCommand( 'insertText', false, 'a' );
+    assert_greater_than( target.innerHTML.length, 0, 'The text should be inserted into the <strong> element' );
+  }, 'Insert text into the unstyled inline element with the styled ::before and ::after pseudoelements' );
+</script>

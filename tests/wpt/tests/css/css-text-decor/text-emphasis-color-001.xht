@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis - color - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+		<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-color-property" />
+		<link rel="match" href="reference/text-emphasis-color-001-ref.xht"/>
+		<meta name="assert" content="This property describes the foreground color of the emphasis marks." />
+		<style type="text/css"><![CDATA[
+			.emphasis
+			{
+				text-emphasis-style: filled circle;
+			}
+			.margin
+			{
+				margin: 0.6em 0 0;
+			}
+			.parent
+			{
+				border: solid 1px gray;
+				font: 1.5em monospace;
+				width: 10em;
+			}
+			.ref1 rt
+			{
+				color: black;
+			}
+			.ref2 rt
+			{
+				color: blue;
+			}
+			.ref3 rt
+			{
+				color: green;
+			}
+			.ref4 rt
+			{
+				color: red;
+			}
+			.test1
+			{
+				text-emphasis-color: black;
+			}
+			.test2
+			{
+				text-emphasis-color: blue;
+			}
+			.test3
+			{
+				text-emphasis-color: green;
+			}
+			.test4
+			{
+				text-emphasis-color: red;
+			}
+		]]></style>
+	</head>
+    <!--
+        Reference line for each example relies on ruby rendering, as described in the spec:
+        "Emphasis marks are drawn exactly as if each character was assigned the mark as its ruby annotation text
+         with the ruby position given by text-emphasis-position and the ruby alignment as centered."
+    -->
+	<body>
+		<div>
+			<p>Test passes if each pair of upper and lower "Filler Text" in the square box is identical.</p>
+			black
+			<div class="parent">
+				<div class="margin"><span class="emphasis test1">Filler</span> Text</div>
+				<div>
+					<ruby class="ref1"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			blue
+			<div class="parent">
+				<div class="margin"><span class="emphasis test2">Filler</span> Text</div>
+				<div>
+					<ruby class="ref2"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			green
+			<div class="parent">
+				<div class="margin"><span class="emphasis test3">Filler</span> Text</div>
+				<div>
+					<ruby class="ref3"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			red
+			<div class="parent">
+				<div class="margin"><span class="emphasis test4">Filler</span> Text</div>
+				<div>
+					<ruby class="ref4"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			current-color
+			<div class="parent">
+				<div class="margin"><span class="emphasis">Filler</span> Text</div>
+				<div>
+					<ruby><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

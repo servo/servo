@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Reference: Select element with background color in flexbox with zero height</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<style>
+  .container {
+    height: 0px;
+    border: 1px dotted black;
+  }
+  .with-background {
+    width: 100%;
+    background: lime;
+  }
+  select {
+    /*
+      WebKit applies intrinsic (default) margins to control elements in some circumstances,
+      let's disable them to avoid mismatch errors caused by those margins.
+    */
+    margin: 0;
+  }
+</style>
+<body>
+  <div class="container">
+    <select class="with-background"><option>Hi</option></select>
+  </div>
+</body>

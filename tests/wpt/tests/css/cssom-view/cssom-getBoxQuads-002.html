@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSSOM View - getBoxQuads() returns consistent box for SVG test</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1746794">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg width="200" height="200">
+  <text>
+    <tspan id="t1" x="50 60 70 80 90 100" y="50">hello1</tspan>
+    <tspan id="t2" x="50 60 70 80 90 100" y="100">hello2</tspan>
+  </text>
+</svg>
+<script>
+  test(function() {
+    for (let element of document.querySelectorAll("tspan")) {
+      let bcr = element.getBoundingClientRect();
+      let quad = element.getBoxQuads()[0].getBounds();
+      for (let prop of ["width", "height", "left", "top"]) {
+        assert_equals(bcr[prop], quad[prop], `${element.id} ${prop}: getBoxQuads should be consistent with getBoundingClientRect`);
+      }
+    }
+  });
+</script>

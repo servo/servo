@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Historical Payment Request APIs</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+[
+  // https://github.com/w3c/browser-payment-api/pull/419
+  ["paymentRequestID", "PaymentRequest"],
+  ["paymentRequestID", "PaymentResponse"],
+
+  // https://github.com/w3c/browser-payment-api/pull/258
+  ["careOf", "ContactAddress"],
+
+  // https://github.com/w3c/browser-payment-api/pull/219
+  ["totalAmount", "PaymentResponse"],
+
+  // https://github.com/w3c/browser-payment-api/pull/426
+  ["paymentRequestId", "PaymentRequest"],
+  ["paymentRequestId", "PaymentResponse"],
+
+  // https://github.com/w3c/payment-request/pull/765
+  ["languageCode", "ContactAddress"],
+
+  //https://github.com/whatwg/html/pull/5915
+  ["allowPaymentRequest", "HTMLIFrameElement"],
+
+].forEach(([member, interf]) => {
+  test(() => {
+    assert_false(member in window[interf].prototype);
+  }, member + ' in ' + interf);
+});
+
+// https://github.com/w3c/payment-request/pull/551
+test(() => {
+  const methods = [];
+  const expectedError = {name: 'toString should be called'};
+  const unexpectedError = {name: 'sequence<DOMString> conversion is not allowed'};
+  methods.toString = () => { throw expectedError; };
+  Object.defineProperty(methods, '0', { get: () => { throw unexpectedError; } });
+  assert_throws_exactly(expectedError, () => {
+    new PaymentRequest([{supportedMethods: methods}], {total: {label: 'bar', amount: {currency: 'BAZ', value: '0'}}});
+  });
+}, 'supportedMethods must not support sequence<DOMString>');
+</script>

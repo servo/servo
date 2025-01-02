@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<style>
+html { writing-mode: vertical-rl; }
+body > div { height: 20em; margin: 1em; padding: 2px; border: 1px solid silver; }
+div > div { margin: .5em; padding: .5em; background: yellow; }
+.left { float: left; }
+.right { float: right; }
+.ltr { direction: ltr; }
+.rtl { direction: rtl; }
+</style>
+
+<body>
+<div class="ltr">
+ Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+ Phasellus efficitur nisi at sollicitudin eleifend.
+ <div class="left">Inline-start</div>
+ Vestibulum ac condimentum diam. Vivamus viverra iaculis mollis.
+ Nam bibendum, dolor id porttitor egestas, metus sem pretium eros,
+ ut mollis mauris ligula eu risus. Aenean eget vestibulum nunc.
+ <div class="right">Inline-end</div>
+ Nam vitae eleifend tellus. Vestibulum ut accumsan lacus.
+ Vivamus vitae eros hendrerit, tincidunt augue non, laoreet justo.
+ Aliquam erat volutpat.
+</div>
+
+<div class="rtl">
+ Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+ Phasellus efficitur nisi at sollicitudin eleifend.
+ <div class="right">Inline-start</div>
+ Vestibulum ac condimentum diam. Vivamus viverra iaculis mollis.
+ Nam bibendum, dolor id porttitor egestas, metus sem pretium eros,
+ ut mollis mauris ligula eu risus. Aenean eget vestibulum nunc.
+ <div class="left">Inline-end</div>
+ Nam vitae eleifend tellus. Vestibulum ut accumsan lacus.
+ Vivamus vitae eros hendrerit, tincidunt augue non, laoreet justo.
+ Aliquam erat volutpat.
+</div>

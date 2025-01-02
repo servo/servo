@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<title>CSS Test Reference: breaking of column rule</title>
+<meta charset="utf-8">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<style>
+
+.ref1, .ref2 {
+  display: inline-block;
+  vertical-align: top;
+
+  border: 2px solid blue;
+  border-top: none;
+  border-bottom: none;
+}
+
+.ref1 {
+  margin-left:49px;
+  height: 100px;
+  width: 148px;
+}
+
+.ref2 {
+  margin-left: 148px;
+  height: 50px;
+  width: 10px;
+
+  border-right: none;
+}
+
+</style>
+<span class="ref1"></span><span class="ref2"></span>

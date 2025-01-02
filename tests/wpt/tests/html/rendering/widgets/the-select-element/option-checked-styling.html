@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Stylability of select>option with :checked pseudo</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help"  href="https://html.spec.whatwg.org/multipage/form-elements.html#the-select-element">
+<link rel="match"  href="option-checked-styling-ref.html">
+
+<style>
+  option {
+    color: black;
+    background-color: red;
+  }
+  option:checked {
+    background: green;
+  }
+</style>
+
+<select id=select size=3 multiple>
+  <option id=option1 selected>Option #1 (should be green)</option>
+  <option id=option2>Option #2 (should be red)</option>
+</select>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fetcher</title>
+<script>
+  window.addEventListener("message", function (event) {
+    const { url, options } = event.data;
+    fetch(url, options)
+        .then(async function(response) {
+          const body = await response.text();
+          const message = {
+            ok: response.ok,
+            type: response.type,
+            body: body,
+          };
+          parent.postMessage(message, "*");
+        })
+        .catch(error => {
+          parent.postMessage({ error: error.toString() }, "*");
+        });
+  });
+</script>

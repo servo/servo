@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Test "standalone" value of display member + media feature</title>
+<link rel="help" href="https://w3c.github.io/manifest#display-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#the-display-mode-media-feature" />
+<link rel="help" href="https://w3c.github.io/manifest/#dom-displaymodetype-standalone" />
+<link rel="manifest" href="resources/display-member-media-feature-standalone.webmanifest" />
+<script src="resources/display-member-media-feature-manual.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<h1>Testing support for "standalone" value of display member + media feature</h1>
+<style>
+  .fail {
+    background-color: red;
+  }
+
+  @media all and (display-mode: standalone) {
+    body {
+      background-color: green;
+    }
+  }
+</style>
+<script>
+const standalone = matchMedia("(display-mode: standalone)");
+
+standalone.onchange = () => {
+  if (standalone.matches) {
+    document.body.classList.remove("fail");
+  }
+}
+
+if (!standalone.matches) {
+  document.body.classList.add("fail");
+}
+</script>
+<p>
+  To pass, the background color must be green after installing.
+</p>

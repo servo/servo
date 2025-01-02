@@ -1,0 +1,39 @@
+<!doctype html>
+<title>fieldset min-inline-size</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ fieldset { width: 0; height: 0 }
+ fieldset > div { width: 100px; height: 100px }
+ #vertical-lr { writing-mode: vertical-lr }
+ #vertical-rl { writing-mode: vertical-rl }
+ .override { min-inline-size: 5px }
+</style>
+<fieldset id=horizontal-tb><div></div></fieldset>
+<fieldset id=vertical-lr><div></div></fieldset>
+<fieldset id=vertical-rl><div></div></fieldset>
+<script>
+  for (const className of ['', 'override']) {
+    const expected = className === '' ? '100px' : '5px';
+    test(() => {
+      const fieldset = document.getElementById('horizontal-tb');
+      fieldset.className = className;
+      assert_equals(getComputedStyle(fieldset).width, expected, 'width');
+      assert_equals(getComputedStyle(fieldset).height, '0px', 'height');
+    }, `horizontal-tb ${className}`);
+
+    test(() => {
+      const fieldset = document.getElementById('vertical-lr');
+      fieldset.className = className;
+      assert_equals(getComputedStyle(fieldset).width, '0px', 'width');
+      assert_equals(getComputedStyle(fieldset).height, expected, 'height');
+    }, `vertical-lr ${className}`);
+
+    test(() => {
+      const fieldset = document.getElementById('vertical-rl');
+      fieldset.className = className;
+      assert_equals(getComputedStyle(fieldset).width, '0px', 'width');
+      assert_equals(getComputedStyle(fieldset).height, expected, 'height');
+    }, `vertical-rl ${className}`);
+  }
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Baseline aligned cells with explicit height</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1936549">
+<link rel="help" href="https://drafts.csswg.org/css-tables/">
+<link rel="match" href="baseline-empty-cell-ref.html">
+<style>
+  table { border-collapse:collapse }
+  tr { vertical-align:baseline }
+  td { height: 30px; border: 1px solid black }
+</style>
+<table>
+  <tr><td>ABCDE</td><td></td></tr>
+</table>

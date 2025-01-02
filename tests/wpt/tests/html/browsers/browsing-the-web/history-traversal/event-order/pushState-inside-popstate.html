@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(t => {
+  let popstate_called = false;
+  window.onpopstate = t.step_func(e => {
+    popstate_called = true;
+    history.pushState(2, null, "#2");
+    assert_not_equals(history.state, e.state);
+  });
+  location.hash = "#1";
+  assert_true(popstate_called);
+}, "pushState inside popstate")
+</script>

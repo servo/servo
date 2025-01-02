@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://drafts.csswg.org/css2/#float-width">
+<meta name="assert" content="shrink-to-fit sizing should respect max-width: min-content">
+<style>
+.container {
+  font: 100px/1 Ahem;
+  color: green;
+  width: 100px;
+}
+.float {
+  float: right;
+}
+.max-content {
+  max-width: min-content;
+  width: 600px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+  <div class=float>
+      <div class=max-content>x</div>
+  </div>
+</div>
+</body>
+</html>

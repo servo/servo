@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <title>View Transitions: No white flash should be visible during the duration of the update callback</title>
+    <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#ref-for-captured-in-a-view-transition">
+    <link rel="match" href="no-white-flash-before-activation-ref.html">
+    <style>
+        body {
+            margin: 0;
+        }
+        div {
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div></div>
+    <script src="/common/reftest-wait.js"></script>
+    <script>
+        failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+        addEventListener("load", () => {
+            document.startViewTransition(() => {
+                requestAnimationFrame(takeScreenshot);
+                return new Promise(() => {});
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta name=timeout content=long>
+<title>Cross-Origin-Opener-Policy requires secure contexts</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+async_test(t => {
+  const popup = window.open("resources/call-functionCalledByOpenee.html");
+  t.add_cleanup(() => {
+    popup.close();
+  });
+  window.functionCalledByOpenee = t.step_func_done(() => {
+    assert_false(popup.closed);
+  });
+  assert_equals(window, popup.opener);
+}, "Cross-Origin-Opener-Policy only works over secure contexts");
+
+test(() => {
+  assert_false(window.crossOriginIsolated);
+}, "Bonus: window.crossOriginIsolated");
+</script>

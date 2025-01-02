@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+   <title>CSS Writing Modes Test: vertical-align - 'bottom' and sideways-rl writing-mode</title>
+   <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+   <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-12-11 -->
+   <link rel="help" title="7.5 Line-Relative Mappings" href="http://www.w3.org/TR/css-writing-modes-4/#line-mappings" />
+   <link rel="help" title="10.8.1 Leading and half-leading" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/visudet.html#leading" />
+   <meta name="assert" content="This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'sideways-rl', 'vertical-align' is 'bottom', the physical left (logical bottom) edge of an inline non-replaced box is aligned with the physical left (logical bottom) edge of its line box." />
+    <link rel="match" href="vertical-alignment-008-ref.xht" />
+    <meta name="flags" content="ahem" />
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css"><![CDATA[
+    div#srl
+    {
+      writing-mode: sideways-rl;
+      font: 60px/3 Ahem; /* computes to 60px/180px */
+      color: blue;
+    }
+
+    span#orange
+    {
+      font-size: 0.5em;
+      color: orange;
+      vertical-align: bottom;
+      margin-top: -1em;
+    }
+
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if the left edge of an blue square is aligned with the right edge of a orange square.</p>
+
+  <div id="srl">A<span id="orange">O</span></div>
+
+  </body>
+</html>

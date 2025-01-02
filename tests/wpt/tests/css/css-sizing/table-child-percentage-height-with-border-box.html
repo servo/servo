@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test if percentage height of table's child element with box-sizing: border-box is calculated correctly</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing/#box-sizing">
+<link rel="match" href="table-child-percentage-height-with-border-box-ref.html">
+<style>
+  html {
+    height: 100%;
+    width: 100%;
+  }
+  body {
+    box-sizing: border-box;
+    display: table;
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+  }
+  .content {
+    box-sizing: border-box;
+    display: table-row;
+    width: 100%;
+    height: 100%;
+    background-color: red;
+  }
+  .wrapper {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    background-color: green;
+    padding-top: 100px;
+  }
+</style>
+<body>
+  <div class="content">
+    <div class="wrapper">
+      wrapped content (height: 100%)
+    </div>
+  </div>
+</body>

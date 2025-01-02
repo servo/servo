@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover light dismiss behavior</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<style>
+  [popover] {
+    /* Position most popovers at the bottom-right, out of the way */
+    inset:auto;
+    bottom:0;
+    right:0;
+  }
+  [popover]::backdrop {
+    /* This should *not* affect anything: */
+    pointer-events: auto;
+  }
+</style>
+
+<button id=b1t popovertarget='p1'>Popover 1</button>
+<button id=b1s popovertarget='p1' popovertargetaction=show>Popover 1</button>
+<span id=outside>Outside all popovers</span>
+<div popover id=p1>
+  <span id=inside1>Inside popover 1</span>
+  <button id=b2 popovertarget='p2' popovertargetaction=show>Popover 2</button>
+  <span id=inside1after>Inside popover 1 after button</span>
+  <div popover id=p2>
+    <span id=inside2>Inside popover 2</span>
+  </div>
+</div>
+<button id=after_p1 tabindex="0">Next control after popover1</button>
+<style>
+  #p1 {top: 50px;}
+  #p2 {top: 120px;}
+</style>
+<script>
+  const popover1 = document.querySelector('#p1');
+  const button1toggle = document.querySelector('#b1t');
+  const button1show = document.querySelector('#b1s');
+  const inside1After = document.querySelector('#inside1after');
+  const button2 = document.querySelector('#b2');
+  const popover2 = document.querySelector('#p2');
+  const outside = document.querySelector('#outside');
+  const inside1 = document.querySelector('#inside1');
+  const inside2 = document.querySelector('#inside2');
+  const afterp1 = document.querySelector('#after_p1');
+
+  let popover1HideCount = 0;
+  popover1.addEventListener('beforetoggle',(e) => {
+    if (e.newState !== "closed")
+      return;
+    ++popover1HideCount;
+    e.preventDefault(); // 'beforetoggle' should not be cancellable.
+  });
+  let popover2HideCount = 0;
+  popover2.addEventListener('beforetoggle',(e) => {
+    if (e.newState !== "closed")
+      return;
+    ++popover2HideCount;
+    e.preventDefault(); // 'beforetoggle' should not be cancellable.
+  });
+  promise_test(async () => {
+    assert_false(popover1.matches(':popover-open'));
+    popover1.showPopover();
+    assert_true(popover1.matches(':popover-open'));
+    let p1HideCount = popover1HideCount;
+    await clickOn(outside);
+    assert_false(popover1.matches(':popover-open'));
+    assert_equals(popover1HideCount,p1HideCount+1);
+  },'Clicking outside a popover will dismiss the popover');
+
+  promise_test(async (t) => {
+    const controller = new AbortController();
+    t.add_cleanup(() => controller.abort());
+    function addListener(eventName) {
+      document.addEventListener(eventName,(e) => e.preventDefault(),{signal:controller.signal,capture: true});
+    }
+    addListener('pointerdown');
+    addListener('pointerup');
+    addListener('mousedown');
+    addListener('mouseup');
+    assert_false(popover1.matches(':popover-open'));
+    popover1.showPopover();
+    assert_true(popover1.matches(':popover-open'));
+    let p1HideCount = popover1HideCount;
+    await clickOn(outside);
+    assert_false(popover1.matches(':popover-open'),'preventDefault should not prevent light dismiss');
+    assert_equals(popover1HideCount,p1HideCount+1);
+  },'Canceling pointer events should not keep clicks from light dismissing popovers');
+
+  promise_test(async () => {
+    assert_false(popover1.matches(':popover-open'));
+    popover1.showPopover();
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    await clickOn(inside1);
+    assert_true(popover1.matches(':popover-open'));
+    assert_equals(popover1HideCount,p1HideCount);
+    popover1.hidePopover();
+  },'Clicking inside a popover does not close that popover');
+
+  promise_test(async () => {
+    assert_false(popover1.matches(':popover-open'));
+    popover1.showPopover();
+    await waitForRender();
+    assert_true(popover1.matches(':popover-open'));
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: outside})
+      .pointerDown()
+      .send();
+    await waitForRender();
+    assert_true(popover1.matches(':popover-open'),'pointerdown (outside the popover) should not hide the popover');
+    await new test_driver.Actions()
+      .pointerUp()
+      .send();
+    await waitForRender();
+    assert_false(popover1.matches(':popover-open'),'pointerup (outside the popover) should trigger light dismiss');
+  },'Popovers close on pointerup, not pointerdown');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => popover1.hidePopover());
+    assert_false(popover1.matches(':popover-open'));
+    popover1.showPopover();
+    assert_true(popover1.matches(':popover-open'));
+    async function testOne(eventName) {
+      document.body.dispatchEvent(new PointerEvent(eventName));
+      document.body.dispatchEvent(new MouseEvent(eventName));
+      document.body.dispatchEvent(new ProgressEvent(eventName));
+      await waitForRender();
+      assert_true(popover1.matches(':popover-open'),`A synthetic "${eventName}" event should not hide the popover`);
+    }
+    await testOne('pointerup');
+    await testOne('pointerdown');
+    await testOne('mouseup');
+    await testOne('mousedown');
+  },'Synthetic events can\'t close popovers');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => popover1.hidePopover());
+    popover1.showPopover();
+    await clickOn(inside1After);
+    assert_true(popover1.matches(':popover-open'));
+    await sendTab();
+    assert_equals(document.activeElement,afterp1,'Focus should move to a button outside the popover');
+    assert_true(popover1.matches(':popover-open'));
+  },'Moving focus outside the popover should not dismiss the popover');
+
+  promise_test(async () => {
+    popover1.showPopover();
+    popover2.showPopover();
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    let p2HideCount = popover2HideCount;
+    await clickOn(inside2);
+    assert_true(popover1.matches(':popover-open'),'popover1 should be open');
+    assert_true(popover2.matches(':popover-open'),'popover2 should be open');
+    assert_equals(popover1HideCount,p1HideCount,'popover1');
+    assert_equals(popover2HideCount,p2HideCount,'popover2');
+    popover1.hidePopover();
+    assert_false(popover1.matches(':popover-open'));
+    assert_false(popover2.matches(':popover-open'));
+  },'Clicking inside a child popover shouldn\'t close either popover');
+
+  promise_test(async () => {
+    popover1.showPopover();
+    popover2.showPopover();
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    p2HideCount = popover2HideCount;
+    await clickOn(inside1);
+    assert_true(popover1.matches(':popover-open'));
+    assert_equals(popover1HideCount,p1HideCount);
+    assert_false(popover2.matches(':popover-open'));
+    assert_equals(popover2HideCount,p2HideCount+1);
+    popover1.hidePopover();
+  },'Clicking inside a parent popover should close child popover');
+
+  promise_test(async () => {
+    await clickOn(button1show);
+    assert_true(popover1.matches(':popover-open'));
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    await clickOn(button1show);
+    assert_true(popover1.matches(':popover-open'),'popover1 should stay open');
+    assert_equals(popover1HideCount,p1HideCount,'popover1 should not get hidden and reshown');
+    popover1.hidePopover(); // Cleanup
+    assert_false(popover1.matches(':popover-open'));
+  },'Clicking on invoking element, after using it for activation, shouldn\'t close its popover');
+
+  promise_test(async () => {
+    popover1.showPopover();
+    assert_true(popover1.matches(':popover-open'));
+    assert_false(popover2.matches(':popover-open'));
+    await clickOn(button2);
+    assert_true(popover2.matches(':popover-open'),'button2 should activate popover2');
+    p2HideCount = popover2HideCount;
+    await clickOn(button2);
+    assert_true(popover2.matches(':popover-open'),'popover2 should stay open');
+    assert_equals(popover2HideCount,p2HideCount,'popover2 should not get hidden and reshown');
+    popover1.hidePopover(); // Cleanup
+    assert_false(popover1.matches(':popover-open'));
+    assert_false(popover2.matches(':popover-open'));
+  },'Clicking on invoking element, after using it for activation, shouldn\'t close its popover (nested case)');
+
+  promise_test(async () => {
+    popover1.showPopover();
+    popover2.showPopover();
+    assert_true(popover1.matches(':popover-open'));
+    assert_true(popover2.matches(':popover-open'));
+    p2HideCount = popover2HideCount;
+    await clickOn(button2);
+    assert_true(popover2.matches(':popover-open'),'popover2 should stay open');
+    assert_equals(popover2HideCount,p2HideCount,'popover2 should not get hidden and reshown');
+    popover1.hidePopover(); // Cleanup
+    assert_false(popover1.matches(':popover-open'));
+    assert_false(popover2.matches(':popover-open'));
+  },'Clicking on invoking element, after using it for activation, shouldn\'t close its popover (nested case, not used for invocation)');
+
+  promise_test(async () => {
+    popover1.showPopover(); // Directly show the popover
+    assert_true(popover1.matches(':popover-open'));
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    await clickOn(button1show);
+    assert_true(popover1.matches(':popover-open'),'popover1 should stay open');
+    assert_equals(popover1HideCount,p1HideCount,'popover1 should not get hidden and reshown');
+    popover1.hidePopover(); // Cleanup
+    assert_false(popover1.matches(':popover-open'));
+  },'Clicking on invoking element, even if it wasn\'t used for activation, shouldn\'t close its popover');
+
+  promise_test(async () => {
+    popover1.showPopover(); // Directly show the popover
+    assert_true(popover1.matches(':popover-open'));
+    await waitForRender();
+    p1HideCount = popover1HideCount;
+    await clickOn(button1toggle);
+    assert_false(popover1.matches(':popover-open'),'popover1 should be hidden by popovertarget');
+    assert_equals(popover1HideCount,p1HideCount+1,'popover1 should get hidden only once by popovertarget');
+  },'Clicking on popovertarget element, even if it wasn\'t used for activation, should hide it exactly once');
+
+  promise_test(async () => {
+    popover1.showPopover();
+    popover2.showPopover(); // Popover1 is an ancestral element for popover2.
+    assert_true(popover1.matches(':popover-open'));
+    assert_true(popover2.matches(':popover-open'));
+    const drag_actions = new test_driver.Actions();
+    // Drag *from* popover2 *to* popover1 (its ancestor).
+    await drag_actions.pointerMove(0,0,{origin: popover2})
+      .pointerDown({button: drag_actions.ButtonType.LEFT})
+      .pointerMove(0,0,{origin: popover1})
+      .pointerUp({button: drag_actions.ButtonType.LEFT})
+      .send();
+    assert_true(popover1.matches(':popover-open'),'popover1 should be open');
+    assert_true(popover2.matches(':popover-open'),'popover1 should be open');
+    popover1.hidePopover();
+    assert_false(popover2.matches(':popover-open'));
+  },'Dragging from an open popover outside an open popover should leave the popover open');
+</script>
+
+<button id=b3 popovertarget=p3>Popover 3 - button 3
+  <div popover id=p4>Inside popover 4</div>
+</button>
+<div popover id=p3>Inside popover 3</div>
+<div popover id=p5>Inside popover 5
+  <button popovertarget=p3>Popover 3 - button 4 - unused</button>
+</div>
+<style>
+  #p3 {top:100px;}
+  #p4 {top:200px;}
+  #p5 {top:200px;}
+</style>
+<script>
+  const popover3 = document.querySelector('#p3');
+  const popover4 = document.querySelector('#p4');
+  const popover5 = document.querySelector('#p5');
+  const button3 = document.querySelector('#b3');
+  promise_test(async () => {
+    await clickOn(button3);
+    assert_true(popover3.matches(':popover-open'),'invoking element should open popover');
+    popover4.showPopover();
+    assert_true(popover4.matches(':popover-open'));
+    assert_false(popover3.matches(':popover-open'),'popover3 is unrelated to popover4');
+    popover4.hidePopover(); // Cleanup
+    assert_false(popover4.matches(':popover-open'));
+  },'A popover inside an invoking element doesn\'t participate in that invoker\'s ancestor chain');
+
+  promise_test(async () => {
+    popover5.showPopover();
+    assert_true(popover5.matches(':popover-open'));
+    assert_false(popover3.matches(':popover-open'));
+    popover3.showPopover();
+    assert_true(popover3.matches(':popover-open'));
+    assert_false(popover5.matches(':popover-open'),'Popover 5 was not invoked from popover3\'s invoker');
+    popover3.hidePopover();
+    assert_false(popover3.matches(':popover-open'));
+  },'An invoking element that was not used to invoke the popover is not part of the ancestor chain');
+</script>
+
+<my-element id="myElement">
+  <template shadowrootmode="open">
+    <button id=b7 popovertarget=p7 popovertargetaction=show tabindex="0">Popover7</button>
+    <div popover id=p7 style="top: 100px;">
+      <p>Popover content.</p>
+      <input id="inside7" type="text" placeholder="some text">
+    </div>
+  </template>
+</my-element>
+<script>
+  const button7 = document.querySelector('#myElement').shadowRoot.querySelector('#b7');
+  const popover7 = document.querySelector('#myElement').shadowRoot.querySelector('#p7');
+  const inside7 = document.querySelector('#myElement').shadowRoot.querySelector('#inside7');
+  promise_test(async () => {
+    button7.click();
+    assert_true(popover7.matches(':popover-open'),'invoking element should open popover');
+    inside7.click();
+    assert_true(popover7.matches(':popover-open'));
+    popover7.hidePopover();
+  },'Clicking inside a shadow DOM popover does not close that popover');
+
+  promise_test(async () => {
+    button7.click();
+    inside7.click();
+    assert_true(popover7.matches(':popover-open'));
+    await clickOn(outside);
+    assert_false(popover7.matches(':popover-open'));
+  },'Clicking outside a shadow DOM popover should close that popover');
+</script>
+
+<div popover id=p8>
+  <button tabindex="0">Button</button>
+  <span id=inside8after>Inside popover 8 after button</span>
+</div>
+<button id=p8invoker popovertarget=p8 tabindex="0">Popover8 invoker (no action)</button>
+<script>
+  promise_test(async () => {
+    const popover8 = document.querySelector('#p8');
+    const inside8After = document.querySelector('#inside8after');
+    const popover8Invoker = document.querySelector('#p8invoker');
+    assert_false(popover8.matches(':popover-open'));
+    popover8.showPopover();
+    await clickOn(inside8After);
+    assert_true(popover8.matches(':popover-open'));
+    await sendTab();
+    assert_equals(document.activeElement,popover8Invoker,'Focus should move to the invoker element');
+    assert_true(popover8.matches(':popover-open'),'popover should stay open');
+    popover8.hidePopover(); // Cleanup
+  },'Moving focus back to the invoker element should not dismiss the popover');
+</script>
+
+<!-- Convoluted ancestor relationship -->
+<div popover id=convoluted_p1>Popover 1
+  <button popovertarget=convoluted_p2>Open Popover 2</button>
+<div popover id=convoluted_p2>Popover 2
+    <button popovertarget=convoluted_p3>Open Popover 3</button>
+    <button popovertarget=convoluted_p2 popovertargetaction=show>Self-linked invoker</button>
+  </div>
+  <div popover id=convoluted_p3>Popover 3
+    <button popovertarget=convoluted_p4>Open Popover 4</button>
+  </div>
+  <div popover id=convoluted_p4><p>Popover 4</p></div>
+</div>
+<button onclick="convoluted_p1.showPopover()" tabindex="0">Open convoluted popover</button>
+<style>
+  #convoluted_p1 {top:50px;}
+  #convoluted_p2 {top:150px;}
+  #convoluted_p3 {top:250px;}
+  #convoluted_p4 {top:350px;}
+</style>
+<script>
+const convPopover1 = document.querySelector('#convoluted_p1');
+const convPopover2 = document.querySelector('#convoluted_p2');
+const convPopover3 = document.querySelector('#convoluted_p3');
+const convPopover4 = document.querySelector('#convoluted_p4');
+promise_test(async () => {
+  convPopover1.showPopover(); // Programmatically open p1
+  assert_true(convPopover1.matches(':popover-open'));
+  convPopover1.querySelector('button').click(); // Click to invoke p2
+  assert_true(convPopover1.matches(':popover-open'));
+  assert_true(convPopover2.matches(':popover-open'));
+  convPopover2.querySelector('button').click(); // Click to invoke p3
+  assert_true(convPopover1.matches(':popover-open'));
+  assert_true(convPopover2.matches(':popover-open'));
+  assert_true(convPopover3.matches(':popover-open'));
+  convPopover3.querySelector('button').click(); // Click to invoke p4
+  assert_true(convPopover1.matches(':popover-open'));
+  assert_true(convPopover2.matches(':popover-open'));
+  assert_true(convPopover3.matches(':popover-open'));
+  assert_true(convPopover4.matches(':popover-open'));
+  convPopover4.firstElementChild.click(); // Click within p4
+  assert_true(convPopover1.matches(':popover-open'));
+  assert_true(convPopover2.matches(':popover-open'));
+  assert_true(convPopover3.matches(':popover-open'));
+  assert_true(convPopover4.matches(':popover-open'));
+  convPopover1.hidePopover();
+  assert_false(convPopover1.matches(':popover-open'));
+  assert_false(convPopover2.matches(':popover-open'));
+  assert_false(convPopover3.matches(':popover-open'));
+  assert_false(convPopover4.matches(':popover-open'));
+},'Ensure circular/convoluted ancestral relationships are functional');
+
+promise_test(async () => {
+  convPopover1.showPopover(); // Programmatically open p1
+  convPopover1.querySelector('button').click(); // Click to invoke p2
+  assert_true(convPopover1.matches(':popover-open'));
+  assert_true(convPopover2.matches(':popover-open'));
+  assert_false(convPopover3.matches(':popover-open'));
+  assert_false(convPopover4.matches(':popover-open'));
+  convPopover4.showPopover(); // Programmatically open p4
+  assert_true(convPopover1.matches(':popover-open'),'popover1 stays open because it is a DOM ancestor of popover4');
+  assert_false(convPopover2.matches(':popover-open'),'popover2 closes because it isn\'t connected to popover4 via active invokers');
+  assert_true(convPopover4.matches(':popover-open'));
+  convPopover4.firstElementChild.click(); // Click within p4
+  assert_true(convPopover1.matches(':popover-open'),'nothing changes');
+  assert_false(convPopover2.matches(':popover-open'));
+  assert_true(convPopover4.matches(':popover-open'));
+  convPopover1.hidePopover();
+  assert_false(convPopover1.matches(':popover-open'));
+  assert_false(convPopover2.matches(':popover-open'));
+  assert_false(convPopover3.matches(':popover-open'));
+  assert_false(convPopover4.matches(':popover-open'));
+},'Ensure circular/convoluted ancestral relationships are functional, with a direct showPopover()');
+</script>
+
+<div popover id=p13>Popover 1
+  <div popover id=p14>Popover 2
+    <div popover id=p15>Popover 3</div>
+  </div>
+</div>
+<style>
+  #p13 {top: 100px;}
+  #p14 {top: 200px;}
+  #p15 {top: 300px;}
+</style>
+<script>
+promise_test(async () => {
+  const p13 = document.querySelector('#p13');
+  const p14 = document.querySelector('#p14');
+  const p15 = document.querySelector('#p15');
+  p13.showPopover();
+  p14.showPopover();
+  p15.showPopover();
+  p15.addEventListener('beforetoggle', (e) => {
+    if (e.newState !== "closed")
+      return;
+    p14.hidePopover();
+  },{once:true});
+  assert_true(p13.matches(':popover-open') && p14.matches(':popover-open') && p15.matches(':popover-open'),'all three should be open');
+  p14.hidePopover();
+  assert_true(p13.matches(':popover-open'),'p13 should still be open');
+  assert_false(p14.matches(':popover-open'));
+  assert_false(p15.matches(':popover-open'));
+  p13.hidePopover(); // Cleanup
+},'Hide the target popover during "hide all popovers until"');
+</script>
+
+<div id=p16 popover>Popover 16
+    <div id=p17 popover>Popover 17</div>
+    <div id=p18 popover>Popover 18</div>
+</div>
+
+<script>
+promise_test(async () => {
+  p16.showPopover();
+  p18.showPopover();
+  let events = [];
+  const logEvents = (e) => {events.push(`${e.newState==='open' ? 'show' : 'hide'} ${e.target.id}`)};
+  p16.addEventListener('beforetoggle', logEvents);
+  p17.addEventListener('beforetoggle', logEvents);
+  p18.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p17.showPopover();
+  });
+  p16.hidePopover();
+  assert_array_equals(events,['hide p18','show p17','hide p16'],'There should not be a hide event for p17');
+  assert_false(p16.matches(':popover-open'));
+  assert_false(p17.matches(':popover-open'));
+  assert_false(p18.matches(':popover-open'));
+},'Show a sibling popover during "hide all popovers until"');
+</script>
+
+<div id=p19 popover>Popover 19</div>
+<div id=p20 popover>Popover 20</div>
+<button id=example2 tabindex="0">Example 2</button>
+
+<script>
+promise_test(async () => {
+  p19.showPopover();
+  let events = [];
+  const logEvents = (e) => {events.push(`${e.newState==='open' ? 'show' : 'hide'} ${e.target.id}`)};
+  p19.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p20.showPopover();
+  });
+  p20.addEventListener('beforetoggle', logEvents);
+  p19.hidePopover();
+  assert_array_equals(events,['hide p19','show p20'],'There should not be a second hide event for 19');
+  assert_false(p19.matches(':popover-open'));
+  assert_true(p20.matches(':popover-open'));
+  p20.hidePopover(); // Cleanup
+},'Show an unrelated popover during "hide popover"');
+</script>
+
+<div id=p21 popover>21
+  <div id=p22 popover>22</div>
+  <div id=p23 popover>23</div>
+  <div id=p24 popover>24</div>
+</div>
+
+<script>
+promise_test(async () => {
+  p21.showPopover();
+  p22.showPopover();
+  let events = [];
+  const logEvents = (e) => { events.push(`${e.newState === 'open' ? 'show' : 'hide'} ${e.target.id}`) };
+  p22.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p24.showPopover()
+  });
+  p23.addEventListener('beforetoggle', logEvents);
+  p24.addEventListener('beforetoggle', logEvents);
+  p23.showPopover();
+  assert_array_equals(events, ['show p23', 'hide p22', 'show p24'], 'hiding p24 does not fire event');
+  assert_false(p22.matches(':popover-open'));
+  assert_true(p23.matches(':popover-open'));
+  assert_false(p24.matches(':popover-open'));
+  p21.hidePopover(); // Cleanup
+},'Show other auto popover during "hide all popover until"');
+</script>
+
+<div id=p25 popover>
+  <div id=p26 popover>26</div>
+  <div id=p27 popover>27</div>
+  <div id=p28 popover>28</div>
+</div>
+<script>
+promise_test(async () => {
+  p25.showPopover();
+  p26.showPopover();
+  let events = [];
+  const logEvents = (e) => { events.push(`${e.newState === 'open' ? 'show' : 'hide'} ${e.target.id}`) };
+  p26.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p28.showPopover();
+  });
+  p27.addEventListener('beforetoggle', logEvents);
+  p28.addEventListener('beforetoggle', (e) => {
+    logEvents(e);
+    p27.showPopover();
+  });
+  p27.showPopover();
+  assert_array_equals(events, ['show p27', 'hide p26', 'show p28', 'show p27'], 'Nested showPopover should not fire event for its HideAllPopoversUntil');
+  assert_false(p26.matches(':popover-open'));
+  assert_true(p27.matches(':popover-open'));
+  assert_false(p28.matches(':popover-open'));
+  p25.hidePopover(); // Cleanup
+}, 'Nested showPopover');
+</script>
+
+<div id=p29 popover>Popover 29</div>
+<button id=b29 popovertarget=p29>Open popover 29</button>
+<iframe id=iframe29 width=100 height=30></iframe>
+<script>
+promise_test(async () => {
+  let iframe_url = (new URL("/common/blank.html", location.href)).href;
+  iframe29.src = iframe_url;
+  iframe29.contentDocument.body.style.height = '100%';
+  assert_false(p29.matches(':popover-open'),'initially hidden');
+  p29.showPopover();
+  assert_true(p29.matches(':popover-open'),'showing');
+  let actions = new test_driver.Actions();
+  // Using the iframe's contentDocument as the origin would throw an error, so
+  // we are using iframe29 as the origin instead.
+  const iframe_box = iframe29.getBoundingClientRect();
+
+  await actions
+      .pointerMove(1,1,{origin: b29})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerMove(iframe_box.width / 2, iframe_box.height / 2, {origin: iframe29})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  assert_true(p29.matches(':popover-open'), 'popover should be open after pointerUp in iframe.');
+
+  actions = new test_driver.Actions();
+  await actions
+      .pointerMove(iframe_box.width / 2, iframe_box.height / 2, {origin: iframe29})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerMove(1,1,{origin: b29})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  assert_true(p29.matches(':popover-open'), 'popover should be open after pointerUp on main frame button.');
+},`Pointer down in one document and pointer up in another document shouldn't dismiss popover`);
+</script>
+
+<div id=p30 popover>Popover 30</div>
+<button id=b30 popovertarget=p30>Open popover 30</button>
+<button id=b30b>Non-invoker</button>
+<script>
+promise_test(async () => {
+  assert_false(p30.matches(':popover-open'),'initially hidden');
+  p30.showPopover();
+  assert_true(p30.matches(':popover-open'),'showing');
+  let actions = new test_driver.Actions();
+  await actions
+      .pointerMove(2,2,{origin: b30})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerMove(2,2,{origin: b30b})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  await waitForRender();
+  assert_true(p30.matches(':popover-open'),'showing after pointerup');
+},`Pointer down inside invoker and up outside that invoker shouldn't dismiss popover`);
+</script>

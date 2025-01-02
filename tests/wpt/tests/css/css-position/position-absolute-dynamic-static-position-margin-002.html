@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class='reftest-wait'>
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/" />
+<meta name="assert" content="This test checks that a dynamic change in constraints calculates the static position correctly."/>
+<script src="/common/reftest-wait.js"></script>
+<style>
+#container {
+  position: relative;
+  background: red;
+
+  box-sizing: border-box;
+  border: solid green 10px;
+  width: 100px;
+  height: 100px;
+}
+
+#block {
+  background: green;
+  height: 40px;
+  margin-bottom: 20px;
+}
+
+#target {
+  position: absolute;
+  background: green;
+
+  width: 80px;
+  height: 20px;
+  top: -10px;
+  left: -10px;
+}
+
+#cover {
+  position: absolute;
+  background: green;
+
+  width: 80px;
+  height: 20px;
+  top: 40px;
+  left: 0px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div>
+    <div id="block"></div>
+  </div>
+  <div id="target"></div>
+  <div id="cover"></div>
+</div>
+<script>
+document.body.offsetTop;
+const target = document.getElementById('target');
+target.style.top = 'initial';
+target.style.left = 'initial';
+document.body.offsetTop;
+takeScreenshot();
+</script>

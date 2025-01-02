@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Filmstrip</title>
+</head>
+<body>
+<p><img src="longcattop.png"></p>
+<p><img src="longcatbot.png"></p>
+<script>
+var index = 0;
+function change() {
+    document.getElementsByTagName("img")[0].src = "rust-" + (index * 45) + ".png";
+    index = (index + 1) % 8;
+    setTimeout(change, 100);
+}
+change();
+</script>
+</body>
+</html>
+

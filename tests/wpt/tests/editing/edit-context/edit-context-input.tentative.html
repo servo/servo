@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: The HTMLElement.editContext property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <script>
+      const kBackspaceKey = "\uE003";
+      const kDeleteKey = "\uE017";
+
+    async function testBasicTestInput(element) {
+      const editContext = new EditContext();
+      let textForView = "";
+      document.body.appendChild(element);
+      let beforeInputType = null;
+      let beforeInputTargetRanges = null;
+      element.addEventListener("beforeinput", e => {
+        beforeInputType = e.inputType;
+        beforeInputTargetRanges = e.getTargetRanges().map(
+          staticRange => [staticRange.startOffset, staticRange.endOffset]);
+      });
+      editContext.addEventListener("textupdate", e => {
+        textForView = `${textForView.substring(0, e.updateRangeStart)}${e.text}${textForView.substring(e.updateRangeEnd)}`;
+      });
+      element.editContext = editContext;
+      element.focus();
+      await test_driver.send_keys(element, 'a');
+      assert_equals(editContext.text, "a");
+      assert_equals(textForView, "a");
+      assert_equals(beforeInputType, "insertText");
+      if (element instanceof HTMLCanvasElement) {
+        // DOM selection doesn't work inside <canvas>, so events
+        // in <canvas> can't have target ranges.
+        assert_equals(beforeInputTargetRanges.length, 0);
+      } else {
+        assert_equals(beforeInputTargetRanges.length, 1);
+        assert_array_equals(beforeInputTargetRanges[0], [0, 0]);
+      }
+
+      element.remove();
+    }
+
+    promise_test(testBasicTestInput.bind(null, document.createElement("div")), "Basic text input with div");
+    promise_test(testBasicTestInput.bind(null, document.createElement("canvas")), "Basic text input with canvas");
+
+    async function testBasicTestInputWithExistingSelection(element) {
+      const editContext = new EditContext();
+      let textForView = "";
+      document.body.appendChild(element);
+      editContext.addEventListener("textupdate", e => {
+        textForView = `${textForView.substring(0, e.updateRangeStart)}${e.text}${textForView.substring(e.updateRangeEnd)}`;
+      });
+      element.editContext = editContext;
+      element.focus();
+
+      editContext.updateText(0, 0, "abcd");
+      textForView = "abcd";
+      assert_equals(editContext.text, "abcd");
+      editContext.updateSelection(2, 3);
+      await test_driver.send_keys(element, 'Z');
+      assert_equals(editContext.text, "abZd");
+      assert_equals(textForView, "abZd");
+
+      editContext.updateSelection(2, 1);
+      await test_driver.send_keys(element, 'Y');
+      assert_equals(editContext.text, "aYZd");
+      assert_equals(textForView, "aYZd");
+
+      element.remove();
+    }
+
+    promise_test(testBasicTestInputWithExistingSelection.bind(null, document.createElement("div")), "Text insertion with non-collapsed selection with div");
+    promise_test(testBasicTestInputWithExistingSelection.bind(null, document.createElement("canvas")), "Text insertion with non-collapsed selection with canvas");
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      const test = document.createElement("div");
+      document.body.appendChild(test);
+      test.editContext = editContext;
+      test.focus();
+      await test_driver.send_keys(test, 'a');
+      assert_equals(test.innerHTML, "");
+      test.remove();
+    }, 'EditContext should disable DOM mutation');
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      const test = document.createElement("div");
+      document.body.appendChild(test);
+      test.focus();
+      test.editContext = editContext;
+      test.addEventListener("beforeinput", e => {
+        if (e.inputType === "insertText") {
+          e.preventDefault();
+        }
+      });
+      await test_driver.send_keys(test, 'a');
+      assert_equals(editContext.text, "");
+      test.remove();
+    }, 'beforeInput(insertText) should be cancelable');
+
+  promise_test(async () => {
+    let div = document.createElement("div");
+    document.body.appendChild(div);
+    let divText = "Hello World";
+    div.innerText = divText;
+    div.editContext = new EditContext();
+    div.focus();
+    let got_before_input_event = false;
+    div.addEventListener("beforeinput", e => {
+      got_before_input_event = true;
+    });
+    let got_textupdate_event = false;
+    div.editContext.addEventListener("textupdate", e => {
+      got_textupdate_event = true;
+    });
+
+    div.editContext = null;
+    await test_driver.send_keys(div, "a");
+
+    assert_false(got_textupdate_event, "Shouldn't have received textupdate event after editContext was detached");
+    assert_false(got_before_input_event, "Shouldn't have received beforeinput event after editContext was detached");
+
+    div.remove();
+  }, "EditContext should not receive events after being detached from element");
+
+  async function testBackspaceAndDelete(element) {
+      const editContext = new EditContext();
+      let textForView = "hello there";
+      document.body.appendChild(element);
+      let beforeInputType = null;
+      let beforeInputTargetRanges = null;
+      element.addEventListener("beforeinput", e => {
+        beforeInputType = e.inputType;
+        beforeInputTargetRanges = e.getTargetRanges().map(
+          staticRange => [staticRange.startOffset, staticRange.endOffset]);
+      });
+      let textUpdateSelection = null;
+      editContext.addEventListener("textupdate", e => {
+        textUpdateSelection = [e.selectionStart, e.selectionEnd];
+        textForView = `${textForView.substring(0, e.updateRangeStart)}${e.text}${textForView.substring(e.updateRangeEnd)}`;
+      });
+      element.editContext = editContext;
+      editContext.updateText(0, 11, "hello there");
+      editContext.updateSelection(10, 10);
+      const selection = window.getSelection();
+
+      await test_driver.send_keys(element, kBackspaceKey);
+      assert_equals(textForView, "hello thee");
+      assert_array_equals(textUpdateSelection, [9, 9]);
+      assert_equals(beforeInputType, "deleteContentBackward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Backspace should not have a target range in EditContext");
+
+      await test_driver.send_keys(element, kDeleteKey);
+      assert_equals(textForView, "hello the");
+      assert_array_equals(textUpdateSelection, [9, 9]);
+      assert_equals(beforeInputType, "deleteContentForward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
+      element.remove();
+    }
+
+    promise_test(testBackspaceAndDelete.bind(null, document.createElement("div")), "Backspace and delete in EditContext with div");
+    promise_test(testBackspaceAndDelete.bind(null, document.createElement("canvas")) , "Backspace and delete in EditContext with canvas");
+
+    async function testBackspaceAndDeleteWithExistingSelection(element) {
+      const editContext = new EditContext();
+      let textForView = "hello there";
+      document.body.appendChild(element);
+      let beforeInputType = null;
+      let beforeInputTargetRanges = null;
+      element.addEventListener("beforeinput", e => {
+        beforeInputType = e.inputType;
+        beforeInputTargetRanges = e.getTargetRanges().map(
+          staticRange => [staticRange.startOffset, staticRange.endOffset]);
+      });
+      let textUpdateSelection = null;
+      editContext.addEventListener("textupdate", e => {
+        textUpdateSelection = [e.selectionStart, e.selectionEnd];
+        textForView = `${textForView.substring(0, e.updateRangeStart)}${e.text}${textForView.substring(e.updateRangeEnd)}`;
+      });
+      element.editContext = editContext;
+      const initialText = "abcdefghijklmnopqrstuvwxyz";
+      editContext.updateText(0, initialText.length, initialText);
+      textForView = initialText;
+      element.focus();
+
+      editContext.updateSelection(3, 6);
+      await test_driver.send_keys(element, kBackspaceKey);
+      assert_equals(editContext.text, "abcghijklmnopqrstuvwxyz");
+      assert_equals(textForView, "abcghijklmnopqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentBackward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Backspace should not have a target range in EditContext");
+
+      editContext.updateSelection(3, 6);
+      await test_driver.send_keys(element, kDeleteKey);
+      assert_equals(editContext.text, "abcjklmnopqrstuvwxyz");
+      assert_equals(textForView, "abcjklmnopqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentForward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
+
+      editContext.updateSelection(6, 3);
+      await test_driver.send_keys(element, kBackspaceKey);
+      assert_equals(editContext.text, "abcmnopqrstuvwxyz");
+      assert_equals(textForView, "abcmnopqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentBackward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Backspace should not have a target range in EditContext");
+
+      editContext.updateSelection(6, 3);
+      await test_driver.send_keys(element, kDeleteKey);
+      assert_equals(editContext.text, "abcpqrstuvwxyz");
+      assert_equals(textForView, "abcpqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentForward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
+
+      element.remove();
+    }
+
+    promise_test(testBackspaceAndDeleteWithExistingSelection.bind(null, document.createElement("div")), "Backspace and delete with existing selection with div");
+    promise_test(testBackspaceAndDeleteWithExistingSelection.bind(null, document.createElement("canvas")) , "Backspace and delete with existing selection with canvas");
+
+    promise_test(async function() {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      const editContext = new EditContext();
+      iframe.contentDocument.body.editContext = editContext;
+      iframe.contentDocument.body.focus();
+      let got_textupdate_event = false;
+      editContext.addEventListener("textupdate", e => {
+        got_textupdate_event = true;
+      });
+      await test_driver.send_keys(iframe.contentDocument.body, "a");
+      assert_equals(iframe.contentDocument.body.innerHTML, "", "EditContext should disable DOM modification in iframe.");
+      assert_true(got_textupdate_event, "Input in iframe EditContext should trigger textupdate event");
+      iframe.remove();
+    }, 'EditContext constructed outside iframe can be used in iframe');
+
+    promise_test(async function() {
+      const div = document.createElement("div");
+      const input = document.createElement("input");
+      document.body.appendChild(div);
+      document.body.appendChild(input);
+      const editContext = new EditContext();
+      div.editContext = editContext;
+      div.focus();
+      div.remove();
+      input.focus();
+      await test_driver.send_keys(input, "a");
+      assert_equals(input.value, "a", "input should have received text input");
+
+      input.remove();
+    }, 'Removing EditContext-associated element with focus doesn\'t prevent further text input on the page');
+  </script>
+</body>
+</html>

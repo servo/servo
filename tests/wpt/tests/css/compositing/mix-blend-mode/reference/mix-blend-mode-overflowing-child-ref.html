@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Reftest Reference</title>
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Horia Olaru" href="mailto:olaru@adobe.com">
+        <style type="text/css">
+            body {
+                background: lightgray;
+            }
+            .container {
+                position: absolute;
+                z-index: 1;
+                width: 100px;
+                height: 100px;
+                background: #0F0;
+            }
+            .blender {
+                background: #0F0;
+                margin: 50px;
+                width: 100px;
+                height: 100px;
+            }
+            .intersection {
+                background: #000;
+                width: 50px;
+                height: 50px;
+                margin-top: -150px;
+                margin-left: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see two green squares and a black square as their intersection,<br>
+            drawn over a light gray background.</p>
+        <div class="container">
+            <div class="blender"></div>
+            <div class="intersection"></div>
+        </div>
+    </body>
+</html>

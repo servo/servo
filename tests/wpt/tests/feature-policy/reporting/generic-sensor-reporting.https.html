@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+var sensor_features_verified = {
+  "accelerometer": false,
+  "ambient-light-sensor": false,
+  "magnetometer": false,
+  "gyroscope": false
+};
+
+var check_report_format = function(reports, observer) {
+  // Check each report in this batch. This observer callback may be called
+  // multiple times before all reports have been processed.
+  for (const report of reports) {
+
+    // Validate that the reported feature is one of the sensor features, and that
+    // we have not seen a report for this feature before.
+    assert_true(sensor_features_verified.hasOwnProperty(report.body.featureId));
+    assert_false(sensor_features_verified[report.body.featureId]);
+
+    // Validate the remainder of the report
+    assert_equals(report.type, "permissions-policy-violation");
+    assert_equals(report.url, document.location.href);
+    assert_equals(report.body.sourceFile, document.location.href);
+    assert_equals(typeof report.body.lineNumber, "number");
+    assert_equals(typeof report.body.columnNumber, "number");
+    assert_equals(report.body.disposition, "enforce");
+
+    sensor_features_verified[report.body.featureId] = true;
+  }
+
+  // Test is only done when reports for all features have been seen
+  for (let result of Object.values(sensor_features_verified)) {
+    if (!result)
+      return;
+  }
+  this.done();
+};
+
+async_test(t => {
+  new ReportingObserver(t.step_func(check_report_format),
+                        {types: ['permissions-policy-violation']}).observe();
+  assert_throws_dom("SecurityError", () => new Accelerometer(), "Constructing sensors should be blocked by policy");
+  assert_throws_dom("SecurityError", () => new AmbientLightSensor(), "Constructing sensors should be blocked by policy");
+  assert_throws_dom("SecurityError", () => new Gyroscope(), "Constructing sensors should be blocked by policy");
+  assert_throws_dom("SecurityError", () => new Magnetometer(), "Constructing sensors should be blocked by policy");
+}, "Generic Sensor Report Format");
+    </script>
+  </body>
+</html>

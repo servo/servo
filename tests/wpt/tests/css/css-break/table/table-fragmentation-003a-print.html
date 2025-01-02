@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1863421">
+<link rel="match" href="table-fragmentation-003a-print-ref.html">
+
+<style>
+@page { size: 5in 3in; margin: 0.5in; }
+body { margin: 0; }
+
+table {
+  inline-size: 3in;
+  border-spacing: 0.125in;
+  border: 0.25in solid black;
+  padding: 0.125in;
+}
+td {
+  padding: 0;
+}
+thead td {
+  block-size: 0.25in;
+  background: blue;
+}
+tbody td {
+  vertical-align: top;
+  border: solid orange;
+  border-width: 0.25in 0;
+}
+.content {
+  block-size: 2in;
+  background: gold;
+}
+tfoot td {
+  block-size: 0.25in;
+  background: purple;
+}
+</style>
+
+<table>
+  <thead>
+    <tr>
+      <td></td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><div class="content"></div></td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<head>
+<link rel="author" title="Daniel Vogelheim" href="mailto:vogelheim@chromium.org"></link>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/"></link>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+[ TrustedHTML, TrustedScript, TrustedScriptURL ].forEach(type => {
+
+  test(t => {
+    assert_true("fromLiteral" in type);
+  }, `${type.name}.fromLiteral is supported`);
+
+  test(t => {
+    const c = type.fromLiteral`abc`;
+    assert_true(c instanceof type);
+    assert_equals(c.toString(), "abc");
+  }, `${type.name}.fromLiteral: Basic string literal works.`);
+
+  test(t => {
+    const c = type.fromLiteral``;
+    assert_true(c instanceof type);
+    assert_equals(c.toString(), "");
+  }, `${type.name}.fromLiteral: Empty string literal works.`);
+
+  test(t => {
+    const c = type.fromLiteral`\u{1f4a9}`;
+    assert_true(c instanceof type);
+    assert_equals(c.toString(), "\u{1f4a9}");
+  }, `${type.name}.fromLiteral: A very important emoji works.`);
+
+  test(t => {
+    const c = type.fromLiteral`A Multiline
+  string
+     works.`;
+    assert_true(c instanceof type);
+    assert_true(c.toString().includes("\n"));
+  }, `${type.name}.fromLiteral: Multi-line string literal works.`);
+
+  test(t => {
+    const tag = type.fromLiteral.bind(type);
+    const c = tag`abc`;
+    assert_true(c instanceof type);
+    assert_equals(c.toString(), "abc");
+  }, `${type.name}.fromLiteral: Bound method works.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral("abc");
+    });
+  }, `${type.name}.fromLiteral: String throws.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral(null);
+    });
+  }, `${type.name}.fromLiteral: null throws.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral(undefined);
+    });
+  }, `${type.name}.fromLiteral: undefined throws.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral({});
+    });
+  }, `${type.name}.fromLiteral: Object throws.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral`Hello ${2+3} world`
+    });
+  }, `${type.name}.fromLiteral: template literal with expression throws.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral(["abc"]);
+    });
+  }, `${type.name}.fromLiteral: non-literal throws.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral(Object.freeze(["abc"]));
+    });
+  }, `${type.name}.fromLiteral: frozen non-literal throws.`);
+
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+      type.fromLiteral(["abc", "def"], "xxx");
+    });
+  }, `${type.name}.fromLiteral: non-literal with param throws.`);
+
+});
+
+// TrustedHTML requires normalization of the value. Let's test that TrustedHTML
+// (and only TrustedHTML) does this.
+test(t => {
+  const tag = TrustedHTML.fromLiteral.bind(TrustedHTML);
+  assert_equals(tag`<b>`.toString(), "<b></b>");
+}, "TrustedHTML.fromLiteral: Normalization of value works.");
+
+test(t => {
+  const tag = TrustedScript.fromLiteral.bind(TrustedScript);
+  assert_equals(tag`<b>`.toString(), "<b>");
+}, "TrustedScript.fromLiteral: No normalization of value occurs.");
+
+test(t => {
+  const tag = TrustedScriptURL.fromLiteral.bind(TrustedScriptURL);
+  assert_equals(tag`<b>`.toString(), "<b>");
+}, "TrustedScriptURL.fromLiteral: No normalization of value occurs.");
+
+</script>
+</body>

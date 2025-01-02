@@ -1,0 +1,12 @@
+features:
+- name: individual-transforms
+  files:
+  - rotate-animation-on-svg.html
+  - rotate-animation-with-will-change-transform-001.html
+  - scale-and-rotate-both-specified-on-animation-keyframes.html
+  - scale-animation-on-svg.html
+  - translate-animation-on-svg.html
+- name: transforms3d
+  files:
+  - backface-visibility-*
+  - perspective-*

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="Include borders in min-width when auto min-width wins over an inflexible flex-basis." />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id=reference-overlapped-red></div>
+
+<div
+  style="display: flex; flex-direction: row; width: max-content; background: green; height: 100px;">
+  <div style="flex: 0 0 0px; border: 10px solid transparent;">
+    <div style="width:80px;"></div>
+  </div>
+</div>

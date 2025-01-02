@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>overflow on MathML elements</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#user-agent-stylesheet">
+<meta name="assert" content="overflow can be overridden on MathML elements.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<style>
+  /* selector defined in mathml-fragments.js */
+  .element {
+    overflow: scroll;
+  }
+</style>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container">
+    <math class="element"></math>
+  </div>
+  <script>
+    test(function () {
+      var container = document.getElementById("container");
+      for (tag in MathMLFragments) {
+          // Skip mtable as browsers don't have interoperable behavior for
+          // display: table.
+          // See https://github.com/w3c/csswg-drafts/issues/8133
+          if (tag == "mtable")
+              continue;
+          container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
+      }
+      let unknownElement = FragmentHelper.createElement("unknown");
+      unknownElement.setAttribute("class", "element");
+      container.appendChild(unknownElement);
+      Array.from(document.getElementsByClassName("element")).forEach(element => {
+        var tag = element.tagName;
+        var style = window.getComputedStyle(element);
+        assert_equals(style["overflow"], "scroll", `overflow on ${tag}`);
+      }, `overflow can be overridden on all MathML elements`);
+    });
+  </script>
+</body>
+</html>

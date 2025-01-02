@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Content: content:none on SPAN</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1699964">
+  <link rel="help" href="https://drafts.csswg.org/css-content/#valdef-content-none">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1699964">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <meta name="flags" content="ahem">
+  <meta name="assert" content="content:none should inhibit the <span> children from having boxes.  Its pseudos should not be affected though.">
+  <link rel="match" href="content-none-span-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:4px/1 Ahem; padding:0; margin:0;
+}
+body { margin-left: 3ch; }
+body > * {
+  content:none;
+  padding:0; margin:0; border:none;
+}
+::marker { content: 'M'; }
+.after::after { content: 'A'; }
+.before::before { content: 'B'; }
+
+  </style>
+</head>
+<body>
+
+<script>
+  document.body.style.display = 'none';
+
+  const display = [
+    "display:block", "display:inline", "display:ruby", "display:none", "display:grid",
+    "display:flex", "display:table", "display:list-item", "display:contents",
+    "columns:2",
+  ];
+  const overflow = [
+    "", "overflow:scroll", "overflow:clip",
+  ];
+  const position = [
+    "", "position:absolute", "position:relative",
+  ];
+  const tags = [
+    "span",
+  ];
+  const classes = [
+    "", "after", "before",
+  ];
+  const body = document.body;
+  for (var d of display) {
+    for (var o of overflow) {
+      for (var p of position) {
+        for (var c of classes) {
+          for (var t of tags) {
+            let elem = document.createElement(t);
+            elem.style = d + ';' + o + ';' + p + ';'
+            elem.className = c;
+            elem.append(document.createTextNode("FAIL"))
+            elem.append(document.createElement("div"));
+            body.append(elem);
+          }
+        }
+      }
+    }
+  }
+
+  document.body.style.display = '';
+</script>
+
+</body>
+</html>

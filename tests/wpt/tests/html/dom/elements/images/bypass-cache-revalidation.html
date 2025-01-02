@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Cached images can bypass revalidation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<div id="imageDiv1"></div>
+<div id="imageDiv2"></div>
+<canvas id="canvas"></canvas>
+<script>
+
+function getImagePixel(image)
+{
+    canvas.getContext("2d").drawImage(image, 0, 0, 10, 10);
+    return canvas.getContext("2d").getImageData(0, 0, 1, 1).data;
+}
+
+let resolve;
+promise_test(async (t) => {
+   const url = "image.py?id=" + token();
+
+   let promise = new Promise(r => resolve = r);
+   imageDiv1.innerHTML = `<img src="${url}" onload="resolve()"></img>`;
+   await promise;
+
+   const url2 = "image.py?id=" + token();
+   promise = new Promise(r => resolve = r);
+   imageDiv1.innerHTML = `<img src="${url2}" onload="resolve()"></img>`;
+   await promise;
+
+   promise = new Promise(r => resolve = r);
+   imageDiv2.innerHTML = `<img id="image2" src="${url}" onload="resolve()"></img>`;
+   await promise;
+
+   assert_array_equals(getImagePixel(image2), [0, 255, 0, 255]);
+}, "Images can bypass no-cache");
+</script>
+

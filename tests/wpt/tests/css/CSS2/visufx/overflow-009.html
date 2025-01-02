@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test (Overflow): body with overflow:hidden</title>
+  <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+  <link rel="help" href="https://www.w3.org/TR/CSS2/visufx.html#overflow">
+  <link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef-overflow">
+  <meta name="flags" content="interact">
+  <meta name="assert" content="position:fixed layer should not be able to cause scrolling of body styled as overflow:hidden">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+body {
+  /* what we're testing */
+  overflow: hidden;
+}
+h1 {
+  /* bottom of #overlay-inner */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+.margin-0 {
+  /* remove extra space */
+  margin: 0;
+}
+.tall {
+  height: 100vh;
+  width: 100%;
+}
+#bad {
+  background-color: red;
+}
+#overlay {
+  overflow: auto;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+#overlay-inner {
+  position: relative;/* needed for the h1 */
+  width: 60%;/* leave room for #bad to be visible */
+  height: 150vh;/* force scroll */
+  /* make this visually distinct */
+  background-color: blue;
+  color: white;
+}
+  </style>
+</head>
+<body class="margin-0">
+  <div id="overlay">
+    <div id="overlay-inner">
+      <ol class="margin-0">
+        <li>Scroll the blue square downward until you see the word "BOTTOM".</li>
+        <li>End your scrolling action/gesture. (e.g. Remove your finger from the touchscreen.)</li>
+        <li>Attempt to scroll the blue square further downward.</li>
+        <li>If you see any red, then the test result is FAILED. Otherwise, it is PASSED.</li>
+      </ol>
+      <h1 class="margin-0">BOTTOM</h1>
+    </div>
+  </div>
+  <div class="tall"></div>
+  <div id="bad" class="tall"></div>
+</body>
+</html>

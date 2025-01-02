@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase with blocks as flex items in a horizontal flex container, with
+     various "flex" values and various combinations of the items. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing flexbox layout algorithm property on block flex items in a horizontal flex container</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm"/>
+    <link rel="match" href="flexbox-basic-block-horiz-001-ref.xhtml"/>
+    <style>
+      div { height: 100px; }
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 200px;
+        font-size: 10px;
+        display: flex;
+      }
+      div.a {
+        flex: 1 0 30px;
+        background: lightgreen;
+      }
+      div.b {
+        flex: 2 0 20px;
+        background: yellow;
+      }
+      div.c {
+        flex: 3 0 40px;
+        background: orange;
+      }
+      div.flexNone {
+        flex: none;
+        background: pink;
+      }
+      div.flexBasis {
+        flex: 0 0 20px;
+        background: gray;
+      }
+      div.spacer {
+        display: inline-block;
+        width: 15px;
+        height: 15px;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox"><div class="a"></div><div class="b"/></div>
+    <div class="flexbox"><div class="a"/><div class="c"/></div>
+    <div class="flexbox"><div class="a"/>
+      <div class="flexNone"><div class="spacer"/></div>
+    </div>
+    <div class="flexbox"><div class="b"/><div class="c"/></div>
+    <div class="flexbox"><div class="b"/>
+      <div class="flexNone"><div class="spacer"/><div class="spacer"/></div>
+    </div>
+
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="flexBasis"/><div class="c"/>
+    </div>
+  </body>
+</html>

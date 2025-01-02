@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Positioned Layout Test: Absolute positioned element inside multicol</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-position/#valdef-position-absolute">
+<link rel="match" href="/css/reference/pass_if_pass_below.html">
+<meta name=assert content="Checks that an absolute positioned element inside multicol is rendered, when a previous absolute positioned element has been rendered already.">
+<p>Test passes if there is the word "PASS" below.</p>
+<div style="position: relative;">
+  <div style="position: absolute;">
+  </div>
+  <div style="column-count: 2;">
+    <div style="position: absolute;">PASS</div>
+  </div>
+</div>

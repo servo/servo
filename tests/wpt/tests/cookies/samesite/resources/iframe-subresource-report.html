@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<head>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+function reportSubresourceCookies() {
+  credFetch(SECURE_ORIGIN + "/cookies/resources/list.py")
+    .then(r => r.json())
+    .then(cookies => { cookies.type = "COOKIES";
+                       target = window.opener ? window.opener : window.parent;
+                       target.postMessage(cookies, "*");});
+}
+</script>
+</head>
+<body onload="reportSubresourceCookies()">

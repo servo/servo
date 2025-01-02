@@ -1,0 +1,216 @@
+<!doctype html>
+<title>HTMLOptionsCollection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#htmloptionscollection-0">
+<select id=a>
+  <option>1</option>
+  <option>2</option>
+  <option>3</option>
+<!--Note whitespace is important-->
+  <option>4</option>
+  <option>5</option>
+</select>
+
+<select id=b>
+  <option id=b1>1</option>
+  <option name=b2>2</option>
+  <option id=b3>3</option>
+  <option id=b3>4</option>
+  <option name=b4>5</option>
+  <option name=b4>6</option>
+  <option id=b5>7</option>
+  <option name=b5>8</option>
+  <option id=b6 name=b7>9</option>
+  <option id=b6 name=b6>10</option>
+  <option id=b8 name=b9>11</option>
+</select>
+
+<script>
+var a;
+var a_opts;
+var a_original_innerHTML;
+var b;
+var b_opts;
+
+setup(function() {
+  a = document.getElementById("a");
+  a_opts = a.options;
+  a_original_innerHTML = a.innerHTML;
+  a.innerHTML = a_original_innerHTML;
+  b = document.getElementById("b");
+  b_opts = b.options;
+  b_original_innerHTML = b.innerHTML;
+  b.innerHTML = b_original_innerHTML;
+})
+
+function assert_values_equals(coll, expected_values, message) {
+  actual = [];
+  for (var i=0; i<coll.length; i++) {
+    actual.push(coll[i].value);
+  }
+  assert_array_equals(actual, expected_values, message);
+}
+
+test(function() {
+  assert_equals(5, a_opts.length);
+}, "Original length");
+
+test(function() {
+  a.innerHTML = a_original_innerHTML;
+  a_opts.value = "3";
+  a_opts.length = 5;
+  assert_equals(a_opts.length, 5);
+  assert_equals(a_opts.value, "3");
+}, "Setting length to original value has no effect");
+
+test(function() {
+  a.innerHTML = a_original_innerHTML;
+  a.value = 3;
+  a_opts.length = 3;
+  assert_equals(3, a_opts.length, "Correct length");
+  assert_values_equals(a_opts, ["1","2","3"], "Correct elements remain")
+  assert_equals(a_opts.value, "3", "Correct value set");
+  assert_equals(a.childNodes.length, 11, "Correct number of child nodes")
+}, "Setting length to shorter value");
+
+test(function() {
+  a.innerHTML = a_original_innerHTML;
+  a.value = 3;
+  a_opts.length = 7;
+  assert_equals(a_opts.length, 7, "Correct length");
+  assert_values_equals(a_opts, ["1","2","3","4","5","",""], "Correct elements inserted")
+  assert_equals(a.value, "3", "Correct value set");
+  assert_equals(a.childNodes.length, 15, "Correct number of child nodes")
+}, "Setting length to longer value");
+
+test(function() {
+  a.innerHTML = a_original_innerHTML;
+  var newChild = document.createElement("p");
+  var newOption = document.createElement("option");
+  newOption.textContent = "6";
+  newChild.appendChild(newOption);
+  a.appendChild(newChild);
+  a.value = 3;
+  assert_equals(a_opts.length, 5, "Correct length");
+  assert_values_equals(a_opts, ["1","2","3","4","5"], "Correct elements inserted")
+  assert_equals(a.value, "3", "Correct value set");
+}, "Insert <p><option>6</option></p> into <select>");
+
+test(function() {
+  a.innerHTML = a_original_innerHTML;
+  var newChild = document.createElement("select");
+  var newOption = document.createElement("option");
+  newOption.textContent = "6";
+  newChild.appendChild(newOption);
+  a.appendChild(newChild);
+  a.value = 3;
+  assert_equals(a_opts.length, 5, "Correct length");
+  assert_values_equals(a_opts, ["1","2","3","4","5"], "Correct elements inserted")
+  assert_equals(a.value, "3", "Correct value set");
+}, "Insert <select><option>6</option></select> into <select>");
+
+test(function() {
+  //This tests the spec but it is probably wrong here; see bug 12665
+  a.innerHTML = a_original_innerHTML;
+  var newChild = document.createElement("optgroup");
+  var newOption = document.createElement("option");
+  newOption.textContent = "6";
+  newChild.appendChild(newOption);
+  a.appendChild(newChild);
+  a.value = 3;
+  assert_equals(a_opts.length, 6, "Correct length");
+  assert_values_equals(a_opts, ["1","2","3","4","5", "6"], "Correct elements inserted")
+  assert_equals(a.value, "3", "Correct value set");
+}, "Insert <optgroup><option>6</option></optgroup> into <select>");
+
+test(function() {
+  a.innerHTML = a_original_innerHTML;
+  var newChild = document.createElement("optgroup");
+  var newChild1 = document.createElement("optgroup");
+  var newOption = document.createElement("option");
+  newOption.textContent = "6";
+  newChild.appendChild(newChild1);
+  newChild1.appendChild(newOption);
+  a.appendChild(newChild);
+  a.value = 3;
+  assert_equals(a_opts.length, 5, "Correct length");
+  assert_values_equals(a_opts, ["1","2","3","4","5"], "Correct elements inserted")
+  assert_equals(a.value, "3", "Correct value set");
+}, "Insert <optgroup><optgroup><option>6</option></optgroup></optgroup> into <select>");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b1").value, "1");
+}, "namedItem id attribute");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b2").value, "2");
+}, "namedItem name attribute");
+
+test(function() {
+  assert_equals(b_opts.namedItem("c"), null);
+}, "namedItem doesn't match anything");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b3").value, "3");
+}, "namedItem multiple IDs");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b4").value, "5");
+}, "namedItem multiple names");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b5").value, "7");
+}, "namedItem multiple name and ID");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b6").value, "9");
+}, "namedItem multiple name and ID with multiple attributes");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b8").value, "11");
+}, "namedItem id attribute multiple attributes one element");
+
+test(function() {
+  assert_equals(b_opts.namedItem("b9").value, "11");
+}, "namedItem name attribute multiple attributes one element");
+
+test(function() {
+  assert_true(b_opts[0] instanceof HTMLOptionElement);
+  assert_equals(b_opts[0].innerHTML, "1");
+},  "HTMLOptionsCollection [index] method return the item with index");
+
+test(function() {
+  assert_true(b_opts["b2"] instanceof HTMLOptionElement);
+  assert_equals(b_opts["b2"].innerHTML, "2");
+},  "HTMLOptionsCollection [name] method return the item with name");
+
+test(function() {
+  assert_true(b_opts.item(0) instanceof HTMLOptionElement);
+  assert_equals(b_opts.item(0).innerHTML, "1");
+},  "HTMLOptionsCollection.item(index) method return the item with index");
+
+test(function() {
+  assert_true(b_opts.item("b2") instanceof HTMLOptionElement);
+  assert_equals(b_opts.item("b2").innerHTML, "1");
+},  "HTMLOptionsCollection.item(name) method return the item with index 0");
+
+test(function() {
+  var b_opts_length = b_opts.length;
+  b_opts.add(new Option("2", "2"));
+  assert_equals(b_opts[b_opts_length].value, "2");
+}, "HTMLOptionsCollection.add method insert HTMLOptionElement Option element");
+
+test(function() {
+  var b_opts_length = b_opts.length;
+  b_opts.remove(0);
+  assert_equals(b_opts.length, b_opts_length - 1);
+}, "HTMLOptionsCollection.remove method remove Option element by index");
+
+test(function() {
+  var add = document.createElement("p");
+  assert_throws_js(TypeError, function() {b_opts.add(add);});
+}, "Add non-option to collection");
+
+</script>
+<div id=log></div>

@@ -1,0 +1,34 @@
+<!doctype html>
+<title>WebSockets: sending HttpOnly cookies in ws request</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss&wpt_flags=https">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+setup({explicit_done:true})
+var cookie_id = ((new Date())-0) + '.' + Math.random();
+
+var t = async_test(function(t) {
+  var iframe = document.createElement('iframe');
+  t.add_cleanup(function() {
+    // remove cookie
+    iframe.src = 'support/set-cookie.py?'+encodeURIComponent('ws_test_'+cookie_id+'=; Path=/; HttpOnly; Expires=Sun, 06 Nov 1994 08:49:37 GMT');
+    iframe.onload = done;
+  });
+  iframe.src = 'support/set-cookie.py?'+encodeURIComponent('ws_test_'+cookie_id+'=test; Path=/; HttpOnly');
+  iframe.onload = t.step_func(function() {
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo-cookie');
+    ws.onmessage = t.step_func(function(e) {
+      ws.close();
+      ws.onclose = null;
+      assert_regexp_match(e.data, new RegExp('ws_test_'+cookie_id+'=test'));
+      t.done();
+    });
+    ws.onerror = ws.onclose = t.step_func(function(e) {assert_unreached(e.type)});
+  });
+  document.body.appendChild(iframe);
+});
+</script>

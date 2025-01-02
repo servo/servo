@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Outer SVG intrinsic size with negative size attributes</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#degenerate-ratio">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6286">
+<link rel="match" href="../../css/reference/ref-filled-green-100px-square.xht">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<img style="width: 100px; background: green;"
+     src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='-1px' height='-50px' viewBox='0 0 1 1'></svg>">

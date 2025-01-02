@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Borders should not affect snapshot position</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="border-offset-with-padding-inline-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<style>
+    * {
+        box-sizing: content-box;
+    }
+    html {
+        view-transition-name: none;
+    }
+    body {
+        margin: 0;
+    }
+
+    div {
+        position: absolute;
+    }
+
+    .inline {
+        view-transition-name: parent;
+        border: 10px solid black;
+        background: green;
+        padding: 12px;
+        position: relative;
+        left: 100px;
+        top: 40px;
+    }
+
+    ::view-transition-old(*),
+    ::view-transition-new(*),
+    ::view-transition-group(*) {
+        animation-play-state: paused;
+    }
+</style>
+<body>
+    <span class="inline">
+        ABC
+    </span>
+    <script>
+        const transition = document.startViewTransition(() => {
+            document.documentElement.classList.add("vt-new");
+        });
+        transition.ready.then(() => takeScreenshot());
+    </script>
+</body>

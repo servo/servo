@@ -1,0 +1,17 @@
+<svg width="340" height="140" viewBox="60000 70000 3400 1400"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Circle coordinates and radius specified in user units</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="match" href="circle-ref.svg" />
+  <html:meta name="fuzzy" content="maxDifference=0-53; totalPixels=0-370" />
+  <style>
+    circle {
+      cx: 62040px;
+      cy: 70560px;
+      r: 650px;
+      fill: blue;
+    }
+  </style>
+  <circle />
+</svg>

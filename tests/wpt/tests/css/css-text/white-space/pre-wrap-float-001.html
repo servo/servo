@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS test preserved spaces and floats interaction</title>
+<link rel="author" title="Koji Ishii" href="kojii@chromium.org">
+<link rel="match" href="reference/pre-wrap-float-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+html {
+  font-family: Ahem;
+  font-size: 20px;
+  line-height: 1;
+}
+.container {
+  white-space: pre-wrap;
+  width: 10ch;
+  margin-bottom: 1em;
+}
+.float {
+  float: left;
+  width: 3ch;
+  height: 2em;
+  background: orange;
+}
+</style>
+<body>
+  <div class="float"></div>
+  <div class="container">123456 123456</div>
+  <div class="float"></div>
+  <div class="container">1234567 1234567</div>
+  <div class="float"></div>
+  <div class="container">1234567  1234567</div>
+  <div class="float"></div>
+  <div class="container">1234567   1234567</div>
+  <div class="float"></div>
+  <div class="container">12345678 12345678</div>
+</body>

@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/partitioned-popins/resources/proxy-helpers.js"></script>
+<script>
+(async function() {
+  test_driver.set_test_context(window.opener);
+
+  // Step 3 (partitioned-popins/partitioned-popins.proxy-{}.tentative.sub.https.window.js)
+  window.addEventListener("message", e => {
+    switch (e.data.type) {
+      case 'cleanup':
+        // Step 6 (partitioned-popins/partitioned-popins.proxy-{}.tentative.sub.https.window.js)
+        window.opener.postMessage({type: "cleanup"}, "*");
+        window.close();
+        break;
+    }
+  });
+
+  // Step 4 (partitioned-popins/partitioned-popins.proxy-{}.tentative.sub.https.window.js)
+  window.opener.postMessage({type: "ready", message: getUsableMethods(window.opener)}, "*");
+})();
+</script>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>IDBCursor.key</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+
+<script>
+
+    function cursor_key(key)
+    {
+        var db,
+          t = async_test(document.title + " - " + key);
+
+        var open_rq = createdb(t);
+        open_rq.onupgradeneeded = function(e) {
+            db = e.target.result;
+            var objStore = db.createObjectStore("test");
+
+            objStore.add("data", key);
+        };
+
+        open_rq.onsuccess = t.step_func(function(e) {
+            var cursor_rq = db.transaction("test", "readonly", {durability: 'relaxed'})
+                              .objectStore("test")
+                              .openCursor();
+
+            cursor_rq.onsuccess = t.step_func(function(e) {
+                var cursor = e.target.result;
+                assert_equals(cursor.value, "data", "prequisite cursor.value");
+
+                assert_key_equals(cursor.key, key, 'key');
+                assert_readonly(cursor, 'key');
+
+                if (key instanceof Array) {
+                    cursor.key.push("new");
+                    key.push("new");
+
+                    assert_key_equals(cursor.key, key, 'key after array push');
+
+                    // But we can not change key (like readonly, just a bit different)
+                    cursor.key = 10;
+                    assert_key_equals(cursor.key, key, 'key after assignment');
+                }
+
+                t.done();
+            });
+        });
+    }
+
+    cursor_key(1);
+    cursor_key("key");
+    cursor_key(["my", "key"]);
+
+</script>
+
+<div id="log"></div>

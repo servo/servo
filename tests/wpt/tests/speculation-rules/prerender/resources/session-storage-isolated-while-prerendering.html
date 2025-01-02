@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="session-storage-utils.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+RunSessionStorageTest(async (isPrerendering, url, prerenderChannel, done) => {
+  if (!isPrerendering) {
+    startPrerendering(url);
+    // Wait for the message from the prerendering page.
+    assert_equals(
+        await getNextMessage(prerenderChannel),
+        'From prerendering page 1')
+
+    // Add an item to the session storage.
+    sessionStorage.setItem('set by initiator page', '1');
+
+    // Send the message to the prerendering page.
+    prerenderChannel.postMessage('From initiator page');
+
+  } else {
+    sessionStorage.setItem('set by prerendering page', '1');
+
+    // Send the message to the initiator page.
+    prerenderChannel.postMessage('From prerendering page 1');
+
+    // Wait for the message from the initiator page.
+    assert_equals(
+        await getNextMessage(prerenderChannel),
+        'From initiator page');
+
+    assert_equals(
+        getSessionStorageKeys(),
+        'set by prerendering page',
+        'The session storage item added by the initiator page after the ' +
+        'prerendering page accessed the session storage must not be visible ' +
+        'in the prerendering page.');
+    done();
+  }
+}, uid);
+</script>

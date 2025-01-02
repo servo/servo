@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<p id='location'></p>
+<div id='log'></div>
+<script>
+  document.querySelector('#location').innerHTML = window.origin;
+  let received = new Map();
+  window.onmessage = (e) => {
+    let msg = e.data + ' (from ' + e.origin + ')';
+    document.querySelector('#log').innerHTML += '<p>' + msg + '<p>';
+    if (e.data.hasOwnProperty('id')) {
+      e.source.postMessage(
+        received.get(e.data.id) ? 'RECEIVED' : 'NOT_RECEIVED', '*');
+      return;
+    }
+    if (e.data.toString() == '[object VideoFrame]') {
+      received.set(e.data.timestamp, e.data);
+    }
+  };
+</script>
+</body>
+</html>

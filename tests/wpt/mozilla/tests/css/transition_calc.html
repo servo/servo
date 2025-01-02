@@ -1,0 +1,26 @@
+<link rel='match' href='transition_calc_ref.html'>
+<style>
+.outer {
+    width: 100px;
+    height: 100px;
+}
+.inner {
+    transition: height 0s;
+    height: calc(100px + 5%);
+    width: 100px;
+    background: red;
+    display: inline-block;
+}
+.inner.active {
+    height: 200px;
+}
+</style>
+<div class=outer>
+<div class=inner id=inner></div>
+</div>
+<script>
+requestAnimationFrame(function() {
+    document.getElementById('inner').className = 'inner active';
+    requestAnimationFrame(function() {});
+});
+</script>

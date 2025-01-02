@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>ResizeObserver content-box size and scrollbars</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1733042">
+<style>
+  #scrollContainer {
+    width: 100px;
+    height: 100px;
+    /* Should be bigger than any reasonable scrollbar */
+    padding: 30px;
+    border: 10px solid blue;
+    overflow: scroll;
+    background: #818182;
+  }
+
+</style>
+<div id="scrollContainer"></div>
+<script>
+  promise_test(async function() {
+    let count = 0;
+
+    const scrollContainer = document.getElementById('scrollContainer');
+    // 20 to account for the border.
+    const scrollbarSize = scrollContainer.offsetWidth - scrollContainer.clientWidth - 20;
+    let size = await new Promise(resolve => {
+      const observer = new ResizeObserver(entries => {
+        resolve(entries[0].contentBoxSize[0]);
+      });
+      observer.observe(scrollContainer);
+    });
+
+    assert_equals(size.inlineSize, 100 - scrollbarSize);
+    assert_equals(size.blockSize, 100 - scrollbarSize);
+  });
+</script>

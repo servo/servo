@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: Test column-span:all with various display types</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  .column {
+    column-count: 1;
+    column-rule: 6px solid;
+    width: 400px;
+    outline: 1px solid black;
+  }
+  .spanner {
+    /* column-count: 1 makes this behave like a real spanner. */
+    outline: 1px solid blue;
+  }
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  </style>
+
+  <body>
+    <article class="column">
+      <div>block1</div>
+      <table class="spanner">
+        <tr>
+          <td>table as a spanner</td>
+        </tr>
+      </table>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <div class="spanner" style="display: grid;">grid as a spanner</div>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <div class="spanner" style="display: flex;">flex as a spanner</div>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <fieldset class="spanner">fieldset as a spanner</fieldset>
+      <div>block2</div>
+    </article>
+    <br>
+
+    <article class="column">
+      <div>block1</div>
+      <details open class="spanner">details as a spanner</details>
+      <div>block2</div>
+    </article>
+    <br>
+
+  </body>
+</html>

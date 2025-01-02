@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Dynamic handling of combinators</title>
+  <style type="text/css"><![CDATA[
+   #test { background: red; display: block; padding: 1em; }
+   #stub ~ div div + div > div { background: lime; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" dom" />
+ </head>
+ <body>
+
+ <div>
+
+
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      el = document.getElementById('test');
+      el.parentNode.parentNode.insertBefore(document.createElementNS('http://www.w3.org/1999/xhtml', 'div'), el.parentNode);
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+
+
+
+
+  <p> The following bar should be green. </p>
+
+  <div id="stub"></div>
+  <div></div>
+  <div><div><!-- <div/> --><div><div id="test"></div></div></div></div>
+
+ </div>
+
+</body>
+</html>

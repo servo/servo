@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover minimum role</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://www.w3.org/TR/html-aam-1.0/#att-popover">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<body>
+<script>
+async function assertRoleEquals(element,expectedRole,message) {
+  const actualRole = await test_driver.get_computed_role(element);
+  assert_equals(actualRole,expectedRole,message);
+}
+function initPopover(t) {
+  const popover = document.createElement('div');
+  t.add_cleanup(() => popover.remove());
+  document.body.appendChild(popover);
+  popover.popover = 'auto';
+  return popover;
+}
+promise_test(async (t) => {
+  const popover = initPopover(t);
+  await assertRoleEquals(popover,'none','role starts as none');
+  popover.showPopover();
+  await assertRoleEquals(popover,'group','When the popover is showing, minimum role is group');
+},'The popover attribute, on an element with no implicit role, then the element\'s role instead maps to group.');
+
+promise_test(async (t) => {
+  const popover = initPopover(t);
+  await assertRoleEquals(popover,'none','role starts as none');
+  popover.style='display:block'; // Force visible
+  assert_true(isElementVisible(popover),'element is visible due to display:block');
+  await assertRoleEquals(popover,'group','With popover attribute, when visible (even before showPopover()), role is group');
+  popover.showPopover();
+  await assertRoleEquals(popover,'group','When showing as a popover, role is still group');
+  popover.removeAttribute('style');
+  await assertRoleEquals(popover,'group','Including with style rule removed');
+},'Dynamic changes to popover attribute should change the role.');
+</script>

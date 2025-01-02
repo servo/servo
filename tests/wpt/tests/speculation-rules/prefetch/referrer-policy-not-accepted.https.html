@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Prefetch attempts with an unacceptable referrer policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<!--Split test cases due to the use of timeouts in speculation rules test utilities.-->
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-2">
+<meta name="variant" content="?3-last">
+
+<script>
+"use strict";
+
+setup(() => assertSpeculationRulesIsSupported());
+
+subsetTest(promise_test, async t => {
+  const agent = await spawnWindow(t);
+  await agent.setReferrerPolicy("unsafe-url");
+  const expectedReferrer = agent.getExecutorURL().href;
+
+  const nextURL = agent.getExecutorURL({ page: 2 });
+  await agent.forceSinglePrefetch(nextURL);
+  await agent.navigate(nextURL);
+
+  const headers = await agent.getRequestHeaders();
+  // The referrer policy restriction does not apply to same-site prefetch.
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.referer, expectedReferrer, "must send the full URL as the referrer");
+}, 'with "unsafe-url" referrer policy on same-site referring page');
+
+subsetTest(promise_test, async t => {
+  const agent = await spawnWindow(t);
+  await agent.setReferrerPolicy("unsafe-url");
+  const expectedReferrer = agent.getExecutorURL().href;
+
+  const nextURL = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+  // This prefetch attempt should be ignored.
+  await agent.forceSinglePrefetch(nextURL);
+  await agent.navigate(nextURL);
+
+  const headers = await agent.getRequestHeaders();
+  assert_not_prefetched(headers, "must not be prefetched");
+  assert_equals(headers.referer, expectedReferrer, "must send the full URL as the referrer");
+}, 'with "unsafe-url" referrer policy on cross-site referring page');
+
+subsetTest(promise_test, async t => {
+  const agent = await spawnWindow(t);
+  await agent.setReferrerPolicy("unsafe-url");
+  const expectedReferrer = agent.getExecutorURL().href;
+
+  const nextURL = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
+  // This prefetch attempt should be ignored.
+  await agent.execute_script((url) => {
+    addLink(url);
+    insertDocumentRule();
+  }, [nextURL]);
+  await new Promise(resolve => t.step_timeout(resolve, 2000));
+  await agent.navigate(nextURL);
+
+  const headers = await agent.getRequestHeaders();
+  assert_not_prefetched(headers, "must not be prefetched");
+  assert_equals(headers.referer, expectedReferrer, "must send the full URL as the referrer");
+}, 'with "unsafe-url" referrer policy on cross-site referring page with document rule');
+</script>

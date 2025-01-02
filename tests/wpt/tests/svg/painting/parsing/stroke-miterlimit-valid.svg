@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: parsing stroke-miterlimit with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeMiterlimitProperty"/>
+    <h:meta name="assert" content="stroke-miterlimit supports the full grammar 'number'"/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_value("stroke-miterlimit", "0");
+test_valid_value("stroke-miterlimit", "0.5");
+test_valid_value("stroke-miterlimit", "1");
+test_valid_value("stroke-miterlimit", "7.5");
+
+  ]]></script>
+</svg>

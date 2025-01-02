@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus ascends to parent focusgroup successfully.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<div focusgroup=inline>
+  <span id=item1 tabindex=0>item1</span>
+  <div id=item2 tabindex=-1>
+    <div>
+      <div focusgroup="extend block">
+        <span id=item3 tabindex=-1>item3</span>
+        <span id=item4 tabindex=-1>item4</span>
+      </div>
+    </div>
+  </div>
+  <span id=item5 tabindex=-1>item5</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item2 = document.getElementById("item2");
+    var item3 = document.getElementById("item3");
+
+    await focusAndKeyPress(item3, kArrowLeft);
+    assert_equals(document.activeElement, item2);
+  }, "When the focus is set on the first item of an extending focusgroup that doesn't support the axis of the arrow key pressed but the parent focusgroup does, ascend to that focusgroup. This should work whether the extending focusgroup is the child of the other focusgroup or a distant descendant.");
+
+</script>

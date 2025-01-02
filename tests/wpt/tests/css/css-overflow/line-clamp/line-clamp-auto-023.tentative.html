@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` with multiple descendants</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-023-ref.html">
+<meta name="assert" content="line-clamp: auto works well with multiple descendants">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 7lh;
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+.clamp > div {
+  /*
+   * The total border across the top and bottom of one element is 16px.
+   * The top and bottom borders across two elements add up to 32px = 1lh.
+   */
+  padding: 6px;
+  border: 2px solid black;
+  white-space: pre;
+}
+</style>
+<div class="clamp">
+<div>Line 1
+Line 2
+Line 3</div>
+<div>Line 4
+Line 5
+Line 6</div>
+<div>Line 7
+Line 8
+Line 9</div>
+</div>

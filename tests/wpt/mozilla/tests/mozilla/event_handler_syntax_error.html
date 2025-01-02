@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <meta charset="UTF-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <a id="a" onclick="{">link</a>
+  <script>
+  test(function() {
+    var a = document.getElementById("a");
+    assert_equals(a.onclick, null, "invalid onclick attribute");
+
+    document.body.setAttribute("onx", "{");
+    document.body.setAttribute("ony", "}");
+
+    assert_equals(document.body.getAttribute("onx"), "{");
+    assert_equals(document.body.getAttribute("ony"), "}");
+  });
+  </script>
+</body>
+</html>

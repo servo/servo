@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>IntersectionObserver observing an SVG &lt;g> element</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/intersection-observer-test-utils.js"></script>
+<style>
+.spacer {
+  height: calc(100vh + 100px);
+}
+</style>
+<svg viewBox="0 0 200 100" width="400">
+  <g id="target">
+    <rect x="50" y="25" width="100" height="50" fill="blue"/>
+  </g>
+</svg>
+<script>
+const viewportWidth = document.documentElement.clientWidth;
+const viewportHeight = document.documentElement.clientHeight;
+
+setup(() => {
+  window.entries = [];
+  window.target = document.getElementById("target");
+  window.targetRect = target.getBoundingClientRect();
+  window.rect = document.querySelector("#target > rect");
+});
+
+runTestCycle(function() {
+  assert_true(!!target, "target exists");
+  const observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications");
+  runTestCycle(step0, "First rAF.");
+});
+
+function step0() {
+  rect.style.transform = "translate(0, 150px)";
+  runTestCycle(step1, "descendant rect translated down by 150 units (out of SVG viewport)");
+  // The numbers in brackets are target client rect; intersection rect;
+  // and root bounds.
+  checkLastEntry(entries, 0, [
+    108, 108 + targetRect.width, 58, 58 + targetRect.height,
+    108, 108 + targetRect.width, 58, 58 + targetRect.height,
+    0, viewportWidth, 0, viewportHeight,
+    true,
+  ]);
+}
+
+function step1() {
+  rect.style.transform = "translate(0, 50px)";
+  runTestCycle(step2, "descendant rect translated down by 100 units");
+  checkLastEntry(entries, 1, [
+    108, 108 + targetRect.width, 8 + (25 + 150) * 2, 8 + (25 + 150) * 2 + targetRect.height,
+    0, 0, 0, 0,
+    0, viewportWidth, 0, viewportHeight,
+    false,
+  ]);
+}
+
+function step2() {
+  rect.style.transform = "";
+  checkLastEntry(entries, 2, [
+    108, 108 + targetRect.width, 8 + (25 + 50) * 2, 8 + (25 + 50) * 2 + targetRect.height,
+    108, 108 + targetRect.width, 8 + (25 + 50) * 2, 8 + (25 + 50) * 2 + targetRect.height / 2,
+    0, viewportWidth, 0, viewportHeight,
+    true,
+  ]);
+}
+</script>

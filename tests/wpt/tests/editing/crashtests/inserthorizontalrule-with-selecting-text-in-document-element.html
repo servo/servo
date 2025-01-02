@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const text = document.createTextNode("abc");
+  document.documentElement.appendChild(text);
+  const range = new Range();
+  range.selectNodeContents(text);
+  document.documentElement.contentEditable = "true";
+  document.execCommand("insertUnorderedList");
+  getSelection().addRange(range);
+  document.execCommand("insertHorizontalRule");
+});
+</script>
+</head>
+</html>

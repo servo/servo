@@ -1,0 +1,35 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<template>
+  <script src="resources/dummy.js?in-template"></script>
+  <link rel=stylesheet href="resources/dummy.css?in-template-1">
+  <style>
+    @import url("resources/dummy.css?in-template-2");
+  </style>
+</template>
+<script>
+  let t = async_test("Things inside templates are not preloaded");
+  window.addEventListener("load", t.step_func(function() {
+    let script = document.createElement("script");
+    script.onload = t.step_func_done(function() {
+      let entries = performance.getEntriesByType('resource');
+      let found_outside_template = false;
+      let found_in_template = [];
+      for (let entry of entries) {
+        if (entry.name.includes("outside-template")) {
+          found_outside_template = true;
+        }
+        if (entry.name.includes("in-template")) {
+          found_in_template.push(entry.name);
+        }
+      }
+      assert_equals(found_in_template.length, 0, "Should not have preloaded stuff inside template element, got: " + found_in_template.join(", "));
+      assert_true(found_outside_template, "Should have loaded script outside template element");
+    });
+    // The test is a bit racy because it expects that the first load ends
+    // before this one. We try to make it the case via the tickle mechanism.
+    script.src = "resources/dummy.js?outside-template&pipe=trickle(d1)";
+    document.body.appendChild(script);
+  }));
+</script>

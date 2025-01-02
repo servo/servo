@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Properly escape CSS identifiers</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://crbug.com/343000522">
+    <style id="sheet">
+      @import 'abc' layer(\{\});
+      @counter-style abc\{\}oops {}
+      @font-feature-values abc\{\}oops {}
+      @font-palette-values --abc\{\}oops {}
+      @keyframes abc\{\}oops {}
+      @layer abc\;oops\!;
+    </style>
+  </head>
+  <body>
+  <script>
+    test(()=>{
+      const rules = Array.from(document.styleSheets[0].cssRules);
+      const text = rules.map(r => r.cssText).join('\n');
+      sheet.innerText = text;
+
+      const new_rules = Array.from(document.styleSheets[0].cssRules);
+      const new_text = new_rules.map(r => r.cssText).join('\n');
+      assert_equals(new_text, text);
+    }, 'Rules must be the same after serialization round-trip, even with escaped characters');
+  </script>

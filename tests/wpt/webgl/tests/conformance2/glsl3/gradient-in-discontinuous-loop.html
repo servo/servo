@@ -1,0 +1,77 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Short circuit in loop condition test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+  precision highp float;
+  in vec4 aPosition;
+
+  void main() {
+    gl_Position = aPosition;
+  }
+</script>
+<script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+precision highp int;
+
+uniform vec4      iMouse;
+uniform sampler2D iChannel0;
+
+float map(float p)
+{
+    return texture(iChannel0, vec2(p, p), 0.0).y;
+}
+
+out vec4 outColor;
+
+void main(void)
+{
+    float sum = 0.0;
+
+    for(int i=0; i<1000; i++)
+    {
+        if( sum > 0.99 ) break;
+                float p = iMouse.x + gl_FragCoord.x;
+        sum = map(p);
+    }
+
+    outColor = vec4(sum);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("Test an HLSL compiler freeze on a gradient inside a discontinuous loop.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+wtu.setupUnitQuad(gl);
+
+if (!gl) {
+    testFailed("context does not exist");
+} else {
+    var program = wtu.setupProgram(gl, ["vertex-shader", "fragment-shader"], ['aPosition'], undefined, true);
+    if (!program) {
+        testFailed('Program compilation failed');
+    }
+}
+var successfullyParsed = true;
+finishTest();
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Geolocation Sensor (https://w3c.github.io/geolocation-sensor/)
+
+[SecureContext,
+ Exposed=(DedicatedWorker, Window)]
+interface GeolocationSensor : Sensor {
+  constructor(optional GeolocationSensorOptions options = {});
+  static Promise<GeolocationSensorReading> read(optional ReadOptions readOptions = {});
+  readonly attribute unrestricted double? latitude;
+  readonly attribute unrestricted double? longitude;
+  readonly attribute unrestricted double? altitude;
+  readonly attribute unrestricted double? accuracy;
+  readonly attribute unrestricted double? altitudeAccuracy;
+  readonly attribute unrestricted double? heading;
+  readonly attribute unrestricted double? speed;
+};
+
+dictionary GeolocationSensorOptions : SensorOptions {
+  // placeholder for GeolocationSensor-specific options
+};
+
+dictionary ReadOptions : GeolocationSensorOptions {
+  AbortSignal? signal;
+};
+
+dictionary GeolocationSensorReading {
+  DOMHighResTimeStamp? timestamp;
+  double? latitude;
+  double? longitude;
+  double? altitude;
+  double? accuracy;
+  double? altitudeAccuracy;
+  double? heading;
+  double? speed;
+};

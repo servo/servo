@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Testcase #1 for bug 1330962</title>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style type="text/css">
+html,body {
+  color:black; background-color:white; font:16px/1 Ahem; padding:0; margin:0;
+}
+* { font:16px/1 Ahem; }
+
+.block { display: block; }
+.grid { display: grid; }
+
+.no-theme {
+     -moz-appearance: none;
+  -webkit-appearance: none;
+          appearance: none;
+  padding: 20px 0;
+  border: none;
+  background: white;
+}
+
+.scroll {
+  overflow-y: scroll;
+}
+
+.no-scroll {
+  overflow: visible;
+}
+
+  </style>
+</head>
+<body>
+
+<div>
+  <div style="display:inline-grid">
+    A<img class="block" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAEElEQVQoz2NgGAWjYBTAAAADEAABaJFtwwAAAABJRU5ErkJggg%3D%3D">
+  </div>
+  B
+</div>
+
+<div>
+  <div style="display:inline-grid">
+    A
+    <input type="image" class="block" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAEElEQVQoz2NgGAWjYBTAAAADEAABaJFtwwAAAABJRU5ErkJggg%3D%3D">
+  </div>
+  B
+</div>
+
+<div>
+  <div style="display:inline-block">
+    A<br>
+    <div style="display:inline-block"><input type="text" value="text"></div>
+  </div>
+  B
+</div>
+
+<div>
+  <div style="display:inline-block">
+    A<br>
+    <div style="display:inline-block"><input type="text" value="text"></div>
+  </div>
+  B
+</div>
+
+<div>
+  <div style="display:inline-block">
+    A<br>
+    <div style="display:inline-block"><input type="text"></div>
+  </div>
+  B
+</div>
+
+<div>
+  <div style="display:inline-block">
+    A<br>
+    <div style="display:inline-block"><input class="no-theme" type="text" value="text"></div>
+  </div>
+  B
+</div>
+
+</body>
+</html>

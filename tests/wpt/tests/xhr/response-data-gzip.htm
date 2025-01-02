@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: GZIP response was correctly inflated</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://dvcs.w3.org/hg/xhr/raw-file/tip/Overview.html#the-send()-method" data-tested-assertations="following::p[contains(text(),'content-encodings')]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function request(input) {
+        var test = async_test();
+        test.step(function() {
+          var client = new XMLHttpRequest()
+
+          client.open("POST", "resources/gzip.py", false);
+
+          client.onreadystatechange = test.step_func(function () {
+              if (client.readyState === 4) {
+                  var len = parseInt(client.getResponseHeader('content-length'), 10);
+
+                  assert_equals(client.getResponseHeader('content-encoding'), 'gzip');
+                  assert_true(len < input.length);
+                  assert_equals(client.responseText, input);
+                  test.done();
+              }
+          });
+
+          client.send(input);
+        }, document.title);
+      }
+
+      var wellCompressableData = '';
+      for (var i = 0; i < 500; i++) {
+          wellCompressableData += 'foofoofoofoofoofoofoo';
+      }
+
+      request(wellCompressableData);
+    </script>
+  </body>
+</html>

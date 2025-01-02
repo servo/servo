@@ -1,0 +1,16 @@
+<!doctype html>
+<title>loop in array in structured clone</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var x = [];
+  x[0] = x;
+  postMessage(x, '*');
+  onmessage = this.step_func(function(e) {
+    assert_equals(e.data, e.data[0]);
+    this.done();
+  });
+});
+</script>

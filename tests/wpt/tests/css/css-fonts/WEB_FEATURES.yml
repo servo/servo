@@ -1,0 +1,33 @@
+features:
+- name: font-palette
+  files:
+  - font-palette.html
+  - font-palette-*
+  - palette-values-rule-*
+- name: font-size-adjust
+  files:
+  - font-size-adjust-*
+  - size-adjust-02.html
+  - size-adjust-03.html
+- name: font-synthesis
+  files:
+  - font-synthesis-0*.html
+- name: font-synthesis-position
+  files:
+  - font-synthesis-position*
+- name: font-synthesis-small-caps
+  files:
+  - font-synthesis-small-caps*
+- name: font-synthesis-style
+  files:
+  - font-synthesis-style*
+- name: font-synthesis-weight
+  files:
+  - font-synthesis-weight*
+- name: font-variant-alternates
+  files:
+  - alternates-order.html
+  - font-variant-alternates-*
+- name: font-variant-position
+  files:
+  - font-variant-position-*

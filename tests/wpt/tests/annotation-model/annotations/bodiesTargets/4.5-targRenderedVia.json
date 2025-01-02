@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4.5-targRenderedVia.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Specific Resource target  may include renderedVia key with one or more values.",
+    "title": "Implements **Specific Resource target _renderedVia_ key** which has one or more values - [model 4.5](https://www.w3.org/TR/annotation-model/#rendering-software)",
+    "description": "True when Annotation includes one or more Specific Resource targets, one or more of which include renderedVia key with one or more values. (Section 4.4)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "specificResource.json#/definitions/renderedViaDetected" },
+                        { "$ref": "specificResource.json#/definitions/itemRenderedViaPropertyDetected" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "specificResource.json#/definitions/renderedViaDetected" },
+                                  { "$ref": "specificResource.json#/definitions/itemRenderedViaPropertyDetected" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     },
+     "required": [ "target" ]
+}

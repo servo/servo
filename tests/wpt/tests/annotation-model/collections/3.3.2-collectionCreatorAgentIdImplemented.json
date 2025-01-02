@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-collectionCreatorAgentIdImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Id for Annotation Collection Creator (Agent) not found or more than 1 found. Agents should have exactly one id of format uri.",
+  "title": "Implements Annotation Collection-level creator (Agent) **_id_ key** with **single value** that is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when type for Annotation Collection Creator (Agent) has exactly one id (Section 3.3.2)",
+  "properties":
+  {  "creator":
+    { "oneOf":
+      [
+      { "$ref": "id.json#/definitions/idValueFound" },
+      { "type": "array",
+        "minItems": 1,
+        "not":
+        { "items": { "not": { "$ref": "id.json#/definitions/idValueFound" } } }
+      }
+      ]
+    }
+  },
+  "required": ["creator"]
+}

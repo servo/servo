@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    margin: 0;
+}
+
+.testcase {
+    position: absolute;
+}
+
+.testcase div {
+    background-color: green;
+}
+</style>
+</head>
+<body>
+This test passes if no red is showing.
+
+<div style="position: relative; background-color: transparent;">
+
+<div class="testcase" style="top:0; left: 0">
+    <div style="width: 100px; height: 50px"></div>
+    <div style="width: 100px; overflow-x: scroll"></div>
+    <div style="width: 100px; height: 10px; position: relative; z-index: -1"></div>
+</div>
+
+<div class="testcase" style="height: 50px; writing-mode: vertical-lr; top: 0; left: 150px">
+    <div style="width: 100px"></div>
+    <div style="overflow-y: scroll"></div>
+    <div style="width: 10px; position: relative; z-index: -1"></div>
+</div>
+
+<div class="testcase" style="height: 50px; writing-mode: vertical-lr; top: 0; left: 300px">
+    <div style="width: 100px"></div>
+    <div style="overflow-y: scroll"></div>
+    <div style="width: 10px; position: relative; z-index: -1"></div>
+</div>
+
+<div class="testcase" style="top: 0; left: 450px">
+    <div style="width: 100px; height: 50px"></div>
+    <div style="width: 100px; overflow-x: scroll"></div>
+    <div style="width: 100px; height: 10px; position: relative; z-index: -1"></div>
+</div>
+
+<div class="testcase" style="top: 100px; left: 0">
+    <div style="width: 100px; height: 50px; "></div>
+    <div style="width: 100px; overflow-x: scroll"></div>
+    <div style="width: 100px; height: 10px; position: relative; z-index: -1"></div>
+</div>
+
+<div class="testcase" style="height: 50px; writing-mode: vertical-lr; top: 100px; left: 150px">
+    <div style="width: 90px; overflow-y: scroll"></div>
+    <div style="width: 10px; position: relative; z-index: -1"></div>
+</div>
+
+<div class="testcase" style="top: 100px; left: 300px">
+    <div style="width: 100px; height: 40px; overflow-x: scroll"></div>
+    <div style="width: 100px; height: 10px; position: relative; z-index: -1"></div>
+</div>
+
+<div class="testcase" style="height: 50px; writing-mode: vertical-lr; top: 100px; left: 450px">
+    <div style="width: 100px"></div>
+    <div style="overflow-y: scroll"></div>
+    <div style="width: 10px; position: relative; z-index: -1"></div>
+</div>
+
+
+</body>
+</html>

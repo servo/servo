@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<button></button>
+<div id="foo"></div>
+<p data-foo=""></p>
+
+<script>
+test(function() {
+    var buttonElement = document.getElementsByTagName('button')[0];
+    assert_equals(buttonElement.hasAttributes(), false, 'hasAttributes() on empty element must return false.');
+
+    var emptyDiv = document.createElement('div');
+    assert_equals(emptyDiv.hasAttributes(), false, 'hasAttributes() on dynamically created empty element must return false.');
+
+}, 'element.hasAttributes() must return false when the element does not have attribute.');
+
+test(function() {
+    var divWithId = document.getElementById('foo');
+    assert_equals(divWithId.hasAttributes(), true, 'hasAttributes() on element with id attribute must return true.');
+
+    var divWithClass = document.createElement('div');
+    divWithClass.setAttribute('class', 'foo');
+    assert_equals(divWithClass.hasAttributes(), true, 'hasAttributes() on dynamically created element with class attribute must return true.');
+
+    var pWithCustomAttr = document.getElementsByTagName('p')[0];
+    assert_equals(pWithCustomAttr.hasAttributes(), true, 'hasAttributes() on element with custom attribute must return true.');
+
+    var divWithCustomAttr = document.createElement('div');
+    divWithCustomAttr.setAttribute('data-custom', 'foo');
+    assert_equals(divWithCustomAttr.hasAttributes(), true, 'hasAttributes() on dynamically created element with custom attribute must return true.');
+
+}, 'element.hasAttributes() must return true when the element has attribute.');
+
+</script>
+</body>

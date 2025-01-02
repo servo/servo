@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#target {
+  width: 0px;
+  height: 0px;
+}
+#container {
+  overflow: clip;
+}
+</style>
+
+<div id="container">
+  <div id='target'></div>
+</div>
+
+<script>
+var entries = [];
+
+runTestCycle(function() {
+  var target = document.getElementById('target');
+  assert_true(!!target, "target exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF should generate a notification.");
+}, "Ensure that a zero-area target intersecting root generates a notification with intersectionRatio == 1");
+
+function step0() {
+  assert_equals(entries.length, 1, "One notification.");
+  assert_equals(entries[0].intersectionRatio, 1, "intersectionRatio == 1");
+}
+</script>

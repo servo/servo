@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test loading of 'display: none' image for print</title>
+
+<link rel="help" href="https://crbug.com/41477900">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-object-element">
+<!--
+  Based on step 2 of the spec algorithm:
+  "... if the element is not being rendered,
+  then jump to the step below labeled fallback."
+-->
+
+<link rel="match" href="object-image-display-none-loading-for-print-ref.html">
+
+<style>
+  #target {
+    display: none;
+  }
+</style>
+
+<script>
+  function obj_onload() {
+    const p = document.createElement('p');
+    p.innerHTML = `FAIL: Object image was loaded.`;
+    p.style.color = 'red';
+    document.body.appendChild(p);
+  }
+</script>
+
+<p>
+  Object image not displayed should not load.
+</p>
+
+<div>
+<object
+  data="/images/red.png"
+  id="target"
+  onload="obj_onload();"
+  type="image/png"
+></object>
+</div>

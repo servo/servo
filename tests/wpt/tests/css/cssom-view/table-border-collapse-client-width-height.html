@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSSOM Test: Table with border-collapse: collapse's clientWidth/Height</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/tables.html#model" />
+<link rel="help" href="https://www.w3.org/TR/CSS2/tables.html#collapsing-borders" />
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  table {
+    border-collapse: collapse;
+  }
+  td {
+    border: 8px solid #faa;
+  }
+</style>
+<table>
+  <tbody>
+    <tr>
+      <td>a</td>
+      <td>b</td>
+    </tr>
+    <tr>
+      <td>c</td>
+      <td>d</td>
+    </tr>
+  </tbody>
+</table>
+<script type="text/javascript">
+  var table = document.getElementsByTagName('table')[0];
+  test(function() {
+    assert_equals(table.clientWidth, table.offsetWidth);
+    assert_equals(table.clientHeight, table.offsetHeight);
+  }, "Table's clientWidth/Height and OffsetWidth/Height should be the same");
+</script>

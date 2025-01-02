@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>light-dark() computes to the actual value, like system colors</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7561">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+.square {
+  width: 100px;
+  height: 100px;
+  color-scheme: dark;
+  background-color: currentColor;
+}
+.container {
+  color-scheme: light;
+  color: light-dark(green, red);
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+  <div class="square"></div>
+</div>

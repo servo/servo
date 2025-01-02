@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style>
+    text {
+      font-size: 50px;
+    }
+  </style>
+  <defs>
+    <path id="path" d="M100, 120 300, 120"/>
+  </defs>
+  <text x="100" y="60" opacity="0.5">
+    <tspan>tspan</tspan>
+  </text>
+  <text opacity="0.5">
+    <textPath href="#path">textPath</textPath>
+  </text>
+  <text x="100" y="180" opacity="0.5">
+    <a href="https://www.w3.org"><tspan>link</tspan></a>
+  </text>
+  <text x="100" y="240" opacity="0.5">
+    <a href="https://www.w3.org"><tspan>another link</tspan></a>
+  </text>
+  <text x="100" y="300" opacity="0.25" font-family="Ahem">
+    <tspan>XXXX</tspan>
+  </text>
+</svg>

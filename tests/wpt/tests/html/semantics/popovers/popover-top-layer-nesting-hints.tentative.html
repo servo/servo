@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://open-ui.org/components/popover-hint.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="resources/popover-utils.js"></script>
+<script src="resources/popover-top-layer-nesting.js"></script>
+
+<div id=tests>
+  <div> Single popover=hint ancestor
+    <div popover=hint class=target data-stay-open=true></div>
+  </div>
+
+  <div> Nested auto/hint ancestors
+    <div popover=auto data-stay-open=true>
+      <div popover=hint class=target data-stay-open=true></div>
+    </div>
+  </div>
+
+  <div> Nested auto/hint ancestors, target is auto
+    <div popover=auto class=target data-stay-open=true>
+      <div popover=hint data-stay-open=false></div>
+    </div>
+  </div>
+
+  <div> Unrelated hint, target=hint
+    <div popover=auto data-stay-open=true></div>
+    <div popover=hint class=target data-stay-open=true></div>
+  </div>
+
+  <div> Unrelated hint, target=auto
+    <div popover=auto class=target data-stay-open=true></div>
+    <div popover=hint data-stay-open=false></div>
+  </div>
+</div>
+
+<script>
+  const tests = Array.from(document.querySelectorAll('#tests>div'));
+  runTopLayerTests(tests);
+</script>

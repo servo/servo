@@ -1,0 +1,443 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! Namespaces and ids shared by many crates in Servo.
+
+#![allow(clippy::new_without_default)]
+
+use std::cell::Cell;
+use std::fmt;
+use std::num::NonZeroU32;
+use std::sync::{Arc, LazyLock};
+
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use malloc_size_of::malloc_size_of_is_0;
+use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::Mutex;
+use serde::{Deserialize, Serialize};
+use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
+
+/// Asserts the size of a type at compile time.
+macro_rules! size_of_test {
+    ($t: ty, $expected_size: expr) => {
+        #[cfg(target_pointer_width = "64")]
+        ::static_assertions::const_assert_eq!(std::mem::size_of::<$t>(), $expected_size);
+    };
+}
+
+macro_rules! namespace_id_method {
+    ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {
+        fn $func_name(&mut $self) -> $func_return_data_type {
+            $func_return_data_type {
+                namespace_id: $self.id,
+                index: $index_name($self.next_index()),
+            }
+        }
+    };
+}
+
+macro_rules! namespace_id {
+    ($id_name:ident, $index_name:ident, $display_prefix:literal) => {
+        #[derive(
+            Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+        )]
+        pub struct $index_name(pub NonZeroU32);
+        malloc_size_of_is_0!($index_name);
+
+        #[derive(
+            Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+        )]
+        pub struct $id_name {
+            pub namespace_id: PipelineNamespaceId,
+            pub index: $index_name,
+        }
+
+        impl fmt::Debug for $id_name {
+            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                let PipelineNamespaceId(namespace_id) = self.namespace_id;
+                let $index_name(index) = self.index;
+                write!(fmt, "({},{})", namespace_id, index.get())
+            }
+        }
+
+        impl fmt::Display for $id_name {
+            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                write!(fmt, "{}{:?}", $display_prefix, self)
+            }
+        }
+    };
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+/// Request a pipeline-namespace id from the constellation.
+pub struct PipelineNamespaceRequest(pub IpcSender<PipelineNamespaceId>);
+
+/// A per-process installer of pipeline-namespaces.
+pub struct PipelineNamespaceInstaller {
+    request_sender: Option<IpcSender<PipelineNamespaceRequest>>,
+    namespace_sender: IpcSender<PipelineNamespaceId>,
+    namespace_receiver: IpcReceiver<PipelineNamespaceId>,
+}
+
+impl Default for PipelineNamespaceInstaller {
+    fn default() -> Self {
+        let (namespace_sender, namespace_receiver) =
+            ipc::channel().expect("PipelineNamespaceInstaller ipc channel failure");
+        Self {
+            request_sender: None,
+            namespace_sender,
+            namespace_receiver,
+        }
+    }
+}
+
+impl PipelineNamespaceInstaller {
+    /// Provide a request sender to send requests to the constellation.
+    pub fn set_sender(&mut self, sender: IpcSender<PipelineNamespaceRequest>) {
+        self.request_sender = Some(sender);
+    }
+
+    /// Install a namespace, requesting a new Id from the constellation.
+    pub fn install_namespace(&self) {
+        match self.request_sender.as_ref() {
+            Some(sender) => {
+                let _ = sender.send(PipelineNamespaceRequest(self.namespace_sender.clone()));
+                let namespace_id = self
+                    .namespace_receiver
+                    .recv()
+                    .expect("The constellation to make a pipeline namespace id available");
+                PipelineNamespace::install(namespace_id);
+            },
+            None => unreachable!("PipelineNamespaceInstaller should have a request_sender setup"),
+        }
+    }
+}
+
+/// A per-process unique pipeline-namespace-installer.
+/// Accessible via PipelineNamespace.
+///
+/// Use PipelineNamespace::set_installer_sender to initiate with a sender to the constellation,
+/// when a new process has been created.
+///
+/// Use PipelineNamespace::fetch_install to install a unique pipeline-namespace from the calling thread.
+static PIPELINE_NAMESPACE_INSTALLER: LazyLock<Arc<Mutex<PipelineNamespaceInstaller>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(PipelineNamespaceInstaller::default())));
+
+/// Each pipeline ID needs to be unique. However, it also needs to be possible to
+/// generate the pipeline ID from an iframe element (this simplifies a lot of other
+/// code that makes use of pipeline IDs).
+///
+/// To achieve this, each pipeline index belongs to a particular namespace. There is
+/// a namespace for the constellation thread, and also one for every script thread.
+///
+/// A namespace can be installed for any other thread in a process
+/// where an pipeline-installer has been initialized.
+///
+/// This allows pipeline IDs to be generated by any of those threads without conflicting
+/// with pipeline IDs created by other script threads or the constellation. The
+/// constellation is the only code that is responsible for creating new *namespaces*.
+/// This ensures that namespaces are always unique, even when using multi-process mode.
+///
+/// It may help conceptually to think of the namespace ID as an identifier for the
+/// thread that created this pipeline ID - however this is really an implementation
+/// detail so shouldn't be relied upon in code logic. It's best to think of the
+/// pipeline ID as a simple unique identifier that doesn't convey any more information.
+#[derive(Clone, Copy)]
+pub struct PipelineNamespace {
+    id: PipelineNamespaceId,
+    index: u32,
+}
+
+impl PipelineNamespace {
+    /// Install a namespace for a given Id.
+    pub fn install(namespace_id: PipelineNamespaceId) {
+        PIPELINE_NAMESPACE.with(|tls| {
+            assert!(tls.get().is_none());
+            tls.set(Some(PipelineNamespace {
+                id: namespace_id,
+                index: 0,
+            }));
+        });
+    }
+
+    /// Setup the pipeline-namespace-installer, by providing it with a sender to the constellation.
+    /// Idempotent in single-process mode.
+    pub fn set_installer_sender(sender: IpcSender<PipelineNamespaceRequest>) {
+        PIPELINE_NAMESPACE_INSTALLER.lock().set_sender(sender);
+    }
+
+    /// Install a namespace in the current thread, without requiring having a namespace Id ready.
+    /// Panics if called more than once per thread.
+    pub fn auto_install() {
+        // Note that holding the lock for the duration of the call is irrelevant to performance,
+        // since a thread would have to block on the ipc-response from the constellation,
+        // with the constellation already acting as a global lock on namespace ids,
+        // and only being able to handle one request at a time.
+        //
+        // Hence, any other thread attempting to concurrently install a namespace
+        // would have to wait for the current call to finish, regardless of the lock held here.
+        PIPELINE_NAMESPACE_INSTALLER.lock().install_namespace();
+    }
+
+    fn next_index(&mut self) -> NonZeroU32 {
+        self.index += 1;
+        NonZeroU32::new(self.index).expect("pipeline id index wrapped!")
+    }
+
+    namespace_id_method! {next_pipeline_id, PipelineId, self, PipelineIndex}
+    namespace_id_method! {next_browsing_context_id, BrowsingContextId, self, BrowsingContextIndex}
+    namespace_id_method! {next_history_state_id, HistoryStateId, self, HistoryStateIndex}
+    namespace_id_method! {next_message_port_id, MessagePortId, self, MessagePortIndex}
+    namespace_id_method! {next_message_port_router_id, MessagePortRouterId, self, MessagePortRouterIndex}
+    namespace_id_method! {next_broadcast_channel_router_id, BroadcastChannelRouterId, self, BroadcastChannelRouterIndex}
+    namespace_id_method! {next_service_worker_id, ServiceWorkerId, self, ServiceWorkerIndex}
+    namespace_id_method! {next_service_worker_registration_id, ServiceWorkerRegistrationId,
+    self, ServiceWorkerRegistrationIndex}
+    namespace_id_method! {next_blob_id, BlobId, self, BlobIndex}
+}
+
+thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = const { Cell::new(None) });
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct PipelineNamespaceId(pub u32);
+
+namespace_id! {PipelineId, PipelineIndex, "Pipeline"}
+
+size_of_test!(PipelineId, 8);
+size_of_test!(Option<PipelineId>, 8);
+
+impl PipelineId {
+    pub fn new() -> PipelineId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let new_pipeline_id = namespace.next_pipeline_id();
+            tls.set(Some(namespace));
+            new_pipeline_id
+        })
+    }
+
+    pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
+        ExternalScrollId(0, self.into())
+    }
+}
+
+impl From<WebRenderPipelineId> for PipelineId {
+    #[allow(unsafe_code)]
+    fn from(pipeline: WebRenderPipelineId) -> Self {
+        let WebRenderPipelineId(namespace_id, index) = pipeline;
+        unsafe {
+            PipelineId {
+                namespace_id: PipelineNamespaceId(namespace_id),
+                index: PipelineIndex(NonZeroU32::new_unchecked(index)),
+            }
+        }
+    }
+}
+
+impl From<PipelineId> for WebRenderPipelineId {
+    fn from(value: PipelineId) -> Self {
+        let PipelineNamespaceId(namespace_id) = value.namespace_id;
+        let PipelineIndex(index) = value.index;
+        WebRenderPipelineId(namespace_id, index.get())
+    }
+}
+
+impl From<&PipelineId> for WebRenderPipelineId {
+    fn from(value: &PipelineId) -> Self {
+        (*value).into()
+    }
+}
+
+namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
+
+size_of_test!(BrowsingContextId, 8);
+size_of_test!(Option<BrowsingContextId>, 8);
+
+impl BrowsingContextId {
+    pub fn new() -> Self {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let new_browsing_context_id = namespace.next_browsing_context_id();
+            tls.set(Some(namespace));
+            new_browsing_context_id
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct BrowsingContextGroupId(pub u32);
+impl fmt::Display for BrowsingContextGroupId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BrowsingContextGroup{:?}", self)
+    }
+}
+
+thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> =
+    const { Cell::new(None) });
+
+#[derive(
+    Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
+pub type WebViewId = TopLevelBrowsingContextId;
+
+size_of_test!(TopLevelBrowsingContextId, 8);
+size_of_test!(Option<TopLevelBrowsingContextId>, 8);
+
+impl fmt::Debug for TopLevelBrowsingContextId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TopLevel{:?}", self.0)
+    }
+}
+
+impl fmt::Display for TopLevelBrowsingContextId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TopLevel{}", self.0)
+    }
+}
+
+impl TopLevelBrowsingContextId {
+    pub fn new() -> TopLevelBrowsingContextId {
+        TopLevelBrowsingContextId(BrowsingContextId::new())
+    }
+
+    /// Each script and layout thread should have the top-level browsing context id installed,
+    /// since it is used by crash reporting.
+    pub fn install(id: TopLevelBrowsingContextId) {
+        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.set(Some(id)))
+    }
+
+    pub fn installed() -> Option<TopLevelBrowsingContextId> {
+        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.get())
+    }
+}
+
+impl From<TopLevelBrowsingContextId> for BrowsingContextId {
+    fn from(id: TopLevelBrowsingContextId) -> BrowsingContextId {
+        id.0
+    }
+}
+
+impl PartialEq<TopLevelBrowsingContextId> for BrowsingContextId {
+    fn eq(&self, rhs: &TopLevelBrowsingContextId) -> bool {
+        self.eq(&rhs.0)
+    }
+}
+
+impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
+    fn eq(&self, rhs: &BrowsingContextId) -> bool {
+        self.0.eq(rhs)
+    }
+}
+
+namespace_id! {MessagePortId, MessagePortIndex, "MessagePort"}
+
+impl MessagePortId {
+    pub fn new() -> MessagePortId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_message_port_id = namespace.next_message_port_id();
+            tls.set(Some(namespace));
+            next_message_port_id
+        })
+    }
+}
+
+namespace_id! {MessagePortRouterId, MessagePortRouterIndex, "MessagePortRouter"}
+
+impl MessagePortRouterId {
+    pub fn new() -> MessagePortRouterId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_message_port_router_id = namespace.next_message_port_router_id();
+            tls.set(Some(namespace));
+            next_message_port_router_id
+        })
+    }
+}
+
+namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex, "BroadcastChannelRouter"}
+
+impl BroadcastChannelRouterId {
+    pub fn new() -> BroadcastChannelRouterId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_broadcast_channel_router_id = namespace.next_broadcast_channel_router_id();
+            tls.set(Some(namespace));
+            next_broadcast_channel_router_id
+        })
+    }
+}
+
+namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
+
+impl ServiceWorkerId {
+    pub fn new() -> ServiceWorkerId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_service_worker_id = namespace.next_service_worker_id();
+            tls.set(Some(namespace));
+            next_service_worker_id
+        })
+    }
+}
+
+namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
+
+impl ServiceWorkerRegistrationId {
+    pub fn new() -> ServiceWorkerRegistrationId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_service_worker_registration_id =
+                namespace.next_service_worker_registration_id();
+            tls.set(Some(namespace));
+            next_service_worker_registration_id
+        })
+    }
+}
+
+namespace_id! {BlobId, BlobIndex, "Blob"}
+
+impl BlobId {
+    pub fn new() -> BlobId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_blob_id = namespace.next_blob_id();
+            tls.set(Some(namespace));
+            next_blob_id
+        })
+    }
+}
+
+namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
+
+impl HistoryStateId {
+    pub fn new() -> HistoryStateId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_history_state_id = namespace.next_history_state_id();
+            tls.set(Some(namespace));
+            next_history_state_id
+        })
+    }
+}
+
+// We provide ids just for unit testing.
+pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
+#[allow(unsafe_code)]
+pub const TEST_PIPELINE_INDEX: PipelineIndex =
+    unsafe { PipelineIndex(NonZeroU32::new_unchecked(5678)) };
+pub const TEST_PIPELINE_ID: PipelineId = PipelineId {
+    namespace_id: TEST_NAMESPACE,
+    index: TEST_PIPELINE_INDEX,
+};
+#[allow(unsafe_code)]
+pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
+    unsafe { BrowsingContextIndex(NonZeroU32::new_unchecked(8765)) };
+pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
+    namespace_id: TEST_NAMESPACE,
+    index: TEST_BROWSING_CONTEXT_INDEX,
+};

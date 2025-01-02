@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Height using inches with a nominal value, 3in</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-08 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+		<link rel="match" href="height-061-ref.xht" />
+
+        <meta name="assert" content="The 'height' property sets a nominal length value in inches." />
+        <style type="text/css">
+            div
+            {
+                position: relative;
+            }
+            #div2
+            {
+                background: black;
+                height: 3in;
+                width: 1in;
+            }
+            #div3
+            {
+                border-top: 3in solid black;
+                left: 100px;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if 2 black rectangles have the same height.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

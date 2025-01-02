@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scrollsnapchange events</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/user-scroll-common.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+</head>
+
+<body>
+  <style type='text/css'>
+    :root {
+      margin: 0px;
+      padding: 0px;
+      scroll-snap-type: both mandatory;
+    }
+
+    div {
+      position: absolute;
+      margin: 0px;
+    }
+
+    #spacer {
+      width: 200vw;
+      height: 200vh;
+    }
+
+    .snap_point {
+      width: 40vw;
+      height: 40vh;
+      scroll-snap-align: start;
+    }
+
+    #snap_point_1 {
+      left: 0px;
+      top: 0px;
+      background-color: red;
+    }
+
+    #snap_point_2 {
+      top: 35vh;
+      left: 35vw;
+      background-color: orange;
+    }
+
+    #snap_point_3 {
+      left: 70vw;
+      top: 70vh;
+      background-color: blue;
+    }
+  </style>
+  <div id="spacer"></div>
+  <div id="snap_point_1" class="snap_point"></div>
+  <div id="snap_point_2" class="snap_point"></div>
+  <div id="snap_point_3" class="snap_point"></div>
+  <script>
+    const scroller = document.scrollingElement;
+    const snap_point_2 = document.getElementById("snap_point_2");
+    const snap_point_1 = document.getElementById("snap_point_1");
+    const offset_to_snap_point_2 = {
+      x: snap_point_2.offsetLeft,
+      y: snap_point_2.offsetTop
+    };
+
+    // Touch scroll test.
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const start_pos = {
+        x: scroller.clientWidth / 2,
+        y: scroller.clientHeight / 2,
+      };
+      const end_pos = { x: 0, y: 0 };
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          await snap_event_touch_scroll_helper(start_pos, end_pos);
+        },
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
+        expected_scroll_offsets: {
+          x: offset_to_snap_point_2.x,
+          y: offset_to_snap_point_2.y,
+        }
+      };
+      await test_scrollsnapchange(t, test_data);
+    }, "scrollsnapchange event fires after snap target changes on touch scroll");
+
+    // Wheel scroll test.
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          await new test_driver.Actions().scroll(0, 0,
+              offset_to_snap_point_2.x,
+              offset_to_snap_point_2.y,
+            { origin: scroller }).send();
+      },
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
+        expected_scroll_offsets: {
+          x: offset_to_snap_point_2.x,
+          y: offset_to_snap_point_2.y,
+        }
+      };
+      await test_scrollsnapchange(t, test_data);
+    }, "scrollsnapchange event fires after snap target changes on wheel scroll");
+
+    // Scrollbar drag test.
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      // Skip test on platforms that do not have a visible scrollbar (e.g.
+      // overlay scrollbar).
+      const scrollbar_width = window.innerWidth -
+          document.documentElement.clientWidth;
+      if (scrollbar_width == 0) {
+        return;
+      }
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          const scrollbar_to_scroller_ratio =
+              getScrollbarToScrollerRatio(document.documentElement);
+          // Scroll by just over half of the top box's height.
+          const drag_amt = (offset_to_snap_point_2.y / 2 + 1) *
+              scrollbar_to_scroller_ratio;
+          await snap_event_scrollbar_drag_helper(scroller, scrollbar_width,
+                                                  drag_amt);
+        },
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_1 },
+        expected_scroll_offsets: {
+          x: 0,
+          y: offset_to_snap_point_2.y,
+        }
+      };
+      await test_scrollsnapchange(t, test_data);
+    }, "scrollsnapchange event fires after snap target changes on scrollbar drag");
+
+    // Keyboard test.
+    promise_test(async (t) => {
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          scroller.focus();
+          window.test_driver.send_keys(document.documentElement,
+                                       '\ue015'/*ArrowDown*/);
+        },
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_1 },
+        expected_scroll_offsets: {
+          x: 0,
+          y: offset_to_snap_point_2.y,
+        }
+      };
+      await test_scrollsnapchange(t, test_data);
+    }, "scrollsnapchange event fires after snap target changes on keydown press");
+
+    // Touch scroll test (onscrollsnapchange variant).
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const start_pos = {
+        x: scroller.clientWidth / 2,
+        y: scroller.clientHeight / 2,
+      };
+      const end_pos = { x: 0, y: 0 };
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          await snap_event_touch_scroll_helper(start_pos, end_pos);
+        },
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
+        expected_scroll_offsets: {
+          x: offset_to_snap_point_2.x,
+          y: offset_to_snap_point_2.y,
+        }
+      };
+      await test_scrollsnapchange(t, test_data, /*use_onsnap_memeber*/true);
+    }, "Document.scrollsnapchange event fires after snap target changes on touch " +
+       "scroll");
+
+    promise_test(async (t) => {
+      await test_no_scrollsnapchange(t, scroller, /*delta*/10);
+    }, "scrollsnapchange is not fired if snap target doesn't change on user scroll");
+  </script>
+</body>

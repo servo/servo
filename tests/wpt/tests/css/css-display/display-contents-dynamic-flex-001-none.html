@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display 3: Display contents reattachment works well in a flex container</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecobos@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-flex-001-ref.html">
+<script src="support/util.js"></script>
+<style>
+.flex {
+  display: flex;
+}
+.inline {
+  display: inline;
+}
+.contents {
+  display: contents;
+  border: 1px solid red;
+}
+</style>
+<p>Test passes if you see the word "PASS", with a "0" under the first "S", and no red</p>
+<div class="flex">
+P
+  <div class="contents">
+    <div>A</div>
+  </div>
+  <div class="contents">
+    <div class="inline">S<div>0</div></div>
+  </div>
+  <div class="contents">
+    S
+  </div>
+</div>
+<script>
+window.onload = function() {
+  eachDisplayContentsElementIn(document, window,
+      function(e) { e.style.display = 'none'; },
+      function(e) { e.style.display = ''; })
+}
+</script>

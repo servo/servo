@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: Sibling combinators</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#sibling-combinators">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('math + p');
+  test_valid_selector('h1.opener + h2');
+  test_valid_selector('h1 ~ pre');
+</script>

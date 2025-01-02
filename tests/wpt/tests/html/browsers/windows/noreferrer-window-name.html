@@ -1,0 +1,86 @@
+<!doctype html>
+<title>rel=noreferrer and reuse of names</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  async_test(function(t) {
+    localStorage.clear()
+
+    function makeHyperlink(n) {
+      var hyperlink = document.body.appendChild(document.createElement("a"))
+      hyperlink.rel = "noreferrer"
+      hyperlink.target = "sufficientlyrandomwindownameamiright"
+      hyperlink.href = "resources/noreferrer-window-name.html#" + n
+      return hyperlink
+    }
+
+    var hyperlink1 = makeHyperlink(1),
+        hyperlink2 = makeHyperlink(2)
+
+    t.add_cleanup(function() {
+      localStorage.setItem("x", "close")
+      localStorage.clear()
+      document.body.removeChild(hyperlink1)
+      document.body.removeChild(hyperlink2)
+    })
+
+    addEventListener("storage", function(e) {
+      t.step(function() {
+        if(localStorage.getItem("window1") && localStorage.getItem("window2")) {
+          localStorage.setItem("x", "close")
+          t.done()
+        }
+      })
+    })
+
+    hyperlink1.click()
+    hyperlink2.click()
+  }, "Following a noreferrer link with a named target should not cause creation of a window that can be targeted by another noreferrer link with the same named target");
+
+  async_test(function(t) {
+    var ifr = document.createElement("iframe");
+    ifr.name = "sufficientlyrandomwindownameamiright2";
+    ifr.onload = t.step_func(function() {
+      var hyperlink = document.body.appendChild(document.createElement("a"));
+      t.add_cleanup(function() {
+        hyperlink.remove();
+      });
+      hyperlink.rel = "noreferrer";
+      hyperlink.href = URL.createObjectURL(new Blob(["hello subframe"],
+                                                    { type: "text/html"}));
+      hyperlink.target = "sufficientlyrandomwindownameamiright2";
+      ifr.onload = t.step_func_done(function() {
+        assert_equals(ifr.contentDocument.documentElement.textContent,
+                      "hello subframe");
+      });
+      hyperlink.click();
+    });
+    document.body.appendChild(ifr);
+    t.add_cleanup(function() {
+      ifr.remove();
+    });
+  }, "Targeting a rel=noreferrer link at an existing named subframe should work");
+
+  async_test(function(t) {
+    var win = window.open("", "sufficientlyrandomwindownameamiright3");
+    t.add_cleanup(function() {
+      win.close();
+    });
+
+    var hyperlink = document.body.appendChild(document.createElement("a"));
+    t.add_cleanup(function() {
+      hyperlink.remove();
+    });
+    hyperlink.rel = "noreferrer";
+    hyperlink.href = URL.createObjectURL(new Blob(["hello window"],
+                                                  { type: "text/html"}));
+    hyperlink.target = "sufficientlyrandomwindownameamiright3";
+    win.onload = t.step_func_done(function() {
+      assert_equals(win.document.documentElement.textContent,
+                    "hello window");
+    });
+    hyperlink.click();
+  }, "Targeting a rel=noreferrer link at an existing named window should work");
+</script>

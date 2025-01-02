@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta name="assert" content="This test passes if the renderer does not crash."/>
+<link rel="help" href="https://crbug.com/963580" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="float:left; width:200px; height:200px; background: green;"></div>
+x
+<div style="width:200px; height:200px;">
+  <div id="target" style="float:left; width:100px; height:100px; shape-outside:polygon(10px 10px, 20px 20px);"></div>
+  y
+</div>
+<div style="float:left; width:200px; height:200px;"></div>
+<script>
+test(() => {
+  document.body.offsetTop;
+  target.style.shapeOutside = "none";
+  document.body.offsetTop;
+}, 'Test passes if the renderer does not crash.');
+</script>
+

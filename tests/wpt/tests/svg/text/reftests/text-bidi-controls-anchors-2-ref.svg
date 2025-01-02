@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Text anchors and bidi control characters</title>
+  <html:link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+  <g font-family="Arial, sans-serif" font-size="12px">
+    <line x1="200" y1="20" x2="200" y2="320" stroke="black" stroke-width="0.5"/>
+
+    <text x="200" y="40" style="fill: red" text-anchor="end">Start Anchor</text>
+    <text x="200" y="50" style="fill: green" text-anchor="middle">Middle Anchor</text>
+    <text x="200" y="60" style="fill: blue" text-anchor="start">End Anchor</text>
+
+    <text x="200" y="80" style="fill: red" text-anchor="end">Start Anchor</text>
+    <text x="200" y="90"  style="fill: green" text-anchor="middle">Middle Anchor</text>
+    <text x="200" y="100"  style="fill: blue" text-anchor="start">End Anchor</text>
+
+    <text x="200" y="120" style="fill: red" text-anchor="end">Anchor Start</text>
+    <text x="200" y="130"  style="fill: green" text-anchor="middle">Anchor Middle</text>
+    <text x="200" y="140"  style="fill: blue" text-anchor="start">Anchor End</text>
+
+    <text x="200" y="160" style="fill: red" text-anchor="end">Anchor Start</text>
+    <text x="200" y="170"  style="fill: green" text-anchor="middle">Anchor Middle</text>
+    <text x="200" y="180"  style="fill: blue" text-anchor="start">Anchor End</text>
+
+    <text x="200" y="200" style="fill: red" text-anchor="end">rohcnA tratS</text>
+    <text x="200" y="210"  style="fill: green" text-anchor="middle">rohcnA elddiM</text>
+    <text x="200" y="220"  style="fill: blue" text-anchor="start">rohcnA dnE</text>
+
+    <text x="200" y="240" style="fill: red" text-anchor="end">Anchor tratS</text>
+    <text x="200" y="250"  style="fill: green" text-anchor="middle">Anchor elddiM</text>
+    <text x="200" y="260"  style="fill: blue" text-anchor="start">Anchor dnE</text>
+
+    <text x="200" y="280" style="fill: red" text-anchor="end">rohcnA Start</text>
+    <text x="200" y="290"  style="fill: green" text-anchor="middle">rohcnA Middle</text>
+    <text x="200" y="300"  style="fill: blue" text-anchor="start">rohcnA End</text>
+  </g>
+</svg>

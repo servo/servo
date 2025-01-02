@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Reference (mismatch)</title>
+
+<style>
+    /* Lato has superscript Latin letters, but not subscript ones;
+     * digits are available in both super- and subscript form.
+     */
+    @font-face {
+        font-family: "lato";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    .test {
+        font-family: "lato";
+        font-size: 2em;
+    }
+    .super {
+        font-variant-position: super;
+    }
+</style>
+
+<section class="test">
+    <p>Synthetic superscript characters <em>must</em> be used:</p>
+    <!-- ZERO WIDTH SPACE between the spans separates the runs, so the first can use OpenType alternates
+         but the second can't. -->
+    <p>Text with <span class="super">superscript</span>&#x200b;<span class="super"> 3.14</span></p>
+</section>

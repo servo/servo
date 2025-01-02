@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<head>
+<!-- Tests that box-shadow inset parsing quirks work properly. -->
+<link rel=match href=box_shadow_inset_parsing_ref.html>
+<style>
+section {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    top: 100px;
+    left: 100px;
+    border: solid black 1px;
+    box-shadow: inset 0 0 1em gold;
+}
+</style>
+</head>
+<body>
+<section></section>
+</body>
+
+

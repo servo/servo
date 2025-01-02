@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Joint session history length does not include entries from a removed iframe.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="frame" src="about:blank"></iframe>
+<script>
+async_test(function(t) {
+    t.step_timeout(() => {
+        var child = document.getElementById("frame");
+        var old_history_len = history.length;
+        child.onload = () => {
+            assert_equals(old_history_len + 1, history.length);
+            document.body.removeChild(document.getElementById("frame"));
+            assert_equals(old_history_len, history.length);
+            t.done();
+        }
+        child.src = "joint-session-history-filler.html";
+    }, 1000);
+});
+</script>
+</body>

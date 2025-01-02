@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: do not observe a disconnected image</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(() => {
+        // The image should not have caused an entry, so fail test.
+        assert_unreached('Should not have received an entry!');
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the image during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    window.onload = () => {
+      // Add image of width equal to 100 and height equal to 100.
+      const img = document.createElement('img');
+      img.src = 'resources/square100.png';
+      img.setAttribute('elementtiming', 'my_image');
+      img.setAttribute('id', 'my_id');
+      // Image has been created but not added.
+      // Wait for 500ms and end test, ensuring no entry was created.
+      t.step_timeout(() => {
+        t.done();
+      }, 500);
+    };
+  }, 'Image which is not added to DOM tree is not observable.');
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floating non-replaced elements with specified left margin</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#float-width" />
+        <link rel="match" href="float-non-replaced-width-002-ref.xht" />
+
+        <meta name="assert" content="If 'margin-left' is not computed as 'auto' its used value is as specified." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 2in;
+                width: 2in;
+            }
+            div div
+            {
+                background-color: blue;
+                float: left;
+                margin-left: 0.5in;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the filled blue square is <strong>horizontally centered</strong> inside the hollow black square.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

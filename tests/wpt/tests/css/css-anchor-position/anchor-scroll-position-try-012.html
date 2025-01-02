@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Tests position fallback change on scroll with anchor and anchored under the same scroll container</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback">
+<link rel="match" href="anchor-scroll-position-try-012-ref.html">
+<style>
+#scroller {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  overflow-y: scroll;
+}
+
+.box {
+  min-height: 100px;
+  width: 100px;
+}
+
+#anchor {
+  anchor-name: --a;
+  background: orange;
+}
+
+#anchored {
+  position: absolute;
+  top: anchor(bottom);
+  width: 100px;
+  height: 100px;
+  background: green;
+  position-anchor: --a;
+  position-try-fallbacks: --pf;
+}
+
+@position-try --pf {
+  top: auto;
+  bottom: anchor(top);
+}
+</style>
+
+<div id="scroller">
+  <div class="box"></div>
+  <div class="box"></div>
+  <div class="box"></div>
+  <div class="box" id="anchor"></div>
+  <div class="box"></div>
+  <div class="box"></div>
+  <div class="box"></div>
+  <div class="box"></div>
+  <div id="anchored"></div>
+</div>
+
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    scroller.scrollTop = 150;
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</html>
+

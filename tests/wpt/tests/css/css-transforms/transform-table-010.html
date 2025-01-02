@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Table With Preserve-3D 2</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#transform-style-property">
+    <meta name="assert" content="This is the same as transform-table-007.html,
+    except that now divs are used instead of actual table elements.  This means
+    that the parser doesn't create an implicit intervening &lt;tbody&gt;, so
+    preserve-3d is applied to all intervening elements, and the text should
+    display (mirrored).">
+    <link rel="match" href="transform-table-009-ref.html">
+    <link rel="mismatch" href="transform-table-010-notref.html">
+    <meta name="fuzzy" content="maxDifference=0-50;totalPixels=0-3">
+    <style>
+      body > div {
+        transform: rotateX(90deg);
+        transform-style: preserve-3d;
+      }
+      body > div > div {
+        display: table;
+        transform-style: preserve-3d;
+      }
+      body > div > div > div {
+        display: table-row;
+        transform-style: preserve-3d;
+      }
+      body > div > div > div > div {
+        display: table-cell;
+        transform-style: preserve-3d;
+      }
+      body > div > div > div > div > div {
+        transform: rotateX(90deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div>
+        <div>
+          <div>
+            <div>Some text</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 400px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="margin:50px; height:300px; background:yellow;">
+  Yellow background, white page margins.
+</div>
+<div style="display:flow-root; break-before:page; height:400px; background:blue;">
+  <div style="margin:50px; height:300px; background:yellow;">
+    Yellow background, blue page margins.
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: basic</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: buffered</h1>
+<div id="log"></div>
+<script>
+promise_test(async t => {
+    busy_wait(very_long_frame_duration);
+    await new Promise(resolve => t.step_timeout(resolve, 0));
+    const result = await new Promise(resolve => {
+        new PerformanceObserver(t.step_func(entries => {
+            for (const e of entries.getEntries()) {
+                if (e.duration >= very_long_frame_duration)
+                    resolve("entry-found");
+            }
+        })).observe({type: 'long-animation-frame', buffered: true});
+        t.step_timeout(() => resolve("timeout"), waiting_for_long_frame_timeout);
+    });
+    assert_equals(result, "entry-found");
+}, 'PerformanceObserver with buffered flag can see previous long-animation-frame entries.');
+</script>
+</body>

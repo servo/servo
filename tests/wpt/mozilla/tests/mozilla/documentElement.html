@@ -1,0 +1,15 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_true(window instanceof Window, "Should be Window");
+  assert_true(document.documentElement instanceof HTMLHtmlElement, "Should be HTMLHtmlElement");
+  assert_true(document.documentElement.firstChild instanceof HTMLHeadElement, "Should be HTMLHeadElement");
+  assert_equals(document.documentElement.nextSibling, null);
+  assert_true(document instanceof Document, "Should be Document");
+});
+</script>
+</head>
+</html>

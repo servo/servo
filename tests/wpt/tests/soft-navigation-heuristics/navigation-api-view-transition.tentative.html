@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Navigation API + ViewTransition trigger a soft navigation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link href="foobar.html">Click me!</a>
+    </div>
+  </main>
+  <script>
+    let key;
+    window.onload = async () => {
+      // Wait for after the load event so that the navigation doesn't get
+      // converted into a replace navigation.
+      await new Promise(r => step_timeout(r, 0));
+
+      const navigate_callback = e => {
+        e.intercept({
+          async handler() {
+            const lcp_promise = new Promise(resolve => {
+             (new PerformanceObserver(list => resolve())).observe(
+               {type: 'largest-contentful-paint',
+                includeSoftNavigationObservations: true});
+             });
+            const transition = document.startViewTransition(async () => {
+              const main = document.getElementById('main');
+              main.innerHTML = '<img id="image" src="/images/blue.png?' +
+                Math.random() + '">';
+              const img = document.getElementById("image");
+            });
+            await transition.updateCallbackDone;
+            await lcp_promise;
+          }
+        });
+        timestamps[counter]["eventEnd"] = performance.now();
+      };
+
+      const link = document.getElementById("link");
+      testNavigationApi("Navigation API interception handler + " +
+                        "startViewTransition properly detects soft navigations",
+                        navigate_callback, link);
+    };
+  </script>
+</body>
+</html>
+

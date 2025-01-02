@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: border-image-slice (basic)</title>
+
+  <link rel="author" title="Jérémie Patonnier" href="mailto:jeremie@patonnier.net">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#border-image-slice">
+  <link rel="match" href="reference/border-image-006-ref.html">
+
+  <meta name="flags" content="">
+
+  <!--
+
+  This is a follow-up to
+  Pull Request 8788: Update css-backgrounds/border-image tests
+  https://github.com/web-platform-tests/wpt/pull/8788
+
+  Credit should go to Chris Nardi for trying to fix
+  16 border-image tests with 2 relevant commits
+
+  -->
+
+  <style>
+  div#outer-test
+    {
+      border: red solid 25px;
+      width: 50px;
+
+      border-image-source: url("support/1x1-green.png");
+    }
+
+  div#inner-blue
+    {
+      border: blue solid 1px;
+      height: 48px;
+    }
+  </style>
+
+  <p>Test passes if there is an hollow blue square with smaller filled green squares at its corners and <strong>no red</strong>.
+
+  <div id="outer-test">
+    <div id="inner-blue"></div>
+  </div>

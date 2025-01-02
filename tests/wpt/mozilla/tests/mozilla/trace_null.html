@@ -1,0 +1,9 @@
+<!-- crashtest -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  new CustomEvent("foo", { detail: null });
+  gc();
+});
+</script>

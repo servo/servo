@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Text: parsing shape-margin with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#ShapeMarginProperty"/>
+    <h:meta name="assert" content="shape-margin supports only the grammar 'length-percentage'"/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("shape-margin", "auto");
+test_invalid_value("shape-margin", "-10px");
+test_invalid_value("shape-margin", "20");
+test_invalid_value("shape-margin", "30deg");
+test_invalid_value("shape-margin", "40px 50%");
+
+  ]]></script>
+</svg>

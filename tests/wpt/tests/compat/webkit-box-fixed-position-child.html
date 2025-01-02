@@ -1,0 +1,17 @@
+<!doctype html>
+<title>Verifies changing 'display' with a fixed position webkit-box that
+  has a fixed position child</title>
+<body>
+  <div id="outer" style="position:fixed;">
+  <div style="display:-webkit-box; float:left; padding-left:100%;">
+    <div style="position:fixed; width:100px; height:100px;"></div>
+  </div>
+  <div style="display:inline-block; width:100px; height:20px;"></div>
+</div>
+<div id="elm"></div>
+A
+</body>
+<script>
+  document.body.offsetTop;
+  elm.style.display = 'none';
+</script>

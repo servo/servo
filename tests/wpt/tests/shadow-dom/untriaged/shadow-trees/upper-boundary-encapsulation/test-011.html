@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_04_01_11</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation:The style sheets, represented by the shadow nodes are not accessible using shadow host document's CSSOM extensions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+// check that <link> element added to head is not exposed
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+    var initialStyleSheetsCount = d.styleSheets.length;
+
+    var link = d.createElement('link');
+    link.setAttribute('rel', 'stylesheet');
+    d.body.appendChild(link);
+
+    //create Shadow root
+    var root = d.createElement('div');
+    d.body.appendChild(root);
+    var s = root.attachShadow({mode: 'open'});
+
+    s.appendChild(link);
+
+    assert_equals(d.styleSheets.length, initialStyleSheetsCount, 'stylesheet link elements in shadow DOM must not be ' +
+            'exposed via the document.styleSheets collection');
+
+
+}), 'A_04_01_11_T2');
+</script>
+</body>
+</html>

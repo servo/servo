@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>History restoration order test</title>
+<meta name="assert" content="https://html.spec.whatwg.org/multipage/browsing-the-web.html#history-traversal">
+<meta name="assert" content="Traversing history should restore scroll position after dispatching popstate and before dispatching hashchange">
+
+<style>
+  body {
+    height: 200vh;
+    width: 200vw;
+  }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+  async_test(function(t) {
+    window.addEventListener('load', t.step_func(function() {
+      // Allow 1px epsilon for fractional scrolling.
+      assert_array_approx_equals(scrollPosition(), [0, 0], 1);
+
+      history.pushState('#1', '', '#1');
+      window.scrollTo(50, 100);
+      assert_array_approx_equals(scrollPosition(), [50, 100], 1);
+
+      history.pushState('#2', '', '#2');
+      window.scrollTo(100, 200);
+      assert_array_approx_equals(scrollPosition(), [100, 200], 1);
+
+      setTimeout(t.step_func(function(){
+        history.pushState(null, null, '#done');
+        window.scrollTo(555, 555);
+        assert_array_approx_equals(scrollPosition(), [555, 555], 1);
+        // Kick off the verification.
+        window.history.back();
+      }), 0);
+    }));
+
+    window.addEventListener('popstate', t.step_func(function() {
+      // Verify that scroll position is *not* restored before popstate.
+      const key = location.hash;
+      const expected_scroll_position = expectedScrollPositionForKey(key);
+      assert_not_equals(scrollPosition()[0], expected_scroll_position[0], `scroll is restored before popstate for ${key}`);
+      assert_not_equals(scrollPosition()[1], expected_scroll_position[1], `scroll is restored before popstate for ${key}`);
+
+      if (key == '')
+        t.done();
+      else
+        setTimeout(t.step_func(function(){ window.history.back(); }), 0);
+    }));
+
+    window.addEventListener('hashchange', t.step_func(function() {
+      // Verify that scroll position is restored before hashchange.
+      var key = location.hash;
+      const expected_scroll_position = expectedScrollPositionForKey(key);
+      assert_array_approx_equals(scrollPosition(), expected_scroll_position, 1, `scroll is restored before hashchange for ${key}`);
+    }));
+
+    function scrollPosition() {
+      return [window.pageXOffset, window.pageYOffset];
+    }
+
+    function expectedScrollPositionForKey(key) {
+      switch (key) {
+        case '#2': return  [100, 200];
+        case '#1': return  [50, 100];
+        case ''  : return  [0, 0];
+        default: assert_unreached();
+      }
+    }
+
+  }, 'Traversing history should restore scroll position after dispatching popstate and before dispatching hashchange');
+</script>

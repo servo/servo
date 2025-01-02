@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.target {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  margin: 100px;
+}
+</style>
+<body>
+  <a href="#">
+    <div class="target"></div>
+  </a>
+<script>
+const root = document.body;
+const target = root.querySelector('.target');
+const target_bounds = target.getBoundingClientRect();
+const x = target_bounds.x - 20;  // "-20" for the margin area.
+const y = target_bounds.y + target_bounds.height / 2;
+const result = document.elementFromPoint(x, y);
+const a = root.querySelector('a');
+test(() => {
+  assert_equals(result, a);
+}, target.style.cssText);
+</script>
+</body>

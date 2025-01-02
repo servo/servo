@@ -1,0 +1,8 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Web platform test for shared worker allowed by script-src self</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../support/testharness-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self'; default-src 'none'; ">
+<script src="../support/shared-worker-helper.js" id="foo" data-desc-fallback="Same-origin shared worker allowed by script-src 'self'."></script>

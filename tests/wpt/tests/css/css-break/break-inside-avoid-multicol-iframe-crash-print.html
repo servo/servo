@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mozilla bug 1911948</title>
+    <!--
+      This is just a crashtest, but there's no way to express that in wpt right
+      now, so we just ensure we don't render blank
+    -->
+    <link rel="mismatch" href="/common/blank.html">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1911948">
+    <style>
+        body { overflow: hidden; }
+    </style>
+</head>
+<body>
+
+<div style="border: 1px solid black;">
+    <!-- width = page_width * num_pages -->
+    <iframe style="overflow: hidden; border: none; visibility: visible; width: 1942px; height: 810px;"
+            srcdoc="<html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+      lang=&quot;en&quot; xml:lang=&quot;en&quot;>
+<head>
+    <title>Foobar</title>
+    <style>
+        html { overflow: hidden; }
+        body {
+            /* page width */
+            width: 971px;
+            height: 810px;
+            column-fill: auto;
+            column-gap: 80px;
+
+            /* (page width / 2) - column-gap */
+            column-width: 405.5px;
+            font-size: 16px;
+        }
+
+        section.sect2 {
+            page-break-after: always;
+            -webkit-column-break-after: always;
+            break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+<section>
+    <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mollit sit hendrerit molestie facilisis ex enim. Eos
+        quod amet velit officia soluta sint nam ullamco molestie doming kasd obcaecat excepteur diam non placerat
+        mollit. Dolores eleifend, aliquyam sunt praesent velit sit possim aliquyam volutpat adipisici, eros te cillum
+        odio nibh accusam dolor exercitation feugait quod volutpat obcaecat adipisici nonumy diam autem mazim exerci
+        officia ad in. Non iriure vel. Iure gubergren blandit. Assum eleifend sunt nonummy enim minim. Adipiscing
+        excepteur minim. Facilisis nam liber.
+
+        Proident rebum vero duo aliquip aliqua. Tation at accusam aliquam elitr facer qui adipiscing commodi doming
+        imperdiet excepteur dolore lorem aliqua sint, nostrud placerat kasd iriure magna delenit eum ipsum odio zzril
+        nonumy ullamcorper. Quod adipisici et.
+
+        Nisl cum lorem facer incidunt. Erat eleifend no. Vel eros aliquyam duo, ex liber wisi elitr soluta enim ad
+        proident fugiat incidunt esse vel. Velit eros odio pariatur. Eum eirmod cupiditat.
+
+        Ullamcorper no adipisici nibh eros. Imperdiet soluta invidunt aliquid mazim enim sea. Praesent duo et
+        reprehenderit duis. Nibh no proident tempor qui nostrud. Iusto sint nibh lobortis diam sint. Incidunt imperdiet
+        aliquid option duo id ut excepteur laborum te incidunt tincidunt assum. Dolor eu adipiscing delenit accumsan
+        nonummy molestie sanctus tempor aliquyam. Nonumy ullamcorper justo laborum iure odio id sadipscing nibh erat
+        erat magna minim eros diam doming. In blandit iure. Dignissim ipsum stet. Dolor molestie veniam.
+
+        Elit anim in lorem eleifend aliquip est dolor. Feugiat cillum, dolor kasd eos mazim delenit possim dolores nisi
+        molestie wisi dolores et nulla culpa exercitation nostrud cupiditat vulputate laboris qui accumsan. Rebum
+        delenit facilisi aute lorem ut kasd sed, voluptua nonummy te vulputate consectetuer lorem blandit te anim
+        exercitation imperdiet odio excepteur commodo cupiditat, erat option labore eos nibh kasd no aliquam assum.
+        Lorem at mazim dolor veniam assum erat. Nulla feugait quis, laborum eiusmod illum option aliquyam liber qui
+        consectetur euismod consequat facilisi facilisi exerci eum assum. Invidunt in ea.
+
+        Labore sanctus consectetuer erat minim volutpat non euismod elit veniam exerci diam commodi laborum, diam
+        lobortis anim congue sit nibh nostrud duis magna ad, kasd feugait qui nulla erat laoreet duis labore nisl kasd
+        mazim feugait illum aute. Enim magna possim commodo exerci kasd sea te. Ad stet dignissim praesent quod soluta
+        consequat aliquyam, ea praesent iriure mazim illum cum eiusmod fugiat minim voluptua eum aliquyam et rebum.
+        Veniam imperdiet eu. No magna molestie.
+
+        Nulla est consequat no eirmod magna ullamco nonumy incidunt exercitation iure, nibh tincidunt eum aliquid
+        euismod illum iure laborum velit cillum nobis augue wisi reprehenderit feugait tempor commodi soluta. Eros ut
+        quis exercitation volutpat iusto elit eum commodi feugiat gubergren ex. Justo mazim sanctus proident. At kasd
+        nostrud.
+
+        Vel tation sadipscing illum placerat exercitation laboris iriure liber. Option veniam zzril possim stet invidunt
+        clita stet eirmod mollit nihil ullamco suscipit eos. Duo duo aliquid. Molestie laoreet eu.
+
+        Possim magna eleifend iriure ex consequat aliquyam. Ipsum diam augue dolores anim eum voluptate nisl at aute
+        sadipscing non dolores quis labore nonumy sint consequat aliquyam hendrerit, commodi dolor proident molestie
+        vulputate te laborum aliquam duis feugiat euismod vulputate. Cupiditat veniam eu erat velit nisl eos accusam.
+        Illum tation ad.
+    </p>
+    <section class=&quot;sect2&quot;>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mollit sit hendrerit molestie facilisis ex enim.
+            Eos quod amet velit officia soluta sint nam ullamco molestie doming kasd obcaecat excepteur diam non
+            placerat mollit. Dolores eleifend, aliquyam sunt praesent velit sit possim aliquyam volutpat adipisici,
+            eros te cillum odio nibh accusam dolor exercitation feugait quod volutpat obcaecat adipisici nonumy diam
+            autem mazim exerci officia ad in. Non iriure vel. Iure gubergren blandit. Assum eleifend sunt nonummy
+            enim minim. Adipiscing excepteur minim. Facilisis nam liber.</p>
+        <p>Proident rebum vero duo aliquip aliqua. Tation at accusam aliquam elitr facer qui adipiscing commodi
+            doming imperdiet excepteur dolore lorem aliqua sint, nostrud placerat kasd iriure magna delenit eum
+            ipsum odio zzril nonumy ullamcorper. Quod adipisici et.</p>
+        <p>
+            Nisl cum lorem facer incidunt. Erat eleifend no. Vel eros aliquyam duo, ex liber wisi elitr soluta enim
+            ad proident fugiat incidunt esse vel. Velit eros odio pariatur. Eum eirmod cupiditat.
+
+            Ullamcorper no adipisici nibh eros. Imperdiet soluta invidunt aliquid mazim enim sea. Praesent duo et
+            reprehenderit duis. Nibh no proident tempor qui nostrud. Iusto sint nibh lobortis diam sint. Incidunt
+            imperdiet aliquid option duo id ut excepteur laborum te incidunt tincidunt assum. Dolor eu adipiscing
+            delenit accumsan nonummy molestie sanctus tempor aliquyam. Nonumy ullamcorper justo laborum iure odio id
+            sadipscing nibh erat erat magna minim eros diam doming. In blandit iure. Dignissim ipsum stet. Dolor
+            molestie veniam.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mollit sit hendrerit molestie facilisis ex enim.
+            Eos quod amet velit officia soluta sint nam ullamco molestie doming kasd obcaecat excepteur diam non
+            placerat mollit. Dolores eleifend, aliquyam sunt praesent velit sit possim aliquyam volutpat adipisici,
+            eros te cillum odio nibh accusam dolor exercitation feugait quod volutpat obcaecat adipisici nonumy diam
+            autem mazim exerci officia ad in. Non iriure vel. Iure gubergren blandit. Assum eleifend sunt nonummy
+            enim minim. Adipiscing excepteur </p>
+        <!-- Commenting / uncommenting the following paragraph seems to enable/disable the issue.
+             It doesn't seem to matter if we remove the last paragraph tag &amp; append this text to the ^ above paragraph,
+             and it appears to be the length of content, but that's just a guess.
+         -->
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mollit sit hendrerit molestie facilisis ex enim.
+            Eos quod amet velit officia soluta sint nam ullamco molestie doming kasd obcaecat excepteur diam non
+            placerat mollit. Dolores eleifend, aliquyam sunt praesent velit sit possim aliquyam volutpat adipisici,
+            eros te cillum odio nibh accusam dolor exercitation feugait quod volutpat obcaecat adipisici nonumy diam
+            autem mazim exerci officia ad in. Non iriure vel. Iure gubergren blandit. Assum eleifend sunt nonummy
+            enim minim. Adipiscing excepteur </p>
+    </section>
+</section>
+</body>
+</html>"></iframe>
+</div>
+</body>
+</html>

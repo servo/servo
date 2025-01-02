@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-web-nfc.https.html) loads the initiator page,
+// then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  const promise = new Promise(async (resolve) => {
+    // We expect an error from NDEFReader.write() and scan() since we don't
+    // enable NFC HW.
+    const ndef = new NDEFReader();
+    const result1 = await ndef.write("Test")
+      .then(() => 'ndef.write() unexpectedly succeeded')
+      .catch(e => 'ndef.write() failed');
+    prerenderEventCollector.addEvent(result1);
+    const result2 = await ndef.scan()
+      .then(() => 'ndef.scan() unexpectedly succeeded')
+      .catch(e => 'ndef.scan() failed');
+    prerenderEventCollector.addEvent(result2);
+    resolve();
+  });
+  prerenderEventCollector.start(promise, 'NDEFReader.[write|scan]');
+}
+
+</script>

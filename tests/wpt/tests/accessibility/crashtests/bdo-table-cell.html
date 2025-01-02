@@ -1,0 +1,21 @@
+<!doctype html>
+<link rel="help" href="https://crbug.com/1314808">
+<style>
+item:after { display: block; content: open-quote; }
+item { display: list-item; }
+</style>
+<bdo style="direction:rtl">
+  x<mark></mark>
+</bdo>
+<span style="display: table-cell; column-width: 0px;"></span>
+<script>
+const new_listitem_child = document.createElement('item');
+document.querySelector('mark').appendChild(new_listitem_child);
+</script>
+
+
+<!--
+ax_object.cc(739)] Check failed: child != this. Previous parent still has |this| child:\n
+ERR: "\\"ListMarker\\" axid#14 <::marker> needsToUpdateChildren" should be a child of "\\"ListItem\\" axid#12 <item> needsToUpdateChildren" not of "\\"GenericContainer\\" axid#13 <::after> #children=2"\n
+
+-->

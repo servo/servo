@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=italic">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=strikethrough">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=subscript">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=superscript">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=underline">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=fontname">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=fontsize">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=forecolor">
+<meta name="variant" content="?stylesAtInsertionPoint=bold&stylesInserting=hilitecolor">
+<meta name="variant" content="?stylesAtInsertionPoint=italic&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=strikethrough&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=subscript&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=superscript&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=underline&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=fontname&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=forecolor&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=hilitecolor&stylesInserting=bold">
+<meta name="variant" content="?stylesAtInsertionPoint=bold,italic&stylesInserting=strikethrough,underline">
+<title>insertHTML should not preserve inline styles at insertion point</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body><div contenteditable></div>
+<script>
+"use strict";
+
+const params = new URLSearchParams(location.search.substring(1));
+const stylesAtInsertionPoint = params.get("stylesAtInsertionPoint").split(",");
+const stylesInserting = params.get("stylesInserting").split(",");
+
+function getOpenTagForStyle(style) {
+  switch (style.toLowerCase()) {
+    case "bold":
+      return "<b>";
+    case "italic":
+      return "<i>";
+    case "strikethrough":
+      return "<s>";
+    case "subscript":
+      return "<sub>";
+    case "superscript":
+      return "<sup>";
+    case "underline":
+      return "<u>";
+    case "fontname":
+      return "<font face=\"monospace\">";
+    case "fontsize":
+      return "<font size=\"5\">";
+    case "forecolor":
+      return "<font color=\"#0000FF\">";
+    case "hilitecolor":
+      return "<span style=\"background-color:rgb(0, 255, 255)\">";
+  }
+}
+
+function getClosedTagForStyle(style) {
+  switch (style.toLowerCase()) {
+    case "bold":
+      return "</b>";
+    case "italic":
+      return "</i>";
+    case "strikethrough":
+      return "</s>";
+    case "subscript":
+      return "</sub>";
+    case "superscript":
+      return "</sup>";
+    case "underline":
+      return "</u>";
+    case "fontname":
+    case "fontsize":
+    case "forecolor":
+      return "</font>";
+    case "hilitecolor":
+      return "</span>";
+  }
+}
+
+function openTags(styles) {
+  let openTags = "";
+  for (const style of styles) {
+    openTags = getOpenTagForStyle(style) + openTags;
+  }
+  return openTags;
+}
+
+function closedTags(styles) {
+  let closedTags = "";
+  for (const style of styles) {
+    closedTags += getClosedTagForStyle(style);
+  }
+  return closedTags;
+}
+
+const editingHost = document.querySelector("div[contenteditable]");
+const utils = new EditorTestUtils(editingHost);
+
+function addTest(aTest) {
+  test(() => {
+    utils.setupEditingHost(aTest.innerHTML);
+    document.execCommand("insertHTML", false, aTest.newContent);
+    utils.normalizeStyleAttributeValues();
+    assert_equals(editingHost.innerHTML, aTest.expectedResult, aTest.description);
+    for (const style of stylesInserting) {
+      switch (style.toLocaleLowerCase()) {
+        case "fontsize":
+          assert_equals(
+            document.queryCommandValue(style),
+            "5",
+            `document.queryCommandValue("${style}")`
+          );
+          break;
+        case "fontname":
+          assert_equals(
+            document.queryCommandValue(style),
+            "monospace",
+            `document.queryCommandValue("${style}")`
+          );
+          break;
+        case "forecolor":
+          assert_equals(
+            document.queryCommandValue(style),
+            "rgb(0, 0, 255)",
+            `document.queryCommandValue("${style}")`
+          );
+          break;
+        case "hilitecolor":
+          assert_equals(
+            document.queryCommandValue(style),
+            "rgb(0, 255, 255))",
+            `document.queryCommandValue("${style}")`
+          );
+          break;
+        default:
+          assert_true(
+            document.queryCommandState(style),
+            `document.queryCommandState("${style}")`
+          );
+          break;
+      }
+    }
+  }, `insertHTML with "${aTest.newContent}" into ${aTest.innerHTML}`);
+}
+
+addTest({
+  innerHTML: `${openTags(stylesAtInsertionPoint)}[]def${closedTags(stylesAtInsertionPoint)}`,
+  newContent: `${openTags(stylesInserting)}abc${closedTags(stylesInserting)}`,
+  expectedResult: `${openTags(stylesInserting)}abc${closedTags(stylesInserting)}` +
+                  `${openTags(stylesAtInsertionPoint)}def${closedTags(stylesAtInsertionPoint)}`,
+  description: "New content should be inserted before the inline containers",
+});
+addTest({
+  innerHTML: `${openTags(stylesAtInsertionPoint)}abc[]${closedTags(stylesAtInsertionPoint)}`,
+  newContent: `${openTags(stylesInserting)}def${closedTags(stylesInserting)}`,
+  expectedResult: `${openTags(stylesAtInsertionPoint)}abc${closedTags(stylesAtInsertionPoint)}` +
+                  `${openTags(stylesInserting)}def${closedTags(stylesInserting)}`,
+  description: "New content should be appended after the inline containers",
+});
+addTest({
+  innerHTML: `${openTags(stylesAtInsertionPoint)}a[]c${closedTags(stylesAtInsertionPoint)}`,
+  newContent: `${openTags(stylesInserting)}b${closedTags(stylesInserting)}`,
+  expectedResult: `${openTags(stylesAtInsertionPoint)}a${closedTags(stylesAtInsertionPoint)}` +
+                  `${openTags(stylesInserting)}b${closedTags(stylesInserting)}` +
+                  `${openTags(stylesAtInsertionPoint)}c${closedTags(stylesAtInsertionPoint)}`,
+  description: "The inline containers should be split and new content inserted between them",
+});
+
+</script>
+</body>
+</html>

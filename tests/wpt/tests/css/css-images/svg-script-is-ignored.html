@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Image Test: SVG used as an image does not execute any script</title>
+    <link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/embedded-content.html#the-img-element">
+    <link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#conform-referencing-modes">
+    <link rel="match" href="svg-script-is-ignored-ref.svg">
+    <style>
+      * {
+        padding: 0px;
+        margin: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="support/scripted.svg"/>
+  </body>
+</html>

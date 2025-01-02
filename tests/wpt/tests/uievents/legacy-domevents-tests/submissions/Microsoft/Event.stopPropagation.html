@@ -1,0 +1,85 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title> W3C DOM Level 3 Event Object method: stopPropagation </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "mousedown";
+            var TARGET, PARENT;
+            var ActualResult = [];
+            var ExpectResult = [];
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    PARENT = document.getElementById("parent");
+
+                    ExpectResult = [document.body, PARENT];
+
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                    TARGET.addEventListener(EVENT, TestEvent, false);
+                    PARENT.addEventListener(EVENT, TestEvent, true);
+                    PARENT.addEventListener(EVENT, TestEvent, false);
+                    document.body.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                ActualResult.push(evt.currentTarget);
+
+                if (evt.currentTarget == PARENT)
+                {
+                    try
+                    {
+                        evt.stopPropagation();
+                    }
+                    catch(ex)
+                    {
+                    }
+                }
+            }
+
+            function VerifyTest()
+            {
+                if (ActualResult.toString() == ExpectResult.toString())
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h4>
+            Test Description:
+            stopPropagation prevents other event listeners from being triggered.
+        </h4>
+
+        <div id="parent">
+            Click the button: <input id="target" type="button" value="Target" onmouseup="VerifyTest()" />
+        </div>
+
+        <p>Test passes if the word "PASS" appears below after clicking the above button using mouse.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

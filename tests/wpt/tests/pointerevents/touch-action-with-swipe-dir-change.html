@@ -1,0 +1,115 @@
+<!doctype html>
+<title>touch-action behavior with swipe direction changes</title>
+<meta name="variant" content="?touch">
+<meta name="viewport" content="width=device-width">
+<link rel="help" href="https://w3c.github.io/pointerevents/#determining-supported-direct-manipulation-behavior" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<style>
+  #target {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+  }
+  #spacer {
+    width: 400px;
+    height: 400px;
+  }
+  #done {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="target">
+  <div id="spacer"></div>
+</div>
+<div id="done"></div>
+
+<script>
+  "use strict";
+  const pointer_type = "touch";
+  const target = document.getElementById("target");
+  const done = document.getElementById("done");
+
+  assert_true(location.search.length > 0 &&
+      location.search.substring(1) === pointer_type,
+      "Test URL has 'touch' pointer-type");
+
+  /*
+    For each promise_test, we have these 5 parameters in order:
+    - touch-action value to test,
+    - a list of directions ("right" or "down") in the swipe to test,
+    - whether scrollLeft change is expected, and
+    - whether scrollTop change is expected.
+  */
+  const promise_test_params = [
+    ["auto",  ["right", "down"], true,  true ],
+    ["auto",  ["down", "right"], true,  true ],
+    ["pan-x", ["right", "down"], true,  false],
+    ["pan-x", ["down", "right"], false, false],
+    ["pan-y", ["right", "down"], false, false],
+    ["pan-y", ["down", "right"], false, true ],
+    ["none" , ["right", "down"], false, false],
+    ["none" , ["down", "right"], false, false],
+  ];
+
+  function appendSwipeActions(actions, directions) {
+    const deltas = {
+      "right": [30, 0],
+      "down": [0, 30],
+    }
+    let pos = [0, 0];
+    for (const direction of directions) {
+      // Move three steps along each direction.
+      for (let i = 0; i < 3; i++) {
+        pos[0] += deltas[direction][0];
+        pos[1] += deltas[direction][1];
+        actions = actions.pointerMove(pos[0], pos[1], {origin: target});
+      }
+    }
+    return actions;
+  }
+
+  for (let i = 0; i < promise_test_params.length; i++) {
+    let [touch_action, directions, left_change_expected, top_change_expected]
+        = promise_test_params[i];
+
+    promise_test(async () => {
+      target.style.touchAction = touch_action;
+
+      // Reset the scroll position to 50% mark on both axes.
+      target.scrollLeft = 100;
+      target.scrollTop = 100;
+      const done_pointerup_promise = getEvent("pointerup",  done);
+
+      let actions = new test_driver.Actions()
+          .addPointer("TestPointer", pointer_type)
+          .pointerMove(0, 0, {origin: target})
+          .pointerDown();
+      actions = appendSwipeActions(actions, directions);
+      actions = actions.pointerUp()
+          .pointerMove(0, 0, {origin: done})
+          .pointerDown()
+          .pointerUp()
+
+      await actions.send();
+      await done_pointerup_promise;
+
+      if (left_change_expected) {
+        assert_less_than(target.scrollLeft, 100, "scrollLeft should change");
+      } else {
+        assert_equals(target.scrollLeft, 100, "scrollLeft should not change");
+      }
+
+      if (top_change_expected) {
+        assert_less_than(target.scrollTop, 100, "scrollTop should change");
+      } else {
+        assert_equals(target.scrollTop, 100, "scrollTop should not change");
+      }
+    }, `touch-action:${touch_action} with ${directions} swipe`);
+  }
+</script>

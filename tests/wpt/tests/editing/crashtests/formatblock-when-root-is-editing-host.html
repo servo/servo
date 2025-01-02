@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.documentElement.contentEditable = "true";
+  document.execCommand("formatBlock", false, "h3");
+}, {once: true});
+</script>
+</head>
+<body>
+text
+<!-- no-final-newline -->

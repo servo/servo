@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Paged Media: @page without selector provides defaults</title>
+  <link rel="author" title="Jonathan Watt" href="mailto:jwatt@jwatt.org"/>
+  <link rel="help" href="https://drafts.csswg.org/css-page/#cascading-and-page-context"/>
+  <meta name="assert" content="@page rule without a selector list should apply to pages not matched by rules with selectors">
+  <link rel="match" href="page-rule-specificity-print-portrait-ref.html"/>
+  <meta name="reftest-pages" content="2">
+  <style>
+
+@page :first {
+  size: landscape;
+}
+@page {
+  size: portrait;
+}
+div:first-of-type {
+  break-after: page;
+}
+body {
+  margin: 0;
+}
+
+  </style>
+  <body>
+    <div>Landscape</div>
+    <div>Portrait</div>
+  </body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+  <title>CSS Test: Auto-imported from Gecko test infer-cells-1.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <link rel="match" href="reference/no_red_3x3_monospace_table-ref.xht"/>
+</head>
+<body style="font-family: monospace; white-space: nowrap;">
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+    <!-- The test in the first row might not be correct, depending on spec
+         clarifications -->
+    <span style="display: table-row">
+      <span>Row 1,</span>
+      <span>Col 1Row 1,</span>
+      <span>Col 2Row 1,</span>
+      <span>Col 3</span>
+    </span>
+    <span style="display: table-row">
+      <span style="display: block">Row 22, Col 1Row 22, Col 2Row 22, Col 3</span>
+    </span>
+    <span style="display: table-row">
+      <span>Row 333, Col 1</span><span>Row 333, Col 2</span><span>Row 333, Col 3</span>
+    </span>
+  </div>
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+    <table cellpadding="0" cellspacing="0" style="margin: 0; padding: 0; border: none">
+      <tr>
+        <td>Row 1, Col 1</td>
+        <td>Row 1, Col 2</td>
+        <td>Row 1, Col 3</td>
+      </tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" style="margin: 0; padding: 0; border: none">
+      <tr>
+        <td>Row 22, Col 1</td>
+        <td>Row 22, Col 2</td>
+        <td>Row 22, Col 3</td>
+      </tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" style="margin: 0; padding: 0; border: none">
+      <tr>
+        <td>Row 333, Col 1</td>
+        <td>Row 333, Col 2</td>
+        <td>Row 333, Col 3</td>
+      </tr>
+    </table>
+  </div>
+</div>
+</body>
+</html>

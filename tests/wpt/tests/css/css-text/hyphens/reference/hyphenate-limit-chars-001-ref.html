@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Text: 'hyphens: auto' with a valid 'lang' attribute specification</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
+<link rel="author" href="mailto:kojii@chromium.org">
+<style>
+#container > div {
+  border: black solid 2px;
+  font-family: monospace;
+  font-size: 20px;
+  line-height: 1;
+  width: 1ch;
+}
+</style>
+<body>
+  <div lang="en-us" id="container">
+    <div>ex-<br>am-<br>ple</div>
+    <div>example</div>
+    <div>ex-<br>am-<br>ple</div>
+    <div>exam-<br>ple</div>
+    <div>exam-<br>ple</div>
+    <div>example</div>
+    <div>ex-<br>am-<br>ple</div>
+    <div>ex-<br>ample</div>
+    <div>example</div>
+  </div>
+</body>

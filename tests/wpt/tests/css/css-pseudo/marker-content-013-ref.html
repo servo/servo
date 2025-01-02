@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+.inside {
+  list-style-position: inside;
+}
+.string {
+  list-style-type: "string";
+}
+.content::marker {
+  content: "content";
+}
+.before, .after {
+  display: contents;
+}
+.before::before, .after::after {
+  content: "item";
+  display: list-item;
+  list-style-type: "nested";
+}
+</style>
+<ol class="outside">
+  <li class="decimal">item</li>
+  <li class="string">item</li>
+  <li class="content">item</li>
+  <li class="before"></li>
+  <li class="after"></li>
+</ol>
+<ol class="inside">
+  <li class="decimal">item</li>
+  <li class="string">item</li>
+  <li class="content">item</li>
+  <li class="before"></li>
+  <li class="after"></li>
+</ol>

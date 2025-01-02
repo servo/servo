@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;bdo&gt;</title>
+</head>
+<body>
+  <!-- is structured inline; requires 'dir', test all attrs -->
+  <p><bdo dir="ltr"
+          lang="en"
+          style=""
+          class="class"
+          id="foo">text</bdo></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><bdo dir="ltr" class="class" lang="en">text</bdo></dfn></p>
+
+  <!-- can be empty -->
+  <p>text <bdo dir="ltr"></bdo></p>
+  <p>text <dfn><bdo dir="ltr"></bdo></dfn></p>
+
+  <!-- can contain interactive -->
+  <p><bdo dir="ltr"><a>text</a></bdo></p>
+  <p><dfn><bdo dir="ltr"><a>text</a></bdo></dfn></p>
+
+  <!-- cannot contain structured inline -->
+</body>
+</html>

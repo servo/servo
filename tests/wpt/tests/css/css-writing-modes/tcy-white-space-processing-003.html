@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: white space only text-combine-horizontal</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#text-combine-layout">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-rules">
+<link rel="match" href="reference/tcy-white-space-processing-003-ref.html">
+<meta name="assert" content="a text-combine-upright with only white-space is preserved as a 1em square, including at the end of the containing line, regardless of the value of the white-space property">
+<style>
+.v-rl {
+  writing-mode: vertical-rl;
+  width: 200px;
+}
+#test span {
+  -webkit-text-combine: horizontal; /*testing the layout text-combine, not it's support in general*/
+  text-combine-upright: all;
+}
+#test2 span {
+  -webkit-text-combine: horizontal; /*testing the layout text-combine, not it's support in general*/
+  text-combine-upright: all;
+  white-space: pre;
+}
+#ref span {
+  display: inline-block;
+  height: 1em;
+}
+#test { color: blue; }
+#test2 { color: brown; }
+#ref { color: orange; }
+.v-rl > div {
+  display: inline-block;
+  border: solid;
+  margin: 0 5px;
+}
+</style>
+<p>Test passes if the blue, orange, brown boxes are identical.
+
+<div class=v-rl>
+  <div id=test>あいう<span> </span>えお<span> </span></div>
+  <br>
+  <div id=test2>あいう<span> </span>えお<span> </span></div>
+  <br>
+  <div id=ref>あいう<span></span>えお<span></span></div>
+</div>

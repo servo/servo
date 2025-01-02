@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Meta refresh applies even when dynamically appended</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#pragma-directives">
+
+<div id="log"></div>
+
+<script>
+"use strict";
+setup({ single_test: true });
+
+const iframe = document.createElement("iframe");
+let loadCount = 0;
+
+iframe.onload = () => {
+  ++loadCount;
+  const iDocument = iframe.contentDocument;
+
+  if (loadCount === 1) {
+    iDocument.body.innerHTML = `<meta http-equiv="refresh" content="1; url=foo">`;
+  } else if (loadCount === 2) {
+    assert_equals(iDocument.body.textContent.trim(), "foo");
+    done();
+  }
+};
+
+iframe.src = "support/ufoo";
+document.body.appendChild(iframe);
+</script>

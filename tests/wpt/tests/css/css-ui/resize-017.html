@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: resizing vertically uses the style attribute</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#resize">
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#test {
+  width: 100px;
+  height: 100px;
+  background: orange;
+  overflow: hidden;
+  resize: vertical;
+}
+</style>
+
+<p>Attempt to resize the orange box both horizontally and vertically, then press the “done” button
+(Resizing horizontally is not expected to be possible but should still be attempted).</p>
+
+<button onclick="verify()">done</button>
+
+<div id="test"></div>
+<div id=log></div>
+<script>
+setup({ explicit_done: true });
+function verify() {
+  test(
+    function(){
+      var test = document.getElementById("test");
+      assert_equals(test.style.width, "", "The width property of the style attribute should not be set");
+      assert_regexp_match(test.style.height, /px$/, "The height property of the style attribute should be set in pixels");
+      assert_not_equals(test.style.height, "100px", "The height should be different from the initial one");
+    }, "horizontal resizing only affects the width properties on the style attrbute.");
+  done();
+}
+</script>

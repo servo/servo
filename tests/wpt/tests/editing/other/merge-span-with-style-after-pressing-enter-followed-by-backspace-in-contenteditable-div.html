@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Merge Span with style after backspace having contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body>
+<div contenteditable></div>
+<script>
+"use strict";
+
+const utils =
+  new EditorTestUtils(document.querySelector("div[contenteditable]"));
+
+promise_test(async () => {
+  utils.setupEditingHost(
+    `<div contenteditable="true">
+    <h1><span style="background-color:red;">Back[]space</span></h1>
+    </div>`
+  );
+  await utils.sendEnterKey();
+  await utils.sendBackspaceKey();
+  assert_in_array(
+    utils.editingHost.innerHTML,
+    [
+    `<div contenteditable="true">
+    <h1><span style="background-color:red;">Back</span><span style="background-color: red;">space</span></h1>
+    </div>`
+    ],
+    "Style is not preserved for the span after pressing backspace in contenteditable"
+  );
+}, "waiting for command to execute");
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Eight Red Triangles on White Ground (with gradients)</title>
+        <link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-background-size">
+        <meta name="assert" content="Gradients are correctly repeated.">
+        <meta name="fuzzy" content="0-255; 0-564">
+        <link rel="match" href="tiled-gradients-ref.html">
+        <style>
+            #gradient {
+                width: 400px;
+                height: 200px;
+                background-size: 25% 50%;
+                background-image: linear-gradient(to bottom left, red 50%, transparent 50%);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="gradient"></div>
+    </body>
+</html>
+

@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - "Basic" authenticated requests with user name and password from interactive session</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::code[contains(@title,'http-authorization')]/.." />
+  </head>
+  <body>
+    <p>Please follow these steps to complete the test:</p>
+    <script>var user = token();</script>
+    <ol>
+      <li>Load <a href="resources/auth3/auth.py">page</a> and authenticate with username "<script>document.write(user)</script>" and password "pass"</li>
+      <li>Go back</li>
+      <li>Click <button onclick="location.href = location.href + '?dotest&user=' + user">complete test</button></li>
+    </ol>
+    <div id="log"></div>
+    <script>
+    if (location.search.indexOf('?dotest') != -1) {
+      test(function() {
+        var user = location.search.slice(location.search.indexOf('&user=') + 6),
+          client = new XMLHttpRequest(),
+          urlstart = location.host + location.pathname.replace(/\/[^\/]*$/, '/')
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth3/auth.py", false)
+        client.send(null)
+        assert_equals(client.responseText, user + "\n" + 'pass')
+        assert_equals(client.getResponseHeader('x-challenge'), 'DID-NOT')
+      }, document.title)
+    }
+    </script>
+  </body>
+</html>

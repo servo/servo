@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: '::first-line' works on grid items within an inline grid</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-containers" title="3.1 Establishing Grid Containers">
+<link rel="help" href="http://www.w3.org/TR/css3-selectors/#first-formatted-line" title="7.1.1. First formatted line definition in CSS">
+<link rel="match" href="../reference/grid-text-green-margin-no-collapse-ref.html">
+<meta name="assert" content="This test checks that '::first-line' pseudo-element works as expected if it is applied directly to a grid item within an inline grid.">
+<style>
+  .inline-grid {
+    display: inline-grid;
+    color: red;
+  }
+
+  .item::first-line {
+    color: green;
+  }
+</style>
+<div class="inline-grid">
+  <p class="item">
+    This text should be <strong>green</strong> and body and paragraph margins should <strong>not collapse</strong>.
+  </p>
+</div>

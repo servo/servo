@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>table-width-3</title>
+    <meta charset="utf-8"/>
+    <style type="text/css">
+      html { background-color: grey; }
+      td { border: 1px solid white;
+      padding-top: 0;
+      padding-bottom: 0;
+      padding-right: 1px;
+      padding-left: 1px;
+      background-color: black;
+      color: red; }
+      mi, mtext { font-size: 3em; }
+      span { font-style: italic; display: inline-block; }
+    </style>
+  </head>
+  <body>
+
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mphantom>
+              <mi>f</mi>
+            </mphantom>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mphantom>
+              <mi>f</mi>
+              <mi>f</mi>
+              <mi>f</mi>
+            </mphantom>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mphantom>
+              <mi style="font-style: italic;">fff</mi>
+            </mphantom>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mphantom>
+              <mtext><span>fff</span></mtext>
+            </mphantom>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mphantom>
+              <mtext><span>f</span></mtext>
+              <mtext><span>f</span></mtext>
+              <mtext><span>f</span></mtext>
+            </mphantom>
+          </math>
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>
+          <math>
+            <mphantom>
+              <mtext><span>f</span><span>f</span><span>f</span></mtext>
+            </mphantom>
+          </math>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

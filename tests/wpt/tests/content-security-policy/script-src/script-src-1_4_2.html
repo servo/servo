@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Function() called as a constructor should throw without 'unsafe-eval' script-src directive.</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Function() called as a constructor should throw without 'unsafe-eval' script-src directive.</h1>
+    <div id='log'></div>
+
+   	<script>
+   	    var t_spv = async_test("Test that securitypolicyviolation event is fired");
+
+        window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+            assert_equals(e.violatedDirective, "script-src");
+        }));
+
+
+        test(function() {
+            assert_throws_js(
+                EvalError,
+                function() {
+                    var funq = new Function('');
+                    funq();
+        })}, "Unsafe eval ran in Function() constructor.");
+
+    </script>
+</body>
+</html>

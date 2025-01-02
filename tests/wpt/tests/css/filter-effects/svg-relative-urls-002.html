@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>SVG Filters: relative URLs from external stylesheets</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#relative-urls">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=405315">
+<link rel="match" href="reference/svg-relative-urls-002-ref.html">
+<meta name="assert" content="Check that SVG filters can be referenced from external stylesheets using a relative URL">
+
+<link rel="stylesheet" href="support/filter-from-external-url.css"
+      onload="document.body && document.body.offsetTop">
+<style>
+img {
+    margin: 10px;
+}
+</style>
+<img class="hue-rotate" src="support/color-palette.png">

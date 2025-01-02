@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: summary with 'display: list-item'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+details {
+  margin-left: 50px;
+}
+.inside {
+  list-style-position: inside;
+}
+</style>
+<details>
+  <summary>summary</summary>
+  content
+</details>
+<details>
+  <summary class="inside">summary</summary>
+  content
+</details>
+<details open>
+  <summary>summary</summary>
+  content
+</details>
+<details open>
+  <summary class="inside">summary</summary>
+  content
+</details>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("FAIL");
+        });
+    </script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' about: 'unsafe-inline'; connect-src 'self';">
+    <title>default-src-inline-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS 1 of 2","PASS 2 of 2"]'></script>
+</head>
+
+<body onload="alert_assert(&apos;PASS 2 of 2&apos;)">
+    <script>
+        alert_assert('PASS 1 of 2');
+
+    </script>
+    <!--iframe src="javascript:alert_assert(&apos;Fail&apos;)"></iframe-->
+    <div id="log"></div>
+</body>
+
+</html>

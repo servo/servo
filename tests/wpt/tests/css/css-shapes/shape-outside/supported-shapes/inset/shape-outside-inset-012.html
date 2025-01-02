@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: left float, inset + margin-box</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-inset">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-box-values">
+        <link rel="match" href="reference/shape-outside-inset-010-ref.html"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The test verfies that text flows around a
+                                     left float with a shape-outside defined as
+                                     an inset rectangle + margin-box.">
+    </head>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+        #container {
+            position: relative;
+            margin-left: 25px;
+        }
+        #test-container {
+            width: 200px;
+            height: 200px;
+            font-family: Ahem;
+            font-size: 25px;
+            line-height: 1;
+            background-color: red;
+            color: green;
+        }
+        #test-shape {
+            float: left;
+            width: 50px;
+            height: 50px;
+            border: 25px solid red;
+            margin: 25px;
+            padding: 25px;
+            shape-outside: margin-box inset(50px 100px 50px 0px);
+        }
+        #static-shape {
+            position: absolute;
+            top: 50px;
+            left: 0px;
+            width: 100px;
+            height: 100px;
+            background-color: green;
+        }
+    </style>
+    <body>
+        <p>The test passes if there is a green square and no red.</p>
+        <div id="container">
+            <div id="test-container">
+                <div id="test-shape"></div>
+                XXXXXXXX XXXXXXXX XXXX XXXX XXXX XXXX XXXXXXXX XXXXXXXX
+            </div>
+            <div id="static-shape"></div>
+        </div>
+    </body>
+</html>

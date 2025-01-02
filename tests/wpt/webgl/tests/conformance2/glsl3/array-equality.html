@@ -1,0 +1,242 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL array equality test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderSimple" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    // This simple test uses the ESSL1 style array initialization in order
+    // to be able to test array equality independently of array constructors.
+    int a[3];
+    int b[3];
+    int c[3];
+    for (int i = 0; i < 3; ++i) {
+        a[i] = i;
+        b[i] = i;
+        c[i] = i + 1;
+    }
+    bool success = (a == b) && (a != c);
+    my_FragColor = vec4(0.0, (success ? 1.0 : 0.0), 0.0, 1.0);
+}
+</script>
+<script id="fshaderArrayOfStructs" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+struct S {
+    int foo;
+};
+
+void main() {
+    // This simple test uses the ESSL1 style array initialization in order
+    // to be able to test array equality independently of array constructors.
+    S a[3];
+    S b[3];
+    S c[3];
+    for (int i = 0; i < 3; ++i) {
+        a[i].foo = i;
+        b[i].foo = i;
+        c[i].foo = i + 1;
+    }
+    bool success = (a == b) && (a != c);
+    my_FragColor = vec4(0.0, (success ? 1.0 : 0.0), 0.0, 1.0);
+}
+</script>
+<script id="simple-float-array-fs" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+uniform float a[3];
+uniform float b[3];
+
+out vec4 fragColor;
+
+void main(void) {
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        fragColor.g = 1.0;
+    }
+}
+</script>
+<script id="simple-vec-array-fs" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+uniform vec3 a[3];
+uniform vec3 b[3];
+
+out vec4 fragColor;
+
+void main(void) {
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        fragColor.g = 1.0;
+    }
+}
+</script>
+<script id="simple-mat-array-fs" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+uniform mat3 a[3];
+uniform mat3 b[3];
+
+out vec4 fragColor;
+
+void main(void) {
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (a == b) {
+        fragColor.g = 1.0;
+    }
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Comparing arrays should work.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderSimple',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Arrays of integers'
+},
+{
+  fShaderId: 'fshaderArrayOfStructs',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Arrays of structs'
+},
+{
+  fShaderId: "simple-float-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  passMsg: "Simple float array with default values",
+},
+{
+  fShaderId: "simple-float-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  renderColor: [0, 0, 0, 255],
+  uniforms: [
+    { name: 'a', functionName: 'uniform1fv', value: [1, 2, 3]},
+    { name: 'b', functionName: 'uniform1fv', value: [1, 2, 4]},
+  ],
+  passMsg: "Simple float array with different values",
+},
+{
+  fShaderId: "simple-float-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  uniforms: [
+    { name: 'a', functionName: 'uniform1fv', value: [1, 2, 3]},
+    { name: 'b', functionName: 'uniform1fv', value: [1, 2, 3]},
+  ],
+  passMsg: "Simple float array with same values",
+},
+{
+  fShaderId: "simple-vec-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  passMsg: "Simple vec array with default values",
+},
+{
+  fShaderId: "simple-vec-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  renderColor: [0, 0, 0, 255],
+  uniforms: [
+    { name: 'a', functionName: 'uniform3fv', value: [1, 2, 3, 4, 5, 6, 7, 8, 9]},
+    { name: 'b', functionName: 'uniform3fv', value: [1, 2, 3, 4, 5, 6, 7, 8, 10]},
+  ],
+  passMsg: "Simple vec array with different values",
+},
+{
+  fShaderId: "simple-vec-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  uniforms: [
+    { name: 'a', functionName: 'uniform3fv', value: [1, 2, 3, 4, 5, 6, 7, 8, 9]},
+    { name: 'b', functionName: 'uniform3fv', value: [1, 2, 3, 4, 5, 6, 7, 8, 9]},
+  ],
+  passMsg: "Simple vec array with same values",
+},
+{
+//           "simple-mat-array-fs"
+  fShaderId: "simple-mat-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  passMsg: "Simple mat array with default values",
+},
+{
+  fShaderId: "simple-mat-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  renderColor: [0, 0, 0, 255],
+  uniforms: [
+    { name: 'a', functionName: 'uniformMatrix3fv', value: [
+      11, 12, 13, 14, 15, 16, 17, 18, 19,
+      21, 22, 23, 24, 25, 26, 27, 28, 29,
+      31, 32, 33, 34, 35, 36, 37, 38, 39,
+    ]},
+    { name: 'b', functionName: 'uniformMatrix3fv', value: [
+      11, 12, 13, 14, 15, 16, 17, 18, 19,
+      21, 22, 23, 24, 25, 26, 27, 28, 29,
+      31, 32, 33, 34, 35, 36, 37, 30, 39,
+    ]},
+  ],
+  passMsg: "Simple vec array with different values",
+},
+{
+  fShaderId: "simple-mat-array-fs",
+  fShaderSuccess: true,
+  linkSuccess: true,
+  render: true,
+  uniforms: [
+    { name: 'a', functionName: 'uniformMatrix3fv', value: [
+      11, 12, 13, 14, 15, 16, 17, 18, 19,
+      21, 22, 23, 24, 25, 26, 27, 28, 29,
+      31, 32, 33, 34, 35, 36, 37, 38, 39,
+    ]},
+    { name: 'b', functionName: 'uniformMatrix3fv', value: [
+      11, 12, 13, 14, 15, 16, 17, 18, 19,
+      21, 22, 23, 24, 25, 26, 27, 28, 29,
+      31, 32, 33, 34, 35, 36, 37, 38, 39,
+    ]},
+  ],
+  passMsg: "Simple vec array with same values",
+},
+], 2);
+</script>
+</body>
+</html>
+

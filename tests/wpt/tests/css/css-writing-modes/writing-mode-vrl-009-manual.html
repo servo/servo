@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-rl, default Arabic direction</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="By default, writing-mode:vertical-lr will display Arabic characters progressing up the page."/>
+<style type="text/css">
+.test, .ref { font-size: 24px; float: left; margin-right: 30px; color: #ccc; }
+span[lang=ar] { color: black; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the text runs vertically and the order of the Arabic characters is the same as on the blue background.</p>
+<div class="test" lang="zh-hans">国际化活动<span lang="ar">نشاط التدويل</span>万维网联盟</div>
+<div class="ref"><img src="support/zh+arabic.png" alt="ref image"/></div>
+</body>
+</html>

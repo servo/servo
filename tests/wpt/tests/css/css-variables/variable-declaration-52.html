@@ -1,0 +1,24 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test declaring a variable that consists of a reference to an inherited variable whose value was a variable reference that used its fallback.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+body {
+  color: orange;
+  --c: var(--a,green);
+}
+p {
+  --a: var(--b);
+}
+p {
+  color: red;
+  --b: var(--c,crimson);
+  color: var(--a);
+}
+</style>
+<p>This text must be green.</p>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: Old content is an inline element.</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="old-content-is-inline-ref.html">
+<meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-500">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+body { margin : 0; }
+.container {
+  position: absolute;
+  left: 100px;
+  width: 400px;
+  height: 100px;
+  background-color: grey;
+}
+
+.container.start {
+  top: 100px;
+  view-transition-name: container-start;
+}
+
+.container.end {
+  top: 300px;
+  view-transition-name: container-end;
+}
+
+.transitioned .container {
+  left: 20px;
+  width: 600px;
+  transform: translateY(-50px);
+}
+
+.inline {
+  background-color: limegreen;
+  /* allow small pixel diff in text */
+  color: rgba(0, 0, 0, 0);
+}
+
+.start .inline {
+  view-transition-name: start;
+}
+
+.end .inline {
+  view-transition-name: end;
+}
+
+.transitioned .inline {
+  background-color: coral;
+}
+
+/* Overlay the page with purple to ensure screenshots taken are of the view
+ * transition. */
+:root {
+  view-transition-name: none;
+}
+::view-transition {
+  background-color: rebeccapurple;
+}
+
+/* This step function keeps the old snapshots in their initial state for half
+ * the duration, then the new snapshots in their final state for the last half
+ * of the duration. */
+html::view-transition-group(*),
+html::view-transition-new(*),
+html::view-transition-old(*) {
+  animation-timing-function: steps(2, jump-none);
+}
+
+/* Set different durations for start and end so the two subtrees can be
+ * differentiated. The test will manually control animation playback so
+ * duration doesn't matter. */
+html::view-transition-group(container-start),
+html::view-transition-group(start),
+html::view-transition-new(container-start),
+html::view-transition-old(container-start) {
+  animation-duration: 2s;
+}
+html::view-transition-group(container-end),
+html::view-transition-group(end),
+html::view-transition-new(container-end),
+html::view-transition-old(container-end) {
+  animation-duration: 3s;
+}
+
+/* Hide the new states for the inlines, they're tested in
+ * new-content-is-inline.html */
+html::view-transition-new(start),
+html::view-transition-new(end) {
+  animation: unset;
+  opacity: 0;
+}
+html::view-transition-old(start),
+html::view-transition-old(end) {
+  animation: unset;
+  opacity: 1;
+}
+
+</style>
+
+<!--
+This subtree will be held at the animation start to test the old content's
+starting position.
+-->
+<div class="container start">
+  <span>FILLER FILLER</span>
+  <span id="start" class="inline">INLINE INLINE INLINE INLINE</span>
+  <p>START STATE</p>
+</div>
+
+<!--
+This subtree will be held at the animation end to test the old content's
+ending position.
+-->
+<div class="container end">
+  <span>FILLER FILLER</span>
+  <span id="end" class="inline">INLINE INLINE INLINE INLINE</span>
+  <p>END STATE</p>
+</div>
+
+<script>
+if (typeof failIfNot != 'undefined')
+  failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition(() => {
+    document.body.classList.add('transitioned');
+  });
+
+  transition.ready.then(() => {
+    for (const anim of document.getAnimations()) {
+      anim.pause();
+      if (anim.effect.getTiming().duration == 3000) {
+        // This is an animation for the end subtree. Adjust it to the end
+        // (without finishing the animation) so we're displaying the final
+        // position.
+        anim.currentTime = anim.effect.getTiming().duration - 1;
+      }
+    }
+
+    requestAnimationFrame(takeScreenshot);
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>align-self:normal on flex items</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align/#align-flex">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="align-self:normal behaves as stretch on flex items." />
+<style>
+.flex {
+  display: flex;
+  align-items: center;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.item {
+  flex: 1;
+  align-self: normal;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="flex">
+  <div class="item"></div>
+</div>

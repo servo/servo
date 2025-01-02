@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <style>
+      div {
+        margin: 1px;
+        background: lime;
+        float: left;
+      }
+
+      .square {
+        width: 24px;
+        height: 24px;
+      }
+      .bigWide {
+        width: 48px;
+        height: 32px;
+      }
+      .bigTall {
+        width: 32px;
+        height: 48px;
+      }
+      .small {
+        width: 8px;
+        height: 8px;
+      }
+
+      br { clear: both; }
+
+    </style>
+  </head>
+  <body>
+    <!-- Note: the specified heights here are just 1/2 the widths. -->
+    <div class="square"></div>
+    <div class="square" style="height: 12px"></div>
+    <br>
+    <div class="bigWide"></div>
+    <div class="bigWide" style="height: 24px"></div>
+    <br>
+    <div class="bigTall"></div>
+    <div class="bigTall" style="height: 16px"></div>
+    <br>
+    <div class="small"></div>
+    <div class="small" style="height: 4px"></div>
+    <br>
+  </body>
+</html>

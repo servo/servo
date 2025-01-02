@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Paged content</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule"/>
+  <meta name="flags" content="paged image" />
+  <meta name="assert" content="The page area includes the boxes laid out on that page. The content of the document is flowed into the page area of one or more page sheets. "/>
+  <style type="text/css">
+    div {   page-break-inside: avoid;
+        }
+    html {  border: thick solid orange;
+        }
+    table, td, th {
+            border: thin solid black;
+        }
+    #borders-too {
+            background: #ff9;
+            padding: 1em;
+            border: medium purple solid;
+        }
+    .left-aligned {
+            float: left;
+            border: solid thick maroon;
+        }
+    .right-aligned {
+            float: right;
+            border: solid thick teal;
+        }
+    img {
+        width: 25%;
+        vertical-align:baseline;
+        }
+    h2 {
+        clear: both;
+        }
+    .full-width {
+        width: 100%;
+        }
+    body { color: gray; }
+		.instruct { color: black; }
+   </style>
+ </head>
+ <body>
+  <p class="instruct">The contents of this document include headings,
+	"lorem ipsum" paragraphs with a background and a border, a list with
+	bullets, two images, and a table. This test passes if all these items
+	appear within an orange border which spans the pages.
+  </p>
+  <h2>Lorem Ipsum Text</h2>
+  <div id="borders-too">
+	  <p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Phasellus
+	  hendrerit. Pellentesque aliquet nibh nec urna. In nisi neque, aliquet vel,
+	  dapibus id, mattis vel, nisi. Sed pretium, ligula sollicitudin laoreet
+	  viverra, tortor libero sodales leo, eget blandit nunc tortor eu nibh. Nullam
+	  mollis. Ut justo. Suspendisse potenti.</p>
+	  <p>Sed egestas, ante et vulputate volutpat, eros pede semper est, vitae
+	  luctus metus libero eu augue. Morbi purus libero, faucibus adipiscing,
+	  commodo quis, gravida id, est. Sed lectus. Praesent elementum hendrerit
+	  tortor. Sed semper lorem at felis. Vestibulum volutpat, lacus a ultrices
+	  sagittis, mi neque euismod dui, eu pulvinar nunc sapien ornare nisl.
+	  Phasellus pede arcu, dapibus eu, fermentum et, dapibus sed, urna.</p>
+	  <p>Morbi interdum mollis sapien. Sed ac risus. Phasellus lacinia, magna a
+	  ullamcorper laoreet, lectus arcu pulvinar risus, vitae facilisis libero
+	  dolor a purus. Sed vel lacus. Mauris nibh felis, adipiscing varius,
+	  adipiscing in, lacinia vel, tellus. Suspendisse ac urna. Etiam pellentesque
+	  mauris ut lectus. Nunc tellus ante, mattis eget, gravida vitae, ultricies
+	  ac, leo. Integer leo pede, ornare a, lacinia eu, vulputate vel, nisl.</p>
+	  <p>Suspendisse mauris. Fusce accumsan mollis eros. Pellentesque a diam sit
+	  amet mi ullamcorper vehicula. Integer adipiscing risus a sem. Nullam quis
+	  massa sit amet nibh viverra malesuada. Nunc sem lacus, accumsan quis,
+	  faucibus non, congue vel, arcu. Ut scelerisque hendrerit tellus. Integer
+	  sagittis. Vivamus a mauris eget arcu gravida tristique. Nunc iaculis mi in
+	  ante. Vivamus imperdiet nibh feugiat est.</p>
+	  <p>Ut convallis, sem sit amet interdum consectetuer, odio augue aliquam leo,
+	  nec dapibus tortor nibh sed augue. Integer eu magna sit amet metus fermentum
+	  posuere. Morbi sit amet nulla sed dolor elementum imperdiet. Quisque
+	  fermentum. Cum sociis natoque penatibus et magnis dis parturient montes,
+	  nascetur ridiculus mus. Pellentesque adipiscing eros ut libero. Ut
+	  condimentum mi vel tellus. Suspendisse laoreet. Fusce ut est sed dolor
+	  gravida convallis. Morbi vitae ante. Vivamus ultrices luctus nunc.
+	  Suspendisse et dolor. Etiam dignissim. Proin malesuada adipiscing lacus.
+	  Donec metus. Curabitur gravida.</p>
+  </div>
+  <div>
+    <h2>Unordered List</h2>
+  	<ul>
+		  <li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit.</li>
+		  <li>Aliquam tincidunt mauris eu risus.</li>
+		  <li>Vestibulum auctor dapibus neque.</li>
+		  <li>Nunc dignissim risus id metus.</li>
+		  <li>Cras ornare tristique elit.</li>
+		  <li>Vivamus vestibulum nulla nec ante.</li>
+		  <li>Praesent placerat risus quis eros.</li>
+		  <li>Fusce pellentesque suscipit nibh.</li>
+		  <li>Integer vitae libero ac risus egestas placerat.</li>
+		  <li>Vestibulum commodo felis quis tortor.</li>
+		  <li>Ut aliquam sollicitudin leo.</li>
+		  <li>Cras iaculis ultricies nulla.</li>
+		  <li>Donec quis dui at dolor tempor interdum.</li>
+		  <li>Vivamus molestie gravida turpis.</li>
+		  <li>Fusce lobortis lorem at ipsum semper sagittis.</li>
+		  <li>Nam convallis pellentesque nisl.</li>
+		  <li>Integer malesuada commodo nulla.</li>
+	  </ul>
+  </div>
+  <h2>Floated images</h2>
+  <div>
+    <span>There is an maroon-boxed cat to the left
+      <img class="left-aligned" alt="FAIL: missing image" src="support/cat.png" />and
+      a teal-boxed cat to the right
+      <img class="right-aligned" alt="FAIL: missing image" src="support/cat.png" /> of this paragraph.
+    </span>
+  </div>
+  <h2>Table</h2>
+  <table class="full-width">
+    <tr>
+      <th>Header1</th><th>Header2</th><th>Header3</th><th>Header4</th>
+    </tr>
+    <tr>
+      <td>Data 100</td><td>Data 200</td><td>Data 300</td><td>Data 400</td>
+    </tr>
+  </table>
+ </body>
+</html>

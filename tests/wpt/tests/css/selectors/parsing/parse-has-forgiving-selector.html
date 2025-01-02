@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: The relational pseudo-class (forgiving selector parsing)</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8356">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // disallow nesting :has() inside :has(), but serialize back unchanged
+  test_valid_forgiving_selector(':has(:is(:has(*)))');
+  test_valid_forgiving_selector(':has(:where(:has(*)))');
+  // serialize :is() back unchanged
+  test_valid_forgiving_selector(':has(:is(.a, 123))');
+</script>

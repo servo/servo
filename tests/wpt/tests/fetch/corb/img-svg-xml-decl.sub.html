@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<!-- Verifies CORB/ORB SVG image blocking.
+  This image has an XML declaration and is expected to load. -->
+<meta charset="utf-8">
+<link rel="match" href="img-svg.sub-ref.html">
+<img src="http://{{domains[www1]}}:{{ports[http][0]}}/fetch/corb/resources/svg-xml-decl.svg">

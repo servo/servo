@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Private State Tokens API Issuance operation container policy test</title>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script>
+  'use strict';
+  var same_origin_src = '/permissions-policy/resources/permissions-policy-private-state-token-issuance.html';
+  var cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+    same_origin_src;
+
+  async_test(t => {
+    test_feature_availability(
+        'Private State Token issuance request', t, same_origin_src,
+        (data, desc) => {assert_equals(data.num_operations_enabled, 2, desc);},
+        'private-state-token-issuance');
+  }, 'Permissions policy "private-state-token-issuance" can be enabled \
+in same-origin iframe using allow="private-state-token-issuance" attribute');
+
+  async_test(t => {
+    test_feature_availability(
+        'Private State Token issuance request', t, cross_origin_src,
+        (data, desc) => {assert_equals(data.num_operations_enabled, 2, desc);},
+        'private-state-token-issuance');
+  }, 'Permissions policy "private-state-token-issuance" can be enabled \
+in cross-origin iframe using allow="private-state-token-issuance" attribute');
+  </script>
+</body>

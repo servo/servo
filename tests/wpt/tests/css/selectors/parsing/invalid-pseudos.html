@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Selectors: Test that various prefixed pseudos are not web exposed</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../support/parsing-testcommon.js"></script>
+<script>
+// Pseudo-classes
+test_invalid_selector(":-internal-animating-full-screen-transition");
+test_invalid_selector(":-internal-fullscreen-document");
+test_invalid_selector(":-internal-html-document");
+test_invalid_selector(":-internal-media-document");
+test_invalid_selector(":-khtml-drag");
+test_invalid_selector(":-webkit-animating-full-screen-transition");
+test_invalid_selector(":-webkit-full-page-media");
+test_invalid_selector(":-webkit-full-screen-ancestor");
+test_invalid_selector(":-webkit-full-screen-controls-hidden");
+test_invalid_selector(":-webkit-full-screen-document");
+
+// Pseudo-elements
+test_invalid_selector("::-apple-attachment-controls-container");
+test_invalid_selector("::-internal-loading-auto-fill-button");
+</script>

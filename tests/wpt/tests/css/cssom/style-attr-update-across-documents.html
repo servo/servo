@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>CSSStyleDeclaration setter works when a node changes document</title>
+<link rel="author" title="Raphael Kubo da Costa" href="raphael.kubo.da.costa@intel.com">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-camel-cased-attribute">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-webkit-cased-attribute">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-dashed-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="original-div" style="background-color:green; height: 100px; width: 100px"></div>
+<script>
+  // Create and return a 100x100 red <div>.
+  function createDiv(containerDocument) {
+    const div = containerDocument.createElement("div");
+    div.style.backgroundColor = "red";
+    div.style.height = "100px";
+    div.style.width = "100px";
+    containerDocument.body.appendChild(div);
+    return div;
+  }
+
+  async_test(t => {
+    const iframeElement = document.createElement("iframe");
+    iframeElement.addEventListener("load", t.step_func_done(() => {
+      const originalDiv = document.getElementById("original-div");
+      const newDiv = createDiv(iframeElement.contentDocument);
+
+      assert_not_equals(newDiv.ownerDocument, document,
+                        "The new <div> belongs to the iframe, not the main document");
+
+      document.body.insertBefore(newDiv, originalDiv);
+      assert_equals(newDiv.ownerDocument, document,
+                    "The new <div> now belongs to the main document");
+
+      newDiv.style.backgroundColor = "blue";
+      assert_equals(window.getComputedStyle(newDiv).getPropertyValue("background-color"),
+                    "rgb(0, 0, 255)",
+                    "The new <div>'s background-color is blue");
+
+      document.body.removeChild(iframeElement);
+
+      newDiv.style.backgroundColor = "green";
+      assert_equals(window.getComputedStyle(newDiv).getPropertyValue("background-color"),
+                    "rgb(0, 128, 0)",
+                    "The new <div>'s background-color is green");
+    }));
+    document.body.appendChild(iframeElement);
+  }, "Changing the style of a node that switched documents works");
+</script>

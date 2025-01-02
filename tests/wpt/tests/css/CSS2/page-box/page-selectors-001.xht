@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: page selector is optional in @page rules</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#at-page-rule" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="An @page rule consists of the keyword '@page', followed by an optional page selector, followed by a block of declarations."/>
+  <style type="text/css">
+    @page {
+        margin-top: .5in;
+        margin-bottom: .5in;
+    }
+    @page :first {
+        margin-bottom: 2in;
+        margin-top: 2in;
+    }
+    .break-after {
+        page-break-after: always;
+    }
+  </style>
+ </head>
+ <body>
+   <div>
+     <p class="break-after">
+       This text produces two pages on paged media.
+       This text begins about two inches down from the top of the page.
+     </p>
+     <p>This text begins about one half inch down from the top of the page.</p>
+   </div>
+ </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation: row gaps should not be truncated by
+  fragmentainer breaks (similar to flex-item margins). Tests row gap that
+  is larger than the fragmentainer block-size.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="multi-line-row-flex-fragmentation-071-ref.html">
+<style>
+  .multicol {
+    columns: 2;
+    column-fill: auto;
+    width: 300px;
+    height: 100px;
+    margin: 20px;
+    background: yellow;
+  }
+  .flex {
+    display: flex;
+    flex-wrap: wrap;
+    background: gray;
+  }
+  .flex > div {
+    contain: size;
+    width: 100%;
+    height: 50px;
+    background: cyan;
+  }
+</style>
+<p>Flex row gaps should <strong>not</strong> be truncated when a row breaks.</p>
+<div class="multicol">
+  <div class="flex" style="row-gap:400px;">
+    <div></div>
+    <div></div>
+  </div>
+</div>

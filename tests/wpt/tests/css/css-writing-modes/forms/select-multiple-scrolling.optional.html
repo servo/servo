@@ -1,0 +1,103 @@
+<!doctype html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://html.spec.whatwg.org/#the-select-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-area">
+<title>Test &lt;select&gt; multiple attribute scroll progression</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select multiple size="5"></select>
+<script>
+const select = document.querySelector("select");
+for (let i = 0; i < 100; i++) {
+    const option = document.createElement("option");
+    option.textContent = `Option ${i + 1}`;
+    select.appendChild(option);
+}
+
+for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+    if (!CSS.supports(`writing-mode: ${writingMode}`))
+        continue;
+
+    const scrollBlockAxis = (() => {
+        switch (writingMode) {
+        case "horizontal-tb":
+            return "scrollTop";
+        case "vertical-lr":
+        case "sideways-lr":
+        case "vertical-rl":
+        case "sideways-rl":
+            return "scrollLeft";
+        }
+    })();
+    const scrollInlineAxis = scrollBlockAxis === "scrollTop" ? "scrollLeft" : "scrollTop";
+
+    const isHorizontal = writingMode === "horizontal-tb";
+    const clientBlock = isHorizontal ? "clientHeight" : "clientWidth";
+    const clientInline = isHorizontal ? "clientWidth" : "clientHeight";
+    const scrollBlock = isHorizontal ? "scrollHeight" : "scrollWidth";
+    const scrollInline = isHorizontal ? "scrollWidth" : "scrollHeight";
+
+    test(t => {
+        select.scrollTop = select.scrollLeft = 0;
+        select.style.writingMode = writingMode;
+        t.add_cleanup(() => {
+            select.removeAttribute("style");
+            select.scrollTop = select.scrollLeft = 0;
+        });
+
+        assert_true(
+            select[scrollBlock] > select[clientBlock],
+            "select should be scrollable in block axis"
+        );
+        assert_equals(
+            select[scrollInline], select[clientInline],
+            "select should not be scrollable in inline axis"
+        );
+
+        assert_equals(
+            select[scrollBlockAxis], 0,
+            `scrolling is initially at block start for writing-mode: ${writingMode}`
+        );
+
+        const isReversedBlockFlowDirection = writingMode.endsWith("-rl");
+        select[scrollBlockAxis] = 100;
+        if (!isReversedBlockFlowDirection) {
+            assert_true(
+                select[scrollBlockAxis] > 0,
+                `Setting ${scrollBlockAxis} to a positive value of the list works for writing-mode: ${writingMode}`
+            );
+        } else {
+            assert_equals(
+                select[scrollBlockAxis], 0,
+                `Setting ${scrollBlockAxis} to a positive value of the list does not work for writing-mode: ${writingMode}`
+            );
+        }
+
+        select[scrollBlockAxis] = -100;
+        if (isReversedBlockFlowDirection) {
+            assert_true(
+                select[scrollBlockAxis] < 0,
+                `Setting ${scrollBlockAxis} to a negative value of the list works for writing-mode: ${writingMode}`
+            );
+        } else {
+            assert_equals(
+                select[scrollBlockAxis], 0,
+                `Setting ${scrollBlockAxis} to a negative value of the list does not work for writing-mode: ${writingMode}`
+            );
+        }
+
+        select[scrollInlineAxis] = 100;
+        assert_equals(
+            select[scrollInlineAxis], 0,
+            `setting ${scrollInlineAxis} to a positive value should not scroll for writing-mode: ${writingMode}`
+        );
+        select[scrollInlineAxis] = -100;
+        assert_equals(
+            select[scrollInlineAxis], 0,
+            `setting ${scrollInlineAxis} to a negative value should not scroll for writing-mode: ${writingMode}`
+        );
+    }, `select[multiple][style="writing-mode: ${writingMode}"] scrolls correctly`);
+};
+</script>

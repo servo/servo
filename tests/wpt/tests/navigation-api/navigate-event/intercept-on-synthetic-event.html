@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  // We need to grab an NavigationDestination to construct the event.
+  navigation.onnavigate = t.step_func_done(e => {
+    const event = new NavigateEvent("navigate", {
+      destination: e.destination,
+      signal: (new AbortController()).signal
+    });
+
+    assert_throws_dom("SecurityError", () => event.intercept());
+  });
+  history.pushState(1, null, "#1");
+}, "event.intercept() throws if invoked on a synthetic event");
+</script>

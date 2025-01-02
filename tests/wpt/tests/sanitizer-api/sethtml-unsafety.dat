@@ -1,0 +1,61 @@
+#data
+test
+#document-fragment
+script
+#document
+| "test"
+
+#data
+<p>Hello</p>
+#document-fragment
+script
+#document
+| "<p>Hello</p>"
+
+#data
+<div>Hello<script>World</script>xxx
+#document
+| <div>
+|   "Hello"
+|   <script>
+|     "World"
+|   "xxx"
+
+#data
+<div>Hello<script>World</script>xxx
+#config
+{ "elements": ["div", "script"] }
+#document
+| <div>
+|   "Hello"
+|   <script>
+|     "World"
+|   "xxx"
+
+#data
+<svg>Hello<script>World</script>xxx
+#document
+| <svg svg>
+|   "Hello"
+|   <svg script>
+|     "World"
+|   "xxx"
+
+#data
+<img src="https://bla.com/blubb" onclick="2+2" one="two">
+#document
+| <img>
+|   onclick="2+2"
+|   one="two"
+|   src="https://bla.com/blubb"
+
+#data
+<img src="https://bla.com/blubb" onclick="2+2" one="two">
+#config
+{ "attributes": ["src", "onclick", "one"]}
+#document
+| <img>
+|   onclick="2+2"
+|   one="two"
+|   src="https://bla.com/blubb"
+

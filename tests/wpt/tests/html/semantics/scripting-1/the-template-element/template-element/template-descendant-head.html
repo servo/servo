@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Templates: Template element as a descendant of the head element.</title>
+<meta name="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<meta name="assert" content="Template element can be a descendant of the head element">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#template-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/html/resources/common.js'></script>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+
+testInIFrame('../resources/template-descendant-head.html', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    assert_not_equals(doc.head.querySelector('template'), null,
+        'Template element should be a descendant of the head element');
+
+}, 'Template element as a descendant of the head element. Test loading from a file');
+
+</script>
+</body>
+</html>

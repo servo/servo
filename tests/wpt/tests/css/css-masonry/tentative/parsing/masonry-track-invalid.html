@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Masonry: masonry-track-* parsing</title>
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<link rel="help" href="https://tabatkins.github.io/specs/css-masonry/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+  test_invalid_value("masonry-track-start", "0");
+  test_invalid_value("masonry-track-end", "span");
+  test_invalid_value("masonry-track-end", "sPaN");
+  test_invalid_value("masonry-track-end", '"1st"');
+  test_invalid_value("masonry-track-end", "1st");
+  test_invalid_value("masonry-track-start", "auto 1");
+  test_invalid_value("masonry-track-start", "1 auto");
+  test_invalid_value("masonry-track-end", "span 1 / span 2");
+
+  test_invalid_value("masonry-track", "4 5");
+  test_invalid_value("masonry-track", "4 /");
+  test_invalid_value("masonry-track", "5 5");
+  test_invalid_value("masonry-track", "5 / /");
+
+  test_invalid_value("masonry-track", "0 / 5");
+  test_invalid_value("masonry-track", "6 / 0");
+  test_invalid_value("masonry-track", "0");
+
+  test_invalid_value("masonry-track", "span");
+  test_invalid_value("masonry-track", "span / span");
+
+  test_invalid_value("masonry-track", "span span / span span");
+
+  test_invalid_value("masonry-track", "5 5 / span 2");
+  test_invalid_value("masonry-track", "5 first last / span 2");
+  test_invalid_value("masonry-track", "5 / first last 2");
+  test_invalid_value("masonry-track", "first last / span 2");
+  test_invalid_value("masonry-track", "5 / first last");
+  test_invalid_value("masonry-track", "5 5 span / 2", "span 4 4 / 3");
+  test_invalid_value("masonry-track", "span 3 5 / 1", "5 span 4 / 3");
+  test_invalid_value("masonry-track", "span last first / 1", "span first last / 3");
+  test_invalid_value("masonry-track", "2 / span last first", "3 / span first last");
+  test_invalid_value("masonry-track", "span 1 last first / 1", "span first last 7 / 3");
+  test_invalid_value("masonry-track", "2 / span last 3 first", "3 / span first 5 last");
+  test_invalid_value("masonry-track", "1 span 2 first / 1", "1 span last 7 / 3");
+  test_invalid_value("masonry-track", "2 / 3 span 3 first", "3 / 5 span first 5");
+
+  test_invalid_value("masonry-track", "span -1 / -2");
+  test_invalid_value("masonry-track", "-1 / -2 span");
+  test_invalid_value("masonry-track", "0 span / 0");
+  test_invalid_value("masonry-track", "0 / span 0");
+  test_invalid_value("masonry-track", "span -3 'first' / 3 last");
+
+  test_invalid_value("masonry-track", "first span 1 / last");
+  test_invalid_value("masonry-track", "3 first / 2 span last");
+  test_invalid_value("masonry-track", "3 / 1 span 2");
+</script>

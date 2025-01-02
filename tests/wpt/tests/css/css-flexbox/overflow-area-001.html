@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: scrollable overflow area (LTR)</title>
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<link rel="match" href="reference/overflow-area-001-ref.html">
+<style>
+
+.set {
+  clear: both;
+  margin: 1em;
+}
+
+.test, .ref {
+  display: flex;
+  overflow: scroll;
+  border: solid blue;
+  background: aqua;
+  margin: 1em 0.5em;
+  float: left;
+}
+div {
+  flex: none;
+}
+
+.test {
+  padding: 10px;
+  width: 60px;
+  height: 60px;
+}
+.test > div {
+  margin: 20px;
+  border: 5px solid transparent;
+  padding: 5px;
+  width: 10px;
+  height: 10px;
+  background: teal;
+}
+
+.ref {
+  width: 80px;
+  height: 80px;
+  border-color: orange;
+}
+.ref > div {
+  border: 30px solid aqua;
+  width: 30px;
+  height: 30px;
+  background: teal;
+}
+</style>
+
+<p>Test passes if all blue boxes in each row are identical to its first orange one,
+including the size and position of the scrollbar.
+
+<div class="set">
+  <div class="ref">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: row">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: row wrap">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: column">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: column wrap">
+    <div></div>
+  </div>
+</div>
+
+<div class="set">
+  <div class="ref" style="flex-flow: row-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: row-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: row-reverse wrap">
+    <div></div>
+  </div>
+</div>
+
+<div class="set">
+  <div class="ref" style="flex-flow: column-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: column-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: column-reverse wrap">
+    <div></div>
+  </div>
+</div>
+
+<div class="set">
+  <div class="ref" style="flex-flow: row wrap-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: row wrap-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: column-reverse wrap">
+    <div></div>
+  </div>
+</div>
+
+<div class="set">
+  <div class="ref" style="flex-flow: row-reverse wrap-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: row-reverse wrap-reverse">
+    <div></div>
+  </div>
+  <div class="test" style="flex-flow: column-reverse wrap-reverse">
+    <div></div>
+  </div>
+</div>

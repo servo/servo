@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Remove the single element on the fullscreen element stack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="single"></div>
+<script>
+    async_test(function(t)
+    {
+        var single = document.getElementById("single");
+        document.onfullscreenchange = t.step_func(function()
+        {
+            assert_equals(document.fullscreenElement, single);
+            document.onfullscreenchange = t.step_func(function()
+            {
+                assert_equals(document.fullscreenElement, null);
+                t.done();
+            });
+            single.remove();
+        });
+        single.requestFullscreen();
+    });
+</script>

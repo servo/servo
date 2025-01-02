@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="resources/key-navigate-back-cross-document-helper.html"></iframe>
+<script>
+async_test(t => {
+  let start_length = navigation.entries().length;
+  window.finish = t.step_func_done((end_key, end_id) => {
+    assert_equals(window.start_key, end_key);
+    assert_equals(window.start_id, end_id);
+    // The new history entry in the iframe should not add any entries to
+    // this window's navigation.
+    assert_equals(navigation.entries().length, start_length);
+  });
+}, "NavigationHistoryEntry's key and id on cross-document back navigation");
+</script>

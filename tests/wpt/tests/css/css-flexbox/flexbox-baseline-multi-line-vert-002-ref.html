@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case, using inline-block instead of inline-flex, and with the
+     baseline-aligned items aligned using specific font-size / line-heights,
+     and with unaligned children taken out of baseline-alignment using
+     "float: left".
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: inline-block;
+      /* Split testcase's 40px width into 20px of padding-right and 20px of
+         width, to set aside space for the testcase's (invisible) second line.
+      */
+      width: 20px;
+      padding-right: 20px;
+      height: 40px;
+      background: lightblue;
+    }
+    .flexContainer > * {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+    }
+
+    .smallFont {
+      font-size: 8px;
+      line-height: 8px;
+    }
+    .medFont {
+      font-size: 12px;
+      line-height: 12px;
+    }
+    .bigFont {
+      font-size: 16px;
+      line-height: 16px;
+    }
+    .unaligned { float: left }
+  </style>
+</head>
+<body>
+  a
+  <!-- Flex containers with flex items that have a mix of baselines: -->
+  <div class="flexContainer medFont">
+    <div class="bigFont">d</div
+    ><br><div class="medFont unaligned">e</div>
+  </div>
+
+  <!-- Flex container with second line baseline-aligned
+       (shouldn't make a difference) -->
+  <div class="flexContainer smallFont">
+    <div class="bigFont">l</div
+    ><br><div class="medFont unaligned">m</div>
+  </div>
+  n
+
+</body>
+</html>

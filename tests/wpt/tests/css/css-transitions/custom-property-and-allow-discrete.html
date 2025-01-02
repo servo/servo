@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions Test: transition of a custom property with "transition-behavior: allows-discrete"</title>
+<meta name="assert" content="Checks that transitioning a custom property with 'transition-behavior: allows-discrete' works as expected">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#transition-behavior-property">
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<script src="./support/helper.js" type="text/javascript"></script>
+<style>
+  .target {
+    transition: --foo 10s step-start;
+    transition-behavior: allow-discrete;
+    --foo: bar;
+  }
+</style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+promise_test(async t => {
+  const div = addDiv(t, { class: 'target' });
+
+  let transitionCount = 0;
+  div.addEventListener("transitionstart", () => transitionCount++);
+
+  // Trigger a transition on the custom property.
+  getComputedStyle(div).getPropertyValue('--foo');
+  div.style.setProperty('--foo', 'baz');
+  getComputedStyle(div).getPropertyValue('--foo');
+
+  // Wait two more frames to ensure only a single transition was started.
+  await waitForFrame();
+  await waitForFrame();
+
+  assert_equals(transitionCount, 1, 'A single "transitionstart" event was dispatched');
+}, 'It is possible to transition an unregistered custom property using "transition-behavior: allows-discrete"');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.setProperty('--foo', 'bar');
+
+  // Trigger a transition on the custom property.
+  getComputedStyle(div).getPropertyValue('--foo');
+  div.style.transition = "--foo 10s allow-discrete";
+  div.style.setProperty('--foo', 'baz');
+
+  assert_equals(div.getAnimations()[0].transitionProperty, '--foo', 'A transition was started for the custom property');
+}, 'It is possible to transition an unregistered custom property using "transition-behavior: allows-discrete" when setting "transition-property" in the style change that yields the transition');
+
+</script>
+</body>
+</html>

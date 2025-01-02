@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: StyleSheet's title attribute</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/cssom/#preferred-css-style-sheet-set-name">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-style-title">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style></style>
+<style title=""></style>
+<style title="Preferred">
+  p { color: green; }
+</style>
+<style title="Not preferred">
+  p { color: red; }
+</style>
+<p id="test-element">Should be green</p>
+<script>
+test(function() {
+  assert_equals(
+    getComputedStyle(document.getElementById("test-element")).color,
+    "rgb(0, 128, 0)",
+    "Preferred style should apply"
+  );
+}, "Preferred style sheet name");
+
+test(function() {
+  let sheets = document.styleSheets;
+  let styleElements = Array.from(document.querySelectorAll("style"));
+  assert_equals(sheets.length, styleElements.length);
+  for (let i = 0; i < sheets.length; ++i) {
+    let titleAttr = styleElements[i].getAttribute("title");
+    if (titleAttr === null || titleAttr === "")
+      assert_equals(sheets[i].title, null, "Empty title returns null");
+    else
+      assert_equals(sheets[i].title, titleAttr, "Selected title is properly reflected");
+  }
+}, "StyleSheet.title");
+</script>

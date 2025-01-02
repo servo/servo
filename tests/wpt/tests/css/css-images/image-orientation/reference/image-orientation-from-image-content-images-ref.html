@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Images Module Level 3: image-orientation: from-image for content images</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<style>
+    div.image {
+        display: inline-block;
+    }
+    div.container {
+        display: inline-block;
+        width: 100px;
+        vertical-align: top;
+    }
+    img {
+        width: 100px;
+        height: 100px;
+        background-repeat: no-repeat;
+    }
+    body {
+        overflow: hidden;
+    }
+</style>
+</head>
+<body >
+    <p>The images should rotate respecting their EXIF orientation because
+       image-orientation: from-image is specified.
+    </p>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul-pre-rotated.jpg)"></div>
+        <br>Normal
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-2-ur-pre-rotated.jpg)"></div>
+        <br>Flipped horizontally
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-3-lr-pre-rotated.jpg)"></div>
+        <br>Rotated 180&deg;
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-4-lol-pre-rotated.jpg)"></div>
+        <br>Flipped vertically
+    </div>
+    <br>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-5-lu-pre-rotated.jpg)"></div>
+        <br>Rotated 90&deg; CCW and flipped vertically
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-6-ru-pre-rotated.jpg)"></div>
+        <br>Rotated 90&deg; CW
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-7-rl-pre-rotated.jpg)"></div>
+        <br>Rotated 90&deg; CW and flipped vertically
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-8-llo-pre-rotated.jpg)"></div>
+        <br>Rotated 90&deg; CCW
+    </div>
+    <br>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-5-lu-pre-rotated.jpg)"></img>
+        <br>Rotated 90&deg; CCW and flipped vertically
+    </div>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-6-ru-pre-rotated.jpg)"></img>
+        <br>Rotated 90&deg; CW
+    </div>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-7-rl-pre-rotated.jpg)"></img>
+        <br>Rotated 90&deg; CW and flipped vertically
+    </div>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-8-llo-pre-rotated.jpg)"></img>
+        <br>Rotated 90&deg; CCW
+    </div>
+    <br>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-9-u-pre-rotated.jpg)"></div>
+        <br>Undefined (invalid value)
+    </div>
+</body>
+</html>

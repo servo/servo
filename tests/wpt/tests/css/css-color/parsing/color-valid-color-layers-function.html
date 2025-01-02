@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 6: Parsing and serialization of colors using valid color-layers() function syntax</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-color-6/#color-layers">
+<link rel="help" href="https://drafts.csswg.org/css-color-6/#resolving-layers">
+<meta name="assert" content="color-layers() parses and serializes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+</head>
+<body>
+<script>
+    function test_valid_color_layers_value(parsed, expected) {
+        if (!expected)
+            expected = parsed.replace(/color-layers\(normal, /g, "color-layers(");
+        test_valid_value("color", parsed, expected);
+    }
+    for (let blendMode of [
+        "",
+        "normal",
+        "multiply",
+        "screen",
+        "overlay",
+        "darken",
+        "lighten",
+        "color-dodge",
+        "color-burn",
+        "hard-light",
+        "soft-light",
+        "difference",
+        "exclusion",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity",
+    ]) {
+        blendMode = blendMode != "" ? blendMode + ", " : "";
+        test_valid_color_layers_value(`color-layers(${blendMode}red)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}red, blue)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}red, blue, green)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}red, blue, green, orange, purple, black)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}rgba(0, 0, 0, 0.5), color(display-p3 1 0.5 0))`);
+        test_valid_color_layers_value(`color-layers(${blendMode}currentcolor, blue)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}canvastext, green)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}rgb(from black r g b / 0.5), green)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}color-mix(in srgb, red, blue), blue)`);
+        test_valid_color_layers_value(`color-layers(${blendMode}color-layers(red, blue), green)`);
+    }
+</script>
+</body>
+</html>

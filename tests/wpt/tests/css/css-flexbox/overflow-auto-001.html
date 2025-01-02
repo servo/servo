@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<title>Tests that we consider main axis sizes to be definite in column flexboxes
+when the height is an explicit definite height, even if the container does
+not have a definite main axis size.</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+/* Make it possible for red to appear in webkit/blink browsers. But the test
+ * still works in other browsers, you'll just get a grey scrollbar that
+ * shouldn't be there.
+ */
+::-webkit-scrollbar-track, ::-webkit-scrollbar-thumb, ::-webkit-scrollbar {
+  width: 10px;
+  background: red;
+}
+
+#flex {
+  display: flex;
+}
+
+#item {
+  height: 300px;
+  overflow: auto;
+  scrollbar-color: red;
+}
+
+#child {
+  height: 600px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: 100px; height: 100px; background: green;"></div>
+
+<div id="flex">
+  <div id="item">
+    <div id="child">
+      Text
+    </div>
+  </div>
+</div>
+
+<script>
+var item = document.getElementById('item');
+item.offsetHeight;
+item.style.width = 0;
+</script>

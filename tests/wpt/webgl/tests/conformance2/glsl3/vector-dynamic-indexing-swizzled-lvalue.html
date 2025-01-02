@@ -1,0 +1,52 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL swizzled vector l-value dynamic indexing test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+  The shader first assigns v.x to v.z (1.0)
+  Then v.y to v.y (2.0)
+  Then v.z to v.x (1.0)
+-->
+<script id="fshaderSwizzledLValueIndexing" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+void main() {
+    vec3 v = vec3(1.0, 2.0, 3.0);
+    for (int i = 0; i < 3; i++) {
+        v.zyx[i] = v[i];
+    }
+    my_FragColor = distance(v, vec3(1.0, 2.0, 1.0)) < 0.01 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Dynamic indexing of swizzled l-values should work.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderSwizzledLValueIndexing',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index an l-value swizzled vector'
+},
+], 2);
+</script>
+</body>
+</html>

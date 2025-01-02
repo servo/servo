@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var t = async_test('Makes sure that preloaded resources are not downloaded again when used');
+</script>
+<link rel=preload href="resources/dummy.js?single-download-preload" as=script>
+<link rel=preload href="resources/dummy.css?single-download-preload" as=style>
+<link rel=preload href="resources/square.png?single-download-preload" as=image>
+<link rel=preload href="resources/square.png?background&single-download-preload" as=image>
+<link rel=preload href="/fonts/CanvasTest.ttf?single-download-preload" as=font crossorigin>
+<link rel=preload href="resources/white.mp4?single-download-preload" as=video>
+<link rel=preload href="resources/sound_5.oga?single-download-preload" as=audio>
+<link rel=preload href="resources/foo.vtt?single-download-preload" as=track>
+<link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing>
+<link rel=preload href="resources/dummy.xml?single-download-preload">
+<body>
+<style>
+    #background {
+        width: 200px;
+        height: 200px;
+        background-image: url(resources/square.png?backgroundi&single-download-preload);
+    }
+    @font-face {
+      font-family:myFont;
+      src: url(/fonts/CanvasTest.ttf?single-download-preload);
+    }
+    span { font-family: myFont, Arial; }
+</style>
+<link rel="stylesheet" href="resources/dummy.css?single-download-preload">
+<script src="resources/dummy.js?single-download-preload"></script>
+<div id="background"></div>
+<img src="resources/square.png?single-download-preload">
+<video src="resources/white.mp4?single-download-preload">
+    <track kind=subtitles src="resources/foo.vtt?single-download-preload" srclang=en>
+</video>
+<audio src="resources/sound_5.oga?single-download-preload"></audio>
+<script>
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "resources/dummy.xml?single-download-preload");
+    xhr.send();
+
+    window.addEventListener("load", t.step_func(function() {
+        verifyPreloadAndRTSupport();
+        setTimeout(t.step_func(function() {
+            verifyLoadedAndNoDoubleDownload("resources/dummy.js?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/dummy.css?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/square.png?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/square.png?background&single-download-preload");
+            verifyLoadedAndNoDoubleDownload("/fonts/CanvasTest.ttf?single-download-preload");
+            verifyNumberOfResourceTimingEntries("resources/dummy.xml?foobar", 0);
+            verifyLoadedAndNoDoubleDownload("resources/foo.vtt?single-download-preload");
+            verifyLoadedAndNoDoubleDownload("resources/dummy.xml?single-download-preload");
+            // FIXME: We should verify for video and audio as well, but they seem to (flakily?) trigger multiple partial requests.
+            t.done();
+        }), 3000);
+    }));
+</script>
+<span>PASS - this text is here just so that the browser will download the font.</span>

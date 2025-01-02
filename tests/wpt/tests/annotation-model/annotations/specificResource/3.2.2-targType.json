@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.2-targType.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Target may include type key with one or more values that are each drawn from the model's list of resource classes.",
+    "title": "Implements **target _type_ key** with one or more values each of which is drawn from the **model's list of resource classes** [model 3.2.1](https://www.w3.org/TR/annotation-model/#bodies-and-targets)",
+    "description": "True when Annotation includes one or more Targets, one or more of which include type key with one or more values that are each drawn from the model's list of resource classes. (Section 3.2.1)",
+    "type": "object",
+    "required": [ "target" ],
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "bodyTarget.json#/definitions/recognizedTypeFound" },
+                        { "$ref": "bodyTarget.json#/definitions/itemRecognizedTypeFound" },
+                        { "$ref": "bodyTarget.json#/definitions/sourceFormatPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "bodyTarget.json#/definitions/recognizedTypeFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/itemRecognizedTypeFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/sourceRecognizedTypeFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

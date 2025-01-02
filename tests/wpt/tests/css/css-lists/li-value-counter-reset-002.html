@@ -1,0 +1,14 @@
+<!doctype html>
+<title>CSS Lists: LI will display the `value` attribute if `counter-set` is empty</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-set">
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="match" href="li-value-counter-reset-002-ref.html">
+<ol>
+  <li value="5" style="counter-set: list-item 1" id="one">five</li>
+  <li value="6">six</li>
+  <li style="counter-set: list-item 7">seven</li>
+</ol>
+<script>
+  document.body.offsetLeft;
+  document.getElementById("one").style.counterSet = "";
+</script>

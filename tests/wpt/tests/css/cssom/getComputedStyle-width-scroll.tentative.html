@@ -1,0 +1,26 @@
+<!doctype html>
+<title>getComputedStyle() round-trips in presence of scrollbars.</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div style="width: 100px; height: 100px; overflow: scroll"></div>
+<script>
+// NOTE(emilio): This is a .tentative.html because the spec is not clear on
+// what the used value of `width` or `height` is, but I think this behavior
+// should be uncontroversial.
+test(function() {
+  let e = document.querySelector("div");
+  let cs = getComputedStyle(e);
+
+  let originalWidth = cs.width;
+  let originalHeight = cs.height;
+
+  e.style.width = originalWidth;
+  e.style.height = originalHeight;
+
+  assert_equals(cs.width, originalWidth, "width round-trips");
+  assert_equals(cs.height, originalHeight, "height round-trips");
+}, "getComputedStyle() round-trips in presence of scrollbars")
+</script>

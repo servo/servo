@@ -1,0 +1,5 @@
+Link: </preload/resources/square.png?background>;rel=preload;as=image
+Link: </preload/resources/dummy.js?link-header-preload-delay-onload>;rel=preload;as=script
+Link: </preload/resources/dummy.css?link-header-preload-delay-onload>;rel=preload;as=style
+Link: </preload/resources/square.png?link-header-preload-delay-onload>;rel=preload;as=image
+

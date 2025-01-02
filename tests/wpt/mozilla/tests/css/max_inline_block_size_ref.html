@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Max inline-block size inside another inline-block element</title>
+<style>
+html, body { margin: 0; padding: 0; }
+
+div { display: inline-block; }
+
+#a {
+  background: red;
+}
+
+#b {
+  background: rgb(0, 255, 0);
+  width: 250px;
+  height: 250px;
+}
+</style>
+<div id="a"><div id="b"></div></div>

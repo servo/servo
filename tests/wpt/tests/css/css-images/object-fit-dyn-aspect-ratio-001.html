@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'object-fit: contain' and 'cover' on object element whose aspect ratio dynamically changes</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-images/#sizing">
+    <link rel="help" href="http://www.w3.org/TR/css3-images/#the-object-fit">
+    <link rel="match" href="object-fit-dyn-aspect-ratio-001-ref.html">
+    <style>
+      object {
+        margin: 1px;
+        float: left;
+        /* I'm just using 'object-position' for cosmetic reasons, so that the
+           painted areas are all snapped to top-left which makes reference case
+           more trivial. */
+        object-position: top left;
+      }
+      .cov { object-fit: cover;   }
+      .con { object-fit: contain; }
+
+      .square {
+        width: 24px;
+        height: 24px;
+      }
+      .bigWide {
+        width: 48px;
+        height: 32px;
+      }
+      .bigTall {
+        width: 32px;
+        height: 48px;
+      }
+      .small {
+        width: 8px;
+        height: 8px;
+      }
+
+      br { clear: both; }
+
+    </style>
+    <script>
+      function go() {
+        for (let elem of document.getElementsByTagName("object")) {
+          var doc = elem.contentDocument;
+          /* These should all should select out a piece of the
+             bottom-right quadrant (the lime chunk): */
+          doc.documentElement.setAttribute("viewBox", "8 4 8 4");
+        }
+      }
+    </script>
+  </head>
+  <body onload="go()">
+    <object data="support/colors-16x8-parDefault.svg" class="square cov"></object>
+    <object data="support/colors-16x8-parDefault.svg" class="square con"></object>
+    <br>
+    <object data="support/colors-16x8-parDefault.svg" class="bigWide cov"></object>
+    <object data="support/colors-16x8-parDefault.svg" class="bigWide con"></object>
+    <br>
+    <object data="support/colors-16x8-parDefault.svg" class="bigTall cov"></object>
+    <object data="support/colors-16x8-parDefault.svg" class="bigTall con"></object>
+    <br>
+    <object data="support/colors-16x8-parDefault.svg" class="small cov"></object>
+    <object data="support/colors-16x8-parDefault.svg" class="small con"></object>
+    <br>
+  </body>
+</html>

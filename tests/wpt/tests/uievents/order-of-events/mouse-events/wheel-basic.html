@@ -1,0 +1,91 @@
+<!doctype html>
+<head>
+  <meta charset=utf-8>
+  <title>WheelEvent - basic wheel event</title>
+  <style>
+    .testarea{ margin: auto; width: 800px; height: 250px; border: 1px solid grey; position: relative; }
+
+    #wheelbox, #scrollbox { background-color: red; border: 1px solid black; margin: 0; padding: 0; }
+    #wheelbox.green, #scrollbox.green { background-color: green; }
+    #wheelbox { position: absolute; left: 15%; top: 15%; width: 50%; height: 50% }
+    #scrollbox { position: absolute; right: 15%; bottom: 15%; width: 50%; height: 50% }
+  </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script>
+    setup({explicit_timeout: true});
+  </script>
+  <script src="/uievents/resources/eventrecorder.js"></script>
+</head>
+
+<body>
+  <p><strong>Description</strong>: Verifies that wheel events are captured and sent</p>
+  <p><strong>Instructions</strong>: </p>
+  <ol>
+    <li>Place your mouse pointer over the top box</li>
+    <li>Scroll the mouse wheel to change the box color</li>
+    <li>Move the mouse pointer to the second box</li>
+    <li>Scroll the mouse wheel again to change this box's color</li>
+  </ol>
+  <p><strong>Test Passes</strong> if the box turns green and the word 'PASS' appears below</p>
+
+  <section class="testarea">
+    <div id="scrollbox"></div>
+    <div id="wheelbox"></div>
+  </section>
+
+  <script>
+    var wheelbox = document.getElementById("wheelbox");
+    var scrollbox = document.getElementById("scrollbox");
+    var test_wheel = async_test("wheel event test");
+    var actions_promise;
+
+    EventRecorder.configure({
+      mergeEventTypes: ['wheel'],
+      objectMap: {
+        "div#wheelbox": wheelbox,
+        "div#scrollbox": scrollbox
+      }
+    });
+
+    wheelbox.addRecordedEventListener('wheel', function (e) {
+      e.stopPropagation();
+      this.className = "green";
+    });
+
+    scrollbox.addRecordedEventListener('wheel', function (e) {
+      e.stopPropagation();
+      this.className = "green";
+      endTest();
+      // Make sure the test finishes after all the input actions are completed.
+      actions_promise.then( () => {
+        test_wheel.done();
+      });
+    });
+
+    function endTest() {
+      EventRecorder.stop();
+      var results = EventRecorder.getRecords();
+      test_wheel.step(function () {
+        // Check results:
+        assert_equals(results.length, 2, "Two mousemove events");
+        assert_equals(results[0].event.type, 'wheel', "First event is a wheel event");
+        assert_equals(results[1].event.type, 'wheel', "Second event is a wheel event");
+        assert_equals(results[0].event.target, 'div#wheelbox', "First event targetted wheelbox");
+        assert_equals(results[1].event.target, 'div#scrollbox', "Second event targetted scrollbox");
+      });
+    }
+
+    EventRecorder.start();
+
+    // Inject wheel inputs.
+    actions_promise = new test_driver.Actions()
+        .scroll(0, 0, 0, 10, {origin: wheelbox})
+        .scroll(160, 50, 0, 20, {origin: scrollbox})
+        .send();
+  </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Invalidation of viewport units</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  iframe {
+    width: 200px;
+    height: 100px;
+  }
+
+  iframe.resize {
+    width: 400px;
+    height: 300px;
+  }
+</style>
+
+<main id=main></main>
+
+<script>
+
+function test_invalidation_value(value, expected_pre, expected_post) {
+  test((t) => {
+    let iframe = document.createElement('iframe');
+    main.append(iframe);
+    const doc = iframe.contentDocument;
+    const win = iframe.contentWindow;
+    t.add_cleanup(() => {
+      doc.body.innerHTML = '';
+      iframe.remove();
+    });
+    doc.body.innerHTML = `<div style="height: ${value};"></div>`;
+    let div = doc.querySelector('div');
+    assert_equals(win.getComputedStyle(div).height, expected_pre);
+
+    t.add_cleanup(() => { iframe.classList.remove('resize'); })
+    iframe.classList.add('resize');
+    assert_equals(win.getComputedStyle(div).height, expected_post);
+  }, `${value} computes to ${expected_post} after frame resize`);
+}
+
+test_invalidation_value('100vw', '200px', '400px');
+test_invalidation_value('100vi', '200px', '400px');
+test_invalidation_value('100vmax', '200px', '400px');
+test_invalidation_value('100svw', '200px', '400px');
+test_invalidation_value('100svi', '200px', '400px');
+test_invalidation_value('100svmax', '200px', '400px');
+test_invalidation_value('100lvw', '200px', '400px');
+test_invalidation_value('100lvi', '200px', '400px');
+test_invalidation_value('100lvmax', '200px', '400px');
+test_invalidation_value('100dvw', '200px', '400px');
+test_invalidation_value('100dvi', '200px', '400px');
+test_invalidation_value('100dvmax', '200px', '400px');
+
+test_invalidation_value('100vh', '100px', '300px');
+test_invalidation_value('100vb', '100px', '300px');
+test_invalidation_value('100vmin', '100px', '300px');
+test_invalidation_value('100svh', '100px', '300px');
+test_invalidation_value('100svb', '100px', '300px');
+test_invalidation_value('100svmin', '100px', '300px');
+test_invalidation_value('100lvh', '100px', '300px');
+test_invalidation_value('100lvb', '100px', '300px');
+test_invalidation_value('100lvmin', '100px', '300px');
+test_invalidation_value('100dvh', '100px', '300px');
+test_invalidation_value('100dvb', '100px', '300px');
+test_invalidation_value('100dvmin', '100px', '300px');
+
+</script>

@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>:has() works on featureless elements *if* the rest of the selector does too</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div class=host>
+    <template shadowrootmode="open">
+      <style>
+        div {
+          width: 100px;
+          height: 50px;
+        }
+        .red { background-color: red; }
+        .green { background-color: green; }
+
+        :host:has(.t1) .t1 {
+          background-color: green;
+        }
+
+        :has(.t2) .t2 {
+          background-color: red;
+        }
+      </style>
+      <div class="red t1"></div>
+      <div class="green t2"></div>
+      <slot></slot>
+    </template>
+    <section></section>
+</div>

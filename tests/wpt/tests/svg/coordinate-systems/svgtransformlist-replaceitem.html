@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#InterfaceSVGTransformList">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<text id="text" x="200" y="200"
+      transform="scale(1) translate(0 0)">123</text>
+<text id="ref" x="200" y="200"
+      transform="scale(10 1) translate(0 0)">123</text>
+</svg>
+
+<script>
+test(() => {
+  const referenceBox = document.querySelector('#ref').getBBox();
+  const root = document.querySelector('svg');
+  const text = document.querySelector('#text');
+
+  // Make the transform of #text same as #ref.
+  const scale = root.createSVGTransform();
+  scale.setScale(10, 1);
+  text.transform.baseVal.replaceItem(scale, 0);
+
+  const box = text.getBBox();
+  assert_equals(box.y, referenceBox.y);
+  assert_equals(box.height, referenceBox.height);
+}, 'Dynamic update of transform; replaceItem()');
+</script>
+</body>

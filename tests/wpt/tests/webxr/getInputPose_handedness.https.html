@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+
+let testName = "XRInputSources properly communicate their handedness";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve) => {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "none",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: VALID_POINTER_TRANSFORM,
+      profiles: []
+    });
+
+    function CheckNone(time, xrFrame) {
+      let source = session.inputSources[0];
+
+      t.step( () => {
+        assert_not_equals(source, null);
+        // Handedness should be "none" by default.
+        assert_equals(source.handedness, "none");
+      });
+
+      input_source.setHandedness("right");
+
+      session.requestAnimationFrame(CheckRight);
+    }
+
+    function CheckRight(time, xrFrame) {
+      let source = session.inputSources[0];
+
+      t.step( () => {
+        assert_not_equals(source, null);
+        // Handedness was set to "right", make sure it propegates.
+        assert_equals(source.handedness, "right");
+      });
+
+      input_source.setHandedness("left");
+
+      session.requestAnimationFrame(CheckLeft);
+    }
+
+    function CheckLeft(time, xrFrame) {
+      let source = session.inputSources[0];
+
+      t.step( () => {
+        assert_not_equals(source, null);
+        // Handedness was set to "left", make sure it propegates.
+        assert_equals(source.handedness, "left");
+      });
+
+      input_source.setHandedness("none");
+
+      session.requestAnimationFrame(CheckNoneAgain);
+    }
+
+    function CheckNoneAgain(time, xrFrame) {
+      let source = session.inputSources[0];
+
+      t.step( () => {
+        assert_not_equals(source, null);
+        // Handedness was set to "none" again, make sure it propegates.
+        assert_equals(source.handedness, "none");
+      });
+
+      resolve();
+    }
+
+    // Handedness only updates during an XR frame.
+    requestSkipAnimationFrame(session, CheckNone);
+  });
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

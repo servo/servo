@@ -1,0 +1,23 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Test Reference</title>
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    video {
+      contain: size;
+      width: 200px;
+      height: 200px;
+    }
+    video::cue { background-color: green }
+    video::cue(b) { color: lime }
+  </style>
+</head>
+<body>
+  <video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <track default src="support/test.vtt">
+    <source src="/media/white.mp4" type="video/mp4">
+    <source src="/media/white.webm" type="video/webm">
+  </video>
+</body>
+</html>

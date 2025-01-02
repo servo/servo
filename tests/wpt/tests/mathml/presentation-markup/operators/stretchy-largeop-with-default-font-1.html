@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <title>Stretchy/Largeop with default fonts</title>
+    <meta charset="utf-8"/>
+    <link rel="help" href="https://www.w3.org/TR/mathml-core/#layout-of-operators">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1092053">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript">
+      function heightOf(aElement) {
+        return document.getElementById(aElement).getBoundingClientRect().height;
+      }
+      promise_test(() => {
+        return new Promise(resolve => {
+          window.addEventListener("load", resolve);
+        }).then(() => {
+          assert_greater_than(heightOf("mo0"), heightOf("mo0a"));
+          assert_greater_than(heightOf("mo1"), heightOf("mo1a"));
+          assert_greater_than(heightOf("mo2"), heightOf("mo2a"));
+          assert_greater_than(heightOf("mo3"), heightOf("mo3a"));
+        });
+      }, "The size of displaystyle largeops is taken into account when stretching fences.");
+    </script>
+  </head>
+  <body>
+    <p>
+      <math displaystyle="true">
+        <mrow>
+          <mo id="mo0">(</mo>
+          <mo>∫</mo>
+          <mo id="mo1">)</mo>
+        <mrow>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mrow>
+          <mo id="mo0a">(</mo>
+          <mo>∫</mo>
+          <mo id="mo1a">)</mo>
+        <mrow>
+      </math>
+    </p>
+    <p>
+      <math displaystyle="true">
+        <mrow>
+          <mo id="mo2">(</mo>
+          <mo>&Product;</mo>
+          <mo id="mo3">)</mo>
+        <mrow>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mrow>
+          <mo id="mo2a">(</mo>
+          <mo>&Product;</mo>
+          <mo id="mo3a">)</mo>
+        <mrow>
+      </math>
+    </p>
+  </body>
+</html>

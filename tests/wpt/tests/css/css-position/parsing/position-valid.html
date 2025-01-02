@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module Level 3: parsing position with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#propdef-position">
+<meta name="assert" content="position supports the full grammar 'static | relative | absolute | sticky | fixed'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("position", "static");
+test_valid_value("position", "relative");
+test_valid_value("position", "absolute");
+test_valid_value("position", "sticky");
+test_valid_value("position", "fixed");
+</script>
+</body>
+</html>

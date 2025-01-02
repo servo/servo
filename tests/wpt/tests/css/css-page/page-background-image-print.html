@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Test print result of background-image only for printed page</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="help" href="https://crbug.com/341947679">
+
+<link rel="match" href="page-background-image-print-ref.html">
+
+<style>
+  @page {
+    background-image: url("/images/green.png");
+    margin: 0px;
+  }
+</style>
+
+<p>
+  Should print on a green background but not display it on screen.
+</p>

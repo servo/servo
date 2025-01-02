@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cross page drag and drop: helper file</title>
+<style type="text/css">
+html, body
+  {height:100%;}
+</style>
+<script type="application/ecmascript">
+function addImage(event)
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+  document.querySelector('body').appendChild(c);}
+</script>
+</head>
+<body ondragenter="event.preventDefault()" ondragover="return false" ondrop="addImage(event)">
+<p>Drop image now, it should be copied to this page once you drop it here.</p>
+</body>
+</html>

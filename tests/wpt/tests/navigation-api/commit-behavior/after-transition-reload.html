@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
+<script src="resources/after-transition-commit-helpers.js"></script>
+<body>
+<script>
+let tests = [
+  { mode: "rejectBeforeCommit",      description: "{ commit: 'after-transition' } for a reload navigation, reject before commit" },
+  { mode: "rejectAfterCommit",       description: "{ commit: 'after-transition' } for a reload navigation, reject after commit" },
+  { mode: "successExplicitCommit",   description: "{ commit: 'after-transition' } for a reload navigation, explicit commit()" },
+  { mode: "successNoExplicitCommit", description: "{ commit: 'after-transition' } for a reload navigation, commit when handler resolves" }
+];
+
+for (let test of tests) {
+  promise_test(t => testAfterTransitionCommit(t, "reload", test.mode), test.description);
+}
+</script>
+</body>

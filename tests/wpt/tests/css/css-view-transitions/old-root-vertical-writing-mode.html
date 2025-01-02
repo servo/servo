@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: container of shared element writing-modes</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="new-root-vertical-writing-mode-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+html { writing-mode: vertical-lr; }
+#hidden {
+  width: 100px;
+  height: 100px;
+  background: red;
+  position: absolute;
+  top: 0;
+  left: 0;
+  contain: paint;
+  view-transition-name: hidden;
+}
+.shared {
+  margin: 2px;
+  width: 90px;
+  height: 50px;
+  background: green;
+  contain: paint;
+}
+#target {
+  background: red;
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  width: 100px;
+  height: 500px;
+  contain: paint;
+}
+#one { view-transition-name: s1; }
+#two {
+  background: lightblue;
+  will-change: transform;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-group(s1) { animation-delay: 100s; animation-fill-mode: both; }
+html::view-transition-new(s1) { animation: unset; opacity: 0; }
+html::view-transition-old(s1) { animation: unset; opacity: 1; }
+
+html::view-transition-new(root) { animation: unset; opacity: 0; }
+html::view-transition-old(root) { animation: unset; opacity: 1; }
+
+</style>
+
+<div id=hidden>Should not be visible</div>
+<div id=target style="display: none">Should not be visible</div>
+<div id=one class=shared>T</div>
+<div id=two class=shared></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    one.remove();
+    target.style = "";
+    target.style.viewTransitionName = "s1";
+    hidden.style.left = "200px";
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+
+
+

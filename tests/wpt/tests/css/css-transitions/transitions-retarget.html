@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Retargeted CSS transition</title>
+<link rel="help" href="https://www.w3.org/TR/css-transitions-1/#starting">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="element">x</div>
+<style>
+    #element {
+        transition: transform 2000ms;
+        transition-timing-function: linear;
+    }
+</style>
+<script>
+promise_test(function(t) {
+    element.offsetTop; // Force recalc
+    element.style.transform = "rotateX(180deg)";
+    element.offsetTop; // Force recalc
+
+    assert_equals(element.getAnimations().length, 1, 'Transition creates an animation');
+    var animation = element.getAnimations()[0];
+
+    return animation.ready.then(function() {
+        assert_equals(element.getAnimations().length, 1, 'No new animations yet');
+        assert_equals(element.getAnimations()[0], animation);
+
+        element.style.transform = "rotateX(360deg)";
+        element.offsetTop; // Force recalc
+
+        assert_equals(element.getAnimations().length, 1, 'Retargeting transition results in only one animation');
+
+        var newAnimation = element.getAnimations()[0];
+        assert_not_equals(newAnimation, animation);
+    });
+}, 'Retargeting a transition should cause the old transition to be cancelled');
+</script>

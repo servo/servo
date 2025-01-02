@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus wraps in the inner focusgroup only since the outer focusgroup only wraps in the other axis.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup="block wrap">
+  <span id=item1 tabindex=0>item1</span>
+  <div id=item2 tabindex=-1 focusgroup="extend wrap">
+    <!--This focusgroup supports wrapping in both axis, but only extend the wrapping
+        behavior of its parent in the block axis. -->
+    <span id=item3 tabindex=-1>item3</span>
+    <span id=item4 tabindex=-1>item4</span>
+  </div>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item3 = document.getElementById("item3");
+    var item4 = document.getElementById("item4");
+
+    await focusAndKeyPress(item4, kArrowRight);
+    assert_equals(document.activeElement, item3);
+  }, "When the focus is set on the last item of an inner focusgroup that supports wrapping while its parent focusgroup doesn't (in the axis of the arrow key pressed), the focus should move to the first item of the inner focusgroup.");
+
+</script>

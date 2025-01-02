@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Overflow: clip hit testing doesn't include overflow: clip</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow-clip">
+<link rel="author" title="Scott Violet" href="mailto:sky@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .parent {
+    width: 100px;
+    height: 100px;
+    flex: none;
+  }
+
+  .child1, .child2 {
+    width: 100px;
+    height: 100px;
+    flex: none;
+  }
+
+  .child1 {
+    background-color: green;
+  }
+
+  .child2 {
+    background-color: red;
+  }
+</style>
+<div class="parent" style="display: flex; overflow-x: visible; overflow-y: clip">
+  <div id="c1" class="child1"></div>
+  <div id="hit1" class="child2"></div>
+</div>
+<div class="parent" style="overflow-x: clip; overflow-y: visible">
+  <div id="c2" class="child1"></div>
+  <div id="hit2" class="child2"></div>
+</div>
+
+<script>
+test(() => {
+  var c1Bounds = document.getElementById("c1").getBoundingClientRect();
+  var hitElement = document.elementFromPoint(c1Bounds.x + 150,
+                                             c1Bounds.y + 50);
+  assert_equals(hitElement.id, "hit1");
+
+  var c2Bounds = document.getElementById("c2").getBoundingClientRect();
+  hitElement = document.elementFromPoint(c2Bounds.x + 50,
+                                         c2Bounds.y + 150);
+  assert_equals(hitElement.id, "hit2");
+}, "Ensure elements in overflow:visible are returned from elementFromPoint");
+</script>

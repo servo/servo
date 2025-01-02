@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: Lines of the ch unit can fit the specified number of characters</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-3/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  font-family: monospace;
+  font-size: 10px;
+  line-height: 1;
+}
+</style>
+<body>
+  <div id=log></div>
+<script>
+(function() {
+  // Test that lines do not wrap for elements of the width of
+  // 'ch' unit that have the specified number of characters.
+  let container = document.body;
+  let should_fit = [];
+  for (let i = 3; i < 100; i++) {
+    let element = document.createElement('div');
+    element.style.width = `${i}ch`;
+    element.textContent = `0 ${'0'.repeat(i - 2)}`;
+    container.appendChild(element);
+    should_fit.push(element);
+  }
+
+  // When the number of characters is +1, it should wrap.
+  let should_wrap = [];
+  for (let i = 3; i < 100; i++) {
+    let element = document.createElement('div');
+    element.style.width = `${i}ch`;
+    element.textContent = `0 ${'0'.repeat(i - 1)}`;
+    container.appendChild(element);
+    should_wrap.push(element);
+  }
+
+  for (let element of should_fit) {
+    test(() => {
+      assert_approx_equals(element.offsetHeight, 10, 1);
+    }, `${element.style.width} should fit`);
+  }
+
+  for (let element of should_wrap) {
+    test(() => {
+      assert_approx_equals(element.offsetHeight, 20, 1);
+    }, `${element.style.width} should wrap`);
+  }
+})();
+</script>
+</body>

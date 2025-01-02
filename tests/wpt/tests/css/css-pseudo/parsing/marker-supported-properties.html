@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Supported properties in ::marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that only certain properties apply to ::marker pseudo-elements." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="log"></div>
+<ul>
+  <li id="target">target</li>
+</ul>
+<script>
+// ::marker supports all font properties.
+test_pseudo_computed_value("::marker", "font", "italic small-caps 900 expanded 25px / 50px Ahem",
+  ["italic small-caps 900 expanded 25px / 50px Ahem", "italic small-caps 900 expanded 25px/50px Ahem"]);
+test_pseudo_computed_value("::marker", "font-family", "Ahem");
+test_pseudo_computed_value("::marker", "font-feature-settings", "\"smcp\"");
+test_pseudo_computed_value("::marker", "font-kerning", "none");
+test_pseudo_computed_value("::marker", "font-size", "25px");
+test_pseudo_computed_value("::marker", "font-size-adjust", "1");
+test_pseudo_computed_value("::marker", "font-stretch", "expanded", ["expanded", "125%"]);
+test_pseudo_computed_value("::marker", "font-style", "italic");
+test_pseudo_computed_value("::marker", "font-synthesis", "none");
+test_pseudo_computed_value("::marker", "font-synthesis-small-caps", "none");
+test_pseudo_computed_value("::marker", "font-synthesis-style", "none");
+test_pseudo_computed_value("::marker", "font-synthesis-weight", "none");
+test_pseudo_computed_value("::marker", "font-variant", "small-caps");
+test_pseudo_computed_value("::marker", "font-variant-caps", "small-caps");
+test_pseudo_computed_value("::marker", "font-variant-east-asian", "full-width");
+test_pseudo_computed_value("::marker", "font-variant-ligatures", "historical-ligatures");
+test_pseudo_computed_value("::marker", "font-variant-numeric", "slashed-zero");
+test_pseudo_computed_value("::marker", "font-variant-position", "sub");
+test_pseudo_computed_value("::marker", "font-weight", "900");
+
+// `line-height` is not a font property but is a longhand of `font`, and is also supported.
+test_pseudo_computed_value("::marker", "line-height", "50px", "50px");
+
+// ::marker supports `white-space`
+test_pseudo_computed_value("::marker", "white-space", "nowrap");
+
+// ::marker supports `color`
+test_pseudo_computed_value("::marker", "color", "rgb(0, 100, 200)");
+
+// ::marker supports `text-combine-upright`, `unicode-bidi` and `direction`
+test_pseudo_computed_value("::marker", "text-combine-upright", "all");
+test_pseudo_computed_value("::marker", "unicode-bidi", "plaintext");
+test_pseudo_computed_value("::marker", "direction", "rtl");
+
+// ::marker supports `content`
+test_pseudo_computed_value("::marker", "content", "\"foo\"");
+
+// ::marker supports animation properties.
+test_pseudo_computed_value("::marker", "animation", "1s linear 2s infinite alternate forwards paused anim");
+test_pseudo_computed_value("::marker", "animation-delay", "1s");
+test_pseudo_computed_value("::marker", "animation-direction", "alternate");
+test_pseudo_computed_value("::marker", "animation-duration", "2s");
+test_pseudo_computed_value("::marker", "animation-fill-mode", "forwards");
+test_pseudo_computed_value("::marker", "animation-iteration-count", "infinite");
+test_pseudo_computed_value("::marker", "animation-name", "anim");
+test_pseudo_computed_value("::marker", "animation-play-state", "paused");
+test_pseudo_computed_value("::marker", "animation-timing-function", "linear");
+test_pseudo_computed_value("::marker", "animation-composition", "add");
+
+// ::marker supports transition properties.
+test_pseudo_computed_value("::marker", "transition", "display 1s linear 2s");
+test_pseudo_computed_value("::marker", "transition-delay", "1s");
+test_pseudo_computed_value("::marker", "transition-duration", "2s");
+test_pseudo_computed_value("::marker", "transition-property", "display");
+test_pseudo_computed_value("::marker", "transition-timing-function", "linear");
+
+// ::marker supports text properties.
+test_pseudo_computed_value("::marker", "hyphens", "none");
+test_pseudo_computed_value("::marker", "letter-spacing", "10px");
+test_pseudo_computed_value("::marker", "line-break", "anywhere");
+test_pseudo_computed_value("::marker", "overflow-wrap", "anywhere");
+test_pseudo_computed_value("::marker", "tab-size", "10px");
+test_pseudo_computed_value("::marker", "text-transform", "uppercase");
+test_pseudo_computed_value("::marker", "word-break", "break-word");
+test_pseudo_computed_value("::marker", "word-spacing", "10px");
+
+// ::marker supports inherited text decoration properties.
+test_pseudo_computed_value("::marker", "text-decoration-skip-ink", "none");
+test_pseudo_computed_value("::marker", "text-emphasis", "dot rgb(0, 255, 0)");
+test_pseudo_computed_value("::marker", "text-emphasis-color", "rgb(0, 255, 0)");
+test_pseudo_computed_value("::marker", "text-emphasis-position", "under left");
+test_pseudo_computed_value("::marker", "text-emphasis-style", "dot");
+test_pseudo_computed_value("::marker", "text-shadow", "rgb(0, 255, 0) 1px 2px 3px");
+
+// ::marker supports `cursor`.
+test_pseudo_computed_value("::marker", "cursor", "move");
+
+// ::marker does NOT support layout properties
+test_pseudo_computed_value("::marker", "display", "none", ["block", "inline", "inline-block"]);
+test_pseudo_computed_value("::marker", "position", "absolute", "static");
+test_pseudo_computed_value("::marker", "float", "right", "none");
+
+// ::marker does NOT support list properties despite being affected by them,
+// they apply to the list item instead.
+test_pseudo_computed_value("::marker", "list-style", "inside url('foo') decimal", "outside none disc");
+test_pseudo_computed_value("::marker", "list-style-image", "url('foo')", "none");
+test_pseudo_computed_value("::marker", "list-style-position", "inside", "outside");
+test_pseudo_computed_value("::marker", "list-style-type", "decimal", "disc");
+</script>

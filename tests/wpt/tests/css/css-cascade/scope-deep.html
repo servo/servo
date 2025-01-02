@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>@scope - deeply nested</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  main * { background-color: black; }
+</style>
+<main id=main></main>
+<script>
+
+// @scope (.s0) { @scope (.s1) { ... span {} ... } }
+function createStyleSheet(length, i) {
+  if (length == 0)
+    return 'span { background-color: green; }';
+  if (i === undefined)
+    i = 0;
+  return `
+    @scope (.s${i}) {
+      ${createStyleSheet(length - 1, i + 1)}
+    }
+  `.trim();
+}
+
+// <div class=s0><div class=s1>...<span></span>...</div></div>
+function createElementChain(length, i) {
+  if (length < 1)
+    throw 'Invalid length';
+  if (i === undefined)
+    i = 0;
+  let e = document.createElement('div');
+  e.classList.add(`s${i}`);
+  if (length > 1)
+    e.append(createElementChain(length - 1, i + 1));
+  else
+    e.append(document.createElement('span'));
+  return e;
+}
+
+const COUNT = 90;
+
+let style_node = document.createElement('style');
+style_node.textContent = createStyleSheet(COUNT);
+main.append(style_node);
+
+main.append(createElementChain(COUNT));
+
+test(() => {
+  for (let span of main.querySelectorAll('span'))
+    assert_equals(getComputedStyle(span).backgroundColor, 'rgb(0, 128, 0)');
+}, 'Deep @scope nesting');
+</script>

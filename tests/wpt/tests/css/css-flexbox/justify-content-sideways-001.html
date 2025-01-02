@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-align/#align-justify-content">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/#block-flow">
+<meta name="assert" content="column flexboxes in sideways-lr writing mode obey justify-content:right">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id=reference-overlapped-red></div>
+<div style="display: flex; flex-direction: column; width: 200px; margin-left: -100px; writing-mode: sideways-lr; justify-content: right;">
+  <div style="height: 100px; width: 100px; background: green;"></div>
+</div>

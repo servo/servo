@@ -1,0 +1,9 @@
+diff --git a/tests/wpt/tests/css/css-test.html b/tests/wpt/tests/css/css-test.html
+index cffb6eb..6100a49 100644
+--- a/tests/wpt/tests/css/out-of-sync-test.html
++++ b/tests/wpt/tests/css/out-of-sync-test.html
+@@ -1,3 +1,3 @@
+ <html>
+-<h1>css test!</h1>
++<h1>css test!</h1>hi
+ </html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+    <title>
+        Performance Paint Timing Test: Not only the top level document, paints
+        in the iframe should also generate the entry
+    </title>
+</head>
+<body>
+<script src="../resources/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({"hide_test_state": true});
+async_test(function (t) {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    window.addEventListener('message', t.step_func(e => {
+        if (e.data.entryType == "paint" && e.data.name == "first-contentful-paint") {
+            t.done();
+        }
+    }));
+    const iframe = document.createElement('iframe');
+    iframe.src = '../resources/subframe-painting.html';
+    document.body.appendChild(iframe);
+}, 'Parent frame ignores paint-timing events fired from child image rendering.');
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Nested group should stay nested in an exit transition</title>
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-ref-100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<body>
+    <style>
+        ::view-transition-old(*),
+        ::view-transition-new(*),
+        ::view-transition-group(*) {
+            animation-play-state: paused;
+        }
+
+        ::view-transition-group(parent) {
+            background: green;
+            visibility: hidden;
+        }
+        ::view-transition-group(child) {
+            visibility: visible;
+            background: inherit;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        div {
+            top: 50px;
+            left: 50px;
+            width: 100px;
+            height: 100px;
+            position: absolute;
+        }
+
+        .parent {
+            view-transition-name: parent;
+        }
+
+        .child {
+            view-transition-name: child;
+            view-transition-group: parent;
+        }
+
+        .vt-new .child {
+            display: none;
+        }
+    </style>
+    <div class="parent">
+        <div class="child"></div>
+    </div>
+</body>

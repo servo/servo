@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Access to the Background Fetch API is deferred</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+  t.add_cleanup(_ => bc.close());
+
+  // We grant the permission here to make a more discerning test because
+  // backgroundFetch.fetch() waits until the permission is granted, which
+  // is deferred during prerendering so the test would trivially pass without
+  // the permission.
+  await test_driver.set_permission({ name: "background-fetch" }, "granted");
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+
+  // Install the service worker first to test backgroundFetch.fetch in the
+  // prerendering page.
+  const scope = 'resources/';
+  const script = 'resources/do-nothing-worker.js';
+  const registration =
+      await service_worker_unregister_and_register(t, script, scope);
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+
+  const url = `resources/background-fetch.https.html?uid=${uid}&target_hint=${getTargetHint()}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  const expected = [
+    {event: 'started waiting backgroundFetch.fetch',    prerendering: true},
+    {event: 'prerendering change',                      prerendering: false},
+    {event: 'finished waiting backgroundFetch.fetch',   prerendering: false},
+  ];
+  assert_equals(result.length, expected.length);
+  for (let i = 0; i < result.length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event[${i}]`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+      `prerendering[${i}]`);
+  }
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+}, `The access to the Background Fetch API should be deferred until the
+    prerendered page is activated`);
+</script>

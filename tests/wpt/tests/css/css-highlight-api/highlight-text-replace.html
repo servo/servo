@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Multiple custom highlight pseudo elements.</title>
+    <link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#creating-highlights">
+    <link rel="match" href="highlight-text-replace-ref.html">
+    <meta name="assert" content="Multiple highlights should be able to be specified.">
+    <style>
+        ::highlight(example-highlight) {
+            background-color: yellow;
+            color:green;
+        }
+    </style>
+</head>
+<body>
+    <span id="text1">One two three</span>
+
+    <script>
+        let textElement = document.getElementById('text1');
+        let highlight1 = new Highlight(new StaticRange({startContainer: textElement.childNodes[0], startOffset: 1, endContainer: textElement.childNodes[0], endOffset: 2}));
+
+        let highlight2 = new Highlight(new StaticRange({startContainer: textElement.childNodes[0], startOffset: 3, endContainer: textElement.childNodes[0], endOffset: 4}));
+        highlight2.add(new StaticRange({startContainer: textElement.childNodes[0], startOffset: 5, endContainer: textElement.childNodes[0], endOffset: 6}));
+
+        CSS.highlights.set("example-highlight", highlight1);
+        CSS.highlights.set("example-highlight", highlight2);
+    </script>
+</body>
+</html>

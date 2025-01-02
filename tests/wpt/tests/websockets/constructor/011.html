@@ -1,0 +1,28 @@
+<!doctype html>
+<title>WebSockets: protocol mismatch</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  // Sub-protocol matching is case-sensitive.
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/handshake_protocol', 'FOOBAR');
+  var gotOpen = false;
+  var gotError = false;
+  ws.onopen = t.step_func(function(e) {
+    gotOpen = true;
+  });
+  ws.onerror = t.step_func(function(e) {
+    gotError = true;
+  });
+  ws.onclose = t.step_func(function(e) {
+    assert_false(gotOpen, 'got open');
+    assert_true(gotError, 'got error');
+    t.done();
+  });
+});
+</script>

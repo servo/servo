@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.onfinish</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-onfinish">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+async_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  let finishedTimelineTime;
+  animation.finished.then(() => {
+    finishedTimelineTime = animation.timeline.currentTime;
+  });
+
+  animation.onfinish = t.step_func_done(event => {
+    assert_equals(event.currentTime, 0,
+      'event.currentTime should be zero');
+    assert_times_equal(event.timelineTime, finishedTimelineTime,
+      'event.timelineTime should equal to the animation timeline ' +
+      'when finished promise is resolved');
+  });
+
+  animation.playbackRate = -1;
+}, 'onfinish event is fired when the currentTime < 0 and ' +
+   'the playbackRate < 0');
+
+async_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+
+  let finishedTimelineTime;
+  animation.finished.then(() => {
+    finishedTimelineTime = animation.timeline.currentTime;
+  });
+
+  animation.onfinish = t.step_func_done(event => {
+    assert_times_equal(event.currentTime, 100 * MS_PER_SEC,
+      'event.currentTime should be the effect end');
+    assert_times_equal(event.timelineTime, finishedTimelineTime,
+      'event.timelineTime should equal to the animation timeline ' +
+      'when finished promise is resolved');
+  });
+
+  animation.currentTime = 100 * MS_PER_SEC;
+}, 'onfinish event is fired when the currentTime > 0 and ' +
+   'the playbackRate > 0');
+
+async_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+
+  let finishedTimelineTime;
+  animation.finished.then(() => {
+    finishedTimelineTime = animation.timeline.currentTime;
+  });
+
+  animation.onfinish = t.step_func_done(event => {
+    assert_times_equal(event.currentTime, 100 * MS_PER_SEC,
+      'event.currentTime should be the effect end');
+    assert_times_equal(event.timelineTime, finishedTimelineTime,
+      'event.timelineTime should equal to the animation timeline ' +
+      'when finished promise is resolved');
+  });
+
+  animation.finish();
+}, 'onfinish event is fired when animation.finish() is called');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+
+  animation.onfinish = event => {
+    assert_unreached('onfinish event should not be fired');
+  };
+
+  animation.currentTime = 100 * MS_PER_SEC / 2;
+  animation.pause();
+
+  await animation.ready;
+  animation.currentTime = 100 * MS_PER_SEC;
+  await waitForAnimationFrames(2);
+}, 'onfinish event is not fired when paused');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.onfinish = event => {
+    assert_unreached('onfinish event should not be fired');
+  };
+
+  await animation.ready;
+  animation.playbackRate = 0;
+  animation.currentTime = 100 * MS_PER_SEC;
+  await waitForAnimationFrames(2);
+}, 'onfinish event is not fired when the playbackRate is zero');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+
+  animation.onfinish = event => {
+    assert_unreached('onfinish event should not be fired');
+  };
+
+  await animation.ready;
+  animation.currentTime = 100 * MS_PER_SEC;
+  animation.currentTime = 100 * MS_PER_SEC / 2;
+  await waitForAnimationFrames(2);
+}, 'onfinish event is not fired when the animation falls out ' +
+   'finished state immediately');
+
+</script>
+</body>

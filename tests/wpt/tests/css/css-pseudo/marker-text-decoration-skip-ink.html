@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker supports 'text-decoration-skip-ink'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property">
+<link rel="match" href="marker-text-decoration-skip-ink-ref.html">
+<meta name="assert" content="Checks that ::marker supports 'text-decoration-skip-ink', both explicitly set or inherited from an ancestor">
+<style>
+ol {
+  float: left;
+  width: 50px;
+  list-style-position: inside;
+  text-decoration: underline;
+}
+.text-decoration-skip-ink-auto.explicit ::marker,
+.text-decoration-skip-ink-auto.inherit {
+  text-decoration-skip-ink: auto;
+}
+.text-decoration-skip-ink-none.explicit ::marker,
+.text-decoration-skip-ink-none.inherit {
+  text-decoration-skip-ink: none;
+}
+.marker-alpha {
+  list-style-type: lower-alpha;
+}
+.marker-string {
+  list-style-type: "p. ";
+}
+.marker-content::marker {
+  content: "q. ";
+}
+</style>
+<ol class="text-decoration-skip-ink-auto explicit">
+  <li class="marker-alpha" value="7"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="text-decoration-skip-ink-auto inherit">
+  <li class="marker-alpha" value="7"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="text-decoration-skip-ink-none explicit">
+  <li class="marker-alpha" value="7"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="text-decoration-skip-ink-none inherit">
+  <li class="marker-alpha" value="7"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>

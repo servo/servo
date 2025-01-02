@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>displaystyle</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      math {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- See https://bugzilla.mozilla.org/show_bug.cgi?id=832800 -->
+    <math>
+      <mstyle displaystyle="true">
+        <mfrac>
+          <mrow>
+            <mn>X</mn>
+            <mo id="mathOperator" mathbackground="red">+</mo>
+            <mfrac>
+              <mrow><mn>X</mn></mrow>
+              <mrow><mn>X</mn></mrow>
+            </mfrac>
+          </mrow>
+          <mrow>
+            <mn>X</mn>
+          </mrow>
+        </mfrac>
+      </mstyle>
+    </math>
+
+  </body>
+</html>

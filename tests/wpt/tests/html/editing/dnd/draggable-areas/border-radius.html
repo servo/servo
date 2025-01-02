@@ -1,0 +1,25 @@
+<!DOCTYPe html>
+<meta charset='utf-8'>
+<title>drag and drop – draggable area boundaries, border-radius</title>
+<style>
+a {
+  display: block;
+  height: 200px;
+  width: 200px;
+  background-color: blue;
+  border-radius: 100px;
+}
+div {
+  border: 1px solid black;
+  height: 200px;
+  width: 200px;
+}
+</style>
+
+<ol>
+ <li>Try dragging the white area within the black square, outside the blue
+ circle. It should <em>not</em> be draggable.</li>
+ <li>Drag the blue circle below. It should be draggable.</li>
+</ol>
+
+<div><a draggable="true" ondragstart="event.dataTransfer.effectAllowed ='copy'"></a></div>

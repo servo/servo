@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Blob URL inherits CSP from initiator.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let testCases = [
+    {
+      initiator_origin: window.origin,
+      name: "Initiator is same-origin with target frame.",
+    },
+    {
+      initiator_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: "Initiator is cross-origin with target frame.",
+    },
+  ];
+
+  testCases.forEach(test => {
+    async_test(t => {
+      // Create a popup. At the beginning, the popup has no CSPs.
+      let target = window.open();
+      t.add_cleanup(() => target.close());
+
+      // Create a child frame in the popup. The child frame has
+      // Content-Security-Policy: script-src 'unsafe-inline'. The child frame
+      // will navigate the popup to a blob URL, which will try if eval is
+      // allowed and message back.
+      let initiator = target.document.createElement('iframe');
+      initiator.sandbox = "allow-scripts allow-same-origin allow-top-navigation";
+      initiator.src = test.initiator_origin +
+        "/content-security-policy/inheritance/support/navigate-parent-to-blob.html";
+
+      window.addEventListener("message", t.step_func(e => {
+        if (e.source !== target) return;
+        assert_equals(e.data, "eval blocked",
+                      "Eval should be blocked by CSP in blob URL.");
+        t.done();
+      }));
+
+      target.document.body.appendChild(initiator);
+    }, test.name);
+  });
+</script>

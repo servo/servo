@@ -1,0 +1,2 @@
+Access-Control-Allow-Origin: {{header_or_default(Origin, *)}}
+Access-Control-Allow-Credentials: true

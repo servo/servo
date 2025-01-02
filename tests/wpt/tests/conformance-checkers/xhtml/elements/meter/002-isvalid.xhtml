@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>&lt;t&gt;</title>
+</head>
+<body>
+  <!-- is structured inline -->
+  <p><meter value='0.5'>text</meter></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><meter value='0.5'>text</meter></dfn></p>
+
+  <!-- can be empty -->
+  <p>text <meter value='0.5'></meter></p>
+  <p>text <dfn><meter value='0.5'></meter></dfn></p>
+
+  <!-- can contain interactive -->
+  <p><meter value='0.5'><a>text</a></meter></p>
+  <p><dfn><meter value='0.5'><a>text</a></meter></dfn></p>
+
+  <!-- textContent -->
+  <!-- * <p><meter>text 1.88 text 33.881 text</meter></p> -->
+  <!-- * <p><meter>text 1.88 % text</meter></p> -->
+  <!-- * <p><meter>text 1.88 &#x2031; text</meter></p> -->
+
+</body>
+</html>

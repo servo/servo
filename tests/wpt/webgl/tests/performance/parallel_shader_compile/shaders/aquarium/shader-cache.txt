@@ -1,0 +1,2747 @@
+<!--
+ * Copyright 2009, Google Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following disclaimer
+ * in the documentation and/or other materials provided with the
+ * distribution.
+ *     * Neither the name of Google Inc. nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+
+
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+attribute vec4 position;
+varying vec4 v_position;
+void main() {
+  v_position = position;
+  gl_Position = position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform samplerCube skybox;
+uniform mat4 viewDirectionProjectionInverse;
+varying vec4 v_position;
+void main() {
+  vec4 t = viewDirectionProjectionInverse * v_position;
+  gl_FragColor = textureCube(
+      skybox,
+      normalize(t.xyz));
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+attribute vec4 position;
+attribute vec2 texCoord;
+varying vec2 v_texCoord;
+uniform mat4 worldViewProjection;
+void main() {
+  v_texCoord = texCoord;
+  gl_Position = (worldViewProjection * position);
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+
+varying vec2 v_texCoord;
+uniform vec4 colorMult;
+uniform sampler2D colorMap;
+void main() {
+  gl_FragColor = texture2D(colorMap, v_texCoord) * colorMult;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+uniform mat4 worldViewProjection;
+uniform mat4 world;
+uniform vec3 worldVelocity;
+uniform vec3 worldAcceleration;
+uniform float timeRange;
+uniform float time;
+uniform float timeOffset;
+uniform float frameDuration;
+uniform float numFrames;
+
+// Incoming vertex attributes
+attribute vec4 uvLifeTimeFrameStart; // uv, lifeTime, frameStart
+attribute vec4 positionStartTime;    // position.xyz, startTime
+attribute vec4 velocityStartSize;    // velocity.xyz, startSize
+attribute vec4 accelerationEndSize;  // acceleration.xyz, endSize
+attribute vec4 spinStartSpinSpeed;   // spinStart.x, spinSpeed.y
+attribute vec4 orientation;          // orientation quaternion
+attribute vec4 colorMult;            // multiplies color and ramp textures
+
+// Outgoing variables to fragment shader
+varying vec2 outputTexcoord;
+varying float outputPercentLife;
+varying vec4 outputColorMult;
+
+void main() {
+  vec2 uv = uvLifeTimeFrameStart.xy;
+  float lifeTime = uvLifeTimeFrameStart.z;
+  float frameStart = uvLifeTimeFrameStart.w;
+  vec3 position = positionStartTime.xyz;
+  float startTime = positionStartTime.w;
+  vec3 velocity = (world * vec4(velocityStartSize.xyz,
+                                0.)).xyz + worldVelocity;
+  float startSize = velocityStartSize.w;
+  vec3 acceleration = (world * vec4(accelerationEndSize.xyz,
+                                    0)).xyz + worldAcceleration;
+  float endSize = accelerationEndSize.w;
+  float spinStart = spinStartSpinSpeed.x;
+  float spinSpeed = spinStartSpinSpeed.y;
+
+  float localTime = mod((time - timeOffset - startTime), timeRange);
+  float percentLife = localTime / lifeTime;
+
+  float frame = mod(floor(localTime / frameDuration + frameStart),
+                    numFrames);
+  float uOffset = frame / numFrames;
+  float u = uOffset + (uv.x + 0.5) * (1. / numFrames);
+
+  outputTexcoord = vec2(u, uv.y + 0.5);
+  outputColorMult = colorMult;
+
+  float size = mix(startSize, endSize, percentLife);
+  size = (percentLife < 0. || percentLife > 1.) ? 0. : size;
+  float s = sin(spinStart + spinSpeed * localTime);
+  float c = cos(spinStart + spinSpeed * localTime);
+
+  vec4 rotatedPoint = vec4((uv.x * c + uv.y * s) * size, 0.,
+                           (uv.x * s - uv.y * c) * size, 1.);
+  vec3 center = velocity * localTime +
+                acceleration * localTime * localTime +
+                position;
+
+  vec4 q2 = orientation + orientation;
+  vec4 qx = orientation.xxxw * q2.xyzx;
+  vec4 qy = orientation.xyyw * q2.xyzy;
+  vec4 qz = orientation.xxzw * q2.xxzz;
+
+  mat4 localMatrix = mat4(
+      (1.0 - qy.y) - qz.z,
+      qx.y + qz.w,
+      qx.z - qy.w,
+      0,
+
+      qx.y - qz.w,
+      (1.0 - qx.x) - qz.z,
+      qy.z + qx.w,
+      0,
+
+      qx.z + qy.w,
+      qy.z - qx.w,
+      (1.0 - qx.x) - qy.y,
+      0,
+
+      center.x, center.y, center.z, 1);
+  rotatedPoint = localMatrix * rotatedPoint;
+  outputPercentLife = percentLife;
+  gl_Position = worldViewProjection * rotatedPoint;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__FRAGMENTSHADER__
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform sampler2D rampSampler;
+uniform sampler2D colorSampler;
+
+// Incoming variables from vertex shader
+varying vec2 outputTexcoord;
+varying float outputPercentLife;
+varying vec4 outputColorMult;
+
+void main() {
+  vec4 colorMult = texture2D(rampSampler,
+                             vec2(outputPercentLife, 0.5)) *
+                   outputColorMult;
+  gl_FragColor = texture2D(colorSampler, outputTexcoord) * colorMult;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+uniform mat4 viewProjection;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform vec3 worldVelocity;
+uniform vec3 worldAcceleration;
+uniform float timeRange;
+uniform float time;
+uniform float timeOffset;
+uniform float frameDuration;
+uniform float numFrames;
+
+// Incoming vertex attributes
+attribute vec4 uvLifeTimeFrameStart; // uv, lifeTime, frameStart
+attribute vec4 positionStartTime;    // position.xyz, startTime
+attribute vec4 velocityStartSize;    // velocity.xyz, startSize
+attribute vec4 accelerationEndSize;  // acceleration.xyz, endSize
+attribute vec4 spinStartSpinSpeed;   // spinStart.x, spinSpeed.y
+attribute vec4 colorMult;            // multiplies color and ramp textures
+
+// Outgoing variables to fragment shader
+varying vec2 outputTexcoord;
+varying float outputPercentLife;
+varying vec4 outputColorMult;
+
+void main() {
+  vec2 uv = uvLifeTimeFrameStart.xy;
+  float lifeTime = uvLifeTimeFrameStart.z;
+  float frameStart = uvLifeTimeFrameStart.w;
+  vec3 position = positionStartTime.xyz;
+  float startTime = positionStartTime.w;
+  vec3 velocity = (world * vec4(velocityStartSize.xyz,
+                                0.)).xyz + worldVelocity;
+  float startSize = velocityStartSize.w;
+  vec3 acceleration = (world * vec4(accelerationEndSize.xyz,
+                                    0)).xyz + worldAcceleration;
+  float endSize = accelerationEndSize.w;
+  float spinStart = spinStartSpinSpeed.x;
+  float spinSpeed = spinStartSpinSpeed.y;
+
+  float localTime = mod((time - timeOffset - startTime), timeRange);
+  float percentLife = localTime / lifeTime;
+
+  float frame = mod(floor(localTime / frameDuration + frameStart),
+                    numFrames);
+  float uOffset = frame / numFrames;
+  float u = uOffset + (uv.x + 0.5) * (1. / numFrames);
+
+  outputTexcoord = vec2(u, uv.y + 0.5);
+  outputColorMult = colorMult;
+
+  vec3 basisX = viewInverse[0].xyz;
+  vec3 basisZ = viewInverse[1].xyz;
+
+  float size = mix(startSize, endSize, percentLife);
+  size = (percentLife < 0. || percentLife > 1.) ? 0. : size;
+  float s = sin(spinStart + spinSpeed * localTime);
+  float c = cos(spinStart + spinSpeed * localTime);
+
+  vec2 rotatedPoint = vec2(uv.x * c + uv.y * s,
+                           -uv.x * s + uv.y * c);
+  vec3 localPosition = vec3(basisX * rotatedPoint.x +
+                            basisZ * rotatedPoint.y) * size +
+                       velocity * localTime +
+                       acceleration * localTime * localTime +
+                       position;
+
+  outputPercentLife = percentLife;
+  gl_Position = viewProjection * vec4(localPosition + world[3].xyz, 1.);
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__FRAGMENTSHADER__
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform sampler2D rampSampler;
+uniform sampler2D colorSampler;
+
+// Incoming variables from vertex shader
+varying vec2 outputTexcoord;
+varying float outputPercentLife;
+varying vec4 outputColorMult;
+
+void main() {
+  vec4 colorMult = texture2D(rampSampler,
+                             vec2(outputPercentLife, 0.5)) *
+                   outputColorMult;
+  gl_FragColor = texture2D(colorSampler, outputTexcoord) * colorMult;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;  // #normalMap
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec3 tangentNormal = normalSpec.xyz -  // #normalMap
+                                 vec3(0.5, 0.5, 0.5);  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+     (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;  // #normalMap
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec3 tangentNormal = normalSpec.xyz -  // #normalMap
+                                 vec3(0.5, 0.5, 0.5);  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+     (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec3 normal = normalize(v_normal);   // #noNormalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+     (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec3 normal = normalize(v_normal);   // #noNormalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+     (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;
+uniform sampler2D reflectionMap; // #reflection
+uniform samplerCube skybox; // #reflecton
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec4 reflection = texture2D(reflectionMap, v_texCoord.xy); // #reflection
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec4 skyColor = textureCube(skybox, -reflect(surfaceToView, normal));  // #reflection
+
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(mix(
+      skyColor,
+      lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a),
+      1.0 - reflection.r).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;
+uniform sampler2D reflectionMap; // #reflection
+uniform samplerCube skybox; // #reflecton
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec4 reflection = texture2D(reflectionMap, v_texCoord.xy); // #reflection
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec4 skyColor = textureCube(skybox, -reflect(surfaceToView, normal));  // #reflection
+
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(mix(
+      skyColor,
+      lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a),
+      1.0 - reflection.r).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;
+uniform samplerCube skybox; // #reflecton
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec4 reflection = vec4(0,0,0,0);  // #noReflection
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec4 skyColor = vec4(0.5,0.5,1,1);  // #noReflection
+
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(mix(
+      skyColor,
+      lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a),
+      1.0 - reflection.r).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;
+uniform samplerCube skybox; // #reflecton
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec4 reflection = vec4(0,0,0,0);  // #noReflection
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec4 skyColor = vec4(0.5,0.5,1,1);  // #noReflection
+
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(mix(
+      skyColor,
+      lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a),
+      1.0 - reflection.r).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;
+uniform samplerCube skybox; // #reflecton
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec4 reflection = vec4(0,0,0,0);  // #noReflection
+  vec3 normal = normalize(v_normal); // #noNormalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec4 skyColor = vec4(0.5,0.5,1,1);  // #noReflection
+
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(mix(
+      skyColor,
+      lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a),
+      1.0 - reflection.r).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;
+uniform samplerCube skybox; // #reflecton
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec4 reflection = vec4(0,0,0,0);  // #noReflection
+  vec3 normal = normalize(v_normal); // #noNormalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec4 skyColor = vec4(0.5,0.5,1,1);  // #noReflection
+
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(mix(
+      skyColor,
+      lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                    specular * litR.z * specularFactor * normalSpec.a),
+      1.0 - reflection.r).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;  // #normalMap
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  tangentNormal = normalize(tangentNormal + vec3(0, 0, 2));  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+    (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                  specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;  // #normalMap
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  tangentNormal = normalize(tangentNormal + vec3(0, 0, 2));  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+    (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                  specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec3 normal = normalize(v_normal);   // #noNormalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+    (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                  specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 viewProjection;
+uniform vec3 worldPosition;
+uniform vec3 nextPosition;
+uniform float scale;
+uniform float time;
+uniform float fishLength;
+uniform float fishWaveLength;
+uniform float fishBendAmount;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;  // #normalMap
+attribute vec3 binormal;  // #normalMap
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 vz = normalize(worldPosition - nextPosition);
+  vec3 vx = normalize(cross(vec3(0,1,0), vz));
+  vec3 vy = cross(vz, vx);
+  mat4 orientMat = mat4(
+    vec4(vx, 0),
+    vec4(vy, 0),
+    vec4(vz, 0),
+    vec4(worldPosition, 1));
+  mat4 scaleMat = mat4(
+    vec4(scale, 0, 0, 0),
+    vec4(0, scale, 0, 0),
+    vec4(0, 0, scale, 0),
+    vec4(0, 0, 0, 1));
+  mat4 world = orientMat * scaleMat;
+  mat4 worldViewProjection = viewProjection * world;
+  mat4 worldInverseTranspose = world;
+
+  v_texCoord = texCoord;
+  // NOTE:If you change this you need to change the laser code to match!
+  float mult = position.z > 0.0 ?
+      (position.z / fishLength) :
+      (-position.z / fishLength * 2.0);
+  float s = sin(time + mult * fishWaveLength);
+  float a = sign(s);
+  float offset = pow(mult, 2.0) * s * fishBendAmount;
+  v_position = (
+      worldViewProjection *
+      (position +
+       vec4(offset, 0, 0, 0)));
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec3 normal = normalize(v_normal);   // #noNormalMap
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4(
+    (lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                  specular * litR.z * specularFactor * normalSpec.a)).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;
+attribute vec3 binormal;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;  // #normalMap
+uniform sampler2D reflectionMap;
+uniform samplerCube skybox;
+uniform float shininess;
+uniform float specularFactor;
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec4 reflection = texture2D(reflectionMap, v_texCoord.xy);
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+//  tangentNormal = normalize(tangentNormal + vec3(0,0,refractionFudge));
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+
+  vec4 skyColor = textureCube(skybox, -reflect(surfaceToView, normal));
+  float fudgeAmount = 1.1;
+  vec3 fudge = skyColor.rgb * vec3(fudgeAmount, fudgeAmount, fudgeAmount);
+  float bright = min(1.0, fudge.r * fudge.g * fudge.b);
+  vec4 reflectColor =
+      mix(vec4(skyColor.rgb, bright),
+          diffuseColor,
+          (1.0 - reflection.r));
+  float r = abs(dot(surfaceToView, normal));
+  gl_FragColor = vec4(mix(
+      skyColor,
+      reflectColor,
+      ((r + 0.3) * (reflection.r))).rgb, 1.0 - r);
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;
+attribute vec3 binormal;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D reflectionMap;
+uniform samplerCube skybox;
+uniform float shininess;
+uniform float specularFactor;
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec4 reflection = texture2D(reflectionMap, v_texCoord.xy);
+//  tangentNormal = normalize(tangentNormal + vec3(0,0,refractionFudge));
+  vec3 normal = normalize(v_normal);   // #noNormalMap
+
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+
+  vec4 skyColor = textureCube(skybox, -reflect(surfaceToView, normal));
+  float fudgeAmount = 1.1;
+  vec3 fudge = skyColor.rgb * vec3(fudgeAmount, fudgeAmount, fudgeAmount);
+  float bright = min(1.0, fudge.r * fudge.g * fudge.b);
+  vec4 reflectColor =
+      mix(vec4(skyColor.rgb, bright),
+          diffuseColor,
+          (1.0 - reflection.r));
+  float r = abs(dot(surfaceToView, normal));
+  gl_FragColor = vec4(mix(
+      skyColor,
+      reflectColor,
+      ((r + 0.3) * (reflection.r))).rgb, 1.0 - r);
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec3 normal = normalize(v_normal);
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4((
+  lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                specular * litR.z * specularFactor)).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  vec3 normal = normalize(v_normal);
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4((
+  lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                specular * litR.z * specularFactor)).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;
+attribute vec3 binormal;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;  // #normalMap
+uniform sampler2D reflectionMap;
+uniform samplerCube skybox;
+uniform float shininess;
+uniform float specularFactor;
+uniform float refractionFudge;
+uniform float eta;
+uniform float tankColorFudge;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord) +
+      vec4(tankColorFudge, tankColorFudge, tankColorFudge, 1);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec4 refraction = texture2D(reflectionMap, v_texCoord.xy);
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  tangentNormal = normalize(tangentNormal + vec3(0,0,refractionFudge));  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+
+  vec3 refractionVec = refract(surfaceToView, normal, eta);
+
+  vec4 skyColor = textureCube(skybox, refractionVec);
+
+//  vec4 bumpSkyColor = textureCube(skybox, refractionVec);
+//  vec4 nonBumpSkyColor = textureCube(
+//      skybox,
+//      refract(surfaceToView, normalize(v_normal), eta));
+//  vec4 skyColor = mix(nonBumpSkyColor, bumpSkyColor, normalSpec.a);
+  vec4 outColor = vec4(
+      mix(skyColor * diffuseColor, diffuseColor, refraction.r).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;
+attribute vec3 binormal;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D normalMap;  // #normalMap
+uniform sampler2D reflectionMap;
+uniform samplerCube skybox;
+uniform float shininess;
+uniform float specularFactor;
+uniform float refractionFudge;
+uniform float eta;
+uniform float tankColorFudge;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord) +
+      vec4(tankColorFudge, tankColorFudge, tankColorFudge, 1);
+  mat3 tangentToWorld = mat3(v_tangent,  // #normalMap
+                             v_binormal,  // #normalMap
+                             v_normal);  // #normalMap
+  vec4 normalSpec = texture2D(normalMap, v_texCoord.xy);  // #normalMap
+  vec4 refraction = texture2D(reflectionMap, v_texCoord.xy);
+  vec3 tangentNormal = normalSpec.xyz - vec3(0.5, 0.5, 0.5);  // #normalMap
+  tangentNormal = normalize(tangentNormal + vec3(0,0,refractionFudge));  // #normalMap
+  vec3 normal = (tangentToWorld * tangentNormal);  // #normalMap
+  normal = normalize(normal);  // #normalMap
+
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+
+  vec3 refractionVec = refract(surfaceToView, normal, eta);
+
+  vec4 skyColor = textureCube(skybox, refractionVec);
+
+//  vec4 bumpSkyColor = textureCube(skybox, refractionVec);
+//  vec4 nonBumpSkyColor = textureCube(
+//      skybox,
+//      refract(surfaceToView, normalize(v_normal), eta));
+//  vec4 skyColor = mix(nonBumpSkyColor, bumpSkyColor, normalSpec.a);
+  vec4 outColor = vec4(
+      mix(skyColor * diffuseColor, diffuseColor, refraction.r).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;
+attribute vec3 binormal;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D reflectionMap;
+uniform samplerCube skybox;
+uniform float shininess;
+uniform float specularFactor;
+uniform float refractionFudge;
+uniform float eta;
+uniform float tankColorFudge;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord) +
+      vec4(tankColorFudge, tankColorFudge, tankColorFudge, 1);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec4 refraction = texture2D(reflectionMap, v_texCoord.xy);
+  vec3 normal = normalize(v_normal);   // #noNormalMap
+
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+
+  vec3 refractionVec = refract(surfaceToView, normal, eta);
+
+  vec4 skyColor = textureCube(skybox, refractionVec);
+
+//  vec4 bumpSkyColor = textureCube(skybox, refractionVec);
+//  vec4 nonBumpSkyColor = textureCube(
+//      skybox,
+//      refract(surfaceToView, normalize(v_normal), eta));
+//  vec4 skyColor = mix(nonBumpSkyColor, bumpSkyColor, normalSpec.a);
+  vec4 outColor = vec4(
+      mix(skyColor * diffuseColor, diffuseColor, refraction.r).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 worldViewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 world;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;
+attribute vec3 binormal;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_tangent;  // #normalMap
+varying vec3 v_binormal;  // #normalMap
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  v_texCoord = texCoord;
+  v_position = (worldViewProjection * position);
+  v_normal = (worldInverseTranspose * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  v_binormal = (worldInverseTranspose * vec4(binormal, 0)).xyz;  // #normalMap
+  v_tangent = (worldInverseTranspose * vec4(tangent, 0)).xyz;  // #normalMap
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform sampler2D reflectionMap;
+uniform samplerCube skybox;
+uniform float shininess;
+uniform float specularFactor;
+uniform float refractionFudge;
+uniform float eta;
+uniform float tankColorFudge;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord) +
+      vec4(tankColorFudge, tankColorFudge, tankColorFudge, 1);
+  vec4 normalSpec = vec4(0,0,0,0);  // #noNormalMap
+  vec4 refraction = texture2D(reflectionMap, v_texCoord.xy);
+  vec3 normal = normalize(v_normal);   // #noNormalMap
+
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+
+  vec3 refractionVec = refract(surfaceToView, normal, eta);
+
+  vec4 skyColor = textureCube(skybox, refractionVec);
+
+//  vec4 bumpSkyColor = textureCube(skybox, refractionVec);
+//  vec4 nonBumpSkyColor = textureCube(
+//      skybox,
+//      refract(surfaceToView, normalize(v_normal), eta));
+//  vec4 skyColor = mix(nonBumpSkyColor, bumpSkyColor, normalSpec.a);
+  vec4 outColor = vec4(
+      mix(skyColor * diffuseColor, diffuseColor, refraction.r).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 world;
+uniform mat4 viewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+uniform float time;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 toCamera = normalize(viewInverse[3].xyz - world[3].xyz);
+  vec3 yAxis = vec3(0, 1, 0);
+  vec3 xAxis = cross(yAxis, toCamera);
+  vec3 zAxis = cross(xAxis, yAxis);
+
+  mat4 newWorld = mat4(
+      vec4(xAxis, 0),
+      vec4(yAxis, 0),
+      vec4(xAxis, 0),
+      world[3]);
+
+  v_texCoord = texCoord;
+  v_position = position + vec4(
+      sin(time * 0.5) * pow(position.y * 0.07, 2.0) * 1.0,
+      -4,  // TODO(gman): remove this hack
+      0,
+      0);
+  v_position = (viewProjection * newWorld) * v_position;
+  v_normal = (newWorld * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+uniform float fogPower;
+uniform float fogMult;
+uniform float fogOffset;
+uniform vec4 fogColor;
+
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  if (diffuseColor.a < 0.3) {
+    discard;
+  }
+  vec3 normal = normalize(v_normal);
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4((
+  lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                specular * litR.z * specularFactor)).rgb,
+      diffuseColor.a);
+  outColor = mix(outColor, vec4(fogColor.rgb, diffuseColor.a),
+   clamp(pow((v_position.z / v_position.w), fogPower) * fogMult - fogOffset,0.0,1.0));
+
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__
+__BEGINPROGRAM__
+__VERTEXSHADER__
+
+uniform mat4 world;
+uniform mat4 viewProjection;
+uniform vec3 lightWorldPos;
+uniform mat4 viewInverse;
+uniform mat4 worldInverseTranspose;
+uniform float time;
+attribute vec4 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+void main() {
+  vec3 toCamera = normalize(viewInverse[3].xyz - world[3].xyz);
+  vec3 yAxis = vec3(0, 1, 0);
+  vec3 xAxis = cross(yAxis, toCamera);
+  vec3 zAxis = cross(xAxis, yAxis);
+
+  mat4 newWorld = mat4(
+      vec4(xAxis, 0),
+      vec4(yAxis, 0),
+      vec4(xAxis, 0),
+      world[3]);
+
+  v_texCoord = texCoord;
+  v_position = position + vec4(
+      sin(time * 0.5) * pow(position.y * 0.07, 2.0) * 1.0,
+      -4,  // TODO(gman): remove this hack
+      0,
+      0);
+  v_position = (viewProjection * newWorld) * v_position;
+  v_normal = (newWorld * vec4(normal, 0)).xyz;
+  v_surfaceToLight = lightWorldPos - (world * position).xyz;
+  v_surfaceToView = (viewInverse[3] - (world * position)).xyz;
+  gl_Position = v_position;
+  gl_Position.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+
+__FRAGMENTSHADER__
+
+precision mediump float;
+uniform vec4 lightColor;
+varying vec4 v_position;
+varying vec2 v_texCoord;
+varying vec3 v_normal;
+varying vec3 v_surfaceToLight;
+varying vec3 v_surfaceToView;
+
+uniform vec4 ambient;
+uniform sampler2D diffuse;
+uniform vec4 specular;
+uniform float shininess;
+uniform float specularFactor;
+// #fogUniforms
+
+vec4 lit(float l ,float h, float m) {
+  return vec4(1.0,
+              max(l, 0.0),
+              (l > 0.0) ? pow(max(0.0, h), m) : 0.0,
+              1.0);
+}
+void main() {
+  vec4 diffuseColor = texture2D(diffuse, v_texCoord);
+  if (diffuseColor.a < 0.3) {
+    discard;
+  }
+  vec3 normal = normalize(v_normal);
+  vec3 surfaceToLight = normalize(v_surfaceToLight);
+  vec3 surfaceToView = normalize(v_surfaceToView);
+  vec3 halfVector = normalize(surfaceToLight + surfaceToView);
+  vec4 litR = lit(dot(normal, surfaceToLight),
+                    dot(normal, halfVector), shininess);
+  vec4 outColor = vec4((
+  lightColor * (diffuseColor * litR.y + diffuseColor * ambient +
+                specular * litR.z * specularFactor)).rgb,
+      diffuseColor.a);
+  // #fogCode
+  gl_FragColor = outColor;
+  gl_FragColor.x += PROGRAM_CACHE_BREAKER_RANDOM;
+}
+
+
+__ENDPROGRAM__

@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <title>Content-DPR: css tiled background</title>
+    <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+    <meta name="assert" content="Assert that content-dpr is taken into account for tiled background images">
+    <style>
+      #bg, #bg2 {
+        background-image: url(resources/background.png);
+        width: 32px;
+        height: 32px;
+      }
+      #bg {
+        background-size: 16px 16px;
+      }
+
+      #bg2 {
+        background-size: 8px 8px;
+      }
+    </style>
+  </head>
+  <body>
+  The next div should have 16 boxes
+    <div id="bg">
+    </div>
+  The next div should have 64 boxes
+    <div id="bg2">
+    </div>
+  </body>
+</html>

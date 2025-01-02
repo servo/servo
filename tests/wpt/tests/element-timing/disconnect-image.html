@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: element attribute returns null when element is disconnected</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  let img;
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const pathname = window.location.origin + '/element-timing/resources/square100.png';
+        // This method will check that entry.element is |img|.
+        checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, img);
+
+        img.parentNode.removeChild(img);
+        // After removing image, entry.element should return null.
+        assert_equals(entry.element, null);
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the image during onload to be sure that the observer is registered
+    // in time for it to observe the element timing.
+    window.onload = () => {
+      // Add image of width equal to 100 and height equal to 100.
+      img = document.createElement('img');
+      img.src = 'resources/square100.png';
+      img.setAttribute('elementtiming', 'my_image');
+      img.setAttribute('id', 'my_id');
+      document.body.appendChild(img);
+      beforeRender = performance.now();
+    };
+  }, 'Disconnected elements have null as their |element| attribute.');
+</script>
+
+</body>

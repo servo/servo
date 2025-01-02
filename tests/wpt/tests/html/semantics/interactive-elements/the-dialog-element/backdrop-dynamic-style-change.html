@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="backdrop-dynamic-style-change-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#new-stacking-layer">
+<style>
+dialog {
+    visibility: hidden;
+}
+
+::backdrop {
+    visibility: visible;
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    height: 100px;
+    width: 100px;
+    background-color: red;
+}
+
+.green::backdrop {
+    background-color: green;
+}
+</style>
+</head>
+<body>
+Test dynamic changes to ::backdrop style. The test passes if there is a green box below.
+<dialog></dialog>
+<script>
+dialog = document.querySelector('dialog');
+dialog.showModal();
+dialog.classList.add('green');
+</script>
+</body>
+</html>

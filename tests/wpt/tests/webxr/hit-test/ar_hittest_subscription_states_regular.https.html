@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+};
+
+// Creates a test method that leverages regular hit test API (as opposed to hit
+// test for transient input).
+// |shouldSucceed| - true if the hit test request is expected to succeed, false otherwise
+// |endSession| - true if the test case should call session.end() prior to requesting hit test
+// |expectedError| - expected error name that should be returned in case shouldSucceed is false
+const testFunctionGeneratorRegular = function(shouldSucceed, endSession, expectedError) {
+  const testFunction = function(session, fakeDeviceController, t) {
+    session.requestReferenceSpace('viewer').then((viewerRefSpace) => {
+
+      const hitTestOptionsInit = {
+        space: viewerRefSpace,
+        offsetRay: new XRRay(),
+      };
+
+      if(endSession) {
+        session.end();
+      }
+
+      return session.requestHitTestSource(hitTestOptionsInit).then((hitTestSource) => {
+        t.step(() => {
+          assert_true(shouldSucceed,
+            "`requestHitTestSource` succeeded when it was expected to fail");
+        });
+      }).catch((error) => {
+        t.step(() => {
+          assert_false(shouldSucceed,
+            "`requestHitTestSource` failed when it was expected to succeed, error: " + error);
+          assert_equals(error.name, expectedError,
+            "`requestHitTestSource` failed with unexpected error name");
+        });
+      });
+    });
+  };
+
+  return testFunction;
+};
+
+xr_session_promise_test("Hit test subscription succeeds if the feature was requested",
+  testFunctionGeneratorRegular(/*shouldSucceed=*/true, /*endSession=*/false),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+xr_session_promise_test("Hit test subscription fails if the feature was not requested",
+  testFunctionGeneratorRegular(/*shouldSucceed=*/false, /*endSession=*/false, "NotSupportedError"),
+  fakeDeviceInitParams,
+  'immersive-ar', {});
+
+xr_session_promise_test("Hit test subscription fails if the feature was requested but the session already ended",
+  testFunctionGeneratorRegular(/*shouldSucceed=*/false, /*endSession=*/true, "InvalidStateError"),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+</script>

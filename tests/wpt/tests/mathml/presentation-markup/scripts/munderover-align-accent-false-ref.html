@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Horizontal alignment of base with munder/mover scripts (accent="false")</title>
+  </head>
+  <body>
+    <table border="1">
+      <tr>
+        <th colspan="6">munderover</th>
+      </tr>
+      <tr>
+        <td align="center">Over &lt; Base &lt; Under</td>
+        <td align="center">Over &gt; Base &gt; Under</td>
+        <td align="center">Over = Under &lt; Base</td>
+        <td align="center">Over = Under &gt; Base</td>
+      </tr>
+      <tr>
+        <td align="center">
+          <math>
+            <munderover accent="false" accentunder="false">
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="50px" mathbackground="blue"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+              <mspace height="15px" width="75px" mathbackground="red"/>
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="red"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+            </munderover>
+          </math>
+        </td>
+        <td align="center">
+          <math>
+            <munderover accent="false" accentunder="false">
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="50px" mathbackground="blue"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="red"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+              <mspace height="15px" width="75px" mathbackground="red"/>
+            </munderover>
+          </math>
+        </td>
+        <td align="center">
+          <math>
+            <munderover accent="false" accentunder="false">
+              <mspace height="15px" width="75px" mathbackground="blue"/>
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="red"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="red"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+            </munderover>
+          </math>
+        </td>
+        <td align="center">
+          <math>
+            <munderover accent="false" accentunder="false">
+              <mrow>
+                <mspace height="15px" width="25px"/>
+                <mspace height="15px" width="25px" mathbackground="blue"/>
+                <mspace height="15px" width="25px"/>
+              </mrow>
+              <mspace height="15px" width="75px" mathbackground="red"/>
+              <mspace height="15px" width="75px" mathbackground="red"/>
+            </munderover>
+          </math>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

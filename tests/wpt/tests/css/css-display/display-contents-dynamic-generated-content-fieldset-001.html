@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Dynamic changes to display: contents generated content in fieldsets.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-dynamic-generated-content-fieldset-001-ref.html">
+<style>
+.after::after {
+  content: "FAIL";
+  color: red;
+}
+div {
+  display: contents;
+  border: 10px solid red;
+}
+</style>
+<p>
+  Test passes if there is no red text and no red border.
+</p>
+<fieldset>
+  <div class="after"></div>
+</fieldset>
+<script>
+document.body.offsetHeight;
+document.querySelector("div").classList.remove("after");
+</script>

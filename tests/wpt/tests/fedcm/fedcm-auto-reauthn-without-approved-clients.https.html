@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API auto reauthentication without approved client.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_optional,
+        fedcm_test,
+        mark_signed_in,
+        select_manifest,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+  let test_options = request_options_with_mediation_optional(
+      "manifest_with_single_account.json");
+  test_options.identity.providers[0].clientId = 'nomatch';
+  await select_manifest(t, test_options);
+
+  // Signs in john_doe so that they will be a returning user
+  let cred = await fedcm_get_and_select_first_account(t, test_options);
+  assert_equals(cred.token, "account_id=john_doe");
+
+  test_options.mediation = 'silent';
+  cred = navigator.credentials.get(test_options);
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, "Test that if the clientId is missing from approved_clients then auto\
+reauthentication cannot occur.");
+</script>

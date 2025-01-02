@@ -1,0 +1,158 @@
+<!doctype html>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/protected-audience-helper-module.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await runReportTest(
+      test, uuid, {reportResult: `sendReportTo('${createWritingURL(uuid)}');`},
+      /*expectedNumReports=*/ 1,
+      /*overrides=*/ {
+        runAdAuction: {
+          auctionReportBuyerKeys: [100n],
+          auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}}
+        }
+      });
+}, 'auctionReportBuyerDebugModeConfig missing');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await runReportTest(
+      test, uuid, {reportResult: `sendReportTo('${createWritingURL(uuid)}');`},
+      /*expectedNumReports=*/ 1,
+      /*overrides=*/ {
+        runAdAuction: {
+          auctionReportBuyerKeys: [100n],
+          auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+          auctionReportBuyerDebugModeConfig: {enabled: true}
+        }
+      });
+}, 'auctionReportBuyerDebugModeConfig with enabled true');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await runReportTest(
+      test, uuid, {reportResult: `sendReportTo('${createWritingURL(uuid)}');`},
+      /*expectedNumReports=*/ 1,
+      /*overrides=*/ {
+        runAdAuction: {
+          auctionReportBuyerKeys: [100n],
+          auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+          auctionReportBuyerDebugModeConfig: {enabled: true, debugKey: 1234n}
+        }
+      });
+}, 'auctionReportBuyerDebugModeConfig with enabled true and debug key');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await runReportTest(
+      test, uuid, {reportResult: `sendReportTo('${createWritingURL(uuid)}');`},
+      /*expectedNumReports=*/ 1,
+      /*overrides=*/ {
+        runAdAuction: {
+          auctionReportBuyerKeys: [100n],
+          auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+          auctionReportBuyerDebugModeConfig: {enabled: false}
+        }
+      });
+}, 'auctionReportBuyerDebugModeConfig with enabled false');
+
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await runReportTest(
+      test, uuid, {reportResult: `sendReportTo('${createWritingURL(uuid)}');`},
+      /*expectedNumReports=*/ 1,
+      /*overrides=*/ {
+        runAdAuction: {
+          auctionReportBuyerKeys: [100n],
+          auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+          auctionReportBuyerDebugModeConfig: {}
+        }
+      });
+}, 'auctionReportBuyerDebugModeConfig empty');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await promise_rejects_js(
+      test, TypeError,
+      runReportTest(
+          test, uuid, {},
+          /*expectedNumReports=*/ 0,
+          /*overrides=*/ {
+            runAdAuction: {
+              auctionReportBuyerKeys: [100n],
+              auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+              auctionReportBuyerDebugModeConfig: {enabled: true, debugKey: -1n}
+            }
+          }));
+}, 'auctionReportBuyerDebugModeConfig with negative debug key');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await promise_rejects_js(
+      test, TypeError,
+      runReportTest(
+          test, uuid, {},
+          /*expectedNumReports=*/ 0,
+          /*overrides=*/ {
+            runAdAuction: {
+              auctionReportBuyerKeys: [100n],
+              auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+              auctionReportBuyerDebugModeConfig:
+                  {enabled: true, debugKey: 1n << 64n}
+            }
+          }));
+}, 'auctionReportBuyerDebugModeConfig with too large debug key');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await promise_rejects_js(
+      test, TypeError,
+      runReportTest(
+          test, uuid, {},
+          /*expectedNumReports=*/ 0,
+          /*overrides=*/ {
+            runAdAuction: {
+              auctionReportBuyerKeys: [100n],
+              auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+              auctionReportBuyerDebugModeConfig:
+                  {enabled: false, debugKey: 1234n}
+            }
+          }));
+}, 'auctionReportBuyerDebugModeConfig with debug key and enabled false');
+
+promise_test(async test => {
+  const uuid = generateUuid();
+
+  await promise_rejects_js(
+      test, TypeError,
+      runReportTest(
+          test, uuid, {},
+          /*expectedNumReports=*/ 0,
+          /*overrides=*/ {
+            runAdAuction: {
+              auctionReportBuyerKeys: [100n],
+              auctionReportBuyers: {interestGroupCount: {bucket: 0n, scale: 1}},
+              auctionReportBuyerDebugModeConfig: 123
+            }
+          }));
+}, 'auctionReportBuyerDebugModeConfig not a dictionary');
+
+</script>
+</body>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: reload crash</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<script src="/common/reftest-wait.js"></script>
+<script>
+onload = () => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+  let run = (new URLSearchParams(window.location.search)).get('run') || 0;
+  if (run > 5) {
+    takeScreenshot();
+  } else {
+    const url = window.location.href.split('?')[0];
+    window.location.href = url + `?run=${run + 1}`;
+  }
+})));
+</script>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>Test window.fence.reportEvent from nested cross-origin subframes.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  // This test creates the following frame setup:
+  // ┌(test)──────────────────────┐
+  // │┌(a.com)───[fencedframe]───┐│
+  // ││┌(b.com)──[iframe]───────┐││
+  // │││┌(b.com)─[iframe]──────┐│││
+  // ││││reportEvent();        ││││
+  // │││└──────────────────────┘│││
+  // ││└────────────────────────┘││
+  // │└──────────────────────────┘│
+  // └────────────────────────────┘
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    headers: [[
+      'Allow-Cross-Origin-Event-Reporting', '?1'
+    ]],
+    register_beacon: true
+  });
+  await fencedframe.execute(async () => {
+    const iframe = await attachIFrameContext({
+      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+    });
+    await iframe.execute(async () => {
+      const nested_iframe = await attachIFrameContext({
+        origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+      });
+      await nested_iframe.execute(() => {
+        const destination_url = new URL(BEACON_URL + "?type=url",
+            get_host_info().HTTPS_ORIGIN);
+        window.fence.reportEvent({
+          eventType: "click",
+          eventData: "enum",
+          destination: ["buyer"],
+          crossOriginExposed: true
+        });
+        window.fence.reportEvent({
+          destinationURL: destination_url,
+          crossOriginExposed: true
+        });
+      });
+    });
+  });
+  // Check that both the destination enum and destination URL events were
+  // reported.
+  await nextBeacon("click", "enum");
+  await nextBeacon("url", "<No data>");
+}, 'window.fence.reportEvent from a nested cross-origin subframe');
+</script>
+</body>

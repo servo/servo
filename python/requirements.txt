@@ -1,0 +1,39 @@
+# Ensure all versions are pinned for repeatability,
+# since `--system-site-packages` is enabled
+
+blessings == 1.7
+distro == 1.4
+mozinfo == 1.2.3
+mozlog == 8.0.0
+setuptools == 70.0.0
+toml == 0.9.2
+
+# For Python linting
+flake8 == 7.0.0
+pep8 == 1.5.7
+pyflakes == 3.2.0
+
+# For test-webidl
+ply == 3.8
+
+# For Cross-platform colored terminal text
+colorama == 0.3.7
+
+# For package uploading
+boto3 == 1.34.95
+pyOpenSSL == 23.0.0
+PyGithub == 1.58.1
+
+# For Python3 compatibility
+six == 1.16
+
+# For sending build notifications.
+notify-py == 0.3.43
+
+# For wpt scripts and their tests.
+flask
+requests
+types-requests
+
+# For mach package on macOS.
+Mako == 1.2.2

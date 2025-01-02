@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>View transitions: hit test shared element at the real dom location</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+html { view-transition-name: none }
+#target {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  view-transition-name: shared;
+  position: relative;
+  z-index: 1;
+}
+.before {
+  background: yellow;
+  left: 200px;
+}
+.after {
+  background: green;
+}
+.after:hover {
+  background: red;
+}
+#unrelated {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  top: -50px;
+  background: blue;
+}
+
+html::view-transition {
+  pointer-events: none;
+}
+html::view-transition-group(*) {
+  pointer-events: auto;
+}
+
+html::view-transition-group(shared) {
+  animation-delay: 300s;
+}
+html::view-transition-old(shared) {
+  animation: unset;
+  opacity: 1;
+}
+html::view-transition-new(shared) {
+  display: none;
+}
+</style>
+
+<div id=target class=before></div>
+<div id=unrelated></div>
+
+<script>
+async_test(t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  document.startViewTransition(() => {
+    target.classList.toggle("before");
+    target.classList.toggle("after");
+    requestAnimationFrame(async () => {
+      // Check the location of the element, we should get body.
+      t.step(() => assert_equals(document.elementFromPoint(20, 20), document.body));
+      // Check the location of the pseudo element for the old snapshot, we should get documentElement,
+      // which is the originating element for the pseudo element.
+      t.step(() => assert_equals(document.elementFromPoint(220, 20), document.documentElement));
+      // Check the spot that used to be covered by the element but now has
+      // unrelated element, which is what we expect to get.
+      t.step(() => assert_equals(document.elementFromPoint(20, 70), unrelated));
+      t.done();
+    });
+  });
+}, "hit test should not hit unpainted element, but does hit pseudo and unrelated elements");
+</script>

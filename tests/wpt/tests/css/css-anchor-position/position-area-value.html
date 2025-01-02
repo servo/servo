@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: <'position-area'> value</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #cb {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border: 1px solid black;
+  }
+  #anchor {
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    width: 80px;
+    height: 80px;
+    background-color: tomato;
+    anchor-name: --a;
+  }
+  #target, #ref {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-color: skyblue;
+    position-area: bottom right;
+    position-anchor: --a;
+  }
+  #ref {
+    background-color: seagreen;
+  }
+</style>
+<style id=style>
+</style>
+<div id=cb>
+  <div id=anchor></div>
+  <div id=target></div>
+  <div id=ref></div>
+</div>
+<script>
+
+// Test that a given <'position-area'> produces the same result as a reference
+// element that is styled with an position-area declaration directly.
+function test_position_area_fn(position_area) {
+  test((t) => {
+    t.add_cleanup(() => {
+      style.textContent = '';
+    });
+    style.textContent = `
+      #target {
+        position-try-fallbacks: ${position_area};
+      }
+      #ref {
+        position-area: ${position_area};
+      }
+    `;
+    assert_equals(target.offsetLeft, ref.offsetLeft, 'offsetLeft');
+    assert_equals(target.offsetTop, ref.offsetTop, 'offsetTop');
+  }, `${position_area}`);
+}
+
+test_position_area_fn('top left');
+test_position_area_fn('span-top left');
+test_position_area_fn('top span-left');
+test_position_area_fn('top center');
+test_position_area_fn('left center');
+test_position_area_fn('start center');
+test_position_area_fn('center start');
+
+</script>

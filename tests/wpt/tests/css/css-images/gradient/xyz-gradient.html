@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>XYZ gradient interpolation</title>
+  <meta name="fuzzy" content="maxDifference=1-10;totalPixels=0-24000">
+  <link rel="author" title="Aaron Krajeski" href="mailto:aaronhk@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="assert" content="Test XYZ as a gradient interpolation space. Reference generated here: https://raphlinus.github.io/color/2021/01/18/oklab-critique.html">
+  <link rel="match" href="xyz-gradient-ref.html">
+  <style>
+   .test {
+       width: 480px;
+       height: 50px;
+       background: linear-gradient(to right in xyz, rgb(255, 0, 0), rgb(0, 255, 0));
+   }
+ </style>
+ </head>
+ <body>
+  <div class="test"></div>
+ </body>
+</html>

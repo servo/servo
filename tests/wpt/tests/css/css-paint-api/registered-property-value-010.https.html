@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Values of &lt;length&gt;-properties reach worklet</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<div id="target"></div>
+<script>
+    try {
+      CSS.registerProperty({
+        name: '--prop-1',
+        syntax: '<length>',
+        initialValue: '0',
+        inherits: false
+      });
+
+      CSS.registerProperty({
+        name: '--prop-2',
+        syntax: '<length>',
+        initialValue: '0',
+        inherits: false
+      });
+
+      target.style.setProperty('font-size', '20px');
+      target.style.setProperty('--prop-1', '100px');
+      target.style.setProperty('--prop-2', '10em');
+
+      expectWorkletValues(target, {
+        '--prop-1': ['[CSSUnitValue 100px]'],
+        '--prop-2': ['[CSSUnitValue 200px]']
+      });
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Verifies overflow-clip on table with rounded border renders correctly</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow-clip">
+<style>
+table {
+    border-radius: 10px;
+    border-collapse: collapse;
+    overflow: hidden;
+}
+thead {
+    background: green;
+}
+</style>
+</head><body><p>You should see a green table with rounded corners</p>
+<table>
+ <thead>
+    <tr>
+      <th>One</th>
+      <th>Two</th>
+    </tr>
+  </thead>
+</table>
+</body></html>

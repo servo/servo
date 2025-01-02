@@ -1,0 +1,144 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL render after resize test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<canvas style="width: 100px; height: 100px; border: 1px solid black;" id="c"></canvas>
+<div id="console"></div>
+<script>
+description("This test ensures WebGL implementations can render correctly after resizing the canvas.");
+debug("");
+
+const wtu = WebGLTestUtils;
+const gl = wtu.create3DContext("c", {depth: true, stencil: true});
+shouldBeTrue("gl != null");
+
+gl.clearColor(1,0,0,1);
+
+const positionLocation = 0;
+const program = wtu.setupColorQuad(gl, positionLocation);
+const colorLocation = gl.getUniformLocation(program, 'u_color');
+gl.useProgram(program);
+
+const SMALL = 2;
+// Changing this size to something smaller produces
+// different results. Sometimes wrong, sometimes correct.
+const LARGE = 1200;
+
+gl.uniform4fv(colorLocation, [0.0, 1.0, 0.0, 1.0]);
+
+// -
+
+debug('\nResize then render.');
+gl.canvas.width = gl.canvas.height = SMALL;
+gl.viewport(0, 0, SMALL, SMALL);
+
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.drawUnitQuad(gl);
+
+wtu.checkCanvasRect(gl, 0, 0, 1, 1, [ 0, 255, 0, 255 ]);
+
+// -
+
+debug('\nResize twice then render.');
+gl.canvas.width = gl.canvas.height = LARGE;
+gl.canvas.width = gl.canvas.height = SMALL;
+
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.drawUnitQuad(gl);
+
+wtu.checkCanvasRect(gl, 0, 0, 1, 1, [ 0, 255, 0, 255 ]);
+
+debug('\nCause a GL error, then resize and render.');
+gl.depthFunc(0); // Causes INVALID_ENUM
+gl.canvas.width = gl.canvas.height = LARGE;
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.canvas.width = gl.canvas.height = SMALL;
+
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.drawUnitQuad(gl);
+
+wtu.checkCanvasRect(gl, 0, 0, 1, 1, [ 0, 255, 0, 255 ]);
+wtu.glErrorShouldBe(gl, gl.INVALID_ENUM);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+// -
+
+debug('\nRender, no-op resize, then depth-fail render.');
+
+gl.enable(gl.DEPTH_TEST);
+gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+gl.uniform4fv(colorLocation, [0.0, 1.0, 0.0, 1.0]);
+wtu.drawUnitQuad(gl);
+
+gl.canvas.width = gl.canvas.width;
+gl.uniform4fv(colorLocation, [0.0, 0.0, 1.0, 1.0]);
+wtu.drawUnitQuad(gl);
+
+wtu.checkCanvasRect(gl, 0, 0, 1, 1, [ 0, 255, 0, 255 ]);
+
+// Reset
+gl.disable(gl.DEPTH_TEST);
+
+// -
+
+debug('\nRender, no-op resize, then stencil-fail render.');
+
+gl.enable(gl.STENCIL_TEST);
+gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR);
+gl.stencilFunc(gl.EQUAL, 0, 0xff);
+gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+gl.uniform4fv(colorLocation, [0.0, 1.0, 0.0, 1.0]);
+wtu.drawUnitQuad(gl);
+
+gl.canvas.width = gl.canvas.width;
+gl.uniform4fv(colorLocation, [0.0, 0.0, 1.0, 1.0]);
+wtu.drawUnitQuad(gl);
+
+wtu.checkCanvasRect(gl, 0, 0, 1, 1, [ 0, 255, 0, 255 ]);
+
+// Reset
+gl.disable(gl.STENCIL_TEST);
+gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+gl.stencilFunc(gl.ALWAYS, 0, 0xff);
+
+// -
+
+debug('\nRender, no-op resize, then scissor render.');
+
+gl.enable(gl.SCISSOR_TEST);
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.uniform4fv(colorLocation, [0.0, 1.0, 0.0, 1.0]);
+wtu.drawUnitQuad(gl);
+
+gl.canvas.width = gl.canvas.width;
+gl.enable(gl.SCISSOR_TEST);
+gl.scissor(0, 0, 1, 1);
+gl.uniform4fv(colorLocation, [0.0, 0.0, 1.0, 1.0]);
+wtu.drawUnitQuad(gl);
+gl.disable(gl.SCISSOR_TEST);
+
+wtu.checkCanvasRect(gl, 1, 0, 1, 1, [ 0, 255, 0, 255 ]);
+wtu.checkCanvasRect(gl, 0, 0, 1, 1, [ 0, 0, 255, 255 ]);
+
+// -
+
+finishTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

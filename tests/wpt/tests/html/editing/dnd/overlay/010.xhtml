@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Resetting drag image on new drag</title>
+<style type="text/css">
+span
+  {color:green;
+  background-color:yellow;}
+</style>
+<script type="application/ecmascript">
+var i = 0;
+function start(event)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setDragImage(document.querySelectorAll('span')[i++%2], 1, 1);}
+</script>
+</head>
+<body>
+<p><a href="data:text/plain,1" ondragstart="start(event)">Drag me</a></p>
+<p>Drag link above around the page drop it and try to drag again.</p>
+<p>First time you drag it you should see word <span>Odd</span> in feedback overlay, second time overlay should change to <span>Even</span>.</p>
+</body>
+</html>

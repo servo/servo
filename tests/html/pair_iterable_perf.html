@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Value and pair iterable bindings</title>
+<script>
+  // Requires passing --pref=dom.testbinding.enabled to Servo binary
+  function collect(iter) {
+    var collection = [];
+    for (element of iter) {
+      collection.push(element);
+    }
+    return collection;
+  }
+
+  function measure_time(func) {
+    var start = performance.now();
+    func();
+    var stop = performance.now();
+
+    return (stop - start) / 1000.0;
+  };
+
+  const ENTRY_COUNT = 10000;
+  const RUN_COUNT = 10;
+
+  var benchMe = function() {
+    var t = new TestBindingPairIterable();
+
+    for (var i = 0; i < ENTRY_COUNT; i++) {
+      t.add(i.toString(), i);
+    }
+
+    var result = collect(t.entries());
+  };
+
+  var avg = 0;
+  for (var i = 0; i < RUN_COUNT; i++) {
+    var time = measure_time(benchMe);
+    avg += time;
+  }
+  avg /= RUN_COUNT;
+
+  console.log('Average running time across ' + RUN_COUNT + ' runs: ' + avg);
+
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that Japanese iroha ordering works in list items.
+
+     FIXME(pcwalton): This shouldn't have a "." after the kana. -->
+<style>
+@font-face {
+    font-family: TakaoPGothic;
+    src: url(fonts/takao-p-gothic/TakaoPGothic.ttf);
+}
+body {
+    font-family: TakaoPGothic;
+}
+ol {
+    list-style-position: inside;
+    list-style-type: none;
+}
+</style>
+</head>
+<body>
+<ol>
+    <li>&#x3044;. Gryffindor</li>
+    <li>&#x308d;. Hufflepuff</li>
+    <li>&#x306f;. Ravenclaw</li>
+    <li>&#x306b;. Slytherin</li>
+</ol>
+</body>
+</html>
+
+

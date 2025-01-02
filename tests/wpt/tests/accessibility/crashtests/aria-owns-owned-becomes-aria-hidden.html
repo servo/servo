@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector('div').ariaHidden = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.className = '';
+        });
+      });
+    });
+  });
+});
+</script>
+<main>
+  <fieldset aria-owns="owned"></fieldset>
+</main>
+<div>
+  <footer id="owned">
+    <mark>
+      owned
+    </mark>
+  </footer>
+</div>
+</html>

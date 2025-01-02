@@ -1,0 +1,11 @@
+steps:
+- script: |
+    set -eux -o pipefail
+    # https://github.com/web-platform-tests/results-collection/blob/master/src/scripts/trust-root-ca.sh
+    # only run this on macOS < 11
+    [ "11" = "`echo -e $( sw_vers -productVersion )\\\n11 | sort -V | head -n1`" ] || sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain tools/certs/cacert.pem
+  displayName: 'Install web-platform.test certificate (macOS)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
+- script: certutil –addstore -enterprise –f "Root" tools\certs\cacert.pem
+  displayName: 'Install web-platform.test certificate (Windows)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))

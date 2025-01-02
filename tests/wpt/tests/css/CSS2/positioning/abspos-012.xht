@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: position: absolute; top: auto; test (assumed initial values)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/015.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos"/>
+  <link rel="match" href="abspos-011-ref.xht" />
+
+  <meta name="flags" content="may"/>
+  <style type="text/css">
+   body {margin: 8px;}
+   div { position: relative; }
+   p { position: absolute; font: bold 32px/1 monospace; }
+                    /* was font: bold 2em monospace; */
+  </style>
+ </head>
+ <body>
+  <div>
+   <p>FAIL &nbsp;&nbsp;&nbsp;&nbsp;</p>
+   <p>#&nbsp;&nbsp;&nbsp; P&nbsp;&nbsp;&nbsp;</p>
+   <p>&nbsp;##&nbsp; &nbsp;A&nbsp;&nbsp;</p>
+   <p>&nbsp;&nbsp;&nbsp;# &nbsp;&nbsp;SS</p>
+  </div>
+
+
+</body>
+</html>

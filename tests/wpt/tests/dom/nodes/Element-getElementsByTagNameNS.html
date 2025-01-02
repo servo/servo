@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Element.getElementsByTagNameNS</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="Document-Element-getElementsByTagNameNS.js"></script>
+<div id="log"></div>
+<script>
+var element;
+setup(function() {
+  element = document.createElement("div");
+  element.appendChild(document.createTextNode("text"));
+  var p = element.appendChild(document.createElement("p"));
+  p.appendChild(document.createElement("a"))
+   .appendChild(document.createTextNode("link"));
+  p.appendChild(document.createElement("b"))
+   .appendChild(document.createTextNode("bold"));
+  p.appendChild(document.createElement("em"))
+   .appendChild(document.createElement("u"))
+   .appendChild(document.createTextNode("emphasized"));
+  element.appendChild(document.createComment("comment"));
+});
+
+test_getElementsByTagNameNS(element, element);
+
+test(function() {
+  assert_array_equals(element.getElementsByTagNameNS("*", element.localName), []);
+}, "Matching the context object (wildcard namespace)");
+
+test(function() {
+  assert_array_equals(
+    element.getElementsByTagNameNS("http://www.w3.org/1999/xhtml",
+                                   element.localName),
+    []);
+}, "Matching the context object (specific namespace)");
+</script>

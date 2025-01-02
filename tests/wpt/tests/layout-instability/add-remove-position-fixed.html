@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Layout Instability: no shift for adding/removing position:fixed</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<div id="target" style="width: 100px; height: 100px; background: green;
+                        position: absolute; top: 200px"></div>
+<div style="height: 2000px"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  window.scrollTo(0, 1000);
+  target.style.position = 'fixed';
+  target.style.top = 0;
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+
+  window.scrollTo(0, 100);
+  target.style.position = 'absolute';
+  target.style.top = '200px';
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "No shift for adding/removing position:fixed.");
+
+</script>
+
+

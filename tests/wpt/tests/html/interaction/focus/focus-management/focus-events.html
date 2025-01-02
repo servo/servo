@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Focus management</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#focus-management">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<input type=text id=i1>
+<input type=text id=i2>
+<script>
+  var i1 = document.getElementById('i1'),
+  i2 = document.getElementById('i2'),
+  t1 = async_test("focusing on a focusable element fires a focus event at the element"),
+  t2 = async_test("focusing on a focusable element fires a blur event at the previous focussed element");
+
+  i2.onfocus = t1.step_func_done(function(e){
+    assert_true(e.isTrusted, "focus event is trusted");
+    assert_false(e.bubbles, "focus event doesn't bubble");
+    assert_false(e.cancelable, "focus event is not cancelable");
+    assert_equals(document.activeElement, i2);
+  });
+
+  i1.onblur = t2.step_func_done(function(e){
+    assert_true(e.isTrusted, "blur event is trusted");
+    assert_false(e.bubbles, "blur event doesn't bubble");
+    assert_false(e.cancelable, "blur event is not cancelable");
+    assert_equals(document.activeElement, document.body);
+  });
+
+  i1.focus();
+  i2.focus();
+</script>

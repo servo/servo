@@ -1,0 +1,24 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline styles vs. 101 ID selectors</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+        <link rel="help" href="http://www.w3.org/TR/css-style-attr/#interpret" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specificity" />
+        <link rel="match" href="reference/ref-green-on-green.xht" />
+        <meta http-equiv="Content-Style-Type" content="text/css" />
+        <meta name="assert" content="The style attribute has a higher specificity than all selectors, including ID selectors no matter how many." />
+        <style type="text/css">
+            /* 101 ID selectors to identify if selector matching is additive */
+            #p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1#p1
+            {
+                background: red;
+                color: yellow;
+            }
+        </style>
+    </head>
+    <body>
+        <p id="p1" style="background: lime; color: green;">This sentence must be green on a green background.</p>
+    </body>
+</html>

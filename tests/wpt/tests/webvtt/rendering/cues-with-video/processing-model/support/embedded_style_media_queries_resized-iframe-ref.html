@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Reference for Embedded Style: Media Queries Resize Frame</title>
+<style>
+video {
+  outline: solid;
+  width: 320px;
+  height: 240px;
+}
+::cue {
+    color: green;
+    background: green;
+}
+</style>
+<video autoplay onplaying="this.onplaying = null; this.pause();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="embedded_style_without_style.vtt" default>
+</video>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Filter Effects: Dynamic 'currentcolor' in backdrop-filter: drop-shadow()</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#funcdef-filter-drop-shadow">
+<link rel="match" href="reference/green-98-100x100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  backdrop-filter: drop-shadow(50px 0px 0px currentcolor);
+}
+.red {
+  color: red;
+}
+.green {
+  color: green;
+}
+#container {
+  /* 0.98 was chosen to work around https://bugzil.la/1915676 */
+  opacity: 0.98;
+  width: 50px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+<div id="container" class="red">
+  <div id="target"></div>
+</div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  const container = document.getElementById('container');
+  container.classList.toggle('red');
+  container.classList.toggle('green');
+  takeScreenshot();
+});
+</script>

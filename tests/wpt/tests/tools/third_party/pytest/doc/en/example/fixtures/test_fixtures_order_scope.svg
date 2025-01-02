@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="262" height="537">
+    <style>
+        text {
+            font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+            dominant-baseline: middle;
+            text-anchor: middle;
+            fill: #062886;
+            font-size: medium;
+        }
+        ellipse.fixture, rect.test {
+            fill: #eeffcc;
+            stroke: #007020;
+            stroke-width: 2;
+        }
+        text.fixture {
+            color: #06287e;
+        }
+        circle.class {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        text.class {
+            fill: #0e84b5;
+        }
+        line {
+            stroke: black;
+            stroke-width: 2;
+        }
+    </style>
+    <!-- TestClass -->
+    <circle class="class" r="130" cx="131" cy="406" />
+    <line x1="131" x2="131" y1="21" y2="446"/>
+    <ellipse class="fixture" rx="50" ry="25" cx="131" cy="26" />
+    <text x="131" y="26">order</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="131" cy="96" />
+    <text x="131" y="96">sess</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="131" cy="166" />
+    <text x="131" y="166">pack</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="131" cy="236" />
+    <text x="131" y="236">mod</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="131" cy="306" />
+    <text x="131" y="306">cls</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="131" cy="376" />
+    <text x="131" y="376">func</text>
+    <rect class="test" width="110" height="50" x="76" y="421" />
+    <text x="131" y="446">test_order</text>
+    <!-- scope name -->
+    <defs>
+        <path d="M131,526 A 120 120 0 0 1 136 286" id="testClass"/>
+    </defs>
+    <text class="class">
+        <textPath xlink:href="#testClass" startOffset="50%">TestClass</textPath>
+    </text>
+</svg>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../../../fenced-frame/resources/utils.js"></script>
+<title>Fenced frame target</title>
+<script>
+  const [frame_loaded_key] = parseKeylist();
+  writeValueToServer(frame_loaded_key, 'loaded');
+</script>

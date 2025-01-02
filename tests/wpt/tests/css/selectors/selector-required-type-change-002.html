@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>Check for correctly updating :required matching on type change</title>
+    <link rel="match" href="selector-required-type-change-002-ref.html">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#opt-pseudos">
+    <style>
+      span { color: red; }
+      :required + span { color: green }
+    </style>
+    <script>
+      onload = function() {
+        // setTimeout because in some browsers apparently a toplevel restyle
+        // happens right after the load event fires?
+        setTimeout(function() {
+          document.querySelector("input").type = "";
+          document.documentElement.className = "";
+        }, 10);
+      }
+    </script>
+  </head>
+  <body>
+    <input type="hidden" required><span>This should be green</span>
+  </body>
+</html>

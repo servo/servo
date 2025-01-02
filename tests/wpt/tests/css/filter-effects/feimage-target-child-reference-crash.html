@@ -1,0 +1,16 @@
+<!doctype html>
+<title>feImage referencing a child of the filter's target element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<svg>
+  <filter id='f1' x='0' y='0' width='1' height='1'>
+    <feFlood flood-color='green'/>
+  </filter>
+  <filter id='f2' x='0' y='0' width='1' height='1'>
+    <feImage href='#inner'/>
+  </filter>
+  <g filter='url(#f2)'>
+    <g id='inner' filter='url(#f1)'>
+      <rect width='50' height='50' fill='orange'/>
+    </g>
+  </g>
+</svg>

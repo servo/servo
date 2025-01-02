@@ -1,0 +1,14 @@
+<title>text decoration doesn't propagate into tables quirk</title>
+<link rel=match href=quirks-ref.html>
+<style>
+.inline-table { display: inline-table }
+.inline, .inline * { display: inline }
+.table { display: table }
+.tbody { display: table-row-group }
+.tr { display: table-row }
+.td { display: table-cell }
+</style>
+<div><u><table><tr><td>this should not be underlined</table></u></div>
+<div><u><table class=inline-table><tr><td>this should not be underlined</table></u></div>
+<div><u><table class=inline><tr><td>this should not be underlined</table></u></div>
+<div><u><span class=table><span class=tbody><span class=tr><span class=td>this should be underlined</span></span></span></span></u></div>

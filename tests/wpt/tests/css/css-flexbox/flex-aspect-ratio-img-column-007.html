@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Google LLC" href="http://www.google.com" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#line-sizing" />
+<title>css-flexbox: Tests that we use the aspect ratio, clamped by min/max, to compute the main size</title>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+#reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+}
+
+.flex {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 200px;
+  float: left;
+}
+
+img {
+  min-width: 20%;
+  min-height: 0; /* Disable min-size: auto. */
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div style="width:60px; height: 100px; background: green; float: left;"></div>
+<div class="flex">
+  <img src="support/20x50-green.png">
+</div>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: border-color sets longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-color">
+<meta name="assert" content="border-color supports the full grammar '<color>{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('border-color', 'currentcolor', {
+  'border-top-color': 'currentcolor',
+  'border-right-color': 'currentcolor',
+  'border-bottom-color': 'currentcolor',
+  'border-left-color': 'currentcolor'
+});
+
+test_shorthand_value('border-color', 'red yellow', {
+  'border-top-color': 'red',
+  'border-right-color': 'yellow',
+  'border-bottom-color': 'red',
+  'border-left-color': 'yellow'
+});
+
+test_shorthand_value('border-color', 'red yellow green', {
+  'border-top-color': 'red',
+  'border-right-color': 'yellow',
+  'border-bottom-color': 'green',
+  'border-left-color': 'yellow'
+});
+
+test_shorthand_value('border-color', 'red yellow green blue', {
+  'border-top-color': 'red',
+  'border-right-color': 'yellow',
+  'border-bottom-color': 'green',
+  'border-left-color': 'blue'
+});
+</script>
+</body>
+</html>

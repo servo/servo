@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Edge behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+
+
+
+
+<div>
+  <p>Expected: The black box inside the red box should not contain any red.</p>
+</div>
+
+<div id=backdrop></div>
+<div id=scroller></div>
+
+<style>
+  #scroller {
+    position: relative;
+    top:-202px;
+    width: 250px;
+    height: 250px;
+    border: 6px solid red;
+  }
+  #backdrop {
+    position: relative;
+    height: 200px;
+    width: 200px;
+    left: 6px;
+    top: 3px;
+    border: 1px solid black;
+  }
+</style>

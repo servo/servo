@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Ruby test: dir=rtl on rb and rt elements</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#bidi">
+<link rel="match" href="ruby-bidi-004-ref.html">
+<style>
+div { font-size: 50px; }
+rb, rt, span { unicode-bidi: isolate; }
+</style>
+<p>All three examples should look the same:</p>
+
+<div>
+ <p>
+  <ruby dir=rtl>&#x6F1; &#x6F2; &#x6F3;<rt>1 2 3</rt></ruby>
+ </p>
+
+ <p>
+  <ruby><span dir=rtl>&#x6F1; &#x6F2; &#x6F3;</span><rt dir=rtl>1 2 3</rt></ruby>
+ </p>
+
+ <p>
+  <ruby><rb dir=rtl>&#x6F1; &#x6F2; &#x6F3;</rb><rt dir=rtl>1 2 3</rt></ruby>
+ </p>
+</div>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;area&gt;</title>
+</head>
+<body>
+  <map name="map1">
+    <!-- default has no coords -->
+    <area alt="text" shape="default" coords="1,2">
+
+    <!-- rect, circle, poly must have coords -->
+    <area alt="text" shape="rect">
+    <area alt="text" shape="circle">
+    <area alt="text" shape="poly">
+
+    <!-- rect must have four coords -->
+    <area alt="text" shape="rect" coords="1,2,3">
+    <area alt="text" shape="rect" coords="	1  ,  2  , 	3 	,  4  , 5, 6">
+    <area alt="text" coords="1,2,3,4,5,6">
+    <area alt="text" coords="	1  ,  2  , 	3 	,  4  ,">
+
+    <!-- circle must have three coords -->
+    <area alt="text" shape="circle" coords="1,2">
+    <area alt="text" shape="circle" coords="	1  ,  2  , 	3  , 4 ">
+
+    <!-- poly must have coords in pairs, and at least 3 sets -->
+    <area alt="text" shape="poly" coords="1,2,3,4,5">
+    <area alt="text" shape="poly" coords="1,2,3,4,5,6,7,">
+    <area alt="text" shape="poly" coords="	1  ,  2  , 	3 ,4  ,5,
+                                           6  ,7 ,8,  ,9  ">
+
+    <!-- coords must be int or percent, +/- allowed -->
+    <area alt="text" shape="rect" coords="1.5,2,3,4">
+    <area alt="text" shape="rect" coords="1,2px,3,4">
+    <area alt="text" shape="rect" coords="1 %,2,3,4">
+    <area alt="text" shape="rect" coords="1,- 2,3,4">
+    <area alt="text" shape="rect" coords="1, 2,+ 3,4">
+
+    <area alt="text" shape="circle" coords="1.5,2,3">
+    <area alt="text" shape="circle" coords="1,2px,3">
+    <area alt="text" shape="circle" coords="1 %,2,3">
+    <area alt="text" shape="circle" coords="1,- 2,3">
+    <area alt="text" shape="circle" coords="1, 2,+ 3">
+
+    <area alt="text" shape="poly" coords="5,6,1.5,2,3,4">
+    <area alt="text" shape="poly" coords="5,6,1,2px,3,4">
+    <area alt="text" shape="poly" coords="5,6,1 %,2,3,4">
+    <area alt="text" shape="poly" coords="5,6,1,- 2,3,4">
+    <area alt="text" shape="poly" coords="5,6,1, 2,+ 3,4">
+  </map>
+</body>
+</html>

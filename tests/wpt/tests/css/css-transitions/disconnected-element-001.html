@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions Test: Transitions do not run for a disconnected element</title>
+<meta name="assert" content="If an element is not in the document during that
+style change event or was not in the document during the previous style change
+event, then transitions are not started for that element in that style change
+event.">
+<meta name="assert" content="If an element is no longer in the document,
+implementations must cancel any running transitions on it and remove transitions
+on it from the completed transitions.">
+<link rel="help" title="Starting transitions"
+  href="https://drafts.csswg.org/css-transitions/#starting">
+
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<script src="./support/helper.js" type="text/javascript"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(async t => {
+  // Create element and remove it from the document
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+  div.remove();
+
+  // Attach event listeners
+  div.addEventListener('transitionrun', t.step_func(() => {
+    assert_unreached('transitionrun event should not be fired');
+  }));
+
+  // Resolve before-change style
+  getComputedStyle(div).backgroundColor;
+
+  // Set up and resolve after-change style
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  // There should be no events received for the triggered transition.
+  await waitForFrame();
+  await waitForFrame();
+}, 'Transitions do not run on an element not in the document');
+
+test(t => {
+  // Create element but do not attach it to the document
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+  div.remove();
+
+  // Resolve before-change style
+  getComputedStyle(div).backgroundColor;
+
+  // Add to document
+  document.documentElement.append(div);
+
+  // Set up and resolve after-change style
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  // We should have jumped immediately to the after-change style rather than
+  // transitioning to it.
+  assert_equals(
+    getComputedStyle(div).backgroundColor,
+    'rgb(0, 128, 0)',
+    'No transition should run'
+  );
+}, 'Transitions do not run for an element newly added to the document');
+
+promise_test(async t => {
+  // Create element and attach it to the document
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+
+  // Attach event listeners
+  div.addEventListener('transitionrun', t.step_func(() => {
+    assert_unreached('transitionrun event should not be fired');
+  }));
+
+  // Resolve before-change style
+  getComputedStyle(div).backgroundColor;
+
+  // Set up after-change style
+  div.style.backgroundColor = 'green';
+
+  // But remove the document before the next style change event
+  div.remove();
+
+  // There should be no events received for the triggered transition.
+  await waitForFrame();
+  await waitForFrame();
+}, 'Transitions do not run for an element newly removed from the document');
+
+promise_test(async t => {
+  // Create element and attach it to the document
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+
+  // Attach event listeners
+  const eventWatcher = new EventWatcher(t, div, [
+    'transitionrun',
+    'transitioncancel',
+  ]);
+
+  // Trigger transition
+  getComputedStyle(div).backgroundColor;
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  await eventWatcher.wait_for('transitionrun');
+
+  // Remove the element from the document
+  div.remove();
+
+  await eventWatcher.wait_for('transitioncancel');
+}, 'Transitions are canceled when an element is removed from the document');
+
+promise_test(async t => {
+  // Create a container element. We'll need this later.
+  const container = addDiv(t);
+
+  // Create element and attach it to the document
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+
+  // Attach event listeners
+  const eventWatcher = new EventWatcher(t, div, [
+    'transitionrun',
+    'transitioncancel',
+  ]);
+
+  // Trigger transition
+  getComputedStyle(div).backgroundColor;
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  await eventWatcher.wait_for('transitionrun');
+
+  // Re-parent element
+  container.append(div);
+
+  await eventWatcher.wait_for('transitioncancel');
+  assert_equals(
+    getComputedStyle(div).backgroundColor,
+    'rgb(0, 128, 0)',
+    'There should be no transition after re-parenting'
+  );
+}, 'Transitions are canceled when an element is re-parented');
+
+promise_test(async t => {
+  // Create element and attach it to the document
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+
+  // Attach event listeners
+  const eventWatcher = new EventWatcher(t, div, [
+    'transitionrun',
+    'transitioncancel',
+  ]);
+
+  // Trigger transition
+  getComputedStyle(div).backgroundColor;
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  await eventWatcher.wait_for('transitionrun');
+
+  // Re-parent element to same parent
+  document.documentElement.append(div);
+
+  await eventWatcher.wait_for('transitioncancel');
+  assert_equals(
+    getComputedStyle(div).backgroundColor,
+    'rgb(0, 128, 0)',
+    'There should be no transition after re-parenting'
+  );
+}, 'Transitions are canceled when an element is re-parented to the same node');
+</script>
+
+</body>
+</html>

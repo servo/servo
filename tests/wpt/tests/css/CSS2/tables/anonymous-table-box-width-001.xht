@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Width of anonymous table box versus caption box in the automatic table layout</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="17.5.2.2 Automatic table layout" href="http://www.w3.org/TR/CSS21/tables.html#auto-table-layout" />
+  <link rel="bookmark" title="Issue 172: table-caption content overflows" href="http://wiki.csswg.org/spec/css2.1#issue-172" />
+  <link rel="bookmark" title="Anonymous table box is as wide as max(table-width, table-caption-min-intrinsic-width)" href="http://lists.w3.org/Archives/Public/www-style/2010Sep/0186.html" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="Anonymous table box should be as wide as max(table-width, table-caption-min-intrinsic-width)." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  p
+  {
+  font: 1em/1.25 serif;
+  margin: 1em 0;
+  }
+
+  strong {vertical-align: bottom;}
+
+  div#overlapped-red
+  {
+  background-color: red;
+  height: 100px;
+  position: absolute;
+  top: 3.25em;
+  /*
+    16px : max(8px, 16px): maximum of body's margin-top and p's margin-top
+  + 20px : p's line-height
+  + 16px : p's margin-bottom
+  ---------
+    52px == 3.25em
+  */
+  width: 100px;
+  z-index: -1;
+  }
+
+  table#overlapping-green
+  {
+  border-bottom: green solid 100px;
+  border-spacing: 0;
+  }
+
+  caption {width: 100px;}
+
+  td {padding: 0;}
+
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="overlapped-red"></div>
+
+  <table id="overlapping-green">
+   <caption></caption>
+   <tr><td></td></tr>
+  </table>
+
+ </body>
+</html>

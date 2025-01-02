@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover events</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div popover>Popover</div>
+
+<script>
+function getPopoverAndSignal(t) {
+  const popover = document.querySelector('[popover]');
+  const controller = new AbortController();
+  const signal = controller.signal;
+  t.add_cleanup(() => controller.abort());
+  return {popover, signal};
+}
+window.onload = () => {
+  for(const method of ["listener","attribute"]) {
+    promise_test(async t => {
+      const {popover,signal} = getPopoverAndSignal(t);
+      assert_false(popover.matches(':popover-open'));
+      let showCount = 0;
+      let afterShowCount = 0;
+      let hideCount = 0;
+      let afterHideCount = 0;
+      function listener(e) {
+        assert_false(e.bubbles,'toggle events should not bubble');
+        if (e.type === "beforetoggle") {
+          if (e.newState === "open") {
+            ++showCount;
+            assert_equals(e.oldState,"closed",'The "beforetoggle" event should be fired before the popover is open');
+            assert_false(e.target.matches(':popover-open'),'The popover should *not* be in the :popover-open state when the opening event fires.');
+            assert_true(e.cancelable,'beforetoggle should be cancelable only for the "show" transition');
+          } else {
+            ++hideCount;
+            assert_equals(e.newState,"closed",'Popover toggleevent states should be "open" and "closed"');
+            assert_equals(e.oldState,"open",'The "beforetoggle" event should be fired before the popover is closed')
+            assert_true(e.target.matches(':popover-open'),'The popover should be in the :popover-open state when the hiding event fires.');
+            assert_false(e.cancelable,'beforetoggle should be cancelable only for the "show" transition');
+            e.preventDefault(); // beforetoggle should be cancelable only for the "show" transition
+          }
+        } else {
+          assert_equals(e.type,"toggle",'Popover events should be "beforetoggle" and "toggle"')
+          assert_false(e.cancelable,'toggle should never be cancelable');
+          e.preventDefault(); // toggle should never be cancelable
+          if (e.newState === "open") {
+            ++afterShowCount;
+            if (document.body.contains(e.target)) {
+              assert_true(e.target.matches(':popover-open'),'The popover should be in the :popover-open state when the after opening event fires.');
+            }
+          } else {
+            ++afterHideCount;
+            assert_equals(e.newState,"closed",'Popover toggleevent states should be "open" and "closed"');
+            assert_false(e.target.matches(':popover-open'),'The popover should *not* be in the :popover-open state when the after hiding event fires.');
+          }
+          e.preventDefault(); // "toggle" should not be cancelable.
+        }
+      };
+      switch (method) {
+        case "listener":
+          // These events do *not* bubble.
+          popover.addEventListener('beforetoggle', listener, {signal});
+          popover.addEventListener('toggle', listener, {signal});
+          break;
+        case "attribute":
+          assert_false(popover.hasAttribute('onbeforetoggle'));
+          t.add_cleanup(() => popover.removeAttribute('onbeforetoggle'));
+          popover.onbeforetoggle = listener;
+          assert_false(popover.hasAttribute('ontoggle'));
+          t.add_cleanup(() => popover.removeAttribute('ontoggle'));
+          popover.ontoggle = listener;
+          break;
+        default: assert_unreached();
+      }
+      assert_equals(0,showCount);
+      assert_equals(0,hideCount);
+      assert_equals(0,afterShowCount);
+      assert_equals(0,afterHideCount);
+      popover.showPopover();
+      assert_true(popover.matches(':popover-open'));
+      assert_equals(1,showCount);
+      assert_equals(0,hideCount);
+      assert_equals(0,afterShowCount);
+      assert_equals(0,afterHideCount);
+      await waitForRender();
+      assert_equals(1,afterShowCount,'toggle show is fired asynchronously');
+      assert_equals(0,afterHideCount);
+      assert_true(popover.matches(':popover-open'));
+      popover.hidePopover();
+      assert_false(popover.matches(':popover-open'));
+      assert_equals(1,showCount);
+      assert_equals(1,hideCount);
+      assert_equals(1,afterShowCount);
+      assert_equals(0,afterHideCount);
+      await waitForRender();
+      assert_equals(1,afterShowCount);
+      assert_equals(1,afterHideCount,'toggle hide is fired asynchronously');
+      // No additional events
+      await waitForRender();
+      await waitForRender();
+      assert_false(popover.matches(':popover-open'));
+      assert_equals(1,showCount);
+      assert_equals(1,hideCount);
+      assert_equals(1,afterShowCount);
+      assert_equals(1,afterHideCount);
+    }, `The "beforetoggle" event (${method}) get properly dispatched for popovers`);
+  }
+
+  promise_test(async t => {
+    const {popover,signal} = getPopoverAndSignal(t);
+    let cancel = true;
+    popover.addEventListener('beforetoggle',(e) => {
+      if (e.newState !== "open")
+        return;
+      if (cancel)
+        e.preventDefault();
+    }, {signal});
+    assert_false(popover.matches(':popover-open'));
+    popover.showPopover();
+    assert_false(popover.matches(':popover-open'),'The "beforetoggle" event should be cancelable for the "opening" transition');
+    cancel = false;
+    popover.showPopover();
+    assert_true(popover.matches(':popover-open'));
+    popover.hidePopover();
+    assert_false(popover.matches(':popover-open'));
+  }, 'The "beforetoggle" event is cancelable for the "opening" transition');
+
+  promise_test(async t => {
+    const {popover,signal} = getPopoverAndSignal(t);
+    popover.addEventListener('beforetoggle',(e) => {
+      assert_not_equals(e.newState,"closed",'The "beforetoggle" event was fired for the closing transition');
+    }, {signal});
+    assert_false(popover.matches(':popover-open'));
+    popover.showPopover();
+    assert_true(popover.matches(':popover-open'));
+    t.add_cleanup(() => {document.body.appendChild(popover);});
+    popover.remove();
+    await waitForRender(); // Check for async events also
+    await waitForRender(); // Check for async events also
+    assert_false(popover.matches(':popover-open'));
+  }, 'The "beforetoggle" event is not fired for element removal');
+
+  promise_test(async t => {
+    const {popover,signal} = getPopoverAndSignal(t);
+    let events;
+    function resetEvents() {
+      events = {
+        singleShow: false,
+        singleHide: false,
+        coalescedShow: false,
+        coalescedHide: false,
+      };
+    }
+    function setEvent(type) {
+      assert_equals(events[type],false,'event repeated');
+      events[type] = true;
+    }
+    function assertOnly(type,msg) {
+      Object.keys(events).forEach(val => {
+        assert_equals(events[val],val===type,`${msg} (${val})`);
+      });
+    }
+    popover.addEventListener('toggle',(e) => {
+      switch (e.newState) {
+        case "open":
+          switch (e.oldState) {
+            case "open": setEvent('coalescedShow'); break;
+            case "closed": setEvent('singleShow'); break;
+            default: assert_unreached();
+          }
+          break;
+        case "closed":
+          switch (e.oldState) {
+            case "closed": setEvent('coalescedHide'); break;
+            case "open": setEvent('singleHide'); break;
+            default: assert_unreached();
+          }
+          break;
+        default: assert_unreached();
+      }
+    }, {signal});
+
+    resetEvents();
+    assertOnly('none');
+    assert_false(popover.matches(':popover-open'));
+    popover.showPopover();
+    await waitForRender();
+    assert_true(popover.matches(':popover-open'));
+    assertOnly('singleShow','Single event should have been fired, which is a "show"');
+
+    resetEvents();
+    popover.hidePopover();
+    popover.showPopover(); // Immediate re-show
+    await waitForRender();
+    assert_true(popover.matches(':popover-open'));
+    assertOnly('coalescedShow','Single coalesced event should have been fired, which is a "show"');
+
+    resetEvents();
+    popover.hidePopover();
+    await waitForRender();
+    assertOnly('singleHide','Single event should have been fired, which is a "hide"');
+    assert_false(popover.matches(':popover-open'));
+
+    resetEvents();
+    popover.showPopover();
+    popover.hidePopover(); // Immediate re-hide
+    await waitForRender();
+    assertOnly('coalescedHide','Single coalesced event should have been fired, which is a "hide"');
+    assert_false(popover.matches(':popover-open'));
+  }, 'The "toggle" event is coalesced');
+};
+</script>

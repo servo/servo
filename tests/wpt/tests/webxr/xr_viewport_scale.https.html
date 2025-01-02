@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let isValidViewport = function(viewport) {
+  // Ensure the returned object is an XRViewport object
+  assert_not_equals(viewport, null);
+  assert_true(viewport instanceof XRViewport);
+
+  // Ensure the viewport dimensions are valid
+  assert_greater_than_equal(viewport.x, 0);
+  assert_greater_than_equal(viewport.y, 0);
+  assert_greater_than_equal(viewport.width, 1);
+  assert_greater_than_equal(viewport.height, 1);
+};
+
+let containsViewport = function(outer, inner) {
+  assert_less_than_equal(inner.x, outer.x);
+  assert_less_than_equal(inner.y, outer.y);
+  assert_less_than_equal(inner.x + inner.width, outer.x + outer.width);
+  assert_less_than_equal(inner.y + inner.height, outer.y + outer.height);
+};
+
+let isSameViewport = function(a, b) {
+  return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
+};
+
+let assertSameViewport = function(a, b) {
+  assert_equals(a.x, b.x, "viewport x should match");
+  assert_equals(a.y, b.y, "viewport y should match");
+  assert_equals(a.width, b.width, "viewport width should match");
+  assert_equals(a.height, b.height, "viewport height should match");
+};
+
+let testFunction = function(name, firstScale, nextFrame, session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('viewer')
+      .then((space) => new Promise((resolve) => {
+    function onFrame(time, xrFrame1) {
+      let debug = xr_debug.bind(this, name);
+      debug('first frame');
+      let layer = xrFrame1.session.renderState.baseLayer;
+
+      let fullViewports = [];
+
+      let views1 = xrFrame1.getViewerPose(space).views;
+
+      for (view of views1) {
+        let viewport1a = layer.getViewport(view);
+        t.step(() => isValidViewport(viewport1a));
+        fullViewports.push(viewport1a);
+      }
+
+      // Now request a changed viewport scale. This must not change the
+      // viewports within this frame since they were already queried.
+      // If the UA supports viewport scaling, the change applies on the
+      // next frame. If it doesn't support viewport scaling, this call
+      // has no effect.
+      for (view of views1) {
+        view.requestViewportScale(firstScale);
+      }
+
+      t.step(() => {
+        for (let i = 0; i < views1.length; ++i) {
+          let viewport1b = layer.getViewport(views1[i]);
+          assertSameViewport(viewport1b, fullViewports[i]);
+        }
+      });
+
+      if (nextFrame) {
+        session.requestAnimationFrame((time, xrFrame2) =>
+          nextFrame(name, t, session, space, layer, fullViewports, xrFrame2, resolve));
+      } else {
+        // test is done
+        resolve();
+      }
+    }
+
+    session.requestAnimationFrame(onFrame);
+  }));
+};
+
+let testViewportValid = function(name, t, session, space, layer, fullViewports, xrFrame, resolve) {
+  let debug = xr_debug.bind(this, name);
+  debug('second frame');
+  let views = xrFrame.getViewerPose(space).views;
+  for (let i = 0; i < views.length; ++i) {
+    let viewport = layer.getViewport(views[i]);
+    t.step(() => isValidViewport(viewport));
+    t.step(() => containsViewport(fullViewports[i], viewport));
+  }
+  resolve();
+};
+
+let testScaleAppliedNextFrame = function(name, t, session, space, layer, fullViewports, xrFrame, resolve) {
+  let debug = xr_debug.bind(this, name);
+  debug('second frame');
+  let supportsScaling = false;
+  let views = xrFrame.getViewerPose(space).views;
+  for (let i = 0; i < views.length; ++i) {
+    let viewport = layer.getViewport(views[i]);
+    t.step(() => isValidViewport(viewport));
+    t.step(() => containsViewport(fullViewports[i], viewport));
+    if (!isSameViewport(fullViewports[i], viewport)) {
+      supportsScaling = true;
+    }
+  }
+  debug("supportsScaling=" + supportsScaling);
+  t.step(() => {
+    assert_implements_optional(supportsScaling, "requestViewportScale has no effect");
+  });
+  resolve();
+};
+
+let testScaleSameFrame = function(name, t, session, space, layer, fullViewports, xrFrame, resolve) {
+  let debug = xr_debug.bind(this, name);
+  debug('second frame');
+  let supportsScaling = false;
+  let views = xrFrame.getViewerPose(space).views;
+  let viewports2 = [];
+  for (let i = 0; i < views.length; ++i) {
+    let viewport2 = layer.getViewport(views[i]);
+    viewports2.push(viewport2);
+    if (!isSameViewport(fullViewports[i], viewport2)) {
+      supportsScaling = true;
+    }
+  }
+  debug("supportsScaling=" + supportsScaling);
+  if (!supportsScaling) {
+    // End the test early.
+    t.step(() => {
+      assert_implements_optional(false, "requestViewportScale has no effect");
+      resolve();
+    });
+  }
+
+  session.requestAnimationFrame((time, xrFrame3) => {
+    let views3 = xrFrame3.getViewerPose(space).views;
+    // Apply a new viewport scale before requesting viewports,
+    // this should take effect on the same frame.
+    for (view of views3) {
+      view.requestViewportScale(0.75);
+    }
+    for (let i = 0; i < views3.length; ++i) {
+      let viewport3 = layer.getViewport(views3[i]);
+      t.step(() => isValidViewport(viewport3));
+      t.step(() => containsViewport(fullViewports[i], viewport3));
+      t.step(() => containsViewport(viewport3, viewports2[i]));
+      t.step(() => {
+        // We don't know the exact expected size, but it should be in
+        // between the half-size and full-size viewports.
+        assert_false(isSameViewport(viewports2[i], viewport3));
+        assert_false(isSameViewport(fullViewports[i], viewport3));
+      });
+    }
+    resolve();
+  });
+};
+
+let testRecommendedScale = function(name, t, session, space, layer, fullViewports, xrFrame, resolve) {
+  let debug = xr_debug.bind(this, name);
+  debug('second frame');
+  let views = xrFrame.getViewerPose(space).views;
+  let haveRecommendedScale = false;
+  for (view of views) {
+    let recommended = view.recommendedViewportScale;
+    view.requestViewportScale(recommended);
+    if (recommended !== null && recommended !== undefined) {
+      haveRecommendedScale = true;
+      t.step(() => {
+        assert_greater_than(recommended, 0.0, "recommended scale invalid");
+        assert_less_than_equal(recommended, 1.0, "recommended scale invalid");
+      });
+    }
+  }
+  t.step(() => {
+    assert_implements_optional(haveRecommendedScale, "recommendedViewportScale not provided");
+  });
+  for (let i = 0; i < views.length; ++i) {
+    let viewport = layer.getViewport(views[i]);
+    t.step(() => isValidViewport(viewport));
+    t.step(() => containsViewport(fullViewports[i], viewport));
+  }
+  resolve();
+};
+
+for (let mode of ['inline', 'immersive-vr']) {
+  xr_session_promise_test(
+    "requestViewportScale valid viewport for " + mode + " session",
+    testFunction.bind(this, "valid viewport (0.5) " + mode, 0.5, testViewportValid),
+    fakeDeviceInitParams,
+    mode);
+  xr_session_promise_test(
+    "requestViewportScale valid viewport w/ null scale for " + mode + " session",
+    testFunction.bind(this, "valid viewport (null) " + mode, null, testViewportValid),
+    fakeDeviceInitParams,
+    mode);
+  xr_session_promise_test(
+    "requestViewportScale valid viewport w/ undefined scale for " + mode + " session",
+    testFunction.bind(this, "valid viewport (undefined) " + mode, null, testViewportValid),
+    fakeDeviceInitParams,
+    mode);
+  xr_session_promise_test(
+    "requestViewportScale valid viewport w/ very small scale for " + mode + " session",
+    testFunction.bind(this, "valid viewport (tiny) " + mode, 1e-6, testViewportValid),
+    fakeDeviceInitParams,
+    mode);
+  xr_session_promise_test(
+    "requestViewportScale applied next frame for " + mode + " session",
+    testFunction.bind(this, "scale applied next frame " + mode, 0.5, testScaleAppliedNextFrame),
+    fakeDeviceInitParams,
+    mode);
+  xr_session_promise_test(
+    "requestViewportScale same frame for " + mode + " session",
+    testFunction.bind(this, "same frame " + mode, 0.5, testScaleSameFrame),
+    fakeDeviceInitParams,
+    mode);
+  xr_session_promise_test(
+    "recommendedViewportScale for " + mode + " session",
+    testFunction.bind(this, "recommendedViewportScale " + mode, 0.5, testRecommendedScale),
+    fakeDeviceInitParams,
+    mode);
+}
+
+</script>

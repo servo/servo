@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const worker = 'resources/shownotification-sw.js';
+
+function reset() {
+  return navigator.serviceWorker.getRegistrations().then(registrations => {
+    return Promise.all(registrations.map(r => r.unregister()));
+  });
+}
+
+function getNewestWorker(reg) {
+  return reg.installing || reg.waiting || reg.active;
+}
+
+function registerSwAndGetWorker() {
+  return reset()
+    .then(() => navigator.serviceWorker.register(worker))
+    .then(getNewestWorker);
+}
+
+promise_test(() => {
+  // Get notification permission
+  return Notification.requestPermission().then(permission => {
+    if (permission != "granted") {
+      throw Error('You must allow notifications for this origin before running this test.');
+    }
+    return registerSwAndGetWorker();
+  }).then(worker => {
+    return new Promise(resolve => {
+      // Wait for the service worker to post a message with type 'notification-data'.
+      navigator.serviceWorker.onmessage = event => {
+        if (event.data && event.data.type == 'notification-data') {
+          resolve(event.data);
+          navigator.serviceWorker.onmessage = null;
+        }
+      };
+
+      // Ask the service worker to run the test.
+      worker.postMessage('test-shownotification');
+    })
+  }).then(result => {
+    assert_true(result.notificationReturned, `Notification appeared in getNotifications`);
+    // The icon is delayed by 2000ms, so showNotification should have taken at least 1900 to resolve.
+    assert_greater_than(result.resolveDuration, 1900, `showNotification appeared to wait for icon load`);
+  });
+}, 'showNotification resolves after icon fetch');
+
+</script>
+</body>

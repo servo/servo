@@ -1,0 +1,11 @@
+<!doctype html>
+<script>
+  'use strict';
+  function post_result(enabled) {
+    parent.postMessage({ type: 'availability-result', enabled }, "*");
+  }
+
+  window.onload = function () {
+    post_result(document.featurePolicy.allowedFeatures().includes("focus-without-user-activation"));
+  }
+</script>

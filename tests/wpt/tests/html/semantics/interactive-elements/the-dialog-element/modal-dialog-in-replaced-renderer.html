@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Modal dialog inside replaced renderer should not generate box</title>
+<link rel="match" href="modal-dialog-in-replaced-renderer-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#new-stacking-layer">
+<style>
+dialog {
+    background: green;
+    border-color: green;
+}
+div {
+    content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPAQMAAAABGAcJAAAAA1BMVEUAgACc+aWRAAAADElEQVR42mNgIAEAAAAtAAH7KhMqAAAAAElFTkSuQmCC);
+}
+</style>
+</head>
+<body>
+<p>The test passes if you see a green square near the top of the viewport.
+<div>
+<dialog id="dialog"></dialog>
+</div>
+<script>
+document.getElementById('dialog').showModal();
+</script>
+</body>
+</html>

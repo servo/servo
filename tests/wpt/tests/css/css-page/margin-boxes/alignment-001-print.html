@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-text-alignment">
+<meta name="assert" content="Test default vertical and horizontal alignment for all 16 margin boxes">
+<link rel="match" href="alignment-001-print-ref.html">
+<style>
+  @page {
+    font-family:monospace;
+    font-size: 0.7em;
+
+    /* This results in a page border box size that's divisible by 3, so that the
+       three boxes at a page edge get the exact same size. */
+    size: 550px 400px;
+
+    margin: 50px;
+    color: blue;
+
+    @top-left-corner { content: "A"; }
+    @top-left { content: "B"; }
+    @top-center { content: "C"; }
+    @top-right { content: "D"; }
+    @top-right-corner { content: "E"; }
+    @right-top { content: "F"; }
+    @right-middle { content: "G"; }
+    @right-bottom { content: "H"; }
+    @bottom-right-corner { content: "I"; }
+    @bottom-right { content: "J"; }
+    @bottom-center { content: "K"; }
+    @bottom-left { content: "L"; }
+    @bottom-left-corner { content: "M"; }
+    @left-bottom { content: "N"; }
+    @left-middle { content: "O"; }
+    @left-top { content: "P"; }
+  }
+</style>
+<div>
+  Small blue letters from A to P should be seen in a clockwise manner, starting
+  with A in the top left corner.
+</div>

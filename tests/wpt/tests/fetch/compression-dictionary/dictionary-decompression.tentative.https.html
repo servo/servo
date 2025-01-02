@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/compression-dictionary-util.js"></script>
+</head>
+<body>
+<script>
+
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'Decompresion using Brotli with the dictionary works as expected');
+
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  // Check if the data compressed using Zstandard with the dictionary can be
+  // decompressed.
+  const data_url = `${kCompressedDataPath}?content_encoding=dcz`;
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'Decompresion using Zstandard with the dictionary works as expected');
+
+compression_dictionary_promise_test(async (t) => {
+  const dict =
+      await (await fetch(getRemoteHostUrl(kRegisterDictionaryPath))).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {check_remote: true}),
+      kDefaultDictionaryHashBase64);
+
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url =
+      getRemoteHostUrl(`${kCompressedDataPath}?content_encoding=dcb`);
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'Decompresion of a cross origin resource works as expected');
+
+</script>
+</body>

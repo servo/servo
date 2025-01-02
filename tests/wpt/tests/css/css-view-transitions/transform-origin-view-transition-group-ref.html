@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: validates that transform-origin value is default for view-transition-group (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+.target {
+  width: 100px;
+  height: 150px;
+  background: green;
+  position: fixed;
+  top: 200px;
+  left: 200px;
+  transform: rotate(90deg);
+  view-transition-name: target;
+  clip-path: inset(1px 1px 1px 1px);
+}
+</style>
+
+<div class="target"></div>

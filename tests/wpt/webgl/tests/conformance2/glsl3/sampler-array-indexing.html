@@ -1,0 +1,96 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ESSL300 sampler array indexing rules</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vs" type="text/plain">#version 300 es
+void main() {}
+</script>
+<script id="fs_constant_integer_expression" type="text/plain">#version 300 es
+precision mediump float;
+uniform sampler2D u_tex[2];
+
+void main()
+{
+  texture(u_tex[0], vec2(0));
+  texture(u_tex[1], vec2(0));
+}
+</script>
+<script id="fs_constant_index_expression" type="text/plain">#version 300 es
+precision mediump float;
+uniform sampler2D u_tex[2];
+
+void main()
+{
+  for (int i = 0; i < 2; i++) {
+    texture(u_tex[i], vec2(0));
+  }
+}
+</script>
+<script id="fs_constant_integer_expression_switch" type="text/plain">#version 300 es
+precision mediump float;
+uniform sampler2D u_tex[2];
+
+void main()
+{
+  for (int i = 0; i < 2; i++) {
+    switch (i) {
+      case 0:
+        texture(u_tex[0], vec2(0));
+        break;
+      case 1:
+        texture(u_tex[1], vec2(0));
+        break;
+    }
+  }
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "vs",
+    vShaderSuccess: true,
+    fShaderId: "fs_constant_integer_expression",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "indexing into an array of samplers with constant-integer-expression is required",
+  },
+  {
+    vShaderId: "vs",
+    vShaderSuccess: true,
+    fShaderId: "fs_constant_index_expression",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "indexing into an array of samplers with constant-index-expression is forbidden in essl300",
+  },
+  {
+    vShaderId: "vs",
+    vShaderSuccess: true,
+    fShaderId: "fs_constant_integer_expression_switch",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "constant-index-expression can be converted into fs_constant_integer_expression via a switch",
+  },
+], 2);
+</script>
+</body>
+</html>

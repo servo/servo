@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+    <body>
+        <title>Test for issue #12071</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <form name="f" id="f">
+            <input type="text" name="input1" id="input1"/>
+            <input type="submit" value="Submit"/>
+        </form>
+        <script>
+            var test = async_test("TabShouldNotSubmit");
+            var form = document.getElementById('f');
+            var form_submitted = false;
+            form.onsubmit = function(e) { form_submitted = true; return false; };
+            document.addEventListener("DOMContentLoaded", function() {
+                test.step(function() {
+                    var input = document.getElementById('input1');
+                    var evt = new KeyboardEvent("keydown", {key : "Tab"});
+                    input.dispatchEvent(evt);
+                });
+            });
+            test.step_timeout(function() { assert_false(form_submitted, "Form should not be submitted"); test.done(); }, 500);
+        </script>
+    </body>
+</html>

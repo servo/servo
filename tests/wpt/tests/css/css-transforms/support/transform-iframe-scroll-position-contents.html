@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>CSS Test (Transforms): iframe scroll position</title>
+        <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+        <style>
+            html { background: red; }
+        </style>
+    </head>
+
+    <body>
+        <!-- Make a large red page with a small green and blue square that is scrolled to immediately. -->
+        <div style="position: absolute; width: 50px; height: 25px; top: 3000px; left: 3000px; background: green;"></div>
+        <div style="position: absolute; width: 50px; height: 25px; top: 3025px; left: 3000px; background: blue;"></div>
+        <div style="width: 10000px; height: 10000px;"></div>
+        <script>
+            window.scrollTo(3000, 3000);
+        </script>
+    </body>
+</html>

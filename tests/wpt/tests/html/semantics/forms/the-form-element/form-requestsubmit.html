@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<title>form.requestSubmit() tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe name="iframe" src="about:blank"></iframe>
+
+<script>
+test(() => {
+  document.body.insertAdjacentHTML('afterbegin', '<form>' +
+      '<input type="reset">' +
+      '<input type="text">' +
+      '<button type="reset"></button>' +
+      '<button type="button"></button>' +
+      '</form>');
+  let form = document.querySelector('form');
+  assert_throws_js(TypeError, () => {
+    form.requestSubmit(document.body);
+  });
+  for (let control of form.elements) {
+    assert_throws_js(TypeError, () => { form.requestSubmit(control); });
+  }
+}, 'Passing an element which is not a submit button should throw');
+
+test(() => {
+  document.body.insertAdjacentHTML('afterbegin', `<form>
+      <input form="" type="submit">
+      <button form="form2" type="submit"></button>
+      </form>
+      <form id="form2"></form>`);
+  let form = document.querySelector('form');
+  let submitButton = document.createElement('button');
+  submitButton.type = 'submit';
+  assert_throws_dom('NotFoundError', () => {
+    form.requestSubmit(submitButton);
+  });
+
+  let buttons = form.querySelectorAll('input, button');
+  assert_equals(buttons.length, 2);
+  for (let control of buttons) {
+    assert_throws_dom('NotFoundError', () => { form.requestSubmit(control) },
+        control.outerHTML);
+  }
+}, 'Passing a submit button not owned by the context object should throw');
+
+test(() => {
+  document.body.insertAdjacentHTML('afterbegin', `<input type=submit form="form1">
+      <form id="form1" target="_blank">
+      <button type="submit"></button>
+      <button></button>
+      <button type="invalid"></button>
+      <input type="submit">
+      <input type="image">
+      </form>`);
+  let form = document.querySelector('form');
+  let didDispatchSubmit = false;
+  form.addEventListener('submit', event => { event.preventDefault(); didDispatchSubmit = true; });
+
+  assert_equals(form.elements.length, 5);
+  for (let control of form.elements) {
+    didDispatchSubmit = false;
+    form.requestSubmit(control);
+    assert_true(didDispatchSubmit, `${control.outerHTML} should submit the form`);
+  }
+  // <input type=image> is not in form.elements.
+  let control = form.querySelector('[type=image]');
+  didDispatchSubmit = false;
+  form.requestSubmit(control);
+  assert_true(didDispatchSubmit, `${control.outerHTML} should submit the form`);
+}, 'requestSubmit() should accept button[type=submit], input[type=submit], and input[type=image]');
+
+test(() => {
+  document.body.insertAdjacentHTML('afterbegin', '<form><input required></form>');
+  let form = document.querySelector('form');
+  let invalidControl = form.querySelector('input:invalid');
+  let didDispatchInvalid = false;
+  invalidControl.addEventListener('invalid', e => { didDispatchInvalid = true; });
+
+  form.requestSubmit();
+  assert_true(didDispatchInvalid);
+}, 'requestSubmit() should trigger interactive form validation');
+
+test(() => {
+  document.body.insertAdjacentHTML('afterbegin',
+      '<form><input type=submit></form>');
+  let form = document.querySelector('form');
+  let submitButton = form.elements[0];
+  let submitCounter = 0;
+  form.addEventListener('submit', e => {
+    ++submitCounter;
+    form.requestSubmit();
+    e.preventDefault();
+  }, {once: true});
+  form.requestSubmit();
+  assert_equals(submitCounter, 1, 'requestSubmit() + requestSubmit()');
+
+  submitCounter = 0;
+  form.addEventListener('submit', e => {
+    ++submitCounter;
+    submitButton.click();
+    e.preventDefault();
+  }, {once: true});
+  form.requestSubmit();
+  assert_equals(submitCounter, 1, 'requestSubmit() + click()');
+
+  submitCounter = 0;
+  form.addEventListener('submit', e => {
+    ++submitCounter;
+    form.requestSubmit();
+    e.preventDefault();
+  }, {once: true});
+  submitButton.click();
+  assert_equals(submitCounter, 1, 'click() + requestSubmit()');
+}, 'requestSubmit() doesn\'t run form submission reentrantly');
+
+test(() => {
+  document.body.insertAdjacentHTML('afterbegin',
+      '<form><input type=submit><input required></form>');
+  let form = document.querySelector('form');
+  let submitButton = form.elements[0];
+  let invalidControl = form.elements[1];
+  let invalidCounter = 0;
+  invalidControl.addEventListener('invalid', e => {
+    ++invalidCounter;
+    if (invalidCounter < 10)
+      form.requestSubmit();
+  }, {once: true});
+  form.requestSubmit();
+  assert_equals(invalidCounter, 1, 'requestSubmit() + requestSubmit()');
+
+  invalidCounter = 0;
+  invalidControl.addEventListener('invalid', e => {
+    ++invalidCounter;
+    if (invalidCounter < 10)
+      submitButton.click();
+  }, {once: true});
+  form.requestSubmit();
+  assert_equals(invalidCounter, 1, 'requestSubmit() + click()');
+
+  invalidCounter = 0;
+  invalidControl.addEventListener('invalid', e => {
+    ++invalidCounter;
+    if (invalidCounter < 10)
+      form.requestSubmit();
+  }, {once: true});
+  submitButton.click();
+  assert_equals(invalidCounter, 1, 'click() + requestSubmit()');
+}, 'requestSubmit() doesn\'t run interactive validation reentrantly');
+
+test(() => {
+  let form = document.createElement('form');
+  let submitCounter = 0;
+  form.addEventListener('submit', e => { ++submitCounter; e.preventDefault(); });
+  form.requestSubmit();
+  assert_equals(submitCounter, 0);
+}, 'requestSubmit() for a disconnected form should not submit the form');
+
+async_test(t => {
+  window.addEventListener('load', t.step_func(() => {
+    document.body.insertAdjacentHTML('afterbegin', `
+<form action="/common/blank.html">
+<input required>
+<input type=submit formnovalidate formtarget=iframe name=s value=v>
+</form>`);
+    let form = document.body.querySelector('form');
+    let iframe = document.body.querySelector('iframe');
+    assert_true(form.matches(':invalid'), 'The form is invalid.');
+    // The form should be submitted though it is invalid.
+    iframe.addEventListener('load', t.step_func_done(() => {
+      assert_not_equals(iframe.contentWindow.location.search.indexOf('s=v'), -1);
+    }));
+    form.requestSubmit(form.querySelector('[type=submit]'));
+  }));
+}, 'The value of the submitter should be appended, and form* ' +
+    'attributes of the submitter should be handled.');
+
+test(() => {
+  document.body.insertAdjacentHTML('afterbegin', `<form>
+      <input name="n1" value="v1">
+      <button type="submit" name="n2" value="v2"></button>
+      </form>
+      <form id="form2"></form>`);
+  let form = document.querySelector('form');
+  let formDataInEvent = null;
+  let submitter = form.querySelector('button[type=submit]');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    formDataInEvent = new FormData(e.target);
+  });
+
+  form.requestSubmit(submitter);
+  assert_equals(formDataInEvent.get('n1'), 'v1');
+  assert_false(formDataInEvent.has('n2'));
+}, 'The constructed FormData object should not contain an entry for the submit button that was used to submit the form.');
+
+async_test(t => {
+  document.body.insertAdjacentHTML('afterbegin', `<form>
+      <button type="submit" name="n1" value="v1" disabled=""></button>
+      </form>`);
+  let form = document.querySelector('form');
+  let formDataInEvent = null;
+  let submitter = form.querySelector('button[type=submit]');
+
+  form.addEventListener("submit", t.step_func_done(ev => {
+    ev.preventDefault();
+    formDataInEvent = new FormData(ev.target);
+    assert_false(formDataInEvent.has('n1'));
+    assert_equals(ev.target, form);
+  }));
+
+  form.requestSubmit(submitter);
+
+}, "Using requestSubmit on a disabled button (via disabled attribute) should trigger submit but not be visible in FormData");
+
+</script>

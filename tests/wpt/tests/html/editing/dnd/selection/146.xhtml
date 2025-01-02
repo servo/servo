@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop and text/plain aliases</title>
+<style type="text/css">
+div
+  {min-height:40px;
+  width:40px;
+  padding:40px;
+  text-align:center;
+  color:white;
+  background-color:navy;}
+</style>
+<script type="application/ecmascript">
+function checkText(event)
+  {var a = event.dataTransfer.getData('text/plain'),
+  b = event.dataTransfer.getData('text'),
+  c = event.dataTransfer.getData('TEXT'),
+  d = event.dataTransfer.getData('TexT');
+  document.querySelector('div').appendChild(document.createTextNode((a == b &amp;&amp; b == c &amp;&amp; c == d &amp;&amp; d == 'Drag me')?'PASS':'FAIL'))}
+</script>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p>Drag me</p>
+<p>Drag selection above to the navy box below and drop it. You should see word PASS once you drop it.</p>
+<div ondragenter="event.preventDefault()" ondragover="return false" ondrop="checkText(event)"/>
+</body>
+</html>

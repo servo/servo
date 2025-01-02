@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Test parsing of the :host/host() pseudo-classes</title>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectordef-host-function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector(':host');
+  test_valid_selector(':host(.a)');
+  test_valid_selector(':host(div.a)');
+
+  test_invalid_selector(':host()');
+  test_invalid_selector(':host(.a, .b)');
+  test_invalid_selector(':host(.a + .b)');
+  test_invalid_selector(':host(.a + .b, #c > #d)');
+</script>

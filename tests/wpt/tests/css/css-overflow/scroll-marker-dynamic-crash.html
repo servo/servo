@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<style>
+  #container {
+    columns: 1;
+    width: 500px;
+    overflow: auto;
+    scroll-marker-group: after;
+  }
+
+  #container::scroll-marker-group {
+    display: block;
+  }
+
+  #container::column::scroll-marker {
+    content: ' ';
+  }
+</style>
+<div id="container"></div>
+<script>
+  document.body.offsetTop;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      container.style.width = "501px";
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+</script>
+
+</html>

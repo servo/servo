@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+test_driver.set_test_context(parent);
+
+// At first, run simple unlock test without lock.
+screen.orientation?.unlock();
+
+test_driver.bless("request full screen", async () => {
+  const data = {};
+  try {
+    await document.documentElement.requestFullscreen();
+    await screen.orientation.lock("portrait")
+    data.result = "locked";
+    data.orientation = screen.orientation.type;
+  } catch (error) {
+    data.result = "errored";
+    data.name = error.name;
+  }
+
+  screen.orientation.unlock();
+  try {
+    await document.exitFullscreen();
+  } catch (error) {
+    data.result = "errored";
+    data.name = error.name;
+  }
+
+  parent.window.postMessage(data, "*");
+});
+</script>

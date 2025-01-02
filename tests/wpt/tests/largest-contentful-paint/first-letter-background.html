@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: observe element with background image in its first letter</title>
+<body>
+<style>
+div::first-letter {
+  background-image: url('/images/black-rectangle.png');
+}
+div {
+  font-size: 12px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<script>
+  setup({"hide_test_state": true});
+  async_test(function (t) {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    let beforeLoad = performance.now();
+    let observedFirstLetter = false;
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        const entry = entryList.getEntries()[entryList.getEntries().length -1];
+        if (!observedFirstLetter) {
+          // When we haven't observed first-letter as LCP...
+          // If we happen to get a text entry due to text happening before the image, return.
+          if (entry.url === '') {
+            assert_equals(entry.entryType, 'largest-contentful-paint');
+            assert_greater_than_equal(entry.renderTime, beforeLoad);
+            assert_greater_than_equal(performance.now(), entry.renderTime);
+            assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+              'startTime should be equal to renderTime to the precision of 1 millisecond.');
+            assert_equals(entry.duration, 0);
+            assert_equals(entry.loadTime, 0);
+            assert_equals(entry.id, 'target');
+            assert_equals(entry.element, document.getElementById('target'));
+          } else {
+            const url = window.location.origin + '/images/black-rectangle.png';
+            checkImage(entry, url, 'target', 0, beforeLoad, ['sizeLowerBound']);
+          }
+
+          // Now change the div content to proceed to the second part of the test.
+          beforeLoad = performance.now();
+          const div = document.createElement('div');
+          div.id = 'target2';
+          div.innerHTML = 'long text will now be LCP';
+          document.body.appendChild(div);
+          observedFirstLetter = true;
+        } else {
+          // Ignore entries that are caused by the initial 'target'.
+          if (entry.id === 'target')
+            return;
+          // The LCP must now be text.
+          if (entry.url !== '')
+            assert_unreached('First-letter background should not be LCP!');
+
+          assert_equals(entry.entryType, 'largest-contentful-paint');
+          assert_greater_than_equal(entry.renderTime, beforeLoad, 'blaaa');
+          assert_greater_than_equal(performance.now(), entry.renderTime, 'bleee');
+          assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+            'startTime should be equal to renderTime to the precision of 1 millisecond.');
+          assert_equals(entry.duration, 0);
+          assert_equals(entry.id, 'target2');
+          const div = document.getElementById('target2');
+          // Estimate the text size: 12 * 100
+          assert_greater_than_equal(entry.size, 1200);
+          assert_equals(entry.loadTime, 0);
+          assert_equals(entry.element, div);
+          t.done();
+        }
+    }));
+    observer.observe({entryTypes: ['largest-contentful-paint']});
+  }, 'Largest Contentful Paint: first-letter is observable.');
+</script>
+<div id='target'>A</div>
+</body>

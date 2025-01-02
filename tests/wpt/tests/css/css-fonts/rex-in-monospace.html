@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-size-prop">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="match" href="rex-in-monospace-ref.html">
+
+<style>
+  @font-face {
+    font-family: ExTest;
+    src: url(../css-values/resources/ExTest.woff);
+  }
+  :root {
+    font-family: ExTest;
+    font-size: 20px;
+  }
+</style>
+
+<p style="font-family: sans-serif">The following two lines should look exactly the same.</p>
+
+<div style="font-family: monospace; font-size: 1.5em">
+  <div style="font-family: sans-serif; font-size: 1rex">
+    Text.
+  </div>
+</div>
+
+<div style="font-family: sans-serif; font-size: 1rex">
+  Text.
+</div>

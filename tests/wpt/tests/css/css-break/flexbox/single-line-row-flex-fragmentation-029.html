@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>
+  Single-line row flex fragmentation: Row expansion, stretching and column balancing.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+  }
+  #flex > div {
+    background: green;
+    width: 25px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;">
+  <div style="width: 100px; columns: 2; column-gap: 0;">
+    <div id="flex">
+      <div></div>
+      <div>
+        <div style="contain: size; width: 10px; height: 70px;"></div>
+        <div style="contain: size; width: 10px; height: 100px;"></div>
+      </div>
+    </div>
+  </div>
+</div>

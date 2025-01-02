@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API context tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        request_options_with_context,
+        fedcm_get_title_promise,
+        fedcm_test,
+        fedcm_select_account_promise} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const p = navigator.credentials.get(request_options_with_mediation_required());
+  const result = await fedcm_get_title_promise(t);
+  assert_true(result.title.toLowerCase().includes('sign in'));
+  fedcm_select_account_promise(t, 0);
+  return p;
+}, "FedCM call defaults to 'signin' context.");
+
+fedcm_test(async t => {
+  const p = navigator.credentials.get(request_options_with_context("manifest.py", "signup"));
+  const result = await fedcm_get_title_promise(t);
+  assert_true(result.title.toLowerCase().includes('sign up'));
+  fedcm_select_account_promise(t, 0);
+  return p;
+}, "FedCM with 'signup' context.");
+
+fedcm_test(async t => {
+  const p = navigator.credentials.get(request_options_with_context("manifest.py", "use"));
+  const result = await fedcm_get_title_promise(t);
+  assert_true(result.title.toLowerCase().includes('use'));
+  fedcm_select_account_promise(t, 0);
+  return p;
+}, "FedCM with 'use' context.");
+
+fedcm_test(async t => {
+  const p = navigator.credentials.get(request_options_with_context("manifest.py", "continue"));
+  const result = await fedcm_get_title_promise(t);
+  assert_true(result.title.toLowerCase().includes('continue'));
+  fedcm_select_account_promise(t, 0);
+  return p;
+}, "FedCM with 'continue' context.");
+</script>

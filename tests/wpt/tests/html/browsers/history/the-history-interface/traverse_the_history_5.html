@@ -1,0 +1,26 @@
+<!doctype html>
+<title>Multiple history traversals, last would be aborted</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t = async_test();
+  started = false;
+  pages = []
+  timer = setInterval(
+    function() {
+      if (pages.length < 2)
+        return;
+      clearInterval(timer);
+      setTimeout(t.step_func(
+        function() {
+          assert_array_equals(pages, [6, 5], "Pages opened during history navigation");
+          t.done();
+        }
+      ), 500);
+    }, 50);
+  t.step(function() {
+    win = window.open("history_entry.html?urls=history_entry.html,history_entry.html,history_entry.html,history_entry.html,traverse_the_history_5-1.html");
+    t.add_cleanup(function() { win.close(); });
+  });
+</script>

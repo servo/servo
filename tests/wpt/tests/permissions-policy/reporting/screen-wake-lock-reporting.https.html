@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+      promise_test(async (t) => {
+        const reportPromise = new Promise(resolve => {
+          new ReportingObserver((reports, observer) => resolve(reports),
+                                {types: ["permissions-policy-violation"]}).observe();
+        });
+        // Even though we do not explicitly allow screen wake lock requests in
+        // testdriver, per spec Permissions Policy checks should happen earlier.
+        await promise_rejects_dom(t, 'NotAllowedError', navigator.wakeLock.request("screen"),
+                                  "Screen Wake Lock should not be allowed in this document.");
+        const reports = await reportPromise;
+
+        assert_equals(reports.length, 1);
+        const report = reports[0];
+        assert_equals(report.type, "permissions-policy-violation");
+        assert_equals(report.url, document.location.href);
+        assert_equals(report.body.featureId, "screen-wake-lock");
+        assert_equals(report.body.sourceFile, document.location.href);
+        assert_equals(typeof report.body.lineNumber, "number");
+        assert_equals(typeof report.body.columnNumber, "number");
+        assert_equals(report.body.disposition, "enforce");
+      }, "Screen Wake Lock Report Format");
+    </script>
+  </body>
+</html>

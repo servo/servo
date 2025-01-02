@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCEncodedAudioFrame can be cloned and distributed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../../mediacapture-streams/permission-helper.js'></script>
+<script src="../../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="../../service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<script>
+"use strict";
+promise_test(async t => {
+  const caller1 = new RTCPeerConnection();
+  t.add_cleanup(() => caller1.close());
+  const callee1 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee1.close());
+  await setMediaPermission("granted", ["microphone"]);
+  const inputStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const inputTrack = inputStream.getAudioTracks()[0];
+  t.add_cleanup(() => inputTrack.stop());
+  caller1.addTrack(inputTrack)
+  exchangeIceCandidates(caller1, callee1);
+
+  const caller2 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller2.close());
+  const sender2 = caller2.addTransceiver("audio").sender;
+  const writer2 = sender2.createEncodedStreams().writable.getWriter();
+  sender2.replaceTrack(new MediaStreamTrackGenerator({ kind: 'audio' }));
+
+  const framesReceivedCorrectly = new Promise((resolve, reject) => {
+    callee1.ontrack = async e => {
+      const receiverStreams = e.receiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+      const result = await receiverReader.read();
+      const original = result.value;
+      let newFrame = new RTCEncodedAudioFrame(original);
+      assert_equals(original.getMetadata().rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
+      assert_equals(original.getMetadata().absCaptureTime, newFrame.getMetadata().absCaptureTime);
+      assert_array_equals(Array.from(original.data), Array.from(newFrame.data));
+      await writer2.write(newFrame);
+      resolve();
+    }
+  });
+
+  await exchangeOfferAnswer(caller1, callee1);
+
+  return framesReceivedCorrectly;
+}, "Constructing audio frame before sending works");
+
+promise_test(async t => {
+  const caller1 = new RTCPeerConnection();
+
+  t.add_cleanup(() => caller1.close());
+  const callee1 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee1.close());
+  await setMediaPermission("granted", ["microphone"]);
+  const inputStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const inputTrack = inputStream.getAudioTracks()[0];
+  t.add_cleanup(() => inputTrack.stop());
+  caller1.addTrack(inputTrack)
+  exchangeIceCandidates(caller1, callee1);
+
+  const caller2 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller2.close());
+  const sender2 = caller2.addTransceiver("audio").sender;
+  const writer2 = sender2.createEncodedStreams().writable.getWriter();
+  sender2.replaceTrack(new MediaStreamTrackGenerator({ kind: 'audio' }));
+
+  const framesReceivedCorrectly = new Promise((resolve, reject) => {
+    callee1.ontrack = async e => {
+      const receiverStreams = e.receiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+      const result = await receiverReader.read();
+      const original = result.value;
+      let newMetadata = original.getMetadata();
+      newMetadata.rtpTimestamp = newMetadata.rtpTimestamp + 1;
+      let newFrame = new RTCEncodedAudioFrame(original, {metadata: newMetadata});
+      assert_not_equals(original.getMetadata().rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
+      assert_equals(newMetadata.rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
+      assert_equals(original.getMetadata().absCaptureTime, newFrame.getMetadata().absCaptureTime);
+      assert_array_equals(Array.from(original.data), Array.from(newFrame.data));
+      await writer2.write(newFrame);
+      resolve();
+    }
+  });
+
+  await exchangeOfferAnswer(caller1, callee1);
+
+  return framesReceivedCorrectly;
+}, "Constructing audio frame with metadata argument before sending works");
+
+promise_test(async t => {
+  const caller1 = new RTCPeerConnection();
+  t.add_cleanup(() => caller1.close());
+  const callee1 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee1.close());
+  await setMediaPermission("granted", ["microphone"]);
+  const inputStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const inputTrack = inputStream.getAudioTracks()[0];
+  t.add_cleanup(() => inputTrack.stop());
+  caller1.addTrack(inputTrack)
+  exchangeIceCandidates(caller1, callee1);
+
+  const caller2 = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller2.close());
+  const sender2 = caller2.addTransceiver("audio").sender;
+  const writer2 = sender2.createEncodedStreams().writable.getWriter();
+  sender2.replaceTrack(new MediaStreamTrackGenerator({ kind: 'audio' }));
+
+  const framesReceivedCorrectly = new Promise((resolve, reject) => {
+    callee1.ontrack = async e => {
+      const receiverStreams = e.receiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+      const result = await receiverReader.read();
+      const original = result.value;
+      let newMetadata = original.getMetadata();
+      newMetadata.synchronizationSource = newMetadata.synchronizationSource + 1;
+  assert_throws_dom("InvalidModificationError", () => new RTCEncodedAudioFrame(original, {metadata: newMetadata}));
+      resolve();
+    }
+  });
+
+  await exchangeOfferAnswer(caller1, callee1);
+
+  return framesReceivedCorrectly;
+}, "Constructing audio frame with bad metadata argument before sending does not work");
+</script>

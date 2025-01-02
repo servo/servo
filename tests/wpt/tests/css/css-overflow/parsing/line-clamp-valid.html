@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing line-clamp with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-line-clamp">
+<meta name="assert" content="line-clamp supports the full grammar 'none | <integer> <‘block-ellipsis’>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("line-clamp", 'none');
+
+test_valid_value("line-clamp", '1');
+test_valid_value("line-clamp", '6');
+
+test_valid_value("line-clamp", '7 none');
+test_valid_value("line-clamp", '8 auto', '8');
+test_valid_value("line-clamp", '9 " etc., etc. "');
+</script>
+</body>
+</html>

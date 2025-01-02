@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text: 'hyphens: auto' with a valid 'lang' attribute specification</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" title="5.4. Hyphenation: the hyphens property" href="https://drafts.csswg.org/css-text-3/#hyphenation">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-hyphens-auto">
+<link rel="match" href="reference/hyphens-auto-002-ref.html">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Although hyphenation is enabled, honoring 'auto' value for the 'hyphens' CSS property and a valid 'lang' attribute, the words fit. However, we should break after the preserved combination of white+ideographic space sequence, honoring 'white-space: normal' to prevent overflow.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.fail {
+    position: absolute;
+    background: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+}
+.test {
+    font: 50px/1 Ahem;
+    width: 4ch;
+    color: green;
+
+    hyphens: auto;
+}
+</style>
+<body lang="en">
+    <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+    <div class="fail"></div>
+    <div class="test">XX &#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000; XX</div>
+</body>

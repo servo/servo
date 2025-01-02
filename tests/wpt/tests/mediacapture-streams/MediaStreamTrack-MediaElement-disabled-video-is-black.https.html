@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+<title>A disabled video track is rendered as blackness</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#introduction">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastreams-as-media-elements">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that a disabled video track in a
+MediaStream is handled correctly by HTMLVideoElement.</p>
+<video id="vid"></video>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+
+function assertVideoElementIsBlack(vid) {
+  const cv = document.createElement("canvas");
+  cv.width = vid.videoWidth;
+  cv.height = vid.videoHeight;
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(vid,0,0);
+  const imageData = ctx.getImageData(0, 0, cv.width, cv.height);
+  for (let i = 0; i < imageData.data.length / 4; ++i) {
+    assert_equals(imageData.data[i * 4], 0, "No red component in pixel #" + i);
+    assert_equals(imageData.data[i * 4 + 1], 0, "No green component in pixel #" + i);
+    assert_equals(imageData.data[i * 4 + 2], 0, "No blue component in pixel #" + i);
+  }
+}
+
+promise_test(async t => {
+  const vid = document.getElementById("vid");
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => {
+    for (let track of stream.getTracks()) {
+      track.stop();
+    }
+    vid.srcObject = null;
+  });
+
+  stream.getTracks()[0].enabled = false;
+  vid.srcObject = stream;
+  vid.play();
+  await new Promise(r => vid.onloadeddata = r);
+  assertVideoElementIsBlack(vid);
+}, "Tests that a disabled video track in a MediaStream is rendered as blackness");
+
+promise_test(async t => {
+  const vid = document.getElementById("vid");
+  const cv = document.createElement("canvas");
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "red";
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  const stream = cv.captureStream();
+  t.add_cleanup(() => {
+    for (let track of stream.getTracks()) {
+      track.stop();
+    }
+    vid.srcObject = null;
+  });
+
+  stream.getTracks()[0].enabled = false;
+  vid.srcObject = stream;
+  vid.play();
+  await new Promise(r => vid.onloadeddata = r);
+
+  assert_equals(vid.videoWidth, cv.width);
+  assert_equals(vid.videoHeight, cv.height);
+}, "Test that a video element rendering a disabled video track reports correct intrinsic dimensions");
+
+promise_test(async t => {
+  const vid = document.getElementById("vid");
+  const cv = document.createElement("canvas");
+  const originalWidth = cv.width;
+  const originalHeight = cv.height;
+
+  const vid2 = document.createElement("video");
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "red";
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  const stream = cv.captureStream();
+  const stream2 = stream.clone();
+  t.add_cleanup(() => {
+    for (let track of [...stream.getTracks(), ...stream2.getTracks()]) {
+      track.stop();
+    }
+    vid.srcObject = null;
+    vid2.srcObject = null;
+    cv.width = originalWidth;
+    cv.height = originalHeight;
+  });
+
+  stream.getTracks()[0].enabled = false;
+
+  vid.srcObject = stream;
+  vid2.srcObject = stream2;
+  vid.play();
+  vid2.play();
+  await Promise.all([
+    new Promise(r => vid.onresize = r),
+    new Promise(r => vid2.onresize = r),
+  ]);
+
+  // Test "flow" of the disabled track by checking for "resize" events on a
+  // video element rendering that track. Any delivered frames must be black.
+  let resized = 0;
+  vid.addEventListener("resize", t.step_func(() => assertVideoElementIsBlack(vid)));
+
+  for (let i = 0; i < 2; ++i) {
+    cv.width = cv.width / 2;
+    cv.height = cv.height / 2;
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    await new Promise(r => vid2.onresize = r);
+  }
+}, "Test that frames are black for a disabled video track with an enabled clone");
+</script>
+</body>
+</html>

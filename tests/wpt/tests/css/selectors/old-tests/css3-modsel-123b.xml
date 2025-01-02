@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED universal selector with declared namespace</title>
+  <style type="text/css"><![CDATA[@namespace html url(http://www.w3.org/1999/xhtml);
+@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+div.stub > *|* { color : green ; display : block ;
+                 margin-bottom : 1em }
+div.stub > *|*:not(|*) { color : red ! important }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+<div class="stub">
+<t xmlns="">This paragraph should be in green characters.</t>
+</div>
+
+</body>
+</html>

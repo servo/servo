@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="self-collapsing items at block start should have margins trimmed along with first non self-collapsing child block-start margins">
+<style>
+container {
+    display: block;
+    margin-trim: block;
+    border: 1px solid black;
+    margin-block-start: 10px;
+}
+item {
+    display: block;
+    inline-size: 50px;
+    background-color: green;
+}
+.collapsed {
+    margin-block-start: 50px;
+    block-size: 0px
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload=" checkLayout('container, item');">
+    <container data-expected-margin-top="10">
+        <item data-expected-margin-top="0" class="collapsed">
+            <item data-expected-margin-top="0" class="collapsed"></item>
+        </item>
+        <item data-expected-margin-top="0" style="margin-block: 40px">
+            <item data-expected-margin-top="0" data-expected-margin-bottom="0" class="collapsed"></item>
+            <item data-expected-margin-top="0" style="margin-top: 30px;">
+                <item data-expected-margin-top="0" style="margin-block-start: 100px; height: 50px;"></item>
+            </item>
+        </item>
+    </container>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Credential Management API Test: non-fully active document</title>
+<link
+  rel="help"
+  href="https://github.com/w3c/webappsec-credential-management"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+  <iframe></iframe>
+</body>
+<script>
+  promise_setup(async () => {
+    const iframe = document.querySelector("iframe");
+    await new Promise((resolve) => {
+      iframe.addEventListener("load", resolve, { once: true });
+      iframe.src = "about:blank";
+      document.body.appendChild(iframe);
+    });
+  });
+
+  promise_test(async (t) => {
+    const iframe = document.querySelector("iframe");
+
+    // The signal check happens after the fully active check.
+    // This allows us to confirm the the right error is thrown
+    // and in the right order.
+    const controller = new iframe.contentWindow.AbortController();
+    const signal = controller.signal;
+    controller.abort();
+
+    // Steal all the needed references.
+    const { credentials } = iframe.contentWindow.navigator;
+    const DOMExceptionCtor = iframe.contentWindow.DOMException;
+
+    // No longer fully active.
+    iframe.remove();
+
+    // Try to get credentials while not fully active...
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      DOMExceptionCtor,
+      credentials.get({ signal }),
+      "Expected InvalidStateError for get() on non-fully-active document"
+    );
+
+    // Try to create credentials while not fully active...
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      DOMExceptionCtor,
+      credentials.create({ signal }),
+      "Expected InvalidStateError for create() on non-fully-active document"
+    );
+
+    // Try to prevent silent access while not fully active...
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      DOMExceptionCtor,
+      credentials.preventSilentAccess(),
+      "Expected InvalidStateError for preventSilentAccess() on non-fully-active document"
+    );
+  }, "non-fully active document behavior for CredentialsContainer");
+</script>

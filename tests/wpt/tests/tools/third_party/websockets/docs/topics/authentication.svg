@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="-514 74 644 380" width="644px" height="380px"><defs><style>@font-face{
+    font-family:"DIN Next";
+    font-weight: 400;
+    src:url("https://whimsical.com/fonts/139e8e25-0eea-4cb4-a5d4-79048803e73d.eot?#iefix");
+    src:url("https://whimsical.com/fonts/139e8e25-0eea-4cb4-a5d4-79048803e73d.eot?#iefix") format("eot"),url("https://whimsical.com/fonts/094b15e3-94bd-435b-a595-d40edfde661a.woff2") format("woff2"),url("https://whimsical.com/fonts/7e5fbe11-4858-4bd1-9ec6-a1d9f9d227aa.woff") format("woff"),url("https://whimsical.com/fonts/0f11eff9-9f05-46f5-9703-027c510065d7.ttf") format("truetype"),url("https://whimsical.com/fonts/48b61978-3f30-4274-823c-5cdcd1876918.svg#48b61978-3f30-4274-823c-5cdcd1876918") format("svg");
+}
+@font-face{
+    font-family:"DIN Next";
+    font-weight: 400;
+    font-style: italic;
+    src:url("https://whimsical.com/fonts/df24d5e8-5087-42fd-99b1-b16042d666c8.eot?#iefix");
+    src:url("https://whimsical.com/fonts/df24d5e8-5087-42fd-99b1-b16042d666c8.eot?#iefix") format("eot"),url("https://whimsical.com/fonts/46251881-ffe9-4bfb-99c7-d6ce3bebaf3e.woff2") format("woff2"),url("https://whimsical.com/fonts/790ebbf2-62c5-4a32-946f-99d405f9243e.woff") format("woff"),url("https://whimsical.com/fonts/d28199e6-0f4a-42df-97f4-606701c6f75a.ttf") format("truetype"),url("https://whimsical.com/fonts/37a462c0-d86e-492c-b9ab-35e6bd417f6c.svg#37a462c0-d86e-492c-b9ab-35e6bd417f6c") format("svg");
+}
+@font-face{
+    font-weight: 500;
+    font-family:"DIN Next";
+    src:url("https://whimsical.com/fonts/c5b058fc-55ce-4e06-a175-5c7d9a7e90f4.eot?#iefix");
+    src:url("https://whimsical.com/fonts/c5b058fc-55ce-4e06-a175-5c7d9a7e90f4.eot?#iefix") format("eot"),url("https://whimsical.com/fonts/7b29ae40-30ff-4f99-a2b9-cde88669fa2f.woff2") format("woff2"),url("https://whimsical.com/fonts/bf73077c-e354-4562-a085-f4703eb1d653.woff") format("woff"),url("https://whimsical.com/fonts/0ffa6947-5317-4d07-b525-14d08a028821.ttf") format("truetype"),url("https://whimsical.com/fonts/9e423e45-5450-4991-a157-dbe6cf61eb4e.svg#9e423e45-5450-4991-a157-dbe6cf61eb4e") format("svg");
+}
+@font-face{
+    font-family:"DIN Next";
+    font-weight: 500;
+    font-style: italic;
+    src:url("https://whimsical.com/fonts/9897c008-fd65-48a4-afc7-36de2fea97b9.eot?#iefix");
+    src:url("https://whimsical.com/fonts/9897c008-fd65-48a4-afc7-36de2fea97b9.eot?#iefix") format("eot"),url("https://whimsical.com/fonts/c7717981-647d-4b76-8817-33062e42d11f.woff2") format("woff2"),url("https://whimsical.com/fonts/b852cd4c-1255-40b1-a2be-73a9105b0155.woff") format("woff"),url("https://whimsical.com/fonts/821b00ad-e741-4e2d-af1a-85594367c8a2.ttf") format("truetype"),url("https://whimsical.com/fonts/d3e3b689-a6b0-45f2-b279-f5e194f87409.svg#d3e3b689-a6b0-45f2-b279-f5e194f87409") format("svg");
+}
+@font-face{
+    font-weight: 700;
+    font-family:"DIN Next";
+    src:url("https://whimsical.com/fonts/81cd3b08-fd39-4ae3-8d05-9d24709eba84.eot?#iefix");
+    src:url("https://whimsical.com/fonts/81cd3b08-fd39-4ae3-8d05-9d24709eba84.eot?#iefix") format("eot"),url("https://whimsical.com/fonts/31704504-4671-47a6-a61e-397f07410d91.woff2") format("woff2"),url("https://whimsical.com/fonts/b8a280da-481f-44a0-8d9c-1bc64bd7227c.woff") format("woff"),url("https://whimsical.com/fonts/276d122a-0fab-447b-9fc0-5d7fb0eafce2.ttf") format("truetype"),url("https://whimsical.com/fonts/8fb8273a-8213-4928-808b-b5bfaf3fd7e9.svg#8fb8273a-8213-4928-808b-b5bfaf3fd7e9") format("svg");
+}
+@font-face{
+    font-family:"DIN Next";
+    font-weight: 700;
+    font-style: italic;
+    src:url("https://whimsical.com/fonts/00cc6df3-ed32-4004-8dd8-1c576600a408.eot?#iefix");
+    src:url("https://whimsical.com/fonts/00cc6df3-ed32-4004-8dd8-1c576600a408.eot?#iefix") format("eot"),url("https://whimsical.com/fonts/4132c4c8-680c-4d6d-9251-a2da38503bbd.woff2") format("woff2"),url("https://whimsical.com/fonts/366401fe-6df4-47be-8f55-8a411cff0dd2.woff") format("woff"),url("https://whimsical.com/fonts/dbe4f7ba-fc16-44a6-a577-571620e9edaf.ttf") format("truetype"),url("https://whimsical.com/fonts/f874edca-ee87-4ccf-8b1d-921fbc3c1c36.svg#f874edca-ee87-4ccf-8b1d-921fbc3c1c36") format("svg");
+}
+
+@font-face {
+    font-family: 'PFDINMonoPro';
+    src:url('https://whimsical.com/fonts/PFDINMonoPro-Regular.woff') format('woff');
+    font-weight: 400;
+}
+@font-face {
+    font-family: 'PFDINMonoPro';
+    src:url('https://whimsical.com/fonts/PFDINMonoPro-Italic.woff') format('woff');
+    font-style: italic;
+    font-weight: 400;
+}
+@font-face {
+    font-family: 'PFDINMonoPro';
+    src:url('https://whimsical.com/fonts/PFDINMonoPro-Bold.woff') format('woff');
+    font-weight: 700;
+}
+@font-face {
+    font-family: 'PFDINMonoPro';
+    src:url('https://whimsical.com/fonts/PFDINMonoPro-BoldItalic.woff') format('woff');
+    font-style: italic;
+    font-weight: 700;
+}
+* {-webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto;}@media print { svg { width: 100%; height: 100%; } }</style><filter id="fill-shadow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur in="SourceAlpha" stdDeviation="6"/><feOffset result="offsetblur" dx="0" dy="2"/><feComponentTransfer result="s0"><feFuncA type="linear" slope="0.16"/></feComponentTransfer><feMerge><feMergeNode in="s0"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="fill-light-shadow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur in="SourceAlpha" stdDeviation="6"/><feOffset result="offsetblur" dx="0" dy="2"/><feComponentTransfer result="s0"><feFuncA type="linear" slope="0.04"/></feComponentTransfer><feMerge><feMergeNode in="s0"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="image-shadow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur in="SourceAlpha" stdDeviation="8"/><feOffset result="offsetblur" dx="0" dy="3"/><feComponentTransfer result="s0"><feFuncA type="linear" slope="0.06"/></feComponentTransfer><feMerge><feMergeNode in="s0"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="frame-shadow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur in="SourceAlpha" stdDeviation="8"/><feOffset result="offsetblur" dx="0" dy="3"/><feComponentTransfer result="s0"><feFuncA type="linear" slope="0.06"/></feComponentTransfer><feMerge><feMergeNode in="s0"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="badge-shadow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur in="SourceAlpha" stdDeviation="6"/><feOffset result="offsetblur" dx="0" dy="2"/><feComponentTransfer result="s0"><feFuncA type="linear" slope="0.08"/></feComponentTransfer><feMerge><feMergeNode in="s0"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g><g><rect x="-504" y="228" width="192" height="72" rx="3" ry="3" fill="#cfeeeb"/><rect y="228" rx="3" stroke="#1AAE9F" fill="none" stroke-linejoin="round" width="192" stroke-linecap="round" stroke-width="2" x="-504" ry="3" height="72"/><text y="240" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="168" xml:space="preserve" x="-492" font-family="DIN Next, sans-serif" height="48"><tspan x="-408" y="258" text-anchor="middle" style="white-space:pre;">HTTP</tspan><tspan x="-408" y="282" text-anchor="middle" style="white-space:pre;">server</tspan></text></g></g><g><g><rect x="-72" y="228" width="192" height="72" rx="3" ry="3" fill="#d3e6f7"/><rect y="228" rx="3" stroke="#2C88D9" fill="none" stroke-linejoin="round" width="192" stroke-linecap="round" stroke-width="2" x="-72" ry="3" height="72"/><text y="240" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="168" xml:space="preserve" x="-60" font-family="DIN Next, sans-serif" height="48"><tspan x="24" y="258" text-anchor="middle" style="white-space:pre;">WebSocket</tspan><tspan x="24" y="282" text-anchor="middle" style="white-space:pre;">server</tspan></text></g></g><g><g><rect x="-288" y="84" width="192" height="72" rx="3" ry="3" fill="#d9dde0"/><rect y="84" rx="3" stroke="#4B5C6B" fill="none" stroke-linejoin="round" width="192" stroke-linecap="round" stroke-width="2" x="-288" ry="3" height="72"/><text y="96" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="168" xml:space="preserve" x="-276" font-family="DIN Next, sans-serif" height="48"><tspan x="-192" y="114" text-anchor="middle" style="white-space:pre;">web app</tspan><tspan x="-192" y="138" text-anchor="middle" style="white-space:pre;">in browser</tspan></text></g></g><g><g><path d="M-96,372c0,6.62741 -42.98074,12 -96,12c-53.01926,0 -96,-5.37259 -96,-12c0,-6.62741 42.98074,-12 96,-12c53.01926,0 96,5.37259 96,12c0,6.62741 0,53.37259 0,60c0,6.62741 -42.98074,12 -96,12c-53.01926,0 -96,-5.37259 -96,-12c0,-6.62741 0,-60 0,-60" fill="#e2cdf2"/><path d="M-96,372c0,6.62741 -42.98074,12 -96,12c-53.01926,0 -96,-5.37259 -96,-12c0,-6.62741 42.98074,-12 96,-12c53.01926,0 96,5.37259 96,12c0,6.62741 0,53.37259 0,60c0,6.62741 -42.98074,12 -96,12c-53.01926,0 -96,-5.37259 -96,-12c0,-6.62741 0,-60 0,-60" fill="none" stroke="#730FC3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><text y="396" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="168" xml:space="preserve" x="-276" font-family="DIN Next, sans-serif" height="24"><tspan x="-192" y="414" text-anchor="middle" style="white-space:pre;">user accounts</tspan></text></g></g><g><g><path d="M-400.46606,302.69069l37.26606,13.30931M-284.8,344l33.4991,11.96396" fill="none" stroke="#1AAE9F" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/><polygon points="-252.34924,349.70583 -247.53394,357.30931 -256.07648,360.14213" fill="#1AAE9F" stroke="#1AAE9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text y="318" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="160" xml:space="preserve" x="-404" font-family="DIN Next, sans-serif" height="24"><tspan x="-324" y="336" text-anchor="middle" style="white-space:pre;">(1) authenticate user</tspan></text></g></g><g><g><path d="M-247.35316,159.15135l-43.98017,18.84865M-356.66667,206l-40.30359,17.27297" fill="none" stroke="#1AAE9F" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/><polygon points="-391.94549,227.14787 -400.64684,224.84865 -396.31086,216.96199" fill="#1AAE9F" stroke="#1AAE9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text y="180" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="164" xml:space="preserve" x="-406" font-family="DIN Next, sans-serif" height="24"><tspan x="-324" y="198" text-anchor="middle" style="white-space:pre;">(2) obtain credentials</tspan></text></g></g><g><g><path d="M-136.64684,159.15135l43.98017,18.84865M-27.33333,206l40.30359,17.27297" fill="none" stroke="#2C88D9" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/><polygon points="12.31086,216.96199 16.64684,224.84865 7.94549,227.14787" fill="#2C88D9" stroke="#2C88D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text y="180" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="153" xml:space="preserve" x="-136.5" font-family="DIN Next, sans-serif" height="24"><tspan x="-60" y="198" text-anchor="middle" style="white-space:pre;">(3) send credentials</tspan></text></g></g><g><g><path d="M16.46606,302.69069l-37.26606,13.30931M-99.2,344l-33.4991,11.96396" fill="none" stroke="#2C88D9" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/><polygon points="-127.92352,360.14213 -136.46606,357.30931 -131.65076,349.70583" fill="#2C88D9" stroke="#2C88D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text y="318" font-style="normal" font-size="18" font-weight="normal" fill="#293845" width="160" xml:space="preserve" x="-140" font-family="DIN Next, sans-serif" height="24"><tspan x="-60" y="336" text-anchor="middle" style="white-space:pre;">(4) authenticate user</tspan></text></g></g></svg>

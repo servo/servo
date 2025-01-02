@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-reset with an identifier and a number set to the minimum minus one value, ident -2147483649, grouped three times</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-reset" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters" />
+        <meta name="flags" content="32bit may" />
+        <meta name="assert" content="The 'counter-reset' property with an identifier and an integer value equivalent to the minimum minus one value, grouped three times." />
+        <style type="text/css">
+            div
+            {
+                counter-reset: ident -2147483649 ident -2147483649 ident -2147483649;
+            }
+            div:before
+            {
+                font-size: 30px;
+                content: counter(ident);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the number below is a negative number and less than or equal to '-2147483648'.</p>
+        <div></div>
+    </body>
+</html>

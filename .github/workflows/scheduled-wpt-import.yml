@@ -1,0 +1,78 @@
+name: WPT Import
+
+on:
+  schedule:
+    # Run this job every Sunday at 00:00.
+    - cron: "0 0 * * 0"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  linux:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    name: Linux
+    uses: ./.github/workflows/linux.yml
+    with:
+      wpt-sync-from-upstream: true
+      wpt-layout: 'all'
+      unit-tests: false
+
+  sync:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    name: Synchronize WPT Nightly
+    runs-on: ubuntu-22.04
+    needs:
+      - "linux"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wpt-full-logs-linux-layout-2013
+      - uses: actions/download-artifact@v4
+        with:
+          name: wpt-full-logs-linux-layout-2020
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Prep environment
+        run: |
+          sudo apt update
+          ./mach bootstrap
+      - name: Add upstream remote
+        run: |
+          git config --local user.email "ghbot+wpt-sync@servo.org"
+          git config --local user.name "WPT Sync Bot"
+          git remote add upstream https://github.com/servo/servo.git
+          git fetch --unshallow upstream
+      - name: Fetch upstream changes before syncing
+        run: |
+          ./mach update-wpt --sync --patch
+      - name: Amend commit with test results
+        run: |
+          export CURRENT_DATE=$(date +"%d-%m-%Y")
+          echo $CURRENT_DATE
+          echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
+          ./mach update-wpt linux-layout-2013/raw/*.log --legacy-layout
+          ./mach update-wpt linux-layout-2020/raw/*.log
+          git add tests/wpt/meta tests/wpt/meta-legacy-layout
+          git commit -a --amend -s --no-edit
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: wpt_update_${{ env.CURRENT_DATE }}
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
+          UPDATE_BRANCH: wpt_update_${{ env.CURRENT_DATE }}
+        run: |
+          BODY=$(cat <<EOF
+          Automated downstream sync of changes from upstream as of ${{ env.CURRENT_DATE }}
+          [no-wpt-sync]
+          EOF
+          )
+          gh pr create \
+            --title "Sync WPT with upstream (${{ env.CURRENT_DATE }})" \
+            --body "$BODY" --head ${{ env.UPDATE_BRANCH }}

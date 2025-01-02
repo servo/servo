@@ -1,0 +1,36 @@
+<!doctype html>
+<title>CSS Test: @font-face from document applies to :host::before/::after.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+
+<style>
+@font-face {
+  font-family: ff-16-wide;
+  src: url(/fonts/Ahem.ttf);
+}
+#host {
+  float: left;
+}
+</style>
+<div id="host"></div>
+<script>
+promise_test(async () => {
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      :host::before, :host::after {
+        font-family: ff-16-wide;
+        content: "12345"
+      }
+    </style>
+    <slot></slot>
+  `;
+
+  await document.fonts.ready;
+
+  //shrinkwrapped size for a default font will be a bit more than 80-90
+  //if the font is applied, it will be a bit more than 160
+  assert_greater_than(document.getElementById('host').offsetWidth, 160);
+}, "@font-face from document applies to to :host::before/::after.");
+</script>

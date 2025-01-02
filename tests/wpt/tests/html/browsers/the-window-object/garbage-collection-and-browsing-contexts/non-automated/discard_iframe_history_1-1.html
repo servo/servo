@@ -1,0 +1,27 @@
+<!doctype html>
+<iframe></iframe>
+<script>
+var t = opener.t;
+var iframe = document.getElementsByTagName("iframe")[0];
+var history_length;
+
+function load_frame(src) {
+   history_length = history.length;
+   iframe.src = src;
+   var button = document.getElementsByTagName("button")[0];
+   button.parentNode.removeChild(button);
+}
+
+remove_frame = t.step_func(function() {
+  try {
+    opener.assert_equals(history.length, history_length + 1, "History length after loading page in iframe");
+    iframe.parentNode.removeChild(iframe);
+    opener.assert_equals(history.length, history_length, "History length after removing iframe");
+    t.done();
+  } finally {
+    window.close();
+  }
+});
+
+</script>
+<button onclick="load_frame('discard_iframe_history_1-2.html')">Click here</button>

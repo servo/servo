@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<title>Effect of pointer event prevent-default on compat mouse event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../pointerevent_support.js"></script>
+<style>
+  div {
+    margin: 20px;
+    padding: 20px;
+    background-color: green;
+    user-select: none; // Prevents text selection on drag.
+  }
+
+</style>
+<div id="preventer" draggable="false">
+  <div id="logger" draggable="false"></div>
+  <!-- The following div makes the center of "preventer" outside "logger", which
+    simplifies TestDriver action coordinates below. -->
+  <div></div>
+</div>
+<div id="done"></div>
+
+<script>
+  'use strict';
+
+  const logger = document.getElementById("logger");
+  const preventer = document.getElementById("preventer");
+  const done = document.getElementById("done");
+
+  const preventing_handler = e => e.preventDefault();
+
+  let received_events = [];
+
+  const logged_pointer_events = ["pointerdown", "pointermove", "pointerup",
+    "pointerenter", "pointerleave", "pointerover", "pointerout"];
+  const logged_mouse_events = ["mousedown", "mousemove", "mouseup",
+    "mouseenter", "mouseleave", "mouseover", "mouseout"];
+
+  const expected_pointer_events = [
+    "pointerover", "pointerenter", "pointermove", "pointerdown",
+    "pointerout", "pointerleave", "pointerover", "pointerenter",
+    "pointermove", "pointerup", "pointerout", "pointerleave"
+  ];
+
+  const expected_mouse_events_when_unaffected_by_pointer_events = [
+    "mouseover", "mouseenter", "mousemove", "mousedown",
+    "mouseout", "mouseleave", "mouseover", "mouseenter",
+    "mousemove", "mouseup", "mouseout", "mouseleave"
+  ];
+
+  const expected_mouse_events_for_canceled_pointerdown = [
+    "mouseover", "mouseenter", "mousemove",
+    "mouseout", "mouseleave", "mouseover", "mouseenter",
+    "mouseout", "mouseleave"
+  ];
+
+  logged_pointer_events.forEach(ename =>
+    logger.addEventListener(ename, e => received_events.push(e.type)));
+
+  logged_mouse_events.forEach(ename =>
+    logger.addEventListener(ename, e => received_events.push(e.type)));
+
+  for (let i = 0; i < logged_pointer_events.length; i++) {
+    let event_to_cancel = logged_pointer_events[i];
+
+    promise_test(async (test) => {
+      received_events = [];
+
+      preventer.addEventListener(event_to_cancel, preventing_handler);
+      test.add_cleanup(() =>
+          preventer.removeEventListener(event_to_cancel, preventing_handler));
+
+      let click_on_done = getEvent("click", done, test);
+
+      let actions = new test_driver.Actions()
+        // Start outside all event listeners
+        .pointerMove(0, 0)
+        .pointerDown()
+        .pointerUp()
+        // Drag from inside to outside of "logger" then drag back to inside,
+        // staying within "preventer" all the time
+        .pointerMove(0, 0, { origin: logger })
+        .pointerDown()
+        .pointerMove(0, 0, { origin: preventer })
+        .pointerUp()
+        .pointerDown()
+        .pointerMove(0, 0, { origin: logger })
+        .pointerUp()
+        // Click "done"
+        .pointerMove(0, 0, { origin: done })
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+      await actions;
+      await click_on_done;
+
+      assert_array_equals(received_events.filter(isPointerEvent),
+        expected_pointer_events, "expected pointer events");
+
+      if (event_to_cancel == "pointerdown") {
+        assert_array_equals(received_events.filter(isMouseEvent),
+          expected_mouse_events_for_canceled_pointerdown,
+          "expected mouse events");
+      } else {
+        assert_array_equals(received_events.filter(isMouseEvent),
+          expected_mouse_events_when_unaffected_by_pointer_events,
+          "expected mouse events");
+        assert_true(arePointerEventsBeforeCompatMouseEvents(received_events),
+          "compat mouse events follow corresponding pointer events");
+      }
+    }, `Effect of canceling ${event_to_cancel} on compat mouse events`);
+  }
+</script>

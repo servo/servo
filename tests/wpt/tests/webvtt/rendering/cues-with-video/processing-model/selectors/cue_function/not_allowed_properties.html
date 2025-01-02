@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, ::cue(), properties that should not affect the cue</title>
+<link rel="match" href="not_allowed_properties-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue(*) {
+    border: 2px solid red;
+    border-radius: 5px;
+    bottom: 300px;
+    box-shadow:  5px 5px 5px 5px #123456;
+    box-sizing: border-box;
+    clip: rect(0px, 5px, 0px, 5px);
+    columns: 100px 2;
+    content: 'hello!';
+    display: inline-block;
+    float: left;
+    font-family: sans-serif;
+    height: 90px;
+    left: -150px;
+    letter-spacing: 20px;
+    margin: 20px;
+    min-height: 100px;
+    min-width: 100px;
+    opacity: 0.2;
+    overflow: scroll;
+    padding: 20px;
+    position: absolute;
+    right: 200px;
+    text-align: left;
+    text-indent: 50px;
+    top: -50px;
+    width: 140px;
+    word-spacing: 50px;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../support/test.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css2/#propdef-vertical-align">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+div::after {
+  display: layout(parent);
+  content: "";
+}
+</style>
+<body style="columns: 2">
+  <div style="display: inline-block"></div>
+</body>

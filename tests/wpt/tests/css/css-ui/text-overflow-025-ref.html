@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: text-overflow on tr::before without overflow:hidden</title>
+  <style type="text/css">
+
+    td {
+      white-space: nowrap;
+    }
+
+  </style>
+</head>
+<body>
+PASS if there is no ellipsis below.
+  <table style="table-layout: fixed; width: 130px" cellpadding="0" cellspacing="0">
+    <tr><td>Some long text here that overflows and whatnot.</td></tr>
+  </table>
+
+</body>
+</html>

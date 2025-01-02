@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: the "unset" value</title>
+  <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inherit-initial">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inherit-initial">
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="color:unset is the same as color:inherit since color is an inherited property. background-color:unset is the same as background-color:initial since background-color is a non-inherited property.">
+  <style>
+.square {
+  width: 100px;
+  height: 100px;
+}
+.under {
+  background-color: green;
+  margin-bottom: -100px;
+}
+.outer {
+  color: green;
+  background: red;
+}
+.inner {
+  color: red;
+  background-color: red;
+  font-size: 40px;
+  text-align: center;
+}
+.inner {
+  color: unset;/* inherit from .outer */
+  background-color: unset;/* initial, transparent, .under shows thru */
+}
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div class="outer square">
+    <div class="under square"></div>
+    <div class="inner square">XX</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: system extends fixed</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#extends-system">
+<link rel="match" href="system-extends-fixed-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+      system: fixed 3;
+      symbols: "Y" "E" "S";
+  }
+  @counter-style b {
+      system: extends a;
+  }
+</style>
+<ol style="list-style-type: a">
+  <li><li><li><li><li><li>
+</ol>
+<br>
+<ol style="list-style-type: b">
+  <li><li><li><li><li><li>
+</ol>

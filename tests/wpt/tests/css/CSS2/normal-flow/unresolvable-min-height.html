@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Unresolvable percentage min-height</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#min-max-heights" title="10.7 Minimum and maximum heights: 'min-height' and 'max-height'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<p>There should be a blue square below.</p>
+<div id="container" style="width:100px; max-height:100px; min-height:100%; background:blue;" data-expected-height="100">
+  <div style="height:300px;"></div>
+</div>
+<script>
+  checkLayout("#container");
+</script>

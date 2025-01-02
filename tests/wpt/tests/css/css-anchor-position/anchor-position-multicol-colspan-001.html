@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>Anchors in column spanners in multicol</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.relpos {
+  position: relative;
+}
+.columns {
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 10px;
+  column-width: 100px;
+  width: 210px;
+  height: 100px;
+}
+.colspan {
+  column-span: all;
+}
+.spacer {
+  height: 10px;
+  background: pink;
+}
+.anchor1 {
+  anchor-name: --a1;
+  margin-left: 10px;
+  width: 40px;
+  height: 20px;
+  background: orange;
+}
+.target {
+  position: absolute;
+  position-anchor: --a1;
+  left: anchor(left);
+  top: anchor(top);
+  width: anchor-size(width);
+  height: anchor-size(height);
+  background: lime;
+  opacity: .3;
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div class="relpos">
+    <div class="spacer" style="height: 10px"></div>
+    <div class="columns relpos">
+      <div class="spacer" style="height: 40px"></div>
+      <div class="relpos">
+        <div class="colspan">
+          <div class="relpos">
+            <!--
+              The containing block chain of this anchor is `relpos`, `colspan`,
+              and `columns`, skipping the 2nd `relpos`, because the containing
+              block of the spanner is the multicol container.
+              https://drafts.csswg.org/css-multicol/#column-span
+            -->
+            <div class="anchor1"></div>
+            <!--
+              The containing block of this target is inside a spanner.
+            -->
+            <div class="target"
+                 data-offset-x=10 data-offset-y=0
+                 data-expected-width=40 data-expected-height=20></div>
+          </div>
+          <!--
+            The containing block of this target is the multicol container.
+          -->
+          <div class="target"
+               data-offset-x=10 data-offset-y=20
+               data-expected-width=40 data-expected-height=20></div>
+        </div>
+        <!--
+          The containing block of this target is in the multicol,
+          but outside of the spanner.
+          This should not find the anchor, because the containing block of the
+          spanner is the multicol container.
+        -->
+        <div class="target"
+             data-offset-x=0 data-offset-y=0
+             data-expected-width=0 data-expected-height=0></div>
+      </div>
+      <div class="spacer" style="height: 80px"></div>
+      <!--
+        The containing block of this target is the multicol container.
+      -->
+      <div class="target"
+           data-offset-x=10 data-offset-y=20
+           data-expected-width=40 data-expected-height=20></div>
+    </div>
+    <!--
+      The containing block of this target is outside of the multicol.
+    -->
+    <div class="target"
+         data-offset-x=10 data-offset-y=30
+         data-expected-width=40 data-expected-height=20></div>
+  </div>
+</body>

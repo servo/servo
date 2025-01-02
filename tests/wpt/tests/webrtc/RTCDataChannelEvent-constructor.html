@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCDataChannelEvent constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Test is based on the following revision:
+// https://rawgit.com/w3c/webrtc-pc/1cc5bfc3ff18741033d804c4a71f7891242fb5b3/webrtc.html
+
+test(function() {
+    assert_equals(RTCDataChannelEvent.length, 2);
+    assert_throws_js(
+        TypeError,
+        function() { new RTCDataChannelEvent('type'); }
+    );
+}, 'RTCDataChannelEvent constructor without a required argument.');
+
+test(function() {
+    assert_throws_js(
+        TypeError,
+        function() { new RTCDataChannelEvent('type', { channel: null }); }
+    );
+}, 'RTCDataChannelEvent constructor with channel passed as null.');
+
+test(function() {
+    assert_throws_js(
+        TypeError,
+        function() { new RTCDataChannelEvent('type', { channel: undefined }); }
+    );
+}, 'RTCDataChannelEvent constructor with a channel passed as undefined.');
+
+test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const dc = pc.createDataChannel('');
+    const event = new RTCDataChannelEvent('type', { channel: dc });
+    assert_true(event instanceof RTCDataChannelEvent);
+    assert_equals(event.channel, dc);
+}, 'RTCDataChannelEvent constructor with full arguments.');
+</script>

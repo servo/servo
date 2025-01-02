@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>ResizeObserver - Console Logging Manual Test</title>
+<meta name="assert" content="The resize loop error notification should appear in the console.">
+<link rel="help" href="https://www.w3.org/TR/resize-observer/#deliver-resize-loop-error-notification">
+
+<p>Open the console inside the developer tools. It should contain one entry with contents:</p>
+<p><code>ResizeObserver loop completed with undelivered notifications.</code></p>
+
+<div id="resizer" style="width: 100px; height: 100px;"></div>
+<script>
+  const observer = new ResizeObserver(entries => {
+    resizer.style.width = '200px';
+  });
+  observer.observe(resizer);
+</script>

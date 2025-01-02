@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>activeElement after calling window.focus()</title>
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+function waitForEvent(target, event, checkFn) {
+  return new Promise(resolve => {
+    target.addEventListener(event, e => {
+      if (checkFn && !checkFn(e)) {
+        return;
+      }
+      resolve();
+    }, { once: true });
+  });
+}
+
+function start(w) {
+  w.postMessage("start", "*");
+}
+
+function focusInnerInput(w) {
+  w.postMessage("focusinnerinput", "*");
+}
+
+function focusInnerFrame(w) {
+  w.postMessage("focusinner", "*");
+}
+
+function focusMiddleFrame(w) {
+  w.postMessage("focusmiddle", "*");
+}
+
+function focusOuterFrame(w) {
+  w.postMessage("focusouter", "*");
+}
+
+// This will send message to outer frame and also inner frame to ask them
+// send the log they collect back, the logs of outer and inner will be
+// concatenated.
+async function getLog(w) {
+  let log = "";
+  step_timeout(function() {
+    w.postMessage("getlog", "*");
+  }, 0);
+  await waitForEvent(window, "message", (e) => {
+    log = e.data;
+    return true;
+  });
+  return log;
+}
+
+async function runTest(t, url) {
+  let w = window.open(url);
+  t.add_cleanup(() => { w.close(); });
+  await waitForEvent(window, "message", e => e.data === "ready");
+  start(w);
+  // Calling input.focus() on inner iframe should move its document.activeElement to INPUT.
+  focusInnerInput(w);
+  assert_equals(await getLog(w), 'outerlog:windowblur,middlelog:innerlog:windowfocus,INPUT,');
+  // Calling window.focus() on inner iframe should NOT reset its document.activeElement to BODY
+  // because it's focused element is not an iframe.
+  focusInnerFrame(w);
+  assert_equals(await getLog(w), 'outerlog:windowblur,middlelog:innerlog:windowfocus,INPUT,INPUT,');
+  // Calling window.focus() on middle iframe should reset its document.activeElement to BODY.
+  focusMiddleFrame(w);
+  assert_equals(await getLog(w), 'outerlog:windowblur,middlelog:windowfocus,BODY,innerlog:windowfocus,INPUT,INPUT,windowblur,');
+  // Calling window.focus() on top-level frame should reset its document.activeElement to BODY.
+  focusOuterFrame(w);
+  assert_equals(await getLog(w), 'outerlog:windowblur,windowfocus,BODY,middlelog:windowfocus,BODY,windowblur,innerlog:windowfocus,INPUT,INPUT,windowblur,');
+}
+
+promise_test(async t => {
+  await runTest(t, "https://{{hosts[][www]}}:{{ports[https][0]}}/focus/support/activeelement-after-calling-window-focus-outer-same.sub.html");
+}, "Tests for all frames are in same origin");
+
+promise_test(async t => {
+  await runTest(t, "https://{{hosts[alt][www]}}:{{ports[https][0]}}/focus/support/activeelement-after-calling-window-focus-outer-same.sub.html");
+}, "Tests for middle frame and inner frame are in same origin and outer frame is in different origin");
+
+promise_test(async t => {
+  await runTest(t, "https://{{hosts[alt][www]}}:{{ports[https][0]}}/focus/support/activeelement-after-calling-window-focus-outer-different.sub.html");
+}, "Tests for outer frame and middle frame are in same origin and inner frame is in different origin");
+
+promise_test(async t => {
+  await runTest(t, "https://{{hosts[][www]}}:{{ports[https][0]}}/focus/support/activeelement-after-calling-window-focus-outer-different.sub.html");
+}, "Tests for outer frame and inner frame are in same origin and middle frame is in different origin");
+
+promise_test(async t => {
+  await runTest(t, "support/activeelement-after-calling-window-focus-outer-different.sub.html");
+}, "Tests for all frames are in different origin");
+</script>

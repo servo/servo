@@ -1,0 +1,21 @@
+<!doctype html>
+<title>an abs-pos iframe in the first page but its hypothetical position is in the second page</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#valdef-position-absolute">
+<link rel="match" href="position-absolute-iframe-print-ref.html">
+<!-- Allow some text antialias pixels to be different. -->
+<meta name="fuzzy" content="0-255;0-20">
+<style>
+  body {
+    margin: 0
+  }
+  iframe {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+<div style="height:200vh;"></div>
+<iframe frameborder=0 scrolling=no
+        src="//{{hosts[alt][www]}}:{{ports[http][0]}}{{location[path]}}/../resources/position-absolute-iframe-child.html"></iframe>

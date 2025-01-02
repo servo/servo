@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Draggable button</title>
+    <style type="text/css">
+button { border: 1px solid orange; border-top-width: 20px; }
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  document.getElementsByTagName('button')[0].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('Text', 'dummy text');
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <p>Press your mouse button down on the orange block and drag downwards. It should <strong>not</strong> drag the block or text.</p>
+    <div>
+      <button draggable="true">Dummy text</button>
+    </div>
+
+  </body>
+</html>

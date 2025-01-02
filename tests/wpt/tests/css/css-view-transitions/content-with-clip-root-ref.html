@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>View transitions: element with clip (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.container {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: -50vh;
+  left: 0px;
+  overflow: auto;
+}
+.target {
+  contain: paint;
+  width: 100px;
+  height: 100vh;
+  display: inline-block;
+}
+
+.embedded {
+  width: 100%;
+  height: 50%;
+}
+
+body {
+  margin: 0px;
+  height: 150vh;
+}
+</style>
+<div id="container">
+<div id="target1" class="target">
+  <div class="embedded" style="background: green;"></div>
+</div>
+</div>
+

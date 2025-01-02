@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RTCPeerConnection Insertable Streams - Video</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../../mediacapture-streams/permission-helper.js'></script>
+<script src="../../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="./RTCPeerConnection-insertable-streams.js"></script>
+</head>
+<body>
+<script>
+async function testVideoFlow(t, negotiationFunction, setConstructorParam, frameCallback = () => {}) {
+  const caller = new RTCPeerConnection(setConstructorParam ? {encodedInsertableStreams:true} : {});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection(setConstructorParam ? {encodedInsertableStreams:true} : {});
+  t.add_cleanup(() => callee.close());
+
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const videoTrack = stream.getVideoTracks()[0];
+  t.add_cleanup(() => videoTrack.stop());
+
+  const videoSender = caller.addTrack(videoTrack)
+  const senderStreams = videoSender.createEncodedStreams();
+  const senderReader = senderStreams.readable.getReader();
+  const senderWriter = senderStreams.writable.getWriter();
+
+  const frameInfos = [];
+  const numFramesPassthrough = 5;
+  const numFramesReplaceData = 5;
+  const numFramesModifyData = 5;
+  const numFramesToSend = numFramesPassthrough + numFramesReplaceData + numFramesModifyData;
+
+  let streamsCreatedAtNegotiation;
+  const ontrackPromise = new Promise(resolve => {
+    callee.ontrack = t.step_func(() => {
+      const videoReceiver = callee.getReceivers().find(r => r.track.kind === 'video');
+      assert_not_equals(videoReceiver, undefined);
+
+      let receiverReader;
+      let receiverWriter;
+      if (streamsCreatedAtNegotiation) {
+        const videoStreams = streamsCreatedAtNegotiation.find(r => r.kind === 'video');
+        assert_true(!!videoStreams);
+        receiverReader = videoStreams.streams.readable.getReader();
+        receiverWriter = videoStreams.streams.writable.getWriter();
+      } else {
+        const receiverStreams =
+            videoReceiver.createEncodedStreams();
+        receiverReader = receiverStreams.readable.getReader();
+        receiverWriter = receiverStreams.writable.getWriter();
+      }
+
+      const maxFramesToReceive = numFramesToSend;
+      let numVerifiedFrames = 0;
+      for (let i = 0; i < maxFramesToReceive; i++) {
+        receiverReader.read().then(t.step_func(result => {
+          verifyNonstandardAdditionalDataIfPresent(result.value);
+          if (frameInfos[numVerifiedFrames] &&
+              areFrameInfosEqual(result.value, frameInfos[numVerifiedFrames])) {
+            numVerifiedFrames++;
+          } else {
+            // Receiving unexpected frames is an indication that
+            // frames are not passed correctly between sender and receiver.
+            assert_unreached("Incorrect frame received");
+          }
+
+          if (numVerifiedFrames == numFramesToSend)
+            resolve();
+        }));
+      }
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await negotiationFunction(caller, callee, (streams) => {streamsCreatedAtNegotiation = streams;});
+
+  // Pass frames as they come from the encoder.
+  for (let i = 0; i < numFramesPassthrough; i++) {
+    const result = await senderReader.read();
+    const frame = result.value;
+    const metadata = frame.getMetadata();
+    assert_true(containsVideoMetadata(metadata));
+    verifyNonstandardAdditionalDataIfPresent(frame);
+    frameInfos.push({
+      timestamp: frame.timestamp,
+      type: frame.type,
+      data: frame.data,
+      metadata: metadata,
+      getMetadata() { return this.metadata; }
+    });
+    frameCallback(frame);
+    senderWriter.write(frame);
+  }
+
+  // Replace frame data with arbitrary buffers.
+  for (let i = 0; i < numFramesReplaceData; i++) {
+    const result = await senderReader.read();
+    const metadata = result.value.getMetadata();
+    assert_true(containsVideoMetadata(metadata));
+    const buffer = new ArrayBuffer(100);
+    const int8View = new Int8Array(buffer);
+    int8View.fill(i);
+
+    result.value.data = buffer;
+    frameInfos.push({
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      data: result.value.data,
+      metadata: metadata,
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  // Modify frame data.
+  for (let i = 0; i < numFramesReplaceData; i++) {
+    const result = await senderReader.read();
+    const metadata = result.value.getMetadata();
+    assert_true(containsVideoMetadata(metadata));
+    const int8View = new Int8Array(result.value.data);
+    int8View.fill(i);
+
+    frameInfos.push({
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      data: result.value.data,
+      metadata: metadata,
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  return ontrackPromise;
+}
+
+for (const setConstructorParam of [false, true]) {
+  promise_test(async t => {
+    return testVideoFlow(t, exchangeOfferAnswer, setConstructorParam);
+  }, 'Frames flow correctly using insertable streams' + (setConstructorParam ? ' with param' : ''));
+
+  promise_test(async t => {
+    return testVideoFlow(t, exchangeOfferAnswerReverse, setConstructorParam);
+  }, 'Frames flow correctly using insertable streams when receiver starts negotiation' + (setConstructorParam ? ' with param' : ''));
+}
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const track = stream.getTracks()[0];
+  t.add_cleanup(() => track.stop());
+  const sender = caller.addTrack(track)
+  sender.createEncodedStreams();
+  assert_throws_dom("InvalidStateError", () => sender.createEncodedStreams());
+}, 'Creating streams twice throws');
+
+promise_test(async t => {
+  let clonedFrames = [];
+  function verifyFramesSerializeAndDeserialize(frame) {
+    // Clone encoded frames using structedClone (ie serialize + deserialize) and
+    // keep a reference.
+    const clone = structuredClone(frame);
+    clonedFrames.push(clone);
+  };
+
+  await testVideoFlow(t, exchangeOfferAnswer, /*setConstructorParam=*/false, verifyFramesSerializeAndDeserialize);
+
+  // Ensure all of our cloned frames are still alive and well, despite the
+  // originals having been sent through the PeerConnection.
+  clonedFrames.forEach((clonedFrame) => {
+    assert_not_equals(clonedFrame.data.size, 0);
+    assert_not_equals(clonedFrame.type, "empty")
+  });
+}, 'Encoded frames serialize and deserialize into a deep clone');
+
+</script>
+</body>
+</html>

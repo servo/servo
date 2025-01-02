@@ -1,0 +1,86 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="CL" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: struct-frag-05-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#NewDocument">
+      <p>
+        This tests that XML Namespaces are correctly implemented, in that the tuple
+        of local name and namespace URI, rather than the prefix, is important.
+      </p>
+      <p>
+        The first subtest is a
+        group where the namespace prefix s is bound to the SVG namespace and an s:circle is drawn
+        in pale yellow. The same group declares the default namespace to be a non-SVG namespace; the
+        blue circle element in that namespace must not be drawn.
+      </p>
+      <p>
+        The second subtest puts the namespace declarations on the elements themselves.  The
+        prefix toto is bound to the SVG namespace and the XLink namespace is made the default namespace.
+        Thus, the blue &lt;toto:a href="uri"&gt;Valid&lt;/toto:a&gt; is a valid link and must be traversable. Select this link,
+        then go back to the test.
+      </p>
+      <p>
+        The third subtest has no prefix on the element name 'a' and uses the usual xlink: prefix on the href
+        attribute. However, both the default namespace and the namespace bound to the xlink prefix are
+        dummy namespaces. Not only should the link not be traversable, it must not even display at all.
+        If the text 'Invalid' is displayed, the test fails.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test and click on the "Valid" link.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the following conditions are met:</p>
+      <ul>
+        <li>A yellow circle is shown.</li>
+        <li>A blue circle is not shown.</li>
+        <li>The text "Valid" is shown in blue.</li>
+        <li>The text "Invalid" is not shown.</li>
+        <li>Clicking "Valid" navigates to the "TOC &amp; index of linking tests" document, linkingToc-t.svg.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-frag-05-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-family="Arial,sans-serif">
+      <s:g xmlns="http://www.example.org/notsvg" xmlns:s="http://www.w3.org/2000/svg">
+        <s:circle cx="240" cy="180" r="130" fill="#FF6"/>
+        <circle cx="240" cy="180" r="150" fill="#369"/>
+      </s:g>
+      <text x="240" y="100" text-anchor="middle" font-size="40" fill="#369">
+        <a xmlns:toto="http://www.w3.org/2000/svg" xmlns:dahut="http://www.w3.org/1999/xlink" dahut:href="../images/linkingToc-t.svg">Valid</a>
+      </text>
+      <text x="240" y="250" text-anchor="middle" font-size="40" fill="#C33">
+        <a xmlns="http://example.org/notsvg" xmlns:xlink="http://example.org/notxlink" xlink:href="../images/linkingToc-t.svg">Invalid</a>
+      </text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

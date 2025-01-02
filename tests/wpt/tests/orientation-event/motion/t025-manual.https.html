@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Implementations that are unable to provide acceleration data without the effect of gravity may instead supply the acceleration including the effect of gravity</title>
+    <meta name=viewport content="width=device-width, maximum-scale=1.0">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author" title="Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-14 -->
+  </head>
+  <body>
+    <p>Move the device to run the test.</p>
+    <div id="log"></div>
+    <script>
+      var t1 = async_test("Implementation is unable to provide 'acceleration' property");
+      var t2 = async_test("Implementation is able to provide 'acceleration IncludingGravity' property");
+      var run = false;
+      window.ondevicemotion = function(e) {
+        if (!run) {
+          run = true;
+          t1.step(function() {
+            assert_equals(e.acceleration, null);
+          });
+          t1.done();
+          t2.step(function() {
+            var eaccgvt = e.accelerationIncludingGravity;
+            assert_equals(typeof eaccgvt, "object");
+            assert_not_equals(eaccgvt.x, 0);
+            assert_not_equals(eaccgvt.y, 0);
+            assert_not_equals(eaccgvt.z, 0);
+          });
+          t2.done();
+        }
+      };
+    </script>
+  </body>
+</html>
+

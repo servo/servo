@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: new element is modified while offscren and brought onscreen using pseudo</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="offscreen-element-modified-before-coming-onscreen-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+  position: fixed;
+  background: green;
+  left: 0;
+  top: 200vh;
+}
+
+.hidden {
+  width: 10px;
+  height: 10px;
+  background: grey;
+  view-transition-name: hidden;
+}
+
+.onscreen::view-transition-group(target) {
+  transform: unset;
+  position: fixed;
+  top: 0;
+  left: 0;
+  animation: unset;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-old(target) { animation: unset; opacity: 0; }
+html::view-transition-new(target) { animation: unset; opacity: 1; }
+
+</style>
+
+<div id=target class=target>
+<div id=hidden class=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function bringOnscreenAndScreenshot() {
+  document.documentElement.classList.add("onscreen");
+
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+      requestAnimationFrame(() => requestAnimationFrame(takeScreenshot))
+    ));
+}
+
+async function runTest() {
+  // Start the transition while the element is offscreen.
+  let transition = document.startViewTransition();
+  await transition.ready;
+
+  // Change the element's color while its still offscreen.
+  target.style.background = "blue";
+
+  // Bring the element onscreen and ensure the color change is presented.
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    requestAnimationFrame(() => requestAnimationFrame(
+      bringOnscreenAndScreenshot))
+  ));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Test that calling resizeTo() or resizeBy() on a document
+  picture-in-picture window requires user gesture</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  await assert_throws_dom('NotAllowedError', pipWindow.DOMException, () => {
+    pipWindow.resizeBy(10, 10);
+  }, 'resizeBy() requires a user gesture for document picture-in-picture');
+  await assert_throws_dom('NotAllowedError', pipWindow.DOMException, () => {
+    pipWindow.resizeTo(400, 400);
+  }, 'resizeTo() requires a user gesture for document picture-in-picture');
+});
+</script>
+</body>

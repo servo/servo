@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: GCPM Solid Leader</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-gcpm-3/#solid-leader">
+
+<meta name="flags" content="paged">
+<meta name="assert" content="Test checks that a basic solid leader is implemented">
+<style>
+
+span.cn::after { content: leader(solid); }
+
+</style>
+</head>
+<body>
+
+<p>Test passes if there's a continuous row of underscores between "Chapter One" and "1"</p>
+
+<ol>
+<li>
+<span class="cn">Chapter One</span> <span class="folio">1</span>
+</li>
+<!--
+<li>
+Chapter Two <span class="folio">137</span>
+</li>
+ -->
+</ol>
+
+
+
+</body>
+</html>

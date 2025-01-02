@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1638937">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.block {
+  display: block;
+  width: max-content;
+  border: 2px solid black;
+  line-height: 0;
+}
+svg {
+  background: teal;
+}
+</style>
+
+<body onload="checkLayout('svg')">
+  No intrinsic attributes:
+  <div class="block">
+    <svg data-expected-client-width="300" data-expected-client-height="150"></svg>
+  </div>
+
+  viewBox and height:
+  <div class="block">
+    <svg height="40" viewBox="0 0 4 1"
+         data-expected-client-width="160" data-expected-client-height="40"></svg>
+  </div>
+
+  viewBox and width:
+  <div class="block">
+    <svg width="40" viewBox="0 0 4 1"
+         data-expected-client-width="40" data-expected-client-height="10"></svg>
+  </div>
+
+  viewBox, width, height:
+  <div class="block">
+    <svg width="40" height="40" viewBox="0 0 4 1"
+         data-expected-client-width="40" data-expected-client-height="40"></svg>
+  </div>
+
+  Just viewBox:
+  <div class="block">
+    <!-- Google Chrome 107 and Safari 16.0 both render this SVG as size 0x0. -->
+    <svg viewBox="0 0 4 1"
+         data-expected-client-width="0" data-expected-client-height="0"></svg>
+  </div>
+</body>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-initial-target interaction with text-fragment navigation</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-initial-target">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+
+<body onload="runTest()">
+  <script>
+    function fetchResult(key, resolve, reject) {
+      fetch(`/css/css-scroll-snap-2/scroll-initial-target/stash.py?key=${key}`).then(response => {
+        return response.text();
+      }).then(text => {
+        if (text) {
+          try {
+            let result = JSON.parse(text);
+            resolve(result);
+          } catch (e) {
+            reject();
+          }
+        } else {
+          fetchResult(key, resolve, reject);
+        }
+      });
+    }
+
+    function runTest() {
+      promise_test(t => new Promise(async (resolve, reject) => {
+        let key = token();
+
+        test_driver.bless("Open a URL with a text fragment directive", () => {
+          window.open(`scroll-initial-target-with-text-fragment-navigation-target.html?key=${key}#:~:text=Target`, "_blank", "noopener");
+        });
+
+        fetchResult(key, resolve, reject);
+      }).then(result => {
+        assert_equals(result.scroll_position, "AT_TEXT_FRAGMENT");
+      }), "scroll-start doesn't override text fragment navigation");
+    }
+  </script>
+</body>

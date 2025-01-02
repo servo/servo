@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+// The main test page loads the initiator page, then the initiator page will
+// prerender itself with the `prerendering` parameter. The prerendered page will
+// trigger a main frame navigation with the `navigation` parameter.
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+const isPrerendering = params.has('prerendering');
+const isNavigation = params.has('navigation');
+
+if (isPrerendering && isNavigation) {
+  assert_true(document.prerendering);
+
+  const result = {
+    // Check the value of document.prerendering now and after activation.
+    prerenderingValueBeforeActivation: document.prerendering,
+    prerenderingValueAfterActivation: null,
+
+    // True if the prerenderingchange event is fired.
+    onprerenderingchangeCalled: false,
+  };
+
+  window.addEventListener('load', () => {
+    const prerenderChannel = new PrerenderChannel('prerender-channel', uid);
+    prerenderChannel.postMessage('readyToActivate');
+    prerenderChannel.close();
+  });
+
+  document.addEventListener('prerenderingchange', (e) => {
+    assert_false(document.prerendering);
+
+    const entry = performance.getEntriesByType('navigation')[0];
+    assert_greater_than_equal(entry.activationStart, 0,
+      'activationStart must be greater than 0')
+
+    result.onprerenderingchangeCalled = true;
+    result.prerenderingValueAfterActivation = document.prerendering;
+
+    const resultChannel = new PrerenderChannel('result', uid);
+    resultChannel.postMessage(result);
+    resultChannel.close();
+    window.close();
+  });
+} else if (isPrerendering) {
+  assert_true(document.prerendering);
+
+  location.href = location.href + '&navigation';
+} else {
+  assert_false(document.prerendering);
+
+  const prerenderingUrl = location.href + '&prerendering';
+
+  const prerenderChannel = new PrerenderChannel('prerender-channel', uid);
+  const readyToActivate = new Promise((resolve, reject) => {
+    prerenderChannel.addEventListener('message', e => {
+      if (e.data === 'readyToActivate') {
+        resolve();
+      } else {
+        reject(`The initiator page receives an unsupported message: ${e.data}`);
+      }
+    });
+  });
+
+  // Activate the page when prerendering is ready.
+  readyToActivate.then(() => {
+    window.location = prerenderingUrl.toString();
+  }).catch(e => {
+    const resultChannel = new PrerenderChannel('result', uid);
+    resultChannel.postMessage(
+        `Failed to navigate the prerendered page: ${e.toString()}`);
+    resultChannel.close();
+    window.close();
+  });
+
+  startPrerendering(prerenderingUrl);
+}
+</script>

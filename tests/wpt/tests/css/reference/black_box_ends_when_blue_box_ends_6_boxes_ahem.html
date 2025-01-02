@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+   <title>Reference rendering - black box ends when blue box ends, 6 black boxes (ahem)</title>
+   <link rel="author" title="Opera" href="https://www.opera.com/">
+   <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+   <style type="text/css">
+      #black {
+         font: 16px/1 "Ahem";
+      }
+      #blue {
+         height: 16px;
+         width: 176px;
+         background: blue;
+      }
+   </style>
+</head>
+<body>
+   <p>Test passes if there are six black boxes below and the last black box
+   ends when the blue box ends.</p>
+   <div id="black">X X X X X X</div>
+   <div id="blue"></div>
+</body>
+</html>

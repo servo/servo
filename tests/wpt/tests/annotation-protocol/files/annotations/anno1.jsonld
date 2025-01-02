@@ -1,0 +1,11 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "/annotations/anno1.jsonld",
+  "type": "Annotation",
+  "created": "2015-01-31T12:03:45Z",
+  "body": {
+    "type": "TextualBody",
+    "value": "I like this page!"
+  },
+  "target": "/index.html"
+}

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Scoping: pseudo element after ::slotted</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<link rel="match" href="slotted-with-pseudo-element-ref.html">
+<div id="host1"><span></span></div>
+<div id="host2"><span></span></div>
+<div id="host3"><span></span></div>
+<div id="host4"><span></span></div>
+<style>
+  #host3 > span::before { content: "PASS" }
+</style>
+<script>
+  function attachShadowWithSlottedStyle(host, styleString) {
+    var root = host.attachShadow({mode:"open"});
+    root.innerHTML = "<style>"+styleString+"</style><slot></slot>";
+  }
+
+  attachShadowWithSlottedStyle(host1, "::slotted(span)::before { content: 'PASS' }");
+  attachShadowWithSlottedStyle(host2, "::slotted(span)::after { content: 'PASS' }");
+  attachShadowWithSlottedStyle(host3, "::slotted(span)::before { content: 'FAIL'; color: green }");
+  attachShadowWithSlottedStyle(host4, `
+    ::slotted(span)::before { content: 'PASS'; color: red }
+    ::slotted(.foo)::before { color: green }
+  `);
+  onload = function() {
+    host4.offsetTop;
+    host4.firstElementChild.classList.add("foo");
+  }
+</script>

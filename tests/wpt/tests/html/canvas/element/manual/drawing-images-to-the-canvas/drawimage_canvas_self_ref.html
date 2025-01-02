@@ -1,0 +1,11 @@
+<canvas id="dest" height="100" width="100"></canvas>
+<script>
+var canvasWidth = canvasHeight = 100;
+var destCanvas = document.getElementById('dest');
+var destCtx = destCanvas.getContext('2d');
+destCtx.fillStyle = 'red';
+destCtx.fillRect(0, 0,  canvasWidth, canvasHeight);
+destCtx.fillStyle = 'green';
+destCtx.fillRect(0, 0, canvasWidth / 2, canvasHeight / 2);
+destCtx.fillRect(canvasWidth / 2, canvasHeight / 2, canvasWidth / 4, canvasHeight / 4);
+</script>

@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Relative Positioning - overconstrained left = -right (RTL)</title>
+    <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-25 -->
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+	<link rel="match" href="relpos-calcs-001-ref.xht" />
+
+    <meta name="assert" content="For a relatively positioned element in an RTL
+      containing block, if neither 'left' nor 'right' is 'auto', used value of
+      'left' is minus the value of 'right'." />
+    <style type="text/css">
+        div {
+            height: 120px;
+            width: 80px;
+            direction: rtl;
+        }
+        .outer {
+            background: green;
+            position: relative;
+            left: -50%;
+            right: -50%;
+
+            /*
+            div.outer's used left value is 60px
+            div.outer's used right value is -60px
+            div.outer's computed left value is -50%
+            div.outer's computed right value is -50%
+            */
+
+        }
+        .inner {
+            background: green;
+            position: relative;
+            left: inherit; /* using inheritance to test computed vs. used */
+            /* div.inner's left inherits div.outer's computed left value */
+        }
+        .control {
+          background: red;
+          margin-bottom: -120px;
+          width: 120px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div class="control"></div>
+    <div class="container" dir="rtl">
+      <div class="outer">
+        <div class="inner"></div>
+      </div>
+    </div>
+  </body>
+</html>

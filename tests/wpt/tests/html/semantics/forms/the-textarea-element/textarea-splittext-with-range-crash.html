@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const textarea = document.querySelector("textarea");
+  const ul = document.createElement('ul');
+
+  const textNodeInTextarea = document.createTextNode("");
+  textarea.appendChild(textNodeInTextarea);
+  document.documentElement.getBoundingClientRect();
+
+  textarea.appendChild(ul);
+  const range = document.createRange();
+  range.selectNode(ul);
+
+  textNodeInTextarea.data = "ab";
+  textNodeInTextarea.splitText(1);
+});
+</script>
+</head>
+<body><textarea></textarea></body>
+</html>

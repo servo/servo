@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta name=help href="https://privacycg.github.io/storage-partitioning/">
+<title>Partitioned estimate() usage details for service workers test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    const usageDetails = async () => {
+      return (await navigator.storage.estimate())
+        .usageDetails.serviceWorkerRegistrations || 0;
+    }
+
+    const createSomeUsage = async () => {
+      const wait_for_active = worker => new Promise(resolve => {
+        if (worker.active) { resolve(worker.active); }
+
+        const listen_for_active = worker => e => {
+          if (e.target.state === 'activated') { resolve(worker.active); }
+        }
+
+        if (worker.waiting) {
+          worker.waiting
+            .addEventListener('statechange', listen_for_active(worker.waiting));
+        }
+        if (worker.installing) {
+          worker.installing.addEventListener('statechange',
+            listen_for_active(worker.installing));
+        }
+      });
+
+      const service_worker_registration =
+        await navigator.serviceWorker.register('resources/worker.js');
+      await wait_for_active(service_worker_registration);
+      return service_worker_registration;
+    }
+
+    const testPath = () => location.pathname.split("/").slice(0, -1).join("/");
+
+    let alt_origin = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
+    let details = {};
+
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://{{host}}:{{ports[https][0]}}${testPath()}/resources` +
+      `/partitioned-estimate-usage-details-service-workers-helper-frame.html`
+    document.body.appendChild(iframe);
+
+    async_test(test => {
+      if (location.origin === alt_origin)
+        return;
+
+      let service_worker_registration;
+      window.addEventListener("message", test.step_func(async event => {
+        if (event.data === "iframe-is-ready") {
+          details.init = await usageDetails();
+          service_worker_registration = await createSomeUsage();
+          details.after = await usageDetails();
+          assert_greater_than(details.after, details.init);
+
+          iframe.contentWindow.postMessage("get-details", iframe.origin);
+        }
+      }));
+
+      window.addEventListener("message", test.step_func(event => {
+        if (event.data.source === "same-site") {
+          details.same_site = event.data;
+
+          const cross_site_window = window
+            .open(`${alt_origin}${location.pathname}`, "", "noopener=false");
+          test.add_cleanup(() => cross_site_window.close());
+        }
+        if (event.data.source === "cross-site") {
+          details.cross_site = event.data;
+
+          // More cleanup.
+          test.step(() => service_worker_registration.unregister());
+
+          test.step(() => {
+            assert_true(details.cross_site.init == 0, "Usage should be 0.");
+            assert_equals(details.same_site.init, details.after);
+          });
+
+          test.done();
+        }
+      }));
+    }, "Partitioned estimate() usage details for service workers test.");
+  </script>
+</body>

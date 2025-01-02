@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>VP9 scalabilityMode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCRtpParameters-helper.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="/webrtc-svc/svc-helper.js"></script>
+<script>
+  'use strict';
+
+  createScalabilityTest('video/VP9', [
+    "L1T1",
+    "L1T2",
+    "L1T3",
+    "L2T1",
+    "L2T2",
+    "L2T3",
+    "L3T1",
+    "L3T2",
+    "L3T3",
+    "L2T1h",
+    "L2T2h",
+    "L2T3h",
+    "S2T1",
+    "S2T2",
+    "S2T3",
+    "S2T1h",
+    "S2T2h",
+    "S2T3h",
+    "S3T1",
+    "S3T2",
+    "S3T3",
+    "S3T1h",
+    "S3T2h",
+    "S3T3h",
+    "L2T2_KEY",
+    "L2T3_KEY",
+    "L3T2_KEY",
+    "L3T3_KEY"
+  ]);
+</script>

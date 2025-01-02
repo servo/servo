@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>webkit-text-fill-color on selected text reference</title>
+<link rel="author" title="Jeremy Chen" href="jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<style>
+p {
+  color: green;
+}
+</style>
+<body onload="onload()">
+<p>Pass if color of <span id="selectMe">selected text</span> is green or inverted (depending on the platform convention), but not red</p>
+<script type="text/javascript">
+function onload() {
+  var elt = document.getElementById("selectMe");
+  var range = document.createRange();
+  range.selectNode(elt);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+  document.documentElement.classList.remove('reftest-wait');
+}
+</script>
+</body>
+</html>

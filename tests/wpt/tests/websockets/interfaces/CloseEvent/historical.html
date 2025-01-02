@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CloseEvent: historical initialization</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  assert_false("initCloseEvent" in CloseEvent.prototype);
+  assert_false("initCloseEvent" in new CloseEvent('close'));
+}, "initCloseEvent");
+</script>

@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  // Plan B is a legacy feature that should not be supported on a modern
+  // browser. To pass this test you must either ignore sdpSemantics altogether
+  // (and construct with Unified Plan despite us asking for Plan B) or throw an
+  // exception.
+  let pc = null;
+  try {
+    pc = new RTCPeerConnection({sdpSemantics:"plan-b"});
+    t.add_cleanup(() => pc.close());
+  } catch (e) {
+    // Test passed!
+    return;
+  }
+  // If we did not throw, we must not have gotten what we asked for. If
+  // sdpSemantics is not recognized by the browser it will be undefined here.
+  assert_not_equals(pc.getConfiguration().sdpSemantics, "plan-b");
+}, 'Plan B is not supported');
+
+</script>

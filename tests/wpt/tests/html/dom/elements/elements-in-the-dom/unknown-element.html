@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>HTMLUnknownElement</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#htmlunknownelement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+[
+  "applet",
+  "attachment",
+  "layer",
+  "nolayer",
+  "xxx"
+].forEach(name => {
+  test(() => {
+    const elt = document.createElement("xxx");
+    assert_true(window.HTMLUnknownElement && elt instanceof HTMLUnknownElement, "not an instance of HTMLUnknownElement");
+    assert_true(window.HTMLSpanElement && !(elt instanceof HTMLSpanElement), "an instance of HTMLSpanElement");
+  }, `<${name}> is an HTMLUnknownElement`);
+});
+</script>

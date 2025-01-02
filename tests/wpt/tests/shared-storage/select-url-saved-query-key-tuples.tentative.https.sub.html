@@ -1,0 +1,87 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Note that we have set the site page bit limit to 6 and the overall page
+// bit limit to 12.
+
+// Saved query results are stored in a map keyed by tuples as follows:
+// <data origin, script source URL, operation name, query name>.
+// If two queries share the same name, but the full tuple doesn't match,
+// then the queries are seen as distinct. In particular, queries cannot be
+// shared across different data origins, worklet script source URLs, or
+// worklet operation names.
+
+promise_test(async () => {
+  const queryKey = "query";
+  const mockResultKey = "mockresult";
+  const urlCountKey = "urlcount";
+  const moduleNameKey = "module";
+  const operationNameKey = "operation";
+  const expectSavedKey = "expectsaved";
+  const expectSuccessKey = "expectsuccess";
+
+  let url0 =  new URL(
+      "/shared-storage/" +
+      "resources/select-url-saved-query-inner.https.sub.html",
+      location.href);
+
+  // Initiate a query to be saved.
+  url0.searchParams.append(queryKey, "query");
+  url0.searchParams.append(mockResultKey, "1");
+  url0.searchParams.append(moduleNameKey, "simple-module");
+  url0.searchParams.append(operationNameKey, "test-url-selection-operation");
+  url0.searchParams.append(urlCountKey, "4");
+  url0.searchParams.append(expectSavedKey, "false");
+  url0.searchParams.append(expectSuccessKey, "true");
+  await attachIFrameWithEventListenerForSelectURLStatus(url0);
+
+  // This second query will be distinct because its operation name differs. We
+  // set a new mock result that differs from all previous results to verify
+  // that we return this new result instead of re-using any previous result.
+  let url1 = url0;
+  url1.searchParams.delete(operationNameKey);
+  url1.searchParams.append(operationNameKey, "test-url-selection-operation-2");
+  url1.searchParams.delete(mockResultKey);
+  url1.searchParams.append(mockResultKey, "2");
+  await attachIFrameWithEventListenerForSelectURLStatus(url1);
+
+  // This third query will be distinct because its script source URL differs. We
+  // set a new mock result that differs from all previous results to verify
+  // that we return this new result instead of re-using any previous result.
+  let url2 = url0;
+  url2.searchParams.delete(moduleNameKey);
+  url2.searchParams.append(moduleNameKey, "simple-module2");
+  url2.searchParams.delete(operationNameKey);
+  url2.searchParams.append(operationNameKey , "test-url-selection-operation");
+  url2.searchParams.delete(mockResultKey);
+  url2.searchParams.append(mockResultKey, "3");
+  await attachIFrameWithEventListenerForSelectURLStatus(url2);
+
+  // This fourth query will be distinct because its data origin differs. We
+  // set a new mock result that differs from all previous results to verify
+  // that we return this new result instead of re-using any previous result.
+  const crossOrigin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+  let url3 = updateUrlToUseNewOrigin(url0, crossOrigin);
+  url3.searchParams.delete(moduleNameKey);
+  url3.searchParams.append(moduleNameKey , "simple-module");
+  url3.searchParams.delete(operationNameKey);
+  url3.searchParams.append(operationNameKey, "test-url-selection-operation");
+  url3.searchParams.delete(mockResultKey);
+  url3.searchParams.append(mockResultKey, "4");
+  url3.searchParams.delete(urlCountKey);
+  url3.searchParams.append(urlCountKey, "5");
+  await attachIFrameWithEventListenerForSelectURLStatus(url3);
+
+}, 'for selectURL(), saved queries are keyed on <origin, URL, operation, query>.');
+</script>
+</body>

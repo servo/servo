@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS sibling-index() and sibling-count()</title>
+  <link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    #test {
+      z-index: calc(sibling-index());
+      counter-increment: foo calc(sibling-count());
+      left: calc(10% + 100px * sibling-index());
+    }
+    #test::before {
+      z-index: calc(sibling-index() * 2);
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div></div>
+    <div id="test"></div>
+    <div></div>
+    <div></div>
+    <ul></ul>
+  </div>
+  <script>
+test(() => {
+  let style = getComputedStyle(document.getElementById('test'));
+  assert_equals(style.zIndex, '2');
+}, 'basic sibling-index() test');
+
+test(() => {
+  let style = getComputedStyle(document.getElementById('test'));
+  assert_equals(style.counterIncrement, 'foo 5');
+}, 'basic sibling-count() test');
+
+test(() => {
+  let style = getComputedStyle(document.getElementById('test'));
+  assert_equals(style.left, 'calc(10% + 200px)');
+}, 'sibling-index() in calc() with percentage');
+
+test(() => {
+  let style = getComputedStyle(document.getElementById('test'), ':before');
+  assert_equals(style.zIndex, '4');
+}, 'sibling-count on pseudo-element');
+  </script>
+</body>
+</html>

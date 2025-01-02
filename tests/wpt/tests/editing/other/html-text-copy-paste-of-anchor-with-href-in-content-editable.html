@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>This test is for testing HTML text copy paste of anchor tag containing href
+inside contenteditable.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable="true" id="contentCopy"><a href="www.crbug.com/356548150">AnchorTagWithHREF</a></div>
+<div contenteditable="true" id="contentPaste"></div>
+<script>
+
+function runTests() {
+    test(function() {
+        const range = document.createRange();
+        const contentToCopy = document.getElementById('contentCopy');
+        range.selectNodeContents(contentToCopy);
+        const selection = window.getSelection();
+        const anchorToCopy = contentToCopy.querySelector('a');
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        assert_true(anchorToCopy.hasAttribute('href'));
+        const pasteTarget = document.getElementById('contentPaste');
+        pasteTarget.focus();
+        document.execCommand('paste');
+        const pastedAnchor = pasteTarget.querySelector('a');
+        assert_true(pastedAnchor.hasAttribute('href'));
+    }, "Attribute href is missing after copy paste of anchor tag");
+}
+
+window.addEventListener("load", runTests, {once: true});
+</script>

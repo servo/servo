@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-origin: mask positioning area</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-origin">
+    <link rel="match" href="mask-origin-1-ref.html">
+    <meta name="assert" content="Test checks whether setting mask position area works correctly or not.">
+    <style type="text/css">
+      div.outer {
+        border: 1px solid black;
+        width: 100px;
+        height: 100px;
+      }
+
+      div.inner {
+        /*
+         * content box: 60 x 60
+         * padding box: 72 x 78
+         * border  box: 80 x 90
+         * margin  box: 86 x 94
+         */
+        margin: 1px 2px 3px 4px;
+        border: solid transparent;
+        border-width: 8px 2px 4px 6px;
+        padding: 6px 9px 12px 3px;
+        width: 60px;
+        height: 60px;
+        background-color: purple;
+        mask-image: url(support/50x50-opaque-blue.svg);
+        mask-repeat: no-repeat;
+        mask-position: left top;
+      }
+
+      #border { mask-origin: border-box; }
+      #padding { mask-origin: padding-box; }
+      #content { mask-origin: content-box; }
+    </style>
+  </head>
+  <body>
+    <div class="outer"><div class="inner"></div></div>
+    <div class="outer"><div class="inner" id="border"></div></div>
+    <div class="outer"><div class="inner" id="padding"></div></div>
+    <div class="outer"><div class="inner" id="content"></div></div>
+  </body>
+</html>

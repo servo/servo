@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<title>SVGLengthList, appendItem()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/SVGLengthList-helper.js"></script>
+<svg width="200" height="200">
+    <text id="text1" x="500 50 100 900 1000" y="50">ABC</text>
+    <text id="text2" x="50 100 1000" y="100">ABC</text>
+</svg>
+<script>
+test(function() {
+  // This is a test of the SVGLengthList::appendItem() API.
+  var svg = document.querySelector("svg");
+  var list1 = document.getElementById("text1").x.baseVal;
+  var list2 = document.getElementById("text2").x.baseVal;
+
+  // Create a new SVGLength object, with value=150.
+  var newLength1 = svg.createSVGLength();
+  newLength1.value = 150;
+  assert_equals(newLength1.value, 150);
+
+  // Check initial list state of text1.
+  assert_list(list1, [500, 50, 100, 900, 1000]);
+
+  // Check initial list state of text2.
+  assert_list(list2, [50, 100, 1000]);
+
+  // Append fourth item x=900 to the text1 x list.
+  assert_equals(list1.appendItem(list1.getItem(3)).value, list1.getItem(5).value);
+  assert_list(list1, [500, 50, 100, 900, 1000, 900]);
+
+  // Append first item x=500 to the text1 x list.
+  assert_equals(list1.appendItem(list1.getItem(0)).value, list1.getItem(6).value);
+  assert_list(list1, [500, 50, 100, 900, 1000, 900, 500]);
+
+  // Append 'newLength1' to the text1 x list.
+  assert_equals(list1.appendItem(newLength1).value, list1.getItem(7).value);
+  assert_list(list1, [500, 50, 100, 900, 1000, 900, 500, 150]);
+
+  // Append third and fourth item of the text1 x list to the text2 x list.
+  assert_equals(list2.appendItem(list1.getItem(2)).value, 100);
+  assert_equals(list2.appendItem(list1.getItem(3)).value, 900);
+  assert_list(list1, [500, 50, 100, 900, 1000, 900, 500, 150]);
+  assert_list(list2, [50, 100, 1000, 100, 900]);
+
+  var newLength2 = svg.createSVGLength();
+  newLength2.value = 150;
+  assert_equals(newLength2.value, 150);
+  list1.clear();
+
+  // Shuffle around items in text1 and text2 list using appendItem, to get x=50,100,150,... in both lists.
+  assert_equals(list1.appendItem(list2.getItem(0)).value, 50);
+  assert_equals(list1.appendItem(list2.getItem(1)).value, 100);
+  assert_equals(list1.appendItem(newLength2).value, 150);
+  list2.clear();
+  assert_equals(list2.appendItem(list1.getItem(0)).value, 50);
+  assert_equals(list2.appendItem(list1.getItem(1)).value, 100);
+  assert_equals(list2.appendItem(list1.getItem(2)).value, 150);
+  assert_list(list1, [50, 100, 150]);
+  assert_list(list2, [50, 100, 150]);
+});
+</script>

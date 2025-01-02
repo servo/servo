@@ -1,0 +1,11 @@
+    <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+      <its:param name="locqualityissueParam">q1</its:param>
+      <its:locQualityIssueRule selector="//span[@id=$locqualityissueParam]"
+        locQualityIssueComment="Sentence without capitalization"
+        locQualityIssueSeverity="50"
+	locQualityIssueProfileRef="http://example.org/qaMovel/v1"/>
+	<its:locQualityIssueRule selector="//span[@id='q2']"
+        locQualityIssueComment="should be 'transport include'"
+	locQualityIssueSeverity="75"
+	locQualityIssueProfileRef="http://example.org/qaMovel/v1"/>
+    </its:rules>

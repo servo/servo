@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Max inline-block size inside another inline-block element</title>
+<link rel="match" href="max_inline_block_size_ref.html">
+<style>
+html, body { margin: 0; padding: 0; }
+
+div, canvas { display: inline-block; }
+
+#a {
+  background: red;
+}
+
+#c {
+  max-width: 250px;
+  height: 250px;
+}
+</style>
+<div id="a"><canvas width="500" height="250" id="c"></canvas></div>
+<script>
+  var c = document.getElementById("c").getContext("2d");
+  c.fillStyle = "rgb(0, 255, 0)";
+  c.fillRect(0, 0, c.canvas.width, c.canvas.height);
+</script>

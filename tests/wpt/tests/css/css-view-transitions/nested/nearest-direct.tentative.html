@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Nearest should match direct parent</title>
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-ref.html">
+<link rel=stylesheet href="resources/compute-common.css"></link>
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<body>
+    <div class="green">
+        <div>
+            <div class="test nearest-ref"></div>
+        </div>
+    </div>
+</body>

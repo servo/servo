@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<body>
+    <style>
+        body {
+            content-visibility: hidden;
+            background-clip: text;
+            position: absolute;
+            border-right-style: dashed;
+            border-top-style: ridge;
+            background-color: green;
+        }
+    </style>
+    <script>
+        var p1 = document.createElement('p');
+        var p2 = document.createElement('p');
+        document.body.appendChild(p1);
+        document.body.appendChild(p2);
+        p1.scroll();
+        p2.remove();
+    </script>
+</body>
+</html>

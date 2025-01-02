@@ -1,0 +1,3 @@
+features:
+- name: server-timing
+  files: "**"

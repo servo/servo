@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Masking: Test clip-path property and circle with closest-corner on rectangular div</title>
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+    <link rel="match" href="reference/clip-path-circle-4-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-40; totalPixels=0-2000">
+    <meta name="assert" content="The clip-path property takes the basic shape
+    'circle' for clipping, with the 'closest-corner' size. There should be a full green circle.">
+    <style>
+    body {
+        padding: 0;
+        margin: 0;
+    }
+
+    .test {
+        position: absolute;
+        left: 150px;
+        top: 100px;
+        width: 350px;
+        height: 450px;
+        background-color: red;
+        clip-path: circle(closest-corner at 150px 200px);
+    }
+
+    .inner {
+        position: absolute;
+        top: -60px;
+        left: -110px;
+        width: 520px;
+        height: 520px;
+        background-color: green;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a full green circle.</p>
+    <div class="test">
+        <div class="inner"></div>
+    </div>
+</body>
+</html>

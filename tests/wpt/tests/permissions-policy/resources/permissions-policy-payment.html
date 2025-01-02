@@ -1,0 +1,17 @@
+<script>
+'use strict';
+
+window.onload = function() {
+  var supportedInstruments = [ { supportedMethods: [ 'visa' ] } ];
+  var details = {
+      total: { label: 'Test', amount: { currency: 'USD', value: '5.00' } }
+  };
+  let enabled = true;
+  try {
+    new PaymentRequest(supportedInstruments, details);
+  } catch (e) {
+    enabled = false;
+  }
+  parent.postMessage({ type: 'availability-result', enabled }, '*');
+}
+</script>

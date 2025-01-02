@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering can access blobs</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const rule_extras = {'target_hint': getTargetHint()};
+  const {exec} = await create_prerendered_page(
+      t, undefined, undefined, rule_extras);
+  const result = await exec(async () => {
+    const blob = await (await fetch('cache.txt')).blob();
+    const reader = new FileReader();
+    reader.readAsText(blob);
+    return new Promise(function(resolve, reject) {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+    });
+  });
+  const expected = "Hello, Prerender API!";
+
+  // Start prerendering a page that attempts to access the blob.
+  assert_equals(
+    result, expected,
+    'prerendering page should be able to read from blobs.');
+}, 'prerendering page should be able to access blobs');
+</script>

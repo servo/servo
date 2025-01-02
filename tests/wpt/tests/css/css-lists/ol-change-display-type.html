@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: Change display type of reverse ol list element.</title>
+<link rel=help href="https://crbug.com/1020669">
+<link rel=match href="ol-change-display-type-ref.html">
+<style>
+  .item {
+    display: list-item;
+  }
+  .item:after {
+    content: counter(section);
+    display: list-item;
+  }
+  .table-header {
+    display: table-header-group;
+  }
+</style>
+<body>
+  <ol reversed="reversed">
+    <span id="span">
+      <figure class="item"></figure>
+    </span>
+  </ol>
+</body>
+<script>
+  document.body.offsetTop;
+  document.getElementById('span').setAttribute('class', 'table-header');
+</script>
+</html>

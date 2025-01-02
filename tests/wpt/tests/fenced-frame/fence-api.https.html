@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test window.fence object</title>
+
+<body>
+<script>
+promise_test(async () => {
+
+  // Check that window.fence is undefined in the top-level frame.
+  assert_true(window.fence == null,
+              "window.fence should only be visible inside fenced frames.");
+  assert_true(fence == null,
+              "fence should only be visible inside fenced frames.");
+
+  // Create a fenced frame.
+  const fence_api_token = token();
+  const frame_url = generateURL("resources/fence-api-inner.https.html",
+      [fence_api_token]);
+  attachFencedFrame(frame_url);
+
+  // Wait for the fenced frame to complete its fence API tests.
+  await nextValueFromServer(fence_api_token);
+
+}, "window.fence");
+</script>
+</body>

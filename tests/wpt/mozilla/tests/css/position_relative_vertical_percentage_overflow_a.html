@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel='match' href='position_relative_vertical_percentage_overflow_ref.html'>
+<style>
+body, html {
+    margin: 0;
+}
+#a {
+    display: block;
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    width: 100px;
+    height: 100px;
+    transform: translateX(0px); /* force creation of stacking context */
+}
+#b {
+    display: block;
+    position: relative;
+    top: -50%;
+    width: 100px;
+    height: 100px;
+    background: purple;
+}
+</style>
+<div id=a><div id=b>
+

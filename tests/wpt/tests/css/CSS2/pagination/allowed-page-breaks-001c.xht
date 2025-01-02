@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: allowed page breaks between blocks within table cells</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#allowed-pg-brk"/>
+<meta name="assert" content="Unforced breaking in the vertical margin between
+	sibling block boxes is allowed only if the 'page-break-after' and
+	'page-break-before' properties of all the elements generating boxes
+	that meet at this margin are 'auto' and the common ancestors of all
+	the elements do not have a 'page-break-inside' value of 'avoid'."/>
+<meta name="flags" content="may paged" />
+<style type="text/css">
+	html, body { height: 100%; line-height: 1; font-size: 20px; margin: 0; padding: 0; }
+	.spacer { height: 50%; }
+	.backup { margin-top: -1em; }
+	.start { page-break-before: always; }
+
+	p {
+		margin: 0;
+		color: blue;
+	}
+
+	.avoidBefore { page-break-before: avoid; }
+	.avoidAfter	{ page-break-after:	avoid; }
+	.avoidInside { page-break-inside: avoid; }
+	.allowInside { page-break-inside: auto; }
+
+
+	table, tbody, tr, td {
+		border-collapse: collapse;
+		margin: 0; padding: 0;
+		border-spacing: 0;
+		color: blue;
+	}
+</style>
+</head>
+<body>
+	<div class="spacer">
+		Lines A-T must appear on the 18 pages of this test. The blue text
+		must accurately describe the page numbers.
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr class="avoidInside">
+		<p>Page&nbsp;2&nbsp;Line&nbsp;A</p>
+		<p>Page&nbsp;2&nbsp;Line&nbsp;B</p>
+	</tr></tbody></table>
+
+	<div class="spacer start">
+		<p>Page&nbsp;3&nbsp;Line&nbsp;C</p>
+	</div><div class="spacer backup"></div>
+	<div class="avoidInside"><div><div><div><table><tbody><tr><td class="allowInside">
+		<p>Page&nbsp;4&nbsp;Line&nbsp;D</p>
+		<p>Page&nbsp;4&nbsp;Line&nbsp;E</p>
+	</td></tr></tbody></table></div></div></div></div>
+
+	<div class="spacer start">
+		<p>Page&nbsp;5&nbsp;Line&nbsp;F</p>
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr><td class="allowInside">
+		<p>Page&nbsp;5&nbsp;Line&nbsp;G</p>
+		<p>Page&nbsp;6&nbsp;Line&nbsp;H</p>
+	</td></tr></tbody></table>
+
+	<div class="spacer start">
+		<p>Page&nbsp;7&nbsp;Line&nbsp;I</p>
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr><td>
+		<p class="avoidAfter">Page&nbsp;8&nbsp;Line&nbsp;J</p>
+		<p>Page&nbsp;8&nbsp;Line&nbsp;K</p>
+	</td></tr></tbody></table>
+
+	<div class="spacer start">
+		<p>Page&nbsp;9&nbsp;Line&nbsp;L</p>
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr><td>
+		<p>Page&nbsp;10&nbsp;Line&nbsp;M</p>
+		<p class="avoidBefore">Page&nbsp;10&nbsp;Line&nbsp;N</p>
+	</td></tr></tbody></table>
+
+	<div class="spacer start">
+		<p>Page&nbsp;11&nbsp;Line&nbsp;O</p>
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr><td>
+		<div class="avoidAfter"><div>
+			<p>Page&nbsp;12&nbsp;Line&nbsp;P</p>
+		</div></div>
+		<p>Page&nbsp;12&nbsp;Line&nbsp;Q</p>
+	</td></tr></tbody></table>
+
+	<div class="spacer start">
+		<p>Page&nbsp;13&nbsp;Line&nbsp;R</p>
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr><td>
+		<p>Page&nbsp;14&nbsp;Line&nbsp;S</p>
+		<div class="avoidBefore"><div>
+			<p>Page&nbsp;14&nbsp;Line&nbsp;T</p>
+		</div></div>
+	</td></tr></tbody></table>
+
+	<div class="spacer start">
+		<p>Page&nbsp;15&nbsp;Line&nbsp;O</p>
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr><td>
+		<div><div>
+			<p class="avoidAfter">Page&nbsp;16&nbsp;Line&nbsp;P</p>
+		</div></div>
+		<p>Page&nbsp;16&nbsp;Line&nbsp;Q</p>
+	</td></tr></tbody></table>
+
+	<div class="spacer start">
+		<p>Page&nbsp;17&nbsp;Line&nbsp;R</p>
+	</div><div class="spacer backup"></div>
+	<table><tbody><tr><td>
+		<p>Page&nbsp;18&nbsp;Line&nbsp;S</p>
+		<div><div>
+			<p class="avoidBefore">Page&nbsp;18&nbsp;Line&nbsp;T</p>
+		</div></div>
+	</td></tr></tbody></table>
+</body>
+</html>

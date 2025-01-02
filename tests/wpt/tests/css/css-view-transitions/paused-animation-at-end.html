@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>View transitions: pause animation and set current time to the end</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+:root { view-transition-name: unset; }
+#target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+}
+.one {
+  background: blue;
+}
+.two {
+  background: green;
+}
+</style>
+
+<div id=target class=one></div>
+
+<script>
+promise_test(async (t) => {
+  return new Promise((resolve, reject) => {
+    let transition = document.startViewTransition(() => {
+      target.classList.replace("one", "two");
+    });
+
+    transition.finished.then(() => reject("transition unexpectedly finished"));
+    transition.ready.then(() => {
+      document.getAnimations().forEach((animation) => {
+        animation.pause();
+        animation.currentTime = 1000;
+      });
+      step_timeout(resolve, 500);
+    });
+  });
+}, "view transition is not over if animations are paused");
+</script>
+

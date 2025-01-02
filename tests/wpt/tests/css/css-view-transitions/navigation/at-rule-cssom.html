@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>View transitions: CSSOM for @view-transition rule</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style></style>
+<script>
+function resetStateAndTest(testFunction) {
+  const sheet = document.styleSheets[0];
+  while (sheet.cssRules.length > 0) sheet.deleteRule(0);
+  testFunction();
+}
+
+test(function () {
+  resetStateAndTest(() => {
+    document.styleSheets[0].insertRule(`
+      @view-transition {
+      }
+    `);
+    let rule = document.styleSheets[0].cssRules[0];
+    assert_true(rule instanceof CSSViewTransitionRule);
+    assert_equals(rule.type, 0);
+    assert_equals(rule.cssText, "@view-transition { }");
+    assert_equals(rule.navigation, '');
+
+  });
+}, "CSSViewTransitionRule is correctly parsed and accessible via CSSOM.");
+
+test(function () {
+  resetStateAndTest(() => {
+    document.styleSheets[0].insertRule(`
+      @view-transition {
+        navigation: auto;
+      }
+    `);
+    let rule = document.styleSheets[0].cssRules[0];
+    assert_equals(rule.cssText,
+        "@view-transition { navigation: auto; }");
+    assert_equals(rule.navigation, 'auto');
+
+  });
+}, "`navigation: auto` is correctly parsed.");
+
+test(function () {
+  resetStateAndTest(() => {
+    document.styleSheets[0].insertRule(`
+      @view-transition {
+        navigation: none;
+      }
+    `);
+    let rule = document.styleSheets[0].cssRules[0];
+    assert_equals(rule.cssText, "@view-transition { navigation: none; }");
+    assert_equals(rule.navigation, 'none');
+  });
+}, "`navigation: none` is correctly parsed.");
+
+test(function () {
+  resetStateAndTest(() => {
+    assert_throws_dom('SyntaxError', () => {
+      document.styleSheets[0].insertRule('@view-transition foo {}');
+    }, "Failed to execute 'insertRule' on 'CSSStyleSheet': " +
+        "Failed to parse the rule '@view-transition foo {}'");
+    assert_equals(document.styleSheets[0].cssRules.length, 0);
+  });
+}, "@view-transition fails parsing with a preamble");
+
+test(function () {
+  resetStateAndTest(() => {
+    document.styleSheets[0].insertRule(`
+      @view-transition {
+        navigation: foo;
+      }
+    `);
+    let rule = document.styleSheets[0].cssRules[0];
+    assert_equals(rule.cssText, "@view-transition { }");
+  });
+}, "Invalid `navigation` value fails to parse.");
+
+test(function () {
+  resetStateAndTest(() => {
+    document.styleSheets[0].insertRule(`
+      @view-transition {
+        navigation: none !important;
+      }
+    `);
+    let rule = document.styleSheets[0].cssRules[0];
+    assert_equals(rule.cssText, "@view-transition { }");
+  });
+}, "`navigation` with !important flag should fail to parse.");
+
+test(function () {
+  resetStateAndTest(() => {
+    document.styleSheets[0].insertRule(`
+      @view-transition {
+        navigation: none;
+      }
+    `);
+    let rule = document.styleSheets[0].cssRules[0];
+    rule.navigation = "auto";
+    assert_equals(rule.navigation, "none");
+  });
+}, "`navigation` descriptor cannot be set.");
+
+</script>

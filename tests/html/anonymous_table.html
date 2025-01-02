@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Fixed Table</title>
+    <style>
+      .table {
+        display: table;
+        table-layout: fixed;
+        width: 600px;
+        border: solid black 2px;
+      }
+      .colgroup {
+        display: table-column-group;
+      }
+      .column {
+        display: table-column;
+      }
+      .row {
+        display: table-row;
+      }
+      .cell {
+        display: table-cell;
+        border: solid red 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <p> This test checks Anonymous table objects(CSS 2.1, Section 17.2.1) </p>
+    <p> 1. Remove irrelevant boxes</p>
+    <p> 2. Generate missing child wrappers: `table-row`, `table-cell` </p>
+    <div class="table">
+        <span class="column"> inline child box of table-column. NOT Shown </span>
+        <span class="colgroup">
+            <span>inline child box of table-column-group</span> NOT Shown
+        </span>
+        <span class="cell">Cell1</span>
+        <span class="cell">Cell2</span>
+        <span class="row">
+            2nd Row
+            <span>Cell4</span>
+            <span class="cell">Cell3</span>
+            Cell5
+        </span>
+    </div>
+  </body>
+<html>

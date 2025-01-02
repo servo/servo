@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolute positioned elements still affect scrolling mechanism</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#choose-position" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Zero width absolute positioned elements still affects scrolling mechanism even though they are out of flow of the content." />
+        <style type="text/css">
+            body
+            {
+                background: url("../support/abspos-zero-width-001.png") no-repeat;
+            }
+            div
+            {
+                height: 2000px;
+                position: absolute;
+                top: 0;
+                width: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue line above this text and a green box visible when the page is scrolled to its full extent vertically.</p>
+        <div></div>
+    </body>
+</html>

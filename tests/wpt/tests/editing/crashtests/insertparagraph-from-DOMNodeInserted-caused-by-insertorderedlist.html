@@ -1,0 +1,23 @@
+<html>
+<head>
+<script type="text/javascript">
+
+function boom()
+{
+  document.addEventListener("DOMNodeInserted", x);
+
+  function x()
+  {
+    document.removeEventListener("DOMNodeInserted", x);
+    document.execCommand("insertParagraph", false, "");
+  }
+
+  document.execCommand("insertorderedlist", false, "");
+}
+
+</script>
+</head>
+
+<body contenteditable="true" onload="boom()"></body>
+
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>After pointerup target is removed, selection should not be updated by pointer move</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+/**
+ * This behavior is not defined in any spec, but even if browser supports
+ * expanding selection across text nodes with dragging a pointer, it should
+ * not work after pointerup whose target is removed by a pointerup event
+ * listener.
+ */
+
+addEventListener("load", async () => {
+  const span1 = document.querySelector("span");
+  const span2 = span1.nextSibling;
+  const span3 = span2.nextSibling;
+  const button = document.querySelector("button");
+
+  promise_test(async () => {
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.addEventListener("pointerup", () => {
+      overlay.remove();
+    });
+    document.body.appendChild(overlay);
+    overlay.style.display = "block";
+    await new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+    await new test_driver.Actions()
+      .pointerMove(10, 10, {origin: span1})
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(10, 10, {origin: span2})
+      .addTick()
+      .pointerMove(10, 10, {origin: span3})
+      .addTick()
+      .send();
+    assert_true(getSelection().isCollapsed);
+  }, "pointermove after pointerup which deletes the overlay should not keep expanding selection");
+
+  promise_test(async () => {
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.addEventListener("pointerup", () => {
+      button.focus();
+      overlay.remove();
+    });
+    document.body.appendChild(overlay);
+    overlay.style.display = "block";
+    await new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+    await new test_driver.Actions()
+      .pointerMove(10, 10, {origin: span1})
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(10, 10, {origin: span2})
+      .addTick()
+      .pointerMove(10, 10, {origin: span3})
+      .addTick()
+      .send();
+    assert_true(getSelection().isCollapsed);
+  }, "pointermove after pointerup which deletes the overlay and move focus to the button should not keep expanding selection");
+}, {once: true});
+</script>
+<style>
+div.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+}
+#container {
+  font-size: 32px;
+}
+</style>
+</head>
+<body>
+  <div id="container">
+    <span>abc</span><span>def</span><span>ghi</span><br>
+    <button>button</button>
+  </div>
+</body>
+</html>

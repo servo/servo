@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Inline Layout: parsing alignment-baseline with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#alignment-baseline-property">
+<meta name="assert" content="alignment-baseline supports only the grammar 'baseline | text-bottom | alphabetic | ideographic | middle | central | mathematical | text-top | bottom | center | top'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+// alignment-baseline 'auto' was valid in SVG 1.1
+// https://www.w3.org/TR/SVG11/text.html#AlignmentBaselineProperty
+test_invalid_value("alignment-baseline", "auto");
+
+test_invalid_value("alignment-baseline", "none");
+test_invalid_value("alignment-baseline", "baseline text-bottom");
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<title>fieldset painting order</title>
+<link rel=match href=fieldset-painting-order-ref.html>
+<style>
+fieldset, legend { margin: 0; padding: 0; }
+fieldset {
+  border: 100px solid red;
+  width: 0;
+  min-width: 0;
+  height: 0;
+}
+legend { width: 200px; height: 200px; margin-left: -100px; background: green; }
+legend > span { float: right; margin-top: 100px; width: 100px; height: 100px; background: red; }
+fieldset > div { margin-top: -100px; background: lime; width: 200px; height: 200px; }
+</style>
+<p>There should be no red.</p>
+<fieldset><legend><span></span></legend><div></div></fieldset>

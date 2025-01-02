@@ -1,0 +1,35 @@
+<!doctype html>
+<script>
+var o = opener;
+
+var frameloaded = null;
+
+o.t.step(function() {o.assert_equals(history.length, 1)});
+
+onload = function () {
+  o.t.step(function() {
+    o.assert_equals(history.length, 1);
+    o.t.done();
+  });
+
+  o.t1.step(function() {
+    var iframe = document.createElement("iframe");
+    iframe.src = "filler.html?id=2";
+    document.body.appendChild(iframe);
+    o.assert_equals(history.length, 1);
+    frameloaded = o.t2.step_func(function() {
+      iframe.contentDocument.open();
+      iframe.contentDocument.write("3<script>onpageshow = function() {alert('pageshow'); parent.frameloaded()}<\/script>");
+      iframe.contentDocument.close();
+      frameloaded = o.t2.step_func(function () {
+        o.assert_equals(history.length, 2);
+        o.t2.done();
+      });
+    });
+    o.t1.done();
+  });
+
+}
+</script>
+
+<iframe src="filler.html?id=1"></iframe>

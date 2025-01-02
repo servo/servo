@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Anchor queries in sticky positioning is invalid</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#valid-anchor-function">
+<link rel="match" href="reference/sticky-anchor-position-invalid-ref.html">
+<style>
+#scroll-container {
+  width: 200px;
+  height: 200px;
+  overflow-y: scroll;
+}
+
+#scroller {
+  height: 400px;
+}
+
+#sticky {
+  position: sticky;
+  height: 150px;
+  background: green;
+  top: anchor(--invalid top, 42px); /* Should use the fallback */
+}
+</style>
+<div id="scroll-container">
+  <div id="scroller">
+    <div id="sticky">
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById("scroll-container").scrollTop = 50;
+</script>

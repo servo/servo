@@ -1,0 +1,64 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/shared-storage/resources/util.sub.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+const sameOrigin = location.origin;
+const scriptOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const customOrigin1 = 'https://{{domains[www1]}}:{{ports[https][0]}}';
+const customOrigin2 = 'https://{{domains[www2]}}:{{ports[https][0]}}';
+
+async_test(t => {
+  createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/sameOrigin, /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+}, `For cross-origin createWorklet with custom dataOrigin ${sameOrigin}, `
+    + `where dataOrigin is same origin to the context's origin, `
+    + `test selectURL() and verify its data origin.`);
+
+async_test(t => {
+  createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/scriptOrigin, /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+}, `For cross-origin createWorklet with custom dataOrigin ${scriptOrigin}, `
+    + `where dataOrigin is same origin to the script's origin, and has `
+    + `opted in, test selectURL() and verify its data origin.`);
+
+async_test(t => {
+  createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/customOrigin1, /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+}, `For cross-origin createWorklet with custom dataOrigin ${customOrigin1}, `
+   + `where dataOrigin has opted in, test selectURL() and verify its data `
+   + `origin.`);
+
+async_test(t => {
+  createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/customOrigin2, /*script_origin=*/scriptOrigin,
+    /*expect_success=*/false, /*error_type=*/'OperationError');
+}, `For cross-origin createWorklet with custom dataOrigin ${customOrigin2}, `
+   + `where dataOrigin has not opted in, worklet creation will fail.`);
+
+async_test(t => {
+  createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'invalid', /*script_origin=*/scriptOrigin,
+    /*expect_success=*/false, /*error_type=*/'TypeError');
+}, 'For cross-origin createWorklet with dataOrigin option "invalid", '
+           + 'there is a TypeError thrown.');
+
+async_test(t => {
+  createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'data:application/javascript;alert("Hi!")',
+    /*script_origin=*/scriptOrigin, /*expect_success=*/false,
+    /*error_type=*/'InvalidAccessError');
+}, 'For cross-origin createWorklet with opaque dataOrigin, '
+   + 'there is an InvalidAccessError thrown.');
+
+</script>
+</body>

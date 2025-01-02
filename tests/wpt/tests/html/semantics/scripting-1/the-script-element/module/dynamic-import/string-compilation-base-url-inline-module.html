@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>import() inside compiled strings uses the script base URL (= document base URL) inside an inline module script</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<div id="dummy"></div>
+
+<base href="scripts/foo/">
+<script type="module">
+// Tweak the base URL of the document here to distinguish:
+// - document URL
+// - document base URL = ../
+// - This inline script's base URL = ./scripts/foo/
+document.querySelector("base").remove();
+const base = document.createElement("base");
+base.setAttribute("href", "../");
+document.body.appendChild(base);
+
+function createTestPromise() {
+  return new Promise((resolve, reject) => {
+    window.continueTest = resolve;
+    window.errorTest = reject;
+  });
+}
+
+const dummyDiv = document.querySelector("#dummy");
+
+function doTest(label, evaluator, path) {
+  promise_test(t => {
+    t.add_cleanup(() => {
+      dummyDiv.removeAttribute("onclick");
+      delete window.evaluated_imports_a;
+    });
+
+    const promise = createTestPromise();
+
+    evaluator(`import('${path}/imports-a.js?label=${label}').then(window.continueTest, window.errorTest);`);
+
+    return promise.then(module => {
+      assert_true(window.evaluated_imports_a, "The module must have been evaluated");
+      assert_equals(module.A.from, "imports-a.js", "The module namespace object must be correct");
+    });
+  }, label + " should successfully import");
+}
+
+// Inline script's base URL should be used.
+doTest("setTimeout", setTimeout, "../../..");
+doTest("eval", eval, "../../..");
+doTest("the Function constructor",
+  (x) => {
+    Function(x)();
+  },
+  "../../..");
+
+// Document's base URL should be used, as there are no active scripts.
+doTest("reflected inline event handlers",
+  (x) => {
+    dummyDiv.setAttribute("onclick", x);
+    dummyDiv.onclick();
+  },
+  ".");
+
+doTest("inline event handlers triggered via UA code",
+  (x) => {
+    dummyDiv.setAttribute("onclick", x);
+    dummyDiv.click(); // different from .**on**click()
+  },
+  ".");
+</script>

@@ -1,0 +1,15 @@
+<!doctype html>
+<title>An &lt;svg> wrapped in a &lt;foreignObject> in an &lt;object></title>
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<object data="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'>
+  <foreignObject width='100' height='100'>
+    <div xmlns='http://www.w3.org/1999/xhtml' style='display: flex'>
+      <div>
+        <svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'>
+          <rect width='100' height='100' fill='green'/>
+        </svg>
+      </div>
+    </div>
+  </foreignObject>
+</svg>"></object>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>css-module-import-cross-domain-NoCORS</title>
+    <script src="../../module/crossorigin-common.js"></script>
+</head>
+<body>
+    <h1>css-module-import-cross-domain-NoCORS</h1>
+    <script type="module" onerror="document._log.push('error');">
+        import styleSheet from "http://{{domains[www2]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/basic.css" with { type: "css" };
+        // Push an event to the log indicating that the script was executed.
+        document._log.push(`imported CSS: ${styleSheet.rules[0].cssText}`);
+    </script>
+</body>
+</html>

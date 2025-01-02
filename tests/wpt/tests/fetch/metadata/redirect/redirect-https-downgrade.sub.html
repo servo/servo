@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+<script src=/fetch/metadata/resources/redirectTestHelper.sub.js></script>
+<script src=/common/security-features/resources/common.sub.js></script>
+<script src=/common/utils.js></script>
+<body>
+  <script>
+  let nonce = token();
+  let expected = { "site": "", "user": "", "mode": "", "dest": "" };
+
+  // Validate various scenarios handle a request that redirects from https => http correctly and avoids disclosure of any Sec- headers.
+  RunCommonRedirectTests("Https downgrade", downgradeRedirectTo, expected);
+</script>
+</body>

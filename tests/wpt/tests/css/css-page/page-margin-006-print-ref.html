@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 6in;
+    margin: 0.5in;
+  }
+  html {
+    background: yellow;
+    margin: 0.5in;
+  }
+  body {
+    margin: 0;
+    background: cyan;
+  }
+</style>
+There should be a half-inch page margin on every side. The cyan box should be
+inset by yet another half-inch, except at the bottom.
+<div style="break-before:page;">
+  Second page.
+</div>

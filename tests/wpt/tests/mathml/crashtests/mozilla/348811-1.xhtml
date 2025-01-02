@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script>
+function foo()
+{
+  var newTable = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mtable")
+
+  document.getElementById("mtr").appendChild(newTable);
+}
+</script>
+</head>
+
+<body onload="foo()">
+
+
+<div>
+  <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+    <mtable>      <mtr id="mtr">         <mtd>
+           <mi>x</mi>
+         </mtd>      </mtr>    </mtable>  </math>
+</div>
+
+
+</body>
+
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="match" href="pseudo-elements-in-div-ref.html">
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<link rel="help" href="https://crbug.com/342355738">
+<body>
+  <div>
+    The permission element should not create any pseudo elements.
+  </div>
+
+  <style>
+    /* The space (descendent combinator) is necessary to apply this CSS to children of .outer */
+    .outer ::before {
+      content: 'BEFORE';
+    }
+    .outer ::after {
+      content: 'AFTER';
+    }
+  </style>
+
+  <p>Should only see BEFOREAFTER once below</p>
+
+  <!-- Apply the ::before/::after to descendants of the .outer div. The empty inner div
+     simulates a quirk scenario discovered in chromium, but the expectation should match
+     all implementation. -->
+  <div class="outer">
+    <div></div>
+    <permission type="camera">
+  </div>
+</body>
+</html>

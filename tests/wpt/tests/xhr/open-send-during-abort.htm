@@ -1,0 +1,27 @@
+<!doctype html>
+<title>XMLHttpRequest: open() during abort()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  let result = [],
+      client = new XMLHttpRequest(),
+      expected = [1, 4, 1, 'hello']
+  client.open("GET", "data:text/plain,")
+  result.push(client.readyState)
+  client.send()
+  client.onreadystatechange = t.step_func(() => {
+    client.onreadystatechange = null
+    result.push(client.readyState)
+    client.open("GET", "data:text/plain,hello")
+    client.onload = t.step_func_done(() => {
+      result.push(client.responseText)
+      assert_array_equals(result, expected)
+    })
+    client.send()
+  })
+  client.abort()
+  result.push(client.readyState)  // surprise! should not be "unsent" even though we called abort()
+})
+</script>

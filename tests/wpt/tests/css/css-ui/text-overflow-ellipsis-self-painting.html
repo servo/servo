@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: ellipsis when there are self-painting objects</title>
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="help" href="https://crbug.com/1005645">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.test {
+  width: 5ch;
+  white-space: nowrap;
+}
+.ellipsis {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+span {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: red;
+  opacity: 0.3;
+}
+</style>
+<body>
+  <div id="test" class="test ellipsis">1234567890 <span></span></div>
+  <div id="ref" class="test">1234567890 <span></span></div>
+<script>
+test(() => {
+  const ref_element = document.getElementById('ref');
+  const test_element = document.getElementById('test');
+  assert_equals(test_element.scrollWidth, ref_element.scrollWidth);
+});
+</script>
+</body>

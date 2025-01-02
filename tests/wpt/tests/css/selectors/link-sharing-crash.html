@@ -1,0 +1,11 @@
+<link rel="help" href="https://bugzil.la/1883796">
+<script>
+window.addEventListener("load", () => {
+  let a = document.createElementNS("http://www.w3.org/1999/xhtml", "a")
+  document.documentElement.appendChild(a)
+  document.documentElement.appendChild(document.createElementNS("http://www.w3.org/1999/xhtml", "a"))
+  document.documentElement.scrollTo(-1132, 16)
+  document.documentElement.animate({"webkitTextStrokeWidth": ["197792984.89ex", "thin"]}, 2814)
+  a.setAttribute("href", "x")
+})
+</script>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html
+ <head>
+  <title>CSS Test: CSS List Images: invalid</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch">
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" >
+  <link rel="match" href="list-style-image-007-ref.html">
+
+  <style>
+   .no { list-style-image: url(404); }
+  </style>
+ </head>
+ <body>
+  <p>There should be a bullet list with three similarly formatted list items below.</p>
+  <ul>
+   <li> One.</li>
+   <li class="no"> Two.</li>
+   <li> Three.</li>
+  </ul>
+ </body>
+</html>

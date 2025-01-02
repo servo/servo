@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>A page with a div element with id="owned1" is referenced by two div elements that each have aria-owns="owned1".</title>
+  </head>
+  <body>
+    <div id="owner1" aria-owns="owned1">First owner of owned1</div>
+    <div id="owner2" aria-owns="owned1">Second owner of owned1</div>
+    <div id="owned1">I am owned1</div>
+  </body>
+</html>

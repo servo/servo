@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS aspect-ratio: replaced element with box-sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#min-max-widths">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+
+<style>
+canvas {
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  width: auto;
+  height: auto;
+  background: black;
+}
+</style>
+
+<div id="log"></div>
+
+<!--
+From https://drafts.csswg.org/css2/visudet.html#min-max-widths
+
+> for replaced elements with an intrinsic ratio and both `width` and `height` specified as `auto`,
+> the algorithm is as follows:
+>
+> Select from the table the resolved height and width values for the appropriate constraint violation.
+> Take the max-width and max-height as max(min, max) so that min ≤ max holds true.
+> In this table w and h stand for the results of the width and height computations
+> ignoring the `min-width`, `min-height`, `max-width` and `max-height` properties.
+> Normally these are the intrinsic width and height, but they may not be
+> in the case of replaced elements with intrinsic ratios.
+
+Note the testcases below ensure that w/h is 1 to match the provided `aspect-ratio`,
+which didn't exist in CSS2.
+
+Also note that `aspect-ratio: 1` refers to the border-box due to `box-sizing`,
+so we need to perform all calculations using border-box sizes.
+-->
+
+<!--
+w = 100 + 0 = 100
+h = 50 + 50 = 100
+max-width = 50
+max-height = 70
+Constraint Violation = "(w > max-width) and (h > max-height), where (max-width/w ≤ max-height/h)"
+Resolved Width = max-width = 50
+Resolved Height = max(min-height, max-width * h/w) = max(0, 50*100/100) = 50
+-->
+<canvas width="100" height="50" style="max-width: 50px; max-height: 70px; padding-top: 50px"
+        data-expected-width="50" data-expected-height="50"></canvas>
+
+<!--
+w = 50 + 50 = 100
+h = 100 + 0 = 100
+max-width = 70
+max-height = 50
+Constraint Violation = "(w > max-width) and (h > max-height), where (max-width/w > max-height/h)"
+Resolved Width = max(min-width, max-height * w/h) = max(0, 50*100/100) = 50
+Resolved Height = max-height = 50
+-->
+<canvas width="50" height="100" style="max-width: 70px; max-height: 50px; padding-left: 50px"
+        data-expected-width="50" data-expected-height="50"></canvas>
+
+<!--
+w = 50 + 50 = 100
+h = 100 + 0 = 100
+min-width = 150
+min-height = 175
+Constraint Violation = "(w < min-width) and (h < min-height), where (min-width/w ≤ min-height/h)"
+Resolved Width = min(max-width, min-height * w/h) = min(∞, 175*100/100) = 175
+Resolved Height = min-height = 175
+-->
+<canvas width="50" height="100" style="min-width: 150px; min-height: 175px; padding-left: 50px"
+        data-expected-width="175" data-expected-height="175"></canvas>
+
+<!--
+w = 100 + 0 = 100
+h = 50 + 50 = 100
+min-width = 175
+min-height = 150
+Constraint Violation = "(w < min-width) and (h < min-height), where (min-width/w > min-height/h)"
+Resolved Width = min-width = 175
+Resolved Height = min(max-height, min-width * h/w) = min(∞, 175*100/100) = 175
+-->
+<canvas width="100" height="50" style="min-width: 175px; min-height: 150px; padding-top: 50px"
+        data-expected-width="175" data-expected-height="175"></canvas>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout("canvas");
+</script>

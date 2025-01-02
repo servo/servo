@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.createElement("input");
+  document.documentElement.appendChild(input);
+  input.focus();
+  input.type = "file";
+  input.getBoundingClientRect();
+  input.setAttribute("contenteditable", "true");
+});
+</script>
+<body></body>
+</html>

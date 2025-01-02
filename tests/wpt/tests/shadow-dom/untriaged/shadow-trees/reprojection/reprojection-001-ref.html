@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Shadow DOM Test: Basic reprojection (reference)</title>
+<link rel="author" title="Anna Ogawa" href="mailto:anna.ogawa.0219@gmail.com">
+<link rel="author" title="Hayato Ito" href="mailto:hayato@google.com">
+<style>
+.pass { color: green; }
+</style>
+</head>
+<body>
+<p>You should see green text saying "Apple" and "Orange" below.</p>
+<div id="host">
+  <div id="host2">
+    <div>Hello a Shadow Root2.</div>
+    <div>
+      Hello a Shadow Root.
+      <div class="pass">Apple.</div>
+      <div class="pass">Orange.</div>
+      <div>Banana.</div>
+    </div>
+   </div>
+</div>
+</body>
+</html>

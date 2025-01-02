@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float right, circle(50% at left bottom)</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#supported-basic-shapes">
+  <link rel="match" href="reference/shape-outside-circle-035-ref.html">
+  <meta name="assert" content="Test the boxes are wrapping around the right float shape defined by the basic shape circle(50% at left bottom) value.">
+  <style>
+  .container {
+    direction: rtl;
+    width: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    shape-outside: circle(50% at left bottom);
+    clip-path: circle(50% at left bottom);
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px;
+    border: 20px solid lightgreen;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    width: 60px;
+    background-color: blue;
+  }
+
+  .long {
+    width: 200px;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="long box" style="height: 60px;"></div> <!-- Fill the space above the first float -->
+    <div class="box" style="height: 36px;"></div>
+    <div class="box" style="height: 12px;"></div>
+    <div class="box" style="height: 12px;"></div>
+    <div class="long box" style="height: 60px;"></div> <!-- Fill the space between two floats -->
+    <div class="box" style="height: 36px;"></div>
+    <div class="box" style="height: 12px;"></div>
+    <div class="box" style="height: 12px;"></div>
+  </main>
+</html>

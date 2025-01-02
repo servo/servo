@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> Transferred objects are no longer usable on the sending side </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www1]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: " +
+                      "Objects listed in transfer are transferred, not just cloned, meaning that they are " +
+                      "no longer usable on the sending side.";
+
+    var t = async_test(description);
+
+    var DATA = {test: "e.ports[0].postMessage('TRANSFERRED')"};
+    var TARGET = document.querySelector("iframe");
+    var ExpectedResult = ["PING", "TRANSFERRED"];
+    var ActualResult = [];
+
+    function PostMessageTest()
+    {
+        test(function()
+        {
+            assert_own_property(window, "MessageChannel", "window");
+
+            var channel = new MessageChannel();
+
+            channel.port2.onmessage = t.step_func(VerifyResult);
+
+            channel.port1.postMessage("PING");
+
+            TARGET.contentWindow.postMessage(DATA, "*", [channel.port1]);
+
+            channel.port1.postMessage("PONG");
+
+        }, "MessageChannel is supported.");
+    }
+
+    function VerifyResult(e)
+    {
+        ActualResult.push(e.data)
+
+        if (ActualResult.length >= ExpectedResult.length)
+        {
+            assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+            t.done();
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
+    <script src='../../mediacapture-streams/permission-helper.js'></script>
+    <script src='/reporting/resources/report-helper.js'></script>
+  </head>
+  <body>
+    <script>
+  const base_url = `${location.protocol}//${location.host}`;
+  const endpoint = `${base_url}/reporting/resources/report.py`;
+  const id = 'c898489f-00d2-40af-a480-4e8d9f907469';
+
+  promise_test(async t => {
+    await setMediaPermission("granted", ["camera","microphone"]);
+    await promise_rejects_dom(
+        t, "NotAllowedError", navigator.mediaDevices.getUserMedia({video: true}),
+        "UserMedia camera access should not be allowed in this document.");
+    while(true) {
+      await wait(100);
+      const reports = await pollReports(endpoint, id);
+      if (reports.length) {
+        checkReportExists(reports, 'permissions-policy-violation', location.href);
+        break;
+      }
+    }
+  }, "Reporting-Endpoints defined endpoint received reports.");
+    </script>
+  </body>
+</html>

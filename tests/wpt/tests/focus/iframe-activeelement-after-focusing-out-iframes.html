@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>iframe activeElement after focusing out iframe</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+function waitForEvent(target, event, checkFn) {
+  return new Promise(resolve => {
+    target.addEventListener(event, e => {
+      if (checkFn && !checkFn(e)) {
+        return;
+      }
+      resolve();
+    }, { once: true });
+  });
+}
+
+function focusTopLevel(w) {
+  w.postMessage("focus", "*");
+}
+
+async function getLog(w) {
+  let log = "";
+  step_timeout(function() {
+    w.postMessage("getlog", "*");
+  }, 0);
+  await waitForEvent(window, "message", (e) => {
+    log = e.data;
+    return true;
+  });
+  return log;
+}
+
+async function runTest(t, url) {
+  let w = window.open(url);
+  t.add_cleanup(() => { w.close(); });
+  await waitForEvent(window, "message", e => e.data === "ready");
+  focusTopLevel(w);
+  assert_equals(await getLog(w), 'outerlog:willfocusinput,windowfocus,didfocusinput,innerlog:willfocusinput,windowfocus,didfocusinput,activeElement:INPUT,windowblur,activeElement:BODY,');
+}
+
+promise_test(async t => {
+  await runTest(t, "support/iframe-activeelement-after-focusing-out-different-site-iframes-outer.sub.html");
+}, "Check iframe activeElement after focusing out different site iframe");
+
+promise_test(async t => {
+  await runTest(t, "support/iframe-activeelement-after-focusing-out-same-site-iframes-outer.html");
+}, "Check iframe activeElement after focusing out same site iframe");
+
+</script>

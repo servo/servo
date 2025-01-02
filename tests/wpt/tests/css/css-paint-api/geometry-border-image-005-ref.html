@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<style>
+html, body { margin: 0; padding: 0; }
+</style>
+<body>
+<canvas id ="canvas" width="308" height="308"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext("2d");
+context.fillStyle = "green";
+context.fillRect(0, 0, 290, 18);
+context.fillRect(0, 0, 18, 290);
+context.fillRect(0, 254, 290, 36);
+context.fillRect(254, 0, 36, 290);
+</script>
+</body>
+</html>

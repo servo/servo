@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='pseudo_element_spacing_ref.html'>
+<style type="text/css">
+  span:before {
+    content:"a";
+    padding-right:5em;
+  }
+  span:after {
+    content:"c";
+    padding-left:5em;
+  }
+  #first {
+    padding-left:4em;
+    padding-right:4em;
+  }
+  #second:before {
+    padding-left:4em;
+  }
+  #second:after {
+    padding-right:4em;
+  }
+</style>
+</head>
+
+<body>
+    |<span id=first>b</span>|<br>
+    |<span id=second>b</span>|
+</body>
+</html>

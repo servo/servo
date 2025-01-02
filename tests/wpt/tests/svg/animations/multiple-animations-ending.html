@@ -1,0 +1,421 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This checks the effect on multiple animations ending on one target</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<!-- Test that the first element can end while others continue without crashing, and the second
+     can end and remain frozen. Also test that a third element can animate after the second has ended
+     but that the result is still to return to the second animation's freeze position. -->
+<rect x='0' y='0' width='50' height='50' fill='green'>
+    <animate id="an1" attributeName='x' from='0' to='100' begin='0s' dur='1s' />
+    <animate id="an2" attributeName='x' from='200' to='250' begin='1.5s' dur='1s' fill='freeze' />
+    <animate id="an3" attributeName='x' from='50' to='0' begin='2.5s' dur='0.5s' />
+</rect>
+
+<!-- Test that a second element can take priority over the first from 0-1s, then
+     test that the first element can animate for 1s, and finally test that the
+     second element can once again animate after the first has ended. After all
+     animations end, test that they are removed and the rect returns to its home. -->
+<rect x='200' y='75' width='50' height='50' fill='green'>
+    <animate id="an4" attributeName='x' from='0' to='10' begin='1s' dur='1s'/>
+    <animate id="an5" attributeName='x' from='100' to='0' begin='0s' dur='2.5s'/>
+</rect>
+
+<!-- Test that a repeating animation can take priority over another animation, and that the
+     end state is the second animation's freeze value. Also test that, after a pause, a third
+     animation can take over and have its freeze value satisfied at the end. -->
+<rect x='0' y='150' width='50' height='50' fill='green'>
+    <animate id="an6" attributeName='x' from='200' to='240' begin='0s' dur='2s' fill='freeze'/>
+    <animate id="an7" attributeName='x' from='0' to='5' begin='1s' dur='0.1s' repeatCount="5" fill='freeze'/>
+    <animate id="an8" attributeName='x' from='250' to='150' begin='3s' dur='1s' fill='freeze'/>
+</rect>
+
+<!-- Test that 4 animations can animate a rect in 20px 'steps' and that correct freeze values are
+     honored even though the animation elements are specified in non-sequential order. Also test
+     that two repeating animations (active for only a short duration) only momentarily
+     affect the overall animation and are correctly removed. -->
+<rect x='0' y='225' width='50' height='50' fill='green'>
+    <animate id="an9" attributeName='x' from='200' to='250' begin='1.6s' dur='0.1s' repeatCount="2" fill='remove'/>
+    <animate id="anA" attributeName='x' from='160' to='180' begin='3s' dur='0.5s' fill='freeze'/>
+    <animate id="anB" attributeName='x' from='110' to='130' begin='2s' dur='0.5s' fill='freeze'/>
+    <animate id="anC" attributeName='x' from='10' to='30' begin='0s' dur='0.5s' fill='freeze'/>
+    <animate id="anD" attributeName='x' from='60' to='80' begin='1s' dur='0.5s' fill='freeze'/>
+    <animate id="anE" attributeName='x' from='200' to='250' begin='3.6s' dur='0.1s' repeatCount="2" fill='remove'/>
+</rect>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect1.x.animVal.value, 0, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 100, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 200, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 10, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample2() {
+    assert_approx_equals(rect1.x.animVal.value, 50, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 80, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 210, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 30, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample3() {
+    assert_approx_equals(rect1.x.animVal.value, 50, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 80, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 210, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 30, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample4() {
+    assert_approx_equals(rect1.x.animVal.value, 50, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 80, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 210, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 30, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample5() {
+    assert_approx_equals(rect1.x.animVal.value, 100, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 60, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 220, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 30, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample6() {
+    assert_approx_equals(rect1.x.animVal.value, 0, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 0, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 0, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 60, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample7() {
+    assert_approx_equals(rect1.x.animVal.value, 0, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 0, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 0, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 60, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample8() {
+    assert_approx_equals(rect1.x.animVal.value, 0, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 5, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 80, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample9() {
+    assert_approx_equals(rect1.x.animVal.value, 200, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 5, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 80, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample10() {
+    assert_approx_equals(rect1.x.animVal.value, 200, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 5, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 80, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample11() {
+    assert_approx_equals(rect1.x.animVal.value, 225, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 10, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 80, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample12() {
+    assert_approx_equals(rect1.x.animVal.value, 225, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 20, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 110, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample13() {
+    assert_approx_equals(rect1.x.animVal.value, 225, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 20, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 110, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample14() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 0, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 130, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample15() {
+    assert_approx_equals(rect1.x.animVal.value, 50, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 130, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample16() {
+    assert_approx_equals(rect1.x.animVal.value, 50, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 130, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample17() {
+    assert_approx_equals(rect1.x.animVal.value, 0, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 5, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 130, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample18() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 250, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 160, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample19() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 250, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 160, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample20() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 200, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 180, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample21() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 200, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 180, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample22() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 150, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 180, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+function sample23() {
+    assert_approx_equals(rect1.x.animVal.value, 250, epsilon);
+    assert_equals(rect1.x.baseVal.value, 0);
+
+    assert_approx_equals(rect2.x.animVal.value, 200, epsilon);
+    assert_equals(rect2.x.baseVal.value, 200);
+
+    assert_approx_equals(rect3.x.animVal.value, 150, epsilon);
+    assert_equals(rect3.x.baseVal.value, 0);
+
+    assert_approx_equals(rect4.x.animVal.value, 180, epsilon);
+    assert_equals(rect4.x.baseVal.value, 0);
+}
+
+smil_async_test((t) => {
+    var rects = rootSVGElement.ownerDocument.getElementsByTagName("rect");
+    rect1 = rects[0];
+    rect2 = rects[1];
+    rect3 = rects[2];
+    rect4 = rects[3];
+
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,   sample1],
+        ["an1", 0.499, sample2],
+        ["an1", 0.5,   sample3],
+        ["an1", 0.501, sample4],
+        ["an1", 0.999, sample5],
+        ["an1", 1.0,   sample6],
+        ["an1", 1.001, sample7],
+        ["an1", 1.499, sample8],
+        ["an1", 1.5,   sample9],
+        ["an1", 1.501, sample10],
+        ["an1", 1.999, sample11],
+        ["an1", 2.0,   sample12],
+        ["an1", 2.001, sample13],
+        ["an1", 2.499, sample14],
+        ["an1", 2.5,   sample15],
+        ["an1", 2.501, sample16],
+        ["an1", 2.999, sample17],
+        ["an1", 3.0,   sample18],
+        ["an1", 3.001, sample19],
+        ["an1", 3.499, sample20],
+        ["an1", 3.5,   sample21],
+        ["an1", 4.0,   sample22],
+        ["an1", 9.0,   sample23]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

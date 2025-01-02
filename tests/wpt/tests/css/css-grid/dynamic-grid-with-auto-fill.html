@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="height: 150px;">
+  <div style="display: grid; width: 100px; grid-template-rows: repeat(auto-fill, 100px); min-height: 100%; background: green;"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '50px';
+</script>

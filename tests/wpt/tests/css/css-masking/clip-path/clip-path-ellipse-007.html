@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Masking: Test clip-path property and ellipse function with no arguments</title>
+	<link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+	<link rel="match" href="reference/clip-path-ellipse-ref.html">
+	<meta name="fuzzy" content="0-38; 0-400">
+	<meta name="assert" content="The clip-path property takes the basic shape
+	'ellipse' for clipping. If no further arguments were specified, the radii
+	are 'closest-side' each. The position is initialised to the center of the
+	element. On pass there is a full green ellipse.">
+</head>
+<body>
+	<p>The test passes if there is a full green ellipse.</p>
+	<div style="width: 150px; height: 100px; position: absolute; margin: 50px; background-color: green; clip-path: ellipse(farthest-side closest-side);"></div>
+</body>
+</html>

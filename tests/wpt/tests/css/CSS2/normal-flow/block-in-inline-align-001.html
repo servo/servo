@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta name="assert" content="Test if `text-align` does not move block-in-inline">
+<link rel="match" href="block-in-inline-align-001-ref.html"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org" />
+<style>
+section {
+  width: 20ch;
+}
+div {
+  width: 10ch;
+  background: orange;
+}
+.left {
+  text-align: left;
+}
+.right {
+  text-align: right;
+}
+</style>
+<body>
+  <section class="right">
+    <span>
+      123456789
+      <div>123456789</div>
+      123456789
+    </span>
+  </section>
+
+  <section dir="rtl" class="left">
+    <span>
+      123456789
+      <div>123456789</div>
+      123456789
+    </span>
+  </section>
+</body>

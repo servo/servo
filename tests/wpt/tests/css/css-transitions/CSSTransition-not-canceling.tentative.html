@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Not canceling a CSS transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#csstransition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+const runDisplayNoneTransitionTest = displayTransitionStyle => {
+    promise_test(async t => {
+      const div = addDiv(t, { style: 'margin-left: 0px' });
+      getComputedStyle(div).marginLeft;
+
+      div.style.transition = 'margin-left 100s';
+      div.style.marginLeft = '1000px';
+
+      const transition = div.getAnimations()[0];
+      await transition.ready;
+      await waitForFrame();
+
+      assert_not_equals(getComputedStyle(div).marginLeft, '1000px',
+                        'transform style is animated before setting "display: none"');
+
+      div.style.transition = `${div.style.transition}, ${displayTransitionStyle}`;
+      div.style.display = 'none';
+
+      assert_not_equals(getComputedStyle(div).marginLeft, '1000px',
+                        'transform style is animated after setting "display: none"');
+    }, `Setting "display: none" with "display" set to transition using "${displayTransitionStyle}" does not cancel running transitions`);
+};
+
+runDisplayNoneTransitionTest('display 100s allow-discrete');
+runDisplayNoneTransitionTest('display 100s, all allow-discrete 100s');
+
+</script>

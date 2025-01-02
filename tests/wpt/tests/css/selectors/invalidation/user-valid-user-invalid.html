@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1477396">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1477392">
+<link rel=help href="https://drafts.csswg.org/selectors/#user-pseudos">
+<link rel=help href="https://html.spec.whatwg.org/#selector-user-valid">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<form>
+  <input type=email>
+  <input type=submit>
+</form>
+
+<style>
+input:user-valid {
+  color: rgb(0, 255, 0);
+}
+input:user-invalid {
+  background-color: rgb(255, 0, 0);
+}
+</style>
+
+<script>
+const green = 'rgb(0, 255, 0)';
+const red = 'rgb(255, 0, 0)';
+
+promise_test(async () => {
+  const emailInput = document.querySelector('input[type=email]');
+  assert_not_equals(getComputedStyle(emailInput).color, green,
+    'Input should not initially match :user-valid.');
+  assert_not_equals(getComputedStyle(emailInput).backgroundColor, red,
+    'Input should not initially match :user-invalid.');
+
+  emailInput.focus();
+  await test_driver.send_keys(emailInput, 'user');
+  assert_not_equals(getComputedStyle(emailInput).color, green,
+    ':user-valid should not match until after blurring.');
+  assert_not_equals(getComputedStyle(emailInput).backgroundColor, red,
+    ':user-invalid should not match until after blurring.');
+
+  emailInput.blur();
+  assert_not_equals(getComputedStyle(emailInput).color, green,
+    'Invalid input should not match :user-valid.');
+  assert_equals(getComputedStyle(emailInput).backgroundColor, red,
+    'Invalid input should match :user-invalid.');
+
+  emailInput.focus();
+  await test_driver.send_keys(emailInput, '@example.com');
+  assert_equals(getComputedStyle(emailInput).color, green,
+    'Valid input should match :user-valid.');
+  assert_not_equals(getComputedStyle(emailInput).backgroundColor, red,
+    'Valid input should not match :user-invalid.');
+}, ':user-valid and :user-invalid should invalidate after user input.');
+</script>

@@ -1,0 +1,57 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id="vshader" type="x-shader/x-vertex">
+void main()
+{
+    gl_PointSize = 1.0;
+    gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+
+void main()
+{
+    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+</head>
+<body>
+<canvas id="testbed" width="1" height="1" style="width: 100px; height: 100px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Verify that drawing a point without enabling any attributes succeeds');
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext('testbed');
+
+var program1 = wtu.setupProgram(gl, ['vshader', 'fshader']);
+
+debug('Draw a point with a shader that takes no attributes and verify it fills the whole canvas.');
+
+gl.drawArrays(gl.POINTS, 0, 1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+wtu.checkCanvas(gl, [0, 255, 0, 255]);
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 120px;
+  left: 0;
+}
+#scroller {
+  width: 250px;
+  overflow: auto;
+}
+#overflow {
+  width: 1000px;
+}
+.content {
+  width: 100px;
+  height: 20px;
+  padding: 40px 0;
+  text-align: center;
+  background-color: grey;
+  display: inline-block;
+}
+</style>
+
+<div id="scroller">
+  <div id="overflow">
+    <span><div class="content">1</div></span>
+    <span><div class="content">2</div></span>
+    <span><div class="content">3</div></span>
+    <span id="target"><div class="content">4</div></span>
+    <span><div class="content">5</div></span>
+  </div>
+</div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+
+var entries = [];
+var scroller, target, spaceWidth, targetOffsetLeft, targetOffsetTop;
+
+runTestCycle(function() {
+  scroller = document.getElementById("scroller");
+  assert_true(!!scroller, "scroller exists");
+  target = document.getElementById("target");
+  assert_true(!!target, "target exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF");
+}, "Inline target");
+
+function step0() {
+  // Measure space width between two adjacent inlines.
+  let nextEl = target.nextElementSibling;
+  spaceWidth = nextEl.offsetLeft - target.offsetLeft - target.offsetWidth;
+  // 8px body margin + 3 preceding siblings @ (100px width + spaceWidth) each
+  targetOffsetLeft = 8 + 300 + (spaceWidth * 3);
+  // 8px body margin + 40px top padding
+  targetOffsetTop = 48;
+  let left = targetOffsetLeft;
+  let right = left + 100;
+  let top = targetOffsetTop;
+  let bottom = top + target.offsetHeight;
+
+  scroller.scrollLeft = 90;
+  runTestCycle(step1, "scroller.scrollLeft = 90");
+
+  checkLastEntry(entries, 0, [left, right, top, bottom,
+                              0, 0, 0, 0, 0, vw, 0, vh, false]);
+}
+
+function step1() {
+  // -90px for scroll offset
+  let left = targetOffsetLeft - 90;
+  let right = left + 100;
+  let top = targetOffsetTop;
+  let bottom = top + target.offsetHeight;
+  // 8px body margin + 250px client width of scroller
+  let scrollerRight = 258;
+  checkLastEntry(entries, 1, [left, right, top, bottom,
+                              left, scrollerRight, top, bottom,
+                              0, vw, 0, vh, true]);
+}
+</script>

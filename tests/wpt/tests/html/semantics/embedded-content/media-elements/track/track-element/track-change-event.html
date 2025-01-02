@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>A 'change' event is fired when a TextTrack's mode changes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+    var video = document.createElement('video');
+    var track = video.addTextTrack('subtitles', 'test', 'en');
+
+    // addTextTrack() defaults to "hidden", so settings
+    // mode to "showing" should trigger a "change" event.
+    track.mode = 'showing';
+    assert_equals(video.textTracks.length, 1);
+
+    video.textTracks.onchange = t.step_func_done(function(event) {
+        assert_equals(event.target, video.textTracks);
+        assert_true(event instanceof Event, 'instanceof');
+        assert_false(event.hasOwnProperty('track'), 'unexpected property found: "track"');
+    });
+});
+</script>

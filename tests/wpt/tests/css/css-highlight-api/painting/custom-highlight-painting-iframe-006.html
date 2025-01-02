@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: </title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-iframe-006-ref.html">
+<meta name="assert" value="Ranges contained in a registered Highlight that are moved to another document different than the owner of the HighlightRegistry where the Highlight has been registered should not be painted anymore.">
+<script src="resources/run-after-layout-and-paint.js"></script>
+<style>
+  ::highlight(foo) {
+    color: green;
+    background-color: greenyellow;
+  }
+</style>
+<body>
+  <iframe
+    id="iframe"
+    srcdoc="
+    <style>
+      ::highlight(foo) {
+        color: blue;
+        background-color: cyan;
+      }
+    </style>
+    <span id='span-iframe'>abc</span>
+    "
+    >
+</iframe>
+<br>
+<span id="span-doc">abc</span>
+<script>
+  let spanDoc = document.querySelector("#span-doc");
+  let r = new Range();
+  r.setStart(spanDoc, 0);
+  r.setEnd(spanDoc, 1);
+
+  let h = new Highlight(r);
+  CSS.highlights.set("foo", h);
+
+  let iframe = document.querySelector("#iframe");
+  iframe.onload = () => {
+    let spanIframe = iframe.contentDocument.querySelector("#span-iframe");
+    runAfterLayoutAndPaint(()=>{
+      r.setStart(spanIframe, 0);
+      r.setEnd(spanIframe, 1);
+      document.documentElement.removeAttribute("class");
+    });
+  }
+</script>
+</html>

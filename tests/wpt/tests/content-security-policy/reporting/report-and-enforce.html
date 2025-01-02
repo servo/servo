@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Reporting and enforcing policies can be different</title>
+    <!-- CSP headers
+Content-Security-Policy: img-src 'none'; style-src *; script-src 'self' 'unsafe-inline'
+
+Content-Security-Policy-Report-Only: img-src *; style-src 'none'; script-src 'self' 'unsafe-inline'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+-->
+</head>
+<body>
+    <script>
+        var img_test = async_test("The image should be blocked");
+        var sheet_test = async_test("The stylesheet should load");
+        <!-- This image should be blocked, but should not generate a report-->
+        var i = document.createElement('img');
+        i.onerror = img_test.step_func_done();
+        i.onload = img_test.unreached_func("Should not have loaded the img");
+        i.src = "../support/fail.png";
+        document.body.appendChild(i);
+        <!-- This font should be loaded but should generate a report-->
+        var s = document.createElement('link');
+        s.onerror = sheet_test.unreached_func("Should have loaded the font");
+        s.onload = sheet_test.step_func_done();
+        s.type = "text/css";
+        s.rel="stylesheet";
+        s.href = "../support/fonts.css";
+        document.body.appendChild(s);
+    </script>
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=style-src%20%27none%27'></script>
+</body>
+</html>

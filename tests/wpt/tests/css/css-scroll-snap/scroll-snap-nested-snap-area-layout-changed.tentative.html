@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+<body>
+  <style>
+    #scroller {
+      overflow: scroll;
+      scroll-snap-type: y mandatory;
+      height: 200px;
+      width: 200px;
+      border: solid 1px;
+      position:absolute;
+    }
+    .snap_area {
+      position: absolute;
+      width: 100px;
+      left: calc(50% - 50px);
+    }
+    #outer_snap_area {
+      scroll-snap-align: start;
+      height: 1000px;
+      background-color: blue;
+    }
+    #inner_snap_area {
+      scroll-snap-align: start;
+      height: 100px;
+      top: 100px;
+      background-color: yellow;
+    }
+  </style>
+  <div id="scroller">
+    <div id="outer_snap_area" class="snap_area"></div>
+    <div id="inner_snap_area" class="snap_area"></div>
+  </div>
+  <script>
+    async function reset() {
+      inner_snap_area.style.height = "100px";
+      await waitForCompositorCommit();
+    }
+
+    let scroller = document.getElementById("scroller");
+    promise_test(async (t) => {
+      await reset();
+      await resetTargetScrollState(t, scroller);
+      assert_equals(scroller.scrollTop, 0, "test precondition: scroller is " +
+      "not scrolled");
+      let scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      let target_snap_position = inner_snap_area.offsetTop +
+          inner_snap_area.offsetHeight;
+      // Scroll to an offset close to the bottom of the inner snap area and
+      // expect to snap to an offset just below this snap area.
+      scroller.scrollTo(0, target_snap_position - 10);
+      await scrollend_promise;
+      assert_equals(scroller.scrollTop, target_snap_position,
+          "scroller snaps to just below the inner snap area.");
+      // We are just below the inner snap area. Increase its height so that it
+      // is larger than the snapport and straddled by the snapport. Verify
+      // that we snap to its bottom.
+      inner_snap_area.style.height =
+               `${scroller.clientHeight + inner_snap_area.clientHeight - 10}px`;
+      await waitForCompositorCommit();
+      target_snap_position = inner_snap_area.offsetTop +
+          inner_snap_area.offsetHeight - scroller.clientHeight;
+      assert_equals(scroller.scrollTop, target_snap_position,
+          "scroller snaps to the bottom of the smaller snap area (which is now " +
+          "covering).");
+    }, "newly larger-than-snapport area is snapped to when straddled close " +
+       "to bottom.");
+
+    promise_test(async (t) => {
+      await reset();
+      await resetTargetScrollState(t, scroller);
+      assert_equals(scroller.scrollTop, 0, "test precondition: scroller is " +
+      "not scrolled");
+      let scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      let target_snap_position = inner_snap_area.offsetTop +
+          inner_snap_area.offsetHeight;
+      // Scroll to an offset close to the bottom of the inner snap area and
+      // expect to snap to an offset just below this snap area.
+      scroller.scrollTo(0, target_snap_position - 10);
+      await scrollend_promise;
+      assert_equals(scroller.scrollTop, target_snap_position,
+          "scroller snaps to just below the inner snap area.");
+      // We are just below the inner snap area. Increase its height so that it
+      // is larger than the snapport and covers the snapport. Verify that we
+      // remain in the covering position.
+      inner_snap_area.style.height =
+               `${scroller.clientHeight + inner_snap_area.clientHeight + 10}px`;
+      await waitForCompositorCommit();
+      assert_equals(scroller.scrollTop, target_snap_position,
+          "scroller snaps to the bottom of the smaller snap area (which is now " +
+          "covering).");
+    }, "snapport remains within newly covering snap area when already in " +
+       "covering position.");
+  </script>
+</body>

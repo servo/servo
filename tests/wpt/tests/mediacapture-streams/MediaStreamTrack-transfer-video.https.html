@@ -1,0 +1,26 @@
+<!doctype html>
+<title>MediaStreamTrack transfer to iframe</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+promise_test(async () => {
+  const iframe = document.createElement("iframe");
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const track = stream.getVideoTracks()[0];
+  const result = new Promise((resolve, reject) => {
+    window.onmessage = (e) => {
+      if (e.data.result === 'Failure') {
+        reject('Failed: ' + e.data.error);
+      } else {
+        resolve();
+      }
+    };
+  });
+  iframe.addEventListener("load", () => {
+    iframe.contentWindow.postMessage(track);
+  });
+  iframe.src = "support/iframe-MediaStreamTrack-transfer-video.html";
+  document.body.appendChild(iframe);
+  return result;
+});
+</script>

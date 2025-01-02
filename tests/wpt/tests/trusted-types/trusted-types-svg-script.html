@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./support/resolve-spv.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'">
+</head>
+<body>
+  <div id="log"></div>
+  <svg id="svg"><script id="script">"some script text";</script></svg>
+  <script>
+    const policy = trustedTypes.createPolicy("policy", {
+        createScript: x => x, createHTML: x => x, createScriptURL: x => x });
+
+    promise_test(t => {
+      assert_throws_js(TypeError, _ => {
+        document.getElementById("script").innerHTML = "'modified via innerHTML';";
+      });
+      return promise_spv();
+    }, "Assign String to SVGScriptElement.innerHTML.");
+
+    promise_test(t => {
+      document.getElementById("script").innerHTML = policy.createHTML("'modified via innerHTML';");
+      return Promise.resolve();
+    }, "Assign TrustedHTML to SVGScriptElement.innerHTML.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.innerHTML = policy.createHTML("'modified via innerHTML';");
+      document.getElementById("svg").appendChild(elem);
+      return promise_spv();
+    }, "Assign TrustedHTML to SVGScriptElement.innerHTML and execute it.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(
+          "http://www.w3.org/2000/svg", "script");
+      elem.insertBefore(document.createTextNode("modified via DOM"), null);
+      document.getElementById("svg").appendChild(elem);
+      return promise_spv();
+    }, "Modify SVGScriptElement via DOM manipulation.");
+  </script>
+</body>

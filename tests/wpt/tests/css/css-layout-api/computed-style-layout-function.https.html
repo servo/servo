@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#valdef-display-layout">
+<meta name="assert" content="This test checks that a layout() function parses correctly and serializes correctly from computed style." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#test1 { display: layout(test1); }
+#test2 { display: layout(); }
+#test3 { display: layout(test3, invalid); }
+#test4 { --display: layout(test4); display: var(--display); }
+</style>
+
+<div id=test1></div>
+<div id=test2></div>
+<div id=test3></div>
+<div id=test4></div>
+<div id=test5></div>
+<script>
+test(function() {
+  const test1 = document.getElementById('test1');
+  assert_equals(getComputedStyle(test1).display, 'layout(test1)');
+});
+
+test(function() {
+  // layout() should fail to parse.
+  const test2 = document.getElementById('test2');
+  assert_equals(getComputedStyle(test2).display, 'block');
+});
+
+test(function() {
+  // layout(test3, invalid) should fail to parse.
+  const test3 = document.getElementById('test3');
+  assert_equals(getComputedStyle(test3).display, 'block');
+});
+
+test(function() {
+  // Setting via a custom property should work.
+  const test4 = document.getElementById('test4');
+  assert_equals(getComputedStyle(test4).display, 'layout(test4)');
+});
+
+test(function() {
+  // Setting the inline style should reflect in the computed style.
+  const test5 = document.getElementById('test5');
+  assert_equals(getComputedStyle(test5).display, 'block');
+
+  test5.style.display = 'layout(test5)';
+  assert_equals(getComputedStyle(test5).display, 'layout(test5)');
+});
+</script>

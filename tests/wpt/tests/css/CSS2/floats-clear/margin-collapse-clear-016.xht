@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Margin collapsing - margins of a 'collapsed through' box without clearance can collapse with parent block's bottom margin</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Daniel Schattenkirchner" href="mailto:crazy-daniel@gmx.de" />
+  <link rel="match" href="margin-collapse-clear-016-ref.xht" />
+
+  <meta content="An element that does not have clearance applied to it can collapse its top margin with its parent block's bottom margin. Margins of a 'collapsed through' box without clearance applied to it can collapse with its parent block's bottom margin. An element with clear set to it (to other than 'none') can only create a clearance if and when there is a preceding floated block." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  background-color: white;
+  }
+
+  #parent-block
+  {
+  background-color: red;
+  margin-bottom: 0px;
+  }
+
+  #sibling
+  {
+  background-color: green;
+  height: 100px;
+  }
+
+  #element-without-clearance-applied
+  {
+  clear: both;
+  margin-top: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a wide filled green rectangle and <strong>no red</strong>.</p>
+
+  <div id="parent-block">
+    <div id="sibling"></div>
+    <div id="element-without-clearance-applied"></div>
+  </div>
+
+  <!--
+  #element-without-clearance-applied's margin-top collapses
+  with #parent-block's margin-bottom: the resulting margin-bottom
+  then collapses with the adjoining white body's margin-bottom
+  -->
+
+ </body>
+</html>

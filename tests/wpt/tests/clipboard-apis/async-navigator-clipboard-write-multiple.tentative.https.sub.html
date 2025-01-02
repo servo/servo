@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Clipboard write should cancel the prior pending request</title>
+<link rel="help" href="https://github.com/w3c/clipboard-apis/issues/161">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+
+<iframe width="50" height="50" id="same" src="resources/page.html"></iframe><br>
+<iframe width="50" height="50" id="cross" src="https://{{hosts[alt][]}}:{{ports[https][1]}}/clipboard-apis/resources/page.html"></iframe><br>
+<input value="Test">
+<script>
+"use strict";
+
+// Permissions are required in order to invoke navigator.clipboard functions in
+// an automated test.
+async function getPermissions() {
+  await tryGrantReadPermission();
+  await tryGrantWritePermission()
+  await waitForUserActivation();
+}
+
+function waitForMessage(msg) {
+  return new Promise((resolve) => {
+    window.addEventListener("message", function handler(e) {
+      if (e.data == msg) {
+        window.removeEventListener("message", handler);
+        resolve();
+      }
+    });
+  });
+}
+
+function generateRandomString() {
+  return "random number: " + Math.random();
+}
+
+function testCancelPendingWrite(funcToMakeNewRequest, msg) {
+  promise_test(async t => {
+    await getPermissions();
+
+    // Create a pending write request which should be rejected after a new
+    // request is made.
+    let resolvePendingPromise;
+    let promise = navigator.clipboard.write([
+      new ClipboardItem({
+        "text/plain":  new Promise((resolve) => { resolvePendingPromise = resolve; }),
+      }),
+    ]).catch(e => { return e; });
+
+    // Make a new request that should cancel the prior pending request.
+    let str = generateRandomString();
+    await funcToMakeNewRequest(str);
+
+    // Pending request should be rejected with NotAllowedError.
+    let error = await promise;
+    assert_not_equals(error, undefined);
+    assert_equals(error.name, "NotAllowedError");
+
+    // Resolve pending promise.
+    resolvePendingPromise(generateRandomString());
+    // Check clipboard data.
+    assert_equals(await navigator.clipboard.readText(), str);
+  }, msg);
+}
+
+testCancelPendingWrite(async (str) => {
+  // A new write request should cancel the prior pending request.
+  await navigator.clipboard.write([
+    new ClipboardItem({
+      "text/plain":  str,
+    }),
+  ]).catch(() => {
+    assert_true(false, "should not fail");
+  });
+}, "clipboard.write() should cancel the prior pending one (same document)");
+
+testCancelPendingWrite(async (str) => {
+  // A new write should cancel the prior pending request.
+  const iframe = document.getElementById("same");
+  iframe.contentWindow.postMessage(["write", str], "*");
+  await waitForMessage("done");
+}, "clipboard.write() should cancel the prior pending one (same-origin iframe)");
+
+testCancelPendingWrite(async (str) => {
+  // A new write should cancel the prior pending request.
+  const iframe = document.getElementById("cross");
+  iframe.contentWindow.postMessage(["write", str], "*");
+  await waitForMessage("done");
+}, "clipboard.write() should cancel the prior pending one (cross-origin iframe)");
+
+testCancelPendingWrite(async (str) => {
+  const input = document.querySelector("input");
+  input.value = str;
+  input.focus();
+  input.select();
+
+  // A new copy action should cancel the prior pending request.
+  const modifier_key = navigator.platform.includes("Mac") ? "\uE03D" : "\uE009";
+  await new test_driver.Actions().keyDown(modifier_key).keyDown("c").send();
+}, "copy action should cancel the prior pending clipboard.write() request");
+
+</script>

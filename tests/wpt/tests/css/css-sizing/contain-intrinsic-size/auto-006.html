@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Last remembered size</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6220">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7527">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7532">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7539">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7564">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7606">
+<meta name="assert" content="Tests that the last remembered size is properly updated or removed" />
+
+<style>
+#target {
+  width: max-content;
+  height: max-content;
+}
+.cis-auto {
+  contain-intrinsic-size: auto 1px auto 2px;
+}
+.skip-contents {
+  content-visibility: hidden;
+}
+.size-100-50 {
+  width: 100px;
+  height: 50px;
+}
+.size-75-25 {
+  width: 75px;
+  height: 25px;
+}
+.vertical {
+  writing-mode: vertical-lr;
+}
+.hidden {
+  display: none;
+}
+.flex {
+  display: flex;
+}
+.inline {
+  display: inline;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="parent">
+  <div id="target">
+    <div id="contents"></div>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const parent = document.getElementById("parent");
+const target = document.getElementById("target");
+const contents = document.getElementById("contents");
+
+function checkSize(expectedWidth, expectedHeight, msg) {
+  assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
+  assert_equals(target.clientHeight, expectedHeight, msg + " - clientHeight");
+}
+
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+function cleanup() {
+  parent.className = "";
+  target.className = "";
+  contents.className = "";
+  checkSize(0, 0, "Sizing after cleanup");
+}
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.className = "cis-auto skip-contents";
+  contents.classList.add("size-100-50");
+  checkSize(1, 2, "Size containment with no last remembered size");
+
+  target.classList.remove("skip-contents");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Using last remembered size");
+
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Still using last remembered size");
+
+  target.classList.remove("skip-contents");
+  checkSize(75, 25, "Sizing normally with different size");
+
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Going back to last remembered size");
+
+  target.classList.remove("skip-contents");
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(75, 25, "Using the new last remembered size");
+}, "Basic usage");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  checkSize(0, 0, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.add("size-100-50");
+  checkSize(0, 0, "Using last remembered size");
+}, "Last remembered size can be 0");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  parent.classList.add("hidden");
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.classList.remove("hidden");
+  contents.classList.remove("size-100-50");
+  checkSize(0, 0, "Sizing normally to 0x0");
+
+  await nextRendering();
+  contents.classList.add("size-100-50");
+  target.classList.add("skip-contents");
+  checkSize(0, 0, "Using the new last remembered size");
+}, "Last remembered size can be set to 0 after losing display:none");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  checkSize(100, 50, "Using last remembered size");
+
+  target.classList.add("vertical");
+  checkSize(50, 100, "Last remembered size is logical");
+}, "Last remembered size is logical");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.classList.add("hidden");
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.classList.remove("hidden");
+  contents.classList.remove("size-100-50");
+  checkSize(100, 50, "Still using last remembered size");
+}, "Last remembered size survives box destruction");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  checkSize(100, 50, "Using last remembered size");
+
+  target.classList.add("flex");
+  checkSize(100, 50, "Still using last remembered size");
+}, "Last remembered size survives display type changes");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Using last remembered size");
+
+  target.classList.remove("cis-auto");
+  checkSize(0, 0, "Basic size containment");
+
+  await nextRendering();
+  target.classList.add("cis-auto");
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Losing cis:auto removes last remembered size");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.remove("cis-auto");
+  checkSize(100, 50, "Sizing normally again");
+
+  await nextRendering();
+  target.classList.add("cis-auto");
+  target.classList.add("skip-contents");
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Losing cis:auto removes last remembered size even if size doesn't change");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Using last remembered size");
+
+  target.classList.remove("cis-auto");
+  checkSize(0, 0, "Basic size containment");
+
+  target.classList.add("cis-auto");
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Losing cis:auto removes last remembered size immediately");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.classList.add("hidden");
+  target.classList.remove("cis-auto");
+  target.classList.remove("skip-contents");
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.classList.remove("hidden");
+  target.classList.add("cis-auto");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(75, 25, "Sizing normally with different size");
+
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Going back to last remembered size");
+}, "Losing cis:auto during display:none doesn't remove last remembered size");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.classList.add("hidden");
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.classList.remove("hidden");
+  target.classList.remove("cis-auto");
+  checkSize(0, 0, "Basic size containment");
+
+  target.classList.add("cis-auto");
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Lack of cis:auto during box creation removes last remembered size");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.classList.add("hidden");
+  target.classList.remove("cis-auto");
+  checkSize(0, 0, "No box");
+
+  parent.classList.remove("hidden");
+  checkSize(0, 0, "Basic size containment");
+
+  target.classList.add("cis-auto");
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Last remembered size can be removed synchronously");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(100, 50, "Using last remembered size");
+
+  target.remove();
+  checkSize(0, 0, "No box");
+
+  parent.appendChild(target);
+  checkSize(100, 50, "Still using last remembered size");
+}, "Disconnected element can briefly keep last remembered size");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  target.remove();
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.appendChild(target);
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Disconnected element ends up losing last remembered size");
+
+promise_test(async function () {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.innerHTML = "";
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.appendChild(target);
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Disconnected element ends up losing last remembered size, parent removes all children");
+
+promise_test(async function () {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.remove();
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  document.body.appendChild(parent);
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Disconnected element ends up losing last remembered size, the parent node is removed");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  checkSize(0, 0, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  target.remove();
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.appendChild(target);
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Disconnected element ends up losing last remembered size even if size was 0x0");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("inline");
+  checkSize(0, 0, "Non-atomic inline box");
+
+  await nextRendering();
+  target.classList.remove("inline");
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  checkSize(100, 50, "Still using previous last remembered size");
+}, "Last remembered size survives becoming inline");
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("inline");
+  checkSize(0, 0, "Non-atomic inline box");
+
+  await nextRendering();
+  target.classList.remove("inline");
+  contents.classList.remove("size-100-50");
+  checkSize(0, 0, "Sizing normally to 0x0");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.add("size-100-50");
+  checkSize(0, 0, "Last remembered size is now 0x0");
+}, "Last remembered size can be set to 0x0 after losing display:inline");
+</script>

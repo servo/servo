@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Blocks: Effect of Bottom Padding on Inline Layout</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-06 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/008.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" />
+  <link rel="match" href="blocks-018-ref.xht" />
+
+  <meta name="assert" content="Bottom padding on inline elements has no effect on layout."/>
+  <style type="text/css">
+   /* reset everything to be sure we don't introduce oddities */
+   div { border: 0; padding: 0; margin: 0; line-height: 1;
+         display: block; width: 10em; }
+   span { border: 0; padding: 0; margin: 0; line-height: 1;
+          display: inline; white-space: nowrap; }
+
+   /* the test */
+   div { background: red; }
+   span.control { background: green; color: white; }
+   span.test { padding-bottom: 10em; }
+  </style>
+ </head>
+ <body>
+  <div>
+   <span class="test"><span class="control">Test passes if there is no red.</span></span>
+  </div>
+ </body>
+</html>

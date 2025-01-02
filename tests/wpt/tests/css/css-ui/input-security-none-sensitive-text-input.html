@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Test that input-security: none does not obscure text in sensitive text inputs</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#input-security">
+<link rel="author" title="Apple Inc">
+<link rel="match" href="input-security-none-sensitive-text-input-ref.html">
+<style>
+  input { input-security: none; }
+</style>
+<input type="password" value="hunter2">

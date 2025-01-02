@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Selector lists match if any child selector does</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div class=host>
+    <template shadowrootmode="open">
+      <style>
+        div {
+          width: 100px;
+          height: 25px;
+        }
+        .red { background-color: red; }
+        .green { background-color: green; }
+
+        :host .t1, .error {
+          background-color: green;
+        }
+        div:host .t2,
+        :host .t2 {
+          background-color: green;
+        }
+
+        div:host .t3,
+        *:host .t3 {
+          background-color: red;
+        }
+        /* no t4 test needed, just leaving the element in
+          to prevent careful rounding from being necessary. */
+      </style>
+      <div class="red t1"></div>
+      <div class="red t2"></div>
+      <div class="green t3"></div>
+      <div class="green t4"></div>
+      <slot></slot>
+    </template>
+    <section></section>
+</div>

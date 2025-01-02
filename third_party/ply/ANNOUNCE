@@ -1,0 +1,40 @@
+January 31, 2017
+
+                  Announcing :  PLY-3.10 (Python Lex-Yacc)
+
+                        http://www.dabeaz.com/ply
+
+I'm pleased to announce PLY-3.10--a pure Python implementation of the
+common parsing tools lex and yacc.  PLY-3.10 is a minor bug fix
+release.  It supports both Python 2 and Python 3.
+
+If you are new to PLY, here are a few highlights:
+
+-  PLY is closely modeled after traditional lex/yacc.  If you know how 
+   to use these or similar tools in other languages, you will find
+   PLY to be comparable.
+
+-  PLY provides very extensive error reporting and diagnostic
+   information to assist in parser construction.  The original
+   implementation was developed for instructional purposes.  As
+   a result, the system tries to identify the most common types
+   of errors made by novice users.
+
+-  PLY provides full support for empty productions, error recovery,
+   precedence rules, and ambiguous grammars.
+
+-  Parsing is based on LR-parsing which is fast, memory efficient,
+   better suited to large grammars, and which has a number of nice
+   properties when dealing with syntax errors and other parsing 
+   problems. Currently, PLY can build its parsing tables using 
+   either SLR or LALR(1) algorithms. 
+
+More information about PLY can be obtained on the PLY webpage at:
+
+                   http://www.dabeaz.com/ply
+
+PLY is freely available.
+
+Cheers,
+
+David Beazley (http://www.dabeaz.com)

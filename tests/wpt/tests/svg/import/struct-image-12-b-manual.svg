@@ -1,0 +1,71 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="empty"
+    version="$Revision: 1.4 $" testname="$RCSfile: struct-image-12-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#ImageElement">
+        <p>
+          [[Describe which section and what specific assertion is being tested
+          by the test. If the test has a number of sub tests, multiple
+          "testComponent" elements can be specified within the "testDescription"
+          element.]]
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[Describe the pass criteria of the test here. The pass criteria is what
+        should be displayed when the test is run.]]
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-image-12-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" id="svg-root-circle" viewBox="0 0 450 450" width="450" height="450">
+        <circle cx="225" cy="225" r="200" fill="blue" fill-opacity="0.2"/>
+      </svg>
+    </defs>
+
+    <!-- The following image leads to a cycle, what should be displayed here? -->
+    <image id="imageSVG" x="60" y="50" width="240" height="240" xlink:href="../images/struct-image-12-b-cycle.svg"/>
+
+    <!-- The following image should not be shown because it leads to a cycle -->
+    <image id="imageSVG" x="60" y="50" width="240" height="240" xlink:href="struct-image-12-b.svg"/>
+
+    <!-- The following image should not be shown because image elements can't reference elements in an svg file -->
+    <image id="imageSVG" x="60" y="50" width="240" height="240" xlink:href="#svg-root-circle"/>
+
+    <rect x="300" y="170" width="120" height="120" fill="blue"/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border applied to element with 'display' set to block</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-03 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-shorthand-properties" />
+        <link rel="match" href="border-applies-to-001-ref.xht" />
+
+        <meta name="assert" content="The 'border' property applies to elements with a display of block." />
+        <style type="text/css">
+            span
+            {
+                border: green solid 4px;
+                display: block;
+                height: 96px;
+                width: 96px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a hollow green square.</p>
+        <div>
+            <span></span>
+        </div>
+    </body>
+</html>

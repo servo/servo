@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>filter function can be applied to border-image</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#funcdef-filter"/>
+<link rel="author" title="Mike Bremford" href="http://bfo.com/" />
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht"/>
+<style>
+.test {
+    position: relative;
+    width: 50px;
+    height: 100px;
+    box-sizing: border-box;
+    border: 25px solid black;
+    border-image: filter(url(resources/green-transparent-200x200.png), drop-shadow(50px 0 0 green)) 75 / 75px / 50px;
+}
+.red {
+    position: absolute;
+    left: -25px;
+    top: -25px;
+    width: 100px;
+    height: 100px;
+    background: red;
+    z-index: -1;
+}
+</style>
+</head>
+<body>
+ <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+ <div class="test">
+ <div class="red"></div>
+ </div>
+</body>
+</html>

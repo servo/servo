@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  #fakegroup > div {
+    float: left;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+  }
+  .fakecolumn {
+    float: left;
+    width: 140px;
+    height: 100px;
+    background: yellow;
+  }
+
+</style>
+<div style="width:450px; line-height:20px;">
+  <div id="fakegroup">
+    <div style="background:hotpink;">*</div>
+    <div style="background:cyan;"></div>
+    <div style="background:hotpink;">*</div>
+    <div style="background:cyan;"></div>
+    <div style="background:hotpink;">*</div>
+    <div style="background:cyan;"></div>
+    <div style="background:hotpink;">*</div>
+    <div style="background:cyan;"></div>
+    <div style="background:hotpink;">*</div>
+  </div>
+  <div style="display:flow-root; border:15px solid;">
+    <div class="fakecolumn">First column</div>
+    <div class="fakecolumn">Second column</div>
+    <div class="fakecolumn">Third column</div>
+  </div>
+</div>
+

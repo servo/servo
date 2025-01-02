@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <style>
+      .item {
+        /* Flex items have purple border: */
+        border: 2px dotted purple;
+        margin-bottom: 2px; /* (Just for spacing things out, visually) */
+      }
+
+      .small { width: 50px; }
+      .big   { width: 80px; }
+
+      .item > * {
+        /* Flex items' contents are gray & fixed-size: */
+        background: gray;
+        height: 10px;
+        width: 80px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="item small"><div></div></div>
+    <div class="item small"><div></div></div>
+    <div class="item small"><div></div></div>
+    <div class="item small"><div></div></div>
+    <div class="item small"><div></div></div>
+    <div class="item small"><div></div></div>
+
+    <div class="item big"><div></div></div>
+    <div class="item big"><div></div></div>
+    <div class="item big"><div></div></div>
+  </body>
+</html>

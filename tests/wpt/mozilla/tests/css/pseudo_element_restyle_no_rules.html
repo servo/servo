@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pseudo-Element is restyled correctly when matching rules become empty</title>
+<link rel="match" href="pseudo_element_restyle_no_rules_ref.html">
+<style>
+  p.whatever::before { content: " hey "; }
+</style>
+<p>
+  test.
+
+<script>
+var p = document.querySelector('p');
+var toggle = function() {
+  p.className = p.className == "whatever" ? "" : "whatever";
+};
+toggle();
+// Ensure a restyle happens.
+p.offsetTop;
+toggle()
+</script>

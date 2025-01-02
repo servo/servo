@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>stretching works for replaced items with a fallback aspect ratio</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1656281">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6286#issuecomment-866986544">
+<link rel="match" href="grid-item-aspect-ratio-stretch-4-ref.html">
+<style>
+  body {
+    line-height: 0;
+  }
+
+  div {
+    display: inline-grid;
+    grid-template: 100% / 100%;
+    height: 250px;
+    width: 350px;
+    background: grey;
+    margin: 10px;
+    vertical-align: top;
+  }
+  img { background: blue; }
+
+  .justify {
+    justify-self: stretch;
+  }
+  .align {
+    align-self: stretch;
+  }
+</style>
+<div>
+  <img class="align justify">
+</div>
+<div>
+  <img class="align">
+</div>
+<div>
+  <img class="justify">
+</div>
+<div>
+  <img>
+</div>
+
+<script>
+var url = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="0px" viewBox="0 0 50 100"></svg>'
+var imgs = document.querySelectorAll('img');
+for (var i = 0; i < imgs.length; ++i) {
+  var img = imgs[i];
+  img.src = url;
+}
+</script>

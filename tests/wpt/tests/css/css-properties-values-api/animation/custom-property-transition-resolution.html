@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<resolution>",
+  from: "100dppx",
+  to: "200dppx",
+  expected: "150dppx"
+}, 'A custom property of type <resolution> can yield a CSS Transition');
+
+</script>

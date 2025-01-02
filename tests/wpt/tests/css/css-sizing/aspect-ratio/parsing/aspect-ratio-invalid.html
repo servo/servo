@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio Test: aspect-ratio with invalid values</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="aspect-ratio supports the full grammar '[auto | <ratio>]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value("aspect-ratio", "auto / 5");
+test_invalid_value("aspect-ratio", "auto / 16");
+test_invalid_value("aspect-ratio", "16 9");
+test_invalid_value("aspect-ratio", "16px / 9px");
+test_invalid_value("aspect-ratio", "16 / -9");
+test_invalid_value("aspect-ratio", "1 invalid");
+test_invalid_value("aspect-ratio", "invalid 1.5");
+test_invalid_value("aspect-ratio", "auto 1 / 1 auto");
+test_invalid_value("aspect-ratio", "16 /");
+test_invalid_value("aspect-ratio", "auto 16 /");
+test_invalid_value("aspect-ratio", "16 / auto");
+</script>

@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(t => {
+  let start_index = navigation.currentEntry.index;
+
+  let oncurrententrychange_called = false;
+  let original_currentEntry = navigation.currentEntry;
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_called = true;
+    assert_equals(e.from, original_currentEntry);
+    assert_equals(e.from.index, -1);
+    assert_equals(e.navigationType, "replace");
+    assert_equals(navigation.currentEntry.index, start_index);
+  });
+  history.replaceState(1, "", "#1");
+  assert_true(oncurrententrychange_called);
+}, "currententrychange fires for history.replaceState()");
+</script>

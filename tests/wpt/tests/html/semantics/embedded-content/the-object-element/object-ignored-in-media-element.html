@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTML Test: The embed element represents a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="assert" content="Check if the object element is ignored when used inside a media element">
+<script type="application/javascript">
+  var nestingTest = async_test("Test <object> being ignored inside media element");
+  onload = nestingTest.step_func_done(function() {
+    assert_true(true, "We got to a load event without loading things we should not load");
+  });
+</script>
+<body>
+  <video>
+    <object type="text/html" data="../resources/should-not-load.html"
+            test-description="<object> in <video>"></object>
+  </video>
+  <audio>
+    <object type="text/html" data="../resources/should-not-load.html"
+            test-description="<object> in <audio>"></object>
+  </audio>
+</body>

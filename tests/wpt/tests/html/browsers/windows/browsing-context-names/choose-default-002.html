@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Browsing context names - empty string</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  window.addEventListener('message', t.step_func_done(e => {
+    assert_equals(e.data.isTop, false);
+    assert_equals(e.data.name, 'hellothere', 'Empty-string browsing context should choose current context');
+  }), false);
+}, 'The current browsing context must be chosen if the given name is empty string');
+</script>
+<iframe name="hellothere" src="resources/choose-default-002-iframe.html"></iframe>

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Media query correctly forces style invalidation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="myframe" src="iframe_for_media_queries.html" height="500" width="500">
+</iframe>
+<script>
+var test = async_test("Media queries within stylesheets");
+window.onload = test.step_func(function() {
+  var frame = document.getElementById("myframe");
+  var frameDoc = frame.contentWindow.document;
+  var element = frameDoc.getElementById("testelement");
+  assert_equals(frame.contentWindow.getComputedStyle(element).backgroundColor, "rgb(255, 0, 0)");
+  frame.width = "300";
+  frameDoc.documentElement.offsetWidth; // Force layout
+  window.requestAnimationFrame(test.step_func_done(function () {
+      assert_equals(frame.contentWindow.getComputedStyle(element).backgroundColor, "rgb(0, 255, 0)");
+  }));
+});
+</script>

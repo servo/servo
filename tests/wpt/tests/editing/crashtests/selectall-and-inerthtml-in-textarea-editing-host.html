@@ -1,0 +1,15 @@
+<html>
+<head>
+<script type="text/javascript">
+
+function boom()
+{
+  document.execCommand("selectAll", false, null);
+  document.execCommand("inserthtml", false, "<p>");
+}
+
+</script>
+</head>
+
+<body onload="boom();"><textarea contenteditable="true"></textarea></body>
+</html>

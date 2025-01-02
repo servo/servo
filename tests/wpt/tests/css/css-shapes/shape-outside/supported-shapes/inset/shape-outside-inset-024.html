@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: vertical-lr, float left, inset(10px round 60px 0/ 40px 0) border-box</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#supported-basic-shapes">
+  <link rel="match" href="reference/shape-outside-inset-024-ref.html">
+  <meta name="assert" content="Test the boxes are wrapping around the left float shape defined by the inset(10px round 60px 0/ 40px 0) border-box value under vertical-lr writing-mode.">
+  <meta name="fuzzy" content="maxDifference=0-8; totalPixels=0-6">
+  <style>
+  .container {
+    writing-mode: vertical-lr;
+    inline-size: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: left;
+    shape-outside: inset(10px round 60px 0/ 40px 0) border-box;
+    clip-path: inset(10px round 60px 0/ 40px 0) border-box;
+    box-sizing: content-box;
+    block-size: 40px;
+    inline-size: 40px;
+    padding: 10px 20px;
+    border: solid lightgreen;
+    border-width: 20px 30px;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    inline-size: 80px;
+    background-color: blue;
+  }
+
+  .long {
+    inline-size: 200px;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="long box" style="block-size: 10px;"></div> <!-- Fill the inset space -->
+    <div class="box" style="block-size: 24px;"></div> <!-- Box at corner -->
+    <div class="box" style="block-size: 36px;"></div>
+    <div class="box" style="block-size: 36px;"></div>
+    <div class="box" style="block-size: 24px;"></div> <!-- Box at corner -->
+    <div class="long box" style="block-size: 10px;"></div> <!-- Fill the inset space -->
+  </main>
+</html>

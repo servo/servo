@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: inline-block: width</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-08 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline-block/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inlineblock-width" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+   span { display: inline-block;
+          border: solid blue; color: silver;
+          margin: 0.5em; padding: 0.5em; }
+  </style>
+ </head>
+ <body>
+  <p> Make your window slightly wider than the width of one blue box:
+  all boxes should be the same size. Try increasing the window width
+  so that boxes wrap in two or more columns: the boxes should remain
+  the same size. Try reducing the window width to less than the width
+  of one blue box: the words inside the boxes should wrap and the boxes
+  resize around them so that the boxes continue to fit inside the window. </p>
+  <p>There is filler text in the first line, it should merely indent the first line
+  but not affect the resulting size.</p>
+  <p>
+   (filler text)
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+   <span>this is filler text inside an inline block</span>
+  </p>
+ </body>
+</html>

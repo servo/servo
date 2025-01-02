@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <title>The 'pathLength' attribute set to a negative value ('path' element; reference)</title>
+  <path d="M10,10L110,10L110,110L10,110Z" stroke-dashoffset="1" stroke-dasharray="1 1"
+        fill="none" stroke="black" stroke-width="10"></path>
+</svg>

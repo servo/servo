@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp and block-in-inline</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="Block-in-inlines after the clamp point should not be painted, whether they are same-BFC or not.">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  background-color: yellow;
+  padding: 0 4px;
+}
+.red {
+  height: 1.5lh;
+  background-color: red;
+}
+.ifc {
+  display: flow-root;
+}
+</style>
+<div class="clamp">
+  <span>
+    Line 1 <br>
+    Line 2 <br>
+    Line 3 <br>
+    Line 4 <br>
+    Line 5
+    <div class="red"></div>
+    <div class="red ifc"></div>
+  </span>
+</div>

@@ -1,0 +1,99 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+<script>
+
+function test_preload_change(before, after, expected, label) {
+    promise_test(async t => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        t.add_cleanup(() => link.remove());
+        const loadErrorOrTimeout = () => new Promise(resolve => {
+            const timeoutMillis = 1000;
+            link.addEventListener('load', () => resolve('load'));
+            link.addEventListener('error', () => resolve('error'));
+            t.step_timeout(() => resolve('timeout'), timeoutMillis);
+        });
+        for (const attr in before)
+            link.setAttribute(attr, before[attr]);
+        document.head.appendChild(link);
+        const result1 = await loadErrorOrTimeout();
+        for (const attr in after) {
+            if (attr in before && after[attr] === null)
+                link.removeAttribute(attr);
+            else
+                link.setAttribute(attr, after[attr]);
+        }
+        const result2 = await loadErrorOrTimeout();
+        assert_array_equals([result1, result2], expected);
+    }, label);
+}
+
+test_preload_change(
+    {href: '/common/square.png?1', as: 'image'},
+    {href: '/common/square.png?2'},
+    ['load', 'load'],
+    'Changing a preload href should trigger a fetch');
+
+test_preload_change(
+    {href: '/common/square.png?3', as: 'style'},
+    {as: 'image'},
+    ['load', 'load'],
+    'Changing a preload "as" from a previously non-matching destination should trigger a fetch');
+
+test_preload_change(
+    {href: '/common/square.png?4', type: 'text/plain', as: 'image'},
+    {type: 'image/png'},
+    ['timeout', 'load'],
+    'Changing a preload "type" (non-matching->matching) should trigger a fetch');
+
+test_preload_change(
+    {href: '/common/square.png?4', type: 'text/plain', as: 'image'},
+    {type: null},
+    ['timeout', 'load'],
+    'Removing a preload non-matching "type" should trigger a fetch');
+
+
+test_preload_change(
+    {href: '/common/square.png?4', type: 'image/png', as: 'image'},
+    {type: null},
+    ['load', 'timeout'],
+    'Removing a preload matching "type" should not trigger a fetch');
+
+test_preload_change(
+    {href: '/common/square.png?5', as: 'image', media: 'screen and (max-width: 10px)'},
+    {media: 'screen and (max-width: 20000px)'},
+    ['timeout', 'load'],
+    'Changing a preload media attribute (non matching->matching) should trigger a fetch');
+
+test_preload_change(
+    {href: '/common/square.png?6', as: 'image', media: 'screen and (max-width: 10px)'},
+    {media: 'screen and (max-width: 20px)'},
+    ['timeout', 'timeout'],
+    'Changing a preload media attribute (non matching->non matching) should not trigger a fetch');
+
+test_preload_change(
+    {href: '/common/square.png?7', as: 'image', media: 'screen and (max-width: 100000px)'},
+    {media: 'screen and (max-width: 20000px)'},
+    ['load', 'timeout'],
+    'Changing a preload media attribute (matching->matching) should not trigger a new fetch');
+
+test_preload_change(
+    {href: '/common/square.png?8', as: 'image', media: 'screen and (max-width: 100000px)'},
+    {media: null},
+    ['load', 'timeout'],
+    'Removing a matching preload media attribute should not trigger a new fetch');
+
+
+test_preload_change(
+    {href: '/common/square.png?9', as: 'image', media: 'screen and (max-width: 10px)'},
+    {media: null},
+    ['timeout', 'load'],
+    'Removing a non-matching preload media attribute should trigger a new fetch');
+
+</script>
+</body>

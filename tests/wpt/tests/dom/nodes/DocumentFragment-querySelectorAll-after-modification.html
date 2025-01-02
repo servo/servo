@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelectorAll should still work on DocumentFragments after they are modified</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2290 -->
+
+<script>
+"use strict";
+
+setup({ single_test: true });
+
+const frag = document.createDocumentFragment();
+frag.appendChild(document.createElement("div"));
+
+assert_array_equals(frag.querySelectorAll("img"), [], "before modification");
+
+frag.appendChild(document.createElement("div"));
+
+// If the bug is present, this will throw.
+assert_array_equals(frag.querySelectorAll("img"), [], "after modification");
+
+done();
+</script>

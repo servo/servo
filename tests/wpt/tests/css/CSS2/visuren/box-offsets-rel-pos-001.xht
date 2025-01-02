@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: box offsets - relatively positioned boxes</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <meta content="image" name="flags" />
+  <meta content="Box offsets (bottom, left, right, top) expressed in absolute units (not with percentage unit) for relatively positioned boxes are with respect to the edges of the boxes themselves." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  div#statically-positioned-box
+  {
+  background-color: yellow; /* padding box will be yellow */
+  border: orange solid 50px; /* border box will be orange */
+  height: 100px; /* a bright green square 100px by 100px image will serve as content box */
+  margin-left: 100px;
+  padding: 50px;
+  position: static;
+  width: 100px;
+  }
+
+  div.blue-relatively-positioned
+  {
+  background-color: blue;
+  color: white;
+  height: 25px;
+  position: relative;
+  width: 25px;
+  }
+
+  div#top-left
+  {
+  left: 150px;
+  /*
+  Calculation of left offset:
+
+     100px (div#statically-positioned-box's margin-left)
+   +  50px (div#statically-positioned-box's border-left)
+   ==================
+     150px
+  */
+
+  top: -250px;
+  /*
+  Calculation of top offset:
+   -  50px (div#statically-positioned-box's border-bottom)
+   -  50px (div#statically-positioned-box's padding-bottom)
+   - 100px (div#statically-positioned-box's content height)
+   -  50px (div#statically-positioned-box's padding-top)
+  ==================
+    -250px
+  */
+  }
+
+  div#top-right
+  {
+  right: -325px;
+  /*
+  Calculation of right offset:
+
+   - 100px (div#statically-positioned-box's margin-left)
+   -  50px (div#statically-positioned-box's border-left)
+   -  50px (div#statically-positioned-box's padding-left)
+   - 100px (div#statically-positioned-box's content height)
+   -  50px (div#statically-positioned-box's padding-right)
+   +  25px (div#top-right's content width)
+   ==================
+    -325px
+  */
+
+  top: -275px;
+  /*
+  Calculation of top offset:
+   -  25px (div#top-left's content height)
+   -  50px (div#statically-positioned-box's border-bottom)
+   -  50px (div#statically-positioned-box's padding-bottom)
+   - 100px (div#statically-positioned-box's content height)
+   -  50px (div#statically-positioned-box's padding-top)
+  ==================
+    -275px
+  */
+  }
+
+  div#bottom-left
+  {
+  bottom: 125px;
+  /*
+  Calculation of bottom offset:
+      25px (div#top-left's content height)
+   +  25px (div#top-right's content height)
+   +  50px (div#statically-positioned-box's border-bottom)
+   +  25px (div#bottom-left's content height)
+  ==================
+     125px
+  */
+
+  left: 150px;
+  /*
+  Calculation of left offset:
+
+     100px (div#statically-positioned-box's margin-left)
+   +  50px (div#statically-positioned-box's border-left)
+   ==================
+     150px
+  */
+  }
+
+  div#bottom-right
+  {
+  bottom: 150px;
+  /*
+  Calculation of bottom offset:
+      25px (div#top-left's content height)
+   +  25px (div#top-right's content height)
+   +  25px (div#bottom-left's content height)
+   +  50px (div#statically-positioned-box's border-bottom)
+   +  25px (div#bottom-right's content height)
+  ==================
+     150px
+  */
+
+  right: -325px;
+  /*
+  Calculation of right offset:
+
+   - 100px (div#statically-positioned-box's margin-left)
+   -  50px (div#statically-positioned-box's border-left)
+   -  50px (div#statically-positioned-box's padding-left)
+   - 100px (div#statically-positioned-box's content height)
+   -  50px (div#statically-positioned-box's padding-right)
+   +  25px (div#bottom-right's content width)
+   ==================
+    -325px
+  */
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a blue square at each corner of the yellow square.</p>
+
+  <div id="statically-positioned-box"><img src="support/100x100-lime.png" alt="Image download support must be enabled" /></div>
+
+  <div class="blue-relatively-positioned" id="top-left">TL</div>
+
+  <div class="blue-relatively-positioned" id="top-right">TR</div>
+
+  <div class="blue-relatively-positioned" id="bottom-left">BL</div>
+
+  <div class="blue-relatively-positioned" id="bottom-right">BR</div>
+
+ </body>
+</html>

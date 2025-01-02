@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    #test {
+      fill: transparent;
+      stroke: black;
+      stroke-width: 10;
+      stroke-linecap: square;
+    }
+  </style>
+  <path id="test" d="m 40,5 h 40 c 19.39,0 35,15.61 35,35 v 40 c 0,19.39 -15.61,35 -35,35 H 40 L 5,80 V 40 Z" />
+</svg>

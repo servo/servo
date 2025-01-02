@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reference: ::first-letter digraph recognition</title>
+  <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+  <style>
+  div {
+    font-size: 32px;
+  }
+  div p {
+    margin: 0;
+    color: lightgray;
+  }
+  div p span {
+    color: green;
+  }
+  </style>
+</head>
+<body>
+  <p>Test passes if both "I" and "J" are green in these examples:</p>
+  <div lang="nl">
+    <p><span>IJ</span>sselmeer</p>
+    <p><span>ij</span>sselmeer</p>
+    <p><span>“IJ</span>sselmeer”</p>
+  </div>
+  <div lang="en">
+    <p lang="nl-NL"><span>IJ</span>sselmeer</p>
+    <p lang="nl-SR"><span>IJ</span>sselmeer</p>
+  </div>
+  <p>But only "I" should be green in these examples:</p>
+  <div lang="en">
+    <p><span>I</span>Jsselmeer</p>
+    <p><span>i</span>jsselmeer</p>
+    <p><span>“I</span>Jsselmeer”</p>
+  </div>
+  <div lang="nl">
+    <p><span>I</span>jotalen</p> <!-- mixed case not treated as digraph -->
+  </div>
+</body>
+</html>

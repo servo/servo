@@ -1,0 +1,25 @@
+// https://screen-share.github.io/mouse-events/
+
+enum CaptureStartFocusBehavior {
+  "focus-captured-surface",
+  "no-focus-change"
+};
+
+[Exposed=Window, SecureContext]
+interface CaptureController : EventTarget {
+  constructor();
+  undefined setFocusBehavior(CaptureStartFocusBehavior focusBehavior);
+  attribute EventHandler oncapturedmousechange;
+};
+
+[Exposed=Window]
+interface CapturedMouseEvent : Event {
+  constructor(DOMString type, optional CapturedMouseEventInit eventInitDict = {});
+  readonly attribute long surfaceX;
+  readonly attribute long surfaceY;
+};
+
+dictionary CapturedMouseEventInit : EventInit {
+  long surfaceX = -1;
+  long surfaceY = -1;
+};

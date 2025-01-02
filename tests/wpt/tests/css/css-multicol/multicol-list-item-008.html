@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="match" href="multicol-list-item-008-ref.html">
+<style>
+#columns {
+  font-size: 20px;
+  line-height: 50px;
+  columns: 2;
+  column-fill: auto;
+  width: 200px;
+  height: 100px;
+  margin-left: 50px;
+}
+#li {
+  display: list-item;
+}
+</style>
+<div id="columns">
+  <div style="height: 80px">Normal</div>
+  <div id="li">
+    <div style="height: 10px"></div>
+    <div>List item</div>
+  </div>
+</div>

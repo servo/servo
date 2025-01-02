@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(t => {
+  let s = new Sanitizer();
+  assert_true(s instanceof Sanitizer);
+}, "Sanitizer constructor without config.");
+
+test(t => {
+  let s = new Sanitizer({});
+  assert_true(s instanceof Sanitizer);
+}, "Sanitizer constructor with empty config.");
+
+test(t => {
+  let s = new Sanitizer(null);
+  assert_true(s instanceof Sanitizer);
+}, "Sanitizer constructor with null as config.");
+
+test(t => {
+  let s = new Sanitizer(undefined);
+  assert_true(s instanceof Sanitizer);
+}, "Sanitizer constructor with undefined as config.");
+
+test(t => {
+  let s = new Sanitizer({testConfig: [1,2,3], attr: ["test", "i", "am"]});
+  assert_true(s instanceof Sanitizer);
+}, "Sanitizer constructor with config ignore unknown values.");
+
+test(t => {
+  assert_true(new Sanitizer({comments: true}).get().comments);
+  assert_false(new Sanitizer({comments: false}).get().comments);
+
+  let s = new Sanitizer();
+  s.setComments(true);
+  assert_true(s.get().comments);
+  s.setComments(false);
+  assert_false(s.get().comments);
+  s.setComments("abc");
+  assert_true(s.get().comments);
+}, "SanitizerConfig comments field.");
+
+test(t => {
+  assert_true(new Sanitizer({dataAttributes: true}).get().dataAttributes);
+  assert_false(new Sanitizer({dataAttributes: false}).get().dataAttributes);
+
+  let s = new Sanitizer();
+  s.setDataAttributes(true);
+  assert_true(s.get().dataAttributes);
+  s.setDataAttributes(false);
+  assert_false(s.get().dataAttributes);
+  s.setDataAttributes("abc");
+  assert_true(s.get().dataAttributes);
+}, "SanitizerConfig dataAttributes field.");
+
+function assert_object_equals(a, b, description) {
+  assert_equals(JSON.stringify(a), JSON.stringify(b), description);
+}
+
+function test_normalization(key, value, expected) {
+  test(t => {
+    let config = Object.fromEntries([[key, [value]]]);
+    let s = new Sanitizer(config);
+    assert_equals(s.get()[key].length, 1);
+    assert_object_equals(s.get()[key][0], expected);
+  }, `SanitizerConfig, normalization: ${key}: [${JSON.stringify(value)}]`);
+}
+
+for (key of ["elements", "removeElements", "replaceWithChildrenElements"]) {
+  test_normalization(key,
+    "div",
+    {name: "div", namespace: "http://www.w3.org/1999/xhtml"});
+  test_normalization(key,
+    {name: "b"},
+    {name: "b", namespace: "http://www.w3.org/1999/xhtml"});
+  test_normalization(key,
+    {name: "p", namespace: "http://www.w3.org/1999/xhtml"},
+    {name: "p", namespace: "http://www.w3.org/1999/xhtml"});
+  test_normalization(key,
+    {name: "bla", namespace: "http://fantasy.org/namespace"},
+    {name: "bla", namespace: "http://fantasy.org/namespace"});
+}
+for (key of ["attributes", "removeAttributes"]) {
+  test_normalization(key,
+    "href",
+    {name: "href", namespace: null});
+  test_normalization(key,
+    {name: "href", namespace: null},
+    {name: "href", namespace: null});
+  test_normalization(key,
+    {name: "href", namespace: ""},
+    {name: "href", namespace: null});  // ??? Is this correct?
+  test_normalization(key,
+    {name: "href", namespace: "https://www.w3.org/1999/xlink"},
+    {name: "href", namespace: "https://www.w3.org/1999/xlink"});
+}
+
+test(t => {
+  let s = new Sanitizer({elements: ["div", "p"]});
+  assert_equals(s.get().elements.length, 2);
+  s.allowElement("bla");
+  assert_equals(s.get().elements.length, 3);
+  s.removeElement({name: "div"});
+  assert_equals(s.get().elements.length, 2);
+  s.replaceWithChildrenElement({name: "p", namespace: "http://www.w3.org/1999/xhtml"});
+  assert_equals(s.get().elements.length, 1);
+  assert_object_equals(s.get().elements[0],
+                       {name: "bla", namespace: "http://www.w3.org/1999/xhtml"});
+}, "Test elements addition.");
+
+test(t => {
+  let s = new Sanitizer({removeElements: ["div", "p"]});
+  assert_equals(s.get().removeElements.length, 2);
+  s.removeElement("bla");
+  assert_equals(s.get().removeElements.length, 3);
+  s.replaceWithChildrenElement({name: "div"});
+  assert_equals(s.get().removeElements.length, 2);
+  s.allowElement({name: "p", namespace: "http://www.w3.org/1999/xhtml"});
+  assert_equals(s.get().removeElements.length, 1);
+  assert_object_equals(s.get().removeElements[0],
+                       {name: "bla", namespace: "http://www.w3.org/1999/xhtml"});
+}, "Test elements removal.");
+
+test(t => {
+  let s = new Sanitizer({replaceWithChildrenElements: ["div", "p"]});
+  assert_equals(s.get().replaceWithChildrenElements.length, 2);
+  s.replaceWithChildrenElement("bla");
+  assert_equals(s.get().replaceWithChildrenElements.length, 3);
+  s.allowElement({name: "div"});
+  assert_equals(s.get().replaceWithChildrenElements.length, 2);
+  s.removeElement({name: "p", namespace: "http://www.w3.org/1999/xhtml"});
+  assert_equals(s.get().replaceWithChildrenElements.length, 1);
+  assert_object_equals(s.get().replaceWithChildrenElements[0],
+                       {name: "bla", namespace: "http://www.w3.org/1999/xhtml"});
+}, "Test elements replacewithchildren.");
+
+test(t => {
+  let s = new Sanitizer({attributes: ["href", "src"]});
+  assert_equals(s.get().attributes.length, 2);
+  s.allowAttribute("id");
+  assert_equals(s.get().attributes.length, 3);
+  s.removeAttribute({name: "href", namespace: "https://www.w3.org/1999/xlink" });
+  assert_equals(s.get().attributes.length, 3);
+  s.removeAttribute({name: "href"});
+  assert_equals(s.get().attributes.length, 2);
+  s.removeAttribute({name: "src", namespace: null});
+  assert_equals(s.get().attributes.length, 1);
+  assert_object_equals(s.get().attributes[0],
+                       {name: "id", namespace: null});
+}, "Test attribute addition.");
+
+test(t => {
+  let s = new Sanitizer({removeAttributes: ["href", "src"]});
+  assert_equals(s.get().removeAttributes.length, 2);
+  s.removeAttribute("id");
+  assert_equals(s.get().removeAttributes.length, 3);
+  s.allowAttribute({name: "href", namespace: "https://www.w3.org/1999/xlink" });
+  assert_equals(s.get().removeAttributes.length, 3);
+  s.allowAttribute({name: "href"});
+  assert_equals(s.get().removeAttributes.length, 2);
+  s.allowAttribute({name: "src", namespace: null});
+  assert_equals(s.get().removeAttributes.length, 1);
+  assert_object_equals(s.get().removeAttributes[0],
+                       {name: "id", namespace: null});
+}, "Test attribute removal.");
+
+test(t => {
+  let s = new Sanitizer({elements: [{name: "div", attributes: ["href", "src"]}]});
+  assert_equals(s.get().elements.length, 1);
+  assert_true("attributes" in s.get().elements[0]);
+  assert_false("removeAttributes" in s.get().elements[0]);
+  assert_equals(s.get().elements[0].attributes.length, 2);
+
+  s.allowElement({name: "div", namespace: "http://www.w3.org/1999/xhtml",
+                  attributes: ["class"]});
+  assert_equals(s.get().elements[0].attributes.length, 1);
+  assert_object_equals(s.get().elements[0].attributes[0],
+                       { name: "class", namespace: null });
+}, "Test attribute-per-element sets (i.e. overwrites).");
+
+test(t => {
+  let s = new Sanitizer({elements: [{name: "div", removeAttributes: ["href", "src"]}]});
+  assert_equals(s.get().elements.length, 1);
+  assert_false("attributes" in s.get().elements[0]);
+  assert_true("removeAttributes" in s.get().elements[0]);
+  assert_equals(s.get().elements[0].removeAttributes.length, 2);
+
+  s.allowElement({name: "div", namespace: "http://www.w3.org/1999/xhtml",
+                  removeAttributes: ["class"]});
+  assert_equals(s.get().elements[0].removeAttributes.length, 1);
+  assert_object_equals(s.get().elements[0].removeAttributes[0],
+                       { name: "class", namespace: null });
+}, "Test removeAttribute-per-element sets (i.e. overwrites).");
+
+</script>
+</body>
+</html>

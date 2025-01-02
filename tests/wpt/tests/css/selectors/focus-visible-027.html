@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test (Selectors): :focus-visible after click and input type change</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1788698">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<input type="button" value="+">
+<script>
+  let input = document.querySelector("input");
+  input.addEventListener("click", function(e) {
+    if (this.type != "button") {
+      return;
+    }
+    this.value = "";
+    this.type = "text";
+  });
+  promise_test(async function() {
+    await test_driver.click(input);
+    assert_equals(input.type, "text");
+    assert_equals(input.matches(":focus"), input.matches(":focus-visible"), "Type change to text might cause :focus-visible to start matching");
+  });
+</script>

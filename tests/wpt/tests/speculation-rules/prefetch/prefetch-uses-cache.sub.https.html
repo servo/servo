@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<meta name="variant" content="?same-site">
+<meta name="variant" content="?cross-site">
+
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const is_same_site = location.search === '?same-site';
+  const initiator = await spawnWindow(t);
+  const url1 = initiator.getExecutorURL({
+    hostname: is_same_site ? undefined : '{{hosts[alt][www]}}',
+    executor: 'cacheable-executor.sub.html',
+    page: 1
+  });
+  const url2 = initiator.getExecutorURL({
+    hostname: is_same_site ? undefined : '{{hosts[][]}}',
+    executor: 'cacheable-executor.sub.html',
+    page: 2
+  });
+
+  await initiator.forceSinglePrefetch(url1);
+  initiator.navigate(url2);
+  assert_equals(await initiator.getDeliveryType(), '');
+  assert_not_prefetched(await initiator.getRequestHeaders(),
+                        'Content should not have been prefetched.');
+
+  initiator.navigate(url1);
+  if (is_same_site) {
+    assert_equals(await initiator.getDeliveryType(), 'cache',
+      'Navigation should have retrieved the response from the HTTP Cache.');
+    // Note: Even though we didn't use a prefetch, the cached response for
+    // |url1| was obtained using a prefetch request, and the recorded headers
+    // at the time of the first request would have Sec-Purpose: 'prefetch'.
+    assert_prefetched(await initiator.getRequestHeaders(),
+      'The cached response should have been from the initial prefetch request.');
+  } else {
+    assert_equals(await initiator.getDeliveryType(), '',
+      'Navigation response should not have been from the HTTP Cache.');
+  }
+
+
+  await initiator.forceSinglePrefetch(url2);
+  initiator.navigate(url2);
+  assert_equals(await initiator.getDeliveryType(), 'navigational-prefetch',
+    'Navigation should have used the prefetch');
+  if (is_same_site) {
+    // Note: Even though we did use a prefetch, the recorded request headers in
+    // the response will not be prefetch headers. This is because the prefetch
+    // request retrieved its response from the HTTP cache, and the response in
+    // the cache was initially obtained from the first navigation to |url2|,
+    // which was not a prefetch.
+    assert_not_prefetched(await initiator.getRequestHeaders(),
+      'The prefetch request should have used a response from the HTTP cache.');
+  } else {
+    assert_prefetched(await initiator.getRequestHeaders(),
+      'The prefetch request should have used a fresh response');
+  }
+
+}, 'Test that prefetches use/store responses to/from the HTTP cache.');
+</script>

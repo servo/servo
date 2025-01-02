@@ -1,0 +1,26 @@
+{
+    "name": "Shortcut test",
+    "icons": [
+        {
+            "src": "pass.png",
+            "sizes": "256x256"
+        }
+    ],
+    "start_url": "../shortcuts-member-skip-for-undefined-url-manual.html",
+    "display": "fullscreen",
+    "scope": "../",
+    "shortcuts": [{
+        "name": "fail",
+        "short_name": "",
+        "description": "",
+        "icons": []
+    }, {
+        "name": "pass",
+        "short_name": "",
+        "description": "",
+        "url": "../shortcut_pass.html",
+        "icons": [{
+            "src": "pass.png"
+        }]
+    }]
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text Test: computed value of 'word-spacing: normal' and of various &lt;length&gt;</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#word-spacing-property">
+
+  <meta content="This test checks that the computed value of 'normal' for the property word-spacing is '0px'. We also check the computed value of various &lt;length&gt;." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  div#target
+    {
+      font-size: 20px;
+    }
+  </style>
+
+  <div id="target">A Z</div>
+
+  <div id="log"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifyComputedStyle(property_name, specified_value, expected_value)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, "91px");
+
+      /*
+      The purpose of setting the property to an arbitrary value
+      is to act as a fallback value in case the specified value
+      fails. Since we are running 12 consecutive tests on the
+      same element, then it is necessary to 'reset' its property
+      to an arbitrary value.
+      */
+
+      targetElement.style.setProperty(property_name, specified_value);
+
+      assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
+
+      }, `testing ${property_name}: ${specified_value}`);
+    }
+
+    verifyComputedStyle("word-spacing", "normal", "0px");
+
+    verifyComputedStyle("word-spacing", "0", "0px");
+
+    verifyComputedStyle("word-spacing", "1.27cm", "48px");
+
+    verifyComputedStyle("word-spacing", "1em", "20px");
+
+    verifyComputedStyle("word-spacing", "0.5in", "48px");
+
+    verifyComputedStyle("word-spacing", "25.4mm", "96px");
+
+    verifyComputedStyle("word-spacing", "5pc", "80px");
+
+    verifyComputedStyle("word-spacing", "18pt", "24px");
+
+    verifyComputedStyle("word-spacing", "7px", "7px");
+
+    verifyComputedStyle("word-spacing", "101.6Q", "96px");
+
+    verifyComputedStyle("word-spacing", "3rem", "48px");
+
+    verifyComputedStyle("word-spacing", "0ch", "0px");
+  }
+
+  startTesting();
+
+  </script>

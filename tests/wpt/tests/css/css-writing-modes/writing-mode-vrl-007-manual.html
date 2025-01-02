@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-rl, default Latin orientation</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="writing-mode:vertical-lr will display Latin characters rotated 90° right by default."/>
+<style type="text/css">
+.test { font-size: 24px; float: left; margin-right: 30px; color: #ccc; }
+span[lang=en] { color: black; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the text runs vertically and the orientation of the Latin characters is the same as on the blue background.</p>
+<div class="test" lang="zh-hans">国际化活动<span lang="en">W3C i18n</span>万维网联盟</div>
+<div class="ref"><img src="support/zh+latin.png" alt="ref image"/></div>
+</body>
+</html>

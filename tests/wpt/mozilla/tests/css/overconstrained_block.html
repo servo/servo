@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <title>Block with over-contrained margins+borders+padding+width = containing block width</title>
+    <link rel=match href=overconstrained_block_ref.html>
+    <style>
+      body { width: 300px; margin: 0 0 0 400px }
+      div:nth-child(even) { direction: rtl }
+      div:nth-child(1) p, div:nth-child(2) p { margin: 20px 70px }
+      div:nth-child(3) p, div:nth-child(4) p { margin: 20px 120px }
+      p { background: green; width: 200px; height: 100px }
+    </style>
+  </head>
+  <body>
+    <div><p></p></div>
+    <div><p></p></div>
+    <div><p></p></div>
+    <div><p></p></div>
+  </body>
+</html>

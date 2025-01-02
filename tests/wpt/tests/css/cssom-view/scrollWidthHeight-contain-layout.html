@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1931490">
+<title>scroll{Width,Height} with contain: layout</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    contain: layout;
+    height: 0;
+    width: 0;
+  }
+</style>
+<div id="target">
+  <div style="height: 2000px"></div>
+</div>
+<script>
+let target = document.getElementById("target");
+// "clip" is not really scrollable, but should match as well.
+for (let overflow of ["hidden", "auto", "scroll", "clip"]) {
+  for (let padding of ["0", "2px"]) {
+    for (let border of ["0", "3px solid"]) {
+      for (let display of ["flex", "block", "flow-root", "inline-block", "inline-flex", "grid", "inline-grid", "inline"]) {
+        test(function() {
+          target.style.display = display;
+          target.style.border = border;
+          target.style.padding = padding;
+          let visibleH = target.scrollHeight;
+          let visibleW = target.scrollWidth;
+          target.style.overflow = overflow;
+          let scrollableH = target.scrollHeight;
+          let scrollableW = target.scrollWidth;
+          assert_equals(visibleH, scrollableH, "scrollHeight should match for visible and " + overflow);
+          assert_equals(visibleW, scrollableW, "scrollWidth should match for visible and " + overflow);
+          target.style.overflow = "";
+          target.style.display = "";
+        }, `scroll{Width,Height} should match with contain: layout for display: ${display}, overflow: ${overflow}, padding: ${padding}, border: ${border}`);
+      }
+    }
+  }
+}
+</script>

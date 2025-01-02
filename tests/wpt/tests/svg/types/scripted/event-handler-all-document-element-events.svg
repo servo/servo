@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+    <title>oncopy / oncut / onpaste / oncontextmenu</title>
+    <metadata>
+        <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGElement"/>
+    </metadata>
+    <h:script src="/resources/testharness.js"/>
+    <h:script src="/resources/testharnessreport.js"/>
+    <script><![CDATA[
+        "use strict";
+        setup({ explicit_done: true });
+
+        const names = ["oncut","oncopy","onpaste","oncontextmenu"];
+
+        for (const name of names) {
+            const withoutOn = name.substring(2);
+
+            test(() => {
+                assert_true(SVGElement.prototype.hasOwnProperty(name),
+                    `${SVGElement.prototype.constructor.name} has an own property named "${name}"`);
+                assert_false(name in Element.prototype, `Element.prototype must not contain a "${name}" property`);
+            }, `${name}: property must be on SVGElement not Element`);
+
+            test(() => {
+                const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+                assert_equals(svgElement[name], null,
+                    `The default value of the property is null for a ${svgElement.constructor.name} instance`);
+            }, `${name}: the default value must be null`);
+
+            test(() => {
+                const el = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                el.setAttribute(name, `window.${name}Happened = true;`);
+                const compiledHandler = el[name];
+
+                assert_equals(typeof compiledHandler, "function", `The ${name} property must be a function`);
+                compiledHandler();
+                assert_true(window[name + "Happened"], "Calling the handler must run the code");
+            }, `${name}: the content attribute must be compiled into a function as the corresponding property`);
+
+            test(() => {
+                const el = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                el.setAttribute(name, `window.${name}Happened2 = true;`);
+
+                el.dispatchEvent(new Event(withoutOn));
+
+                assert_true(window[name + "Happened2"], "Dispatching an event must run the code");
+            }, `${name}: the content attribute must execute when an event is dispatched`);
+        }
+
+        done();
+  ]]></script>
+</svg>
+

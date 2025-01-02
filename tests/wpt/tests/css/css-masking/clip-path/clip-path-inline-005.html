@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>clip-path on inline with content-box</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#valdef-shape-box-content-box">
+<link rel="match" href="clip-path-inline-005-ref.html">
+<meta content="ahem" name="flags">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .container {
+    font: 100px/1 Ahem;
+    line-height: 100px;
+  }
+  .container > span {
+    padding: 50px;
+    clip-path: circle(50%) content-box;
+    color: green;
+  }
+</style>
+<p>Test passes if there is a filled green circle with radius 50px.
+<div class="container">
+  <span>X</span>
+</div>

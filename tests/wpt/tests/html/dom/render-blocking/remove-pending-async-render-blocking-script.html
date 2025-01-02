@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Removed render-blocking script should not indefinitely block rendering</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script id="target" async blocking="render"
+        src="support/dummy-1.js?pipe=trickle(d1)"></script>
+<script>
+promise_test(async () => {
+  const target = document.getElementById('target');
+  const newDoc = document.implementation.createHTMLDocument('new document');
+  newDoc.documentElement.appendChild(target);
+
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  // reqeustAnimationFrame() should be eventually run, but the script removed
+  // while pending should not be run.
+  assert_equals(window.dummy, undefined);
+});
+</script>

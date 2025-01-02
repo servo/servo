@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>row border collapse test</title>
+    <link rel="match" href="border_collapse_row_ref.html">
+    <style>
+      table {
+        border-collapse: collapse;
+      }
+      td {
+        width: 64px;
+        height: 32px;
+      }
+      .tr_with_border {
+        border-top: 2px solid black;
+        border-right: 2px solid black;
+        border-bottom: 2px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <table>
+      <tr><td></td><td></td></tr>
+      <tr class="tr_with_border"><td></td><td></td></tr>
+      <tr class="tr_with_border"><td></td><td></td></tr>
+      <tr class="tr_with_border"><td></td><td></td></tr>
+      <tr class="tr_with_border"><td></td><td></td></tr>
+    </table>
+  </body>
+</html>

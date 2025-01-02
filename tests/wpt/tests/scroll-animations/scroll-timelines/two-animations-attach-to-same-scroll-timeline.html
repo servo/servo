@@ -1,0 +1,79 @@
+<html class="reftest-wait">
+<title>Scroll timeline shared by two animation</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations/">
+<meta name="assert" content="Should be able to use the same scroll timeline to
+drive two animations">
+<link rel="match" href="animation-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+    will-change: transform; /* force compositing */
+  }
+
+  #contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+<div id="scroller">
+  <div id="contents"><p>Scrolling Contents</p></div>
+</div>
+
+<script>
+  const box = document.getElementById('box');
+  const transform_effect = new KeyframeEffect(box,
+    [
+    { transform: 'translateY(0)'},
+    { transform: 'translateY(200px)'}
+    ], {
+      duration: 1000,
+    }
+  );
+  const opacity_effect = new KeyframeEffect(box,
+    [
+    { opacity: 1},
+    { opacity: 0}
+    ], {
+      duration: 1000,
+    }
+  );
+
+  const scroller = document.getElementById('scroller');
+  const timeline = new ScrollTimeline(
+      { source: scroller, orientation: 'block' });
+  const transform_animation = new Animation(transform_effect, timeline);
+  transform_animation.play();
+  const opacity_animation = new Animation(opacity_effect, timeline);
+  opacity_animation.play();
+
+  Promise.all([transform_animation.ready, opacity_animation.ready]).then(() => {
+    // Move the scroller to the halfway point.
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+
+    waitForAnimationFrames(2).then(_ => {
+      takeScreenshot();
+    });
+  });
+</script>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Flexbox: min-height: auto with nested flexboxes</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=933931" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+.outer {
+  display: flex;
+  flex-direction: column;
+  height: 20px;
+  width: 100px;
+  background: red;
+}
+
+.middle {
+  display: flex;
+  flex-direction: column;
+  background: green;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.tall {
+  width: 50px;
+  height: 100px;
+}
+</style>
+<body>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="outer">
+  <div class="middle">
+    <div class="inner">
+      <div class="tall"></div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

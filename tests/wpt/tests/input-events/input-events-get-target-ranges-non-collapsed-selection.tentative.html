@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?Backspace">
+<meta name="variant" content="?Delete">
+<meta name="variant" content="?TypingA">
+<title>InputEvent.getTargetRanges() with non-collapsed selection</title>
+<div contenteditable></div>
+<script src="input-events-get-target-ranges.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+let action = location.search.substring(1);
+function run() {
+  switch (action) {
+    case "Backspace":
+      return sendBackspaceKey();
+    case "Delete":
+      return sendDeleteKey();
+    case "TypingA":
+      return sendKeyA();
+    default:
+      throw "Unhandled variant";
+  }
+}
+
+let insertedHTML = action === "TypingA" ? "a" : "";
+
+// If text node is selected, target range should be shrunken to the edge of
+// text node.
+promise_test(async (t) => {
+  initializeTest("<p>abc</p>");
+  let p = gEditor.firstChild;
+  let abc = p.firstChild;
+  gSelection.setBaseAndExtent(p, 0, p, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<p>${insertedHTML !== "" ? insertedHTML : "<br>"}</p>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 0,
+    endContainer: abc,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>{abc}</p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc<br></p>");
+  let p = gEditor.firstChild;
+  let abc = p.firstChild;
+  gSelection.setBaseAndExtent(p, 0, p, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<p>${insertedHTML !== "" ? insertedHTML : "<br>"}</p>`,
+      `<p>${insertedHTML}<br></p>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 0,
+    endContainer: abc,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>{abc}<br></p>"`);
+
+promise_test(async (t) => {
+  initializeTest(`<p><img src="${kImgSrc}"></p>`);
+  let p = gEditor.firstChild;
+  gSelection.setBaseAndExtent(p, 0, p, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<p>${insertedHTML !== "" ? insertedHTML : "<br>"}</p>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: p,
+    startOffset: 0,
+    endContainer: p,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>{<img>}</p>"`);
+
+promise_test(async (t) => {
+  initializeTest(`<p><img src="${kImgSrc}"><br></p>`);
+  let p = gEditor.firstChild;
+  gSelection.setBaseAndExtent(p, 0, p, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<p>${insertedHTML !== "" ? insertedHTML : "<br>"}</p>`,
+      `<p>${insertedHTML}<br></p>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: p,
+    startOffset: 0,
+    endContainer: p,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>{<img>}<br></p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p> abc </p>");
+  let p = gEditor.firstChild;
+  let abc = p.firstChild;
+  gSelection.setBaseAndExtent(p, 0, p, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<p>${insertedHTML !== "" ? insertedHTML : "<br>"}</p>`,
+    t.name,
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 0,
+    endContainer: abc,
+    endOffset: 5,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>{ abc }</p>"`);
+
+// Invisible leading white-spaces in current block and invisible trailing
+// white-spaces in the previous block should be deleted for avoiding they
+// becoming visible when the blocks are joined.  Perhaps, they should be
+// contained by the range of `getTargetRanges()`, but needs discussion.
+// https://github.com/w3c/input-events/issues/112
+promise_test(async (t) => {
+  initializeTest("<p>abc   </p><p>   def</p>");
+  let p1 = gEditor.firstChild;
+  let abc = p1.firstChild;
+  let p2 = p1.nextSibling;
+  let def = p2.firstChild;
+  gSelection.setBaseAndExtent(abc, 6, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>abc${insertedHTML}def</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>abc   [</p><p>]   def</p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc</p><p>def</p>");
+  let abc = gEditor.querySelector("p").firstChild;
+  let def = gEditor.querySelector("p + p").firstChild;
+  gSelection.setBaseAndExtent(abc, 2, def, 1);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>ab${insertedHTML}ef</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 2,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>ab[c</p><p>d]ef</p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc </p><p> def</p>");
+  let abc = gEditor.querySelector("p").firstChild;
+  let def = gEditor.querySelector("p + p").firstChild;
+  gSelection.setBaseAndExtent(abc, 2, def, 2);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>ab${insertedHTML}ef</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 2,
+    endContainer: def,
+    endOffset: 2,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>ab[c </p><p> d]ef</p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc </p><p> def</p>");
+  let abc = gEditor.querySelector("p").firstChild;
+  let def = gEditor.querySelector("p + p").firstChild;
+  gSelection.setBaseAndExtent(abc, 2, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>ab${insertedHTML}def</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 2,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>ab[c </p><p>] def</p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc </p><p> def</p>");
+  let abc = gEditor.querySelector("p").firstChild;
+  let def = gEditor.querySelector("p + p").firstChild;
+  gSelection.setBaseAndExtent(abc, 4, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>abc${insertedHTML}def</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>abc [</p><p>] def</p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc </p><p> def</p>");
+  let abc = gEditor.querySelector("p").firstChild;
+  let def = gEditor.querySelector("p + p").firstChild;
+  gSelection.setBaseAndExtent(abc, 4, def, 1);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>abc${insertedHTML}def</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>abc [</p><p> ]def</p>"`);
+
+// Different from collapsed range around an atomic content, non-collapsed
+// range may not be shrunken to select only the atomic content for avoid
+// to waste runtime cost.
+promise_test(async (t) => {
+  initializeTest(`<p>abc<img src="${kImgSrc}">def</p>`);
+  let p = gEditor.querySelector("p");
+  let abc = p.firstChild;
+  let def = p.lastChild;
+  gSelection.setBaseAndExtent(abc, 3, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>abc${insertedHTML}def</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>abc[<img>]def</p>"`);
+
+promise_test(async (t) => {
+  initializeTest(`<div>abc<hr>def</div>`);
+  let div = gEditor.querySelector("div");
+  let abc = div.firstChild;
+  let def = div.lastChild;
+  gSelection.setBaseAndExtent(abc, 3, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(`<div>abc${insertedHTML}def</div>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc[<hr>]def</div>"`);
+
+promise_test(async (t) => {
+  initializeTest(`<div>abc <hr>def</div>`);
+  let div = gEditor.querySelector("div");
+  let abc = div.firstChild;
+  let def = div.lastChild;
+  gSelection.setBaseAndExtent(abc, 4, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(`<div>abc${insertedHTML}def</div>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc [<hr>]def</div>"`);
+
+promise_test(async (t) => {
+  initializeTest(`<div>abc <hr> def</div>`);
+  let div = gEditor.querySelector("div");
+  let abc = div.firstChild;
+  let def = div.lastChild;
+  gSelection.setBaseAndExtent(abc, 4, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(`<div>abc${insertedHTML}def</div>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc [<hr>] def</div>"`);
+
+promise_test(async (t) => {
+  initializeTest(`<div>abc <hr> def</div>`);
+  let div = gEditor.querySelector("div");
+  let abc = div.firstChild;
+  let def = div.lastChild;
+  gSelection.setBaseAndExtent(div, 1, div, 2);
+  await run();
+  checkEditorContentResultAsSubTest(`<div>abc${insertedHTML}def</div>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc {<hr>} def</div>"`);
+
+// Deleting visible `<br>` element should be contained by a range of
+// `getTargetRanges()`.  However, when only the `<br>` element is selected,
+// the range shouldn't start from nor end by surrounding text nodes?
+// https://github.com/w3c/input-events/issues/112
+promise_test(async (t) => {
+  initializeTest("<p>abc<br>def</p>");
+  gSelection.setBaseAndExtent(gEditor.firstChild, 1, gEditor.firstChild, 2);
+  await run();
+  checkEditorContentResultAsSubTest(`<p>abc${insertedHTML}def</p>`, t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: gEditor.firstChild,
+    startOffset: 1,
+    endContainer: gEditor.firstChild,
+    endOffset: 2,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>abc{<br>}def</p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<p>def<br>ghi</p></div>");
+  let p = gEditor.querySelector("p");
+  let def = p.firstChild;
+  let abc = gEditor.firstChild.firstChild;
+  gSelection.setBaseAndExtent(abc, 3, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<div>abc${insertedHTML}def<p>ghi</p></div>`,
+      `<div>abc${insertedHTML}def<br><p>ghi</p></div>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc[<p>]def<br>ghi</p></div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc   <p>   def<br>ghi</p></div>");
+  let p = gEditor.querySelector("p");
+  let def = p.firstChild;
+  let abc = gEditor.firstChild.firstChild;
+  gSelection.setBaseAndExtent(abc, abc.length, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<div>abc${insertedHTML}def<p>ghi</p></div>`,
+      `<div>abc${insertedHTML}def<br><p>ghi</p></div>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc   [<p>]   def<br>ghi</p></div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div><p>abc</p>def</div>");
+  let abc = gEditor.querySelector("p").firstChild;
+  let def = gEditor.querySelector("p").nextSibling;
+  gSelection.setBaseAndExtent(abc, 3, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<div><p>abc${insertedHTML}def</p></div>`,
+      `<div><p>abc${insertedHTML}def<br></p></div>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div><p>abc[</p>]def</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div><p>abc   </p>   def</div>");
+  let abc = gEditor.querySelector("p").firstChild;
+  let def = gEditor.querySelector("p").nextSibling;
+  gSelection.setBaseAndExtent(abc, abc.length, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<div><p>abc${insertedHTML}def</p></div>`,
+      `<div><p>abc${insertedHTML}def<br></p></div>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div><p>abc   [</p>]   def</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<ul><li>def</li></ul>ghi</div>");
+  let abc = gEditor.querySelector("div").firstChild;
+  let def = gEditor.querySelector("li").firstChild;
+  gSelection.setBaseAndExtent(abc, 3, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<div>abc${insertedHTML}defghi</div>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc[<ul><li>]def</li></ul>ghi</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc  <ul><li> def </li></ul>  ghi</div>");
+  let abc = gEditor.querySelector("div").firstChild;
+  let def = gEditor.querySelector("li").firstChild;
+  gSelection.setBaseAndExtent(abc, abc.length, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<div>abc${insertedHTML}defghi</div>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc  [<ul><li>] def </li></ul>  ghi</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<ul><li>def</li></ul>ghi</div>");
+  let def = gEditor.querySelector("li").firstChild;
+  let ghi = gEditor.querySelector("ul").nextSibling;
+  gSelection.setBaseAndExtent(def, 3, ghi, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<div>abc<ul><li>def${insertedHTML}ghi</li></ul></div>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: def,
+    startOffset: 3,
+    endContainer: ghi,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc<ul><li>def[</li></ul>]ghi</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc <ul><li>  def  </li></ul> ghi</div>");
+  let def = gEditor.querySelector("li").firstChild;
+  let ghi = gEditor.querySelector("ul").nextSibling;
+  gSelection.setBaseAndExtent(def, def.length, ghi, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<div>abc <ul><li>  def${insertedHTML}ghi</li></ul></div>`,
+      `<div>abc <ul><li>def${insertedHTML}ghi</li></ul></div>`,
+      `<div>abc<ul><li>def${insertedHTML}ghi</li></ul></div>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: def,
+    startOffset: 5,
+    endContainer: ghi,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc <ul><li>  def  [</li></ul>] ghi</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
+  let abc = gEditor.querySelector("div").firstChild;
+  let def = gEditor.querySelector("li").firstChild;
+  gSelection.setBaseAndExtent(abc, 3, def, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<div>abc${insertedHTML}def<ul><li>ghi</li></ul>jkl</div>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc[<ul><li>]def</li><li>ghi</li></ul>jkl</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
+  let abc = gEditor.querySelector("div").firstChild;
+  let def = gEditor.querySelector("li").firstChild;
+  let ghi = gEditor.querySelector("li + li").firstChild;
+  gSelection.setBaseAndExtent(abc, 3, ghi, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<div>abc${insertedHTML}ghijkl</div>`,
+      `<div>abc${insertedHTML}ghijkl<br></div>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: ghi,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc[<ul><li>def</li><li>]ghi</li></ul>jkl</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
+  let def = gEditor.querySelector("li").firstChild;
+  let ghi = gEditor.querySelector("li + li").firstChild;
+  gSelection.setBaseAndExtent(def, 3, ghi, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<div>abc<ul><li>def${insertedHTML}ghi</li></ul>jkl</div>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: def,
+    startOffset: 3,
+    endContainer: ghi,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc<ul><li>def[</li><li>]ghi</li></ul>jkl</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
+  let ghi = gEditor.querySelector("li + li").firstChild;
+  let jkl = gEditor.querySelector("ul").nextSibling;
+  gSelection.setBaseAndExtent(ghi, 3, jkl, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<div>abc<ul><li>def</li><li>ghi${insertedHTML}jkl</li></ul></div>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: ghi,
+    startOffset: 3,
+    endContainer: jkl,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc<ul><li>def</li><li>ghi[</li></ul>]jkl</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
+  let def = gEditor.querySelector("li").firstChild;
+  let jkl = gEditor.querySelector("ul").nextSibling;
+  gSelection.setBaseAndExtent(def, 3, jkl, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<div>abc<ul><li>def${insertedHTML}jkl</li></ul></div>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: def,
+    startOffset: 3,
+    endContainer: jkl,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<div>abc<ul><li>def[</li><li>ghi</li></ul>]jkl</div>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc</p><p><br></p>");
+  let p1 = gEditor.querySelector("p");
+  let abc = p1.firstChild;
+  let p2 = p1.nextSibling;
+  gSelection.setBaseAndExtent(abc, 3, p2, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<p>abc${insertedHTML}</p>`,
+      `<p>abc${insertedHTML}<br></p>`,
+    ],
+    t.name
+  );
+  if (gEditor.innerHTML === "<p>abc</p>") {
+    // Include the invisible `<br>` element if it's deleted.
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: abc,
+      startOffset: 3,
+      endContainer: p2,
+      endOffset: 1,
+    });
+  } else {
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: abc,
+      startOffset: 3,
+      endContainer: p2,
+      endOffset: 0,
+    });
+  }
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<p>abc[</p><p>}<br></p>"`);
+
+promise_test(async (t) => {
+  initializeTest("<p>abc<span contenteditable=\"false\">def</span>ghi</p>");
+  let p = gEditor.querySelector("p");
+  let abc = p.firstChild;
+  let ghi = p.lastChild;
+  gSelection.setBaseAndExtent(abc, 3, ghi, 0);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      "<p>abc<span contenteditable=\"false\">def</span>ghi</p>",
+      `<p>abc${insertedHTML}ghi</p>`,
+      `<p>abc${insertedHTML}ghi<br></p>`,
+    ],
+    t.name
+  );
+  // Don't need to shrink the range for avoiding to waste runtime cost.
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: ghi,
+    endOffset: 0,
+  });
+  if (gEditor.innerHTML === "<p>abc<span contenteditable=\"false\">def</span>ghi</p>") {
+    checkGetTargetRangesOfInputOnDoNothing();
+  } else {
+    checkGetTargetRangesOfInputOnDeleteSomething();
+  }
+}, `${action} at "<p>abc[<span contenteditable=\"false\">def</span>]ghi</p>"`);
+
+// The table structure shouldn't be modified when deleting cell contents,
+// in this case, getTargetRanges() should return multiple ranges in each
+// cell?
+promise_test(async (t) => {
+  initializeTest("<table><tr><td>abc</td><td>def</td></tr></table>");
+  let abc = gEditor.querySelector("td").firstChild;
+  let def = gEditor.querySelector("td + td").firstChild;
+  gSelection.setBaseAndExtent(abc, 2, def, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    `<table><tbody><tr><td>ab${insertedHTML}</td><td>ef</td></tr></tbody></table>`,
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 2,
+    endContainer: def,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<table><tr><td>ab[c</td><td>d]ef</td></tr></table>"`);
+
+promise_test(async (t) => {
+  initializeTest("<table><tr><td>abc</td><td>def</td></tr><tr><td>ghi</td><td>jkl</td></tr></table>");
+  let abc = gEditor.querySelector("td").firstChild;
+  let jkl = gEditor.querySelector("tr + tr > td + td").firstChild;
+  gSelection.setBaseAndExtent(abc, 2, jkl, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<table><tbody><tr><td>ab${insertedHTML}</td><td></td></tr><tr><td></td><td>kl</td></tr></tbody></table>`,
+      `<table><tbody><tr><td>ab${insertedHTML}</td><td><br></td></tr><tr><td><br></td><td>kl</td></tr></tbody></table>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 2,
+    endContainer: jkl,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<table><tr><td>ab[c</td><td>def</td></tr><tr><td>ghi</td><td>j]kl</td></tr></table>"`);
+
+promise_test(async (t) => {
+  initializeTest("<table><tr><td>abc</td><td>def</td></tr></table><table><tr><td>ghi</td><td>jkl</td></tr></table>");
+  let abc = gEditor.querySelector("td").firstChild;
+  let jkl = gEditor.querySelector("table + table td + td").firstChild;
+  gSelection.setBaseAndExtent(abc, 2, jkl, 1);
+  await run();
+  checkEditorContentResultAsSubTest(
+    [
+      `<table><tbody><tr><td>ab${insertedHTML}</td><td></td></tr></tbody></table><table><tbody><tr><td></td><td>kl</td></tr></tbody></table>`,
+      `<table><tbody><tr><td>ab${insertedHTML}</td><td><br></td></tr></tbody></table><table><tbody><tr><td><br></td><td>kl</td></tr></tbody></table>`,
+    ],
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 2,
+    endContainer: jkl,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `${action} at "<table><tr><td>ab[c</td><td>def</td></tr></table><table><tr><td>ghi</td><td>j]kl</td></tr></table>"`);
+
+</script>

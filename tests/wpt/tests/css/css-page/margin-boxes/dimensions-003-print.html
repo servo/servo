@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test with auto lengths and margins/border/padding.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-003-print-ref.html">
+<style>
+  @page {
+    margin: 6em;
+    width: 20em;
+    height: 16em;
+    font: 16px/1 Ahem;
+    white-space: pre-wrap;
+
+    /* Available size for top edge margins is 20em.
+
+       Min/max content width of top-left is
+       (left border/padding + content + right padding/border/margin)
+       is 0.25em+0.25em+1em+0.25em+0.25em+1em = 3em
+
+       Min content width of top-right is 1em + 1em = 2em
+
+       Unused space becomes 15em.
+
+       Left flex: 3
+       Right flex: 2
+       Total flex: 5
+
+       Left width: 3em + 15em * 3/5 = 12em
+       Right width: 2em + 15em * 2/5 = 8em */
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      margin-right: 1em;
+      border: solid 0.25em;
+      padding: 0.25em;
+      content: "x";
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      margin-left: 1em;
+      background: yellow;
+      content: "x";
+    }
+  }
+</style>

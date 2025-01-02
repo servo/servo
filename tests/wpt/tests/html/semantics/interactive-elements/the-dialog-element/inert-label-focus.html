@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=242848">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<label for="submit">Label for Submit</label>
+<dialog>
+  <input id="text" type="text">
+  <input id="submit" type="submit">
+</dialog>
+
+<script>
+promise_test(async () => {
+  async function clickOn(element) {
+    let absoluteTop = 0;
+    let absoluteLeft = 0;
+    for (let parentNode = element; parentNode; parentNode = parentNode.offsetParent) {
+      absoluteLeft += parentNode.offsetLeft;
+      absoluteTop += parentNode.offsetTop;
+    }
+
+    const x = Math.round(absoluteLeft + element.offsetWidth / 2);
+    const y = Math.round(absoluteTop + element.offsetHeight / 2);
+    const actions = new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(0, 0);
+    await actions.send();
+  }
+
+  document.querySelector('dialog').showModal();
+  document.querySelector('#text').focus();
+
+  label = document.querySelector('label');
+  submit = document.querySelector('#submit');
+  label.focus();
+  assert_equals(document.activeElement, submit,
+    'label.focus() should send focus to the target.');
+
+  await clickOn(label);
+  assert_not_equals(document.activeElement, label,
+    'Clicking the label should not focus the label.');
+  assert_not_equals(document.activeElement, submit,
+    'Clicking the label should not focus the submit input.');
+}, 'Tests focusing of an inert label for a non-inert target.');
+</script>

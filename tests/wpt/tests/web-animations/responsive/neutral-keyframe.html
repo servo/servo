@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animation with neutral keyframe is responsive to change in underlying style</title>
+  <link rel="help" href="https://www.w3.org/TR/web-animations-1/#the-effect-value-of-a-keyframe-animation-effect">
+  <link rel="match" href="neutral-keyframe-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <style type="text/css">
+    #block {
+      background-color: green;
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="block"></div>
+</body>
+<script>
+  window.onload = async () => {
+    const target = document.getElementById('block');
+    const anim = target.animate({ translate: '200px' },
+                                {
+                                  duration: 10000,
+                                  easing: 'steps(1,jump-end)'
+                                });
+    await anim.ready;
+    await waitForNextFrame();
+    // The neutral keyframe value changes from transform 'none' to '100px'.
+    // Since using jump-end for the easing function, the animated value is the
+    // underlying (neutral) value. If the box is not translated, then the change
+    // to the underlying value is not taking effect.
+    target.style.translate = '100px';
+    await waitForNextFrame();
+    takeScreenshot();
+  };
+</script>
+</html>

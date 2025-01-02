@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://crbug.com/379758203">
+<style>
+  .spacer { height: 2000px; }
+  .anchor { anchor-name: --a; }
+  #popover {
+    transition: bottom 1s allow-discrete;
+    position-anchor: --a;
+    position-try-fallbacks: flip-block;
+    top: anchor(bottom);
+    bottom: auto;
+  }
+</style>
+<div class="spacer"></div>
+<div class="anchor">
+  <div id="popover" popover>Hello World</div>
+</div>
+<div class="spacer"></div>
+<script>
+  requestAnimationFrame(() => {
+    document.documentElement.scrollTop = 2000;
+    requestAnimationFrame(() => {
+      popover.showPopover();
+      requestAnimationFrame(() => {
+        document.documentElement.scrollTop = 0;
+        document.documentElement.classList.remove("test-wait");
+      });
+    });
+  });
+</script>

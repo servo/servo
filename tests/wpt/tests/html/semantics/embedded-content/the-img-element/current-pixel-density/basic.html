@@ -1,0 +1,37 @@
+<!doctype html>
+<title>img current pixel density basic</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<img src="/images/green-256x256.png" data-expect="256">
+<img srcset="/images/green-256x256.png 1x" data-expect="256">
+<img srcset="/images/green-256x256.png 1.6x" data-expect="160">
+<img srcset="/images/green-256x256.png 2x" data-expect="128">
+<img srcset="/images/green-256x256.png 10000x" data-expect="0">
+<img srcset="/images/green-256x256.png 9e99999999999999999999999x" data-expect="0">
+<img srcset="/images/green-256x256.png 256w" sizes="256px" data-expect="256">
+<img srcset="/images/green-256x256.png 512w" sizes="256px" data-expect="128">
+<img srcset="/images/green-256x256.png 256w" sizes="512px" data-expect="512">
+<img srcset="/images/green-256x256.png 256w" sizes="1px" data-expect="1">
+<img srcset="/images/green-256x256.png 256w" sizes="0px" data-expect="0">
+<!-- SVG -->
+<img srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='-1%20-1%202%202'%20width='20'%20height='20'><circle%20r='1'/></svg> 2x" data-expect="10">
+<img srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='-1%20-1%202%202'%20width='20'><circle%20r='1'/></svg> 2x" data-expect="10">
+<img srcset="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='-1%20-1%202%202'%20height='20'><circle%20r='1'/></svg> 2x" data-expect="10">
+<script>
+setup({explicit_done:true});
+onload = function() {
+  [].forEach.call(document.images, function(img) {
+    test(function() {
+      var expected = parseFloat(img.dataset.expect);
+      assert_equals(img.width, expected, 'width');
+      assert_equals(img.height, expected, 'height');
+      assert_equals(img.clientWidth, expected, 'clientWidth');
+      assert_equals(img.clientHeight, expected, 'clientHeight');
+      assert_equals(img.naturalWidth, expected, 'naturalWidth');
+      assert_equals(img.naturalHeight, expected, 'naturalHeight');
+    }, img.outerHTML);
+  });
+  done();
+};
+</script>

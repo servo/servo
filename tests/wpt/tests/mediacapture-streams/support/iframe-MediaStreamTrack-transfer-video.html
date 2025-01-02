@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>iframe</title>
+    <script>
+      function onMsg(e) {
+          if(e.data instanceof MediaStreamTrack) {
+              const track = e.data;
+              video = document.getElementById("myvideo");
+              video.srcObject = new MediaStream ([track]);
+              video.play();
+
+              parent.postMessage({result: 'Success'});
+          } else {
+              parent.postMessage({
+                  result: 'Failure',
+                  error: `${e.data} is not a MediaStreamTrack`
+              });
+        }
+      }
+      window.addEventListener("message", onMsg);
+    </script>
+  </head>
+  <body>
+    <video id="myvideo"></video>
+  </body>
+</html>

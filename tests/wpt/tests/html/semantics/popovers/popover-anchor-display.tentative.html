@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel=match href="popover-anchor-display-ref.html">
+<link rel=stylesheet href="/fonts/ahem.css">
+<script src="resources/popover-utils.js"></script>
+
+<p>There should be a green box attached to the right side of each orange box.</p>
+
+<div id=proper_anchors class=wrapper>
+  <!-- Example using the `anchor` implicit reference element -->
+  <div>
+    <div class=anchor id=anchor1></div>
+    <div id=popover1 popover=manual anchor=anchor1></div>
+  </div>
+
+  <!-- Example with `anchor` attribute but not using it for anchor pos -->
+  <div>
+    <div id=anchor2 class=anchor></div>
+    <div id=popover2 popover=manual anchor></div>
+  </div>
+
+  <!-- Example using `anchor-name` plus inset, and no `anchor` attribute -->
+  <div>
+    <div id=anchor3 class=anchor></div>
+    <div id=popover3 popover=manual></div>
+  </div>
+
+  <!-- Example using implicit anchor reference and inline anchor element -->
+  <div>
+    <span id=anchor4>X</span>
+    <div id=popover4 popover=manual anchor=anchor4></div>
+  </div>
+
+  <!-- Example using a default anchor which is not the implicit anchor -->
+  <div>
+    <div class=anchor id=anchor5></div>
+    <!-- Note `anchor=anchor1` here, not anchor5 -->
+    <div id=popover5 popover=manual anchor=anchor1></div>
+  </div>
+
+  <!-- Example using implicit anchor reference and position-anchor:auto -->
+  <div>
+    <div class=anchor id=anchor6></div>
+    <div id=popover6 popover=manual anchor=anchor6></div>
+  </div>
+</div>
+
+<p>There should NOT be any red boxes next to the orange ones. (Red ones down below are ok.)</p>
+
+<div id=improper_anchors class=wrapper>
+  <!-- Example using implicit anchor reference and anchor(auto foo)-->
+  <div>
+    <div class=anchor id=anchor7></div>
+    <div id=popover7 popover=manual anchor=anchor7></div>
+  </div>
+
+  <!-- Example using invalid anchor name -->
+  <div>
+    <div class=anchor id=anchor8></div>
+    <div id=popover8 popover=manual anchor=anchor8></div>
+  </div>
+</div>
+
+<script>
+  Array.from(document.querySelectorAll('[popover=manual]')).forEach(p => p.showPopover());
+</script>
+
+<style>
+  body { margin:0; padding:0; box-sizing: border-box; }
+  p {height: 25px;}
+  .wrapper {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .wrapper>div {
+    position:relative;
+    width: 125px;
+    height: 75px;
+  }
+  .wrapper>div div {
+    width: 50px;
+    height: 50px;
+  }
+  .anchor {
+    background: orange;
+  }
+  [popover] {
+    inset: auto;
+    padding:0;
+    border:0;
+  }
+  #proper_anchors [popover] {
+    background: lime;
+  }
+  #improper_anchors [popover] {
+    background: red;
+  }
+  #popover1 {
+    left: anchor(right);
+    top: anchor(top);
+  }
+  #anchor2 {
+    anchor-name: --anchor2;
+  }
+  #popover2 {
+    left: anchor(--anchor2 right);
+    top: anchor(--anchor2 top);
+  }
+  #anchor3 {
+    anchor-name: --anchor3;
+  }
+  #popover3 {
+    inset:auto;
+    left: anchor(--anchor3 right);
+    top: anchor(--anchor3 top);
+  }
+  #anchor4 {
+    font-family: Ahem;
+    font-size: 50px;
+    color: orange;
+  }
+  #popover4 {
+    left: anchor(right);
+    top: anchor(top);
+  }
+  #anchor5 {
+    anchor-name: --anchor5;
+  }
+  #popover5 {
+    position-anchor: --anchor5;
+    left: anchor(right); /* shouldn't use the implicit anchor */
+    top: anchor(top);
+  }
+  #popover6 {
+    position-anchor: auto;
+    left: anchor(right);
+    top: anchor(top);
+  }
+  #popover7 {
+    left: anchor(auto right);
+    top: anchor(auto top);
+  }
+  #popover8 {
+    /* The `implicit` keyword was renamed to `auto`, and anyway should not
+    work in this context. */
+    left: anchor(implicit right);
+    top: anchor(implicit top);
+  }
+</style>

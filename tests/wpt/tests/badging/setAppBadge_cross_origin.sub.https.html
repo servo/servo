@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Test cross-origin and same-origin use of setAppBadge</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="testIframe"></iframe>
+<script>
+  const iframe = document.getElementById("testIframe");
+
+  function sendMessageToIframe(message) {
+    return new Promise((resolve) => {
+      window.addEventListener("message", function listener(event) {
+        const { messageId } = event.data;
+        if (event.data.message !== message) return;
+        window.removeEventListener("message", listener);
+        resolve(event);
+      });
+      iframe.contentWindow.postMessage("callSetAppBadge", "*");
+    });
+  }
+
+  function loadIframe(src) {
+    return new Promise((resolve) => {
+      iframe.addEventListener("load", resolve);
+      iframe.src = src;
+    });
+  }
+
+  test(() => {
+    assert_true(
+      "setAppBadge" in navigator,
+      "navigator.setAppBadge should be available"
+    );
+  }, "Test that navigator.setAppBadge is available");
+
+  promise_test(async () => {
+    await loadIframe(
+      `https://{{hosts[][]}}:{{ports[https][1]}}/badging/resources/setAppBadge_iframe.html`
+    );
+    const event = await sendMessageToIframe("callSetAppBadge");
+    const { exceptionType, status } = event.data;
+    assert_equals(
+      status,
+      "error",
+      "setAppBadge should have rejected with an error"
+    );
+    assert_equals(
+      exceptionType,
+      "SecurityError",
+      "setAppBadge should throw a SecurityError when called in a cross-origin iframe"
+    );
+  }, "Test that calling setAppBadge in a cross-origin iframe throws a SecurityError");
+
+  promise_test(async () => {
+    await loadIframe("./resources/setAppBadge_iframe.html");
+    const event = await sendMessageToIframe("callSetAppBadge");
+    const { status } = event.data;
+    assert_equals(
+      status,
+      "success",
+      "setAppBadge should succeed when called in a same-origin iframe"
+    );
+  }, "Test that calling setAppBadge in a same-origin iframe succeeds");
+</script>

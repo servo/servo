@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Static position in rtl context</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-11 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/022.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width"/>
+  <link rel="match" href="abspos-024-ref.xht" />
+
+  <style type="text/css">
+   body { position: relative; }
+   .test { position: absolute; background: green; color: green;
+           width: 4em; height: 1em; }
+   .control { border-right: 4em solid red; height: 1em; }
+  </style>
+ </head>
+ <body dir="rtl">
+  <p>Test passes if there is a green stripe on the right and <strong>no red</strong>.</p>
+  <div class="test"></div>
+  <div class="control"></div>
+
+</body>
+</html>

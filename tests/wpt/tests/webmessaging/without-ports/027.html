@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Cloning objects, preserving sharing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var obj1 = {o: 1};
+  var obj2 = {d: obj1};
+  var obj3 = {d: obj1};
+  var obj_dag = {b: obj2, c: obj3};
+
+  postMessage(obj_dag, '*');
+  onmessage = this.step_func(function(e) {
+    assert_equals(e.data.b.d, e.data.c.d);
+    this.done();
+  });
+});
+</script>

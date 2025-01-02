@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> event.ports returns the MessagePort array sent with the message </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www1]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: event.ports returns the MessagePort array sent with the message.";
+
+    var t = async_test(description);
+
+    var DATA = {test: "e.source.postMessage(e.ports.toString(), '*', e.ports)"};
+    var TARGET = document.querySelector("iframe");
+    var ExpectedResult = "";
+
+    function PostMessageTest()
+    {
+        test(function()
+        {
+            assert_own_property(window, "MessageChannel", "window");
+
+            var channel = new MessageChannel();
+            var ports = [channel.port1, channel.port2];
+            ExpectedResult = ports.toString();
+            TARGET.contentWindow.postMessage(DATA, "*", ports);
+
+        }, "MessageChannel is supported.");
+    }
+
+    window.onmessage = t.step_func(function(e)
+    {
+        assert_equals(e.data, ExpectedResult, "e.data");
+        assert_true(e.ports[0] instanceof MessagePort, e.ports[0] + " instanceof MessageChannel");
+        assert_true(e.ports[1] instanceof MessagePort, e.ports[1] + " instanceof MessageChannel");
+        t.done();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+
+  <script>
+
+    let immersiveTestName =
+      "Identity reference space provides correct poses for immersive sessions";
+    let inlineTestName =
+      "Identity reference space provides correct poses for inline sessions";
+
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      return session.requestReferenceSpace('viewer')
+        .then((referenceSpace) => new Promise((resolve, reject) => {
+          let counter = 0;
+          function onFrame(time, xrFrame) {
+            session.requestAnimationFrame(onFrame);
+            if (counter == 0) {
+              t.step( () => {
+                // Expect to always get a pose, even if none has been supplied.
+                let pose = xrFrame.getViewerPose(referenceSpace);
+                assert_not_equals(pose, null);
+
+                let poseMatrix = pose.transform.matrix;
+                assert_not_equals(poseMatrix, null);
+
+                for(let i = 0; i < poseMatrix.length; i++) {
+                  // "0 +" is to accept -0 which is equivalent to 0 in the
+                  // matrix.
+                  assert_equals(0 + poseMatrix[i], IDENTITY_MATRIX[i]);
+                }
+
+                fakeDeviceController.setViewerOrigin(VALID_POSE_TRANSFORM);
+              });
+            } else {
+              t.step( () => {
+                // Assert that the identity matrix is always given as the pose
+                // even when a valid pose is set by the device.
+                let pose = xrFrame.getViewerPose(referenceSpace);
+                assert_not_equals(pose, null);
+
+                let poseMatrix = pose.transform.matrix;
+                assert_not_equals(poseMatrix, null);
+
+                for(let i = 0; i < poseMatrix.length; i++) {
+                  // "0 +" is to accept -0 which is equivalent to 0 in the
+                  // matrix.
+                  assert_equals(0 + poseMatrix[i], IDENTITY_MATRIX[i]);
+                }
+              });
+
+              // Finished.
+              resolve();
+            }
+            counter++;
+          }
+
+          session.requestAnimationFrame(onFrame);
+        }));
+    };
+
+    xr_session_promise_test(inlineTestName, testFunction,
+      fakeDeviceInitParams, 'inline');
+    xr_session_promise_test(immersiveTestName, testFunction,
+      fakeDeviceInitParams, 'immersive-vr');
+
+  </script>
+</body>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="Dominic Farolino" href="dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- We need to set the CSP via the <meta> tag. If we were to use the HTTP
+     header, we'd have to specify the absolute HTTPS URL of the test harness and
+     reporter, but then this file is not recognized as a test harness test, and
+     will not run -->
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+<body>
+<iframe id="iframe"></iframe>
+<script>
+async_test(t => {
+  const iframe = document.querySelector('iframe');
+  iframe.src =
+    'http://{{domains[www]}}:{{ports[https][0]}}/referrer-policy/generic/resources/referrer.py';
+
+  addEventListener('message', t.step_func_done(msg => {
+    const referrer = msg.data;
+    assert_equals(referrer, new URL(location.href).origin + '/',
+      "The referrer header sent for the iframe request should be redacted");
+  }));
+}, "If an insecure iframe request is upgraded to https to be cross-origin, " +
+   "referrer policies that consider same-origin-ness should be applied correctly");
+</script>
+</body>

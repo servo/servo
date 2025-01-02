@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.1-collectionFirstValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Collection has invalid first key or has total value more than zero without a valid first key.",
+  "title": "**Annotation Collection has _first_ key**, or no **_total_ key**, or **_total_ key** with value of zero - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
+  "$ref": "collections.json#/definitions/firstRequiredIfTotalMoreThanZero"
+}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+  Nested fixedpos static position in a multicol with transform containing
+  block.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    margin-left: -350px;
+    margin-top: -200px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+  }
+  .fixed {
+    position: fixed;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="transform: translateX(0);">
+  <div style="height: 100px; width: 100px; background-color: red;"></div>
+  <div class="multicol">
+    <div class="rel">
+      <div style="height: 400px;"></div>
+      <div class="abs">
+        <div style="height: 400px;"></div>
+        <div class="fixed"></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[[SetPrototypeOf]] on a Location object should not allow changing its value: cross-origin</title>
+<link rel="help" href="http://html.spec.whatwg.org/multipage/#location-setprototypeof">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/test-setting-immutable-prototype.js"></script>
+
+<iframe src="//{{domains[www]}}:{{ports[http][1]}}/common/blank.html"></iframe>
+
+<script>
+"use strict";
+setup({ explicit_done: true });
+
+window.onload = () => {
+  const targetLocation = frames[0].location;
+
+  test(() => {
+    assert_equals(Object.getPrototypeOf(targetLocation), null);
+  }, "Cross-origin: the prototype is null");
+
+  testSettingImmutablePrototype("Cross-origin", targetLocation, null, { isSameOriginDomain: false });
+
+  done();
+};
+</script>

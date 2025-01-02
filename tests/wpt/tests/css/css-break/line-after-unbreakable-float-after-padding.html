@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#unforced-breaks">
+<link rel="match" href="line-after-unbreakable-float-after-padding-ref.html">
+<p>The word "PASS" should be seen below.</p>
+<div style="columns:3; column-gap:0; column-fill:auto; font-family:monospace; line-height:50px; width:6ch; height:101px; orphans:1; widows:1;">
+  <div style="padding-top:100px;">
+    <div style="float:left; break-inside:avoid; width:100%; height:75px;">PA</div>
+    SS
+  </div>
+</div>

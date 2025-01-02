@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    function testNode() {
+      var context = new AudioContext();
+      var buffer = context.createBuffer(1, 2048, context.sampleRate);
+      for (var i = 0; i < 2048; ++i) {
+        buffer.getChannelData(0)[i] = Math.sin(
+          440 * 2 * Math.PI * i / context.sampleRate
+        );
+      }
+
+      var destination = context.destination;
+
+      var source = context.createBufferSource();
+
+      var analyser = context.createAnalyser();
+
+      source.buffer = buffer;
+
+      source.connect(analyser);
+      analyser.connect(destination);
+
+      assert_equals(
+        analyser.channelCount,
+        2,
+        "analyser node has 2 input channels by default"
+      );
+      assert_equals(
+        analyser.channelCountMode,
+        "max",
+        "Correct channelCountMode for the analyser node"
+      );
+      assert_equals(
+        analyser.channelInterpretation,
+        "speakers",
+        "Correct channelCountInterpretation for the analyser node"
+      );
+
+      assert_equals(
+        analyser.fftSize,
+        2048,
+        "Correct default value for fftSize"
+      );
+      assert_equals(
+        analyser.frequencyBinCount,
+        1024,
+        "Correct default value for frequencyBinCount"
+      );
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 0;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 1;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 8;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 100;
+      }); // non-power of two
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 2049;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 4097;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 8193;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 16385;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 32769;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.fftSize = 65536;
+      });
+      analyser.fftSize = 1024;
+      assert_equals(
+        analyser.frequencyBinCount,
+        512,
+        "Correct new value for frequencyBinCount"
+      );
+
+      assert_equals(
+        analyser.minDecibels,
+        -100,
+        "Correct default value for minDecibels"
+      );
+      assert_equals(
+        analyser.maxDecibels,
+        -30,
+        "Correct default value for maxDecibels"
+      );
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.minDecibels = -30;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.minDecibels = -29;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.maxDecibels = -100;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.maxDecibels = -101;
+      });
+
+      assert_true(
+        Math.abs(analyser.smoothingTimeConstant - 0.8) < 0.001,
+        "Correct default value for smoothingTimeConstant"
+      );
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.smoothingTimeConstant = -0.1;
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser.smoothingTimeConstant = 1.1;
+      });
+      analyser.smoothingTimeConstant = 0;
+      analyser.smoothingTimeConstant = 1;
+    }
+
+    function testConstructor() {
+      var context = new AudioContext();
+
+      var analyser = new AnalyserNode(context);
+      assert_equals(
+        analyser.channelCount,
+        2,
+        "analyser node has 2 input channels by default"
+      );
+      assert_equals(
+        analyser.channelCountMode,
+        "max",
+        "Correct channelCountMode for the analyser node"
+      );
+      assert_equals(
+        analyser.channelInterpretation,
+        "speakers",
+        "Correct channelCountInterpretation for the analyser node"
+      );
+
+      assert_equals(
+        analyser.fftSize,
+        2048,
+        "Correct default value for fftSize"
+      );
+      assert_equals(
+        analyser.frequencyBinCount,
+        1024,
+        "Correct default value for frequencyBinCount"
+      );
+      assert_equals(
+        analyser.minDecibels,
+        -100,
+        "Correct default value for minDecibels"
+      );
+      assert_equals(
+        analyser.maxDecibels,
+        -30,
+        "Correct default value for maxDecibels"
+      );
+      assert_true(
+        Math.abs(analyser.smoothingTimeConstant - 0.8) < 0.001,
+        "Correct default value for smoothingTimeConstant"
+      );
+
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 0 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 1 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 8 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 100 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 2049 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 4097 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 8193 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 16385 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 32769 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { fftSize: 65536 });
+      });
+      analyser = new AnalyserNode(context, { fftSize: 1024 });
+      assert_equals(
+        analyser.frequencyBinCount,
+        512,
+        "Correct new value for frequencyBinCount"
+      );
+
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { minDecibels: -30 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { minDecibels: -29 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { maxDecibels: -100 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { maxDecibels: -101 });
+      });
+
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { smoothingTimeConstant: -0.1 });
+      });
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
+        analyser = new AnalyserNode(context, { smoothingTimeConstant: -1.1 });
+      });
+      analyser = new AnalyserNode(context, { smoothingTimeConstant: 0 });
+      analyser = new AnalyserNode(context, { smoothingTimeConstant: 1 });
+    }
+    test(testNode, "Test AnalyserNode API");
+    test(testConstructor, "Test AnalyserNode's ctor API");
+  </script>
+</head>
+</body>
+</html>

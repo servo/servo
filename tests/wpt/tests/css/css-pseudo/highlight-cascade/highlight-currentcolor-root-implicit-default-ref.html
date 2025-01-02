@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Reftest Reference</title>
+<p>Pass if text below is green on lime, and the text itself represents green, not initial (black).</p>
+<main>rgb(0, 128, 0)</main>
+<main>rgb(0, 128, 0)</main>
+<style>
+  main { color: green; }
+  main::selection { background-color: lime; color: green; }
+  main::highlight(foo) { background-color: lime; color: green; }
+</style>
+<script>
+  const [selection, highlight] = document.querySelectorAll("main");
+
+  let selectionRange = new Range();
+  selectionRange.selectNode(selection);
+  window.getSelection().addRange(selectionRange);
+
+  let highlightRange = new Range();
+  highlightRange.selectNode(highlight);
+  CSS.highlights.set("foo", new Highlight(highlightRange));
+</script>

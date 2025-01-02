@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Fonts Module Level 3: getComputedStyle().fontStyle</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-style-prop">
+<meta name="assert" content="font-style computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #target {
+    font-family: Ahem;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('font-style', 'normal');
+test_computed_value('font-style', 'italic');
+test_computed_value('font-style', 'oblique');
+</script>
+</body>
+</html>

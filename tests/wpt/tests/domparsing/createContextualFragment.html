@@ -1,0 +1,179 @@
+<!doctype html>
+<title>createContextualFragment() tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+// We are not testing XML documents here, because apparently it's not clear
+// what we want to happen there.  We also aren't testing the HTML parser in any
+// depth, just some basic sanity checks.
+
+// Exception-throwing
+test(function() {
+        var range = document.createRange();
+        range.detach();
+        range.createContextualFragment("");
+}, "Must not throw INVALID_STATE_ERR for a detached node.");
+
+test(function() {
+        var range = document.createRange();
+        assert_throws_js(TypeError, function() {
+                range.createContextualFragment();
+        });
+}, "Must throw TypeError when calling without arguments");
+
+test(function() {
+        // Simple test
+        var range = document.createRange();
+        range.selectNodeContents(document.body);
+
+        var fragment = "<p CLaSs=testclass> Hi! <p>Hi!";
+        var expected = document.createDocumentFragment();
+        var tmpNode = document.createElement("p");
+        tmpNode.setAttribute("class", "testclass");
+        tmpNode.appendChild(document.createTextNode(" Hi! "));
+        expected.appendChild(tmpNode);
+
+        tmpNode = document.createElement("p");
+        tmpNode.appendChild(document.createTextNode("Hi!"));
+        expected.appendChild(tmpNode);
+
+        var result = range.createContextualFragment(fragment);
+        assert_true(expected.isEqualNode(result),
+                "Unexpected result (collapsed Range)");
+
+        // Token test that the end node makes no difference
+        range.setEnd(document.body.getElementsByTagName("script")[0], 0);
+        result = range.createContextualFragment(fragment);
+        assert_true(expected.isEqualNode(result),
+                "Unexpected result (Range ends in <script>)");
+}, "Simple test with paragraphs");
+
+test(function() {
+        // This test based on https://bugzilla.mozilla.org/show_bug.cgi?id=585819,
+        // from a real-world compat bug
+        var range = document.createRange();
+        range.selectNodeContents(document.documentElement);
+        var fragment = "<span>Hello world</span>";
+        var expected = document.createDocumentFragment();
+        var tmpNode = document.createElement("span");
+        tmpNode.appendChild(document.createTextNode("Hello world"));
+        expected.appendChild(tmpNode);
+
+        var result = range.createContextualFragment(fragment);
+        assert_true(expected.isEqualNode(result),
+                "Unexpected result (collapsed Range)");
+
+        // Another token test that the end node makes no difference
+        range.setEnd(document.head, 0);
+        result = range.createContextualFragment(fragment);
+        assert_true(expected.isEqualNode(result),
+                "Unexpected result (Range ends in <head>)");
+}, "Don't auto-create <body> when applied to <html>");
+
+// Scripts should be run if inserted (that's what the "Unmark all scripts
+// . . ." line means, I'm told)
+var passed = false;
+test(function() {
+        assert_false(passed, "Sanity check");
+        var range = document.createRange();
+        range.selectNodeContents(document.documentElement);
+        var fragment = range.createContextualFragment("<script>passed = true</s" + "cript>");
+        assert_false(passed, "Fragment created but not yet added to document, should not have run");
+        document.body.appendChild(fragment);
+        assert_true(passed, "Fragment created and added to document, should run");
+}, "<script>s should be run when appended to the document (but not before)");
+
+// Historical bugs in browsers; see https://github.com/whatwg/html/issues/2222
+
+[
+        // Void
+        "area",
+        "base",
+        "basefont",
+        "bgsound",
+        "br",
+        "col",
+        "embed",
+        "frame",
+        "hr",
+        "img",
+        "input",
+        "keygen",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+
+        // Historical
+        "menuitem",
+        "image"
+].forEach(name => {
+        test(() => {
+                const range = document.createRange();
+                const contextNode = document.createElement(name);
+                const selectedNode = document.createElement("div");
+                contextNode.appendChild(selectedNode);
+                range.selectNode(selectedNode);
+
+                range.createContextualFragment("some text");
+        }, `createContextualFragment should work even when the context is <${name}>`);
+});
+
+
+// Now that we've established basic sanity, let's do equivalence tests.  Those
+// are easier to write anyway.
+function testEquivalence(element1, fragment1, element2, fragment2) {
+        var range1 = element1.ownerDocument.createRange();
+        range1.selectNodeContents(element1);
+        var range2 = element2.ownerDocument.createRange();
+        range2.selectNodeContents(element2);
+
+        var result1 = range1.createContextualFragment(fragment1);
+        var result2 = range2.createContextualFragment(fragment2);
+
+        assert_true(result1.isEqualNode(result2), "Results are supposed to be equivalent");
+
+        // Throw in partial ownerDocument tests on the side, since the algorithm
+        // does specify that and we don't want to completely not test it.
+        if (result1.firstChild != null) {
+                assert_equals(result1.firstChild.ownerDocument, element1.ownerDocument,
+                        "ownerDocument must be set to that of the reference node");
+        }
+        if (result2.firstChild != null) {
+                assert_equals(result2.firstChild.ownerDocument, element2.ownerDocument,
+                        "ownerDocument must be set to that of the reference node");
+        }
+}
+
+var doc_fragment = document.createDocumentFragment();
+var comment = document.createComment("~o~");
+doc_fragment.appendChild(comment);
+
+var tests = [
+        ["<html> and <body> must work the same, 1", document.documentElement, "<span>Hello world</span>", document.body, "<span>Hello world</span>"],
+        ["<html> and <body> must work the same, 2", document.documentElement, "<body><p>Hello world", document.body, "<body><p>Hello world"],
+        ["Implicit <body> creation", document.documentElement, "<body><p>", document.documentElement, "<p>"],
+        ["Namespace generally shouldn't matter",
+                document.createElementNS("http://fake-namespace", "div"), "<body><p><span>Foo",
+                document.createElement("div"), "<body><p><span>Foo"],
+        ["<html> in a different namespace shouldn't be special",
+                document.createElementNS("http://fake-namespace", "html"), "<body><p>",
+                document.createElement("div"), "<body><p>"],
+        ["SVG namespace shouldn't be special",
+                document.createElementNS("http://www.w3.org/2000/svg", "div"), "<body><p>",
+                document.createElement("div"), "<body><p>"],
+        ["null should be stringified", document.createElement("span"), null, document.createElement("span"), "null"],
+        ["undefined should be stringified", document.createElement("span"), undefined, document.createElement("span"), "undefined"],
+        ["Text nodes shouldn't be special",
+                document.createTextNode("?"), "<body><p>",
+                document.createElement("div"), "<body><p>"],
+        ["Non-Element parent should not be special",
+                comment, "<body><p>",
+                document.createElement("div"), "<body><p>"]
+];
+
+generate_tests(testEquivalence, tests);
+</script>

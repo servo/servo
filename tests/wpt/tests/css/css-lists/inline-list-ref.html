@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reference: inline list-item</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  color:black; background-color:white; font:14px/1 monospace; padding:0; margin:0;
+}
+ol,ul,li { margin:0; padding:0; }
+body { margin-left: 40px; }
+
+span { border: 1px solid; }
+li { display: list-item; list-style-position: inside; }
+
+.wrap { width: 22ch; }
+ib { display:inline-block; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<span><ib><li>A</li></ib> A A A A A A A A A A A A A A A A A A A </span><span style="white-space:pre"><ib><li value=2></li></ib>B</span>
+
+<ol>
+<span><ib><li>A</li></ib> A A A A A A A A A A A A A A A A A A A </span><span><ib><li>B</li></ib></span>
+<span><ib><li>C</li></ib></span>
+</ol>
+
+<ol style="display:inline">
+<span><ib><li>A</li></ib> A A A A A A A A A A A A A A A A A A A </span><span><ib><li>B</li></ib></span>
+<span><ib><li>C</li></ib></span></ol><ol style="display:inline">
+<span><ib><li>A</li></ib> A A A A A A A A A A A A A A A A A A A </span><span><ib><li></li></ib>B<ol>
+<span><ib><li>a</li></ib> a a a a a a a a a a a a a a a a a a a </span><span><ib><li>b</li></ib></span>
+</ol></li></ib></span>
+<span><ib><li>C</li></ib></span>
+</ol>
+
+<ul>
+<span><ib><li>A</li></ib> A A A A A A A A A A A A A A A A A A A </span><span><x style="white-space:pre"><ib><li></li></ib>B</x> <ol style="display:inline"><span><ib><li>a</li></ib> a a a a a a a a a a a a a a a a a a a </span><span><ib><li>b</li></ib></span>
+</ol></span><span><ib><li>C</li></ib></span>
+</ul>
+</div>
+
+</body>

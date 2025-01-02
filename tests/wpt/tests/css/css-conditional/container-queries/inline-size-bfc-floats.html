@@ -1,0 +1,47 @@
+<!doctype html>
+<title>CSS Container Queries Test: inline-size constrained by floats - layout moving forwards</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#containment-inline-size">
+<link rel="match" href="inline-size-bfc-floats-ref.html">
+<style>
+  .float { float: left; background-color: blue; }
+  .right { float: right; }
+
+  #outer { width: 400px; }
+  #float1 { width: 200px; height: 150px; }
+  #float2 { width: 250px; height: 100px; }
+  #float3 { width: 300px; height: 100px; }
+
+  #container { container-type: inline-size; }
+
+  /* Initially, text + 200px of red content (#content1 + #content2) is too tall
+     to make #container fit by #float1 */
+  .content { height: 100px; background-color: red; }
+
+  /* Trying to fit #container beside #float2 causes the width to remove
+     #content1. text + 100px of red content (#content2) is too tall to fit
+     beside #float2. It would at this point fit beside #float1, but that would
+     cause the width to increase again, and the spec says layout always moves
+     forward. */
+  @container (width < 200px) {
+    #content1 { display: none }
+  }
+
+  /* Trying to fit #container beside #float3 causes the rest of the red content
+     (#content2) to disappear. */
+  @container (width < 150px) {
+    #content2 { display: none }
+  }
+</style>
+<p>You should see the text "no red" to the left of the third float and no red.</p>
+<div id="outer">
+  <div id="float1" class="float right"></div>
+  <div id="float2" class="float left"></div>
+  <div id="float3" class="float right"></div>
+
+  <div id="container">
+    No red
+    <div id="content1" class="content"></div>
+    <div id="content2" class="content"></div>
+  </div>
+</div>

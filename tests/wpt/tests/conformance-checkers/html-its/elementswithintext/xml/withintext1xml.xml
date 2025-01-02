@@ -1,0 +1,12 @@
+<doc>
+ <head>
+  <its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its">
+   <its:withinTextRule withinText="yes" selector="//b|//u|//i"/>
+   <its:withinTextRule withinText="nested" selector="//fn"/>
+  </its:rules>
+ </head>
+  <body>
+   <p>This is a paragraph with <b>bold</b>, <i>italic</i>, and <u>underlined</u>.</p>
+   <p>This is a paragraph with a footnote<fn>This is the text of the footnote</fn> at the middle.</p>
+  </body>
+ </doc>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Handling of invalid module type import attributes</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+
+    window.log = [];
+
+    window.addEventListener("error", ev => log.push(ev.error));
+
+    const test_load = async_test(
+        "Test that invalid module type attribute leads to TypeError on window.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_equals(log.length, 4);
+      assert_equals(log[0].constructor, TypeError);
+      assert_equals(log[1].constructor, TypeError);
+      assert_equals(log[2].constructor, TypeError);
+      assert_equals(log[3].constructor, TypeError);
+    }));
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="./invalid-type-attribute.js" onerror="unreachable()"></script>
+<script type="module" src="./empty-type-attribute.js" onerror="unreachable()"></script>
+<script type="module" src="./js-type-attribute.js" onerror="unreachable()"></script>
+<script type="module" src="./javascript-type-attribute.js" onerror="unreachable()"></script>

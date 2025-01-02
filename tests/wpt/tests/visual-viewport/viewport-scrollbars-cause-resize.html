@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Scrollbars Cause Resize</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+    </head>
+    <body>
+    <h1>Viewport: Scrollbars Cause Resize</h1>
+    <h4>
+        Test Description: This test checks that the appearance of classic
+        scrollbars will cause a resize event to be fired at window.visualViewport.
+    </h4>
+    <script>
+      setup({ explicit_done: true });
+
+      function runTest() {
+        var scrollbarThickness = calculateScrollbarThickness();
+
+        document.documentElement.style.overflow = "hidden";
+        var initialWidth = visualViewport.width;
+        var initialHeight = visualViewport.height;
+
+        test(function() {
+              assert_equals(window.visualViewport.width, window.innerWidth);
+              assert_equals(window.visualViewport.height, window.innerHeight);
+            }, "view size initially matches window size");
+
+
+        var t = async_test(
+            "Resize event was fired at window.visualViewport if, and only if, " +
+            "scrollbars are classic (i.e. affect flow)");
+        var viewResized = false;
+        window.visualViewport.addEventListener('resize', function() {
+            viewResized = true;
+        });
+
+        requestAnimationFrame(t.step_func_done(function() {
+            assert_equals(viewResized, scrollbarThickness > 0);
+        }));
+
+        document.documentElement.style.overflow = "";
+        document.body.style.width = "10000px";
+        document.body.style.height = "10000px";
+
+        var expectedWidth = initialWidth - scrollbarThickness;
+        var expectedHeight = initialHeight - scrollbarThickness;
+
+        test(function() {
+              assert_equals(window.visualViewport.width, expectedWidth);
+              assert_equals(window.visualViewport.height, expectedHeight);
+            }, "view size reflects appearance of classic scrollbars");
+
+
+        document.body.style.width = "";
+        document.body.style.height = "";
+      }
+
+      // Run the test after load to make sure any resize from a previous test
+      // or from the load doesn't interfere.
+      window.onload = requestAnimationFrame(function() {
+        try {
+          runTest();
+        } finally {
+          done();
+        }
+      });
+    </script>
+    <div id="log"></div>
+    </body>
+</html>

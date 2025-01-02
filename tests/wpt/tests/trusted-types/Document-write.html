@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<script>
+  // TrustedHTML assignments do not throw.
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
+    document.write(html);
+    assert_true(document.body.innerText.indexOf(RESULTS.HTML) !== -1);
+  }, "document.write with html assigned via policy (successful transformation).");
+
+  test(t => {
+    document.body.innerText = '';
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
+    document.writeln(html);
+    assert_true(document.body.innerText.indexOf(RESULTS.HTML) !== -1);
+  }, "document.writeln with html assigned via policy (successful transformation).");
+
+  test(t => {
+    document.body.innerText = '';
+    let p = createHTML_policy(window, 1);
+    let a = p.createHTML("abcdef");
+    let b = p.createHTML("ghijkl");
+    document.write(a, b);
+    assert_equals(document.body.innerText, "abcdefghijkl");
+  }, "document.write(TrustedHTML, TrustedHTML)");
+
+  test(t => {
+    document.body.innerText = '';
+    let p = createHTML_policy(window, 1);
+    let a = p.createHTML("abcdef");
+    let b = p.createHTML("ghijkl");
+    document.writeln(a, b);
+    assert_equals(document.body.innerText, "abcdefghijkl");
+  }, "document.writeln(TrustedHTML, TrustedHTML)");
+
+  test(t => {
+    document.body.innerText = '';
+    let p = createHTML_policy(window, 1);
+    let a = p.createHTML("abcdef");
+    let b = "ghijkl";
+    document.write(a, b);
+    assert_equals(document.body.innerText, "abcdefghijkl");
+  }, "document.write(TrustedHTML, String)");
+
+  test(t => {
+    document.body.innerText = '';
+    let p = createHTML_policy(window, 1);
+    let a = p.createHTML("abcdef");
+    let b = "ghijkl";
+    document.writeln(a, b);
+    assert_equals(document.body.innerText, "abcdefghijkl");
+  }, "document.writeln(TrustedHTML, String)");
+
+  test(t => {
+    document.body.innerText = '';
+    let a = "abcdef";
+    let b = "ghijkl";
+    document.write(a, b);
+    assert_equals(document.body.innerText, "abcdefghijkl");
+  }, "document.write(String, String)");
+
+  test(t => {
+    document.body.innerText = '';
+    let a = "abcdef";
+    let b = "ghijkl";
+    document.writeln(a, b);
+    assert_equals(document.body.innerText, "abcdefghijkl");
+  }, "document.writeln(String, String)");
+</script>

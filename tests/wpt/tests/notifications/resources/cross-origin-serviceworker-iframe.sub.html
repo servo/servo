@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification cross origin iframe with service worker</title>
+<body>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="helpers.js"></script>
+<script type="module">
+const firstPartyOrigin = 'https://{{hosts[][]}}:{{ports[https][0]}}';
+
+// As our service worker cannot directly ping the first party window,
+// let's be a proxy here.
+navigator.serviceWorker.addEventListener("message", ev => {
+  window.top.postMessage(ev.data, firstPartyOrigin);
+});
+
+// Grant the permission so that we can confirm the permission being denied
+// regardless of the actual permission status.
+test_driver.set_test_context(window.top);
+await test_driver.set_permission({ name: "notifications" }, "granted");
+
+await unregisterAllServiceWorker();
+const registration = await navigator.serviceWorker.register("permission-sw.js");
+</script>

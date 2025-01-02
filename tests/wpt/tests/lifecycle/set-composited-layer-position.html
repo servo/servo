@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Setting composited layer position paints properly</title>
+<link rel="author" href="masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/">
+<link rel="match"  href="set-composited-layer-position-ref.html">
+
+<div id="box"></div>
+<div id="tomove"></div>
+<style>
+div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  width: 200px;
+  height: 200px;
+}
+#box {
+  background: red;
+}
+#tomove {
+  background: green;
+  top: 200px;
+  left: 200px;
+  filter: invert(0);
+}
+</style>
+<script>
+  window.onload = function() {
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        tomove = document.getElementById("tomove");
+        tomove.style.top = 0;
+        tomove.style.left = 0;
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  }
+</script>
+</html>
+
+
+

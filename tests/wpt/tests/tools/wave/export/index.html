@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Results - Web Platform Test</title>
+    <link rel="stylesheet" href="css/bulma.min.css" />
+    <link rel="stylesheet" href="css/result.css" />
+    <script src="lib/utils.js"></script>
+    <script src="lib/ui.js"></script>
+    <script src="results.json.js"></script>
+    <script src="details.json.js"></script>
+  </head>
+  <body>
+    <script>
+      window.onload = () => {
+        resultUi.render();
+        resultUi.loadData();
+      };
+
+      const resultUi = {
+        state: { details: null, results: null },
+        loadData: () => {
+          resultUi.loadSessionDetails();
+          resultUi.loadSessionResults();
+        },
+        loadSessionDetails(callback = () => {}) {
+          resultUi.state.details = details;
+          resultUi.renderSessionDetails();
+          callback(details);
+        },
+        loadSessionResults(callback = () => {}) {
+          const { details } = resultUi.state;
+          Object.keys(details.test_files_count).forEach(api =>
+            !results[api] ? (results[api] = {}) : null
+          );
+          for (let api in results) {
+            let { pass, fail, timeout, not_run } = results[api];
+            let complete = 0;
+            if (pass) complete += pass;
+            if (fail) complete += fail;
+            if (timeout) complete += timeout;
+            if (not_run) complete += not_run;
+            results[api].complete = complete;
+            const { test_files_count, test_files_completed } = details;
+            results[api].isDone =
+              test_files_count[api] === test_files_completed[api];
+            results[api].testFilesCount = test_files_count[api];
+            results[api].testFilesCompleted = test_files_completed[api];
+          }
+          resultUi.state.results = results;
+          resultUi.renderApiResults();
+          callback(results);
+        },
+        render() {
+          const resultView = UI.createElement({
+            className: "content",
+            style: "margin-bottom: 40px;",
+            children: [
+              {
+                className: "header",
+                children: [
+                  {
+                    children: [
+                      {
+                        element: "img",
+                        src: "res/wavelogo_2016.jpg",
+                        className: "site-logo"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                id: "header",
+                children: [
+                  { className: "title", text: "Result" },
+                  { id: "controls" }
+                ]
+              },
+              { id: "session-details" },
+              { id: "api-results" },
+              { id: "timeout-files" },
+              { id: "export" }
+            ]
+          });
+          const root = UI.getRoot();
+          root.innerHTML = "";
+          root.appendChild(resultView);
+          resultUi.renderSessionDetails();
+          resultUi.renderApiResults();
+        },
+        renderSessionDetails() {
+          const { state } = resultUi;
+          const { details } = state;
+          if (!details) return;
+          const sessionDetailsView = UI.createElement({
+            style: "margin-bottom: 20px"
+          });
+
+          const heading = UI.createElement({
+            text: "Session details",
+            className: "title is-4"
+          });
+          sessionDetailsView.appendChild(heading);
+
+          const getTagStyle = status => {
+            switch (status) {
+              case "completed":
+                return "is-success";
+              case "running":
+                return "is-info";
+              case "aborted":
+                return "is-danger";
+              case "paused":
+                return "is-warning";
+            }
+          };
+
+          const { test_files_count, token } = details;
+          const detailsTable = UI.createElement({
+            element: "table",
+            children: {
+              element: "tbody",
+              children: [
+                {
+                  element: "tr",
+                  children: [
+                    { element: "td", text: "Token:", style: "width: 140px;" },
+                    {
+                      element: "td",
+                      text: token,
+                      className: "is-family-monospace"
+                    }
+                  ]
+                },
+                {
+                  element: "tr",
+                  children: [
+                    { element: "td", text: "User Agent:" },
+                    { element: "td", text: details.user_agent || "" }
+                  ]
+                },
+                {
+                  element: "tr",
+                  children: [
+                    { element: "td", text: "Test Path:" },
+                    { element: "td", text: details.path || "" }
+                  ]
+                },
+                {
+                  element: "tr",
+                  children: [
+                    { element: "td", text: "Total Test Files:" },
+                    {
+                      element: "td",
+                      text: Object.keys(test_files_count).reduce(
+                        (sum, api) => (sum += test_files_count[api]),
+                        0
+                      )
+                    }
+                  ]
+                },
+                {
+                  element: "tr",
+                  children: [
+                    { element: "td", text: "Test Timeout:" },
+                    { element: "td", text: details.test_timeout || "" }
+                  ]
+                },
+                {
+                  element: "tr",
+                  children: [
+                    { element: "td", text: "Started:" },
+                    {
+                      element: "td",
+                      text: new Date(details.date_started).toLocaleString()
+                    }
+                  ]
+                },
+                details.date_finished
+                  ? {
+                      element: "tr",
+                      children: [
+                        { element: "td", text: "Finished:" },
+                        {
+                          element: "td",
+                          text: new Date(details.date_finished).toLocaleString()
+                        }
+                      ]
+                    }
+                  : null,
+
+                details.date_finished
+                  ? {
+                      element: "tr",
+                      children: [
+                        { element: "td", text: "Duration:" },
+                        {
+                          element: "td",
+                          id: "duration",
+                          text: utils.millisToTimeString(
+                            details.date_finished
+                              ? parseInt(details.date_finished) -
+                                  parseInt(details.date_started)
+                              : Date.now() - parseInt(details.date_started)
+                          )
+                        }
+                      ]
+                    }
+                  : null
+              ]
+            }
+          });
+          sessionDetailsView.appendChild(detailsTable);
+
+          const sessionDetails = UI.getElement("session-details");
+          sessionDetails.innerHTML = "";
+          sessionDetails.appendChild(sessionDetailsView);
+        },
+        renderApiResults() {
+          const { results } = resultUi.state;
+          if (!results) return;
+
+          const apiResultsView = UI.createElement({
+            style: "margin-bottom: 20px"
+          });
+
+          const heading = UI.createElement({
+            text: "API Results",
+            className: "title is-4"
+          });
+          apiResultsView.appendChild(heading);
+
+          const header = UI.createElement({
+            element: "thead",
+            children: [
+              {
+                element: "tr",
+                children: [
+                  { element: "th", text: "API" },
+                  { element: "th", text: "Pass" },
+                  { element: "th", text: "Fail" },
+                  { element: "th", text: "Timeout" },
+                  { element: "th", text: "Not Run" },
+                  { element: "th", text: "Test Files Run" }
+                ]
+              }
+            ]
+          });
+
+          const apis = Object.keys(results).sort((apiA, apiB) =>
+            apiA.toLowerCase() > apiB.toLowerCase() ? 1 : -1
+          );
+
+          const rows = apis.map(api => {
+            const {
+              complete = 0,
+              pass = 0,
+              fail = 0,
+              timeout = 0,
+              timeoutfiles = [],
+              not_run: notRun = 0,
+              isDone = false,
+              testFilesCount,
+              testFilesCompleted = 0
+            } = results[api];
+            return UI.createElement({
+              element: "tr",
+              children: [
+                { element: "td", text: api },
+                {
+                  element: "td",
+                  style: "color: hsl(141, 71%, 38%)",
+                  text: `${pass} (${utils.percent(pass, complete)}%)`
+                },
+                {
+                  element: "td",
+                  className: "has-text-danger",
+                  text: `${fail} (${utils.percent(fail, complete)}%)`
+                },
+                {
+                  element: "td",
+                  style: "color: hsl(48, 100%, 40%)",
+                  text: `${timeout} (${utils.percent(timeout, complete)}%)`
+                },
+                {
+                  element: "td",
+                  className: "has-text-info",
+                  text: `${notRun} (${utils.percent(notRun, complete)}%)`
+                },
+                {
+                  element: "td",
+                  text: `${testFilesCompleted}/${testFilesCount} (${utils.percent(
+                    testFilesCompleted,
+                    testFilesCount
+                  )}%)`
+                }
+              ]
+            });
+          });
+
+          const { pass, fail, timeout, not_run, complete } = apis.reduce(
+            (sum, api) => {
+              Object.keys(sum).forEach(
+                key => (sum[key] += results[api][key] ? results[api][key] : 0)
+              );
+              return sum;
+            },
+            { complete: 0, pass: 0, fail: 0, timeout: 0, not_run: 0 }
+          );
+          const testFilesCount = Object.keys(results).reduce(
+            (sum, api) => (sum += results[api].testFilesCount),
+            0
+          );
+          const testFilesCompleted = Object.keys(results).reduce(
+            (sum, api) => (sum += results[api].testFilesCompleted || 0),
+            0
+          );
+
+          const footer = UI.createElement({
+            element: "tfoot",
+            children: [
+              {
+                element: "tr",
+                children: [
+                  { element: "th", text: "Total" },
+                  {
+                    element: "th",
+                    style: "color: hsl(141, 71%, 38%)",
+                    text: `${pass} (${utils.percent(pass, complete)}%)`
+                  },
+                  {
+                    element: "th",
+                    className: "has-text-danger",
+                    text: `${fail} (${utils.percent(fail, complete)}%)`
+                  },
+                  {
+                    element: "th",
+                    style: "color: hsl(48, 100%, 40%)",
+                    text: `${timeout} (${utils.percent(timeout, complete)}%)`
+                  },
+                  {
+                    element: "th",
+                    className: "has-text-info",
+                    text: `${not_run} (${utils.percent(not_run, complete)}%)`
+                  },
+                  {
+                    element: "th",
+                    text: `${testFilesCompleted}/${testFilesCount} (${utils.percent(
+                      testFilesCompleted,
+                      testFilesCount
+                    )}%)`
+                  }
+                ]
+              }
+            ]
+          });
+
+          const resultsTable = UI.createElement({
+            element: "table",
+            className: "table",
+            id: "results-table",
+            style: "border-radius: 3px; border: 2px solid hsl(0, 0%, 86%);",
+            children: [header, { element: "tbody", children: rows }, footer]
+          });
+          apiResultsView.appendChild(resultsTable);
+
+          const apiResults = UI.getElement("api-results");
+          apiResults.innerHTML = "";
+          apiResults.appendChild(apiResultsView);
+        }
+      };
+    </script>
+  </body>
+</html>

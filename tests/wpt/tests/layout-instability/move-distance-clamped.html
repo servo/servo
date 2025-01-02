@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Layout Instability: distance fraction not more than 1.0</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-adapter.js"></script>
+<script src="resources/util.js"></script>
+<style>
+body { margin: 0; }
+#shifter {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  left: -2000vw;
+  top: -2000vh;
+  background: blue;
+}
+</style>
+<div id="shifter"></div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position of the div.
+  document.querySelector("#shifter").style = "left: 0; top: 0";
+
+  const docElement = document.documentElement;
+  const viewWidth = docElement.clientWidth;
+  const viewHeight = docElement.clientHeight;
+
+  // An element the size of the viewport has shifted by a huge distance, but
+  // the move distance is effectively the viewport width or height (whichever
+  // is larger) as the distance fraction is limited to a maximum of 1.0.
+  const expectedScore = computeExpectedScore(
+      viewWidth * viewHeight,
+      Math.max(viewWidth, viewHeight));
+
+  // Observer fires after the frame is painted.
+  cls_expect(watcher, {score: 0});
+  await watcher.promise;
+  cls_expect(watcher, {score: expectedScore});
+}, "Distance fraction not more than 1.0.");
+
+</script>

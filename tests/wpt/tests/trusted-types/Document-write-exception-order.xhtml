@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';" />
+</head>
+<body>
+<script>
+  test(t => {
+    const old = document.body.innerText;
+    assert_throws_js(TypeError, _ => {
+      document.write('A string');
+    });
+    assert_equals(document.body.innerText, old);
+  }, "`document.write(string)` throws TypeError");
+
+  let p = createHTML_policy(window, 1);
+  test(t => {
+    const old = document.body.innerText;
+    assert_throws_dom("InvalidStateError", _ => {
+      document.write(p.createHTML('A string'));
+    });
+    assert_equals(document.body.innerText, old);
+  }, "`document.write(TrustedHTML)` throws InvalidStateError");
+
+  let default_policy = trustedTypes.createPolicy('default',
+      { createHTML: createHTMLJS }, true );
+
+  test(t => {
+    const old = document.body.innerText;
+    assert_throws_dom("InvalidStateError", _ => {
+      document.write('A string');
+    });
+    assert_equals(document.body.innerText, old);
+  }, "`document.write(string)` w/ default policy throws InvalidStateError");
+</script>
+</body>
+</html>

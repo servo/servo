@@ -1,0 +1,158 @@
+- name: 2d.state.saverestore.transformation
+  desc: save()/restore() affects the current transformation matrix
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.save();
+    ctx.translate(200, 0);
+    ctx.restore();
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(-200, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.state.saverestore.clip
+  desc: save()/restore() affects the clipping path
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.save();
+    ctx.rect(0, 0, 1, 1);
+    ctx.clip();
+    ctx.restore();
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.state.saverestore.path
+  desc: save()/restore() does not affect the current path
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.save();
+    ctx.rect(0, 0, 100, 50);
+    ctx.restore();
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.state.saverestore.bitmap
+  desc: save()/restore() does not affect the current bitmap
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.save();
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.restore();
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.state.saverestore.stack
+  desc: save()/restore() can be nested as a stack
+  code: |
+    ctx.lineWidth = 1;
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.save();
+    ctx.lineWidth = 3;
+    @assert ctx.lineWidth === 3;
+    ctx.restore();
+    @assert ctx.lineWidth === 2;
+    ctx.restore();
+    @assert ctx.lineWidth === 1;
+
+- name: 2d.state.saverestore.stackdepth
+  desc: save()/restore() stack depth is not unreasonably limited
+  code: |
+    var limit = 512;
+    for (var i = 1; i < limit; ++i)
+    {
+        ctx.save();
+        ctx.lineWidth = i;
+    }
+    for (var i = limit-1; i > 0; --i)
+    {
+        @assert ctx.lineWidth === i;
+        ctx.restore();
+    }
+
+- name: 2d.state.saverestore.underflow
+  desc: restore() with an empty stack has no effect
+  code: |
+    for (var i = 0; i < 16; ++i)
+        ctx.restore();
+    ctx.lineWidth = 0.5;
+    ctx.restore();
+    @assert ctx.lineWidth === 0.5;
+
+- name: 2d.state.saverestore
+  desc: save()/restore() works for {{ variant_names[0] }}
+  code: |
+    // Test that restore() undoes any modifications
+    var old = ctx.{{ variant_names[0] }};
+    ctx.save();
+    ctx.{{ variant_names[0] }} = {{ value }};
+    ctx.restore();
+    _assertSame(ctx.{{ variant_names[0] }}, old, "ctx.{{ variant_names[0] }}", "old");
+
+    // Also test that save() doesn't modify the values
+    ctx.{{ variant_names[0] }} = {{ value }};
+    old = ctx.{{ variant_names[0] }};
+        // we're not interested in failures caused by get(set(x)) != x (e.g.
+        // from rounding), so compare against 'old' instead of against {{ value }}
+    ctx.save();
+    _assertSame(ctx.{{ variant_names[0] }}, old, "ctx.{{ variant_names[0] }}", "old");
+    ctx.restore();
+  variants:
+  - &2d_state_test_cases
+    strokeStyle:
+      value: '"#ff0000"'
+    fillStyle:
+      value: '"#ff0000"'
+    globalAlpha:
+      value: 0.5
+    lineWidth:
+      value: 0.5
+    lineCap:
+      value: '"round"'
+    lineJoin:
+      value: '"round"'
+    miterLimit:
+      value: 0.5
+    shadowOffsetX:
+      value: 5
+    shadowOffsetY:
+      value: 5
+    shadowBlur:
+      value: 5
+    shadowColor:
+      value: '"#ff0000"'
+    globalCompositeOperation:
+      value: '"copy"'
+    font:
+      canvas_types: ['HtmlCanvas']
+      value: '"25px serif"'
+    textAlign:
+      canvas_types: ['HtmlCanvas']
+      value: '"center"'
+    textBaseline:
+      canvas_types: ['HtmlCanvas']
+      value: '"bottom"'
+
+- name: 2d.canvas.host.initial.reset.2dstate
+  desc: Resetting the canvas state resets 2D state variables
+  code: |
+    canvas.width = 100;
+    var default_val;
+    {% for state, params in states.items()
+       if not params['canvas_types'] or canvas_type in params['canvas_types'] %}
+
+    default_val = ctx.{{ state }};
+    ctx.{{ state }} = {{ params['value'] }};
+    canvas.width = 100;
+    @assert ctx.{{ state }} === default_val;
+    {% endfor %}
+  states: *2d_state_test_cases

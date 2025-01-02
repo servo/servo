@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>text-align: justify-all, dir=ltr</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='match' href='reference/text-align-justifyall-ref-002.html'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<meta name="assert" content="text-align:justify-all aligns text in order to exactly fill the line box, forcing the last line to justify as well.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style type='text/css'>
+.test { text-align: justify-all; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange; margin: 20px; width: 510px; color: orange; font: 30px/1 Ahem; }
+.ref { word-spacing: 20px; }
+.last-line { word-spacing: 90px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the shading in both orange boxes is identical.</div>
+<div dir="rtl">
+<div class="test">TES TES TES TES TES TES TES TES TES TES TES </div>
+<div class="ref"><div>REF REF REF REF</div><div>REF REF REF REF</div><div class="last-line">REF REF REF </div></div>
+</div>
+</body>
+</html>

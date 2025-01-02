@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds Test: box-shadow in 3 sub-tests with inset and Npx Mpx</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-box-shadow">
+  <link rel="match" href="reference/box-shadow-042-ref.html">
+
+
+  <!--
+
+  <shadow> = inset? && <length>{2,4} && <color>?
+
+  A comma-separated pair of numbers in curly braces {A,B}
+  indicates that the preceding type, word, or group occurs
+  at least A and at most B times.
+
+  A question mark (?) indicates that the preceding type,
+  word, or group is optional (occurs zero or one times).
+
+  The components of each <shadow> are interpreted as follows:
+
+  1st <length>
+    Specifies the horizontal offset
+    of the shadow. A positive value draws a shadow that is offset to
+    the right of the box, a negative length to the left.
+
+  2nd <length>
+    Specifies the vertical offset
+    of the shadow. A positive value offsets the shadow down, a negative one up.
+
+  4th <length>
+    Specifies the spread distance.
+    Positive values cause the shadow to expand in all directions
+    by the specified radius.
+    Negative values cause the shadow to contract.
+
+  -->
+
+  <style>
+  div
+    {
+      background-color: rgba(0, 0, 255, 0.5);  /* semi-transparent blue */
+      border: black double 18px;
+      height: 36px;
+      margin-bottom: 36px;
+      width: 36px;
+    }
+
+  /* inset, Npx Mpx, zero spread */
+  div#sub-test10
+    {
+      box-shadow: inset 18px 12px rgba(255, 165, 0, 0.5);  /* semi-transparent orange */
+    }
+
+  /* inset, Npx Mpx, positive spread */
+  div#sub-test11
+    {
+      box-shadow: inset 18px 12px 0px 12px rgba(255, 165, 0, 0.5);  /* semi-transparent orange */
+    }
+
+  /* inset, Npx Mpx, negative spread */
+  div#sub-test12
+    {
+      box-shadow: inset 18px 12px 0px -6px rgba(255, 165, 0, 0.5);  /* semi-transparent orange */
+    }
+  </style>
+
+  <h3>With inset and Npx Mpx: 18px 12px</h3>
+
+  <div id="sub-test10"></div>
+
+  <div id="sub-test11"></div>
+
+  <div id="sub-test12"></div>

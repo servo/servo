@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+
+  <script>
+    'use strict';
+    var same_origin_src = '/feature-policy/resources/feature-policy-webvr.html';
+    var cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+    var header = 'Feature-Policy header vr "none"';
+
+    promise_test(() => {
+      return navigator.getVRDisplays().then(() => {
+        assert_unreached('expected promise to reject');
+      }, error => {
+      });
+    }, header + ' disallows the top-level document.');
+
+    async_test(t => {
+      test_feature_availability(
+          'navigator.getVRDisplays()', t, same_origin_src,
+          expect_feature_unavailable_default);
+    }, header + ' disallows same-origin iframes.');
+
+    async_test(t => {
+      test_feature_availability(
+          'navigator.getVRDisplays()', t, cross_origin_src,
+          expect_feature_unavailable_default);
+    }, header + ' disallows cross-origin iframes.');
+  </script>
+</body>

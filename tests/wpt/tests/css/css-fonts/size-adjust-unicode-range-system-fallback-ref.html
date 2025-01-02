@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<link rel="author" href="mailto:changseok@webkit.org">
+<title>Tests that the size-adjust descriptor does not affect system fallback font size.</title>
+<style>
+@font-face {
+  font-family: large-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  size-adjust: 1000%;
+  unicode-range: U+0020;
+}
+
+.space {
+  font-family: large-font;
+}
+
+.ref {
+  font-family: sans-serif;
+}
+</style>
+<span class="space"> </span><span class="ref">あ</span>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Nested position:sticky table elements should render correctly</title>
+<style>
+.scroller {
+  width: 100px;
+  height: 250px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.contents {
+  height: 700px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+#child, td, th {
+  height: 50px;
+  width: 50px;
+  padding: 0;
+  background: green;
+}
+
+.prepadding {
+  height: 155px;
+}
+
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 150;
+});
+</script>
+
+<div>There should be a green square at the top of the scroll view and no red or blue visible.</div>
+
+  <div id="scroller1" class="scroller">
+    <div class="contents">
+      <div class="prepadding"></div>
+      <table>
+        <tbody>
+          <tr><td><div id="child"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>

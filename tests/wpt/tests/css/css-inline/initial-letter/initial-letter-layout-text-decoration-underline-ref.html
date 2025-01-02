@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests initial letter with text-decoration</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#initial-letter-layout">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+    .sample {
+        border: solid 1px green;
+        font-family: Ahem;
+        font-size: 20px;
+        line-height: 24px;
+        width: 230px;
+        color: transparent;
+        text-decoration-color: black;
+        text-decoration-line: underline;
+        text-decoration-skip-ink: none;
+        text-decoration-thickness: 1px;
+    }
+
+    .fake-initial-letter {
+        background: transparent;
+        float: left;
+        height: 80px;
+        margin-top: 2px;
+        width: 80px;
+    }
+
+    .fake-underline {
+        background: black;
+        width: 80px;
+        height: 1px;
+        margin-top: 65px;
+    }
+</style>
+</head>
+<body>
+<div class="sample">
+<div class="fake-initial-letter"><div class="fake-underline"></div></div>
+bc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+</body>
+</html>

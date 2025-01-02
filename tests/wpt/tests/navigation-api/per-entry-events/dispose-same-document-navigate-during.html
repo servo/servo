@@ -1,0 +1,52 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
+  location.hash = "#1";
+  location.hash = "#2";
+  location.hash = "#3";
+
+  assert_equals(navigation.entries().length, start_length + 3);
+  const [entry0, entry1, entry2, entry3] = navigation.entries().slice(start_index);
+  assert_equals((new URL(entry2.url)).hash, "#2");
+  assert_equals((new URL(entry3.url)).hash, "#3");
+
+  let dispose3Called = 0;
+  let spoonPromise;
+  entry3.addEventListener("dispose", t.step_func(e => {
+    ++dispose3Called;
+
+    spoonPromise = navigation.navigate("#spoon").committed;
+  }));
+
+  await navigation.traverseTo(entry1.key).committed;
+
+  const forkPromise = navigation.navigate("#fork").committed;
+  assert_equals(dispose3Called, 1, "dispose for entry 3 must happen exactly once (first check)")
+
+  // The navigation to #fork will *not* be finished by the time the navigation
+  // to #spoon kicks off, so the finished promise will reject. But, the
+  // committed promise should still fulfill, since as we see below, #fork ends
+  // up in the history list.
+  await Promise.all([forkPromise, spoonPromise]);
+
+  assert_equals(dispose3Called, 1, "dispose for entry 3 must happen exactly once (final check)");
+
+  assert_equals(navigation.entries().length, start_length + 3);
+  const [finalEntry0, finalEntry1, finalEntry2, finalEntry3] = navigation.entries().slice(start_index);
+  assert_equals(finalEntry0, entry0);
+  assert_equals(finalEntry1, entry1);
+  assert_not_equals(finalEntry2, entry2);
+  assert_not_equals(finalEntry3, entry3);
+  assert_equals(navigation.currentEntry, finalEntry3);
+  assert_equals((new URL(finalEntry2.url)).hash, "#fork");
+  assert_equals((new URL(finalEntry3.url)).hash, "#spoon");
+}, "navigate() during a same-document-navigation-initiated dispose works (since it's after the previous navigation)");
+</script>

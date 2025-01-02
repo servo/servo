@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Named access on the window object - Nested browsing context</title>
+<link rel="author" title="Matthew Phillips" href="mailto:matthew@matthewphillips.info">
+<link rel="help" href="https://html.spec.whatwg.org/#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("name", "foo");
+  document.body.appendChild(iframe);
+
+  assert_equals(window.foo, iframe.contentWindow);
+}, "A named property that matches any element that contains a nested " +
+  "browsing context, must return the WindowProxy of that context");
+
+test(() => {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("id", "bar");
+  document.body.appendChild(iframe);
+
+  assert_equals(window.bar, iframe);
+}, "A named property that matches an element that contains a nested " +
+  "browsing context must return the element if using id");
+</script>

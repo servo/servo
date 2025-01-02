@@ -1,0 +1,34 @@
+<html class="test-wait">
+<body>
+<script>
+customElements.define("my-detail", class extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open", slotAssignment: "manual" });
+  }
+  connectedCallback() {
+    const slot1 = document.createElement("slot");
+    const child1 = document.createElement("span");
+    this.appendChild(child1);
+    child1.innerHTML = "x";
+    this.shadowRoot.appendChild(slot1);
+    slot1.style.display = "block";
+    slot1.assign(child1);
+  }
+});
+
+function fuzz() {
+  document.designMode = 'on';
+  document.execCommand("selectAll");
+  document.execCommand("InsertText");
+  document.documentElement.className = '';
+}
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(fuzz);
+  });
+};
+</script>
+<my-detail></my-detail>
+</body>
+</html>

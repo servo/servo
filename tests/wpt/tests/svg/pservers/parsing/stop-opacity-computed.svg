@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Paint Servers: getComputedStyle().stopOpacity</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#StopOpacityProperty"/>
+    <h:meta name="assert" content="stop-opacity computed value is clamped to the range [0,1]."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("stop-opacity", "-1", "0");
+test_computed_value("stop-opacity", "0.5");
+test_computed_value("stop-opacity", "3", "1");
+test_computed_value("stop-opacity", "-100%", "0");
+test_computed_value("stop-opacity", "50%", "0.5");
+test_computed_value("stop-opacity", "300%", "1");
+
+  ]]></script>
+</svg>

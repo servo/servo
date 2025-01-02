@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="containers with min-content > max-content increase max-content to match min-content" />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id=reference-overlapped-red></div>
+
+<!-- Safari 16.4 and Chrome 116 make this container 100px wide. Firefox 114 makes it 90px. -->
+<div style="display: flex; flex-wrap: wrap; width: max-content; height: 100px;
+  background: green;">
+  <div style="width: 100px;"></div>
+  <div style="width: 0px; margin-left: -10px;"></div>
+</div>

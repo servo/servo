@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Makes sure that Link headers preload resources</title>
+<!--
+  This and the line below ensure that the trailing crossorigin in the link
+  header is honored, otherwise we'd load this resource twice and the test would
+  fail.
+-->
+<link rel="preload" as="style" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
+<link rel="preload" as="font" crossorigin="anonymous" href="resources/font.ttf?link-header-crossorigin-preload2">
+<link rel="stylesheet" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
+<script src="resources/dummy.js?link-header-preload2"></script>
+<style>
+    @font-face {
+        font-family: myFont;
+        src: url(resources/font.ttf?link-header-crossorigin-preload2);
+    }
+    .custom-font { font-family: myFont, sans-serif; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+<script>
+    setup({single_test: true});
+
+    var iterations = 0;
+
+    function check_finished() {
+        if (numberOfResourceTimingEntries("resources/square.png?link-header-preload") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.js?link-header-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.js?link-header-preload2") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.css?link-header-preload") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload2") == 1) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
+            verifyNumberOfResourceTimingEntries("resources/square.png?link-header-preload", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload1", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload2", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-preload", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload2", 1);
+            verifyNumberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload1", 1);
+            verifyNumberOfResourceTimingEntries("resources/font.ttf?link-header-crossorigin-preload2", 1);
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
+        verifyPreloadAndRTSupport();
+        step_timeout(check_finished, 500);
+    });
+</script>
+<span class="custom-font">PASS - this text is here just so that the browser will download the font.</span>
+</body>

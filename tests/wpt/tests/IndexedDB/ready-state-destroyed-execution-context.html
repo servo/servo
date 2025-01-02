@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>readyState is valid when the execution context is destroyed</title>
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbrequest-readystate">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=resources/support.js></script>
+<script>
+
+function load_iframe() {
+    return new Promise(resolve => {
+        const iframe = document.createElement('iframe');
+        iframe.onload = () => { resolve(iframe); };
+        document.documentElement.appendChild(iframe);
+    });
+}
+
+promise_test(async t => {
+    const iframe = await load_iframe();
+    const dbname = location + '-' + t.name;
+    const openRequest = iframe.contentWindow.indexedDB.open(dbname);
+    assert_equals(openRequest.readyState, 'pending');
+    iframe.remove();
+    assert_equals(typeof openRequest.readyState, 'string');
+}, 'readyState accessor is valid after execution context is destroyed');
+
+</script>

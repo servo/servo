@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Triggering navigation from within beforeunload event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+beforeunload_fired = false;
+var t = async_test();
+
+var base_count = 0;
+var counter = 0;
+
+onload = function() {setTimeout(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+
+  iframe.onload = function() {
+                    setTimeout(function() {iframe.contentWindow.location="navigation-within-beforeunload-2.html";}, 100);
+                    // Step 4 of https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigating-across-documents
+                    // doesn't seem to allow navigation within a beforeunload handler,
+                    // so the counter should not go beyond 1.
+                    iframe.onload = t.step_func(function() {assert_equals(counter, 1); t.done()});
+                  };
+
+  iframe.src = "navigation-within-beforeunload-1.html?" + Math.random();
+
+}, 100)};
+
+</script>
+<iframe src="base.html"></iframe>

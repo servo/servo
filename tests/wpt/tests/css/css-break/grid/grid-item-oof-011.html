@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns: 2; height: 100px; width: 100px; column-gap: 0; column-fill: auto; position: relative;">
+  <div style="display: grid; height: 200px; grid-template-rows: 100px 100px;">
+    <div style="grid-row-start: 1; width: 50px; height: 100px; background: red;"></div>
+    <div style="grid-row-start: 2; width: 50px; height: 100px; background: green;"></div>
+    <div style="grid-row-start: 1; grid-row-end: 3; position: absolute; width: 50px; height: 100px; background: green;"></div>
+  </div>
+</div>

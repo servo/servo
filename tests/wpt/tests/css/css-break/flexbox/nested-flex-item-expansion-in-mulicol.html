@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; gap:0; column-fill:auto; width:100px; height:100px; background:red;">
+  <div style="height:50px; background:green;"></div>
+  <div style="display:flex;">
+    <div style="display:flex;">
+      <div style="width:50px;">
+        <div style="height:30px;"></div>
+        <div style="height:50px; contain:size; background:green;"></div>
+      </div>
+    </div>
+  </div>
+  <div style="height:50px; margin-left:-100%; width:200%; background:green;"></div>
+</div>

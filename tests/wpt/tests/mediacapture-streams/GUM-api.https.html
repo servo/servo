@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<title>getUserMedia: test that getUserMedia is present</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#navigatorusermedia">
+<meta name='assert' content='Check that the getUserMedia() method is present.'/>
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks for the presence of the
+<code>navigator.mediaDevices.getUserMedia</code> method.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function () {
+  assert_true(undefined !== navigator.mediaDevices && undefined !== navigator.mediaDevices.getUserMedia, "navigator.mediaDevices.getUserMedia exists");
+}, "mediaDevices.getUserMedia() is present on navigator");
+</script>
+</body>
+</html>

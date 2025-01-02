@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Embedded Style: Cascade Priority</title>
+<link rel="match" href="embedded_style_cascade_priority-ref.html">
+<link rel="help" href="https://w3c.github.io/webvtt/#obtaining-css-boxes">
+<script src="/common/reftest-wait.js"></script>
+<style>
+/* Embedded style should take precedence over author style, so the cue color should be green. */
+::cue {
+    color: red;
+}
+</style>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="support/embedded_style_cascade_priority.vtt" default>
+</video>
+</html>

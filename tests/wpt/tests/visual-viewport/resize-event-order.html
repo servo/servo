@@ -1,0 +1,72 @@
+<!doctype html>
+<title>Visual Viewport Resize Event Order</title>
+<meta charset=utf-8>
+<link rel="help" href="https://wicg.github.io/visual-viewport/index.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  iframe {
+    width: 300px;
+    height: 300px;
+  }
+</style>
+
+<body>
+  <iframe srcdoc="<!DOCTYPE html>"></iframe>
+</body>
+
+<script>
+
+async function oneRaf(win) {
+  return new Promise((resolve) => {
+    win.requestAnimationFrame(resolve);
+  });
+}
+
+// Runs the test on the given window object, asserts that event handlers on the
+// DOMWindow object are fired before those on the VisualViewport object.
+// `resizeFunc` is used to perform the resize.
+async function runTest(win, resizeFunc) {
+  const resize_events = [];
+
+  win.onresize = () => { resize_events.push('window-attribute'); }
+  win.addEventListener('resize', () => { resize_events.push('window-addEventListener'); });
+  win.visualViewport.onresize = () => { resize_events.push('visualViewport-attribute'); }
+  win.visualViewport.addEventListener('resize', () => {
+        resize_events.push('visualViewport-addEventListener'); });
+
+  assert_equals(resize_events.toString(), '', 'PRECONDITION');
+  resizeFunc(500, 600);
+
+  await oneRaf(win);
+
+  assert_equals(resize_events.toString(),
+                'window-attribute,window-addEventListener,' +
+                'visualViewport-attribute,visualViewport-addEventListener');
+}
+
+onload = () => {
+  // Test the event order in a top-level window which we will programmatically
+  // resize.
+  promise_test(async t => {
+    let popup = null;
+    test_driver.bless('Open a popup in a new window', () => {
+        popup = window.open('about:blank', 'newwindow', 'width=300,height=300');
+    });
+    await t.step_wait(() => popup != null, "Opened popup window");
+
+    await runTest(popup, (x, y) => {popup.resizeTo(x, y);});
+  }, 'Popup: DOMWindow resize fired before VisualViewport.');
+
+  // Also test the resize resulting from an iframe's size change.
+  promise_test(async t => {
+    const iframe = frames[0];
+    await runTest(iframe, (x, y) => {iframe.frameElement.style.width = x + 'px';
+                                     iframe.frameElement.style.height = y + 'px';
+                                     iframe.frameElement.offsetWidth; /* force reflow */});
+  }, 'iframe: DOMWindow resize fired before VisualViewport.');
+}
+
+</script>

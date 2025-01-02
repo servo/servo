@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Density corrected image: image-set() without &lt;resolution></title>
+<link rel="match" href="image-set-001-ref.html">
+<style>
+  body { margin: 0 }
+  div {
+    width: 100vw;
+    height: 100vh;
+    background-image: -webkit-image-set(url(resources/exif-resolution-valid-hires.jpg));
+    background-image: image-set(url(resources/exif-resolution-valid-hires.jpg));
+    background-repeat: no-repeat;
+  }
+</style>
+<div></div>

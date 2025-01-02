@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Reference for sticky elements should invalidate when top/left/bottom/right changes</title>
+
+<style>
+.box {
+  /* Triggers promotion without creating stacking context. */
+  backface-visibility: hidden;
+  background: green;
+  position: sticky;
+  top: 200px;
+  width: 100px;
+  height: 100px;
+}
+
+.spacer {
+  height: 200vh;
+}
+</style>
+
+<div class="box"></div>
+<div class="spacer"></div>

@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Whitespace inside table isn't incorrectly suppressed</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=251178">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1410345">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1811353">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8358">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#consecutive-boxes">
+<link rel="match" href="whitespace-001-ref.html">
+<style>
+.outer {
+  display: table;
+  width: 500px;
+  background: purple;
+  border: 1px solid green;
+}
+.half {
+  display: inline-block;
+  width: 50%;
+  background: blue;
+}
+.half + .half {
+  background: yellow;
+}
+</style>
+<div class="outer">
+  <div class="half">A</div>
+  <!-- White space here should take up space -->
+  <div class="half">B</div>
+</div>

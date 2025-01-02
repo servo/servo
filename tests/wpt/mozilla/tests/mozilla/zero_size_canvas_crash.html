@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for #21411: Panic when putting a zero-sized canvas on the display list.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="myCanvas" width="0" height="0" style="width:10px; height:10px;"></canvas>
+<script>
+    test(function () {
+        var c = document.getElementById("myCanvas");
+        var ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, c.width, c.height);
+    }, "Doesn't crash when the page has a canvas with a zero-dimension");
+</script>

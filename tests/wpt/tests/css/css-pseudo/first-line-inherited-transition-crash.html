@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>CSS Pseudo-Element Test: Color transition from inherited ::first-line style should not crash</title>
+<link rel="help" href="https://crbug.com/1416821">
+<style>
+  div::first-line { color: red }
+  span { transition: color 100s; }
+</style>
+<div><span>First line</span></div>

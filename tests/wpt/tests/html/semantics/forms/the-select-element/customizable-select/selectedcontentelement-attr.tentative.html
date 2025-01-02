@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/1063">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select style="appearance:base-select">
+  <option class=one value=one>one<span>span</span></option>
+  <option class=two value=two>two<span>span</span></option>
+</select>
+<selectedcontent id=myselectedcontent></selectedcontent>
+
+<script>
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const selectedcontent = document.querySelector('selectedcontent');
+  const optionOne = document.querySelector('option.one');
+  const optionTwo = document.querySelector('option.two');
+
+  select.setAttribute('selectedcontentelement', 'myselectedcontent');
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Setting the selectedcontentelement attribute via setAttribute should synchronously assign the contents of <selectedcontent>.');
+
+  select.removeAttribute('selectedcontentelement');
+  assert_equals(selectedcontent.innerHTML, '',
+    'Removing the selectedcontentelement attribute via removeAttribute should synchronously clear the contents of the <selectedcontent>.');
+
+  select.selectedContentElement = selectedcontent;
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Setting the selectedcontentelement attribute via IDL should synchronously assign the contents of <selectedcontent>.');
+
+  select.selectedContentElement = null;
+  assert_equals(selectedcontent.innerHTML, '',
+    'Removing the selectedcontentelement attribute via IDL should synchronously clear the contents of the <selectedcontent>.');
+
+  select.selectedContentElement = selectedcontent;
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Re-setting the selectedcontentelement attribute via IDL should synchronously assign the contents of <selectedcontent>.');
+
+  let oldInnerHTML = optionOne.innerHTML;
+  optionOne.querySelector('span').remove();
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, oldInnerHTML,
+    'Mutating the selected <option> should not update the <selectedcontent> contents.');
+
+  select.value = 'two';
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'Changing which <option> is selected should synchronously update the <selectedcontent> contents.');
+}, 'The selectedcontentelement attribute should set up an association between a select and a selectedcontent.');
+</script>

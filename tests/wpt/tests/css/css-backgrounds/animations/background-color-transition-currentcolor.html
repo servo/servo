@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-transition-currentcolor-ref.html">
+<style>
+  body {
+    padding:  0;
+    margin:  0;
+  }
+  .block {
+    width:  100px;
+    height:  100px;
+    padding:  0;
+    display:  inline-block;
+    background:  rgb(0, 254, 0);
+    color:  black;
+    margin:  10px;
+    /* Use a long transition that can be stalled at the midpoint. */
+    transition:  background 100000s cubic-bezier(0,1,1,0);
+  }
+  .block.tweak {
+    background:  currentColor;
+  }
+</style>
+<body>
+  <div class="block"></div>
+</body>
+<script src="/common/reftest-wait.js"></script>
+<script>
+  window.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelector('.block').classList.add('tweak');
+        const anim = document.getAnimations()[0];
+        anim.ready.then(() => {
+          anim.currentTime = anim.effect.getTiming().duration/2;
+          requestAnimationFrame(() => {
+            takeScreenshot();
+          });
+        });
+      });
+    });
+  };
+</script>
+</html>

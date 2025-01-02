@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const policy = { createHTML: a => a };
+const policy_default = { createHTML: (a, _, sink) => {
+  assert_equals(sink, 'Element innerHTML');
+  return a;
+}};
+
+test(t => {
+  // The spec demands that duplicate policies are allowed when TT is not
+  // enforced in the CSP.
+  let a = trustedTypes.createPolicy("duplicatename", policy);
+  let b = trustedTypes.createPolicy("duplicatename", policy);
+  assert_not_equals(a, b);
+  assert_true(a instanceof TrustedTypePolicy);
+  assert_true(b instanceof TrustedTypePolicy);
+}, "createPolicy - duplicate policies are allowed when Trusted Types are not enforced.");
+
+test(t => {
+  // The spec demands that duplicate "default" policy creation fails, even
+  // when TT is not enforced.
+  let p = trustedTypes.createPolicy("default", policy_default);
+  assert_true(p instanceof TrustedTypePolicy);
+
+  // The second instance should throw:
+  assert_throws_js(TypeError, _ => trustedTypes.createPolicy("default", policy_default));
+}, "createPolicy - duplicate \"default\" policy is never allowed.");
+</script>
+</body>

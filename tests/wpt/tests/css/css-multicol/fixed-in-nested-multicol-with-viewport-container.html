@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>
+  Nested fixedpos in a nested fragmentation context with viewport containing
+  block.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+  }
+  #outer {
+    height: 100px;
+    width: 100px;
+  }
+  #inner {
+    width: 50px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    height: 400px;
+    width: 25px;
+    background: red;
+  }
+  .fixed {
+    position: fixed;
+    height: 100px;
+    width: 100px;
+    background:green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol" id="outer">
+  <div class="multicol" id="inner">
+    <div class="rel">
+      <div class="abs">
+        <div class="fixed"></div>
+      </div>
+    </div>
+  </div>
+</div>

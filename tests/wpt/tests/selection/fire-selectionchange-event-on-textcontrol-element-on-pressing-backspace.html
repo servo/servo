@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test selectionchange event fired on Text Control element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input id="input" type="text" value="hello">
+
+<script>
+    const element = document.querySelector("input");
+    const events_on_document = [];
+    document.addEventListener("selectionchange", ev => {
+        events_on_document.push(ev);
+    });
+
+    const events_on_input = [];
+    element.addEventListener("selectionchange", ev => {
+        events_on_input.push(ev);
+    });
+
+    promise_test(async () => {
+        element.focus();
+        element.setSelectionRange(5, 5);
+        await new Promise(resolve => step_timeout(resolve, 500));
+        events_on_document.length = 0;
+        events_on_input.length = 0;
+
+        assert_equals(element.selectionStart, 5, "selectionStart before pressing backspace key");
+        assert_equals(element.selectionEnd, 5, "selectionEnd before pressing backspace key");
+
+        await new test_driver.send_keys(element, "\uE003");
+
+        assert_equals(element.selectionStart, 4, "selectionStart after pressing backspace key");
+        assert_equals(element.selectionEnd, 4, "selectionEnd after pressing backspace key");
+
+        // Waits a short time to allow any events to be processed.
+        await new Promise(resolve => step_timeout(resolve, 500));
+        assert_equals(events_on_input.length, 1);
+
+        //selectionchange event fired on a text control should bubble to the document
+        assert_equals(events_on_document[0].target, element, "Event target should be the input element");
+        assert_equals(events_on_document.length, 1);
+
+    }, "selectionchange event fired on an input element");
+</script>

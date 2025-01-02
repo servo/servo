@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: @property rule invalidation on layer order changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#reference {
+  color: green;
+  --foo: green;
+}
+</style>
+
+<div id=target>Lorem ipsum</div>
+<div id=reference>Lorem ipsum</div>
+
+<script>
+const testCases = [
+  {
+    title: 'Insert layer invalidates @property',
+    sheets: [
+      '',
+      `
+        @layer first {
+          @property --foo {
+            syntax: '<color>';
+            inherits: false;
+            initial-value: green;
+          }
+        }
+        @layer second {
+          @property --foo {
+            syntax: '<color>';
+            inherits: false;
+            initial-value: red;
+          }
+        }
+      `,
+    ],
+    update: function(sheets) {
+      sheets[0].insertRule('@layer second {}', 0);
+    },
+    property: '--foo',
+  },
+  {
+    title: 'Delete layer invalidates @property',
+    sheets: [
+      '@layer second {}',
+      `
+        @layer first {
+          @property --foo {
+            syntax: '<color>';
+            inherits: false;
+            initial-value: red;
+          }
+        }
+        @layer second {
+          @property --foo {
+            syntax: '<color>';
+            inherits: false;
+            initial-value: green;
+          }
+        }
+      `,
+    ],
+    update: function(sheets) {
+      sheets[0].deleteRule(0);
+    },
+    property: '--foo',
+  },
+];
+
+for (let testCase of testCases) {
+  test(testObj => {
+    const styleElements = testCase.sheets.map(sheet => {
+      const element = document.createElement('style');
+      element.appendChild(document.createTextNode(sheet));
+      document.head.appendChild(element);
+      return element;
+    });
+    testObj.add_cleanup(() => {
+      for (let element of styleElements)
+        element.remove();
+    });
+
+    const sheets = styleElements.map(element => element.sheet);
+    testCase.update(sheets);
+    const actual = getComputedStyle(target).getPropertyValue(testCase.property);
+    const expected = getComputedStyle(reference).getPropertyValue(testCase.property);
+    assert_equals(actual, expected);
+  }, testCase.title);
+}
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>presentational hints (dynamic)</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  math {
+      font: 25px/1 Ahem;
+  }
+  @font-face {
+    font-family: Italic;
+    src: url("/fonts/math/mathvariant-italic.woff");
+  }
+</style>
+</head>
+<body>
+  <p>dir:
+    <math dir="rtl">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+    </math>
+  </p>
+  <p>mathcolor:
+    <math mathcolor="green">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+    </math>
+  </p>
+  <p>mathbackground:
+    <math mathbackground="green">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+  </p>
+  <p>mathsize:
+    <math>
+      <mtext mathsize="300%">X</mtext>
+    </math>
+  </p>
+  <p>mathvariant:
+    <math style="font-family: Italic">
+      <mi mathvariant="normal">X</mi>
+    </math>
+  </p>
+  <p>displaystyle:
+    <math displaystyle="true">
+      <munder>
+        <mo movablelimits="true">X</mo>
+        <mo>X</mo>
+      </munder>
+    </math>
+  </p>
+  <p>scriptlevel:
+    <math>
+      <mtext scriptlevel="-1">X</mtext>
+    </math>
+  </p>
+</body>
+</html>

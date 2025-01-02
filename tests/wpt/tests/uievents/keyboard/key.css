@@ -1,0 +1,118 @@
+.keyboard {
+    display: table;
+    border-collapse: separate;
+    border-spacing: 2px;
+    width: 800px;
+    border: 2px solid black;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+.key-row {
+    display: table;
+    margin: 0;
+    padding: 0;
+}
+
+.key {
+    display: table-cell;
+    border: 2px solid black;
+    border-radius: 8px;
+    width: 50px;
+    height: 40px;
+    vertical-align: middle;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+.wide1 {
+    width: 70px;
+}
+
+.wide2 {
+    width: 90px;
+}
+
+.wide3 {
+    width: 110px;
+}
+
+.wide4 {
+    width: 130px;
+}
+
+.wide5 {
+    width: 300px;
+}
+
+.nextKey {
+    background-color: yellow;
+}
+
+.goodKey {
+    background-color: #80ff08;
+}
+
+.badKey {
+    background-color: #ff8080;
+}
+
+.activeModifierKey {
+    background-color: #a0a0ff;
+}
+
+.skippedKey {
+    background-color: #e0e0e0;
+}
+
+#options {
+    display: none;
+    margin: 20px;
+}
+
+#optionstoggle, #helptoggle {
+    font-size: 10pt;
+}
+
+.opttable {
+    border: 1px solid black;
+}
+
+.optcell {
+    vertical-align: top;
+    padding: 0 10px;
+}
+
+.opttitle {
+    font-weight: bold;
+}
+
+.error {
+    border: 1px solid red;
+    margin: 5px;
+    padding: 5px;
+}
+
+.error1 {
+    font-size: 12pt;
+    margin: 0 0 0 10px;
+    padding: 0;
+}
+
+.error2 {
+    font-size: 10pt;
+    margin: 0 0 0 20px;
+    padding: 0;
+}
+
+.help {
+    font-size: 11pt;
+    margin: 0 0 5px 20px;
+    padding: 0;
+}
+
+body {
+    margin: 10px;
+    padding: 0 20px;
+}

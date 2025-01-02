@@ -1,0 +1,55 @@
+name: Check workflow_run
+
+on:
+  workflow_call:
+    inputs:
+      check-refs:
+        description: "Refs to check whether they've been updated"
+        required: true
+        type: string
+    outputs:
+      updated-refs:
+        description: "Refs which have been updated"
+        value: ${{ jobs.check-workflow-run.outputs.output }}
+
+jobs:
+  check-workflow-run:
+    name: "Check for appropriate epochs"
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on:
+      - ubuntu-22.04
+    permissions:
+      actions: read
+    outputs:
+      output: ${{ steps.check.outputs.updated-refs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            tools
+      - uses: actions/download-artifact@v4
+        with:
+          name: git-push-output
+          path: ${{ runner.temp }}/git-push-output
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - id: check
+        run: |
+          {
+              echo 'updated-refs<<EOF'
+              python3 tools/ci/check_for_updated_refs.py
+              echo EOF
+          } >> "$GITHUB_OUTPUT"
+        env:
+          GIT_PUSH_OUTPUT: ${{ runner.temp }}/git-push-output/git-push-output.txt
+          REFS: ${{ inputs.check-refs }}
+
+  check-workflow-run-noop:
+    name: "Check for appropriate epochs (noop)"
+    if: ${{ github.event_name != 'workflow_run' }}
+    runs-on:
+      - ubuntu-22.04
+    steps:
+      - run: exit 0

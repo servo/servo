@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://crbug.com/347597917"/>
+<link rel="match" href="reference/ruby-text-dynamic-style-ref.html">
+<style>
+.reftest-wait rt {
+  background-color: red;
+}
+ruby {
+  position: relative;
+}
+p {
+  position: relative;
+}
+</style>
+<p><ruby>base<rt>annotation</ruby></p>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css2/#direction">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+body, div { position: absolute; }
+body { direction: rtl; white-space: pre-line; }
+</style>
+<body>&#x20;&#x20;&#xA;'123456789<div>&#x20;</div>
+<script>
+  // Force layout and await paint
+  document.body.offsetLeft;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelector("div").dir = "ltr";
+  }));
+</script>
+</body>

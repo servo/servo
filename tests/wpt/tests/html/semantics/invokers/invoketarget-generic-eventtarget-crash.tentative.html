@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<div id="invoker"></div>
+
+<script type="module">
+  const invokeEvent = new InvokeEvent('invoke', { bubbles: true });
+  document.body.addEventListener('invoke', e => {
+    e.invoker.toString();
+  });
+  invoker.addEventListener('invoke', e => {
+    e.invoker.toString();
+  });
+  invoker.dispatchEvent(invokeEvent);
+  await Promise.resolve();
+  invokeEvent.invoker.toString();
+</script>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Tests 'position-anchor' property impact on target's children when target visibility changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#position-anchor">
+<link rel="author" href="mailto:plampe@igalia.com">
+<link rel="match" href="position-anchor-target-with-children-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+.anchor {
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+.target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background: lime;
+  top: anchor(bottom);
+  left: anchor(left);
+}
+
+body {
+  margin: 0;
+}
+
+#anchor1 {
+  anchor-name: --a1;
+  margin-left: 100px;
+}
+
+#target1 {
+  position-anchor: --a1;
+}
+
+#anchor2 {
+  anchor-name: --a2;
+  margin-left: 300px;
+  margin-top: 100px;
+}
+
+#target2 {
+  position-anchor: --a2;
+}
+</style>
+
+<div id="anchor1" class="anchor">anchor1</div>
+<div id="anchor2" class="anchor">anchor2</div>
+
+<div id="target1" class="target">target1<ul><li>child 1</li><li>child 2</li></ul></div>
+<div id="target2" class="target">target2<ul><li>child 1</li><li>child 2</li></ul></div>
+
+<script>
+  // #target2 should be initially visible.
+  waitForAtLeastOneFrame().then(() => {
+    // Change #target2 to be invisible.
+    document.getElementById('target2').style.display = 'none';
+    waitForAtLeastOneFrame().then(() => {
+      // #target2 should be invisible now.
+      // Change #target2 to be visible.
+      document.getElementById('target2').style.display = 'flow';
+      waitForAtLeastOneFrame().then(() => {
+        // #target2 should be visible and anchor-positioned again now.
+        takeScreenshot();
+      });
+    });
+  });
+</script>

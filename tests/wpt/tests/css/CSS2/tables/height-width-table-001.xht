@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: height and width of element set to 'display: table'</title>
+
+  <!--
+  Inspired by
+  http://test.csswg.org/suites/css2.1/20101210/html4/empty-cells-applies-to-007.htm
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" title="17.5.3 Table height algorithms" />
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/www-style/2011Jan/0178.html" title="[CSS21] Question on section 17.6.1 The separated borders model and width of inline-table" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta name="assert" content="The content-box height and width of an empty element styled with display set to 'table' is given by its height and width properties when specified." />
+
+  <style type="text/css"><![CDATA[
+  div#overlapped-red-reference
+  {
+  background-color: red;
+  height: 100px;
+  position: absolute;
+  width: 100px;
+  z-index: -1;
+  }
+
+  div#overlapping-green-test
+  {
+  background-color: green;
+  border: green solid 25px;
+  border-collapse: separate;
+  display: table;
+  height: 50px;
+  width: 50px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="overlapped-red-reference"></div>
+
+  <div id="overlapping-green-test"></div>
+
+ </body>
+</html>

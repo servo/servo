@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>This test is for testing plain text copy paste of paragraph
+ending with non layed out content.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="copy" contenteditable="true">
+<p>line 1</p>
+<p id="line2">line 2<!-- A comment !--></p>
+<p>line 3</p>
+</div>
+<textarea id="paste"></textarea>
+<script>
+"use strict";
+
+setup({explicit_done: true});
+
+function runTests() {
+    test(function() {
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('copy'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const textarea = document.getElementById('paste');
+        textarea.focus();
+        document.execCommand('paste');
+        assert_equals(textarea.value, 'line 1\n\nline 2\n\nline 3');
+    }, "The extra line break is missing after the paragraph that ends with a comment.");
+
+    test(function() {
+        const line2 = document.getElementById('line2');
+        line2.innerHTML = 'line 2<span style="display: none;">hidden content</span>';
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('copy'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const textarea = document.getElementById('paste');
+        textarea.value='';
+        textarea.focus();
+        document.execCommand('paste');
+        assert_equals(textarea.value, 'line 1\n\nline 2\n\nline 3');
+    }, "The extra line break is missing after the paragraph that ends with a display:none span.");
+
+    test(function() {
+        const line2 = document.getElementById('line2');
+        line2.innerHTML = 'line 2<span hidden>hidden content</span>';
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('copy'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const textarea = document.getElementById('paste');
+        textarea.value='';
+        textarea.focus();
+        document.execCommand('paste');
+        assert_equals(textarea.value, 'line 1\n\nline 2\n\nline 3');
+    }, "The extra line break is missing after the paragraph that ends with a hidden span.");
+
+    test(function() {
+        const line2 = document.getElementById('line2');
+        line2.innerHTML = 'line 2<meta charset="UTF-8">';
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('copy'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const textarea = document.getElementById('paste');
+        textarea.value='';
+        textarea.focus();
+        document.execCommand('paste');
+        assert_equals(textarea.value, 'line 1\n\nline 2\n\nline 3');
+    }, "The extra line break is missing after the paragraph that ends with a meta tag.");
+
+    test(function() {
+        const line2 = document.getElementById('line2');
+        line2.innerHTML = 'line 2<style>body{ font-family: Arial, sans-serif; ""}</style>';
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('copy'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const textarea = document.getElementById('paste');
+        textarea.value='';
+        textarea.focus();
+        document.execCommand('paste');
+        assert_equals(textarea.value, 'line 1\n\nline 2\n\nline 3');
+    }, "The extra line break is missing after the paragraph that ends with a style tag.");
+
+    test(function() {
+        const line2 = document.getElementById('line2');
+        line2.innerHTML = 'line 2<base href="http://crbug.com/41350470">';
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('copy'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const textarea = document.getElementById('paste');
+        textarea.value='';
+        textarea.focus();
+        document.execCommand('paste');
+        assert_equals(textarea.value, 'line 1\n\nline 2\n\nline 3');
+    }, "The extra line break is missing after the paragraph that ends with a base tag.");
+    done();
+}
+
+window.addEventListener("load", runTests, {once: true});
+</script>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--The permission element should not allow setting negative outline-offset or margins under 4px.
+-->
+<style>
+  #id1 {
+    outline-offset: -50px;
+    margin-top: 3px;
+    margin-left: -50px;
+    margin-bottom: 0px;
+    margin-right: -50px;
+  }
+  #id2 {
+    outline-offset: 50px;
+    margin-top: 50px;
+    margin-left: 50px;
+    margin-bottom: 50px;
+    margin-right: 50px;
+  }
+
+  /* These various expressions all result in a negative value when calculated */
+  #id3 {
+    outline-offset: min(-50px, 50px);
+    margin-top: min(10%, -50px);
+    margin-left: clamp(-100px, 1vw, -50px);
+    margin-bottom: 1% - 10000px;
+    margin-right: max(min(-1em, 10em), -5%);
+  }
+</style>
+
+
+<permission id="id1" type="geolocation">
+<permission id="id2" type="camera">
+<permission id="id3" type="microphone">
+
+<script>
+  test(function(){
+    var el_with_negatives = document.getElementById("id1");
+    assert_equals(getComputedStyle(el_with_negatives).outlineOffset, "0px", "outline-offset");
+    assert_equals(getComputedStyle(el_with_negatives).marginLeft, "4px", "margin-left");
+    assert_equals(getComputedStyle(el_with_negatives).marginRight, "4px", "margin-right");
+    assert_equals(getComputedStyle(el_with_negatives).marginTop, "4px", "margin-top");
+    assert_equals(getComputedStyle(el_with_negatives).marginBottom, "4px", "margin-bottom");
+  }, "Negative margins/offset should be changed to 4px");
+
+  test(function(){
+    var el_with_positives = document.getElementById("id2");
+    assert_equals(getComputedStyle(el_with_positives).outlineOffset, "50px", "outline-offset");
+    assert_equals(getComputedStyle(el_with_positives).marginLeft, "50px", "margin-left");
+    assert_equals(getComputedStyle(el_with_positives).marginRight, "50px", "margin-right");
+    assert_equals(getComputedStyle(el_with_positives).marginTop, "50px", "margin-top");
+    assert_equals(getComputedStyle(el_with_positives).marginBottom, "50px", "margin-bottom");
+  }, "Positive margins/offset are unaffected");
+
+  test(function(){
+    var el_with_negative_expr = document.getElementById("id3");
+    assert_equals(getComputedStyle(el_with_negative_expr).outlineOffset, "0px", "outline-offset");
+    assert_equals(getComputedStyle(el_with_negative_expr).marginLeft, "4px", "margin-left");
+    assert_equals(getComputedStyle(el_with_negative_expr).marginRight, "4px", "margin-right");
+    assert_equals(getComputedStyle(el_with_negative_expr).marginTop, "4px", "margin-top");
+    assert_equals(getComputedStyle(el_with_negative_expr).marginBottom, "4px", "margin-bottom");
+  }, "Expressions margins/offset should always return at least 4px");
+</script>
+</body>

@@ -1,0 +1,63 @@
+<!--
+Copyright (c) 2024 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>getBufferSubData test to Wasm Memory 4GB in size.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="canvas" width="2" height="2" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description(document.title);
+debug("Tests that getBufferSubData can be called on the end of a WebAssembly Memory of nearly 4GB in size.");
+debug("");
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext("canvas", undefined, 2);
+
+const PAGE = 65536;
+const SIZE = 4 * 1024 * 1024 * 1024 - PAGE;
+(() => {
+  let view;
+  try {
+    view = new Uint8Array(new WebAssembly.Memory({ initial: SIZE / PAGE }).buffer);
+  } catch (e) {
+    testPassed(`Allocating ${SIZE} threw: ${e}`);
+    return;
+  }
+
+  let expectedData = new Uint8Array([1, 2, 3, 4]);
+
+  let buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, expectedData, gl.STATIC_DRAW);
+
+  const length = expectedData.length;
+  const offset = SIZE - length;
+  try {
+    gl.getBufferSubData(gl.ARRAY_BUFFER, 0, view, offset, length);
+  } catch (e) {
+    testFailed(`getBufferSubData from ${view.length} byte view threw: ${e}`);
+    return;
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+  let actualData = view.subarray(offset, offset+4);
+  expectArray(actualData, expectedData);
+})();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

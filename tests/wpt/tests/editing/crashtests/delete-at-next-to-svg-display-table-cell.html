@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", async () => {
+  document.documentElement.setAttribute("contenteditable", "true");
+  getSelection().collapse(document.body.lastChild, document.body.lastChild.length);
+  document.execCommand("delete");
+});
+</script>
+</head>
+<body><svg>
+  <svg display="table-cell">
+  </svg>
+</svg>
+</body>
+</html>

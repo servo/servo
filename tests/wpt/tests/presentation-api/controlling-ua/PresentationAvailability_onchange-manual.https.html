@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Monitoring the list of available presentation displays.</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#monitoring-the-list-of-available-presentation-displays">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<p id="notice">Please wait for a moment...</p>
+<p>The test passes if a "PASS" result appears.<br></p>
+
+<script>
+    // prevent the default timeout
+    setup({explicit_timeout: true});
+
+    const notice = document.getElementById('notice');
+
+    promise_test(t => {
+      // clean up the instruction notice when the test ends
+      t.add_cleanup(() => {
+        notice.parentNode.removeChild(notice);
+      });
+
+      // initialize a presentation request
+      const request = new PresentationRequest(presentationUrls);
+
+      let availability, previousState, timeout;
+
+      const wait = () => {
+        notice.textContent = 'Please wait for a moment... (It might take long time)';
+
+        // set timeout to observe the presentation availability
+        timeout = t.step_timeout(function() {
+          t.force_timeout();
+          t.done();
+        }, 90000);
+      };
+
+      const setup = () => {
+        // save the current value of the presentation availability
+        previousState = availability.value;
+
+        // show an instruction notice
+        notice.textContent = 'Please make your presentation displays '
+                          + (previousState ? 'unavailable' : 'available')
+                          + ' and click this button: ';
+        const button = document.createElement('button');
+        button.textContent = 'Start Monitoring';
+        button.onclick = wait;
+        notice.appendChild(button);
+      };
+
+      // check the event and its attributes
+      const checkEvent = evt => {
+        clearTimeout(timeout);
+        timeout = undefined;
+
+        assert_true(evt.isTrusted && !evt.bubbles && !evt.cancelable && evt instanceof Event, 'A simple event is fired.');
+        assert_equals(evt.type, 'change', 'The event name is "change".');
+        assert_equals(evt.target, availability, 'event.target is the presentation availability.');
+        assert_not_equals(previousState, availability.value, 'Value of the presentation availability is changed.');
+        setup();
+      };
+
+      const watchEvent = (obj, watcher, type) => {
+        const watchHandler = new Promise(resolve => {
+          obj['on' + type] = evt => { resolve(evt); };
+        });
+        return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+          assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+          return results[0];
+        });
+      };
+
+      // check the change of PresentationAvailability.value twice; "true to false" and "false to true"
+      return request.getAvailability().then(a => {
+        availability = a;
+        setup();
+
+        // wait until a "change" event is fired twice
+        var eventWatcher = new EventWatcher(t, availability, 'change');
+        return watchEvent(availability, eventWatcher, 'change')
+          .then(checkEvent)
+          .then(() => { return eventWatcher.wait_for('change'); })
+          .then(checkEvent);
+      });
+    });
+</script>

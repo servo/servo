@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Test: text-transform treatment of </title>
+<link rel="author" href="https://florian.rivoal.net" title="Florian Rivoal">
+<link rel="help" href="https://drafts.csswg.org/css-text/#propdef-text-transform">
+<link rel="help" href="https://drafts.csswg.org/css-text/#text-transform-mapping">
+<link rel="match" href="text-transform-capitalize-035-ref.html">
+<style>
+.test {
+  text-transform: capitalize;
+}
+/* The remaining styles make it easier to review,
+   but don't affect the behavior under test.
+*/
+.test {
+  text-decoration-color: orange;
+}
+span {
+    text-decoration: underline solid blue;
+}
+span + span::before {
+    content: "\a";
+    white-space:pre;
+}
+div {
+    margin-top: 1em;
+}
+
+</style>
+<p>
+The test passes if,
+in each pair of words below,
+the same letters are upper or lower case.
+
+<div lang=ca>
+    <span class=test>cancel·lar</span>
+    <span>Cancel·lar</span>
+<div>
+
+<div lang=sc>
+    <span class=test>agiuda·nos</span>
+    <span>Agiuda·nos</span>
+<div>
+
+<div lang=oc>
+    <span class=test>in·hèrn</span>
+    <span>In·hèrn</span>
+<div>
+
+<div lang=frp>
+    <span class=test>g·eografia</span>
+    <span>G·eografia</span>
+<div>
+
+<div lang=fr-gallo>
+    <span class=test>ag·rouée</span>
+    <span>Ag·rouée</span>
+<div>
+
+<div lang=fr>
+    <span class=test>un·e député·e</span>
+    <span>Un·e Député·e</span>
+<div>
+
+
+

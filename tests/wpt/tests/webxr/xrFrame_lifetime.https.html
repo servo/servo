@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+
+  <script>
+    let immersiveTestName = "XRFrame methods throw exceptions outside of the " +
+      "requestAnimationFrame callback for immersive sessions";
+    let nonImmersiveTestName = "XRFrame methods throw exceptions outside of the " +
+      "requestAnimationFrame callback for non-immersive sessions";
+
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    let testFunction = (testSession, testController, t) => new Promise((resolve) => {
+      let staleFrame = null;
+      let currentReferenceSpace = null;
+      let currentViewerSpace = null;
+
+      function onFrame(time, xrFrame) {
+        t.step(() => {
+          assert_true(xrFrame instanceof XRFrame);
+        });
+
+        staleFrame = xrFrame;
+        step_timeout(afterFrame, 0);
+      }
+
+      function afterFrame() {
+        t.step(() => {
+          // Attempting to call a method on the frame outside the callback that
+          // originally provided it should cause it to throw an exception.
+          assert_throws_dom('InvalidStateError', () => staleFrame.getViewerPose(currentReferenceSpace));
+          assert_throws_dom('InvalidStateError', () => staleFrame.getPose(currentViewerSpace, currentReferenceSpace));
+        });
+
+        // Test does not complete until the this function has executed.
+        resolve();
+      }
+
+      testSession.requestReferenceSpace('viewer').then((viewerSpace) => {
+        currentViewerSpace = viewerSpace;
+        testSession.requestReferenceSpace('local').then((referenceSpace) => {
+          currentReferenceSpace = referenceSpace;
+          testSession.requestAnimationFrame(onFrame);
+        });
+      });
+    });
+
+    xr_session_promise_test(immersiveTestName, testFunction,
+      fakeDeviceInitParams, 'immersive-vr');
+    xr_session_promise_test(nonImmersiveTestName, testFunction,
+      fakeDeviceInitParams, 'inline', { 'requiredFeatures': ['local'] });
+
+  </script>
+</body>

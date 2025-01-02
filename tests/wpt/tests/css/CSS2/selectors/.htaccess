@@ -1,0 +1,4 @@
+<Files ~ "^lang-selector-005\.(xht|xhtml|xml|html|htm)$">
+AddLanguage fr .xht .xhtml .xml .html .htm
+</Files>
+

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/mediaqueries-3/#media1">
+<link rel="match" href="media-queries-001-print-ref.html">
+<style>
+  @page {
+    size: 10in;
+    margin: 2in;
+  }
+  body {
+    margin: 0;
+    width: 4in;
+    height: 3in;
+    background: red;
+  }
+
+  /* There's some confusion regarding how width/height media queries for print are
+     supposed to be handled (and some additional confusion for WPT tests). First
+     of all, the spec suggests that we should use the size of the page box that
+     we get from the system/user, unaffected by any @page size declarations. But
+     all known implementations use the page *area*, not the page *box*,
+     i.e. with margins subtracted. [1] Secondly, the WPT documentation says that
+     the default page size should be 5 by 3 inches, and doesn't mention any
+     default margins. Yet, there are WPT tests that assume that there's a
+     half-inch margin on each side [2]. So take all these things into
+     consideration in the following media query, so that any default margins of
+     0.5 inches don't make a difference. Once the spec / WPT issues have been
+     resolved, we should make the test more strict.
+
+     [1] https://github.com/w3c/csswg-drafts/issues/5437
+     [2] https://github.com/web-platform-tests/wpt/issues/40788 */
+
+  @media (min-width: 4in) and (max-width: 5in) and (min-height: 2in) and (max-height: 3in) {
+    body { background: green; }
+  }
+</style>
+This page should have a green background.

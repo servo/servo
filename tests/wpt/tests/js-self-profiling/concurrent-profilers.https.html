@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async t => {
+      const profiler_a = new Profiler({
+        sampleInterval: 10,
+        maxBufferSize: Number.MAX_SAFE_INTEGER,
+      });
+
+      const profiler_b = new Profiler({
+        sampleInterval: 10,
+        maxBufferSize: Number.MAX_SAFE_INTEGER,
+      });
+
+      const trace_b = await profiler_b.stop();
+      const trace_a = await profiler_a.stop();
+    }, 'concurrent profilers should be supported');
+  </script>
+</body>
+</html>

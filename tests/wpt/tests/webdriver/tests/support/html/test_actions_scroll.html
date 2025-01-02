@@ -1,0 +1,151 @@
+<!doctype html>
+<meta charset=utf-8>
+<html>
+  <head>
+    <title>Test Actions</title>
+    <style>
+      div {
+        padding: 0;
+        margin: 0;
+      }
+
+      #not-scrollable {
+        margin-bottom: 100px;
+        width: 100px;
+        height: 50px;
+      }
+
+      #not-scrollable-content {
+        width: 200px;
+        height: 100px;
+        background-color: #ccc;
+      }
+
+      #scrollable {
+        width: 100px;
+        height: 100px;
+        overflow: scroll;
+      }
+
+      #scrollable-content {
+        width: 600px;
+        height: 1000px;
+        background-color: blue;
+      }
+
+      #iframe {
+        width: 100px;
+        height: 100px;
+      }
+
+      #event-reporter {
+        white-space: pre-line;
+      }
+    </style>
+
+    <script>
+      var eventReporter;
+      var allEvents = { events: [] };
+
+      function addMessage(message) {
+        eventReporter.textContent = `${message}\n${eventReporter.textContent}`;
+      }
+
+      function recordWheelEvent(event) {
+        allEvents.events.push({
+          "type": event.type,
+          "button": event.button,
+          "buttons": event.buttons,
+          "pageX": event.pageX,
+          "pageY": event.pageY,
+          "deltaX": event.deltaX,
+          "deltaY": event.deltaY,
+          "deltaZ": event.deltaZ,
+          "deltaMode": event.deltaMode,
+          "target": event.target.id,
+          "altKey": event.altKey,
+          "ctrlKey": event.ctrlKey,
+          "metaKey": event.metaKey,
+          "shiftKey": event.shiftKey,
+        });
+
+        addMessage(
+          "type: " + event.type + " " +
+          "button: " + event.button + ", " +
+          "buttons: " + event.buttons + ", " +
+          "pageX: " + event.pageX + ", " +
+          "pageY: " + event.pageY + ", " +
+          "deltaX: " + event.deltaX + ", " +
+          "deltaY: " + event.deltaY + ", " +
+          "deltaZ: " + event.deltaZ + ", " +
+          "deltaMode: " + event.deltaMode + ", " +
+          "target id: " + event.target.id + ", " +
+          "altKey: " + event.altKey + ", " +
+          "ctrlKey: " + event.ctrlKey + ", " +
+          "metaKey: " + event.metaKey + ", " +
+          "shiftKey: " + event.shiftKey
+        );
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        eventReporter = document.getElementById("event-reporter");
+
+        var noScroll = document.getElementById("not-scrollable");
+        noScroll.addEventListener("wheel", recordWheelEvent);
+
+        var scrollable = document.getElementById("scrollable");
+        scrollable.addEventListener("wheel", recordWheelEvent);
+      });
+    </script>
+  </head>
+
+  <body>
+    <div>
+      <h2>Scroll Reporter</h2>
+      <div id="not-scrollable">
+        <div id="not-scrollable-content"></div>
+      </div>
+    </div>
+
+    <div>
+      <h2>Overflow Scroll Reporter</h2>
+      <div id="scrollable">
+        <div id="scrollable-content"></div>
+      </div>
+    </div>
+
+    <div>
+      <h2>iframe Scroll Reporter</h2>
+      <iframe id="iframe" srcdoc='
+        <script>
+          document.scrollingElement.addEventListener("wheel", event => {
+            window.parent.recordWheelEvent({
+              "type": event.type,
+              "button": event.button,
+              "buttons": event.buttons,
+              "pageX": event.pageX,
+              "pageY": event.pageY,
+              "deltaX": event.deltaX,
+              "deltaY": event.deltaY,
+              "deltaZ": event.deltaZ,
+              "deltaMode": event.deltaMode,
+              "target": event.target,
+              "altKey": event.altKey,
+              "ctrlKey": event.ctrlKey,
+              "metaKey": event.metaKey,
+              "shiftKey": event.shiftKey,
+            });
+          });
+        </script>
+        <div id="iframeContent" style="width: 7500px; height: 7500px; background-color:blue">
+        </div>'>
+      </iframe>
+    </div>
+
+    <div id="resultContainer">
+      <hr />
+      <h2>Events</h2>
+      <div id="event-reporter"></div>
+    </div>
+  </body>
+</html>

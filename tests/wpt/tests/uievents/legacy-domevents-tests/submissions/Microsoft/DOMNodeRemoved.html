@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> MutationEvent: DOMNodeRemoved Event Type </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "DOMNodeRemoved";
+            var TARGET;
+            var PARENT;
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    PARENT = document.getElementById("parent");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                    PARENT.removeChild(TARGET);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if (EVENT == evt.type)
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: DOMNodeRemoved event fires when a node is being removed from its parent node.
+        </h4>
+
+        <span id="parent">
+            <div id="target" style="border:solid 1px green; width:100px; height:100px">
+            </div>
+        </span>
+        <p>Test passes if the word "PASS" appears below.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

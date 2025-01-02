@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {alt_request_options_with_mediation_required,
+        set_alt_fedcm_cookie} from './support/fedcm-helper.sub.js';
+
+// We do not use fedcm_test, because that tries to set document.cookie
+// via set_fedcm_cookie, which is not allowed in a sandboxed document.
+promise_test(async t => {
+  // This test uses a `Content-Security-Policy: sandbox allow-scripts` header
+  // to trigger an opaque origin.
+  assert_equals(window.origin, 'null');
+  await set_alt_fedcm_cookie();
+  const cred = navigator.credentials.get(alt_request_options_with_mediation_required());
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, "Opaque RP origin should trigger a NetworkError.");
+
+</script>

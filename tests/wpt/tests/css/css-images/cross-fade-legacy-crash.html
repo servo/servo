@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="test-wait">
+  <head>
+    <title>CSS Images Test: Serializing legacy cross-fade syntax crashes Chrome</title>
+    <link rel="help" href="https://crbug.com/1509173">
+    <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+    <style>
+      .missing { border-image: -webkit-cross-fade(none, none, 13%); }
+    </style>
+    <script src="/common/gc.js"></script>
+  </head>
+  <body>
+    <p>Test passes if the browser does not crash.</p>
+    <script>
+      requestAnimationFrame(async () => {
+        await garbageCollect();
+        document.styleSheets[0].cssRules[0].cssText;
+        document.documentElement.classList.remove('test-wait');
+      });
+    </script>
+  </body>
+</html>

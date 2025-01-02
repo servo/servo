@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1402540">
+<link rel="match" href="monolithic-overflow-017-print-ref.html">
+<style>
+  body { margin: 0; }
+</style>
+<div style="display:table; width:100%; line-height:20px;">
+  <div style="display:table-footer-group; break-inside:avoid; background:hotpink;">footer</div>
+  <!-- Monolithic content that ends 5px above the table footer on the third page. -->
+  <div style="contain:size; height:calc(300vh - 25px); background:black;"></div>
+  PASS
+</div>
+There should be a footer on every page, and the word PASS should be seen here,
+on the fourth page, just above the final footer.

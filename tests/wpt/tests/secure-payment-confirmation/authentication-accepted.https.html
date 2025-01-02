@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - accepted case</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation#sctn-authentication">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.sub.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const authenticator = await window.test_driver.add_virtual_authenticator(
+      AUTHENTICATOR_OPTS);
+  t.add_cleanup(() => {
+    return window.test_driver.remove_virtual_authenticator(authenticator);
+  });
+
+  await window.test_driver.set_spc_transaction_mode("autoAccept");
+  t.add_cleanup(() => {
+    return window.test_driver.set_spc_transaction_mode("none");
+  });
+
+  const credential = await createCredential();
+
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+  const request = new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [credential.rawId],
+      challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+      payeeOrigin,
+      rpId: window.location.hostname,
+      timeout: 60000,
+      instrument: {
+        displayName,
+        icon: ICON_URL,
+      },
+    }
+  }], PAYMENT_DETAILS);
+
+  await test_driver.bless('user activation');
+  const responsePromise = request.show();
+
+  const response = await responsePromise;
+  await response.complete('success');
+
+  const cred = response.details;
+  assert_equals(cred.id, credential.id);
+
+  const clientDataJSON = JSON.parse(arrayBufferToString(cred.response.clientDataJSON));
+  assert_equals(clientDataJSON.type, 'payment.get');
+  assert_equals(clientDataJSON.challenge, base64UrlEncode(challenge));
+  assert_equals(clientDataJSON.origin, window.location.origin);
+  assert_false(clientDataJSON.crossOrigin);
+
+  // Payment-specific information.
+  assert_equals(clientDataJSON.payment.rpId, window.location.hostname);
+  assert_equals(clientDataJSON.payment.topOrigin, window.location.origin);
+  assert_equals(clientDataJSON.payment.payeeOrigin, payeeOrigin);
+  assert_equals(clientDataJSON.payment.total.value, PAYMENT_DETAILS.total.amount.value);
+  assert_equals(clientDataJSON.payment.total.currency, PAYMENT_DETAILS.total.amount.currency);
+  assert_equals(clientDataJSON.payment.instrument.icon, ICON_URL);
+  assert_equals(clientDataJSON.payment.instrument.displayName, displayName);
+
+  // If the User Agent still supports the legacy 'rp' output parameter, it
+  // should be identical to the 'rpId' output parameter. See
+  // https://github.com/w3c/secure-payment-confirmation/pull/198
+  if ('rp' in clientDataJSON.payment) {
+    assert_equals(clientDataJSON.payment.rp, clientDataJSON.payment.rpId);
+  }
+
+  // TODO: Verify cred.response.signature, to validate that it covers all fields
+  // from clientDataJSON.
+}, 'Successful SPC authentication');
+</script>

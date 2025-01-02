@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Tests popovers with implicit anchors in out-of-flow boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#determining">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.relpos {
+  position: relative;
+}
+.columns {
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 10px;
+  column-width: 100px;
+  width: 210px;
+  height: 50px;
+}
+#anchor1 {
+  position: absolute;
+  width: 10px;
+  height: 30px;
+  background: orange;
+}
+.target {
+  /*
+   * We need a popover to use implicit anchors, and force showing it with CSS
+   * so that it's not in the top layer.
+   */
+  display: block;
+  position: absolute;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  width: anchor-size(width);
+  height: anchor-size(height);
+  background: lime;
+}
+</style>
+<body onload="checkLayout('.target')">
+  <div class="spacer" style="height: 10px"></div>
+  <div class="relpos">
+    <div class="columns">
+      <div class="spacer" style="height: 10px"></div>
+      <div class="relpos">
+        <div class="spacer" style="height: 10px"></div>
+        <div class="relpos">
+          <div class="spacer" style="height: 10px"></div>
+          <div id="anchor1"></div>
+        </div>
+        <div class="target" popover anchor="anchor1"
+          data-expected-height=50></div>
+      </div>
+    </div>
+  </div>
+
+</body>
+

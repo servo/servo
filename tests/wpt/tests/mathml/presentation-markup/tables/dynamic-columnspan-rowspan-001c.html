@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>dynamic columnspan/rowspan</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#table-or-matrix-mtable">
+    <meta name="assert" content="Rendering is updated after removing columnspan">
+    <link rel="match" href="columnspan-rowspan-ref.html">
+    <style>
+      mtd { padding: 0; }
+    </style>
+   <script>
+    window.addEventListener("load", () => {
+      // force initial layout so we're sure what we're testing against
+      document.documentElement.getBoundingClientRect();
+      document.getElementById('mtd').removeAttribute("columnspan");
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  </script>
+  </head>
+  <body>
+    <p>This test passes if you see a green square.</p>
+    <math>
+      <mtable>
+        <mtr>
+          <mtd id="mtd" columnspan="2">
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+          <mtd>
+            <mspace width="40px" depth="40px" style="background: green"/>
+          </mtd>
+        </mtr>
+      </mtable>
+    </math>
+  </body>
+</html>

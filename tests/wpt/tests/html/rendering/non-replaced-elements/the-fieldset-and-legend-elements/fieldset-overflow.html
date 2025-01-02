@@ -1,0 +1,83 @@
+<!DOCTYPE HTML>
+<title>fieldset overflow</title>
+<meta name="fuzzy" content="1;0-50">
+<link rel=match href=fieldset-overflow-ref.html>
+<style>
+fieldset, legend {
+  border: 1em solid;
+  margin: 0;
+  padding: 0;
+  background: lime
+}
+#f1 {
+  overflow: auto;
+  height: 2em;
+}
+legend {
+  height: 1em;
+  width: 5em;
+}
+div {
+  background: red;
+  height: 2em;
+}
+
+#f2 {
+  border: none;
+  padding: 50px;
+  max-height: 50px;
+  overflow: scroll;
+}
+
+#f3 {
+  width: 20em;
+  max-height: 250px;
+  padding: 7px;
+  overflow: auto;
+  box-sizing: border-box;
+  border-color: transparent;
+  background: transparent;
+}
+
+#f3 legend {
+  height: 40px;
+  border: none;
+  color: transparent;
+  background: transparent;
+}
+</style>
+<p>There should be no red.</p>
+<fieldset id="f1">
+ <legend></legend>
+ <div></div>
+ <div id=last></div>
+</fieldset>
+
+<!-- crbug.com/1247733 -->
+<fieldset id="f2">
+  <div style="height:200px; background:blue"></div>
+</fieldset>
+<script>
+ document.getElementById('last').scrollIntoView();
+</script>
+
+<!-- crbug.com/1282408 -->
+<fieldset id="f3">
+  <legend>Legend</legend>
+  <p>
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog.
+  </p>
+</fieldset>
+

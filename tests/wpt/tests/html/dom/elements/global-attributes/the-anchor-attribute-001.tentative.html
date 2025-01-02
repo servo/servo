@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/whatwg/html/pull/9144">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+#anchor {
+  width: 100px;
+  height: 100px;
+  margin-left: 50px;
+  margin-top: 50px;
+  background: orange;
+}
+#target {
+  position: absolute;
+  left: anchor(right);
+  top: anchor(top);
+  width: 100px;
+  height: 100px;
+  background: lime;
+}
+</style>
+<div id="anchor"></div>
+<div id="target" anchor="anchor"></div>
+
+<script>
+test(() => {
+  assert_equals(target.offsetLeft, 150);
+  assert_equals(target.offsetTop, 50);
+}, 'The anchor attribute should position the target element next to its implicit anchor');
+
+test(() => {
+  assert_equals(target.anchorElement, anchor);
+}, 'The element.anchorElement IDL should reflect the element pointed to by the anchor attribute');
+</script>

@@ -1,0 +1,40 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  let intercept_resolve;
+  navigation.addEventListener("navigate", e => {
+    e.intercept({ handler: () => new Promise(resolve => intercept_resolve = resolve),
+                  focusReset: "after-transition" });
+  }, { once: true });
+
+  const button = document.body.appendChild(document.createElement("button"));
+  const button2 = document.body.appendChild(document.createElement("button"));
+  button2.tabIndex = 0;
+  t.add_cleanup(() => {
+    button.remove();
+    button2.remove();
+  });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  button.focus();
+  assert_equals(document.activeElement, button, "focus() worked");
+
+  const finished = navigation.navigate("#1").finished;
+
+  let onfocus_called = false;
+  document.body.onfocus = onfocus_called = true;
+  button.remove();
+  assert_equals(document.activeElement, document.body, "Removing the element reset focus");
+  assert_true(onfocus_called);
+
+  document.body.onfocus = t.unreached_func("onfocus shouldn't fire a second time due to focus reset");
+  intercept_resolve();
+  await finished;
+  assert_equals(document.activeElement, document.body, "Focus remains on document.body after promise fulfills");
+  await new Promise(resolve => t.step_timeout(resolve, 10));
+}, "");
+</script>
+</body>

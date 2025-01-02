@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Node.prototype.getElementsByClassName with no real class names</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<span class="&#x000B;">LINE TABULATION</span>
+<span class="&#x0085;">NEXT LINE</span>
+<span class="&#x00A0;">NO-BREAK SPACE</span>
+<span class="&#x1680;">OGHAM SPACE MARK</span>
+<span class="&#x2000;">EN QUAD</span>
+<span class="&#x2001;">EM QUAD</span>
+<span class="&#x2002;">EN SPACE</span>
+<span class="&#x2003;">EM SPACE</span>
+<span class="&#x2004;">THREE-PER-EM SPACE</span>
+<span class="&#x2005;">FOUR-PER-EM SPACE</span>
+<span class="&#x2006;">SIX-PER-EM SPACE</span>
+<span class="&#x2007;">FIGURE SPACE</span>
+<span class="&#x2008;">PUNCTUATION SPACE</span>
+<span class="&#x2009;">THIN SPACE</span>
+<span class="&#x200A;">HAIR SPACE</span>
+<span class="&#x2028;">LINE SEPARATOR</span>
+<span class="&#x2029;">PARAGRAPH SEPARATOR</span>
+<span class="&#x202F;">NARROW NO-BREAK SPACE</span>
+<span class="&#x205F;">MEDIUM MATHEMATICAL SPACE</span>
+<span class="&#x3000;">IDEOGRAPHIC SPACE</span>
+
+<span class="&#x180E;">MONGOLIAN VOWEL SEPARATOR</span>
+<span class="&#x200B;">ZERO WIDTH SPACE</span>
+<span class="&#x200C;">ZERO WIDTH NON-JOINER</span>
+<span class="&#x200D;">ZERO WIDTH JOINER</span>
+<span class="&#x2060;">WORD JOINER</span>
+<span class="&#xFEFF;">ZERO WIDTH NON-BREAKING SPACE</span>
+
+<script>
+"use strict";
+
+const spans = document.querySelectorAll("span");
+
+for (const span of spans) {
+  test(() => {
+    const className = span.getAttribute("class");
+    assert_equals(className.length, 1, "Sanity check: the class name was retrieved and is a single character");
+    const shouldBeSpan = document.getElementsByClassName(className);
+    assert_array_equals(shouldBeSpan, [span]);
+  }, `Passing a ${span.textContent} to getElementsByClassName still finds the span`);
+}
+</script>

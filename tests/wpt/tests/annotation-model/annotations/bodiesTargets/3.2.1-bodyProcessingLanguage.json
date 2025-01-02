@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.1-bodyProcessingLanguage.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Body may include processingLanguage key with a single value that is a language code.",
+    "title": "Implements **body _processingLanguage_ key** with a **single value** that is a **language code** [model 3.2.1](https://www.w3.org/TR/annotation-model/#bodies-and-targets)",
+    "description": "True when Annotation includes one or more Bodies, one or more of which include single processingLanguage key with a language code as value. (Section 3.2.1)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "bodyTarget.json#/definitions/processingLanguagePropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/itemProcessingLanguagePropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/sourceProcessingLanguagePropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "bodyTarget.json#/definitions/processingLanguagePropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/itemProcessingLanguagePropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/sourceProcessingLanguagePropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

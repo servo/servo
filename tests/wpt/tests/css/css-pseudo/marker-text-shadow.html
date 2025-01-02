@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker supports 'text-shadow'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-shadow-property">
+<link rel="match" href="marker-text-shadow-ref.html">
+<meta name="assert" content="Checks that ::marker supports 'text-shadow', both explicitly set or inherited from an ancestor">
+<style>
+ol {
+  float: left;
+  width: 50px;
+  list-style-position: inside;
+}
+.text-shadow.explicit ::marker,
+.text-shadow.inherit {
+  text-shadow: #0f0 1px 2px 3px;
+}
+.marker-decimal {
+  list-style-type: decimal;
+}
+.marker-string {
+  list-style-type: "2. ";
+}
+.marker-content::marker {
+  content: "3. ";
+}
+</style>
+<ol class="text-shadow explicit">
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="text-shadow inherit">
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>

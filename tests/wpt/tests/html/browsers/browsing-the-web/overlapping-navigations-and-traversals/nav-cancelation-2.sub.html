@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Grandparent main frame cancels a navigation in a cross-origin grandchild</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  This test asserts that an ancestor canceling a cross-origin descendant's
+  ongoing navigation does not result in load events firing in the ancestor
+  synchronously.
+
+  The reason this test uses a grandparent/grandchild pair to represent the
+  ancestor/descendant, instead of a parent/child pair, is because if a child
+  frame is blocking its parent window's load event, that means the child frame
+  navigation is being made from the initial about:blank Document to some
+  resource, and the initial about:blank child is synchronously scriptable from
+  the parent since they share the same window agent. This test is trying to
+  capture the scenario where the descendant document (that owns the ongoing
+  navigation) is hosted/scheduled on a different agent than the ancestor
+  document that cancels the descendant's ongoing navigation. The only way to do
+  this is to have a grandparent frame load a cross-origin child, whose document
+  itself loads a child frame that has a very slow ongoing navigation. That way
+  the grandparent can reach the grandchild via `window.frames[0].frames[0]`,
+  which is a proxy to the document living in a different agent.
+-->
+
+<body>
+
+<iframe src="http://{{domains[www1]}}:{{ports[http][0]}}/html/browsers/browsing-the-web/overlapping-navigations-and-traversals/resources/nav-cancelation-2-helper.html"></iframe>
+
+<script>
+promise_test(async t => {
+  let window_load_fired = false;
+  let iframe_load_fired = false;
+  let grandchild_iframe_load_fired = false;
+  const iframe = document.querySelector('iframe');
+
+  const window_load_promise = new Promise(resolve => {
+    window.onload = () => {
+      window_load_fired = true;
+      resolve();
+    }
+  });
+
+  const iframe_onload_promise = new Promise(resolve => {
+    iframe.onload = () => {
+      iframe_load_fired = true;
+      resolve();
+    }
+  });
+
+  // Let the grandchild frame get registered in window.frames.
+  await new Promise((resolve, reject) => {
+    window.addEventListener('message', e => {
+      if (e.data != "grandchild frame created") {
+        reject(Error(`Expected 'grandchild frame created', but got ${e.data}`));
+      }
+
+      resolve();
+    }, {once: true});
+  });
+
+  // Set up a message handler to listen to the grandchild's iframe element's
+  // load event being fired. We should never get this message, and we assert
+  // this below. If we ever get this message, that means one of two things:
+  //   1.) The grandparent (this document)'s load event was blocked on the
+  //       completion of its grandchild's subsequent navigation (after
+  //       cancelation)
+  //   2.) After the grandchild's navigation was canceled, its <iframe>'s load
+  //       event was fired before its subsequent navigation completed
+  // Both of these are wrong.
+  addEventListener('message', e => {
+    assert_equals(e.data, "grandchild frame loaded",
+        `Expected 'grandchild frame loaded', but got ${e.data}`);
+    grandchild_iframe_load_fired = true;
+  });
+
+  // While the grandchild navigation is in-flight, cancel it and record when the
+  // our `load` event fires. The second navigation is a slow resource so that
+  // the speed of the network doesn't cause the grandchild load event to fire
+  // early and confuse the grandparent when running the assertions below. We're
+  // trying to clearly separate out when the grandparent load event fires vs
+  // when the grandchild load event fires.
+  window.frames[0].frames[0].location.href = "resources/slow.py?different";
+
+  // Synchronously after cancelation, no load events should have been fired.
+  assert_false(window_load_fired,
+      "Grandparent's load event does not synchronously fire after grandchild " +
+      "navigation cancelation");
+  assert_false(iframe_load_fired,
+      "<iframe> load event does not synchronously fire after grandchild " +
+      "navigation cancelation");
+  assert_false(grandchild_iframe_load_fired,
+      "Grandchild <iframe>'s load event does not synchronously fire upon " +
+      "navigation cancelation");
+
+  // Load events did not fire in a microtask after cancelation.
+  await Promise.resolve();
+  assert_false(window_load_fired,
+      "Grandparent's load event does not fire in the microtask after " +
+      "navigation canceled");
+  assert_false(iframe_load_fired,
+      "<iframe> load event does not fire in the microtask after navigation " +
+      "canceled");
+  assert_false(grandchild_iframe_load_fired,
+      "Grandchild <iframe> load event does not fire in the microtask after " +
+      "navigation canceled");
+
+  // Canceling the navigation should however, asynchronously unblock, in this
+  // order:
+  //   1.) Our child window's load event, captured by our `iframe`'s load event
+  //   2.) Our window load event
+  // On the other hand, the grandchild navigation should still be ongoing, so
+  // inside our child's document, the nested <iframe> representing our
+  // grandchild should not have had its load event fired yet.
+  await iframe_onload_promise;
+  assert_true(iframe_load_fired);
+  assert_false(window_load_fired,
+      "Grandparent's load event does not fire before its child iframe's load " +
+      "event");
+  assert_false(grandchild_iframe_load_fired,
+      "Grandchild <iframe>'s load event does not fire before its parent's load " +
+      "event and grandparent's load event");
+
+  // We want to assert that the grandparent is not (incorrectly) blocked on its
+  // grandchild's second navigation from completing. One sign that it was
+  // incorrectly blocked on its grandchild's second navigation is if the
+  // grandparent receives a message (saying that the grandchild <iframe>
+  // element's load event fired) before the grandparent's load event fires.
+  //
+  // This indicates a weird state where the grandparent's immediate child fired
+  // its load event in response to navigation cancelation (see the assertions
+  // above), but the grandparent itself is still blocked on the grandchild
+  // loading. If this is the case, the the postMessage() (that sets
+  // `grandchild_iframe_load_fired = true`) is received by the grandparent just
+  // before the grandparent's load event is unblocked and fired. Therefore we
+  // can detect this situation by checking `grandchild_iframe_load_fired`.
+  await window_load_promise;
+  assert_true(iframe_load_fired);
+  assert_true(window_load_fired,
+      "Grandparent's load event fires asynchronously after grandchild " +
+      "navigation cancelation");
+  assert_false(grandchild_iframe_load_fired,
+      "Grandchild <iframe> load event doesn't fire before grandparent's " +
+      "load event");
+
+  // Verify that the grandchild <iframe>'s load event does not fire within one
+  // task of the grandchild's load event from being fired. This is to further
+  // verify that the grandparent's load event is not tied to its grandchild's
+  // second navigation.
+  //
+  // If for example, the grandparent's load event *is* blocked on the
+  // grandchild's second navigation from finishing, it is still possible for the
+  // grandparent's load event to fire. For example, Chromium has a bug where if
+  // both are true:
+  //   1.) The grandparent frame is in the same process as the grandchild frame
+  //   2.) The grandparent frame's load event is blocked on its grandchild's
+  //       second navigation
+  //
+  // ...then the following will happen:
+  //   1.) The grandchild's load event will fire, triggering a postMessage() to
+  //       the grandparent frame. This queues a task to run the grandparent's
+  //       message handler.
+  //   2.) The grandparent's load event will *immediately* fire, and the
+  //       postMessage() will fire a single task later since it is queued.
+  //
+  // Therefore, we assert that `grandchild_iframe_load_fired` is not true up to
+  // a single task after the grandparent's load event fires.
+  await new Promise(resolve => {
+    t.step_timeout(resolve, 0);
+  });
+
+  assert_false(grandchild_iframe_load_fired,
+      "Grandchild <iframe>'s load event does not fire at least one task " +
+      "after the grandparent's window load event fires. It should only fire " +
+      "when its subsequent navigation is complete");
+}, "grandparent cancels a pending navigation in a cross-origin grandchild");
+</script>

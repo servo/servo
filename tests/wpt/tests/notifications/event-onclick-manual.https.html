@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification.onclick (basic)</title>
+<link rel="author" title="Apple Inc." href="http://www.apple.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script>
+setup({ explicit_timeout: true })
+if (hasNotificationPermission()) {
+    async_test(function (t) {
+        t.step(function () {
+            var notification =
+                new Notification("Please click on the notification.", {
+                    body: "Click me to test clicking on notifications."
+                })
+            notification.onclick = function(e) {
+                assert_equals(Object.prototype.toString.call(e), "[object Event]")
+                assert_equals(e.type, "click")
+                t.done()
+            }
+        })
+    })
+}
+</script>

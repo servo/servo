@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Turning off spellcheck by making textareas disabled</title>
+<link rel=match href="references/spelling-markers-001-ref.html">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interaction.html#spelling-and-grammar-checking">
+<meta name=assert content="Spellchecking stops applying to textareas when they become disabled">
+
+<style>
+#test {
+  /* Match the ref */
+  all: initial;
+  width: 100%;
+  display: block;
+  font-family: inherit;
+}
+</style>
+
+<textarea id=test>This test passes if there is no visual marker indicating the spellinnnnnggg mistake in this sentence, and fails otherwise.</textarea>
+
+<script>
+  var test = document.getElementById("test");
+  // Force spellcheck by focus then blur
+  test.focus();
+  test.blur();
+  test.setAttribute("disabled", true);
+</script>

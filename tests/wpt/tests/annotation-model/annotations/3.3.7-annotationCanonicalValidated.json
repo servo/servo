@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.7-annotationCanonicalValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation has more than one value for canonical key or value for canonical key is not of format uri.",
+  "title": "If present the Annotation-level **_canonical_ key** has a **single value** that is a **string of format uri** - [model 3.3.7](https://www.w3.org/TR/annotation-model/#other-identities)",
+  "description": "True when no Annotation canonical key present or when value of canonical key is singular and of format uri (Section 3.3.7)",
+  "type": "object",
+  "allOf": [
+  { "$ref": "otherProperties.json#/definitions/canonicalValidIfPresent" }
+  ]
+}

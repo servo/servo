@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+animation_test({
+  syntax: "<transform-function>",
+  inherits: false,
+  initialValue: "translateX(0px)"
+}, {
+  keyframes: ["translateX(100px)", "translateX(200px)"],
+  expected: "translateX(150px)"
+}, 'Animating a custom property of type <transform-function>');
+
+animation_test({
+  syntax: "<transform-function>",
+  inherits: false,
+  initialValue: "translateX(100px)"
+}, {
+  keyframes: "translateX(200px)",
+  expected: "translateX(150px)"
+}, 'Animating a custom property of type <transform-function> with a single keyframe');
+
+animation_test({
+  syntax: "<transform-function>",
+  inherits: false,
+  initialValue: "translateX(100px)"
+}, {
+  composite: "add",
+  keyframes: ["translateX(200px)", "translateX(300px)"],
+  expected: "translateX(350px)"
+}, 'Animating a custom property of type <transform-function> with additivity');
+
+animation_test({
+  syntax: "<transform-function>",
+  inherits: false,
+  initialValue: "translateX(100px)"
+}, {
+  composite: "add",
+  keyframes: "translateX(300px)",
+  expected: "translateX(250px)"
+}, 'Animating a custom property of type <transform-function> with a single keyframe and additivity');
+
+animation_test({
+  syntax: "<transform-function>",
+  inherits: false,
+  initialValue: "translateX(100px)"
+}, {
+  iterationComposite: "accumulate",
+  keyframes: ["translateX(0px)", "translateX(100px)"],
+  expected: "translateX(250px)"
+}, 'Animating a custom property of type <transform-function> with iterationComposite');
+
+</script>

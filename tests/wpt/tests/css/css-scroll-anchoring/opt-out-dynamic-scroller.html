@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#scroller {
+  overflow: scroll;
+  width: 300px;
+  height: 300px;
+}
+#before { height: 50px; }
+#content { margin-top: 100px; margin-bottom: 600px; }
+.no { overflow-anchor: none; }
+
+</style>
+<div id="scroller">
+  <div id="before"></div>
+  <div id="content">content</div>
+</div>
+<script>
+
+// Tests that dynamic styling 'overflow-anchor' on a scrolling element has the
+// same effect as initial styling
+
+test(() => {
+  let scroller = document.querySelector("#scroller");
+  let before = document.querySelector("#before");
+
+  // Scroll down so that #content is the first element in the viewport
+  scroller.scrollTop = 100;
+
+  // Change the height of #before to trigger a scroll adjustment. This ensures
+  // that #content was selected as a scroll anchor
+  before.style.height = "100px";
+  assert_equals(scroller.scrollTop, 150);
+
+  // Now set 'overflow-anchor: none' on #scroller. This should invalidate the
+  // scroll anchor, and #scroller shouldn't be able to select an anchor anymore
+  scroller.className = 'no';
+
+  // Change the height of #before and make sure we don't adjust. This ensures
+  // that #content is not a scroll anchor
+  before.style.height = "150px";
+  assert_equals(scroller.scrollTop, 150);
+}, "Dynamically styling 'overflow-anchor: none' on the scroller element should prevent scroll anchoring");
+
+</script>

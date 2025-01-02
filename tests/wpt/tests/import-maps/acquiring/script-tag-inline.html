@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const log = [];
+</script>
+<script type="module">
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "../resources/log.js?pipe=sub&name=A": "../resources/log.js?pipe=sub&name=B"
+  }
+}
+</script>
+<script>
+promise_test(() => {
+  return import("../resources/log.js?pipe=sub&name=A")
+    .then(() => assert_array_equals(log, ["log:B"]))
+  },
+  'After inline <script type="module"> import maps work fine');
+</script>

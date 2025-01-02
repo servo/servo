@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — line breaking (with word-break:break-all) of emoji sequences that should form single clusters</title>
+<meta name=assert content="A UA must use the extended grapheme cluster (not legacy grapheme cluster), as defined in [UAX29], as the basis for its typographic character unit.">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#characters">
+<link rel=match href="reference/line-breaking-013-ref.html">
+<link rel=author title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<style>
+div {
+    line-height: 1em;
+    font-size: 30px;
+}
+.container {
+    position: relative;
+    margin: .5em;
+}
+.ref {
+    background-color: white;
+    padding: .25em;
+}
+.test {
+    word-break: break-all;
+    color: transparent;
+    background-color: red;
+    position: absolute;
+    width: .5em;
+    left: 0;
+    top: 0;
+    padding: .25em;
+    z-index: -1;
+}
+</style>
+<body>
+    <p>Each emoji should appear on a single line with no red background.</p>
+    <div class=container>
+        <div class=ref>&#x1F468;&#x200D;&#x1F4BB;</div><!-- man technologist -->
+        <div class=test>&#x1F468;&#x200D;&#x1F4BB;</div>
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F469;&#x200D;&#x1F467;&#x200D;&#x1F466;</div><!-- family with mother, son and daughter -->
+        <div class=test>&#x1F469;&#x200D;&#x1F467;&#x200D;&#x1F466;</div>
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F939;&#x200D;&#x2640;&#xFE0F;</div><!-- woman juggling -->
+        <div class=test>&#x1F939;&#x200D;&#x2640;&#xFE0F;</div>
+    </div>
+    <div class=container>
+        <div class=ref>&#x26F9;&#x1F3FF;&#x200D;&#x2640;&#xFE0F;</div><!-- woman basketball player (fitzpatrick type 6) -->
+        <div class=test>&#x26F9;&#x1F3FF;&#x200D;&#x2640;&#xFE0F;</div>
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F3F3;&#xFE0F;&#x200D;&#x1F308;</div><!-- rainbow flag -->
+        <div class=test>&#x1F3F3;&#xFE0F;&#x200D;&#x1F308;</div>
+    </div>
+    <div class=container>
+        <div class=ref>&#x1F3F4;&#xE0067;&#xE0062;&#xE0077;&#xE006C;&#xE0073;&#xE007F;</div><!-- flag of Wales -->
+        <div class=test>&#x1F3F4;&#xE0067;&#xE0062;&#xE0077;&#xE006C;&#xE0073;&#xE007F;</div>
+    </div>
+</body>
+</html>

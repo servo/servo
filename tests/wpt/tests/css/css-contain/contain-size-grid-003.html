@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on grid containers</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<meta name=assert content="Size containment does apply to grid containers, thus their size is the same than if they don't have contents but taking into account the track sizes.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+  display: inline-grid;
+  contain: size;
+  position: relative;
+  font: 10px/1 Ahem;
+}
+.wrapper {
+  width: 300px;
+  height: 150px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<div class="grid" style="grid: 50px / 100px;"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; width: 200px; height: 100px;"
+  data-expected-width="200" data-expected-height="100">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; width: min-content; height: min-content;"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; overflow: scroll;"
+  data-expected-width="115" data-expected-height="65">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; width: 200px; height: 100px; overflow: scroll;"
+  data-expected-width="200" data-expected-height="100">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; width: min-content; height: min-content; overflow: scroll;"
+  data-expected-width="115" data-expected-height="65">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; margin: 2px 4px;"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; margin: 2px 4px; border-style: solid; border-width: 5px 10px;"
+  data-expected-width="120" data-expected-height="60">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; margin: 2px 4px; border-style: solid; border-width: 5px 10px; padding: 3px 6px;"
+  data-expected-width="132" data-expected-height="66">
+</div>
+
+<div class="grid" style="grid: 60% / 50%;"
+  data-expected-width="0" data-expected-height="0">
+</div>
+
+<div class="grid" style="grid: auto / auto;"
+  data-expected-width="0" data-expected-height="0">
+</div>
+
+<div class="grid" style="grid: 1fr / 2fr;"
+  data-expected-width="0" data-expected-height="0">
+</div>
+
+<div class="grid" style="grid: calc(50px - 10%) / calc(100px + 20%);"
+  data-expected-width="0" data-expected-height="0">
+</div>
+
+<div class="grid" style="grid: fit-content(50px) / fit-content(100px);"
+  data-expected-width="0" data-expected-height="0">
+</div>
+
+<div class="grid" style="grid: minmax(40px, 60px) / minmax(50px, 100px);"
+  data-expected-width="100" data-expected-height="60">
+</div>
+
+<div class="grid" style="grid: minmax(40px, 60px) / minmax(50px, 100px); width: min-content; height: min-content;"
+  data-expected-width="50" data-expected-height="60">
+</div>
+
+<div class="grid" style="grid: auto 50px 20% 1fr / 100px auto 10% 2fr;"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: repeat(3, 20px) / repeat(4, 25px);"
+  data-expected-width="100" data-expected-height="60">
+</div>
+
+<div class="grid" style="grid: repeat(3, 20px 10px) / repeat(2, 25px auto 25px);"
+  data-expected-width="100" data-expected-height="90">
+</div>
+
+<div class="grid" style="grid: repeat(auto-fill, 50px) / repeat(auto-fill, 100px);"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: repeat(auto-fill, 25px 25px) / repeat(auto-fill, 50px 50px);"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: repeat(auto-fill, 25px 20% 25px) / repeat(auto-fill, 50px 10% 50px);"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: repeat(auto-fit, 50px) / repeat(auto-fit, 100px);"
+  data-expected-width="0" data-expected-height="0">
+</div>
+
+<div class="grid" style="grid: repeat(auto-fit, 25px 20% 25px) / repeat(auto-fit, 50px 10% 50px);"
+  data-expected-width="0" data-expected-height="0">
+</div>
+
+<div class="grid" style="grid: 10px repeat(auto-fill, 20px) 10px / 25px repeat(auto-fill, 50px) 25px;"
+  data-expected-width="100" data-expected-height="40">
+</div>
+
+<div class="grid" style="grid: 50px fit-content(20px) / 100px fit-content(50px);"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: 50px / 100px; grid-gap: 10px 20px;"
+  data-expected-width="100" data-expected-height="50">
+</div>
+
+<div class="grid" style="grid: 25px 25px / 50px 50px; grid-gap: 10px 20px;"
+  data-expected-width="120" data-expected-height="60">
+</div>
+
+<div class="grid" style="grid: 10px repeat(2, 10px) / 20px repeat(4, 20px); grid-gap: 5px 10px;"
+  data-expected-width="140" data-expected-height="40">
+</div>
+
+<div class="grid" style="grid: repeat(auto-fill, 10px 20% 10px) / repeat(auto-fill, 20px 10% 20px); grid-gap: 5px 10px;"
+  data-expected-width="60" data-expected-height="30">
+</div>
+
+<div class="grid" style="grid: 50px repeat(auto-fill, 10px 10px) / 100px repeat(auto-fill, 20px 20px); grid-gap: 5px 10px;"
+  data-expected-width="160" data-expected-height="80">
+</div>
+
+<div class="grid" style="grid: repeat(auto-fill, 10px 10px) 50px / repeat(auto-fill, 20px 20px) 100px; grid-gap: 5px 10px;"
+  data-expected-width="160" data-expected-height="80">
+</div>
+
+<div class="grid" style="grid: 25px repeat(auto-fill, 10px 10px) 25px / 50px repeat(auto-fill, 20px 20px) 50px; grid-gap: 5px 10px;"
+  data-expected-width="170" data-expected-height="85">
+</div>
+
+<div class="grid" style="grid: 25px repeat(auto-fit, 10px 10px) 25px / 50px repeat(auto-fit, 20px 20px) 50px; grid-gap: 5px 10px;"
+  data-expected-width="110" data-expected-height="55">
+</div>
+
+<div class="wrapper">
+  <div class="grid" style="grid: repeat(auto-fill, 75px) / repeat(auto-fill, 100px);"
+    data-expected-width="100" data-expected-height="75">
+  </div>
+</div>
+
+<div class="wrapper">
+  <div class="grid" style="grid: repeat(auto-fit, 75px) / repeat(auto-fit, 100px);"
+    data-expected-width="0" data-expected-height="0">
+  </div>
+</div>
+
+<div class="wrapper">
+  <div class="grid" style="grid: repeat(auto-fill, 75px) / repeat(auto-fill, 100px);"
+    data-expected-width="100" data-expected-height="75">
+    <div></div>
+  </div>
+</div>
+
+<div class="wrapper">
+  <div class="grid" style="grid: repeat(auto-fit, 75px) / repeat(auto-fit, 100px);"
+    data-expected-width="0" data-expected-height="0">
+    <div></div>
+  </div>
+</div>
+
+<div class="grid" style="grid: auto 50px / 100px auto;"
+  data-expected-width="100" data-expected-height="50">
+  <div data-expected-width="100" data-expected-height="10"
+    data-offset-x="0" data-offset-y="0">X</div>
+  <div data-expected-width="40" data-expected-height="10"
+    data-offset-x="100" data-offset-y="0">XX</div>
+  <div data-expected-width="100" data-expected-height="50"
+    data-offset-x="0" data-offset-y="10">XXX</div>
+  <div data-expected-width="40" data-expected-height="50"
+    data-offset-x="100" data-offset-y="10">XXXX</div>
+</div>
+
+</body>

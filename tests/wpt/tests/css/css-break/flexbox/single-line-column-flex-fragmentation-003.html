@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>
+  Single-line column flex fragmentation intrinsic block size.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 4;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .flex {
+    display: flex;
+    flex-direction: column;
+    width: 25px;
+    background: green;
+  }
+  .flex > div {
+    width: 25px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex">
+    <div style="height: 50px;"></div>
+    <div style="height: 350px;"></div>
+  </div>
+</div>

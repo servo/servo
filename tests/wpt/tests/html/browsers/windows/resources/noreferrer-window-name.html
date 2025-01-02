@@ -1,0 +1,8 @@
+<script>
+  addEventListener("storage", function(e) {
+    if(e.newValue === "close") {
+      close()
+    }
+  })
+  localStorage.setItem("window" + location.hash.slice(1), "tralala")
+</script>

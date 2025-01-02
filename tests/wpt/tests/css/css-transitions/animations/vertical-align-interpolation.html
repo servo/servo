@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>vertical-align interpolation</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
+<meta name="assert" content="vertical-align supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  vertical-align: 100px;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  background-color: black;
+  display: inline-block;
+  vertical-align: 10px;
+}
+.expected {
+  background-color: green;
+}
+</style>
+
+<body>
+<script>
+test_interpolation({
+  property: 'vertical-align',
+  from: neutralKeyframe,
+  to: '40px',
+}, [
+  {at: -0.5, expect: '-5px'},
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '19px'},
+  {at: 0.6, expect: '28px'},
+  {at: 1, expect: '40px'},
+  {at: 1.5, expect: '55px'},
+]);
+
+test_no_interpolation({
+  property: 'vertical-align',
+  from: 'initial',
+  to: '40px',
+});
+
+test_interpolation({
+  property: 'vertical-align',
+  from: 'inherit',
+  to: '40px',
+}, [
+  {at: -0.5, expect: '130px'},
+  {at: 0, expect: '100px'},
+  {at: 0.3, expect: '82px'},
+  {at: 0.6, expect: '64px'},
+  {at: 1, expect: '40px'},
+  {at: 1.5, expect: '10px'},
+]);
+
+test_no_interpolation({
+  property: 'vertical-align',
+  from: 'unset',
+  to: '40px',
+});
+
+test_interpolation({
+  property: 'vertical-align',
+  from: '0px',
+  to: '100px'
+}, [
+  {at: -0.5, expect: '-50px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '30px'},
+  {at: 0.6, expect: '60px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '150px'}
+]);
+
+test_interpolation({
+  property: 'vertical-align',
+  from: '40px',
+  to: '40%'
+}, [
+  {at: -0.5, expect: 'calc(60px - 20%)'},
+  {at: 0, expect: 'calc(40px + 0%)'},
+  {at: 0.3, expect: 'calc(28px + 12%)'},
+  {at: 1, expect: '40%'},
+  {at: 1.5, expect: 'calc(-20px + 60%)'}
+]);
+
+test_no_interpolation({
+  property: 'vertical-align',
+  from: 'super',
+  to: '40%'
+});
+</script>
+</body>

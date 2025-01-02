@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for align-items / align-self behavior, with all the possible
+     values included on different items within a flex container. -->
+<html>
+  <head>
+    <title>CSS Test: Testing the behavior of 'align-self' 'start' and 'end' property values on flex items that are blocks, in a horizontal flex container</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com"/>
+    <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property"/>
+    <link rel="match" href="self-align-start-end-flex-001-ref.html"/>
+    <style>
+      .flexbox {
+        border: 1px dashed blue;
+        height: 200px;
+        width: 320px;
+        display: flex;
+        font-size: 10px;
+        line-height: 10px;
+
+        /* Any children whose align-self is 'auto' (or unspecified, or
+           initial) will end up taking this value from us: */
+        align-items: center;
+
+        /* Any children whose align-self is 'inherit' will end up
+           inheriting this value from us: */
+        align-self: flex-end;
+
+        /* Ensure that this test works, no matter if the flexbox
+           container is considered multi-line or not. */
+        align-content: stretch;
+      }
+
+      .wrap-reverse {
+          flex-wrap: wrap-reverse;
+      }
+
+      .flexbox > div {
+        width: 40px;
+      }
+
+      .big {
+        height: 100px;
+        font-size: 20px;
+        line-height: 20px;
+      }
+
+      /* Classes for each of the various align-self values */
+      .flex-start {
+        background: lime;
+        align-self: flex-start;
+      }
+      .flex-end {
+        background: orange;
+        align-self: flex-end;
+      }
+      .start {
+        background: lightblue;
+        align-self: start;
+      }
+      .end {
+        background: teal;
+        align-self: end;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b c d e f</div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big">a b c d e f</div>
+      <div class="start">start</div>
+      <div class="start big">a b c d e f</div>
+      <div class="end">end</div>
+      <div class="end big">a b c d e f</div>
+    </div>
+    <div class="flexbox wrap-reverse">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b c d e f</div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big">a b c d e f</div>
+      <div class="start">start</div>
+      <div class="start big">a b c d e f</div>
+      <div class="end">end</div>
+      <div class="end big">a b c d e f</div>
+    </div>
+  </body>
+</html>

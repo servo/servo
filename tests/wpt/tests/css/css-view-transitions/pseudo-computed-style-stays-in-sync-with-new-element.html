@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: computed style on pseudo-element stays in sync with the DOM element</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  view-transition-name: target;
+  contain: paint;
+}
+</style>
+
+<div id=first></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    let transition = document.startViewTransition();
+    await transition.updateCallbackDone;
+    await transition.ready;
+
+    let viewbox = window.getComputedStyle(
+      document.documentElement, "::view-transition-new(target)").objectViewBox;
+    assert_equals(viewbox, "none", "incorrect viewbox " + viewbox);
+
+    first.style.filter = "blur(5px)";
+    viewbox = window.getComputedStyle(
+      document.documentElement, "::view-transition-new(target)").objectViewBox;
+    assert_equals(viewbox, "none", "incorrect viewbox " + viewbox);
+
+    transition.finished.then(resolve, reject);
+  });
+}, "computed style on pseudo-element stays in sync with the DOM element");
+</script>

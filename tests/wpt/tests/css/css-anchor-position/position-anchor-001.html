@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Tests the 'position-anchor' property</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#position-anchor">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="position-anchor-ref.html">
+<style>
+.anchor {
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+.target {
+  position: fixed;
+  background: lime;
+  position-try-fallbacks: --pf;
+  left: 999999px; /* force fallback */
+}
+
+@position-try --pf {
+  top: anchor(bottom, 0px);
+  left: anchor(left, 0px);
+  width: anchor-size(width, 0px);
+  height: anchor-size(height, 0px);
+}
+
+body {
+  margin: 0;
+}
+
+#anchor1 {
+  anchor-name: --a1;
+  margin-left: 100px;
+}
+
+#target1 {
+  position-anchor: --a1;
+}
+
+#anchor2 {
+  anchor-name: --a2;
+  margin-left: 300px;
+  margin-top: 100px;
+}
+
+#target2 {
+  position-anchor: --a2;
+}
+</style>
+
+<div id="anchor1" class="anchor">anchor1</div>
+<div id="anchor2" class="anchor">anchor2</div>
+
+<div id="target1" class="target">target1</div>
+<div id="target2" class="target">target2</div>

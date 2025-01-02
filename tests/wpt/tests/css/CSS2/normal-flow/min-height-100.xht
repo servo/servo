@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Min-height with a negative zero value and no units, -0</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-30 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-min-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+        <link rel="match" href="height-001-ref.xht" />
+
+        <meta name="assert" content="The 'min-height' property sets a negative zero length value with no units." />
+        <style type="text/css">
+            div
+            {
+                background: red;
+                height: 0;
+                min-height: -0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

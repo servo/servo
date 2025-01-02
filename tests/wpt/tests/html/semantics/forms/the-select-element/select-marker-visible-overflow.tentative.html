@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!-- Tests that the marker is visible when the <select> contains more text than it can show -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="select-marker-visible-overflow-ref.tentative.html">
+
+<style>
+select {
+  width:100px;
+}
+</style>
+<div>
+<select>
+  <option>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>

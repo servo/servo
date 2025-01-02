@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <link rel="match" href="page-name-fixed-pos-001-print-ref.html"/>
+  <link rel="help" href="https://www.w3.org/TR/css-page-3/#using-named-pages"/>
+  <style>
+div {
+    width: 1in;
+    height: 1in;
+    border: 1px solid black;
+}
+.fixed {
+    position: fixed;
+    display: flex;
+    left: 0.5in;
+    top: 0.5in;
+    border-color: blue;
+}
+  </style>
+  <body>
+    <div class="fixed">fixed</div>
+    <div style="page: a">a</div>
+    <div class="page: b">b</div>
+  </body>
+</html>

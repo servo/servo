@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Vertical Alignment for row with uneven height cells</title>
+<link rel="match" href="table_valign_uneven_height_ref.html">
+<style>
+  td {
+    border: 5px black solid;
+    border-spacing: 0;
+    padding: 0;
+  }
+  td {
+    vertical-align: middle;
+    background-color: green;
+  }
+  .b {
+    vertical-align: bottom;
+  }
+  div {
+    height: 50px;
+    width: 50px;
+    background-color: blue;
+  }
+  .c {
+    height: 100px !important;
+    background-color: red !important;
+  }
+</style>
+<table>
+  <tr>
+    <td><div class="c"></div></td>
+    <td><div></div></td>
+    <td class="b"><div></div></td>
+  </tr>
+</table>

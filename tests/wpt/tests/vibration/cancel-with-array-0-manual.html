@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<title>Vibration API: cancel ongoing vibrate() with [0]</title>
+<link rel='author' title='Intel' href='http://www.intel.com'>
+<link rel='help' href='http://dev.w3.org/2009/dap/vibration/#vibration-interface'>
+<meta name='flags' content='interact'>
+<meta name='assert' content='If pattern contains a single entry with a value of 0, cancel the pre-existing instance of the processing vibration patterns algorithm'>
+<style>
+  button {
+    height: 100px;
+    width:  100px;
+  }
+</style>
+
+<h1>Description</h1>
+<p>
+  After hitting the button below, your device must vibrate for a short period of time (roughly one
+  second). If it vibrates for a longer time (roughly five seconds, it should feel somewhat long) then
+  the test has failed.
+</p>
+<button id='vib'>Vibrate!</button>
+<script>
+  if (undefined !== navigator.vibrate) {
+    document.getElementById('vib').onclick = function () {
+      navigator.vibrate(5000);
+      setTimeout(function () {
+        navigator.vibrate([0]);
+      }, 1000);
+    };
+  }
+</script>

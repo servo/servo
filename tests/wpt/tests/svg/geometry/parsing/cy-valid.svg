@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="8000px">
+  <title>SVG Geometry Properties: parsing cy with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#CY"/>
+    <h:meta name="assert" content="cy supports the full grammar '&lt;length-percentage&gt;'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_value("cy", "0", "0px");
+test_valid_value("cy", "-1px");
+test_valid_value("cy", "calc(2em + 3ex)");
+test_valid_value("cy", "4%");
+test_valid_value("cy", "5rem");
+
+  ]]></script>
+</svg>

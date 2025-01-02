@@ -1,0 +1,47 @@
+<!doctype html>
+<link rel="author" title="Di Zhang" href="dizhangg@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-baselines">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<title>CSS Writing Modes: Test that typing inside text inputs shouldn't change text baseline</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+input, span {
+  font-size: 30px/1 Ahem;
+}
+</style>
+<div id="container">
+<span id="testText">foo</span>
+<input id="testInput">
+</div>
+
+<script>
+for (const inputType of ["text", "password", "search", "number", "email", "tel", "url"]) {
+    testInput.type = inputType;
+    for (const writingMode of ["vertical-lr", "vertical-rl", "horizontal-tb"]) {
+        if (!CSS.supports("writing-mode", writingMode))
+            continue;
+        promise_test(async t => {
+            container.style.writingMode = writingMode;
+            t.add_cleanup(() => {
+                container.removeAttribute("style");
+                testInput.value = '';
+            });
+            const { top: beforeInputTop, right: beforeInputRight } = testInput.getBoundingClientRect();
+            const { top: beforeTextTop, right: beforeTextRight } = testText.getBoundingClientRect();
+
+            testInput.value = '11'
+
+            const { top: afterInputTop, right: afterInputRight } = testInput.getBoundingClientRect();
+            const { top: afterTextTop, right: afterTextRight } = testText.getBoundingClientRect();
+
+            assert_approx_equals(beforeInputTop, afterInputTop, 1, `Typing in ${inputType} should not move input position top`);
+            assert_approx_equals(beforeInputRight, afterInputRight, 1, `Typing in ${inputType} should not move input position right`);
+            assert_approx_equals(beforeTextTop, afterTextTop, 1, `Typing in ${inputType} should not move text position top`);
+            assert_approx_equals(beforeTextRight, afterTextRight, 1, `Typing in ${inputType} should not move text position right`);
+        }, `input[type=${inputType}] in ${writingMode}: typing characters in input should not change location of elements within container.`);
+    }
+}
+</script>

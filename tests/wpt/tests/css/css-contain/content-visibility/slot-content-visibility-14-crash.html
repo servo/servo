@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1250772">
+
+<script>
+window.onload = () => {
+  window.getSelection().selectAllChildren(document.body);
+  id6.remove();
+};
+</script>
+
+<div>
+  <template shadowrootmode=open>
+    <slot style="content-visibility:hidden; display:block"></slot>
+  </template>
+  <div id='id6'>
+    <template shadowrootmode=open>
+      <slot></slot>
+    </template>
+  </div>
+</div>

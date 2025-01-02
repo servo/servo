@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: nested calc() functions</title>
+
+  <!--
+
+  This test is the first portion of the original test
+
+  https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793f5b9668cc/third_party/WebKit/LayoutTests/css3/calc/calc-nesting.html
+
+  -->
+
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#calc-notation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#parent { width: 200px; }
+#div1 { width: calc(calc(50px)); }
+#div2 { width: calc(calc(60%) - 20px); }
+#div3 { width: calc(calc(3 * 25%)); }
+#div4 {
+    --width: calc(10% + 30px);
+    width: calc(2 * var(--width));
+}
+</style>
+<div id=parent>
+  <div id=div1></div>
+  <div id=div2></div>
+  <div id=div3></div>
+  <div id=div4></div>
+</div>
+<script>
+// Tests that require layout
+test(function(){
+    assert_equals(getComputedStyle(div1).width, "50px");
+    assert_equals(getComputedStyle(div2).width, "100px");
+    assert_equals(getComputedStyle(div3).width, "150px");
+    assert_equals(getComputedStyle(div4).width, "100px");
+}, "Nested calcs should work with layout");
+</script>

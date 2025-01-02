@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow Reference: scrollbar-gutter size contributes to the scroll container's intrinsic size with "overflow:auto"</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+
+  <style>
+  .line {
+    display: flex;
+  }
+  .container {
+    block-size: 50px;
+    border: 5px solid black;
+    scrollbar-gutter: stable both-edges;
+    margin: 10px;
+  }
+  .hidden {
+    overflow: hidden;
+  }
+  .scroll-x {
+    overflow-x: scroll;
+  }
+  .scroll-y {
+    overflow-y: scroll;
+  }
+  .tall {
+    /* trigger overflow */
+    block-size: 5000px;
+  }
+  </style>
+
+  <div class="line">
+    <div class="container hidden">
+      <div>I should not wrap</div>
+    </div>
+
+    <div class="container scroll-y">
+      <div class="tall">I should not wrap</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container hidden" style="writing-mode: vertical-rl">
+      <div>I should not wrap</div>
+    </div>
+
+    <div class="container scroll-x" style="writing-mode: vertical-rl">
+      <div class="tall">I should not wrap</div>
+    </div>
+
+    <div class="container hidden" style="writing-mode: vertical-lr">
+      <div>I should not wrap</div>
+    </div>
+
+    <div class="container scroll-x" style="writing-mode: vertical-lr">
+      <div class="tall">I should not wrap</div>
+    </div>
+  </div>
+</html>

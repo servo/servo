@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>execCommand() should only trigger 'input'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="txt" contenteditable></div>
+<script>
+(function() {
+    let lastBeforeInputType = '';
+    let lastBeforeInputData = '';
+    let lastBeforeInputDataTransfer = undefined;
+    let lastInputType = '';
+    let lastInputData = '';
+    let lastInputDataTransfer = undefined;
+    const txt = document.getElementById('txt');
+    txt.addEventListener('beforeinput', function(event) {
+        assert_true(event instanceof InputEvent);
+        assert_false(event.isComposing);
+        lastBeforeInputType = event.inputType;
+        lastBeforeInputData = event.data;
+        lastBeforeInputDataTransfer = event.dataTransfer;
+    });
+    txt.addEventListener('input', function(event) {
+        assert_true(event instanceof InputEvent);
+        assert_false(event.isComposing);
+        lastInputType = event.inputType;
+        lastInputData = event.data;
+        lastInputDataTransfer = event.dataTransfer;
+    });
+
+    const NO_INPUT_EVENT_FIRED = 'NO_INPUT_EVENT_FIRED';
+    function testExecCommandInputType(command, args, inputType, data, dataTransfer) {
+        const description = `Calling execCommand("${command}", false, ${args})`;
+        lastBeforeInputType = NO_INPUT_EVENT_FIRED;
+        lastBeforeInputData = NO_INPUT_EVENT_FIRED;
+        lastBeforeInputDataTransfer = NO_INPUT_EVENT_FIRED;
+        lastInputType = NO_INPUT_EVENT_FIRED;
+        lastInputData = NO_INPUT_EVENT_FIRED;
+        lastInputDataTransfer = NO_INPUT_EVENT_FIRED;
+        test(function() {
+            try {
+                document.execCommand(command, false, args);
+            } catch (e) {
+                assert_true(false, `execCommand shouldn't cause any exception: ${e}`);
+            }
+        }, description + " (calling execCommand)");
+        test(function() {
+            assert_equals(lastBeforeInputType, NO_INPUT_EVENT_FIRED);
+            assert_equals(lastBeforeInputData, NO_INPUT_EVENT_FIRED);
+            assert_equals(lastBeforeInputDataTransfer, NO_INPUT_EVENT_FIRED);
+        }, description + " (shouldn't fire beforeinput)");
+        test(function() {
+            assert_equals(lastInputType, inputType);
+        }, description + " (inputType value)");
+        if (lastInputType === NO_INPUT_EVENT_FIRED) {
+            return;
+        }
+        test(function() {
+            assert_equals(lastInputData, data);
+        }, description + " (data value)");
+        if (dataTransfer === null) {
+            test(function() {
+                assert_equals(lastInputDataTransfer, dataTransfer,
+                              `${description} should produce dataTransfer: null`);
+            }, description + " (dataTransfer value)");
+        } else {
+            for (let item of dataTransfer) {
+                test(function() {
+                    try {
+                        assert_equals(lastInputDataTransfer.getData(item.type), item.data,
+                                      `${description} should produce dataTransfer.getData(${item.type}): ${item.data}`);
+                    } catch (e) {
+                        assert_true(false, `calling dataTransfer.getData(${item.type}) caused exception: ${e}`);
+                    }
+                }, `${description} (dataTransfer value, ${item.type})`);
+                test(function() {
+                    try {
+                        lastInputDataTransfer.clearData(item.type);
+                    } catch (e) {
+                        assert_true(false, `calling dataTransfer.clearData(${item.type}) caused exception: ${e}`);
+                    }
+                    assert_equals(lastInputDataTransfer.getData(item.type), item.data,
+                                  `${description} dataTransfer.clearData(${item.type}) should do nothing`);
+                }, `${description} (dataTransfer.clearData(${item.type}))`);
+                test(function() {
+                    try {
+                        lastInputDataTransfer.setData(item.type, "foo");
+                    } catch (e) {
+                        assert_true(false, `calling dataTransfer.setData(${item.type}) caused exception: ${e}`);
+                    }
+                    assert_equals(lastInputDataTransfer.getData(item.type), item.data,
+                                  `${description} dataTransfer.setData(${item.type}, "foo") should do nothing`);
+                }, `${description} (dataTransfer.setData(${item.type}))`);
+            }
+        }
+    }
+
+    txt.focus();
+    // InsertText
+    testExecCommandInputType('insertText', 'a', 'insertText', 'a', null);
+    testExecCommandInputType('insertText', 'bc', 'insertText', 'bc', null);
+    test(function() {
+        assert_equals(txt.innerHTML, 'abc');
+    }, "execCommand(\"insertText\") should insert \"abc\" into the editor");
+    testExecCommandInputType('insertOrderedList', null, 'insertOrderedList', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<ol><li>abc</li></ol>');
+    }, "execCommand(\"insertOrderedList\") should make <ol> and wrap the text with it");
+    testExecCommandInputType('insertUnorderedList', null, 'insertUnorderedList', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<ul><li>abc</li></ul>');
+    }, "execCommand(\"insertUnorderedList\") should make <ul> and wrap the text with it");
+    testExecCommandInputType('insertLineBreak', null, 'insertLineBreak', null, null);
+    testExecCommandInputType('insertParagraph', null, 'insertParagraph', null, null);
+    txt.innerHTML = '';
+    testExecCommandInputType('insertHorizontalRule', null, 'insertHorizontalRule', null, null);
+
+    // Styling
+    txt.innerHTML = 'abc';
+    var selection = window.getSelection();
+    selection.collapse(txt, 0);
+    selection.extend(txt, 1);
+    testExecCommandInputType('bold', null, 'formatBold', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<b>abc</b>');
+    }, "execCommand(\"bold\") should wrap selected text with <b> element");
+    testExecCommandInputType('italic', null, 'formatItalic', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<b><i>abc</i></b>');
+    }, "execCommand(\"italic\") should wrap selected text with <i> element");
+    testExecCommandInputType('underline', null, 'formatUnderline', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<b><i><u>abc</u></i></b>');
+    }, "execCommand(\"underline\") should wrap selected text with <u> element");
+    testExecCommandInputType('strikeThrough', null, 'formatStrikeThrough', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<b><i><u><strike>abc</strike></u></i></b>');
+    }, "execCommand(\"strikeThrough\") should wrap selected text with <strike> element");
+    testExecCommandInputType('superscript', null, 'formatSuperscript', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<b><i><u><strike><sup>abc</sup></strike></u></i></b>');
+    }, "execCommand(\"superscript\") should wrap selected text with <sup> element");
+    testExecCommandInputType('subscript', null, 'formatSubscript', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<b><i><u><strike><sub>abc</sub></strike></u></i></b>');
+    }, "execCommand(\"subscript\") should wrap selected text with <sub> element");
+    txt.innerHTML = 'abc';
+    selection.collapse(txt, 0);
+    selection.extend(txt, 1);
+    for (let test of [{command: 'backColor', inputType: 'formatBackColor'},
+                      {command: 'foreColor', inputType: 'formatFontColor'},
+                      {command: 'hiliteColor', inputType: 'formatBackColor'}]) {
+      testExecCommandInputType(test.command, '#FF0000', test.inputType, 'rgb(255, 0, 0)', null);
+      testExecCommandInputType(test.command, '#00FF00FF', test.inputType, 'rgb(0, 255, 0)', null);
+      testExecCommandInputType(test.command, '#0000FF88', test.inputType, 'rgba(0, 0, 255, 0.533)', null);
+      testExecCommandInputType(test.command, 'orange', test.inputType, 'rgb(255, 165, 0)', null);
+      testExecCommandInputType(test.command, 'Inherit', test.inputType, 'inherit', null);
+      testExecCommandInputType(test.command, 'Initial', test.inputType, 'initial', null);
+      testExecCommandInputType(test.command, 'Reset', test.inputType, 'reset', null);
+      testExecCommandInputType(test.command, 'transparent', test.inputType, 'rgba(0, 0, 0, 0)', null);
+      testExecCommandInputType(test.command, 'CurrentColor', test.inputType, 'currentcolor', null);
+      testExecCommandInputType(test.command, 'Invalid-Value', test.inputType, 'Invalid-Value', null);
+    }
+
+    testExecCommandInputType('fontName', 'monospace', 'formatFontName', 'monospace', null);
+    testExecCommandInputType('fontName', ' monospace ', 'formatFontName', ' monospace ', null);
+    testExecCommandInputType('fontName', '  monospace  ', 'formatFontName', '  monospace  ', null);
+
+    // Formating
+    txt.innerHTML = 'abc';
+    testExecCommandInputType('justifyCenter', null, 'formatJustifyCenter', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<div style="text-align: center;">abc</div>');
+    }, "execCommand(\"justifyCenter\") should wrap the text with <div> element whose text-align is center");
+    testExecCommandInputType('justifyFull', null, 'formatJustifyFull', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<div style="text-align: justify;">abc</div>');
+    }, "execCommand(\"justifyFull\") should wrap the text with <div> element whose text-align is justify");
+    testExecCommandInputType('justifyRight', null, 'formatJustifyRight', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<div style="text-align: right;">abc</div>');
+    }, "execCommand(\"justifyRight\") should wrap the text with <div> element whose text-align is right");
+    testExecCommandInputType('justifyLeft', null, 'formatJustifyLeft', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<div style="text-align: left;">abc</div>');
+    }, "execCommand(\"justifyLeft\") should wrap the text with <div> element whose text-align is left");
+    selection.collapse(txt, 0);
+    selection.extend(txt, 1);
+    testExecCommandInputType('removeFormat', null, 'formatRemove', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<div style="">abc</div>');
+    }, "execCommand(\"removeFormat\") should remove the style of current block");
+    testExecCommandInputType('indent', null, 'formatIndent', null, null);
+    testExecCommandInputType('outdent', null, 'formatOutdent', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, '<div style="">abc</div>');
+    }, "Set of execCommand(\"indent\") and execCommand(\"outdent\") should keep same DOM tree");
+
+    // Copy shouldn't fire 'input'.
+    txt.innerHTML = 'ab<b>c</b>def';
+    selection.collapse(txt.firstChild, 1);
+    selection.extend(txt.firstChild.nextSibling.nextSibling, 1);
+    testExecCommandInputType('copy', null, NO_INPUT_EVENT_FIRED, NO_INPUT_EVENT_FIRED, NO_INPUT_EVENT_FIRED);
+    // Cut/Paste should fire 'input'.
+    testExecCommandInputType('cut', null, 'deleteByCut', null, null);
+    // XXX How can we test 'text/html' case? The detail of copied HTML fragment depends on browser.
+    testExecCommandInputType('paste', null, 'insertFromPaste', null,  [{type: 'text/plain', data: 'bcd'}]);
+
+    // Link and Unlink
+    txt.innerHTML = 'abc';
+    selection.collapse(txt.firstChild, 1);
+    selection.extend(txt.firstChild, 2);
+    testExecCommandInputType('createLink', 'https://example.com/', 'insertLink', 'https://example.com/', null);
+    test(function() {
+        assert_equals(txt.innerHTML, 'a<a href="https://example.com/">b</a>c');
+    }, "execCommand(\"createLink\") should create a link with absolute URL");
+    testExecCommandInputType('unlink', null, '', null, null);
+    test(function() {
+        assert_equals(txt.innerHTML, 'abc');
+    }, "execCommand(\"createLink\") should remove the link");
+
+    txt.innerHTML = 'abc';
+    selection.collapse(txt.firstChild, 1);
+    selection.extend(txt.firstChild, 2);
+    testExecCommandInputType('createLink', 'foo.html', 'insertLink', 'foo.html', null);
+    test(function() {
+        assert_equals(txt.innerHTML, 'a<a href="foo.html">b</a>c');
+    }, "execCommand(\"createLink\") should create a link with relative URL");
+})();
+</script>

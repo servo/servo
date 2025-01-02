@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker supports 'overflow-wrap'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#overflow-wrap-property">
+<link rel="match" href="marker-line-break-ref.html">
+<meta name="assert" content="Checks that ::marker supports 'overflow-wrap', both explicitly set or inherited from an ancestor">
+<style>
+ol {
+  float: left;
+  width: 50px;
+}
+li {
+  list-style-position: inside;
+  width: 0;
+}
+.overflow-wrap-normal.explicit ::marker,
+.overflow-wrap-normal.inherit {
+  overflow-wrap: strict;
+}
+.overflow-wrap-anywhere.explicit ::marker,
+.overflow-wrap-anywhere.inherit {
+  overflow-wrap: anywhere;
+}
+.marker-disc {
+  list-style-type: disc;
+}
+.marker-decimal {
+  list-style-type: decimal;
+}
+.marker-string {
+  list-style-type: "ab";
+}
+.marker-content::marker {
+  content: "cd";
+}
+</style>
+<ol class="overflow-wrap-normal explicit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="overflow-wrap-normal inherit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="overflow-wrap-anywhere explicit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="overflow-wrap-anywhere inherit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>

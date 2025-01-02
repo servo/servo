@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+    <head>
+        <title></title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            test(function() {
+                assert_not_equals(document.URL, null, "test1-0, URL & documentURI");
+                assert_not_equals(document.documentURI, null, "test1-1, URL & documentURI");
+                assert_equals(document.URL, document.documentURI, "test1-2, URL & documentURI");
+            }, "URL & documentURI");
+
+            test(function() {
+                var doc = new Document();
+                assert_equals(doc.URL, "about:blank", "test2-0, new document");
+            }, "new document");
+
+            test(function() {
+                var url = document.URL.split("/");
+                assert_equals(url[0], "http:", "test3-0, current document");
+                assert_equals(url[url.length-1], "document_url.html", "test3-1, current document");
+            }, "current document");
+        </script>
+    </head>
+    <body>
+    </body>
+</html>

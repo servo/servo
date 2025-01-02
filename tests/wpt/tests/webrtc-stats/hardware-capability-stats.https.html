@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Stats exposing hardware capability</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+/*
+ * Test stats that expose hardware capabilities are only exposed according to
+ * the conditions described in https://w3c.github.io/webrtc-stats/#limiting-exposure-of-hardware-capabilities.
+ */
+'use strict';
+
+function getStatEntry(report, type, kind) {
+  const values = [...report.values()];
+  const for_kind = values.filter(
+    stat => stat.type == type && stat.kind == kind);
+
+  assert_equals(1, for_kind.length,
+                "Expected report to have only 1 entry with type '" + type +
+                "' and kind '" + kind + "'. Found values " + for_kind);
+  return for_kind[0];
+}
+
+async function hasEncodedAndDecodedFrames(pc, t) {
+  while (true) {
+    const report = await pc.getStats();
+    const inboundRtp = getStatEntry(report, 'inbound-rtp', 'video');
+    const outboundRtp = getStatEntry(report, 'outbound-rtp', 'video');
+    if (inboundRtp.framesDecoded > 0 && outboundRtp.framesEncoded > 0) {
+      return;
+    }
+    // Avoid any stats caching, which can otherwise make this an infinite loop.
+    await (new Promise(r => t.step_timeout(r, 100)));
+  }
+}
+
+async function setupPcAndGetStatEntry(
+  t, stream, type, kind, stat) {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  for (const track of stream.getTracks()) {
+    pc1.addTrack(track, stream);
+    pc2.addTrack(track, stream);
+    t.add_cleanup(() => track.stop());
+  }
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  await hasEncodedAndDecodedFrames(pc1, t);
+  const report = await pc1.getStats();
+  return getStatEntry(report, type, kind);
+}
+
+for (const args of [
+  // RTCOutboundRtpStreamStats.powerEfficientEncoder
+  ['outbound-rtp', 'video', 'powerEfficientEncoder'],
+  // RTCOutboundRtpStreamStats.encoderImplementation
+  ['outbound-rtp', 'video', 'encoderImplementation'],
+  // RTCInboundRtpStreamStats.powerEfficientDecoder
+  ['inbound-rtp', 'video', 'powerEfficientDecoder'],
+  // RTCOutboundRtpStreamStats.decoderImplementation
+  ['inbound-rtp', 'video', 'decoderImplementation'],
+]) {
+  const type = args[0];
+  const kind = args[1];
+  const stat = args[2];
+
+  promise_test(async (t) => {
+    const stream = await getNoiseStream({video: true, audio: true});
+    const statsEntry = await setupPcAndGetStatEntry(t, stream, type, kind, stat);
+    assert_not_own_property(statsEntry, stat);
+  }, stat + " not exposed when not capturing.");
+
+  // Exposing hardware capabilities when a there is a fullscreen element was
+  // removed with https://github.com/w3c/webrtc-stats/pull/713.
+  promise_test(async (t) => {
+    const stream = await getNoiseStream({video: true, audio: true});
+
+    const element = document.getElementById('elementToFullscreen');
+    await test_driver.bless("fullscreen", () => element.requestFullscreen());
+    t.add_cleanup(() => document.exitFullscreen());
+
+    const statsEntry = await setupPcAndGetStatEntry(
+      t, stream, type, kind, stat);
+    assert_not_own_property(statsEntry, stat);
+  }, stat + " not exposed when fullscreen and not capturing.");
+
+  promise_test(async (t) => {
+    const stream = await navigator.mediaDevices.getUserMedia(
+      {video: true, audio: true});
+    const statsEntry = await setupPcAndGetStatEntry(
+      t, stream, type, kind, stat);
+    assert_own_property(statsEntry, stat);
+  }, stat + " exposed when capturing.");
+}
+
+</script>
+<body>
+  <div id="elementToFullscreen"></div>
+</body>

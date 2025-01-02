@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/common.js" ></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow: scroll;
+        width: 350px;
+        height: 350px;
+        border: solid 1px black;
+        scroll-snap-type: both mandatory;
+        position: relative;
+        resize: both;
+      }
+      .large-space {
+        height: 300vh;
+        width: 300vw;
+        position: absolute;
+      }
+      .snap {
+        scroll-snap-align: start;
+      }
+      .box {
+        width: 100px;
+        height: 100px;
+        background-color: green;
+        position: absolute;
+      }
+      .leftcol {
+        left: 110px;
+      }
+      .midcol {
+        left: 220px;
+      }
+      .rightcol {
+        left: 330px;
+      }
+      .toprow {
+        top: 110px;
+      }
+      .midrow {
+        top: 220px;
+      }
+      .bottomrow {
+        top: 330px;
+      }
+      .placeholder {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        width: 10px;
+        height: 10px;
+        background-color: black;
+        scroll-snap-align: start;
+      }
+    </style>
+    <div class="scroller" id="scroller">
+      <div class="large-space"><div>
+      <div class="placeholder"></div>
+        <div id="box1" class="leftcol toprow snap box">Box 1</div>
+        <div id="box2" class="midcol toprow snap box">Box 2</div>
+        <div id="box3" class="rightcol toprow snap box">Box 3</div>
+        <div id="box4" class="leftcol midrow snap box">Box 4</div>
+        <div id="box5" class="midcol midrow snap box">Box 5</div>
+        <div id="box6" class="rightcol midrow snap box">Box 6</div>
+        <div id="box7" class="leftcol bottomrow snap box">Box 7</div>
+        <div id="box8" class="midcol bottomrow snap box">Box 8</div>
+        <div id="box9" class="rightcol bottomrow snap box">Box 9</div>
+    </div>
+    <script>
+    window.onload = () => {
+      // This test sets up a 3x3 grid within scroller:
+      // -------------------------
+      // | Box 1 | Box 2 | Box 3 |
+      // ------------------------
+      // | Box 4 | Box 5 | Box 6 |
+      // -------------------------
+      // | Box 7 | Box 8 | Box 9 |
+      // -------------------------
+      const scroller = document.getElementById("scroller");
+      const boxes = document.querySelectorAll(".snap.box");
+      function box(n) {
+        return boxes[n - 1];
+      }
+
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(1), box(4), box(7)],
+                              /*aligned_elements_y=*/[box(1), box(2), box(3)],
+                              /*axis=*/ "both",
+                              /*expected_target_x=*/box(1),
+                              /*expected_target_y=*/box(1));
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(1), box(4), box(7)],
+                              /*aligned_elements_y=*/[box(4), box(5), box(6)],
+                              /*axis=*/"both",
+                              /*expected_target_x=*/box(4),
+                              /*expected_target_y=*/box(4));
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(1), box(4), box(7)],
+                              /*aligned_elements_y=*/[box(7), box(8), box(9)],
+                              /*axis=*/"both",
+                              /*expected_target_x=*/box(7),
+                              /*expected_target_y=*/box(7));
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(2), box(5), box(8)],
+                              /*aligned_elements_y=*/[box(1), box(2), box(3)],
+                              /*axis=*/ "both",
+                              /*expected_target_x=*/box(2),
+                              /*expected_target_y=*/box(2));
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(2), box(5), box(8)],
+                              /*aligned_elements_y=*/[box(4), box(5), box(6)],
+                              /*axis=*/"both",
+                              /*expected_target_x=*/box(5),
+                              /*expected_target_y=*/box(5));
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(2), box(5), box(8)],
+                              /*aligned_elements_y=*/[box(7), box(8), box(9)],
+                              /*axis=*/"both",
+                              /*expected_target_x=*/box(8),
+                              /*expected_target_y=*/box(8));
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(3), box(6), box(9)],
+                              /*aligned_elements_y=*/[box(1), box(2), box(3)],
+                              /*axis=*/ "both",
+                              /*expected_target_x=*/box(3),
+                              /*expected_target_y=*/box(3));
+
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(3), box(6), box(9)],
+                              /*aligned_elements_y=*/[box(4), box(5), box(6)],
+                              /*axis=*/"both",
+                              /*expected_target_x=*/box(6),
+                              /*expected_target_y=*/box(6));
+      }, "scroller prefers target aligned in both axes.");
+
+      promise_test(async (t) => {
+        const box7 = box(7), box8 = box(8), box9 = box(9);
+        const initial_box8_top = box8.offsetTop;
+        t.add_cleanup(() => {
+          box8.style.top = `${initial_box8_top}px`;
+        });
+
+        // Snap to box7's row and column.
+        scroller.scrollTo(box7.offsetLeft, box7.offsetTop);
+
+        // Move box 8 below box7 and box9.
+        box8.style.top = `${box8.offsetTop + 50}px`;
+
+        // Snap to box8.
+        scroller.scrollTop = box8.offsetTop;
+
+        // Test that if box7 and box9 are also shifted to align with box8,
+        // box8 is still treated as the selected snap target despite box7 being
+        // aligned on both axes.
+        runLayoutSnapSeletionVerificationTest(t, scroller, [box7, box9],
+                                              box8, "y");
+      }, "scroller follows selected snap target after layout shift, " +
+      "regardless of common snap area.");
+    }
+  </script>
+  </body>
+</html>

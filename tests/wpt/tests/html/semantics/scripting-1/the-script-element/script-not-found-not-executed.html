@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>var test1_token = "script not executed";</script>
+<script src="script-not-found-not-executed.py"></script>
+<script>
+test(function(){
+    assert_equals(test1_token, "script not executed");
+}, "Script that 404");
+</script>
+<script>var test2_token = "script not executed";</script>
+<script src="script-not-found-not-executed-2.py"></script>
+<script>
+test(function(){
+    assert_equals(test2_token, "script executed");
+}, "Script that does not 404");
+</script>

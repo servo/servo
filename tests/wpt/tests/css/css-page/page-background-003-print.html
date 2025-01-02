@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="http://crbug.com/351332645">
+<link rel="match" href="page-background-003-print-ref.html">
+<style>
+  @page {
+    size: 500px 250px;
+    margin: 0;
+  }
+  body {
+    margin-left: 100px;
+    background: url(support/cat.png) repeat-y;
+  }
+</style>
+There should be two and a half cats on this page.
+<div style="break-before:page;">
+  There should be two and a half cats on this page, too (and the ears of another
+  cat barely visible at the bottom). The previous page ends with a cat's head,
+  and this page starts with a cat's body.
+</div>

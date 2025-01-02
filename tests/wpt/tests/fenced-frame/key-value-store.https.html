@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Test the key value store</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const key = token();
+  const test_value = "TESTVALUE";
+
+  let server_value = await readValueFromServer(key);
+  assert_false(server_value.status,
+               "The server returns a sentinel value when requesting a value " +
+               "that the stash does not have");
+
+  server_value = await readValueFromServer(key);
+  assert_false(server_value.status,
+               "Requesting a not-set value twice is idempotent");
+
+  writeValueToServer(key, "");
+  server_value = await nextValueFromServer(key);
+  assert_equals(server_value, "",
+                "The server correctly identifies that an empty string was " +
+                "set, and returns it, and not the sentinel value");
+
+  writeValueToServer(key, test_value);
+  server_value = await nextValueFromServer(key);
+  assert_equals(server_value, test_value,
+                "The server correctly sets and returns non-empty strings");
+
+  writeValueToServer(key, "");
+  server_value = await nextValueFromServer(key);
+  assert_equals(server_value, "",
+                "The server correctly identifies empty strings after dealing " +
+                "with non-empty-string values");
+}, "Test the key-value store, specifically with empty strings");
+</script>
+
+</body>

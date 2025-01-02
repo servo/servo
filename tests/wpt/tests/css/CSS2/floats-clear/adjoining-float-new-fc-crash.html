@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=987004">
+<meta name="assert" content="The renderer should not crash.">
+<div style="width: 100px; overflow: hidden;">
+  <div style="float: left; width: 100%; height: 20px; background: hotpink;"></div>
+  <div style="clear: both;">
+    <span style="position: absolute; width: 10px; height: 10px; background: orange;"></span>
+    <div style="height: 10px; background: green; overflow: hidden;"></div>
+  </div>
+</div>
+<script>
+test(() => {
+}, 'Test passes if the renderer does not crash.');
+</script>

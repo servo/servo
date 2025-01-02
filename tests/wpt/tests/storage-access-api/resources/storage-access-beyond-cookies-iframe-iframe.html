@@ -1,0 +1,342 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/storage-access-api/helpers.js"></script>
+<script>
+(async function() {
+  test_driver.set_test_context(window.top);
+  const type = (new URLSearchParams(window.location.search)).get("type");
+  const id = (new URLSearchParams(window.location.search)).get("id");
+  let message = "HasAccess for " + type;
+  // Step 6 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
+  try {
+    await MaybeSetStorageAccess("*", "*", "blocked");
+    await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+    switch (type) {
+      case "none": {
+        let couldRequestStorageAccessForNone = true;
+        try {
+          await test_driver.bless("fake user interaction", () => document.requestStorageAccess({}));
+        } catch (_) {
+          couldRequestStorageAccessForNone = false;
+        }
+        if (couldRequestStorageAccessForNone) {
+          message = "Requesting access for {} should fail."
+        }
+        let couldRequestStorageAccessForAllFalse = true;
+        try {
+          await test_driver.bless("fake user interaction", () => document.requestStorageAccess({all:false}));
+        } catch (_) {
+          couldRequestStorageAccessForAllFalse = false;
+        }
+        if (couldRequestStorageAccessForAllFalse) {
+          message = "Requesting access for {all:false} should fail."
+        }
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        break;
+      }
+      case "cookies": {
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess || document.cookie.includes("test="+id)) {
+          message = "First-party cookies should not be readable before handle is loaded.";
+        }
+        await test_driver.bless("fake user interaction", () => document.requestStorageAccess({cookies: true}));
+        hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (!hasUnpartitionedCookieAccess || !document.cookie.includes("test="+id)) {
+          message = "First-party cookies should be readable if cookies were requested.";
+        }
+        break;
+      }
+      case "sessionStorage": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({sessionStorage: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        if (id != handle.sessionStorage.getItem("test")) {
+          message = "No first-party Session Storage access";
+        }
+        if (!!window.sessionStorage.getItem("test")) {
+          message = "Handle should not override window Session Storage";
+        }
+        window.onstorage = (e) => {
+          if (e.key == "window_event") {
+            if (e.newValue != id) {
+              handle.sessionStorage.setItem("handle_event", "wrong data " + e.newValue);
+            } else if (e.storageArea != handle.sessionStorage) {
+              handle.sessionStorage.setItem("handle_event", "storage area mismatch");
+            } else {
+              handle.sessionStorage.setItem("handle_event", id);
+            }
+          }
+        };
+        break;
+      }
+      case "localStorage": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({localStorage: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        if (id != handle.localStorage.getItem("test")) {
+          message = "No first-party Local Storage access";
+        }
+        if (!!window.localStorage.getItem("test")) {
+          message = "Handle should not override window Local Storage";
+        }
+        window.onstorage = (e) => {
+          if (e.key == "window_event") {
+            if (e.newValue != id) {
+              handle.localStorage.setItem("handle_event", "wrong data " + e.newValue);
+            } else if (e.storageArea != handle.localStorage) {
+              handle.localStorage.setItem("handle_event", "storage area mismatch");
+            } else {
+              handle.localStorage.setItem("handle_event", id);
+            }
+          }
+        };
+        break;
+      }
+      case "indexedDB": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({indexedDB: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        const handle_dbs = await handle.indexedDB.databases();
+        if (handle_dbs.length != 1 || handle_dbs[0].name != id) {
+          message = "No first-party IndexedDB access";
+        }
+        const local_dbs = await window.indexedDB.databases();
+        if (local_dbs.length != 0) {
+          message = "Handle should not override window IndexedDB";
+        }
+        await handle.indexedDB.deleteDatabase(id);
+        break;
+      }
+      case "locks": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({locks: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        const handle_state = await handle.locks.query();
+        if (handle_state.held.length != 1 || handle_state.held[0].name != id) {
+          message = "No first-party Web Lock access";
+        }
+        const local_state = await window.navigator.locks.query();
+        if (local_state.held.length != 0) {
+          message = "Handle should not override window Web Locks";
+        }
+        await handle.locks.request(id, {steal: true}, async () => {});
+        break;
+      }
+      case "caches": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({caches: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        const handle_has = await handle.caches.has(id);
+        if (!handle_has) {
+          message = "No first-party Cache Storage access";
+        }
+        const local_has = await window.caches.has(id);
+        if (local_has) {
+          message = "Handle should not override window Cache Storage";
+        }
+        document.cookie = "partitioned=test; SameSite=None; Secure; Partitioned;";
+        const cache = await handle.caches.open(id);
+        await cache.add("/storage-access-api/resources/get_cookies.py?2");
+        await test_driver.bless("fake user interaction", () => document.requestStorageAccess());
+        await cache.add("/storage-access-api/resources/get_cookies.py?3");
+        let req = await cache.match("/storage-access-api/resources/get_cookies.py?1");
+        let req_json = await req.json();
+        if (!req_json.hasOwnProperty("samesite_strict")) {
+          message = "Top-level cache fetch should have SameSite=Strict cookies.";
+        }
+        if (!req_json.hasOwnProperty("samesite_lax")) {
+          message = "Top-level cache fetch should have SameSite=Lax cookies.";
+        }
+        if (!req_json.hasOwnProperty("samesite_none")) {
+          message = "Top-level cache fetch should have SameSite=None cookies.";
+        }
+        if (req_json.hasOwnProperty("partitioned")) {
+          message = "Top-level cache fetch should not have partitioned cookies.";
+        }
+        req = await cache.match("/storage-access-api/resources/get_cookies.py?2");
+        req_json = await req.json();
+        if (req_json.hasOwnProperty("samesite_strict")) {
+          message = "SAA cache fetch should not have SameSite=Strict cookies.";
+        }
+        if (req_json.hasOwnProperty("samesite_lax")) {
+          message = "SAA cache fetch should not have SameSite=Lax cookies.";
+        }
+        if (req_json.hasOwnProperty("samesite_none")) {
+          message = "SAA cache fetch should not have SameSite=None cookies.";
+        }
+        if (!req_json.hasOwnProperty("partitioned")) {
+          message = "SAA cache fetch should have partitioned cookies.";
+        }
+        req = await cache.match("/storage-access-api/resources/get_cookies.py?3");
+        req_json = await req.json();
+        if (req_json.hasOwnProperty("samesite_strict")) {
+          message = "SAA cache + cookie fetch should not have SameSite=Strict cookies.";
+        }
+        if (req_json.hasOwnProperty("samesite_lax")) {
+          message = "SAA cache + cookie fetch should not have SameSite=Lax cookies.";
+        }
+        if (!req_json.hasOwnProperty("samesite_none")) {
+          message = "SAA cache + cookie fetch should have SameSite=None cookies.";
+        }
+        if (!req_json.hasOwnProperty("partitioned")) {
+          message = "SAA cache + cookie fetch should have partitioned cookies.";
+        }
+        await handle.caches.delete(id);
+        break;
+      }
+      case "getDirectory": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({getDirectory: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        const handle_root = await handle.getDirectory();
+        let handle_has = await handle_root.getFileHandle(id).then(() => true, () => false);
+        if (!handle_has) {
+          message = "No first-party Origin Private File System access";
+        }
+        const local_root = await window.navigator.storage.getDirectory();
+        let local_has = await local_root.getFileHandle(id).then(() => true, () => false);
+        if (local_has) {
+          message = "Handle should not override window Origin Private File System";
+        }
+        await handle_root.removeEntry(id);
+        break;
+      }
+      case "estimate": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({estimate: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        const handle_estimate = await handle.estimate();
+        if (handle_estimate.usage  <= 0) {
+          message = "No first-party quota access";
+        }
+        const local_estimate = await window.navigator.storage.estimate();
+        if (local_estimate > 0) {
+          message = "Handle should not override window quota";
+        }
+        break;
+      }
+      case "blobStorage": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({createObjectURL: true, revokeObjectURL: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        let blob = await fetch(atob(id)).then(
+          (response) => response.text(),
+          () => "");
+        if (blob != "TEST") {
+          message = "Blob storage should be readable in this context";
+        }
+        URL.revokeObjectURL(atob(id));
+        blob = await fetch(atob(id)).then(
+          (response) => response.text(),
+          () => "");
+        if (blob != "TEST") {
+          message = "Handle should not override window blob storage";
+        }
+        handle.revokeObjectURL(atob(id));
+        blob = await fetch(atob(id)).then(
+          (response) => response.text(),
+          () => "");
+        if (blob != "") {
+          message = "No first-party blob access";
+        }
+        const url = handle.createObjectURL(new Blob(["TEST2"]));
+        blob = await fetch(url).then(
+          (response) => response.text(),
+          () => "");
+        if (blob != "TEST2") {
+          message = "A blob url created via the handle should be readable";
+        }
+        handle.revokeObjectURL(url);
+        blob = await fetch(url).then(
+          (response) => response.text(),
+          () => "");
+        if (blob != "") {
+          message = "A blob url removed via the handle should be cleared";
+        }
+        break;
+      }
+      case "BroadcastChannel": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({BroadcastChannel: true}));
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should not be readable if not requested.";
+        }
+        const handle_channel = handle.BroadcastChannel(id);
+        handle_channel.postMessage("Same-origin handle access");
+        handle_channel.close();
+        const local_channel = new BroadcastChannel(id);
+        local_channel.postMessage("Same-origin local access");
+        local_channel.close();
+        break;
+      }
+      case "SharedWorker": {
+        const local_shared_worker = new SharedWorker("/storage-access-api/resources/shared-worker-relay.js", id);
+        local_shared_worker.port.start();
+        local_shared_worker.port.postMessage("Same-origin local access");
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({SharedWorker: true}));
+        let couldRequestAllCookies = true;
+        try {
+          handle.SharedWorker("/storage-access-api/resources/shared-worker-relay.js", {name: id, sameSiteCookies: 'all'});
+        } catch (_) {
+          couldRequestAllCookies = false;
+        }
+        if (couldRequestAllCookies) {
+          message = "Shared Workers in a third-party context should not be able to request SameSite cookies.";
+        }
+        handle.SharedWorker("/storage-access-api/resources/shared-worker-cookies.py", id).port.start();
+        const handle_shared_worker = handle.SharedWorker("/storage-access-api/resources/shared-worker-relay.js", {name: id, sameSiteCookies: 'none'});
+        handle_shared_worker.port.start();
+        handle_shared_worker.port.postMessage("Same-origin handle access");
+        break;
+      }
+      case "unpartitioned": {
+        await MaybeSetStorageAccess("*", "*", "allowed");
+        await test_driver.set_permission({ name: 'storage-access' }, 'denied');
+        let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+        if (!hasUnpartitionedCookieAccess) {
+          message = "First-party cookies should be readable as the state is unpartitioned.";
+        }
+        const handle = await document.requestStorageAccess({BroadcastChannel: true});
+        const handle_channel = handle.BroadcastChannel(id);
+        handle_channel.postMessage("Same-origin handle access");
+        handle_channel.close();
+        const local_channel = new BroadcastChannel(id);
+        local_channel.postMessage("Same-origin local access");
+        local_channel.close();
+        break;
+      }
+      default: {
+        message = "Unexpected type " + type;
+        break;
+      }
+    }
+  } catch (_) {
+    message = "Unable to load handle in same-origin context for " + type;
+  }
+  // Step 7 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
+  await MaybeSetStorageAccess("*", "*", "allowed");
+  await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
+  window.top.postMessage({type: "result", message: message}, "*");
+})();
+</script>

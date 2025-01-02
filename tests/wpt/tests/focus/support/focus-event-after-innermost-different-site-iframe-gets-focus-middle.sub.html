@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus event after different site iframe gets focus middle</title>
+<h1>Middle</h1><br>
+<iframe src="https://{{hosts[][www]}}:{{ports[https][0]}}/focus/support/focus-event-after-iframe-gets-focus-inner.html"></iframe>
+<script>
+let middlelog = "middlelog:";
+
+let iframe = document.querySelector("iframe");
+window.onmessage = function(e) {
+  if (e.data == "focus") {
+    iframe.contentWindow.postMessage("focus", "*");
+  } else if (e.data == "getlog") {
+    iframe.contentWindow.postMessage("getlog", "*");
+  } else {
+    parent.postMessage(middlelog + e.data, "*");
+  }
+};
+
+window.onfocus = function() {
+  middlelog += "windowfocus,";
+};
+
+window.onblur = function() {
+  middlelog += "windowblur,";
+};
+</script>

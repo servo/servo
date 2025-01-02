@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>upright vertical writing mode and ch unit on table column groups</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://www.w3.org/TR/css-values-3/#font-relative-lengths">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#placement">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#text-orientation">
+<link rel="match" href="reference/ch-units-vrl-001-ref.html">
+<meta name="assert" content="The font-metric dependent ch unit on table column groups takes the writing mode (with upright text-orientation) into account,
+                            even though these properties do not apply to that element.">
+<style>
+table {
+  font-size: 20px;
+  border-collapse: collapse;
+  border: none;
+}
+td {
+  padding: 0;
+  background: green;
+  height: 5ch;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+colgroup {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  width: 5ch;
+}
+
+div {
+  font-size: 20px;
+  color: transparent;
+}
+
+/* Sizing the reference divs using the actual 0 (after which the ch unit is based) in the inline dimensions,
+   and using the ch unit in the block dimension,
+   to make sure that the ch unit itself works well in the general case.
+   If it doesn't, or if writing modes don't work, the divs won't be square.
+ */
+div:nth-of-type(1) {
+  background: blue;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  width: 5ch;
+}
+div:nth-of-type(2) {
+  background: orange;
+  height: 5ch;
+  display: inline-block; /* shrinkwrap */
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>green square</strong> below, and if it is the <strong>same size as the blue</strong> one, not the orange one.
+  <p>If any of the 3 colored shapes is not a square, or if the orange and blue squares are the same size, the test fails.
+  <table><colgroup><tbody><tr><td>&nbsp;</td></tr></tbody></table>
+  <div>00000</div>
+  <div>00000</div>
+</body>

@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-bodyCreatorAgentNicknameImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Nickname for Body Creator (Agent) not found. Agents should have exactly one nickname value.",
+  "title": "Implements Body-level creator (Agent) **_nickname_ key** with a **single value** that is a string - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when exactly one nickname for Body Creator (Agent) is implemented (Section 3.3.2)",
+    "required": [ "body" ],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/creatorAgentWithSingularNicknameFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithSingularNicknameFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithSingularNicknameFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/creatorAgentWithSingularNicknameFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithSingularNicknameFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithSingularNicknameFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

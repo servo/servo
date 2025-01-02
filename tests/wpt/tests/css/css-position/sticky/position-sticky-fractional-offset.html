@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="Position sticky with a fractional offset should not show a gap" />
+<link rel="match" href="position-sticky-fractional-offset-ref.html" />
+
+<style>
+  .sticky-container {
+    width: 100px;
+    height: 100px;
+    overflow-y: scroll;
+    background: red;
+    display: inline-block;
+  }
+
+  .sticky {
+    position: sticky;
+    top: 0;
+    height: 50px;
+    background: lightgreen;
+  }
+
+  .force-scroll {
+    height: 300px;
+    background: lightgreen;
+  }
+</style>
+
+<div class="sticky-container">
+  <div style="height: 10.10px;"></div>
+  <div class="sticky"></div>
+  <div class="force-scroll"></div>
+</div>
+
+<div class="sticky-container">
+  <div style="height: 10.25px;"></div>
+  <div class="sticky"></div>
+  <div class="force-scroll"></div>
+</div>
+
+<div class="sticky-container">
+  <div style="height: 10.50px;"></div>
+  <div class="sticky"></div>
+  <div class="force-scroll"></div>
+</div>
+
+<div class="sticky-container">
+  <div style="height: 10.75px;"></div>
+  <div class="sticky"></div>
+  <div class="force-scroll"></div>
+</div>
+
+<div class="sticky-container">
+  <div style="height: 10.90px;"></div>
+  <div class="sticky"></div>
+  <div class="force-scroll"></div>
+</div>
+
+<script>
+  window.onload = function() {
+    // Start with all containers scrolled to the top.
+    var containers = document.getElementsByClassName('sticky-container');
+    for (let i = 0; i < containers.length; i++) {
+      containers[i].scrollTo(0, 0);
+    }
+
+    // Wait for a full frame, then scroll all containers down so the sticky
+    // elements are stuck to the container. There should be no visible gap
+    // where the container's red background color is visible.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        for (let i = 0; i < containers.length; i++) {
+          containers[i].scrollTo(0, 20);
+        }
+        document.documentElement.classList.remove('reftest-wait');
+      });
+    });
+  };
+</script>
+</html>

@@ -1,0 +1,47 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+
+async function init() {
+  // Create iframe that sets (expectedKey, expectedValue) to shared storage
+  // via response header.
+  let {expectedKey, expectedValue} = parseExpectedKeyAndValueData();
+  const rawWriteHeader = `set;key=${expectedKey};value=${expectedValue}`;
+  const writeHeader = encodeURIComponent(rawWriteHeader);
+  const iframeSrc =
+    `/shared-storage/resources/shared-storage-write-notify-parent.py` +
+    `?write=${writeHeader}`;
+  let frame = document.createElement('iframe');
+  frame.src = iframeSrc;
+  frame.sharedStorageWritable = true;
+
+  // We pass the message on to the parent/opener.
+  const promise = new Promise((resolve, reject) => {
+    window.addEventListener('message', async function handler(evt) {
+      if (evt.source === frame.contentWindow &&
+          evt.data.sharedStorageWritableHeader) {
+        assert_equals(evt.data.sharedStorageWritableHeader, '?1');
+        let parentOrOpener = window.opener || window.parent;
+        parentOrOpener.postMessage({sharedStorageWritableHeader:
+                                    evt.data.sharedStorageWritableHeader},
+                                   "*");
+        document.body.removeChild(frame);
+        window.removeEventListener('message', handler);
+        resolve();
+      }
+    });
+    window.addEventListener('error', () => {
+      reject(new Error('Navigation error'));
+    });
+  });
+
+  // Navigate and wait for notification.
+  document.body.appendChild(frame);
+  await promise;
+}
+
+init();
+  </script>
+</body>

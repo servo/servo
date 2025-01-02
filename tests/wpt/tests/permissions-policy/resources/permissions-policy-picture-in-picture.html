@@ -1,0 +1,11 @@
+<script src=/common/media.js></script>
+<script src=/permissions-policy/resources/picture-in-picture.js></script>
+<script>
+'use strict';
+
+window.addEventListener('load', () => {
+  isPictureInPictureAllowed().then(enabled => {
+    window.parent.postMessage({ type: 'availability-result', enabled }, '*');
+  });
+}, { once: true });
+</script>

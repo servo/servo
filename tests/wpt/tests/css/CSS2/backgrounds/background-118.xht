@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (image repeat attachment color)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-24 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="image interact" />
+        <meta name="assert" content="Background with (image repeat attachment color) the background to the color specified, tiling the image across the x-axis and the scrolls with the box." />
+        <style type="text/css">
+            #div1
+            {
+                height: 200px;
+                width: 200px;
+                overflow: scroll;
+            }
+            div div
+            {
+                background: url("support/cat.png") repeat-x scroll green;
+                height: 400px;
+                width: 400px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a picture of a cat repeated over a green box the box below. The cat image also needs to move with the scrolling mechanism when scrolled to the right.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

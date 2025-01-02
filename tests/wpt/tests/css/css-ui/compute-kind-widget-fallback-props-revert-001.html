@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: Compute kind of widget: 'revert' keyword for properties that disable native appearance for widgets</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#computing-kind-widget">
+<meta name="assert" content="appropriate widget is returned when authorProps includes the tested property with value 'revert'.">
+<link rel="match" href="compute-kind-widget-no-fallback-ref.html">
+<style>
+    #container { width: 500px; }
+    #container > * {
+      background-color: revert;
+      border-top-color: revert;
+      border-top-style: revert;
+      border-top-width: revert;
+      border-right-color: revert;
+      border-right-style: revert;
+      border-right-width: revert;
+      border-bottom-color: revert;
+      border-bottom-style: revert;
+      border-bottom-width: revert;
+      border-left-color: revert;
+      border-left-style: revert;
+      border-left-width: revert;
+      border-block-start-color: revert;
+      border-block-end-color: revert;
+      border-inline-start-color: revert;
+      border-inline-end-color: revert;
+      border-block-start-style: revert;
+      border-block-end-style: revert;
+      border-inline-start-style: revert;
+      border-inline-end-style: revert;
+      border-block-start-width: revert;
+      border-block-end-width: revert;
+      border-inline-start-width: revert;
+      border-inline-end-width: revert;
+      background-image: revert;
+      background-attachment: revert;
+      background-position: revert;
+      background-clip: revert;
+      background-origin: revert;
+      background-size: revert;
+      border-image-source: revert;
+      border-image-slice: revert;
+      border-image-width: revert;
+      border-image-outset: revert;
+      border-image-repeat: revert;
+      border-top-left-radius: revert;
+      border-top-right-radius: revert;
+      border-bottom-right-radius: revert;
+      border-bottom-left-radius: revert;
+      border-start-start-radius: revert;
+      border-start-end-radius: revert;
+      border-end-start-radius: revert;
+      border-end-end-radius: revert;
+    }
+    #container > #search-text-input { appearance: textfield; }
+    #container > #select-menulist-button { appearance: none; appearance: menulist-button; }
+</style>
+
+<div id="container">
+    <a>a</a>
+    <button id="button">button</button>
+    <input id="button-input" type="button" value="input-button">
+    <input id="submit-input" type="submit" value="input-submit">
+    <input id="reset-input" type="reset" value="input-reset">
+
+    <input id="text-input" type="text" value="input-text">
+    <input id="search-text-input" type="search" value="input-search-text">
+    <input id="search-input" type="search" value="input-search">
+
+    <input id="range-input" type="range">
+    <input id="checkbox-input" type="checkbox">
+    <input id="radio-input" type="radio">
+    <input id="color-input" type="color">
+
+    <textarea id="textarea">textarea</textarea>
+    <select multiple id="select-listbox"><option>select-listbox</option></select>
+    <select id="select-dropdown-box"><option>select-dropdown-box</option></select>
+    <select id="select-menulist-button"><option>select-menulist-button</option></select>
+    <meter id="meter" value=0.5></meter>
+    <progress id="progress" value=0.5></progress>
+</div>
+

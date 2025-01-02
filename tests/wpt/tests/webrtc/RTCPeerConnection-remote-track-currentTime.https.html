@@ -1,0 +1,107 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection-remote-track-currentTime.https.html</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+/*
+ * This test is checking the below spec text for MediaStreamTracks received
+ * through an RTCPeerConnection.
+ *
+ * § 6. MediaStreams in Media Elements
+ *
+ *   A MediaStream (...) represents a simple, potentially infinite, linear media
+ *   timeline. The timeline starts at 0 and increments linearly in real time as
+ *   long as the media element is potentially playing. The timeline does not
+ *   increment when the playout of the MediaStream is paused.
+ */
+
+async function setupPeerConnectionAndWaitForTrack(t, kind) {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t, "video"));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const haveTrack = waitUntilEvent(pc2, "track");
+  await exchangeOfferAnswer(pc1, pc2);
+  const {track} = await haveTrack;
+  return {pc1, pc2, track};
+}
+
+async function setupMediaElementAndCheckInitialCurrentTime(t, track) {
+  const elem = document.createElement(track.kind);
+  elem.srcObject = new MediaStream([track]);
+  assert_equals(elem.currentTime, 0, "currentTime starts at 0");
+  elem.play();
+  await new Promise(r => elem.ontimeupdate = r);
+  assert_between_exclusive(elem.currentTime, 0, 0.5,
+    "currentTime starts at 0 and has progressed at first timeupdate"
+  );
+  assert_equals(elem.readyState, elem.HAVE_ENOUGH_DATA,
+    "Media element has enough data once currentTime is progressing"
+  );
+  return elem;
+}
+
+async function checkCurrentTimeProgressing(t, elem) {
+  const currentTime1 = elem.currentTime;
+  // Note that when `currentTime1` was updated by the UA, it dispatched a task
+  // to fire a "timeupdate" event (per the "time marches on" algorithm in the
+  // spec). This event may not have fired yet, which is why we must wait for two
+  // such events.
+  try {
+    await Promise.race([
+      (async () =>
+       {
+         await waitUntilEvent(elem, "timeupdate");
+         await waitUntilEvent(elem, "timeupdate");
+       }
+      )(),
+      new Promise((res, rej) => t.step_timeout(rej, 3000)),
+    ]);
+  } catch(e) {
+    assert_unreached("Timed out waiting for timeupdate");
+  }
+  assert_greater_than(elem.currentTime, currentTime1);
+}
+
+async function setSenderActive(t, sender, active) {
+  const parameters = sender.getParameters();
+  parameters.encodings[0].active = active;
+  await sender.setParameters(parameters);
+  // Wait a bit longer to be certain the parameter changes have propagated to
+  // the receiver.
+  await new Promise(r => t.step_timeout(r, 100));
+}
+
+promise_test(async t => {
+  const {track} = await setupPeerConnectionAndWaitForTrack(t, "audio");
+  const elem = await setupMediaElementAndCheckInitialCurrentTime(t, track);
+  await checkCurrentTimeProgressing(t, elem);
+}, 'currentTime advances for receive audio track of active sender');
+
+promise_test(async t => {
+  const {track} = await setupPeerConnectionAndWaitForTrack(t, "video");
+  const elem = await setupMediaElementAndCheckInitialCurrentTime(t, track);
+  await checkCurrentTimeProgressing(t, elem);
+}, 'currentTime advances for receive video track of active sender');
+
+promise_test(async t => {
+  const {pc1, track} = await setupPeerConnectionAndWaitForTrack(t, "audio");
+  const elem = await setupMediaElementAndCheckInitialCurrentTime(t, track);
+  await setSenderActive(t, pc1.getSenders()[0], false);
+  await checkCurrentTimeProgressing(t, elem);
+}, 'currentTime advances for receive audio track of inactive sender');
+
+promise_test(async t => {
+  const {pc1, track} = await setupPeerConnectionAndWaitForTrack(t, "video");
+  const elem = await setupMediaElementAndCheckInitialCurrentTime(t, track);
+  await setSenderActive(t, pc1.getSenders()[0], false);
+  await checkCurrentTimeProgressing(t, elem);
+}, 'currentTime advances for receive video track of inactive sender');
+
+</script>

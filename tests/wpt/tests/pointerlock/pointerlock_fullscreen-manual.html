@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name='flags' content='interact'>
+<style type="text/css">
+    button {
+        color: blue;
+    }
+
+    #test-element-wrap {
+        position: relative;
+        background-color: lightgrey;
+        width: 400px;
+        height: 200px;
+        border: grey 1px solid;
+    }
+
+    #test-element {
+        position: relative;
+        background-color: lightyellow;
+        width: 100px;
+        height: 30px;
+        border: yellow 1px solid;
+    }
+
+    #status-log {
+        margin: 10px 0;
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that pointer lock won't be exited when fullscreen is entered or exited, unless fullscreen is exited with the same user gesture as pointer lock.</p>
+    <hr/>
+
+    <h2>Manual Test Steps:</h2>
+    <p>
+        <ol>
+            <li>Click the "scriptExitFullscreen" button.</li>
+            <li>If the exitFullscreen doesn't work, use the menu (or any other interaction except for the "esc" key) to exit fullscreen.</li>
+            <li>First test case done.</li>
+            <li>Click the "gestureExitFullscreen" button.</li>
+            <li>Use the "esc" key to exit fullscreen.</li>
+            <li>Second test case done.</li>
+        </ol>
+    </p>
+    <hr/>
+
+    <button onclick="scriptExitFullscreen();">scriptExitFullscreen</button>
+    <button onclick="gestureExitFullscreen();">gestureExitFullscreen</button>
+
+    <div id="test-element-wrap">
+        <div id="status-log">Waiting... Please click the "scriptExitFullscreen" button.</div>
+        <div id="test-element">Target</div>
+    </div>
+    <hr/>
+
+    <div id="log"></div>
+
+    <script type="text/javascript" >
+        var test_element = document.querySelector('#test-element'),
+            test_element_wrap = document.querySelector('#test-element-wrap')
+            status_log = document.querySelector('#status-log');
+        var enable_gestureExitFullscreen = false;
+        var gestureExit_pl = false;
+        var gestureExit_fs = false;
+        var gestureLock = false;
+
+        var scriptExitFullscreenTest = async_test("Test that pointer lock won't be exited when fullscreen is entered or exited with script.");
+        var gestureExitFullscreenTest = async_test("Test that pointer lock is exited when fullscreen is entered or exited with the same user gesture.");
+
+    function RequestFullscreen(element) {
+        var requestFullscreen = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullscreen || element.msRequestFullscreen;
+        requestFullscreen.call(element);
+    }
+
+    function ExitFullscreen() {
+        var exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen || document.mozExitFullscreen || document.msExitFullscreen;
+        exitFullscreen.call(document);
+    }
+
+    function FullscreenElement() {
+        var fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullscreenElement || document.msFullscreenElement;
+        return fullscreenElement ? fullscreenElement : null;
+    }
+
+    document.addEventListener("pointerlockchange", function() {
+        if(!enable_gestureExitFullscreen) {
+            // first test, enable fullscreen and pointer lock
+            if(document.pointerLockElement) {
+                ExitFullscreen();
+                logStatus();
+
+                scriptExitFullscreenTest.step(function() {
+                    assert_true(FullscreenElement() === null, "fullscreen is sucessfully exited");
+                    assert_equals(document.pointerLockElement, test_element, "pointer is still locked at the target element");
+                });
+                scriptExitFullscreenTest.done();
+                document.exitPointerLock();
+            } else{
+            // first test, fullscreen and pointer lock are exited
+                enable_gestureExitFullscreen = true;
+            }
+        } else {
+            gestureLock = true;
+            if(!document.pointerLockElement) {
+            // second test, pointer lock exited
+                gestureExit_pl = true;
+
+                if(gestureExit_fs) {
+                // second test, fullscreen and pointer lock both exited
+                    gestureExitFullscreenTest.step(function() {
+                        assert_equals(document.pointerLockElement, null, "pointer is sucessfully exited");
+                        assert_true(FullscreenElement() === null, "fullscreen is sucessfully exited");
+                });
+                gestureExitFullscreenTest.done();
+                }
+            }
+        }
+    });
+
+    document.addEventListener("fullscreenchange", fullscreenChangeHandler);
+
+    document.addEventListener("webkitfullscreenchange",fullscreenChangeHandler);
+
+    function fullscreenChangeHandler() {
+        if(enable_gestureExitFullscreen && gestureLock && !FullscreenElement()) {
+            if(gestureExit_pl) {
+            // second test, fullscreen and pointer lock both exited
+                gestureExitFullscreenTest.step(function() {
+                    assert_equals(document.pointerLockElement, null, "pointer is sucessfully exited");
+                    assert_true(FullscreenElement() === null, "fullscreen is sucessfully exited");
+                });
+
+            gestureExitFullscreenTest.done();
+        } else {
+                gestureExit_fs = true;
+            }
+        }
+    }
+
+        function logStatus() {
+            var status = "";
+            if(document.pointerLockElement) {
+                status = "<p>Pointer is Locked.</p>"
+            } else {
+                status = "<p>Pointer Lock exited.</p>"
+            }
+            if(FullscreenElement()) {
+                status += "<p>Fullscreen is on now.</p>"
+            } else {
+                status += "<p>Fullscreen exited.</p>"
+            }
+
+            status_log.innerHTML = status;
+        }
+
+        function scriptExitFullscreen() {
+            test_element.requestPointerLock();
+            RequestFullscreen(test_element_wrap);
+        }
+
+        function gestureExitFullscreen() {
+            RequestFullscreen(test_element_wrap);
+            test_element.requestPointerLock();
+        }
+        </script>
+    </body>
+</html>

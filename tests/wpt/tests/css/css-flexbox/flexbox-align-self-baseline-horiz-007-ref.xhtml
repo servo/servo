@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for behavior of 'baseline' and 'last baseline' values
+     for align-items and align-self.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com"/>
+    <style>
+      .container {
+        display: flex;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+        height: 50px;
+      }
+
+      .start  { align-self: flex-start; }
+      .end    { align-self: flex-end; }
+
+      .offset { margin-top: 10px;
+                margin-bottom: 3px; }
+
+      .lime   { background: lime;   }
+      .yellow { background: yellow; }
+      .orange { background: orange; }
+      .pink   { background: pink;   }
+   </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="lime offset start">one line (first)</div
+      ><div class="yellow offset end">one line (last)</div
+      ><div class="orange offset end">two<br/>lines and offset (last)</div
+      ><div class="pink offset start">offset (first)</div>
+    </div>
+  </body>
+</html>

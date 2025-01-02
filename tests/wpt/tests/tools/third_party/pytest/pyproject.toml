@@ -1,0 +1,411 @@
+[project]
+name = "pytest"
+description = "pytest: simple powerful testing with Python"
+readme = "README.rst"
+keywords = [
+    "test",
+    "unittest",
+]
+license = {text = "MIT"}
+authors = [
+    {name = "Holger Krekel"},
+    {name = "Bruno Oliveira"},
+    {name = "Ronny Pfannschmidt"},
+    {name = "Floris Bruynooghe"},
+    {name = "Brianna Laugher"},
+    {name = "Florian Bruhin"},
+    {name = "Others (See AUTHORS)"},
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Utilities",
+]
+dynamic = [
+    "version",
+]
+dependencies = [
+    'colorama; sys_platform == "win32"',
+    'exceptiongroup>=1.0.0rc8; python_version < "3.11"',
+    "iniconfig",
+    "packaging",
+    "pluggy<2.0,>=1.5",
+    'tomli>=1; python_version < "3.11"',
+]
+[project.optional-dependencies]
+dev = [
+    "argcomplete",
+    "attrs>=19.2",
+    "hypothesis>=3.56",
+    "mock",
+    "pygments>=2.7.2",
+    "requests",
+    "setuptools",
+    "xmlschema",
+]
+[project.urls]
+Changelog = "https://docs.pytest.org/en/stable/changelog.html"
+Homepage = "https://docs.pytest.org/en/latest/"
+Source = "https://github.com/pytest-dev/pytest"
+Tracker = "https://github.com/pytest-dev/pytest/issues"
+Twitter = "https://twitter.com/pytestdotorg"
+[project.scripts]
+"py.test" = "pytest:console_main"
+pytest = "pytest:console_main"
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools>=61",
+    "setuptools-scm[toml]>=6.2.3",
+]
+
+[tool.setuptools.package-data]
+"_pytest" = ["py.typed"]
+"pytest" = ["py.typed"]
+
+[tool.setuptools_scm]
+write_to = "src/_pytest/_version.py"
+
+[tool.black]
+target-version = ['py38']
+
+[tool.ruff]
+src = ["src"]
+line-length = 88
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+    "B",  # bugbear
+    "D",  # pydocstyle
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+    "PYI", # flake8-pyi
+    "UP", # pyupgrade
+    "RUF", # ruff
+    "W",  # pycodestyle
+    "PIE", # flake8-pie
+    "PGH004", # pygrep-hooks - Use specific rule codes when using noqa
+    "PLE", # pylint error
+    "PLW", # pylint warning
+    "PLR1714", # Consider merging multiple comparisons
+]
+ignore = [
+    # bugbear ignore
+    "B004", # Using `hasattr(x, "__call__")` to test if x is callable is unreliable.
+    "B007", # Loop control variable `i` not used within loop body
+    "B009", # Do not call `getattr` with a constant attribute value
+    "B010", # [*] Do not call `setattr` with a constant attribute value.
+    "B011", # Do not `assert False` (`python -O` removes these calls)
+    "B028", # No explicit `stacklevel` keyword argument found
+    # pycodestyle ignore
+    # pytest can do weird low-level things, and we usually know
+    # what we're doing when we use type(..) is ...
+    "E721", # Do not compare types, use `isinstance()`
+    # pydocstyle ignore
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D106", # Missing docstring in public nested class
+    "D107", # Missing docstring in `__init__`
+    "D209", # [*] Multi-line docstring closing quotes should be on a separate line
+    "D205", # 1 blank line required between summary line and description
+    "D400", # First line should end with a period
+    "D401", # First line of docstring should be in imperative mood
+    "D402", # First line should not be the function's signature
+    "D404", # First word of the docstring should not be "This"
+    "D415", # First line should end with a period, question mark, or exclamation point
+    # ruff ignore
+    "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+    # pylint ignore
+    "PLW0603",  # Using the global statement
+    "PLW0120",  # remove the else and dedent its contents
+    "PLW2901",  # for loop variable overwritten by assignment target
+    "PLR5501",  # Use `elif` instead of `else` then `if`
+]
+
+[tool.ruff.lint.pycodestyle]
+# In order to be able to format for 88 char in ruff format
+max-line-length = 120
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.isort]
+force-single-line = true
+combine-as-imports = true
+force-sort-within-sections = true
+order-by-type = false
+known-local-folder = ["pytest", "_pytest"]
+lines-after-imports = 2
+
+[tool.ruff.lint.per-file-ignores]
+"src/_pytest/_py/**/*.py" = ["B", "PYI"]
+"src/_pytest/_version.py" = ["I001"]
+"testing/python/approx.py" = ["B015"]
+
+[tool.pylint.main]
+# Maximum number of characters on a single line.
+max-line-length = 120
+disable= [
+    "abstract-method",
+    "arguments-differ",
+    "arguments-renamed",
+    "assigning-non-slot",
+    "attribute-defined-outside-init",
+    "bad-classmethod-argument",
+    "bad-mcs-method-argument",
+    "broad-exception-caught",
+    "broad-exception-raised",
+    "cell-var-from-loop",
+    "comparison-of-constants",
+    "comparison-with-callable",
+    "comparison-with-itself",
+    "condition-evals-to-constant",
+    "consider-using-dict-items",
+    "consider-using-enumerate",
+    "consider-using-from-import",
+    "consider-using-f-string",
+    "consider-using-in",
+    "consider-using-sys-exit",
+    "consider-using-ternary",
+    "consider-using-with",
+    "cyclic-import",
+    "disallowed-name",
+    "duplicate-code",
+    "eval-used",
+    "exec-used",
+    "expression-not-assigned",
+    "fixme",
+    "global-statement",
+    "implicit-str-concat",
+    "import-error",
+    "import-outside-toplevel",
+    "inconsistent-return-statements",
+    "invalid-bool-returned",
+    "invalid-name",
+    "invalid-repr-returned",
+    "invalid-str-returned",
+    "keyword-arg-before-vararg",
+    "line-too-long",
+    "method-hidden",
+    "misplaced-bare-raise",
+    "missing-docstring",
+    "missing-timeout",
+    "multiple-statements",
+    "no-else-break",
+    "no-else-continue",
+    "no-else-raise",
+    "no-else-return",
+    "no-member",
+    "no-name-in-module",
+    "no-self-argument",
+    "not-an-iterable",
+    "not-callable",
+    "pointless-exception-statement",
+    "pointless-statement",
+    "pointless-string-statement",
+    "protected-access",
+    "raise-missing-from",
+    "redefined-argument-from-local",
+    "redefined-builtin",
+    "redefined-outer-name",
+    "reimported",
+    "simplifiable-condition",
+    "simplifiable-if-expression",
+    "singleton-comparison",
+    "superfluous-parens",
+    "super-init-not-called",
+    "too-few-public-methods",
+    "too-many-ancestors",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-function-args",
+    "too-many-instance-attributes",
+    "too-many-lines",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-public-methods",
+    "too-many-return-statements",
+    "too-many-statements",
+    "try-except-raise",
+    "typevar-name-incorrect-variance",
+    "unbalanced-tuple-unpacking",
+    "undefined-loop-variable",
+    "undefined-variable",
+    "unexpected-keyword-arg",
+    "unidiomatic-typecheck",
+    "unnecessary-comprehension",
+    "unnecessary-dunder-call",
+    "unnecessary-lambda",
+    "unnecessary-lambda-assignment",
+    "unpacking-non-sequence",
+    "unspecified-encoding",
+    "unsubscriptable-object",
+    "unused-argument",
+    "unused-import",
+    "unused-variable",
+    "used-before-assignment",
+    "use-dict-literal",
+    "use-implicit-booleaness-not-comparison",
+    "use-implicit-booleaness-not-len",
+    "useless-else-on-loop",
+    "useless-import-alias",
+    "useless-return",
+    "use-maxsplit-arg",
+    "using-constant-test",
+    "wrong-import-order",
+]
+
+[tool.check-wheel-contents]
+# check-wheel-contents is executed by the build-and-inspect-python-package action.
+# W009: Wheel contains multiple toplevel library entries
+ignore = "W009"
+
+[tool.pyproject-fmt]
+indent = 4
+
+[tool.pytest.ini_options]
+minversion = "2.0"
+addopts = "-rfEX -p pytester --strict-markers"
+python_files = ["test_*.py", "*_test.py", "testing/python/*.py"]
+python_classes = ["Test", "Acceptance"]
+python_functions = ["test"]
+# NOTE: "doc" is not included here, but gets tested explicitly via "doctesting".
+testpaths = ["testing"]
+norecursedirs = [
+  "testing/example_scripts",
+  ".*",
+  "build",
+  "dist",
+]
+xfail_strict = true
+filterwarnings = [
+    "error",
+    "default:Using or importing the ABCs:DeprecationWarning:unittest2.*",
+    # produced by older pyparsing<=2.2.0.
+    "default:Using or importing the ABCs:DeprecationWarning:pyparsing.*",
+    "default:the imp module is deprecated in favour of importlib:DeprecationWarning:nose.*",
+    # distutils is deprecated in 3.10, scheduled for removal in 3.12
+    "ignore:The distutils package is deprecated:DeprecationWarning",
+    # produced by pytest-xdist
+    "ignore:.*type argument to addoption.*:DeprecationWarning",
+    # produced on execnet (pytest-xdist)
+    "ignore:.*inspect.getargspec.*deprecated, use inspect.signature.*:DeprecationWarning",
+    # pytest's own futurewarnings
+    "ignore::pytest.PytestExperimentalApiWarning",
+    # Do not cause SyntaxError for invalid escape sequences in py37.
+    # Those are caught/handled by pyupgrade, and not easy to filter with the
+    # module being the filename (with .py removed).
+    "default:invalid escape sequence:DeprecationWarning",
+    # ignore not yet fixed warnings for hook markers
+    "default:.*not marked using pytest.hook.*",
+    "ignore:.*not marked using pytest.hook.*::xdist.*",
+    # ignore use of unregistered marks, because we use many to test the implementation
+    "ignore::_pytest.warning_types.PytestUnknownMarkWarning",
+    # https://github.com/benjaminp/six/issues/341
+    "ignore:_SixMetaPathImporter\\.exec_module\\(\\) not found; falling back to load_module\\(\\):ImportWarning",
+    # https://github.com/benjaminp/six/pull/352
+    "ignore:_SixMetaPathImporter\\.find_spec\\(\\) not found; falling back to find_module\\(\\):ImportWarning",
+    # https://github.com/pypa/setuptools/pull/2517
+    "ignore:VendorImporter\\.find_spec\\(\\) not found; falling back to find_module\\(\\):ImportWarning",
+    # https://github.com/pytest-dev/execnet/pull/127
+    "ignore:isSet\\(\\) is deprecated, use is_set\\(\\) instead:DeprecationWarning",
+]
+pytester_example_dir = "testing/example_scripts"
+markers = [
+    # dummy markers for testing
+    "foo",
+    "bar",
+    "baz",
+    # conftest.py reorders tests moving slow ones to the end of the list
+    "slow",
+    # experimental mark for all tests using pexpect
+    "uses_pexpect",
+]
+
+[tool.towncrier]
+package = "pytest"
+package_dir = "src"
+filename = "doc/en/changelog.rst"
+directory = "changelog/"
+title_format = "pytest {version} ({project_date})"
+template = "changelog/_template.rst"
+
+  [[tool.towncrier.type]]
+  directory = "breaking"
+  name = "Breaking Changes"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "deprecation"
+  name = "Deprecations"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "feature"
+  name = "Features"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "improvement"
+  name = "Improvements"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "bugfix"
+  name = "Bug Fixes"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "vendor"
+  name = "Vendored Libraries"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "doc"
+  name = "Improved Documentation"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "trivial"
+  name = "Trivial/Internal Changes"
+  showcontent = true
+
+[tool.mypy]
+files = ["src", "testing", "scripts"]
+mypy_path = ["src"]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+no_implicit_reexport = true
+warn_unused_ignores = true

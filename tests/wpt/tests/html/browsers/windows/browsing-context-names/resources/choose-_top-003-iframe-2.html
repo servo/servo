@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: browsing context name - top (case-insensitive)</title>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+window.open(prefixedStorage.url("report-is-top.html"), "_ToP");
+</script>

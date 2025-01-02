@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-initial-target*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-initial-target">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <style>
+    #scroller {
+      height: 500px;
+      width: 500px;
+      display: block;
+      overflow: scroll;
+      writing-mode: vertical-rl;
+    }
+
+    .box {
+      position: relative;
+      width: 60%;
+      height: 60%;
+    }
+
+    .top_right {
+      top: 0px;
+      left: 0px;
+      background-color: red;
+    }
+
+    .center {
+      top: 60%;
+      background-color: purple;
+      scroll-initial-target: nearest;
+    }
+
+    .bottom_left {
+      top: 120%;
+      background-color: yellow;
+    }
+  </style>
+  <div id="scroller">
+    <div class="top_right box" id="box1"></div>
+    <div class="center box" id="box2"></div>
+    <div class="bottom_left box" id="box3"></div>
+  </div>
+  <script>
+    let initial_expected_scroll_top = box1.getBoundingClientRect().height;
+    let initial_expected_scroll_left = -box1.getBoundingClientRect().width;
+
+    test((t) => {
+      assert_equals(scroller.scrollTop, initial_expected_scroll_top,
+          "scroller is vertically scrolled to scroll-initial-target");
+      assert_equals(scroller.scrollLeft, initial_expected_scroll_left,
+          "scroller is horizontally scrolled to scroll-initial-target");
+    }, "scroll-initial-target reflects vertical rtl writing mode.");
+  </script>
+</body>
+
+</html>

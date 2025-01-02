@@ -1,0 +1,9 @@
+<!doctype html>
+<body>
+<script>
+["embed", "frame", "iframe", "object"].forEach(name => {
+  const frame = document.body.appendChild(document.createElement(name));
+  const attr = name !== "object" ? "src" : "data";
+  frame[attr] = "svg.svg";
+});
+</script>

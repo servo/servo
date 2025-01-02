@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<script>
+var count = 0;
+function onError() {
+  if (++count > 2) {
+    document.documentElement.removeAttribute("class");
+    return;
+  }
+  const object = document.getElementById("a");
+  const mi = document.getElementById("b");
+  object.data = "";
+  object.appendChild(document.getElementById("c"));
+  mi.appendChild(document.getElementById("c"));
+  getSelection().collapse(document.getElementById("c"), 0);
+  document.execCommand("undo");
+  document.execCommand("insertHorizontalRule");
+}
+</script>
+</head>
+<body>
+<textarea id="c">a</textarea>
+<dt contenteditable="true">
+<mi id="b">#</mi>
+<object id="a" onerror="onError()">
+</object>
+</dt>
+</body>
+</html>

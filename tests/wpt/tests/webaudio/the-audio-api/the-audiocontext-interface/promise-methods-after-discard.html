@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Test for rejected promises from methods on an AudioContext in a
+  discarded browsing context</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body></body>
+<script>
+let context;
+let childDOMException;
+setup(() => {
+  const frame = document.createElement('iframe');
+  document.body.appendChild(frame);
+  context = new frame.contentWindow.AudioContext();
+  childDOMException = frame.contentWindow.DOMException;
+  frame.remove();
+});
+
+promise_test((t) => promise_rejects_dom(t, 'InvalidStateError',
+                                        childDOMException, context.suspend()),
+             'suspend()');
+promise_test((t) => promise_rejects_dom(t, 'InvalidStateError',
+                                        childDOMException, context.resume()),
+             'resume()');
+promise_test((t) => promise_rejects_dom(t, 'InvalidStateError',
+                                        childDOMException, context.close()),
+             'close()');
+// decodeAudioData() is tested in audiocontext-detached-execution-context.html
+</script>

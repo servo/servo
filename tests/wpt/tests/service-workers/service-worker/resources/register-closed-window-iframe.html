@@ -1,0 +1,19 @@
+<html>
+<head>
+<script>
+window.addEventListener('message', async function(evt) {
+  if (evt.data === 'START') {
+    var w = window.open('./');
+    var sw = w.navigator.serviceWorker;
+    w.close();
+    w = null;
+    try {
+      await sw.register('doesntmatter.js');
+    } finally {
+      parent.postMessage('OK', '*');
+    }
+  }
+});
+</script>
+</head>
+</html>

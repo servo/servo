@@ -1,0 +1,21 @@
+<!doctype html>
+<title>BODY list-item crash inserting extra BODY</title>
+<link rel="help" href="https://crbug.com/1298917">
+<style>
+  body {
+    display: list-item;
+  }
+  div {
+    /* Multicol and table display to trigger legacy layout */
+    display: table-row-group;
+    column-count: 1;
+  }
+</style>
+<body>
+  <p>Pass if no crash.</p>
+  <div></div>
+</body>
+<script>
+  document.documentElement.offsetTop;
+  document.documentElement.insertBefore(document.createElement("body"), document.body);
+</script>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
+
+Tests.startUnit = function () {
+    var canvas = document.getElementById('gl');
+    var gl = wrapGLContext(getGLContext(canvas));
+    return [gl];
+}
+
+Tests.setup = function(gl) {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    return [gl]
+}
+
+Tests.teardown = function(gl,tex) {
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.deleteTexture(tex);
+}
+
+Tests.testTexImage2D = function(gl) {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2,2,0,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]));
+    assertGLError(gl, gl.INVALID_OPERATION, "not enough data", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 2,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_OPERATION, "not enough data", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 1,2,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_ENUM, "bad target", function(){
+        gl.texSubImage2D(gl.FLOAT, 0, 0,0, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "width out of range", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 3,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "height out of range", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 1,3,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "dimension out of range", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D,0, 1,1, 2,1, gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "dimension out of range", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D,0, 1,1, 1,2, gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0]));
+    });
+    assertOk("zero size", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 0,0,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertSomeGLError(gl, "negative width", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, -1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertSomeGLError(gl, "negative height", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 1,-1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "negative x", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,-1,1,1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "negative y", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0,1,-1,1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertGLErrorIn(gl, [gl.INVALID_OPERATION, gl.INVALID_ENUM], "bad format", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 1,1,gl.FLOAT,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+    });
+    assertGLErrorIn(gl, [gl.INVALID_OPERATION, gl.INVALID_ENUM], "bad type", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 1,1,gl.RGBA,gl.TEXTURE_2D, new Uint8Array([0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_OPERATION, "not enough data", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 1,1,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_OPERATION, "format does not match internal format", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 1,1,gl.RGB,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_OPERATION, "type does not match original", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0,0, 1,1,gl.RGBA,gl.UNSIGNED_SHORT_4_4_4_4, new Uint16Array([0]));
+    });
+
+    assertThrows(gl, true, "too few args", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE);
+    });
+    assertThrows(gl, false, "too many args", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]), null);
+    });
+
+    assertThrows(gl, true, "bad TexSourceType", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, window);
+    });
+    assertThrows(gl, true, "fake TexSourceType", function(){
+        var fakeObj = {
+            get width() { throw 7 },
+            get height() { throw 7 },
+            data: new Uint8ClampedArray(10)
+        };
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, fakeObj);
+    });
+}
+
+
+Tests.endUnit = function(gl) {
+}
+
+</script>
+<style>canvas{ position:absolute; }</style>
+</head><body>
+<canvas id="gl" width="16" height="16"></canvas>
+</body></html>

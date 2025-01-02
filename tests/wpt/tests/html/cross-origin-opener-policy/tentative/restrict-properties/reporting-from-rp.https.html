@@ -1,0 +1,55 @@
+<!doctype html>
+<meta name=timeout content=long>
+<title>Opening a restrict-properties</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script
+  src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js?pipe=sub&report_id=ed5a8be35e4e21c2ba960e6574e0a32c&report_only_id=fa22ddc676642edae42c75defb82ba2e"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report-only, popup COEP report-only, expected reports
+
+  // Open a same-origin popup with COOP unsafe-none, which mismatches
+  // with the current document (opener) COOP (restrict-properties) values.
+  [
+    SAME_ORIGIN,
+    "unsafe-none",
+    "",
+    "",
+    "",
+    []
+  ],
+
+  // Open a cross-origin popup with COOP unsafe-none, which mismatches
+  // with the current document (opener) COOP (restrict-properties) values.
+  [
+    CROSS_ORIGIN,
+    "unsafe-none",
+    "",
+    "",
+    "",
+    []
+  ],
+
+  // Open a same-origin popup with COOP restrict-properties, which matches with
+  // the current document (opener) COOP (restrict-properties) value.
+  [
+    SAME_ORIGIN,
+    "restrict-properties",
+    "",
+    "",
+    "",
+    []
+  ],
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>
+

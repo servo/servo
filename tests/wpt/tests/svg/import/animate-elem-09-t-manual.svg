@@ -1,0 +1,97 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-09-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Test possible values for 'calcMode="discrete"'.
+      </p>
+      <p>
+        Two animations have been defined. For each animation, ruler lines and text are provided to help show what the correct behavior is.
+        The black text and ruler lines help show the sizes and movement of the rectangles over time.
+      </p>
+      <p>
+        The discrete animations should show stair-stepping animations, with quantum-level jumps every two seconds in these tests. The linear
+        animations change constantly with each keyframe to keyframe section, with the result that the change is faster when there is a larger
+        change within a given amount of time. The paced animations change constantly over the entire animation, regardless of the values at
+        particular keyframes. For calcMode='spline' in this test case, the initial rate of change is defined to be the same as linear, but the
+        last jump has an ease-in/ease-out effect where the change is slower at the start and end but faster in the middle.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if the two orange rects are animated so that the bottom part of each rectangle is at the position
+        indicated by the ruler lines at the particular time noted next to each ruler line.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-09-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g xml:space="preserve" font-family="Arial" font-size="30">
+      <g transform="translate(20,50)">
+        <text x="0" y="203">0-2 sec.</text>
+        <text x="0" y="170">2-4 sec. </text>
+        <text x="0" y="114">4-6 sec. </text>
+        <text x="3" y="3">6+ sec. </text>
+        <g stroke="#800" stroke-width="4">
+          <line x1="120" y1="200" x2="170" y2="200"/>
+          <line x1="120" y1="167" x2="170" y2="167"/>
+          <line x1="120" y1="111" x2="170" y2="111"/>
+          <line x1="120" y1="0" x2="170" y2="0"/>
+        </g>
+          <rect x="140" y="-10" width="60" height="210" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+            <animate attributeName="height" calcMode="discrete" values="210;177;121;10" begin="0s" dur="8s" fill="freeze"/>
+          </rect>
+      </g>
+
+      <g transform="translate(250,50)">
+        <text x="0" y="203">0-2 sec.</text>
+        <text x="0" y="170">2-4 sec. </text>
+        <text x="0" y="114">4-6 sec. </text>
+        <text x="3" y="3">6+ sec. </text>
+        <g stroke="#800" stroke-width="4">
+          <line x1="120" y1="200" x2="170" y2="200"/>
+          <line x1="120" y1="167" x2="170" y2="167"/>
+          <line x1="120" y1="111" x2="170" y2="111"/>
+          <line x1="120" y1="0" x2="170" y2="0"/>
+        </g>
+        <rect x="140" y="-10" width="60" height="10" fill="#FFAA44" stroke="#FF00FF" stroke-width="4">
+          <animateMotion calcMode="discrete" values="0,200; 0,167; 0,111; 0,0" begin="0s" dur="8s" fill="freeze"/>
+        </rect>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

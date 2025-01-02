@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "websockets"
+description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
+requires-python = ">=3.8"
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Aymeric Augustin", email = "aymeric.augustin@m4x.org" },
+]
+keywords = ["WebSocket"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["version", "readme"]
+
+[project.urls]
+Homepage = "https://github.com/python-websockets/websockets"
+Changelog = "https://websockets.readthedocs.io/en/stable/project/changelog.html"
+Documentation = "https://websockets.readthedocs.io/"
+Funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
+Tracker = "https://github.com/python-websockets/websockets/issues"
+
+# On a macOS runner, build Intel, Universal, and Apple Silicon wheels.
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "universal2", "arm64"]
+
+# On an Linux Intel runner with QEMU installed, build Intel and ARM wheels.
+[tool.cibuildwheel.linux]
+archs = ["auto", "aarch64"]
+
+[tool.coverage.run]
+branch = true
+omit = [
+    # */websockets matches src/websockets and .tox/**/site-packages/websockets
+    "*/websockets/__main__.py",
+    "*/websockets/legacy/async_timeout.py",
+    "*/websockets/legacy/compatibility.py",
+    "tests/maxi_cov.py",
+]
+
+[tool.coverage.paths]
+source = [
+    "src/websockets",
+   ".tox/*/lib/python*/site-packages/websockets",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "except ImportError:",
+    "if self.debug:",
+    "if sys.platform != \"win32\":",
+    "if typing.TYPE_CHECKING:",
+    "pragma: no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "self.fail\\(\".*\"\\)",
+    "@unittest.skip",
+]
+
+[tool.ruff]
+select = [
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "W",  # pycodestyle
+    "I",  # isort
+]
+ignore = [
+    "F403",
+    "F405",
+]
+
+[tool.ruff.isort]
+combine-as-imports = true
+lines-after-imports = 2

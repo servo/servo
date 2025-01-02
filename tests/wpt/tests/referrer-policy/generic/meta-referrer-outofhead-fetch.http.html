@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <meta name="referrer" content="no-referrer">
+    <script>
+      promise_test((t) =>
+        fetch("/common/security-features/subresource/xhr.py")
+          .then(res => res.json())
+          .then(data => {
+            assert_equals(data.headers.referer, undefined);
+          }),
+        "Referer header was not send");
+    </script>
+    <div id="log"></div>
+  </body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset=utf8>
+<title>Web Animation does not stop even if target is hidden by c-v</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/">
+<script src="/web-animations/testcommon.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container {
+  content-visibility: auto;
+}
+@keyframes fade {
+  from { opacity: 1; }
+  to { opacity: 0;  }
+}
+#target {
+  background: green;
+  height: 100px;
+  width: 100px;
+}
+.animate {
+  animation: fade 1s linear 2 alternate;
+}
+.transition {
+  transition: opacity 1s linear;
+}
+</style>
+<body>
+  <div id="spacer"></div>
+  <div id="container"></div>
+</body>
+<script>
+"use strict";
+
+function createElementWithWebAnimation(test) {
+  const container = document.getElementById('container');
+  const target = document.createElement('div');
+  container.appendChild(target);
+  target.id = 'target';
+  const keyframes = [
+    { opacity: 1 },
+    { opacity: 0 },
+  ];
+  const options = {
+    duration: 2000,
+    iterations: 1,
+    easing: 'linear',
+    direction: 'alternate',
+  };
+  target.animate(keyframes, options);
+
+  return target;
+}
+
+promise_test(async t => {
+  // Make sure the target is hidden from the beginning.
+  document.getElementById("spacer").style.height = "300vh";
+  const target = createElementWithWebAnimation(t);
+  const animation = target.getAnimations()[0];
+
+  let animationFinishEvent = false;
+  animation.addEventListener('finish', () => {
+    animationFinishEvent = true;
+  });
+
+  animation.currentTime = 1999;
+  await animation.ready;
+  await waitForAnimationFrames(2);
+
+  assert_true(animationFinishEvent,
+              'Web Animation event should keep going even if target is hidden by c-v');
+}, 'Web Animation does not stop even if target is hidden by c-v');
+
+</script>

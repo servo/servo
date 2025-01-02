@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5525-fltwidth-003-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .a { background: url(support/pattern-tr.png) center top no-repeat; }
+   .b { background: url(support/swatch-red.png) left top no-repeat; }
+   p { margin: 0; float: left; width: 50%; }
+   img { float: none; color: red; vertical-align: top; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'"/>
+ </head>
+ <body>
+  <div class="a">
+   <div class="b">
+    <p style="float: right">
+     <img src="support/swatch-white.png" alt="FAIL" />
+     &#x21E6; There should be a green square at the top left of the window.
+    </p>
+    <img src="support/swatch-green.png" alt="FAIL" />
+   </div>
+  </div>
+ </body>
+</html>

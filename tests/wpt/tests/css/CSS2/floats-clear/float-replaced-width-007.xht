@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN" "http://www.w3.org/2002/04/xhtml-math-svg/xhtml-math-svg.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:svg="http://www.w3.org/2000/svg">
+    <head>
+        <title>CSS Test: Floated replaced elements and 'auto' specified for 'margin-left', 'margin-right' and intrinsic height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#float-replaced-width" />
+        <link rel="match" href="float-replaced-width-007-ref.xht" />
+
+        <meta name="flags" content="nonHTML svg" />
+        <meta name="assert" content="Computed value of 'auto' for 'margin-left' or margin-right' on floated replaced elements becomes a used value of '0'. The 'width' is (used height) * (intrinsic ratio) if there is no intrinsic width but there is intrinsic height and ratio." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 3in;
+                width: 3in;
+            }
+            svg
+            {
+                float: left;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            div div
+            {
+                background: orange;
+                height: 50px;
+                margin-top: 50px;
+                width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange rectangles have the same width and if the blue rectangle is in the upper-left corner of the hollow black square.</p>
+        <div id="div1">
+            <svg:svg version="1.1" height="50" baseProfile="full">
+                <svg:rect x="0" y="0" width="200" height="100" fill="blue" />
+            </svg:svg>
+            <div></div>
+        </div>
+    </body>
+</html>

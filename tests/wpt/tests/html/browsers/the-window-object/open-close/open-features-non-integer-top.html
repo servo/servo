@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open `features`: non-integer values for feature `top`</title>
+<meta name=timeout content=long>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var windowURL = 'resources/message-opener.html';
+var featuresPrefix = `width=401,height=204,left=0,`;
+
+setup (() => {
+  // Before running tests, open a window using features that mimic
+  // what would happen if the feature tested here were set to 0
+  // for comparison later.
+  var featureString = `${featuresPrefix}top=0`;
+  var prefixedMessage = new PrefixedMessageTest();
+  prefixedMessage.onMessage((data, e) => {
+    e.source.close();
+    runWindowTests(data);
+  });
+  var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+});
+
+function runWindowTests (baselineDimensions) {
+  // When code point in first position is not an ASCII digit, "+" or "-",
+  // that's an error and the value becomes 0
+  [ 'top=/104',
+    'top=_104',
+    'top=L104'
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var featureString = `${featuresPrefix}${feature}`;
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.top, baselineDimensions.top, `"${feature} begins with an invalid character and should be ignored"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenY=' + baselineDimensions.top, '', featureString);
+    }, `features "${feature}" should NOT set "top=104"`);
+  });
+
+  // Codepoints that are valid ASCII digits should be collected
+  // Non-ASCII digits and subsequent code points are ignored
+  [ 'top=105.5',
+    'top=105.32',
+    'top=105LLl',
+    'top=105^4',
+    'top=105*3',
+    'top=105/5',
+    'top=105  ',
+    'top=105e1',
+    'top=105e-1'
+  ].forEach(feature => {
+    async_test(t => {
+      var featureString = `${featuresPrefix}${feature}`;
+      var prefixedMessage = new PrefixedMessageTest();
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.top, 105, `"${feature} value after first non-digit will be ignored"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenY=105', '', featureString);
+    }, `features "${feature}" should set "top=105"`);
+  });
+}
+
+</script>

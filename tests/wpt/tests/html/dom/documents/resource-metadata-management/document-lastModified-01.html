@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>document.lastModified should return current local time</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/document-lastModified-utils.js"></script>
+<div id="log"></div>
+<script>
+  var last_modified = document.lastModified;
+
+  test(function() {
+     assert_regexp_match(last_modified, DOCUMENT_LASTMODIFIED_REGEX,
+                         "Format should match the pattern \"NN/NN/NNNN NN:NN:NN\".");
+  }, "Date returned by lastModified is in the form \"MM/DD/YYYY hh:mm:ss\".");
+
+  test(function() {
+    assert_document_lastmodified_string_approximately_now(last_modified);
+  }, "Date returned by lastModified is current at page load");
+
+  var t = async_test("Date returned by lastModified is current after timeout.");
+  t.step_timeout(function() {
+    assert_document_lastmodified_string_approximately_now(document.lastModified);
+    t.done();
+  }, 4000);
+</script>

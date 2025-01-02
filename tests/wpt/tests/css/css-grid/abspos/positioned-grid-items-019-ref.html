@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Fixed positioned element in grid.</title>
+<style>
+
+  #grid {
+    display: inline-grid;
+    grid: 50px 50px / 50px 50px;
+    padding: 5px;
+    border: 5px solid;
+    background-color: gray;
+    margin: 50px;
+  }
+
+  #fixed {
+    width: 50px;
+    height: 50px;
+    background-color: blue;
+    position: fixed;
+    top: 0px;
+    left: 0px;
+  }
+
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div id="fixed"></div>
+<div id="grid"></div>

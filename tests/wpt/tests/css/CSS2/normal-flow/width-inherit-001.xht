@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inheriting Explicit Widths</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-11-07 -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <link rel="match" href="block-non-replaced-width-001-ref.xht" />
+
+
+  <meta name="assert" content="The computed width is inherited, even if the
+        'width' property does not apply."/>
+  <style type="text/css">
+    .outer {
+      width: 9.375em; /* 150px */
+    }
+    .inner {
+      display: block;
+      width: inherit;
+      height: 1.875em; /* 30px */
+      background: orange;
+    }
+    .control {
+      position: absolute;
+      top: 82px;
+      width: 9.375em;
+      height: 1.875em;
+      background: blue;
+    }
+  </style>
+ </head>
+ <body>
+   <p>Test passes if the orange and blue rectangles have the <strong>same width</strong>.</p>
+
+   <div><span class="outer"><span class="inner"></span></span></div>
+   <div class="control"></div>
+ </body>
+</html>

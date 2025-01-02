@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>webkit-text-fill-color should take effect while rendering ::-moz-selection selected text</title>
+<link rel="author" title="Jeremy Chen" href="jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://compat.spec.whatwg.org/#the-webkit-text-fill-color">
+<meta name="assert" content="The color of selected text should be green">
+<link rel="match" href="webkit-text-fill-color-property-003-ref.html">
+<style>
+::-moz-selection {
+  background: skyblue;
+  color: red;
+  -webkit-text-fill-color: green;
+}
+::selection {
+  background: skyblue;
+  color: red;
+  -webkit-text-fill-color: green;
+}
+</style>
+<body onload="onload()">
+<p>Pass if color of <span id="selectMe">selected text</span> is green!!!</p>
+<script type="text/javascript">
+function onload() {
+  var elt = document.getElementById("selectMe");
+  var range = document.createRange();
+  range.selectNode(elt);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+  document.documentElement.classList.remove('reftest-wait');
+}
+</script>
+</body>
+</html>

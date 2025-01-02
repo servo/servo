@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text color rendering - text rendered once</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<link rel="match" href="target-text-two-words-ref.html">
+<style>
+  p.white { color: white; }
+  p::target-text {
+    color: black;
+    background-color: orange;
+  }
+</style>
+<p>PASS if the text below is rendered black on an orange background.</p>
+<p class="white">match me</p>
+<script>
+  window.location.hash = "#:~:text=match%20me";
+</script>

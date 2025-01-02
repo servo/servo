@@ -1,0 +1,65 @@
+<!doctype HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+  <div contenteditable="true" id="target">Hello</div>
+  <div contenteditable="true" id="target1">Hello world</div>
+  <script>
+    promise_test(async () => {
+      let selectionChangeCount = 0;
+      const selection = getSelection();
+      const range = document.createRange();
+      const target = document.getElementById("target");
+      const element = target.firstChild;
+
+      document.addEventListener("selectionchange", () => ++selectionChangeCount);
+      // Set the range to select the character 'H' in "hello"
+      range.setStart(element, 1);
+      range.setEnd(element, 1);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      await new Promise(resolve => step_timeout(resolve, 500));
+      assert_equals(selectionChangeCount, 1, "Selection change count should be 1");
+
+      // Simulate the backspace key press to remove 'H'
+      test_driver.send_keys(target, "\uE003");
+      // Waits a short time to allow any events to be processed.
+      await new Promise(resolve => step_timeout(resolve, 500));
+
+      const expectedHTML = "ello";
+      assert_equals(target.innerHTML, expectedHTML, "target.innerHTML should be " + expectedHTML);
+      assert_equals(selectionChangeCount, 2, "Selection change count should be 2");
+    }, "Selectionchange event is fired after removing the character");
+
+    promise_test(async () => {
+      let selectionChangeCount = 0;
+      const selection = getSelection();
+      const range = document.createRange();
+      const target = document.getElementById("target1");
+      const element = target.firstChild;
+
+      document.addEventListener("selectionchange", () => ++selectionChangeCount);
+      // Set the range to select 'llo' in "Hello"
+      range.setStart(element, 2);
+      range.setEnd(element, 5);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      await new Promise(resolve => step_timeout(resolve, 500));
+      assert_equals(selectionChangeCount, 1, "Selection change count should be 1");
+
+      // Simulate the backspace key press to remove 'llo'
+      test_driver.send_keys(target, "\uE003");
+      // Waits a short time to allow any events to be processed.
+      await new Promise(resolve => step_timeout(resolve, 500));
+
+      const expectedHTML = "He world";
+      assert_equals(target.innerHTML, expectedHTML, "target.innerHTML should be " + expectedHTML);
+      assert_equals(selectionChangeCount, 2, "Selection change count should be 2");
+    }, "Selectionchange event is fired after removing the range");
+  </script>
+</body>

@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="match" href="translate_clip_nested_ref.html">
+<style>
+  div {
+    height: 200px;
+    width: 200px;
+  }
+</style>
+<div style="position: relative; overflow: hidden; background: red;">
+  <div style="transform: translateX(-100px);">
+    <div style="position: absolute; right: -100px; background: green;">
+    </div>
+  </div>
+</div>
+
+<!-- Repeat the same test, but this time make the outer div a stacking context. -->
+<div style="position: relative; z-index: 1; overflow: hidden; background: red;">
+  <div style="transform: translateX(-100px);">
+    <div style="position: absolute; right: -100px; background: green;">
+    </div>
+  </div>
+</div>

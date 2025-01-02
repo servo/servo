@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Scroll marker group on multicol fieldset</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="help" href="https://html.spec.whatwg.org/#anonymous-fieldset-content-box">
+<style>
+  #scroller {
+    overflow: hidden;
+    columns: 2;
+    column-fill: auto;
+    padding: 0;
+    gap: 0;
+    width: 400px;
+    height: 100px;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 200px;
+    background: gray;
+  }
+
+  #scroller>div::scroll-marker {
+    display: block;
+    width: 25px;
+    height: 50%;
+    content: "";
+    background: yellow;
+  }
+</style>
+<fieldset id="scroller">
+  <legend>Legend</legend>
+  <div style="break-before:column;">first</div>
+  <div style="break-before:column;">second</div>
+  <div style="break-before:column;">third</div>
+  <div style="break-before:column;">fourth</div>
+</fieldset>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  promise_test(async t => {
+    assert_equals(scroller.scrollLeft, 0);
+    await new test_driver.Actions().pointerMove(60, 10).pointerDown().pointerUp().send();
+    assert_equals(scroller.scrollLeft, 200);
+  }, "Click on third scroll marker");
+</script>

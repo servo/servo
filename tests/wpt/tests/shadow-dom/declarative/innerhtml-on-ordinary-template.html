@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM innerHTML</title>
+<link rel='author' href='mailto:masonf@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<body>
+<script>
+function myObserver(mutationsList) {
+  for (let mutation of mutationsList) {
+    for (let n of mutation.addedNodes) {
+      if (n.id === 'has-imperative-root') {
+        const shadowRoot = n.attachShadow( {mode: 'open'});
+      }
+    }
+  }
+}
+var observer = new MutationObserver(myObserver);
+observer.observe(document.body, { childList: true, subtree: true });
+</script>
+
+<div id='has-imperative-root'>
+  <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
+  <script> // some content, which shouldn't be necessary </script>
+  <!-- The imperative shadow root should be attached now. -->
+  <template id=ordinarytemplate shadowrootmode=open>
+    <span id=toreplace>This should get removed</span>
+  </template>
+  <script>
+    ordinarytemplate.innerHTML = '<span id=replaced>This should replace template contents</span>';
+  </script>
+</div>
+
+<script>
+test(t => {
+  t.add_cleanup(function() { observer.disconnect(); });
+  let host = document.querySelector('#has-imperative-root');
+  let shadowroot = host.shadowRoot;
+  assert_true(!!shadowroot, 'Shadow root should be present');
+  assert_false(shadowroot.hasChildNodes(), 'Shadow root should not contain any children');
+  let template = host.querySelector('template#ordinarytemplate');
+  assert_true(!!template, 'Since host has imperative root, <template> should be left over');
+  assert_false(template.hasChildNodes(),'template should not have direct children');
+  assert_true(!!template.content.querySelector('#replaced'),'The innerHTML replacement content should be present');
+  assert_true(!template.content.querySelector('#toreplace'),'The old replaced content should not be present');
+}, 'Declarative Shadow DOM: innerHTML should work on <template shadowroot> that is left over');
+</script>
+</body>

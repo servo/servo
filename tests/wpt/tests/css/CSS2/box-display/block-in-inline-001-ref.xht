@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  td
+  {
+  border: black solid;
+  color: black;
+  padding: 0;
+  }
+
+  .lime {background-color: lime;}
+  .green {background-color: green;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following two boxes should look identical.</p>
+
+  <table>
+   <tr>
+    <td>
+     <div class="lime">Line 1</div>
+     <div class="green">Line 2</div>
+     <div class="lime">Line 3</div>
+    </td>
+    <td>
+     <div class="lime">Line 1</div>
+     <div class="green">Line 2</div>
+     <div class="lime">Line 3</div>
+    </td>
+   </tr>
+  </table>
+
+ </body>
+</html>

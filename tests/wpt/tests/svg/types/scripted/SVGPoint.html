@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<title>SVGPoint interface</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  let svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  let point = svgElement.createSVGPoint();
+
+  // Check initial point values.
+  assert_equals(point.x, 0);
+  assert_equals(point.y, 0);
+
+  point.y = 2;
+
+  // Check setting valid arguments.
+  assert_equals(point.x, 0);
+  assert_equals(point.y, 2);
+
+  // Check setting invalid arguments.
+  assert_throws_js(TypeError, function() { point.x = NaN; });
+  assert_throws_js(TypeError, function() { point.x = Infinity; });
+  assert_equals(point.x, 0);
+});
+</script>

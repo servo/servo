@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Test (Animations): Element.animate() animating both transform and opacity on an inline</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1316688">
+<link rel="match" href="transform-and-opacity-on-inline-001-ref.html">
+<meta name="assert" content="This should not crash, and should render as opacity 0.5.">
+
+<script>
+// The transform animation should be ignored; the opacity animation should work.
+window.onload = function() {
+  document.getElementById("target").animate(
+    [
+      {
+        "transform": "translateX(0px)",
+        "opacity": "0.8",
+      },
+      {
+        "transform": "translateX(300px)",
+        "opacity": "0.0",
+      }
+    ],
+    { duration:1000000, delay: -500000, easing: "steps(3, jump-both)" });
+}
+</script>
+<body><span id="target">x</span></body>

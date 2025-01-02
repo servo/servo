@@ -1,0 +1,33 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>HTML5 Canvas Test:  Ignore property-independent style sheet syntax "inherit" in Text</title>
+        <link rel="match" href="canvas_text_font_001-ref.htm" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+        <link rel="help" href="http://www.w3.org/TR/2dcontext/#dom-context-2d-font" />
+        <meta name="assert" content=":  Ignore 'inherit' property-independent style sheet syntax without assigning a new font value." />
+        <script type="text/javascript">
+            function runTest()
+            {
+                var canvas = document.getElementById("canvas1");
+                var ctx = canvas.getContext("2d");
+
+                // Assign a valid font.
+                ctx.font = "40px Ahem";
+
+                // Assign property-independent style sheet syntax 'inherit' as font (this must be ignored).
+                ctx.font = "20px inherit";
+                ctx.fillText("Filler", 5, 50);
+
+                // Assign a valid font which was used earlier.
+                ctx.font = "40px Ahem";
+                ctx.fillText("Filler", 5, 100);
+            }
+        </script>
+    </head>
+    <body onload="runTest()">
+        <p>Description:  Ignore "inherit" property-independent style sheet syntax without assigning a new font value.</p>
+        <p>Test passes if there are two identical black boxes below.</p>
+        <canvas id="canvas1" width="300" height="150">Browser does not support HTML5 Canvas.</canvas>
+    </body>
+</html>

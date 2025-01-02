@@ -1,0 +1,4 @@
+Content-Type: text/html
+Set-Cookie: cookie=1; SameSite=None; Secure; Path=/
+Set-Cookie: same_site_strict=1; SameSite=Strict; Secure; Path=/
+Set-Cookie: same_site_lax=1; SameSite=Lax; Secure; Path=/

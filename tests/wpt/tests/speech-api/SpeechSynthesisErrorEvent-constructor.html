@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+/*
+[Exposed=Window,
+ Constructor(DOMString type, SpeechSynthesisErrorEventInit eventInitDict)]
+interface SpeechSynthesisErrorEvent : SpeechSynthesisErrorEvent {
+    readonly attribute SpeechSynthesisErrorCode error;
+};
+*/
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisErrorEvent();
+  });
+}, "SpeechSynthesisErrorEvent with no arguments throws TypeError");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisErrorEvent("type");
+  });
+}, "SpeechSynthesisErrorEvent with no eventInitDict throws TypeError");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisErrorEvent("type", {});
+  });
+}, `SpeechSynthesisErrorEvent with empty eventInitDict throws TypeError (requires
+    utterance and error)`);
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisErrorEvent("type", {error:"not-allowed"});
+  });
+}, `SpeechSynthesisErrorEvent with eventInitDict without utterance throws
+    TypeError`);
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisErrorEvent("type", {utterance: new SpeechSynthesisUtterance()});
+  });
+}, `SpeechSynthesisErrorEvent with eventInitDict without error throws
+    TypeError`);
+
+test(() => {
+  const utterance = new SpeechSynthesisUtterance("foo");
+  const event = new SpeechSynthesisErrorEvent("type", {utterance: utterance, error:"not-allowed"});
+  assert_equals(event.utterance, utterance);
+  assert_equals(event.error, "not-allowed");
+  assert_equals(event.charIndex, 0);
+  assert_equals(event.elapsedTime, 0);
+  assert_equals(event.name, "");
+}, "SpeechSynthesisErrorEvent with eventInitDict having utterance and error");
+
+test(() => {
+  const utterance = new SpeechSynthesisUtterance("foo");
+  const event = new SpeechSynthesisErrorEvent("type", {
+    utterance: utterance,
+    charIndex: 5,
+    elapsedTime: 100,
+    name: "foo",
+    error: "synthesis-failed"
+  });
+  assert_equals(event.bubbles, false);
+  assert_equals(event.cancelable, false);
+  assert_equals(event.type, "type");
+  assert_equals(event.utterance, utterance);
+  assert_equals(event.charIndex, 5);
+  assert_equals(event.elapsedTime, 100);
+  assert_equals(event.name, "foo");
+  assert_equals(event.error, "synthesis-failed");
+}, "SpeechSynthesisErrorEvent with custom eventInitDict");
+
+test(() => {
+  function createEventFunc(error) {
+    return () => {
+      new SpeechSynthesisErrorEvent("type", {
+        utterance: new SpeechSynthesisUtterance(),
+        error: error
+      });
+    };
+  };
+  assert_throws_js(TypeError, createEventFunc(""));
+  assert_throws_js(TypeError, createEventFunc("foo"));
+  assert_throws_js(TypeError, createEventFunc("bar"));
+}, "SpeechSynthesisErrorEvent with wrong error enum");
+</script>

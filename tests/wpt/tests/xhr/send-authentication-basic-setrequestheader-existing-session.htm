@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - "Basic" authenticated request using setRequestHeader() when there is an existing session</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- These spec references do not make much sense simply because the spec doesn't say very much about this.. -->
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="following::ol[1]/li[6]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::code[contains(@title,'http-authorization')]/.." />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      test.step(function() {
+        var client = new XMLHttpRequest(),
+          urlstart = location.host + location.pathname.replace(/\/[^\/]*$/, '/')
+        // Initial request: no information is known to the UA about whether resources/auth4/auth.py requires authentication,
+        // hence it first sends a normal request, gets a 401 response that will not be passed on to the JS, and sends a new
+        // request with an Authorization header before returning
+        // (Note: this test will only work as expected if run once per browsing session)
+        var open_user = token()
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth4/auth.py", false, open_user, 'open-pass')
+        client.setRequestHeader('X-User', open_user)
+        // initial request - this will get a 401 response and re-try with HTTP auth
+        client.send(null)
+        assert_true(client.responseText == (open_user + '\nopen-pass'), 'responseText should contain the right user and password')
+        assert_equals(client.status, 200)
+        assert_equals(client.getResponseHeader('x-challenge'), 'DID')
+        // Another request, this time user,pass is omitted and an Authorization header set explicitly
+        // Here the URL is known to require authentication (from the request above), and the UA has cached open-user:open-pass credentials
+        // However, these session credentials should now be overridden by the setRequestHeader() call so the UA should immediately
+        // send basic Authorization header with credentials user:pass. (This part is perhaps not well specified anywhere)
+        var user = token();
+        client.open("GET", location.protocol+'//'+urlstart + "resources/auth4/auth.py", true)
+        client.setRequestHeader("x-user", user)
+        client.setRequestHeader('Authorization', 'Basic ' + btoa(user + ":pass"))
+        client.onreadystatechange = function () {
+          if (client.readyState < 4) {return}
+          test.step( function () {
+            assert_equals(client.responseText, user + '\npass')
+            assert_equals(client.status, 200)
+            assert_equals(client.getResponseHeader('x-challenge'), 'DID-NOT')
+            test.done()
+          } )
+        }
+        client.send(null)
+      })
+    </script>
+    <p>Note: this test will only work as expected once per browsing session. Restart browser to re-test.</p>
+  </body>
+</html>

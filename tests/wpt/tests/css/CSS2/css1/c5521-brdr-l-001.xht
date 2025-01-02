@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-left</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-left"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body { color: blue; }
+   .test { font-size: 2em; }
+   span, td { text-align: left; border-left: blue 2px solid; }
+   table { border-collapse: separate; border-spacing: 6px; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p>There should be a solid blue line to the left of every occurence of the word "<span class="test">&#x21E6;THERE</span>".</p>
+  <table class="test">
+   <tr>
+    <td colspan="2">
+     &#x21E6;THERE
+    </td>
+   </tr>
+   <tr>
+    <td>
+     &#x21E6;THERE
+    </td>
+    <td>
+     &#x21E6;THERE
+     <table>
+      <tr>
+       <td>
+        &#x21E6;THERE
+       </td>
+      </tr>
+     </table>
+    </td>
+   </tr>
+  </table>
+  <p>There should be 3 short lines and 2 long lines in total.</p>
+ </body>
+</html>

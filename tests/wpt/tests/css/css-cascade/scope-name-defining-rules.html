@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<title>@scope - name-defining at-rules</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#scope-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main id=main></main>
+
+<template id=test_keyframes>
+  <style>
+    @scope (#inner) {
+      @keyframes --my-anim {
+        from { background-color: rgb(0, 0, 255); }
+        to { background-color: rgb(0, 0, 255); }
+      }
+    }
+    @scope (#outer) {
+      @keyframes --my-anim {
+        from { background-color: rgb(0, 128, 0); }
+        to { background-color: rgb(0, 128, 0); }
+      }
+    }
+    #animating {
+      animation: --my-anim 1000s linear;
+    }
+  </style>
+  <div id=outer>
+    <div id=inner>
+      <div id=animating></div>
+    <div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    main.append(test_keyframes.content.cloneNode(true));
+    t.add_cleanup(() => main.replaceChildren());
+    assert_equals(getComputedStyle(animating).backgroundColor, 'rgb(0, 128, 0)');
+  }, '@keyframes is unaffected by @scope');
+</script>
+
+<template id=test_keyframes_non_matching>
+  <style>
+    @scope (#nomatch) {
+      @keyframes --my-anim {
+        from { background-color: rgb(0, 128, 0); }
+        to { background-color: rgb(0, 128, 0); }
+      }
+    }
+    #animating {
+      animation: --my-anim 1000s linear;
+    }
+  </style>
+  <div id=animating></div>
+</template>
+<script>
+  test((t) => {
+    main.append(test_keyframes_non_matching.content.cloneNode(true));
+    t.add_cleanup(() => main.replaceChildren());
+    assert_equals(getComputedStyle(animating).backgroundColor, 'rgb(0, 128, 0)');
+  }, '@keyframes is unaffected by non-matching @scope');
+</script>
+
+<template id=test_property>
+  <style>
+    @scope (#inner) {
+      @property --my-prop {
+        syntax: "<length>";
+        initial-value: 1px;
+        inherits: false;
+      }
+    }
+    @scope (#outer) {
+      @property --my-prop {
+        syntax: "<length>";
+        initial-value: 2px;
+        inherits: false;
+      }
+    }
+  </style>
+  <div id=outer>
+    <div id=inner>
+      <div id=subject></div>
+    <div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    main.append(test_property.content.cloneNode(true));
+    t.add_cleanup(() => main.replaceChildren());
+    assert_equals(getComputedStyle(subject).getPropertyValue('--my-prop'), '2px');
+  }, '@property is unaffected by @scope');
+</script>
+
+<template id=test_property_non_matching>
+  <style>
+    @scope (#nomatch) {
+      @property --my-prop {
+        syntax: "<length>";
+        initial-value: 2px;
+        inherits: false;
+      }
+    }
+  </style>
+  <div id=subject></div>
+</template>
+<script>
+  test((t) => {
+    main.append(test_property_non_matching.content.cloneNode(true));
+    t.add_cleanup(() => main.replaceChildren());
+    assert_equals(getComputedStyle(subject).getPropertyValue('--my-prop'), '2px');
+  }, '@property is unaffected by non-matching @scope');
+</script>

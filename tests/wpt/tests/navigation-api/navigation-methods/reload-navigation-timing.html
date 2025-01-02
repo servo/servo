@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+  i.contentWindow.navigation.reload();
+  await new Promise(resolve => i.onload = resolve);
+
+  const entries = i.contentWindow.performance.getEntriesByType("navigation");
+  assert_equals(entries.length, 1);
+  assert_equals(entries[0].type, "reload");
+}, `reload() appears as a reload to navigation timing APIs`);
+</script>

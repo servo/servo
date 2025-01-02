@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<link rel="match" href="text-spacing-trim-space-all-001-ref.html">
+<meta name="variant" content="?class=halt">
+<meta name="variant" content="?class=chws">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+@font-face {
+  font-family: chws-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-chws.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+  width: 4em;
+}
+.chws #container {
+  font-family: chws-font;
+}
+#container > div > span {
+  background: black;
+}
+.off {
+  text-spacing-trim: space-all;
+}
+</style>
+<div id="container">
+  <div><span>国）（国国（（国（国</span></div>
+</div>
+<script>
+document.fonts.ready.then(() => {
+  document.body.offsetTop;
+  const container = document.getElementById('container');
+  container.classList.add('off');
+});
+</script>

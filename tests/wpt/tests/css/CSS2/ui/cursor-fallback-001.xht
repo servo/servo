@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cursor specified with missing image for the url()</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="When a specified URL cursor doesn't exist, the next specified cursor is used." />
+        <style type="text/css">
+            div
+            {
+                background-color: blue;
+                cursor: url("missing.cur"), pointer;
+                border: solid 2px blue;
+                width: 100px;
+                height: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the cursor changes to a pointer cursor when it is over the box.</p>
+        <div></div>
+    </body>
+</html>

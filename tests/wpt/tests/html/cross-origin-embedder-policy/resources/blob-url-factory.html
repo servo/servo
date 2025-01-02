@@ -1,0 +1,24 @@
+<body>
+<script src="script-factory.js"></script>
+<script>
+const query = new URLSearchParams(window.location.search);
+const id = query.get("id");
+const variant = query.get("variant");
+let parent = "parent";
+if (variant === "subframe") {
+  parent = "parent.parent";
+} else if (variant === "popup") {
+  parent = "opener.parent";
+}
+const blob = new Blob([`<script>${createScript(window.origin, query.get("crossOrigin"), parent, id)}<\/script>`], { type: "text/html" });
+const blobURL = URL.createObjectURL(blob);
+if (variant === "subframe") {
+  const frame = document.createElement("iframe");
+  frame.src = blobURL;
+  document.body.append(frame);
+} else if (variant === "popup") {
+  window.open(blobURL);
+} else {
+  window.location = blobURL;
+}
+</script>

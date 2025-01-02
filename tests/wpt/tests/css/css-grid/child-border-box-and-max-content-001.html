@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<title>grid item with border-box and max-content should include borders</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3">
+<link rel="match" href="child-border-box-and-max-content-001-ref.html">
+<style>
+    .grid {
+        display: grid;
+        grid-auto-columns: 1fr;
+        grid-auto-flow: column;
+        border: 1px solid red;
+        width: max-content;
+    }
+    .item {
+        max-width: max-content;
+        box-sizing: border-box;
+
+        padding: 10px 20px;
+        background-color: blue;
+    }
+    .content {
+        width: 50px;
+        height: 50px;
+        background-color: green;
+    }
+</style>
+<div class="grid">
+    <div class="item">
+        <div class="content"></div>
+    </div>
+    <div class="item">
+        <div class="content"></div>
+    </div>
+</div>

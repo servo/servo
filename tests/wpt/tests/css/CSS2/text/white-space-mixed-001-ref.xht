@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: yellow;
+  border: blue solid medium;
+  color: orange;
+  font: 1.25em/1 Ahem;
+  white-space: pre;
+  width: 19em;
+  }
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>There should be a pretty yellow and orange pattern and "PASS" in orange on white.</p>
+
+  <div>1234567890123456789
+x x x x x x x x x x
+1234567890123456789 xxxx xxxx xxxx xxxx
+x                 x x  x x  x x    x
+x x x x x x x x x x xxxx xxxx xxxx xxxx
+x                 x x    x  x    x    x
+xxxxxxxxxxxxxxxxxxx x    x  x xxxx xxxx</div>
+
+  <p>The pattern in the blue rectangle above should look exactly like the reference rendering below:</p>
+
+  <div>1234567890123456789
+x x x x x x x x x x
+1234567890123456789 xxxx xxxx xxxx xxxx
+x                 x x  x x  x x    x
+x x x x x x x x x x xxxx xxxx xxxx xxxx
+x                 x x    x  x    x    x
+xxxxxxxxxxxxxxxxxxx x    x  x xxxx xxxx</div>
+
+ </body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="help" href="https://drafts.csswg.org/web-animations/#animation-types">
+<title>Scrollbar interpolation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+</head>
+<style type="text/css">
+  #container {
+     height: 100px;
+     width: 100px;
+     overflow: scroll;
+  }
+  #contents {
+    height: 200px;
+    width: 200px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="contents"></div>
+  </div>
+</body>
+<!-- Extend coverage in interpolation-per-property-002 to include testing
+     if named and system colors
+-->
+<script type="text/javascript">
+  function interpolate(keyframes, property) {
+    const anim = container.animate(keyframes, {
+      duration: 1000,
+      easing: 'linear'
+    });
+    anim.pause();
+    anim.currentTime = 500;
+    const result = getComputedStyle(container)[property];
+    anim.cancel();
+    return result;
+  }
+
+  function test_scrollbar_interpolation(from, to) {
+    let fromKeyframe =`${from.thumb} ${from.track}`;
+    let toKeyframe = `${to.thumb} ${to.track}`;
+    let keyframes = { scrollbarColor: [ fromKeyframe, toKeyframe ] };
+    const scrollbarColors = interpolate(keyframes, 'scrollbarColor');
+
+    // As the colors may be system dependent, we use the container as a
+    // color swatch and resolve the color blend via background-color.
+    // The scrollbar colors are expected to match the blend on the thumb
+    // and track colors respectively.
+    keyframes = {
+      backgroundColor: [`${from.thumb}`, `${to.thumb}` ]
+    }
+    const expectedThumbColor = interpolate(keyframes, 'backgroundColor');
+    keyframes = {
+      backgroundColor: [ `${from.track}`, `${to.track}` ]
+    }
+    const expectedTrackColor = interpolate(keyframes, 'backgroundColor');
+    assert_equals(scrollbarColors,
+                  `${expectedThumbColor} ${expectedTrackColor}`,
+                  `${fromKeyframe} to ${toKeyframe}`);
+  }
+
+  test(() => {
+    const data = [
+      {
+        from: { thumb: 'black', track: 'white' },
+        to: { thumb: 'lime', track: 'darkgreen' }
+      },
+      {
+        from: { thumb: '#000', track: 'pink' },
+        to: { thumb: 'canvas', track: 'buttontext' }
+      },
+      {
+        from: { thumb: 'rgba(255,255,255,0)', track: 'rgba(128,128,128,0)'},
+        to: { thumb: 'rgba(255,255,255,1)', track: 'rgba(128,128,128,1)'}
+      },
+      {
+        from: { thumb: 'transparent', track: 'transparent' },
+        to: { thumb: 'rgba(255,255,255,1)', track: 'rgba(128,128,128,1)'}
+      }
+    ];
+    data.forEach((test) => {
+      test_scrollbar_interpolation(test.from, test.to);
+    });
+  }, 'Verify scrollbar-color-interpolation');
+</script>
+</html>

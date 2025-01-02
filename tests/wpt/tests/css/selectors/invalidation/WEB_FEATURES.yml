@@ -1,0 +1,18 @@
+features:
+- name: has
+  files:
+  - has-*
+  - "*-in-has.*"
+  - "*-in-has-*"
+- name: modal
+  files:
+  - modal-pseudo-class-in-has.html
+- name: nth-child-of
+  files:
+  - nth-child-of-*
+- name: user-pseudos
+  files:
+  - user-valid-user-invalid.html
+- name: state
+  files:
+  - state-in-has.html

@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<head>
+<title>input type button</title>
+<link rel="author" title="Takeharu.Oshida" href="mailto:georgeosddev@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#button-state-(type=button)">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div id="hide" style="display">
+  <input type="button"/>
+  <input type="button" value="BUTTON"/>
+  <form action="/" method="get" onsubmit="isSubmitted = true;return false;">
+    <input type="button" value="mutable"/>
+  </form>
+  <form action="/" method="get" onsubmit="isSubmitted = true;return false;">
+    <input type="button" value="immutable" disabled/>
+  </form>
+</div>
+<script>
+var isSubmitted = false;
+var buttons = document.getElementsByTagName("input");
+
+test(function() {
+  assert_equals(buttons[0].click(), undefined, "The input element represents a button with no default behavior");
+},"default behavior");
+
+test(function() {
+  assert_equals(buttons[0].value, "", "It must be the empty string");
+},"empty value attribute");
+
+test(function() {
+  document.getElementById("hide").style.display = "block";
+  assert_not_equals(buttons[0].offsetWidth, buttons[1].offsetWidth, "If the element has a value attribute, the button's label must be the value of that attribute");
+  document.getElementById("hide").style.display = "none";
+},"label value");
+
+test(function() {
+  isSubmitted = false;
+  buttons[2].click();
+  assert_equals(isSubmitted, false, "If the element is mutable, the element's activation behavior is to do nothing.");
+},"mutable element's activation behavior is to do nothing.");
+
+test(function() {
+  isSubmitted = false;
+  buttons[3].click()
+  assert_equals(isSubmitted, false, "If the element is immutable, the element has no activation behavior.");
+},"immutable element has no activation behavior.");
+</script>
+</body>

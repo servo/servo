@@ -1,0 +1,171 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#outer {
+    width: 1000px;
+}
+#inner {
+    border-style: solid; /* So used border == computed border */
+    outline-style: solid; /* So used outline-width == computed outline-width */
+    transition-property: none; /* so that tests don't occur in the middle of a transition */
+}
+</style>
+</head>
+<body>
+<div id="outer">FOO<div id="inner"></div></div>
+<script>
+
+var div = document.getElementById('inner');
+
+var widthTests = [
+    ['calc(10px)', 'calc(10px)', '10px'],
+
+    // Basic Arithmetic
+    ['calc(10px + 10px)', 'calc(20px)', '20px'],
+    ['calc(10px - 5px)', 'calc(5px)', '5px'],
+    ['calc(2 * 10px)', 'calc(20px)', '20px'],
+    ['calc(10px / 2)', 'calc(5px)', '5px'],
+
+    // Parse ok
+    ['calc(20px/2)', 'calc(10px)', '10px'],
+    ['calc(10px*2)', 'calc(20px)', '20px'],
+
+    // Parse errors - value left over from previous test
+    ['calc(10px-10px)', 'calc(20px)', '20px'],
+    ['calc(5px+5px)', 'calc(20px)', '20px'],
+    ['calc()', 'calc(20px)', '20px'],
+
+    // Combining units
+    ['calc(10px + 10em)', 'calc(10em + 10px)', '170px'],
+    ['calc(10px + 10em - 10px)', 'calc(10em + 0px)', '160px'],
+
+    // Fold absolute units
+    ['calc(96px + 72pt + 6pc + 1in + 2.54cm + 25.4mm)', 'calc(576px)', '576px'],
+
+    // Alphabetical order
+    ['calc(0ch + 0px + 0pt + 0pc + 0in + 0cm + 0mm + 0rem + 0em + 0ex + 0% + 0vw + 0vh + 0vmin + 0vmax)',
+     'calc(0% + 0ch + 0em + 0ex + 0px + 0rem + 0vh + 0vmax + 0vmin + 0vw)',
+     '0px'],
+
+    // Simplification
+    ['calc((2 - 1) * 10px)', 'calc(10px)', '10px'],
+    ['calc(((3 - 1) * (8 + 4)) * 10px)', 'calc(240px)', '240px'],
+    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 155px + 420rem)', '8555px'],
+
+];
+
+widthTests.forEach(function(item) {
+    test(function() {
+        div.style.setProperty('width', item[0]);
+        assert_equals(div.style.getPropertyValue('width'), item[1]);
+        assert_equals(window.getComputedStyle(div).getPropertyValue('width'), item[2]);
+    }, item[0]);
+});
+
+var lengthProperties = [
+  'border-top-width',
+  'border-left-width',
+  'border-right-width',
+  'border-bottom-width',
+  'outline-width',
+  'outline-offset',
+  'letter-spacing',
+  'word-spacing',
+  'column-width',
+  'column-gap',
+  'perspective',
+];
+
+lengthProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1px)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1px)', div.style.getPropertyValue(prop));
+        let computed = getComputedStyle(div).getPropertyValue(prop);
+        assert_equals(computed, '1px', prop + ': expected 1px, got ' + computed);
+    }, 'calc for ' + prop);
+});
+
+var lengthOrPercentageProperties = [
+  'top',
+  'left',
+  'bottom',
+  'right',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'max-width',
+  'max-height',
+  'line-height',
+  'vertical-align',
+  'font-size',
+  'text-indent',
+];
+
+lengthOrPercentageProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1px + 0%)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(0% + 1px)');
+    }, 'calc for ' + prop);
+});
+
+var timeProperties = [
+  'transition-delay',
+  'transition-duration',
+];
+
+timeProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1s)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1s)');
+        assert_equals(getComputedStyle(div).getPropertyValue(prop), '1s');
+    }, 'calc for ' + prop);
+});
+
+var numberProperties = [
+  'z-index',
+  'order',
+  'column-count',
+  'opacity',
+];
+
+numberProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1)');
+        assert_equals(getComputedStyle(div).getPropertyValue(prop), '1');
+    }, 'calc for ' + prop);
+});
+
+var otherProperties = [
+  ['border-width', 'calc(1px)', 'calc(1px)'],
+  ['border-spacing', 'calc(1px)', 'calc(1px)'],
+  ['transform-origin', 'calc(1px + 0%)', 'calc(0% + 1px) center 0px'],
+  ['perspective-origin', 'calc(1px + 0%)', 'calc(0% + 1px) center'],
+  ['background-size', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['background-position', 'calc(1px + 0%) calc(2px + 0%)', 'calc(0% + 1px) calc(0% + 2px)'],
+  ['border-top-left-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['border-bottom-left-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['border-top-right-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['border-bottom-right-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['counter-increment', 'foo calc(1 + 1)', 'foo calc(2)'],
+];
+
+otherProperties.forEach(function(testcase) {
+    test(function() {
+        div.style.setProperty(testcase[0], testcase[1]);
+        assert_equals(div.style.getPropertyValue(testcase[0]), testcase[2]);
+    }, 'calc for ' + testcase[0]);
+});
+
+/* TODO: test these:
+  counter-reset,
+  color, box-shadow, clip, text-shadow, transform
+  transition-timing-function
+  angles
+  */
+</script>
+</head>
+</html>

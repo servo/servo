@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    div.flexbox {
+      border: 1px dashed black;
+      width: 100px;
+      height: 12px;
+      margin-bottom: 2px;
+    }
+    div.halfMainSize {
+      width: 48px;
+      border: 1px solid blue;
+      background: lightblue;
+    }
+    div.hugeMainSize {
+      width: 148px;
+      border: 1px solid purple;
+      background: fuchsia;
+    }
+    div.fullCrossSize {
+      height: 10px;
+    }
+    div.halfCrossSize {
+      height: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Single small flex item -->
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize"></div>
+  </div>
+
+  <!-- Single small flex item with 'margin-left' set to push it to protrude
+       from the far edge of the container (and to shrink as a result) -->
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize"
+         style="margin-left: 80px; width: 18px"></div>
+  </div>
+
+  <!-- Single small inflexible flex item with 'margin-left' set to push it to
+       protrude from the far edge of the container -->
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize"
+         style="margin-left: 80px"></div>
+  </div>
+
+  <!-- Two flex items, exactly large enough to fit in line (no wrapping): -->
+  <div class="flexbox">
+    <div class="halfMainSize fullCrossSize" style="float: left"></div>
+    <div class="halfMainSize fullCrossSize" style="float: left"></div>
+  </div>
+
+  <!-- and now with some margin on first item, to force second item to wrap: -->
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize"></div>
+    <div class="halfMainSize halfCrossSize"></div>
+  </div>
+
+  <!-- and now with some margin on second item, again forcing it to wrap: -->
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize"></div>
+    <div class="halfMainSize halfCrossSize"></div>
+  </div>
+
+  <!-- Single large flex item: overflows (but does not wrap) and is shrunk
+       to fit container's main-size -->
+  <div class="flexbox">
+    <div class="hugeMainSize fullCrossSize" style="width: 98px"></div>
+  </div>
+
+  <!-- Single large flex item: overflows (but does not wrap) -->
+  <div class="flexbox">
+    <div class="hugeMainSize fullCrossSize"></div>
+  </div>
+
+  <!-- Small flex item, followed by large flex item (which wraps to
+       its own line and then shrink to container's main-size) -->
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize"></div>
+    <div class="hugeMainSize halfCrossSize" style="width: 98px"></div>
+  </div>
+
+  <!-- Small flex item, followed by large inflexible flex item (which wraps to
+       its own line and then shrink to container's main-size) -->
+  <div class="flexbox">
+    <div class="halfMainSize halfCrossSize"></div>
+    <div class="hugeMainSize halfCrossSize"></div>
+  </div>
+
+</body>
+</html>

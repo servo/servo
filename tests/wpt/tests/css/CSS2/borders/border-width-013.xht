@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Border-width - length specified with a percentage unit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="Section 8.5.1 Border width" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+  <meta content="invalid" name="flags" />
+  <meta content="A length value specified with a percentage unit does not apply to 'border-width'." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  #parent
+  {
+  height: 300px;
+  width: 400px;
+  }
+
+  #child
+  {
+  border-color: red;
+  border-style: solid;
+  border-width: 0px;
+  border-width: 8%;
+  width: 200px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div id="parent">
+    <div id="child"></div>
+  </div>
+
+ </body>
+</html>

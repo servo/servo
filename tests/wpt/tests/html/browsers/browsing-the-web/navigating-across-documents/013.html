@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Link with onclick navigation to javascript url with delayed document.write and href navigation </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe id="test" name="test"></iframe>
+<a target="test" href="javascript:parent.events.push('javascript');">Test</a>
+<script>
+var t = async_test();
+var events = [];
+t.step(function() {
+  document.getElementsByTagName("a")[0].click();
+  events.push('after script');
+});
+onload = t.step_func(function() {
+  // javascript: executions are async.
+  assert_array_equals(events, ['after script', 'javascript']);
+  t.done();
+});
+</script>

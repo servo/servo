@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!--
+https://wicg.github.io/nav-speculation/prerendering.html#patch-notifications
+TODO(https://crbug.com/1198110): Add the following tests:
+* Test the constructor returns synchronously while the creation of the
+  notification is deferred until activation.
+-->
+<title>Access to the Notification API before and after prerender activation</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+  t.add_cleanup(_ => bc.close());
+
+  await test_driver.set_permission({
+    name: 'notifications'
+  }, 'granted');
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/notification-on-activation.html?uid=${uid}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  assert_equals(result, 'notification showed');
+}, `it is allowed to access the notification API in the prerenderingchange
+    event`);
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+  t.add_cleanup(_ => bc.close());
+
+  await test_driver.set_permission({
+    name: 'notifications'
+  }, 'granted');
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/notification-before-activation.html?uid=${uid}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+
+  const expected = [{
+      event: 'Notification permission is default',
+      prerendering: true
+    },
+    {
+      event: 'started waiting notification',
+      prerendering: true
+    },
+    {
+      event: 'prerendering change',
+      prerendering: false
+    },
+    {
+      event: 'permission was granted',
+      prerendering: false
+    },
+    {
+      event: 'notification displayed',
+      prerendering: false
+    },
+    {
+      event: 'finished waiting notification',
+      prerendering: false
+    },
+  ];
+
+  length = Math.min(result.length, expected.length);
+  let i = 0;
+  for (i = 0; i < length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event[${i}]`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+      `prerendering[${i}]`);
+  }
+  assert_equals(i, expected.length);
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+},
+`Displaying Notification should be deferred until the prerendered page is
+ activated`);
+</script>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>CSS Test: Static positions and line wrapping</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#static-position">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.tests, .no-tests {
+  margin-bottom: 1em;
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+}
+.tests > div, .no-tests > div {
+  position: relative;
+  width: 10ch;
+  border: 1px solid blue;
+}
+.abs {
+  position: absolute;
+  color: orange;
+}
+</style>
+<body>
+  <section class="tests">
+    <div>12345<span class="abs" data-offset-x="50" data-offset-y="0">span</span>54321</div>
+    <div>123456<span class="abs" data-offset-x="60" data-offset-y="0">span</span>654321</div>
+    <div>12345<span class="abs" data-offset-x="50" data-offset-y="0">span</span> 54321</div>
+    <div>12345&nbsp;<span class="abs" data-offset-x="60" data-offset-y="0">span</span> 54321</div>
+    <div>12345&nbsp;<span class="abs" data-offset-x="60" data-offset-y="0">span</span>&nbsp;54321</div>
+  </section>
+  <section class="tests">
+    <!-- offsetTop is interoperable but offsetLeft is not due to white space collapsing. -->
+    <div>12345 <span class="abs" data-offset-y="0">span</span> 54321</div>
+  </section>
+  <section class="no-tests">
+    <!-- These tests are not interoperable. -->
+    <div>12345 <span class="abs">span</span>54321</div>
+    <div>12345 <span class="abs">span</span>&nbsp;54321</div>
+    <div>123456789012&nbsp;<span class="abs">span</span>&nbsp;54321</div>
+    <div>123456789012&nbsp;<span class="abs">span</span>&nbsp;543210987654321</div>
+  </section>
+<script>
+document.fonts.ready.then(()=> {
+  checkLayout('.tests .abs');
+});
+</script>
+</body>

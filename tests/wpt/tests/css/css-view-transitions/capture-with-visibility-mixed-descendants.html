@@ -1,0 +1,56 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>View transitions: visibility hidden/visible descendants</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="capture-with-visibility-mixed-descendants-ref.html">
+<meta name=fuzzy content="maxDifference=0-5; totalPixels=0-500">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+  background: blue;
+}
+.invisible {
+  top: 200px;
+  left: 200px;
+  width: 500px;
+  height: 500px;
+  position: relative;
+  background: red;
+  visibility: hidden;
+}
+.visible {
+  background: green;
+  width: 10px;
+  height: 10px;
+  visibility: visible;
+}
+
+::view-transition-group(root) {
+  visibility: hidden;
+  animation-duration: 500s;
+}
+::view-transition {
+  background: pink;
+}
+</style>
+
+<div class=target>
+  <div class=invisible><div class=visible></div></div>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  const transition = document.startViewTransition();
+  transition.ready.then(takeScreenshot);
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

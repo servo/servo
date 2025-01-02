@@ -1,0 +1,49 @@
+<!doctype html>
+<head>
+	<title>CSS Test (Conditional Rules): Validity of namespaces in selector() in @supports</title>
+	<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-4/#typedef-supports-selector-fn">
+	<link rel="help" href="https://www.w3.org/TR/css-namespaces/">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional/#contents-of">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional/#use">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional/#at-supports">
+	<link rel="match" href="at-supports-001-ref.html">
+	<meta name="assert"
+	      content="Test passes if namespaces used within @supports selector() are valid only if declared in a valid @namespace rule.">
+	<style>
+		@namespace x "http://www.w3.org/1999/xlink";
+		@supports (background: green) {}
+		@namespace y "http://www.w3.org/1999/xlink";
+
+		div {
+			height: 25px;
+			width: 100px;
+		}
+
+		.test1 { background: red; }
+		@supports selector(x|y) {
+			.test1 { background: green; }
+		}
+
+		.test2 { background: green; }
+		@supports selector(y|x) {
+			.test2 { background: red; }
+		}
+
+		.test3 { background: red; }
+		@supports not selector(y|x) {
+			.test3 { background: green; }
+		}
+
+		/* technically redundant with test 001, but need to add to 100px anyway */
+		.test4, x|y { background: green; }
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+	<div class="test1"></div>
+	<div class="test2"></div>
+	<div class="test3"></div>
+	<div class="test4"></div>
+</body>
+</html>

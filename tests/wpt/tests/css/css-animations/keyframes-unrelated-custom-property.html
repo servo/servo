@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Unrelated custom properties do not conflict with each other</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<link rel="help" href="https://crbug.com/1236043">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes test {
+    0% { --x: green; }
+    100% { --x: green; }
+
+    /* This should not affect the background-color of #div: */
+    0% { --unused: yellow; }
+  }
+  #div {
+    animation: test 10s linear paused;
+    background-color: var(--x, red);
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id=div></div>
+<script>
+
+test(() => {
+  assert_equals(getComputedStyle(div).backgroundColor, 'rgb(0, 128, 0)');
+}, 'Unrelated custom properties do not conflict with each other');
+
+</script>

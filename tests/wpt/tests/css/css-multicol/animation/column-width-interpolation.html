@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>column-width interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#cw">
+<meta name="assert" content="column-width supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  column-width: 30px;
+}
+.target {
+  font-size: 0px; /* column-width "specified values must be greater than 0", so use font-size to achieve 0px computed value. */
+  display: inline-block;
+  column-width: 10px;
+}
+</style>
+
+<body>
+<template id="target-template">
+  <div><div class="transformed"></div></div>
+</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'column-width',
+  from: neutralKeyframe,
+  to: '20px',
+}, [
+  {at: -20, expect: '1em'}, // column-width does not accept negative values
+  {at: -1, expect: '1em'}, // column-width does not accept negative values
+  {at: -0.3, expect: '7px'},
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '13px'},
+  {at: 0.6, expect: '16px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '25px'},
+]);
+
+test_no_interpolation({
+  property: 'column-width',
+  from: 'initial',
+  to: '20px',
+});
+
+test_interpolation({
+  property: 'column-width',
+  from: 'inherit',
+  to: '20px',
+}, [
+  {at: -20, expect: '230px'},
+  {at: -1, expect: '40px'},
+  {at: -0.3, expect: '33px'},
+  {at: 0, expect: '30px'},
+  {at: 0.3, expect: '27px'},
+  {at: 0.6, expect: '24px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '15px'},
+]);
+
+test_no_interpolation({
+  property: 'column-width',
+  from: 'unset',
+  to: '20px',
+});
+
+test_interpolation({
+  property: 'column-width',
+  from: '50px',
+  to: '100px',
+}, [
+  {at: -20, expect: '1em'}, // column-width does not accept negative values
+  {at: -1, expect: '1em'}, // column-width does not accept negative values
+  {at: -0.3, expect: '35px'},
+  {at: 0, expect: '50px'},
+  {at: 0.3, expect: '65px'},
+  {at: 0.6, expect: '80px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '125px'},
+]);
+
+test_no_interpolation({
+  property: 'column-width',
+  from: '50px',
+  to: 'auto',
+});
+</script>

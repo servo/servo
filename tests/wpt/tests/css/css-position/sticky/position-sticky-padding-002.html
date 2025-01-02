@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="help" href="https://drafts.csswg.org/css-position/#sticky-pos">
+<link rel="help" href="https://bugzil.la/1882091">
+<link rel="match" href="position-sticky-padding-002-ref.html">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+  .flex,
+  .block {
+    position: relative;
+    width: 200px;
+    height: 300px;
+    padding: 10px;
+    margin: 10px;
+    float: left;
+    overflow: auto;
+    scrollbar-width: none;
+    background-color: #ddd;
+  }
+
+  .flex {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: space-between;
+  }
+
+  .row {
+    height: 100px;
+    background-color: blue;
+  }
+
+  .row-1 {
+    position: sticky;
+    min-width: 300px;
+    left: 0;
+  }
+
+  .row-2 {
+    width: 20px;
+    align-self: start;
+    background-color: purple;
+  }
+  .abspos {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: cyan;
+    left: 600px;
+    top: 0;
+  }
+</style>
+<div class="flex">
+  <div class="row row-1"></div>
+  <div class="row row-2"></div>
+  <div class="abspos"></div>
+</div>
+<div class="block">
+  <div class="row row-1"></div>
+  <div class="row row-2"></div>
+  <div class="abspos"></div>
+</div>
+<script>
+onload = function() {
+  for (let e of document.querySelectorAll('.flex,.block')) {
+    e.scrollLeft = 100000;
+  }
+};
+</script>

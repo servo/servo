@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: Container for ::first-letter/::first-line pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="match" href="pseudo-elements-002b-ref.html">
+<style>
+  .container { container-type: inline-size; }
+
+  @container (max-width: 300px) { #c5::first-letter { color: green } }
+  @container (max-width: 300px) { #c6::first-letter { color: green } }
+
+  @container (min-width: 400px) { #c7::first-letter { color: green } }
+  @container (min-width: 400px) { #c8::first-letter { color: green } }
+
+  @container (max-width: 300px) { #c9::first-line { color: green } }
+  @container (max-width: 300px) { #c10::first-line { color: green } }
+
+  @container (min-width: 400px) { #c11::first-line { color: green } }
+  @container (min-width: 400px) { #c12::first-line { color: green } }
+
+  #c13::first-line { color: red }
+  @container (min-width: 400px) { #c13::first-line { color: green } }
+  @container (min-width: 400px) { #c14::first-line { color: green } }
+</style>
+<div class="container" style="width:400px">
+  <div id="c5" class="container" style="width:300px">PASS if P is green.</div>
+</div>
+<div class="container" style="width:400px">
+  <div id="c6" class="container" style="width:400px">PASS if P is green.</div>
+</div>
+<div id="c7" class="container" style="width:400px">
+  <div class="container" style="width:300px">PASS if P is green.</div>
+</div>
+<div id="c8" class="container" style="width:300px">
+  <div class="container" style="width:300px">PASS if P is green.</div>
+</div>
+<div class="container" style="width:400px">
+  <div id="c9" class="container" style="width:300px">PASS if text is green.</div>
+</div>
+<div class="container" style="width:400px">
+  <div id="c10" class="container" style="width:400px">PASS if text is green.</div>
+</div>
+<div id="c11" class="container" style="width:400px">
+  <div class="container" style="width:300px">PASS if text is green.</div>
+</div>
+<div id="c12" class="container" style="width:300px">
+  <div class="container" style="width:300px">PASS if text is green.</div>
+</div>
+<div id="c13" class="container" style="width:300px">PASS if text is green.</div>
+<div id="c14" class="container" style="width:300px">PASS if text is green.</div>
+<script>
+  document.body.offsetTop;
+  c6.style.width = "300px";
+  c8.style.width = "400px";
+  c10.style.width = "300px";
+  c12.style.width = "400px";
+  c13.style.width = "400px";
+  c14.style.width = "400px";
+</script>

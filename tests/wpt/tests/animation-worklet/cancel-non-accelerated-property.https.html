@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Cancel non accelerated property using worklet animation</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<style>
+#target {
+  background-color: red;
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+  promise_test(async t => {
+    await registerConstantLocalTimeAnimator(1000);
+    const target = document.getElementById('target');
+    const effect = new KeyframeEffect(
+        target,
+        [
+          { background: 'green' },
+          { background: 'blue' },
+        ],
+        {
+          duration: 2000,
+          iteration: Infinity
+        }
+    );
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+
+    await waitForAsyncAnimationFrames(1);
+    // establish that the animation started
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 64, 128)");
+    animation.cancel();
+
+    await waitForAsyncAnimationFrames(1);
+    // confirm the animation is cancelled
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(255, 0, 0)");
+  }, "Animation should update the outputs after starting and then return to pre-animated values after being cancelled");
+</script>

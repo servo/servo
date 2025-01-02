@@ -1,0 +1,82 @@
+[package]
+name = "fonts"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "fonts"
+path = "lib.rs"
+test = true
+doctest = false
+
+[features]
+tracing = ["dep:tracing"]
+
+[dependencies]
+app_units = { workspace = true }
+atomic_refcell = { workspace = true }
+base = { workspace = true }
+bitflags = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+fnv = { workspace = true }
+fontsan = { git = "https://github.com/servo/fontsan" }
+fonts_traits = { workspace = true }
+harfbuzz-sys = "0.6.1"
+ipc-channel = { workspace = true }
+itertools = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+memmap2 = { workspace = true }
+net_traits = { workspace = true }
+num-traits = { workspace = true }
+parking_lot = { workspace = true }
+range = { path = "../range" }
+serde = { workspace = true }
+servo_arc = { workspace = true }
+servo_atoms = { workspace = true }
+servo_config = { path = "../config" }
+servo_url = { path = "../url" }
+smallvec = { workspace = true, features = ["union"] }
+style = { workspace = true }
+tracing = { workspace = true, optional = true }
+unicode-properties = { workspace = true }
+unicode-script = { workspace = true }
+url = { workspace = true }
+webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ohos_mock)'] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+byteorder = { workspace = true }
+core-foundation = "0.9"
+core-graphics = "0.23"
+core-text = "20.1"
+
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+harfbuzz-sys = { version = "0.6", features = ["bundled"] }
+freetype-sys = { workspace = true }
+servo_allocator = { path = "../allocator" }
+
+[target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
+fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+xml-rs = "0.8"
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+harfbuzz-sys = { version = "0.6.1", features = ["bundled"] }
+
+
+[target.'cfg(target_os = "windows")'.dependencies]
+harfbuzz-sys = { version = "0.6", features = ["bundled"] }
+dwrote = "0.11.2"
+truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }

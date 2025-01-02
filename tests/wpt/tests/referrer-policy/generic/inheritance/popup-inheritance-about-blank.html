@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Referrer Policy: popup src="about:blank"</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="referrer" content="origin">
+<body>
+<script>
+const testFetchClientReferrer =
+  async_test("The fetch() API in an about:blank popup with the 'client' " +
+             "referrer is fetched with no 'Referer' header");
+const testFetchURLReferrer =
+  async_test("The fetch() API in an about:blank popup with a custom URL " +
+             "referrer is fetched with a 'Referer` header that uses the " +
+             "outer document's URL along with its referrer policy");
+const testDocumentReferrer =
+  async_test("The value of document.referrer in an about:blank popup is the " +
+             "outer document's full URL, regardless of referrer policy");
+const testSubresource =
+  async_test("A subresource fetched from an about:blank popup is fetched " +
+             "with no 'Referer' header");
+
+window.addEventListener("message", msg => {
+  const test_name = msg.data.test;
+  const referrer = msg.data.referrer;
+  if (test_name === "testFetchClientReferrer") {
+    // Because the URL of the document of the popup opened through
+    // `window.open()` is "about:blank", the stripped URL is no referrer:
+    // https://w3c.github.io/webappsec-referrer-policy/#strip-url.
+    testFetchClientReferrer.step_func_done(() => {
+      assert_equals(referrer, undefined);
+    })();
+  } else if (test_name === "testFetchURLReferrer") {
+    // The "about:blank" popup inherits its opener's referrer policy.
+    // Note: Setting an explicit URL as referrer is allowed per spec because the
+    // same-origin check at https://fetch.spec.whatwg.org/#dom-request is done
+    // against the popup's origin, which inherits the opener document's origin.
+    testFetchURLReferrer.step_func_done(() => {
+      assert_equals(referrer, location.origin + '/');
+    })();
+  } else if (test_name === "testDocumentReferrer") {
+    // The referrer of the initial document in an about:blank popup is set to
+    // its creating document's URL, unredacted by a referrer policy, as per step
+    // 17 of:
+    // https://html.spec.whatwg.org/multipage/browsers.html#creating-a-new-browsing-context.
+    testDocumentReferrer.step_func_done(() => {
+      assert_equals(referrer, location.href);
+    })();
+  } else if (test_name === "testSubresource") {
+    // Because the URL of the document of the popup is "about:blank", the
+    // stripped URL is no referrer:
+    // https://w3c.github.io/webappsec-referrer-policy/#strip-url.
+    //
+    // Note: this test is essentially the same as "testFetchClientReferrer" (the
+    // only difference is that the fetch is not initiated by javascript).
+    // Compared to the other test, we expect the empty string here instead of
+    // `undefined` just because of a testing quirk.
+    testSubresource.step_func_done(() => {
+      assert_equals(referrer, "");
+    })();
+  }
+});
+
+const popup = window.open();
+const script = popup.document.createElement('script');
+
+script.textContent = `
+  // Test fetch() API with default "client" referrer.
+  fetch("${location.origin}/common/security-features/subresource/xhr.py?name=testFetchClientReferrer")
+    .then(r => r.json())
+    .then(j => {
+        opener.postMessage({test: "testFetchClientReferrer", referrer: j.headers.referer}, "*")
+      }).catch(e => {
+        opener.postMessage({test: "testFetchClientReferrer", referrer: "FAILURE"}, "*");
+      });
+
+  // Test fetch() API with custom URL referrer.
+  fetch("${location.origin}/common/security-features/subresource/xhr.py?name=URL",
+      {referrer: "${location.href}/custom"})
+    .then(r => r.json())
+    .then(j => {
+        opener.postMessage({test: "testFetchURLReferrer", referrer: j.headers.referer}, "*")
+      }).catch(e => {
+        opener.postMessage({test: "testFetchURLReferrer", referrer: "FAILURE"}, "*");
+      });
+
+  // Test document.referrer.
+  opener.postMessage({test: "testDocumentReferrer", referrer: document.referrer}, "*");
+
+  // Test a subresource being fetched by the popup.
+  // This is practicallty the same as the first test: the only difference is
+  // that here the fetch is not triggered by a javascript fetch function but by
+  // a script element with a src tag embedded in the html source.
+  const subresource_script = document.createElement('script');
+  subresource_script.src = "${location.origin}/common/security-features/subresource/referrer.py";
+  subresource_script.onload = e => {
+    opener.postMessage({test: "testSubresource", referrer: window.referrer}, "*");
+  }
+  subresource_script.onerror = function(e) {
+    opener.postMessage({test: "testSubresource", referrer: "FAILURE"}, "*");
+  };
+  document.head.appendChild(subresource_script);
+`;
+popup.document.body.appendChild(script);
+</script>

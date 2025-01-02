@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text Test: Overflowing hanging spaces should be ink overflow</title>
+
+  <!--
+
+  Issue 4297: [css-text-3] Hanging spaces can't be scrollable overflow
+  https://github.com/w3c/csswg-drafts/issues/4297
+
+  Resolution:
+  Hanging spaces are ink overflow by default.
+  UAs may make them scrollable overflow when
+  they think that would be useful.
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#hanging">
+  <link rel="help" href="https://www.w3.org/TR/css-overflow-3/#ink">
+  <link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-021-ref.html">
+
+  <meta content="should" name="flags">
+  <meta content="This test checks that overflowing hanging spaces at end of line are treated as ink overflow. The overflowing hanging spaces at end of line should not extend the scrollable overflow area of the tested box. Therefore the no horizontal scrollbar condition of the test." name="assert">
+
+  <style>
+  div
+    {
+      border: black solid 2px;
+      font-family: monospace;
+      font-size: 32px;
+      line-height: 1.25; /* computes to 40px */
+      margin-bottom: 0.25em;
+      width: 16ch;
+    }
+
+  span
+    {
+      background-color: yellow;
+    }
+
+  div#test
+    {
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+  div#reference
+    {
+      white-space: normal;
+    }
+  </style>
+
+  <p>Test passes if the characters inside each black-bordered rectangle are laid out identically and if each black-bordered rectangle does not generate a horizontal scrollbar.
+
+  <div id="test">Lorem ipsum.<span>        </span>Dolor
+   sit amet. <br>consectetur</div>
+
+  <div id="reference">Lorem&nbsp;ipsum.<span>&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+Dolor<br>
+&nbsp;&nbsp;&nbsp;sit amet. <br>
+consectetur</div>

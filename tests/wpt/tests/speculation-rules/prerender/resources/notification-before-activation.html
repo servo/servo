@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-notification.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  prerenderEventCollector.addEvent(
+    `Notification permission is ${Notification.permission}`);
+  const promise = Notification.requestPermission()
+    .then(permission => {
+      prerenderEventCollector.addEvent(`permission was ${permission}`);
+      if (permission !== "granted") return;
+      const displayPromise = new Promise((resolve, reject) => {
+        const notification = new Notification("Prerender Notification");
+        notification.onshow = () => {
+          prerenderEventCollector.addEvent('notification displayed');
+          resolve("Displayed");
+        };
+        notification.onerror = () => {
+          reject("Error on displaying notification");
+        };
+      });
+      return displayPromise;
+    });
+  prerenderEventCollector.start(promise, 'notification');
+}
+
+</script>

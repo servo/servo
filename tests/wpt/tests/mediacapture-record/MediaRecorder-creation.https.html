@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaRecorder Creation</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+<script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+</head>
+<script>
+  // This test verifies that MediaRecorder can be created with different Media
+  // Stream Track combinations: 1 Video Track only, 1 Audio Track only and finally
+  // a Media Stream with both a Video and an Audio Track. Note that recording is
+  // _not_ started in this test, see MediaRecorder-audio-video.html for it.
+
+  function makeAsyncTest(constraints, verifyStream, message) {
+    async_test(function(test) {
+
+      const gotStream = test.step_func(function(stream) {
+        verifyStream(stream);
+
+        var recorder = new MediaRecorder(stream);
+        assert_equals(recorder.state, "inactive");
+        assert_not_equals(recorder.videoBitsPerSecond, 0);
+        assert_not_equals(recorder.audioBitsPerSecond, 0);
+        test.done();
+      });
+
+      const onError = test.unreached_func('Error creating MediaStream.');
+      setMediaPermission().then(() => navigator.mediaDevices.getUserMedia(constraints)).then(gotStream, onError);
+    }, message);
+  }
+
+  function verifyVideoOnlyStream(stream) {
+    assert_equals(stream.getAudioTracks().length, 0);
+    assert_equals(stream.getVideoTracks().length, 1);
+    assert_equals(stream.getVideoTracks()[0].readyState, 'live');
+  }
+  function verifyAudioOnlyStream(stream) {
+    assert_equals(stream.getAudioTracks().length, 1);
+    assert_equals(stream.getVideoTracks().length, 0);
+    assert_equals(stream.getAudioTracks()[0].readyState, 'live');
+  }
+  function verifyAudioVideoStream(stream) {
+    assert_equals(stream.getAudioTracks().length, 1);
+    assert_equals(stream.getVideoTracks().length, 1);
+    assert_equals(stream.getVideoTracks()[0].readyState, 'live');
+    assert_equals(stream.getAudioTracks()[0].readyState, 'live');
+  }
+
+  // Note: webkitGetUserMedia() must be called with at least video or audio true.
+  makeAsyncTest({video:true}, verifyVideoOnlyStream, 'Video-only MediaRecorder');
+  makeAsyncTest({audio:true}, verifyAudioOnlyStream, 'Audio-only MediaRecorder');
+  makeAsyncTest({audio:true, video:true}, verifyAudioVideoStream, 'Video+Audio MediaRecorder');
+
+</script>
+</html>

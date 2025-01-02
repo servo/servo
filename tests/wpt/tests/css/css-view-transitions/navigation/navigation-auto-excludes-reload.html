@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: basic cross-document navigation</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="navigation-auto-excludes-reload-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+html {
+  background: limegreen;
+}
+::view-transition {
+  background-color: red;
+}
+::view-transition-group(root) {
+  animation-duration: 300s;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  opacity: 0;
+  animation: none;
+}
+</style>
+<script>
+if (location.hash == '#loaded') {
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+} else {
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+}
+
+function runTest() {
+  location.hash = 'loaded';
+  location.reload();
+}
+</script>
+</html>

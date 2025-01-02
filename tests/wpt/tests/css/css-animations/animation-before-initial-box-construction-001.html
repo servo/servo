@@ -1,0 +1,53 @@
+<!doctype html>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="mailto:https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1605610">
+<link rel="help" href="https://drafts.csswg.org/web-animations/#extensions-to-the-element-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let t = async_test("animations started before initial-containing-block creation properly function");
+let loaded = false;
+let finished = false;
+let span;
+
+function check() {
+  if (!loaded || !finished)
+    return;
+
+  assert_equals(getComputedStyle(span).opacity, "1", "Animation should be properly finished");
+  t.done();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  span = document.createElement("span");
+  span.id = "myspan";
+  span.innerHTML = `Some content`;
+  document.body.appendChild(span);
+
+  let anim = span.animate([
+    {
+      opacity: "0",
+    },
+    {
+      opacity: "1",
+    },
+  ], {
+    duration: 300,
+  });
+
+  anim.finished.then(t.step_func(function() {
+    finished = true;
+    check();
+  }));
+});
+
+window.addEventListener("load", t.step_func(function() {
+  loaded = true;
+  check();
+}));
+</script>
+<!-- It is important that there are no more script after this stylesheet -->
+<link rel="stylesheet" href="empty-sheet.css?pipe=trickle(d2)">
+<body>
+</body>

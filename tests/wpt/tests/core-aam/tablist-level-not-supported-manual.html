@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <title>tablist level not supported</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "doesNotContain",
+                  "level:2"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXValue",
+                  "isNot",
+                  "2"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "doesNotContain",
+                  "level:2"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "AriaProperties.level",
+                  "isNot",
+                  "2"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "tablist level not supported"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for tablist with author-provided level.</p>
+    <div role='tablist' id='test' aria-level='2'>
+    <div role='tab'>content</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

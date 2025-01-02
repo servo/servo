@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>multicol ::column::scroll-marker, remove columns</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+  #container {
+    overflow: hidden;
+    columns: 3;
+    column-fill: auto;
+    gap: 0;
+    height: 25px;
+    scroll-marker-group: before;
+  }
+  #container::scroll-marker-group {
+    overflow: auto;
+    display: flex;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  #container::column::scroll-marker {
+    width: 100px;
+    height: 100px;
+    flex: none;
+    content: "";
+    background: green;
+  }
+</style>
+<div id="container">
+  <div style="height:100px;"></div>
+</div>
+<script>
+  requestAnimationFrame(()=> {
+    requestAnimationFrame(()=> {
+      document.documentElement.classList.remove("reftest-wait");
+      container.style.height = "100px";
+    });
+  });
+</script>

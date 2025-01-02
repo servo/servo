@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: background-image</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#background-image"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c533-bgimage-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   p {background-image: url(support/1x1-lime.png);}
+   .one {background-image: none;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'"/>
+ </head>
+ <body>
+  <p> This sentence should have a bright green background. </p>
+  <p> This sentence <span class="one">should have a bright green background</span> too.</p>
+ </body>
+</html>

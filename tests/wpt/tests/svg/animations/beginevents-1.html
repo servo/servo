@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>beginEvent dispatching</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="red">
+    <animate begin="click" dur="10ms" fill="freeze"
+             attributeName="fill" from="red" to="blue"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    window.onload = t.step_func(() => {
+      let rect = document.querySelector("svg > rect");
+      let animate = rect.firstElementChild;
+      let beginEventCount = 0;
+      animate.addEventListener('beginEvent', t.step_func(() => {
+        beginEventCount++;
+      }));
+      animate.addEventListener('endEvent', t.step_func_done(() => {
+        assert_equals(beginEventCount, 1);
+      }));
+      rect.dispatchEvent(new Event("click"));
+    });
+  });
+</script>

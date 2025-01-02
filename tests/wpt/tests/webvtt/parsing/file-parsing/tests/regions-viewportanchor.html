@@ -1,0 +1,66 @@
+<!doctype html>
+<!-- DO NOT EDIT! This file and support/regions-viewportanchor.vtt are generated. -->
+<!-- See /webvtt/parsing/file-parsing/README.md -->
+<meta charset=utf-8>
+<title>WebVTT parser test: regions, viewportanchor</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-region-settings">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var t = async_test('regions, viewportanchor');
+t.step(function(){
+    var video = document.createElement('video');
+    var track = document.createElement('track');
+    assert_true('src' in track, 'track element not supported');
+    track.src = 'support/regions-viewportanchor.vtt';
+    track['default'] = true;
+    track.kind = 'subtitles';
+    track.onload = this.step_func(trackLoaded);
+    track.onerror = this.step_func(trackError);
+    video.appendChild(track);
+    document.body.appendChild(video);
+});
+
+function trackLoaded(event) {
+    var track = event.target;
+    var video = track.parentNode;
+    var cues = video.textTracks[0].cues;
+    {
+assert_equals(cues.length, 20);
+
+var regions = Array.from(cues).map(function(cue) {
+    return cue.region;
+});
+
+var valid_anchors = [
+    [0, 100],
+    [0, 0],
+    [1, 1],
+    [100, 0],
+    [0, 100],
+    [100, 100],
+];
+valid_anchors.forEach(function(pair, index) {
+    var anchorX = pair[0];
+    var anchorY = pair[1];
+
+    assert_equals(regions[index].viewportAnchorX, anchorX, 'Failed with region ' + index);
+    assert_equals(regions[index].viewportAnchorY, anchorY, 'Failed with region ' + index);
+});
+
+for (var i = 0; i < 14; i++) {
+    var index = valid_anchors.length + i;
+
+    assert_equals(regions[index].viewportAnchorX, 0, 'Failed with region ' + index);
+    assert_equals(regions[index].viewportAnchorY, 100, 'Failed with region ' + index);
+}
+
+    }
+    this.done();
+}
+
+function trackError(e) {
+    assert_unreached('got unexpected error event');
+}
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: @page margins on top and right using percentages</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-margins"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="A percentage right margin in the @page context applies to the page box and is relative to the width of the page box. A percentage top margin in the @page context applies to the page box and is relative to the height of the page box."/>
+  <style type="text/css"><![CDATA[
+   @page  {
+		margin-top: 50%;
+		margin-right: 50%;
+	}
+	html, body {background: #ccc;}
+  ]]></style>
+ </head>
+ <body>
+  <div>This paragraph must appear inside a grey box. The box should appear in the lower-left quadrant of the page. The top edge of the box should be exactly halfway down the page, and the right edge of the box should be exactly half way across the page (You can test this by folding the page in half).</div>
+ </body>
+</html>

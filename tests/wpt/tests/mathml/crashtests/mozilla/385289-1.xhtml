@@ -1,0 +1,30 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script>
+function boom()
+{
+  var mss = document.getElementById("mss");
+
+  var j = document.createTextNode("j");
+  var comb = document.createTextNode("\u0302");
+
+  mss.appendChild(j);
+  mss.appendChild(comb);
+}
+</script>
+</head>
+
+<body onload="boom()">
+
+<div>
+  <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+    <msub id="mss">
+      <mi>v</mi>
+      <mn>1</mn>
+    </msub>
+  </math>
+</div>
+
+</body>
+
+</html>

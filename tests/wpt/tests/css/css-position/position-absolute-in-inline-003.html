@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>
+  Out-of-flow positioned element with inline containing block.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#def-cb">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #container {
+    font: 20px/1 Ahem;
+    color: white;
+  }
+  .abs {
+    position: absolute;
+    background-color: green;
+    height: 100px;
+    width: 100px;
+    top: -60px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container" style="height: 100px; width: 100px; background-color: red;">
+  <div style="height: 60px;"></div>
+  B
+  <span style="position: relative;">
+    <div></div>
+    AA
+    <div class="abs"></div>
+  </span>
+</div>

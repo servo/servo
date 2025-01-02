@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow Reference: test scrollbar-gutter with vertical right to left content</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  .line {
+    display: flex;
+  }
+
+  .container {
+    writing-mode: vertical-rl;
+    direction: ltr;
+
+    box-sizing: border-box;
+    block-size: 200px;
+    inline-size: 200px;
+    margin: 10px;
+    background: deepskyblue;
+    resize: both;
+  }
+
+  .content {
+    inline-size: 100%;
+    block-size: 200%;
+    background: lightsalmon;
+  }
+  </style>
+
+  <div class="line">
+    <div class="container" style="overflow-x: auto">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-x: scroll" id="container_scroll_stable">
+      <div class="content" id="content_scroll_stable"></div>
+    </div>
+
+    <div class="container" style="overflow-x: hidden" id="container_hidden_stable">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container" style="overflow-x: auto;" id="container_auto_stable_both_edges">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-x: scroll" id="container_scroll_stable_both_edges">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-x: hidden;" id="container_hidden_stable_both_edges">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <script>
+  let container_scroll_stable = document.getElementById("container_scroll_stable");
+  let content_scroll_stable = document.getElementById("content_scroll_stable");
+  let hScrollbarHeight = (container_scroll_stable.offsetHeight - content_scroll_stable.offsetHeight);
+  let hScrollbarHeightStr = hScrollbarHeight + "px";
+
+  // Simulate scrollbar-gutter via padding on containers.
+  document.getElementById("container_hidden_stable").style.paddingInlineEnd = hScrollbarHeightStr;
+  document.getElementById("container_auto_stable_both_edges").style.paddingInlineStart = hScrollbarHeightStr;
+  document.getElementById("container_scroll_stable_both_edges").style.paddingInlineStart = hScrollbarHeightStr;
+  document.getElementById("container_hidden_stable_both_edges").style.paddingInlineStart = hScrollbarHeightStr;
+  document.getElementById("container_hidden_stable_both_edges").style.paddingInlineEnd = hScrollbarHeightStr;
+  </script>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: calc() function in 'min-height' and 'box-sizing: border-box' (complex)</title>
+
+  <!--
+
+  Original test is:
+
+https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793f5b9668cc/third_party/WebKit/LayoutTests/css3/calc/calc-min-height.html
+
+  The original test is related to:
+
+  Issue 580508: Height of content changes after multiple reloads
+  https://bugs.chromium.org/p/chromium/issues/detail?id=580508
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#calc-notation">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+  <meta name="assert" content="This test checks how 'min-height' with calc(percentage) and 'box-sizing' are handled. The percentage in the calc() is calculated on the content box height of div#container.">
+
+  <style>
+  div#container
+    {
+      border-bottom: transparent solid 100px;
+      border-right: transparent solid 100px;
+      height: 400px;
+      width: 100px;
+    }
+
+  div#item
+    {
+      background-color: red;
+      box-sizing: border-box;
+      height: 50px;
+      min-height: calc(50% - 100px);
+    }
+
+  div#item > div
+    {
+      background-color: green;
+      border-bottom: green solid 34px; /* arbitrary border-bottom-width value */
+      border-top: green solid 12px; /* arbitrary border-top-width value */
+      box-sizing: border-box;
+      height: 17px;
+      min-height: 100%; /* content height should be 100px - 34px - 12px == 54px */
+      overflow-y: visible;
+      /*
+      If the content height of innermost div is taller
+      than 54px, then a green rectangle (not a square)
+      will be created.
+
+      If the content height of innermost div is less
+      than 54px, then an horizontal stripe of red
+      will become visible.
+      */
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="container">
+
+    <div id="item">
+
+      <div></div>
+
+    </div>
+
+  </div>

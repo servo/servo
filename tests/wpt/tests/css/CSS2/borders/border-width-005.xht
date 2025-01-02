@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-width shorthand property set to 'inherit', inheriting one value</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-25 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+		<link rel="match" href="border-width-005-ref.xht" />
+
+        <meta name="assert" content="The 'border-width' property set to 'inherit' correctly inherits the one value specified on the parent element." />
+        <style type="text/css">
+            #parent
+            {
+                border-color: transparent;
+                border-style: solid;
+                border-width: 0.5in;
+            }
+            #test
+            {
+                border-style: solid;
+                border-width: inherit;
+                width: 0;
+            }
+            #reference
+            {
+                background-color: black;
+                height: 1in;
+                margin-top: 5px;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the 2 filled black rectangles have the <strong>same size</strong>.</p>
+        <div id="parent">
+            <div id="test"></div>
+            <div id="reference"></div>
+        </div>
+    </body>
+</html>

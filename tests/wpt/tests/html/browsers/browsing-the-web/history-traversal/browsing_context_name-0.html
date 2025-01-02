@@ -1,0 +1,35 @@
+<iframe id="test"></iframe>
+<script>
+var opener = window.opener;
+var t = opener.t;
+var f = document.getElementById("test");
+var l = opener.document.getElementById("step_log");
+
+log = function(t) {l.textContent += ("\n" + t)}
+var navigated = false;
+var steps = [
+  () => f.src = "browsing_context_name-1.html",
+  () => {
+    navigated = true;
+    opener.assert_equals(f.contentWindow.name, "test", "Initial load");
+    f.src = "browsing_context_name-2.html"
+  },
+  () => {
+    opener.assert_equals(f.contentWindow.name, "test1");
+    opener.assert_equals(history.length, 2);
+    history.back()
+  },
+  () => {
+    opener.assert_equals(f.contentWindow.name, "test1", "After navigation");
+    t.done();
+  }
+].map((x, i) => t.step_func(() => {log("Step " + (i+1)); x()}));
+
+next = () => steps.shift()();
+
+onload = () => {
+  log("page load");
+  f.onload = () => {log("iframe onload"); next()};
+  setTimeout(next, 0);
+};
+</script>

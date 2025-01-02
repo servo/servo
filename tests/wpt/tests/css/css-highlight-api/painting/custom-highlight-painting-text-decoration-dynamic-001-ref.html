@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Highlight API Test: Reference ::highlight dynamic change text-decoration</title>
+<style>
+  ::highlight(example) {
+    text-decoration: solid underline green;
+  }
+</style>
+<p>The test passes if it line below has a green underline.</p>
+<div id="target">target</div>
+<script>
+  let range = new Range();
+  range.setStart(target, 0);
+  range.setEnd(target, 1);
+  CSS.highlights.set(`example`, new Highlight(range));
+</script>

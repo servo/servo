@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing max-width with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-max-width">
+<meta name="assert" content="max-width supports the full grammar '[ [<length> | <percentage>] && [border-box | content-box]? ] | available | min-content | max-content | fit-content | none'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("max-width", "none");
+
+test_valid_value("max-width", "10px");
+test_valid_value("max-width", "20%");
+test_valid_value("max-width", "calc(2em + 3ex)");
+
+test_valid_value("max-width", "min-content");
+test_valid_value("max-width", "max-content");
+test_valid_value("max-width", "fit-content");
+
+// The following are not yet supported by browsers:
+// test_valid_value("max-width", "available");
+// test_valid_value("max-width", "10px border-box");
+// test_valid_value("max-width", "content-box 20%", "20% content-box");
+</script>
+</body>
+</html>

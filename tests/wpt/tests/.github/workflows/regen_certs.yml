@@ -1,0 +1,34 @@
+name: certificates
+on:
+  # Our certificates are good for ~1 year, but we regenerate them every
+  # month to be sure. Also support manually triggering the workflow.
+  schedule:
+    - cron: 0 0 12 * *
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
+    steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Regenerate certs
+      run: |
+        python wpt make-hosts-file | sudo tee -a /etc/hosts
+        python wpt regen-certs --force
+    - name: Commit and create pull request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        author: wpt-pr-bot <wpt-pr-bot@users.noreply.github.com>
+        commit-message: Automated regeneration of WPT certificates
+        title: Regenerate WPT certificates
+        body: |
+          This automated pull request renews the core WPT certificates.
+
+          See the [workflow](https://github.com/web-platform-tests/wpt/blob/master/.github/workflows/regen_certs.yml) for how this pull request was created.
+        branch: actions/regen-certs

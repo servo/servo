@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Testing dynamic changes and the '+' combinator</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#adjacent-selectors"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#attribute-selectors"/>
+  <link rel="match" href="dynamic-sibling-combinator-001-ref.xht"/>
+  <meta name="flags" content="dom" />
+  <meta name="assert" content="Dynamically changing an attribute should cause selectors using '+' to match as needed."/>
+  <style type="text/css"><![CDATA[
+      div { color: red; }
+      [class=foo] + div { color: green; }
+      [class=foo] + div + div { color: green; }
+      [class=foo] + div + div + div { color: green; }
+      [class=foo] + div + div + div + div { color: green; }
+      [class=foo] + div + div + div + div + div { color: green; }
+      [class=foo] + div + div + div + div + div + div { color: green; }
+      [class=foo] + div + div + div + div + div + div + div { color: green; }
+      [class=foo] + div + div + div + div + div + div + div + div { color: green; }
+      [class=foo] + div + div + div + div + div + div + div + div + div { color: green; }
+      [class=foo] + div + div + div + div + div + div + div + div + div + div { color: green; }
+  ]]></style>
+  <script type="text/javascript"><![CDATA[
+    window.onload = function() {
+      document.body.offsetWidth;
+      document.getElementById("test").className = "foo";
+    }
+  ]]></script>
+ </head>
+ <body>
+   <div id="test"></div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+   <div>This should be green</div>
+ </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 400px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+  .pagebox {
+    display: flex;
+    break-before: page;
+    height: 400px;
+  }
+  .pagearea {
+    margin: 50px;
+    border: 10px dotted;
+    padding: 20px;
+  }
+</style>
+<div class="pagebox">
+  <div class="pagearea" style="border-color:orange;">
+    White background (including page margins). Orange dotted border. Black text.
+  </div>
+</div>
+<div class="pagebox" style="background:yellow;">
+  <div class="pagearea" style="border-color:hotpink;">
+    Yellow background (including page margins). Hotpink dotted border. Black text.
+  </div>
+</div>
+<div class="pagebox" style="background:cyan;">
+  <div class="pagearea">
+    Cyan background (including page margins). Black dotted border. Black text.
+  </div>
+</div>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Test: Max-Width applied to element with 'float' set to 'left'</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="The float should be 100px wide, not 200px.">
+
+<style>
+.float {
+  float: left;
+  height: 100px;
+  width: 200px;
+  max-width: 100px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+<div class="float"></div>

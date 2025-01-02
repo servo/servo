@@ -1,0 +1,5 @@
+--min-version 2.0.1 format-r11f-g11f-b10f.html
+read-pixels-from-fbo-test.html
+--min-version 2.0.1 read-pixels-from-rgb8-into-pbo-bug.html
+read-pixels-into-pixel-pack-buffer.html
+read-pixels-pack-parameters.html

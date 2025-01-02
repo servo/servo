@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo Test: active selection of text within a svg object styled with 'color'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="help" href="https://www.w3.org/TR/fill-stroke-3/#fill-color">
+  <link rel="match" href="reference/svg-text-selection-002-ref.html">
+
+  <meta content="svg" name="flags">
+  <meta content="This test checks that an SVG application with a text can be selected and then be styled with 'color'." name="assert">
+
+  <style>
+  text::selection
+    {
+      color: green;
+    }
+  </style>
+
+  <p>Test passes if the glyphs of "Selected text" are green and <strong>not red</strong>.
+
+  <div>
+
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="460" height="180" style="border: black solid 3px;">
+
+      <text x="50" y="100" fill="red" font-size="48" id="test">Selected text</text>
+
+    </svg>
+
+  </div>
+
+  <script>
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+
+  targetRange.setStart(document.getElementById("test").childNodes[0], 0);
+  /*
+  Then we set the start boundary of the range inside text#test to
+  the 1st character, which is "S"
+  */
+
+  targetRange.setEnd(document.getElementById("test").childNodes[0], 13);
+  /* And we set the end boundary of the range inside text#test
+  right after the 14th character which is "t" */
+
+   window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  </script>

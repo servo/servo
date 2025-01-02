@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: overflow-wrap: anywhere with fit-content</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#overflow-wrap-property">
+<link rel="match" href="reference/overflow-wrap-break-word-fit-content-001.html">
+<meta name="assert" content="The 'overflow-wrap: anywhere' must not break non-BMP characters (which might be represented as surrogate pairs internally)">
+<style>
+.test {
+  display: inline-block;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: .2em;
+}
+</style>
+<body>
+<div id="log"></div>
+<p class="instructions">Tests pass if all lines do not wrap.
+<div><div class="test">&#x1D70B;</div></div>
+<div><div class="test">𝜋</div></div>
+</body>

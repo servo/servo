@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds Test: 'background-clip: text' and painting of multi-line text</title>
+
+  <!--
+
+  Inspired by
+
+  http://wpt.live/css/css-backgrounds/background-clip/clip-text-multi-line.html
+
+  For more info, see
+
+  https://github.com/web-platform-tests/wpt/pull/30812#issuecomment-1314514987
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="author" href="mailto:mmaxfield@apple.com" title="Myles C. Maxfield">
+  <link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+  <link rel="match" href="clip-text-multi-line-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-5846" />
+  <style>
+  div
+    {
+      background-clip: text;
+      background-color: red;
+      background-image: linear-gradient(green, green);
+      color: transparent;
+      font-family: Ahem;
+      font-size: 30px;
+      line-height: 1.5;
+    }
+  </style>
+
+  <p>Test passes if there are 2 green stripes and if the top stripe is half the width of the bottom stripe.
+
+  <div>12345<br>1234567890</div>

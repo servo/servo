@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-kerning: none; low-level equivalence test</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+    font-family: fwf;
+    font-size: 2em;
+    line-height: 1.1;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+  }
+</style>
+<body>
+
+<p>Test passes if the three lines of <em>vertical</em> text below are identical, with two crosses (✗). </p>
+<section class="test">
+<p class="ref">BB</p>
+<p class="ref">BB</p>
+<p class="ref">BB</p>
+</section>

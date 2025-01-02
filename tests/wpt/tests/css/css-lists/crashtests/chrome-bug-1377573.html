@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Chrome crash with nested ::after::marker with failing list-style-image</title>
+<link rel="help" href="https://crbug.com/1377573">
+<style>
+  :is(body, html)::after {
+    display: list-item;
+    content: " ";
+  }
+  :root { list-style-image:url('.'); }
+</style>
+<body>
+

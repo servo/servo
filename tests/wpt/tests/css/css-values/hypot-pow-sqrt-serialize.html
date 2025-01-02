@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#exponent-funcs">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div id=target></div>
+<script>
+function test_serialization(t,s,c) {
+    test_specified_serialization('opacity', t, s);
+    test_specified_serialization('transform', `scale(${t})`, `scale(calc(${c}))`);
+    test_computed_serialization('opacity', t, c);
+    test_computed_serialization('transform', `scale(${t})`, `matrix(${c}, 0, 0, ${c}, 0, 0)`);
+}
+
+test_serialization(
+    'pow(1,1)',
+    'calc(1)',
+    '1');
+test_serialization(
+    'hypot(1)',
+    'calc(1)',
+    '1');
+test_serialization(
+    'sqrt(1)',
+    'calc(1)',
+    '1');
+
+test_serialization(
+    'calc(pow(1,1) - 0.5)',
+    'calc(0.5)',
+    '0.5');
+test_serialization(
+    'calc(hypot(1) * 0.5)',
+    'calc(0.5)',
+    '0.5');
+test_serialization(
+    'calc(sqrt(1) - 1)',
+    'calc(0)',
+    '0');
+
+test_specified_serialization('letter-spacing', 'hypot(2px, 40%)', 'hypot(2px, 40%)');
+</script>

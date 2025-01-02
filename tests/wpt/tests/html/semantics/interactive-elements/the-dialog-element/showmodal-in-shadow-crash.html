@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:futhark@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=850664">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=851384">
+
+<div id="dialog">
+  <div id="item"></div>
+</div>
+<script>
+const itemRoot = item.attachShadow({mode: 'open'});
+const dialogRoot = dialog.attachShadow({mode: 'open'});
+dialogRoot.innerHTML = '<dialog><slot></slot></dialog>';
+dialog.offsetTop;
+dialogRoot.firstChild.showModal();
+</script>

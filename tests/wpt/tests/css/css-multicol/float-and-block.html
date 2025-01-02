@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Paint order with float VS regular block is correct inside multicol</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/zindex.html#painting-order" title="E.2 Painting order">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-gap:0; width:100px; background:hotpink;">
+  <div style="float:left; width:50px; height:200px; background:green;"></div>
+  <div style="height:200px; background:red;"></div>
+</div>

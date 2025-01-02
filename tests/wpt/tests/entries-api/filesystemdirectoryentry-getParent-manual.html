@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryEntry getParent() manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-directoryentry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+
+  assert_idl_attribute(entry, 'getParent', 'FileSystemDirectoryEntry has getParent');
+  assert_equals(typeof entry.getParent, 'function', 'getParent() is a method');
+
+  t.done();
+}, 'FileSystemDirectoryEntry - getParent()');
+</script>

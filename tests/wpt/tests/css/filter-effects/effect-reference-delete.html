@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Filters: reference to deleted SVG filter</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=90405">
+<link rel="match" href="reference/effect-reference-delete-ref.html">
+<meta name="assert" content="Check that a CSS filter no longer affects its target element after having deleted the SVG element referenced from the CSS filter."/>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<svg width="0" height="0">
+  <defs>
+    <filter id="MyFilter">
+      <feColorMatrix type="hueRotate" values="180"/>
+    </filter>
+  </defs>
+</svg>
+<img style="filter: url(#MyFilter);" src="support/color-palette.png">
+<script>
+waitForAtLeastOneFrame().then(function() {
+  document.querySelector('svg').remove();
+  takeScreenshot();
+});
+</script>
+</html>

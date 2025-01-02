@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover element appearance</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="match" href="popover-appearance-ref.html">
+
+<style>
+[popover] {top: 100px; bottom: auto;}
+[popover=""] {left: -300px}
+[popover=auto] {left: -100px; }
+[popover=manual] {left: 100px; }
+[popover=invalid] {left: 300px; }
+</style>
+
+<p>There should be four popovers with similar appearance.</p>
+<div popover>Blank
+  <div popover=auto>Auto</div>
+</div>
+<div popover=manual>Manual</div>
+<!-- This ensures unsupported popover values are treated as popover=manual -->
+<div popover=invalid>Invalid</div>
+<script>
+  document.querySelectorAll('[popover]').forEach(p => p.showPopover());
+</script>

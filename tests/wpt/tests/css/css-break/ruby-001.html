@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#breaking-rules">
+<link rel="help" href="https://www.w3.org/TR/css-ruby-1/">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  ruby {
+      ruby-position: under;
+  }
+  ruby div {
+      display: inline-block;
+      vertical-align: top;
+      width: 25px;
+      background: green;
+  }
+  .main {
+      height: 75px;
+  }
+  .annotation {
+      height: 25px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="columns:4; column-fill:auto; column-gap:0; height:175px; orphans:1; widows:1;">
+    <ruby><div class="main"></div><rt><div class="annotation"></div></rt></ruby><br>
+    <ruby><div class="main"></div><rt><div class="annotation"></div></rt></ruby><br>
+    <ruby><div class="main"></div><rt><div class="annotation"></div></rt></ruby><br>
+    <ruby><div class="main"></div><rt><div class="annotation"></div></rt></ruby><br>
+  </div>
+</div>

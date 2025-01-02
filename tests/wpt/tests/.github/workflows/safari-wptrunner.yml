@@ -1,0 +1,115 @@
+name: Run Safari Tests
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: "Prefix for the artifact uploaded"
+        required: true
+        type: string
+      safari-technology-preview:
+        description: "Run Safari Technology Preview rather than the system Safari"
+        required: true
+        type: boolean
+      safaridriver-diagnose:
+        description: "Run safaridriver capturing diagnostics"
+        required: true
+        type: boolean
+
+# We never interact with the GitHub API, thus we can simply disable all
+# permissions the GitHub token would have.
+permissions: {}
+
+jobs:
+  safari-results:
+    name: ${{ inputs.safari-technology-preview && 'Safari Technology Preview' || 'Safari' }}
+    runs-on:
+      - self-hosted
+      - webkit-ews
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        current-chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        total-chunks: [8]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4.1.0
+        with:
+          fetch-depth: 1
+      - name: Set display color profile
+        run: |-
+          ./wpt macos-color-profile
+      - name: Enable safaridriver diagnostics
+        if: inputs.safaridriver-diagnose
+        run: |-
+          rm -rf ~/Library/Logs/com.apple.WebDriver/
+          defaults write com.apple.WebDriver DiagnosticsEnabled 1
+      - name: Enable safaridriver (Safari)
+        if: ${{ !inputs.safari-technology-preview }}
+        run: |-
+          set -eux -o pipefail
+          sudo safaridriver --enable
+      - name: Enable safaridriver (Safari Technology Preview)
+        if: ${{ inputs.safari-technology-preview }}
+        run: |-
+          set -eux -o pipefail
+          export SYSTEM_VERSION_COMPAT=0
+          ./wpt install --channel preview --download-only -d . --rename STP safari browser
+          sudo installer -pkg STP.pkg -target LocalSystem
+          sudo /Applications/Safari\ Technology\ Preview.app/Contents/MacOS/safaridriver --enable
+      - name: Update hosts
+        run: |-
+          set -eux -o pipefail
+          ./wpt make-hosts-file | sudo tee -a /etc/hosts
+      - name: Update manifest
+        run: ./wpt manifest
+      - name: Run tests
+        run: |-
+          set -eux -o pipefail
+          export SYSTEM_VERSION_COMPAT=0
+          ./wpt run \
+            --no-manifest-update \
+            --no-restart-on-unexpected \
+            --no-fail-on-unexpected \
+            --this-chunk=${{ matrix.current-chunk }} \
+            --total-chunks=${{ matrix.total-chunks }} \
+            --chunk-type hash \
+            --log-wptreport ${{ runner.temp }}/wpt_report_${{ matrix.current-chunk }}.json \
+            --log-wptscreenshot ${{ runner.temp }}/wpt_screenshot_${{ matrix.current-chunk }}.txt \
+            --log-mach - \
+            --log-mach-level info \
+            --channel ${{ inputs.safari-technology-preview && 'preview' || 'stable' }} \
+            --kill-safari \
+            --max-restarts 100 \
+            safari
+      - name: Publish results
+        uses: actions/upload-artifact@v4.1.0
+        with:
+          name: ${{ inputs.artifact-name }}-${{ matrix.current-chunk }}
+          path: |
+            ${{ runner.temp }}/wpt_report_*.json
+            ${{ runner.temp }}/wpt_screenshot_*.txt
+          if-no-files-found: "error"
+      - name: Publish safaridriver logs
+        if: inputs.safaridriver-diagnose
+        uses: actions/upload-artifact@v4.1.0
+        with:
+          name: ${{ inputs.artifact-name }}-safaridriver-logs-${{ matrix.current-chunk }}
+          path: ~/Library/Logs/com.apple.WebDriver/
+          if-no-files-found: warn
+      - name: Disable safaridriver diagnostics
+        if: inputs.safaridriver-diagnose
+        run: |-
+          defaults write com.apple.WebDriver DiagnosticsEnabled 0
+          rm -rf ~/Library/Logs/com.apple.WebDriver/
+      - name: Cleanup
+        if: always()
+        run: |-
+            set -ux
+            sudo sed -i '' '/^# Start web-platform-tests hosts$/,/^# End web-platform-tests hosts$/d' /etc/hosts
+
+  safari-notify:
+    needs: safari-results
+    uses: ./.github/workflows/wpt_fyi_notify.yml
+    with:
+      artifact-name: "${{ inputs.artifact-name }}-*"

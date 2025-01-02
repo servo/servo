@@ -1,0 +1,19 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(String(MouseEvent).indexOf("function MouseEvent("), 0);
+
+  var ev = new MouseEvent("press", {bubbles: true, screenX: 150, detail: 100});
+
+  assert_true(ev instanceof Event, "Should be Event");
+  assert_true(ev instanceof UIEvent, "Should be UIEvent");
+  assert_true(ev instanceof MouseEvent, "Should be MouseEvent");
+  assert_equals(ev.screenX, 150);
+  assert_equals(ev.detail, 100);
+});
+</script>
+</head>
+</html>

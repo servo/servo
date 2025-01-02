@@ -1,0 +1,30 @@
+<html>
+  <head>
+    <title>Density Corrected Size: SVG aspect ratio (cross-origin)</title>
+    <link rel="match" href="density-corrected-image-svg-aspect-ratio-ref.html" />
+    <meta name="assert" content="Assert that SVG aspect ratio is applied correctly on density-corrected images">
+  </head>
+  <body>
+    <svg style="width: 800px; height: 800px">
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" x="0" y="0" width="120" height="120" preserveAspectRatio="xMinYMin meet"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-lores.jpg" x="200" y="0" width="120" height="120" preserveAspectRatio="xMidYMin meet"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" x="400" y="0" width="120" height="120" preserveAspectRatio="xMaxYMin meet"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-non-uniform.jpg" x="600" y="0" width="120" height="120" preserveAspectRatio="xMidYMin meet"></image>
+
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-lores.jpg" x="0" y="150" width="120" height="120" preserveAspectRatio="xMinYMid slice"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" x="200" y="150" width="120" height="120" preserveAspectRatio="xMidYMid slice"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-lores.jpg" x="400" y="150" width="120" height="120" preserveAspectRatio="xMaxYMid slice"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-non-uniform.jpg" x="600" y="150" width="120" height="120" preserveAspectRatio="xMinYMid slice"></image>
+
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" x="200" y="300" width="120" height="120" preserveAspectRatio="xMidYMax meet"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-lores.jpg" x="400" y="300" width="120" height="120" preserveAspectRatio="xMaxYMax meet"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-non-uniform.jpg" x="600" y="300" width="120" height="120" preserveAspectRatio="xMaxYMid slice"></image>
+
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" x="0" y="450" width="120" height="120" preserveAspectRatio="none"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-lores.jpg" x="200" y="450" width="120" height="120" preserveAspectRatio="none"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-non-uniform.jpg" x="400" y="450" width="120" height="120" preserveAspectRatio="none"></image>
+        <image xlink:href="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-non-uniform.jpg" x="600" y="450" width="120" height="120" preserveAspectRatio="xMaxYMax meet"></image>
+    </svg>
+    </div>
+  </body>
+</html>

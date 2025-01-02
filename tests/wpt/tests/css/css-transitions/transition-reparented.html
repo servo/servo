@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transition should cancel when an element is reparented</title>
+<link rel="help" href="https://www.w3.org/TR/css-transitions-1/#starting">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.animated-div {
+  margin-left: 100px;
+  transition: margin-left 10s -5s linear;
+}
+</style>
+
+<div id="parent1">
+  <div id="target" class='animated-div'></div>
+</div>
+
+<div id="parent2"></div>
+
+<script>
+'use strict';
+
+test(t => {
+  assert_equals(getComputedStyle(target).marginLeft, '100px');
+  target.style.marginLeft = '200px';
+
+  // Because the start delay is -50% of the transition duration, we should
+  // immediately be (approximately) at the halfway point. What we really care
+  // about checking is that the transition has started but has not ended.
+  assert_not_equals(getComputedStyle(target).marginLeft, '100px');
+  assert_not_equals(getComputedStyle(target).marginLeft, '200px');
+
+  // Now change the target's parent. This should cancel the transition and
+  // skip straight to the end state.
+  parent2.appendChild(target);
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+}, 'When an element is reparented, any CSS Transition on it should be cancelled');
+</script>

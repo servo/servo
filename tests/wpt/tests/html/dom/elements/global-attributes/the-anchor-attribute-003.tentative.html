@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>Tests that ::before, ::after and ::backdrop pseudo elements use originating element's implicit anchor</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/9144">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#implicit">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+#anchor {
+  width: 100px;
+  height: 100px;
+  margin-left: 150px;
+  margin-top: 50px;
+  background: orange;
+}
+#target::before, #target::after {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: lime;
+}
+#target::before{
+  content: '';
+  right: anchor(left);
+  top: anchor(top);
+}
+#target::after{
+  content: '';
+  left: anchor(right);
+  top: anchor(top);
+}
+
+dialog::backdrop {
+  top: calc(anchor(top) - 10px);
+  right: calc(anchor(right) - 10px);
+  bottom: calc(anchor(bottom, 0px) - 10px);
+  left: calc(anchor(left, 0px) - 10px);
+  background: lime;
+}
+
+</style>
+<div id="anchor"></div>
+<div id="target" anchor="anchor"></div>
+<dialog id="dialog" anchor="anchor"></div>
+
+<script>
+test(() => {
+  let style = getComputedStyle(target, '::before');
+  assert_equals(style.left, '50px');
+  assert_equals(style.top, '50px');
+}, "::before uses originating element's implicit anchor");
+
+test(() => {
+  let style = getComputedStyle(target, '::after');
+  assert_equals(style.left, '250px');
+  assert_equals(style.top, '50px');
+}, "::after uses originating element's implicit anchor");
+
+test(() => {
+  dialog.showModal();
+  let style = getComputedStyle(dialog, '::backdrop');
+  assert_equals(style.left, '140px');
+  assert_equals(style.top, '40px');
+  assert_equals(style.width, '120px');
+  assert_equals(style.height, '120px');
+}, "::backdrop uses originating element's implicit anchor");
+</script>

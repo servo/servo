@@ -1,0 +1,991 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Sample HTML5 API Tests</title>
+<meta name="timeout" content="6000">
+</head>
+<body onload="load_test_attr.done()">
+<h1>Sample HTML5 API Tests</h1>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup_run = false;
+    setup(function() {
+            setup_run = true;
+          });
+    test(function() {assert_true(setup_run)}, "Setup function ran");
+
+    // Two examples for testing events from handler and attributes
+    var load_test_event = async_test("window onload event fires when set from the handler");
+
+    function windowLoad()
+    {
+        load_test_event.done();
+    }
+    on_event(window, "load", windowLoad);
+
+    test(function() {
+        var sequence = [];
+        var outer = document.createElement("div");
+        var inner = document.createElement("div");
+        outer.appendChild(inner);
+        document.body.appendChild(outer);
+        inner.addEventListener("click", function() {
+            sequence.push("inner");
+        }, false);
+
+        on_event(outer, "click", function() {
+            sequence.push("outer");
+        });
+        inner.click();
+
+        assert_array_equals(sequence, ["inner", "outer"]);
+    }, "on_event does not use event capture");
+
+    // see the body onload below
+    var load_test_attr = async_test("body element fires the onload event set from the attribute");
+</script>
+<script>
+    function bodyElement()
+    {
+        assert_equals(document.body, document.getElementsByTagName("body")[0]);
+    }
+    test(bodyElement, "document.body should be the first body element in the document");
+
+    test(function() {
+        assert_equals(1,1);
+        assert_equals(NaN, NaN, "NaN case");
+        assert_equals(0, 0, "Zero case");
+    }, "assert_equals tests")
+
+    test(function() {
+        assert_equals(-0, 0, "Zero case");
+    }, "assert_equals tests expected to fail")
+
+    test(function() {
+        assert_not_equals({}, {}, "object case");
+        assert_not_equals(-0, 0, "Zero case");
+    }, "assert_not_equals tests")
+
+    function testAssertPass()
+    {
+        assert_true(true);
+    }
+    test(testAssertPass, "assert_true expected to pass");
+
+    function testAssertFalse()
+    {
+        assert_true(false, "false should not be true");
+    }
+    test(testAssertFalse, "assert_true expected to fail");
+
+    function basicAssertArrayEquals()
+    {
+        assert_array_equals([1, NaN], [1, NaN], "[1, NaN] is equal to [1, NaN]");
+    }
+    test(basicAssertArrayEquals, "basic assert_array_equals test");
+
+    function assertArrayEqualsUndefined()
+    {
+        assert_array_equals(undefined, [1], "undefined equals [1]?");
+    }
+    test(assertArrayEqualsUndefined, "assert_array_equals with first param undefined");
+
+    function assertArrayEqualsTrue()
+    {
+        assert_array_equals(true, [1], "true equals [1]?");
+    }
+    test(assertArrayEqualsTrue, "assert_array_equals with first param true");
+
+    function assertArrayEqualsFalse()
+    {
+        assert_array_equals(false, [1], "false equals [1]?");
+    }
+    test(assertArrayEqualsFalse, "assert_array_equals with first param false");
+
+    function assertArrayEqualsNull()
+    {
+        assert_array_equals(null, [1], "null equals [1]?");
+    }
+    test(assertArrayEqualsNull, "assert_array_equals with first param null");
+
+    function assertArrayEqualsNumeric()
+    {
+        assert_array_equals(1, [1], "1 equals [1]?");
+    }
+    test(assertArrayEqualsNumeric, "assert_array_equals with first param 1");
+
+    function basicAssertArrayApproxEquals()
+    {
+        assert_array_approx_equals([10, 11], [11, 10], 1, "[10, 11] is approximately (+/- 1) [11, 10]")
+    }
+    test(basicAssertArrayApproxEquals, "basic assert_array_approx_equals test");
+
+    function basicAssertApproxEquals()
+    {
+        assert_approx_equals(10, 11, 1, "10 is approximately (+/- 1) 11")
+    }
+    test(basicAssertApproxEquals, "basic assert_approx_equals test");
+
+    function basicAssertLessThan()
+    {
+        assert_less_than(10, 11, "10 is less than 11")
+    }
+    test(basicAssertApproxEquals, "basic assert_less_than test");
+
+    function basicAssertGreaterThan()
+    {
+        assert_greater_than(10, 11, "10 is not greater than 11");
+    }
+    test(basicAssertGreaterThan, "assert_greater_than expected to fail");
+
+    function basicAssertGreaterThanEqual()
+    {
+        assert_greater_than_equal(10, 10, "10 is greater than or equal to 10")
+    }
+    test(basicAssertGreaterThanEqual, "basic assert_greater_than_equal test");
+
+    function basicAssertLessThanEqual()
+    {
+        assert_greater_than_equal('10', 10, "'10' is not a number")
+    }
+    test(basicAssertLessThanEqual, "assert_less_than_equal expected to fail");
+
+    function testAssertInherits() {
+        var A = function(){this.a = "a"}
+        A.prototype = {b:"b"}
+        var a = new A();
+        assert_own_property(a, "a");
+        assert_not_own_property(a, "b", "unexpected property found: \"b\"");
+        assert_inherits(a, "b");
+    }
+    test(testAssertInherits, "test for assert[_not]_own_property and insert_inherits")
+
+    test(function()
+    {
+        var a = document.createElement("a")
+        var b = document.createElement("b")
+        assert_throws_dom("NOT_FOUND_ERR", function () {a.removeChild(b)});
+    }, "Test throw DOM exception")
+
+    test(function()
+    {
+        var a = document.createElement("a")
+        var b = document.createElement("b")
+        assert_throws_js(DOMException, function () {a.removeChild(b)});
+    }, "Test throw DOMException as JS exception expected to fail")
+
+    test(function()
+    {
+        assert_throws_js(SyntaxError, function () {document.querySelector("")});
+    }, "Test throw SyntaxError DOMException where JS SyntaxError expected; expected to fail")
+
+    test(function()
+    {
+        assert_throws_js(SyntaxError, function () {JSON.parse("{")});
+    }, "Test throw JS SyntaxError")
+
+    test(function()
+    {
+        assert_throws_dom("SyntaxError", function () {document.querySelector("")});
+    }, "Test throw DOM SyntaxError")
+
+    test(function()
+    {
+        var ifr = document.createElement("iframe");
+        document.body.appendChild(ifr);
+        this.add_cleanup(() => ifr.remove());
+        assert_throws_dom("SyntaxError", ifr.contentWindow.DOMException,
+                          function () {ifr.contentDocument.querySelector("")});
+    }, "Test throw DOM SyntaxError from subframe");
+
+    test(function()
+    {
+        var ifr = document.createElement("iframe");
+        document.body.appendChild(ifr);
+        this.add_cleanup(() => ifr.remove());
+        assert_throws_dom("SyntaxError",
+                          function () {ifr.contentDocument.querySelector("")});
+    }, "Test throw DOM SyntaxError from subframe with incorrect global expectation; expected to fail");
+
+    test(function()
+    {
+        var ifr = document.createElement("iframe");
+        document.body.appendChild(ifr);
+        this.add_cleanup(() => ifr.remove());
+        assert_throws_dom("SyntaxError", ifr.contentWindow.DOMException,
+                          function () {document.querySelector("")});
+    }, "Test throw DOM SyntaxError with incorrect expectation; expected to fail");
+
+    test(function()
+    {
+        assert_throws_dom("SyntaxError", function () {JSON.parse("{")});
+    }, "Test throw JS SyntaxError where SyntaxError DOMException expected; expected to fail")
+
+    test(function()
+    {
+        var a = document.createTextNode("a")
+        var b = document.createElement("b")
+        assert_throws_dom("NOT_FOUND_ERR", function () {a.appendChild(b)});
+    }, "Test throw DOM exception expected to fail")
+
+    test(function()
+    {
+        var e = new DOMException("I am not known", "TEST_ERROR_NO_SUCH_THING");
+        assert_throws_dom(0, function() {throw e});
+    }, "Test assert_throws_dom with ambiguous DOM-exception expected to Fail");
+
+    test(function()
+    {
+        var e = {code:0, name:"TEST_ERR", TEST_ERR:0};
+        e.constructor = DOMException;
+        assert_throws_dom("TEST_ERR", function() {throw e});
+    }, "Test assert_throws_dom with non-DOM-exception expected to Fail");
+
+    test(function()
+    {
+        var e = {code: DOMException.SYNTAX_ERR, name:"SyntaxError"};
+        e.constructor = DOMException;
+        assert_throws_dom(DOMException.SYNTAX_ERR, function() {throw e});
+    }, "Test assert_throws_dom with number code value expected to Pass");
+
+    test(function()
+    {
+        var e = new DOMException("Some message", "SyntaxError");
+        assert_throws_dom(DOMException.SYNTAX_ERR, function() {throw e});
+    }, "Test assert_throws_dom with number code value and real DOMException expected to Pass");
+
+    var t = async_test("Test step_func")
+    setTimeout(
+      t.step_func(
+        function () {
+          assert_true(true); t.done();
+        }), 0);
+
+    async_test(function(t) {
+        setTimeout(t.step_func(function (){assert_true(true); t.done();}), 0);
+    }, "Test async test with callback");
+
+    async_test(function() {
+        setTimeout(this.step_func(function (){assert_true(true); this.done();}), 0);
+    }, "Test async test with callback and `this` obj.");
+
+    async_test("test should timeout (fail) with the default of 2 seconds").step(function(){});
+
+    async_test("async test that is never started, should have status Not Run");
+
+
+    test(function(t) {
+             window.global = 1;
+             t.add_cleanup(function() {delete window.global});
+             assert_equals(window.global, 1);
+         },
+         "Test that defines a global and cleans it up");
+
+    test(function() {assert_equals(window.global, undefined)},
+         "Test that cleanup handlers from previous test ran");
+
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "TIMEOUT",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Setup function ran",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test assert_throws_dom with ambiguous DOM-exception expected to Fail",
+      "message": "Test bug: ambiguous DOMException code 0 passed to assert_throws_dom()",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test assert_throws_dom with non-DOM-exception expected to Fail",
+      "message": "Test bug: unrecognized DOMException code name or name \"TEST_ERR\" passed to assert_throws_dom()",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test assert_throws_dom with number code value expected to Pass",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test assert_throws_dom with number code value and real DOMException expected to Pass",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test async test with callback",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test async test with callback and `this` obj.",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test step_func",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test that cleanup handlers from previous test ran",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test that defines a global and cleans it up",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test throw DOM exception",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw DOMException as JS exception expected to fail",
+      "message": "assert_throws_js: function \"function DOMException() {\n    [native code]\n}\" is not an Error subtype",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw SyntaxError DOMException where JS SyntaxError expected; expected to fail",
+      "message": "assert_throws_js: function \"function () {document.querySelector(\"\")}\" threw object \"SyntaxError: Document.querySelector: '' is not a valid selector\" (\"SyntaxError\") expected instance of function \"function SyntaxError() {\n    [native code]\n}\" (\"SyntaxError\")",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test throw JS SyntaxError",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test throw DOM SyntaxError",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test throw DOM SyntaxError from subframe",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw DOM SyntaxError from subframe with incorrect global expectation; expected to fail",
+      "message": "assert_throws_dom: function \"function () {ifr.contentDocument.querySelector(\"\")}\" threw an exception from the wrong global",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw DOM SyntaxError with incorrect expectation; expected to fail",
+      "message": "assert_throws_dom: function \"function () {document.querySelector(\"\")}\" threw an exception from the wrong global",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw JS SyntaxError where SyntaxError DOMException expected; expected to fail",
+      "message": "assert_throws_dom: function \"function () {JSON.parse(\"{\")}\" threw object \"SyntaxError: JSON.parse: end of data while reading object contents at line 1 column 2 of the JSON data\" that is not a DOMException SyntaxError: property \"code\" is equal to undefined, expected 12",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Test throw DOM exception expected to fail",
+      "message": "assert_throws_dom: function \"function () {a.appendChild(b)}\" threw object \"HierarchyRequestError: Node.appendChild: Cannot add children to a Text\" that is not a DOMException NOT_FOUND_ERR: property \"code\" is equal to 3, expected 8",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_array_equals with first param 1",
+      "message": "assert_array_equals: 1 equals [1]? value is 1, expected array",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_array_equals with first param false",
+      "message": "assert_array_equals: false equals [1]? value is false, expected array",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_array_equals with first param null",
+      "message": "assert_array_equals: null equals [1]? value is null, expected array",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_array_equals with first param true",
+      "message": "assert_array_equals: true equals [1]? value is true, expected array",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_array_equals with first param undefined",
+      "message": "assert_array_equals: undefined equals [1]? value is undefined, expected array",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_equals tests",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_equals tests expected to fail",
+      "message": "assert_equals: Zero case expected 0 but got -0",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_greater_than expected to fail",
+      "message": "assert_greater_than: 10 is not greater than 11 expected a number greater than 11 but got 10",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_less_than_equal expected to fail",
+      "message": "assert_greater_than_equal: '10' is not a number expected a number but got a \"string\"",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_not_equals tests",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "assert_true expected to fail",
+      "message": "assert_true: false should not be true expected true got false",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true expected to pass",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "NOTRUN",
+      "name": "async test that is never started, should have status Not Run",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "basic assert_approx_equals test",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "basic assert_array_approx_equals test",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "basic assert_array_equals test",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "basic assert_greater_than_equal test",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "basic assert_less_than test",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "body element fires the onload event set from the attribute",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "document.body should be the first body element in the document",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "test for assert[_not]_own_property and insert_inherits",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "TIMEOUT",
+      "name": "test should timeout (fail) with the default of 2 seconds",
+      "message": "Test timed out",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "window onload event fires when set from the handler",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "on_event does not use event capture",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "summarized_asserts": [
+    {
+      "assert_name": "assert_true",
+      "test": "Setup function ran",
+      "args": [
+        "true"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_array_equals",
+      "test": "on_event does not use event capture",
+      "args": [
+        "[\"inner\", \"outer\"]",
+        "[\"inner\", \"outer\"]"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_equals",
+      "test": "document.body should be the first body element in the document",
+      "args": [
+        "Element node <body onload=\"load_test_attr.done()\"> <h1>Sample HTML5 AP...",
+        "Element node <body onload=\"load_test_attr.done()\"> <h1>Sample HTML5 AP..."
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_equals",
+      "test": "assert_equals tests",
+      "args": [
+        "1",
+        "1"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_equals",
+      "test": "assert_equals tests",
+      "args": [
+        "NaN",
+        "NaN",
+        "\"NaN case\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_equals",
+      "test": "assert_equals tests",
+      "args": [
+        "0",
+        "0",
+        "\"Zero case\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_equals",
+      "test": "assert_equals tests expected to fail",
+      "args": [
+        "-0",
+        "0",
+        "\"Zero case\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_not_equals",
+      "test": "assert_not_equals tests",
+      "args": [
+        "object \"[object Object]\"",
+        "object \"[object Object]\"",
+        "\"object case\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_not_equals",
+      "test": "assert_not_equals tests",
+      "args": [
+        "-0",
+        "0",
+        "\"Zero case\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_true",
+      "test": "assert_true expected to pass",
+      "args": [
+        "true"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_true",
+      "test": "assert_true expected to fail",
+      "args": [
+        "false",
+        "\"false should not be true\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_array_equals",
+      "test": "basic assert_array_equals test",
+      "args": [
+        "[1, NaN]",
+        "[1, NaN]",
+        "\"[1, NaN] is equal to [1, NaN]\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_array_equals",
+      "test": "assert_array_equals with first param undefined",
+      "args": [
+        "undefined",
+        "[1]",
+        "\"undefined equals [1]?\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_array_equals",
+      "test": "assert_array_equals with first param true",
+      "args": [
+        "true",
+        "[1]",
+        "\"true equals [1]?\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_array_equals",
+      "test": "assert_array_equals with first param false",
+      "args": [
+        "false",
+        "[1]",
+        "\"false equals [1]?\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_array_equals",
+      "test": "assert_array_equals with first param null",
+      "args": [
+        "null",
+        "[1]",
+        "\"null equals [1]?\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_array_equals",
+      "test": "assert_array_equals with first param 1",
+      "args": [
+        "1",
+        "[1]",
+        "\"1 equals [1]?\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_array_approx_equals",
+      "test": "basic assert_array_approx_equals test",
+      "args": [
+        "[10, 11]",
+        "[11, 10]",
+        "1",
+        "\"[10, 11] is approximately (+/- 1) [11, 10]\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_approx_equals",
+      "test": "basic assert_approx_equals test",
+      "args": [
+        "10",
+        "11",
+        "1",
+        "\"10 is approximately (+/- 1) 11\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_approx_equals",
+      "test": "basic assert_less_than test",
+      "args": [
+        "10",
+        "11",
+        "1",
+        "\"10 is approximately (+/- 1) 11\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_greater_than",
+      "test": "assert_greater_than expected to fail",
+      "args": [
+        "10",
+        "11",
+        "\"10 is not greater than 11\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_greater_than_equal",
+      "test": "basic assert_greater_than_equal test",
+      "args": [
+        "10",
+        "10",
+        "\"10 is greater than or equal to 10\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_greater_than_equal",
+      "test": "assert_less_than_equal expected to fail",
+      "args": [
+        "\"10\"",
+        "10",
+        "\"'10' is not a number\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_own_property",
+      "test": "test for assert[_not]_own_property and insert_inherits",
+      "args": [
+        "object \"[object Object]\"",
+        "\"a\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_not_own_property",
+      "test": "test for assert[_not]_own_property and insert_inherits",
+      "args": [
+        "object \"[object Object]\"",
+        "\"b\"",
+        "\"unexpected property found: \\\"b\\\"\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_inherits",
+      "test": "test for assert[_not]_own_property and insert_inherits",
+      "args": [
+        "object \"[object Object]\"",
+        "\"b\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test throw DOM exception",
+      "args": [
+        "\"NOT_FOUND_ERR\"",
+        "function \"function () {a.removeChild(b)}\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_throws_js",
+      "test": "Test throw DOMException as JS exception expected to fail",
+      "args": [
+        "function \"function DOMException() {     [native code] }\"",
+        "function \"function () {a.removeChild(b)}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_js",
+      "test": "Test throw SyntaxError DOMException where JS SyntaxError expected; expected to fail",
+      "args": [
+        "function \"function SyntaxError() {     [native code] }\"",
+        "function \"function () {document.querySelector(\"\")}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_js",
+      "test": "Test throw JS SyntaxError",
+      "args": [
+        "function \"function SyntaxError() {     [native code] }\"",
+        "function \"function () {JSON.parse(\"{\")}\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test throw DOM SyntaxError",
+      "args": [
+        "\"SyntaxError\"",
+        "function \"function () {document.querySelector(\"\")}\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test throw DOM SyntaxError from subframe",
+      "args": [
+        "\"SyntaxError\"",
+        "function \"function DOMException() {     [native code] }\"",
+        "function \"function () {ifr.contentDocument.querySelector(\"\")}\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test throw DOM SyntaxError from subframe with incorrect global expectation; expected to fail",
+      "args": [
+        "\"SyntaxError\"",
+        "function \"function () {ifr.contentDocument.querySelector(\"\")}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test throw DOM SyntaxError with incorrect expectation; expected to fail",
+      "args": [
+        "\"SyntaxError\"",
+        "function \"function DOMException() {     [native code] }\"",
+        "function \"function () {document.querySelector(\"\")}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test throw JS SyntaxError where SyntaxError DOMException expected; expected to fail",
+      "args": [
+        "\"SyntaxError\"",
+        "function \"function () {JSON.parse(\"{\")}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test throw DOM exception expected to fail",
+      "args": [
+        "\"NOT_FOUND_ERR\"",
+        "function \"function () {a.appendChild(b)}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test assert_throws_dom with ambiguous DOM-exception expected to Fail",
+      "args": [
+        "0",
+        "function \"function() {throw e}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test assert_throws_dom with non-DOM-exception expected to Fail",
+      "args": [
+        "\"TEST_ERR\"",
+        "function \"function() {throw e}\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test assert_throws_dom with number code value expected to Pass",
+      "args": [
+        "12",
+        "function \"function() {throw e}\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Test assert_throws_dom with number code value and real DOMException expected to Pass",
+      "args": [
+        "12",
+        "function \"function() {throw e}\""
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_equals",
+      "test": "Test that defines a global and cleans it up",
+      "args": [
+        "1",
+        "1"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_equals",
+      "test": "Test that cleanup handlers from previous test ran",
+      "args": [
+        "undefined",
+        "undefined"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_true",
+      "test": "Test step_func",
+      "args": [
+        "true"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_true",
+      "test": "Test async test with callback",
+      "args": [
+        "true"
+      ],
+      "status": 0
+    },
+    {
+      "assert_name": "assert_true",
+      "test": "Test async test with callback and `this` obj.",
+      "args": [
+        "true"
+      ],
+      "status": 0
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

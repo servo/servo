@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="block-end margins in nested content should be trimmed when they collapse through to the outer block container">
+<style>
+.trim {
+    margin-trim: block;
+}
+container {
+    display: block;
+}
+item {
+    display: block;
+    inline-size: 50px;
+    block-size: 10px;
+    background-color: green;
+}
+.collapsed {
+    margin-block: 50px 100px;
+    block-size: 0px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('.collapsed')">
+    <div id="target">
+        <container class="trim">
+            <container>
+                <item data-offset-y="8"></item>
+                <container>
+                    <item></item>
+                    <container>
+                        <item></item>
+                        <container>
+                            <item></item>
+                            <container>
+                                <item></item>
+                                <item data-offset-y="58" class="collapsed"></item>
+                            </container>
+                        </container>
+                    </container>
+                </container>
+            </container>
+        </container>
+    </div>
+</body>
+</html>

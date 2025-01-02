@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../../resources/popup-test.js"></script>
+<script>
+
+promise_test(async t => {
+    const popup_token = token();
+    const second_popup_token = token();
+    const reply_token = token();
+
+    const unsafe_none_url = getExecutorPath(
+          popup_token,
+          SAME_ORIGIN.origin,
+          { coop: "unsafe-none"});
+
+    const restrict_properties_url = getExecutorPath(
+          second_popup_token,
+          SAME_ORIGIN.origin,
+          { coop: "restrict-properties"});
+
+    // We open popup and then ping it, it will respond after loading.
+    const popup = window.open(unsafe_none_url);
+    send(popup_token, `send('${reply_token}', 'Popup loaded');`);
+    assert_equals(await receive(reply_token), 'Popup loaded');
+
+    // Make sure the popup will be closed once the test has run, keeping a clean
+    // state.
+    t.add_cleanup(() => {
+      send(popup_token, `close()`);
+    });
+
+    // Now navigate this popup to a restrict-properties page.
+    send(popup_token, `document.location = '${restrict_properties_url}'`);
+    send(second_popup_token, `send('${reply_token}', 'Popup loaded');`);
+    assert_equals(await receive(reply_token), 'Popup loaded');
+
+    // Navigate again to the original page.
+    send(second_popup_token, `document.location = '${unsafe_none_url}'`);
+    send(popup_token, `send('${reply_token}', 'Popup loaded');`);
+    assert_equals(await receive(reply_token), 'Popup loaded');
+
+    // Give some time for things to settle across processes etc. before
+    // proceeding with verifications.
+    await new Promise(resolve => { t.step_timeout(resolve, 500); });
+
+    // Verify that we have full access to the popup.
+    assert_false(popup.closed, 'Popup is closed from opener?');
+    assert_true(await getPopupHasOpener(popup_token) === "true",
+                    'Popup has nulled opener?');
+    assert_true(canAccessProperty(popup, "document"),
+                      'Main page has dom access to the popup?');
+    assert_true(canAccessProperty(popup, "frames"),
+                    'Main page has cross origin access to the popup?');
+
+}, "COOP: restrict-properties has no impact in a navigation chain between " +
+   "multiple unsafe-none pages.");
+
+</script>

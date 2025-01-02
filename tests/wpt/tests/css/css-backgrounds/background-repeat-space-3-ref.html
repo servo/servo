@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Background: background-repeat: position background image</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      .outer1
+      {
+        border: 1px solid black;
+        width: 106px;
+        height: 106px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .inner1
+      {
+        height: 32px;
+        width: 32px;
+        background-image: url(support/aqua-yellow-32x32.png);
+        margin-top: 40px;
+      }
+      .outer2
+      {
+        border: 1px solid black;
+        width: 106px;
+        height: 106px;
+        display: flex;
+        align-content: space-between;
+        flex-wrap: wrap;
+      }
+      .inner2
+      {
+        height: 32px;
+        width: 32px;
+        background-image: url(support/aqua-yellow-32x32.png);
+        margin-left: 40px;
+      }
+      .inner_gradient1
+      {
+        height: 32px;
+        width: 32px;
+        background-size: 32px 32px;
+        background-image: linear-gradient(to top left, red, green);
+        margin-top: 40px;
+      }
+      .inner_gradient2
+      {
+        height: 32px;
+        width: 32px;
+        background-size: 32px 32px;
+        background-image: linear-gradient(to top left, red, green);
+        margin-left: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outer1">
+      <div class="inner1"></div>
+      <div class="inner1"></div>
+      <div class="inner1"></div>
+    </div>
+    <div class="outer2">
+      <div class="inner2"></div>
+      <div class="inner2"></div>
+      <div class="inner2"></div>
+    </div>
+    <div class="outer1">
+      <div class="inner_gradient1"></div>
+      <div class="inner_gradient1"></div>
+      <div class="inner_gradient1"></div>
+    </div>
+    <div class="outer2">
+      <div class="inner_gradient2"></div>
+      <div class="inner_gradient2"></div>
+      <div class="inner_gradient2"></div>
+    </div>
+  </body>
+</html>

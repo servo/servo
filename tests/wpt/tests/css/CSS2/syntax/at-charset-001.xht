@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: HTTP Charset vs BOM</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#charset" />
+        <link rel="match" href="at-charset-001-ref.xht"/>
+        <meta name="flags" content="http" />
+        <meta name="assert" content="The Byte Order Mark in the stylesheet overrides the HTTP charset setting." />
+        <style type="text/css">
+            @import "support/at-charset-001.css"; /* shift-jis encoding with UTF-8 BOM */
+            .平和
+            {
+                color: green;
+            }
+            div
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both lines of "Filler Text" below are green.</p>
+        <div class="平和">Filler Text</div>
+        <div id="div2">Filler Text</div>
+    </body>
+</html>

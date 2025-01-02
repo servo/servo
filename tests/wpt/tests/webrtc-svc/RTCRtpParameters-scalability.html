@@ -1,0 +1,97 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCRtpParameters encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/dictionary-helper.js"></script>
+<script src="/webrtc/RTCRtpParameters-helper.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-svc/
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('video', {
+      sendEncodings: [{scalabilityMode: 'L1T3'}],
+    });
+
+    const param = sender.getParameters();
+    const encoding = param.encodings[0];
+
+    assert_equals(encoding.scalabilityMode, 'L1T3');
+
+    encoding.scalabilityMode = 'L1T2';
+    await sender.setParameters(param);
+
+    const updatedParam = sender.getParameters();
+    const updatedEncoding = updatedParam.encodings[0];
+
+    assert_equals(updatedEncoding.scalabilityMode, 'L1T2');
+  }, `Setting and updating scalabilityMode to a legal value should be accepted`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('video');
+    const param = sender.getParameters();
+    const encoding = param.encodings[0];
+    assert_true(!('scalabilityMode' in encoding));
+  }, 'Not setting sendEncodings results in no mode info before negotiation');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('video', {
+      sendEncodings: [{}],
+    });
+    const param = sender.getParameters();
+    const encoding = param.encodings[0];
+    assert_true(!('scalabilityMode' in encoding));
+  }, 'Not setting a scalability mode results in no mode set before negotiation');
+
+  promise_test(async t => {
+      const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    assert_throws_dom('OperationError', () => {
+      pc.addTransceiver('video', {
+        sendEncodings: [{scalabilityMode: 'TotalNonsense'}],
+      });
+    });
+  }, 'Setting a scalability mode to nonsense throws an exception');
+
+  promise_test(async t => {
+    const v = document.createElement('video');
+    v.autoplay = true;
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    const transceiver = pc1.addTransceiver('video', {
+      sendEncodings: [{ scalabilityMode: 'L3T3' }],
+    });
+    // Before negotiation, the mode should be preserved.
+    const param = transceiver.sender.getParameters();
+    const encoding = param.encodings[0];
+    assert_true('scalabilityMode' in encoding);
+
+    // If L3T3 is not supported at all, abort test.
+    assert_implements_optional(encoding.scalabilityMode === 'L3T3');
+
+    pc2.ontrack = e => {
+      // Pick a codec known to not have L3T3 support.
+      const capabilities = RTCRtpReceiver.getCapabilities('video');
+      const codec = capabilities.codecs.find(c => c.mimeType === 'video/VP8');
+      assert_true(codec !== undefined);
+      e.transceiver.setCodecPreferences([codec]);
+    }
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    const sendParams = pc1.getSenders()[0].getParameters();
+    assert_not_equals(sendParams.encodings[0].scalabilityMode, 'L3T3');
+  }, 'L3T3 on VP8 should return something other than L3T3');
+</script>

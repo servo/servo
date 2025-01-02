@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaStreamTrackProcessor</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-insertable-streams">
+</head>
+<body>
+<p class="instructions">When prompted, use the accept button to give permission to use your audio and video devices.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that MediaStreamTrackProcessor works as expected on video MediaStreamTracks.</p>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='/mediacapture-streams/permission-helper.js'></script>
+<script>
+async function createWorker(script) {
+  script = script + "self.postMessage('ready');";
+  const blob = new Blob([script], { type: 'text/javascript' });
+  const url = URL.createObjectURL(blob);
+  const worker = new Worker(url);
+  await new Promise(resolve => worker.onmessage = () => {
+      resolve();
+  });
+  URL.revokeObjectURL(url);
+  return worker;
+}
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const track = stream.getTracks()[0];
+  const worker = await createWorker(`
+    let track;
+    onmessage = async msg => {
+      if (msg.data.type === "stop") {
+        track.stop();
+        return;
+      }
+      track = msg.data.track;
+      const processor = new MediaStreamTrackProcessor({track});
+      const reader = processor.readable.getReader();
+      let readResult = await reader.read();
+      postMessage(readResult.value);
+      readResult.value.close();
+      // Continue reading until the stream is done due to a track.stop()
+      while (true) {
+        readResult = await reader.read();
+        if (readResult.done) {
+          break;
+        } else {
+          readResult.value.close();
+        }
+      }
+      await reader.closed;
+      postMessage('closed');
+    }
+  `);
+
+  worker.postMessage({ type: "start", track }, [track]);
+
+  return new Promise(resolve => {
+    worker.onmessage = t.step_func(msg => {
+      if (msg.data instanceof VideoFrame) {
+        msg.data.close();
+        worker.postMessage({ type: "stop" });
+      } else if (msg.data == 'closed') {
+        resolve();
+      } else {
+        assert_unreached();
+      }
+    })
+  });
+}, "Tests that the reader of a video MediaStreamTrackProcessor produces VideoFrame objects and is closed on track stop while running on a worker");
+
+</script>
+</body>
+</html>

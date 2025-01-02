@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Marquee events must not be implemented</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/obsolete.html#the-marquee-element">
+<link rel="help" href="https://github.com/whatwg/html/pull/6343">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+<marquee width="1" behavior="alternate">&nbsp;</marquee>
+<marquee width="1">&nbsp;</marquee>
+<marquee width="1" loop="2" behavior="alternate">&nbsp;</marquee>
+<marquee width="1" loop="2">&nbsp;</marquee>
+
+<script>
+test(() => {
+  assert_false("onstart" in HTMLMarqueeElement.prototype, "onstart");
+  assert_false("onfinish" in HTMLMarqueeElement.prototype, "onfinish");
+  assert_false("onbounce" in HTMLMarqueeElement.prototype, "onbounce");
+}, "Event handler IDL attributes must not be implemented");
+
+// Because we use width="1" they will bounce and finish really fast
+async_test(t => {
+  for (const m of document.querySelectorAll("marquee")) {
+    m.addEventListener("start", t.unreached_func(`start: ${m.outerHTML}`));
+    m.addEventListener("finish", t.unreached_func(`finish: ${m.outerHTML}`));
+    m.addEventListener("bounce", t.unreached_func(`bounce: ${m.outerHTML}`));
+  }
+
+  t.step_timeout(() => t.done(), 100);
+}, "No events must be fired, at least during the first 100 ms");
+</script>

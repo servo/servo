@@ -1,0 +1,104 @@
+/*
+!!! THIS FILE IS COPIED FROM https://github.com/fitzgen/servo-trace-dump !!!
+Make sure to upstream changes, or they will get lost!
+*/
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+body, html {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+#slider {
+  height: 50px;
+  background-color: rgba(210, 210, 210, .5);
+  overflow: hidden;
+  box-shadow: 0px 0px 5px #999;
+  z-index: 10;
+}
+
+#slider-viewport {
+  background-color: rgba(255, 255, 255, .8);
+  min-width: 5px;
+  cursor: grab;
+  display: inline-block;
+  height: 100%;
+}
+
+.grabby {
+  background-color: #000;
+  width: 3px;
+  cursor: ew-resize;
+  height: 100%;
+  display: inline-block;
+}
+
+.slider-tick {
+  position: absolute;
+  height: 50px;
+  top: 0;
+  color: #000;
+  border-left: 1px solid #444;
+}
+
+.traces-tick {
+  position: absolute;
+  height: 100%;
+  top: 50px;
+  color: #aaa;
+  border-left: 1px solid #ddd;
+  z-index: -1;
+  overflow: hidden;
+  padding-top: calc(50% - .5em);
+}
+
+#traces {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex-direction: column;
+}
+
+.outer {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.outer:hover {
+  background-color: rgba(255, 255, 200, .7);
+}
+
+.inner {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  color: white;
+  min-width: 1px;
+  text-align: center;
+}
+
+.tooltip {
+  display: none;
+}
+
+.outer:hover > .tooltip {
+  display: block;
+  position: absolute;
+  top: 50px;
+  right: 20px;
+  background-color: rgba(255, 255, 200, .7);
+  min-width: 20em;
+  padding: 1em;
+}

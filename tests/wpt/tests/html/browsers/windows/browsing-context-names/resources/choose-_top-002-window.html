@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/common/PrefixedLocalStorage.js"></script>
+<title>HTML Test: browsing context name - _top</title>
+<body>
+<script>
+var prefixedStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup:true
+});
+window.name = 'topWin2';
+var iframe = document.createElement('iframe');
+iframe.src = prefixedStorage.url('open-in-_top.html');
+// Append iframe that will open another document into `_top` (this context)
+document.body.appendChild(iframe);
+</script>
+</body>

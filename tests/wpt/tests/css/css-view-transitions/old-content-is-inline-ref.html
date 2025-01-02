@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>View transitions: Old content is an inline element (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+
+<style>
+:root { background-color: rebeccapurple; }
+body { margin: 0; }
+
+.container {
+  position: absolute;
+  left: 100px;
+  width: 400px;
+  height: 100px;
+  background-color: grey;
+}
+
+.container.start {
+  top: 100px;
+}
+
+.container.end {
+  top: 300px;
+}
+
+.container.transitioned {
+  left: 20px;
+  width: 600px;
+  transform: translateY(-50px);
+}
+
+.inline {
+  background-color: limegreen;
+  color: rgba(0, 0, 0, 0);
+}
+
+.transitioned .inline {
+  opacity: 0;
+}
+
+#dummyEndInline {
+  position: absolute;
+  left: 20px;
+  top: 250px;
+  /* scale transform applied in script below */
+  transform-origin: top left;
+}
+
+</style>
+
+<div class="container start">
+  <span>FILLER FILLER</span>
+  <span id="start" class="inline">INLINE INLINE INLINE INLINE</span>
+  <p>START STATE</p>
+</div>
+
+<div class="container end transitioned">
+  <span>FILLER FILLER</span>
+  <span id="end" class="inline">INLINE INLINE INLINE INLINE</span>
+  <p>END STATE</p>
+</div>
+
+<div id="dummyEndInline">
+  <span style="opacity:0">FILLER FILLER</span>
+  <span class="inline">INLINE INLINE INLINE INLINE</span>
+</div>
+<script>
+  let endWidth = document.getElementById('end').getBoundingClientRect().width;
+  let startWidth = document.getElementById('start').getBoundingClientRect().width;
+  let scale = endWidth / startWidth;
+  /* Default UA CSS scales the image pseudos to match the group in the inline
+     direction. The block direction scales to retain the image's aspect ratio.
+     So have the dummy end line scale to match the end state width and apply the
+     same scale to its height. */
+  document.getElementById('dummyEndInline').style.transform = `scale(${scale})`;
+</script>
+

@@ -1,0 +1,39 @@
+name: Detect Self-hosted Runner Timeout
+on:
+  workflow_call:
+    inputs:
+      unique-id:
+        required: true
+        type: string
+      is-self-hosted:
+        required: true
+        type: boolean
+
+jobs:
+  # In the unlikely event a self-hosted runner was selected and reserved but it
+  # goes down before the workload starts, cancel the workflow run.
+  runner-timeout:
+    if: ${{ inputs.is-self-hosted }}
+    name: Detect Runner Timeout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait a bit
+        run: sleep 120
+
+      - name: Cancel if workload job is still queued
+        run: |
+          run_url=/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          export GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+
+          if [ "$(gh api "$run_url/jobs" \
+            | jq -er --arg id '${{ inputs.unique-id }}' \
+              '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
+          )" = queued ]; then
+            echo 'Timeout waiting for runner assignment!'
+            echo 'Hint: does this repo have permission to access the runner group?'
+            echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
+            echo
+            echo 'Cancelling workflow run'
+            gh api "$run_url/cancel" --method POST
+            exit 1
+          fi

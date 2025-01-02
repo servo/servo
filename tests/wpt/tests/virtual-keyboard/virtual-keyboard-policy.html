@@ -1,0 +1,60 @@
+<html>
+<head>
+<title>This tests the new virtualKeyboardPolicy attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="div1" contenteditable="true" virtualKeyboardPolicy="auto"></div>
+<div id="div2" contenteditable="true" virtualKeyboardPolicy="manual"></div>
+<div id="div3"></div>
+<div id="div4" contenteditable="true" virtualKeyboardPolicy=""></div>
+<div id="div5" contenteditable="true" virtualkeyboardpolicy="invalid"></div>
+<script>
+test(function() {
+  let div1 = document.getElementById("div1");
+  assert_equals(div1.getAttribute('virtualKeyboardPolicy'), "auto");
+  div1.setAttribute("virtualKeyboardPolicy", "manual");
+  assert_equals(div1.getAttribute('virtualKeyboardPolicy'), "manual");
+}, 'Validating virtualKeyboardPolicy auto and changed to manual');
+
+test(function() {
+  let div2 = document.getElementById("div2");
+  assert_equals(div2.getAttribute('virtualKeyboardPolicy'), "manual");
+  div2.setAttribute("virtualKeyboardPolicy", "auto");
+  assert_equals(div2.getAttribute('virtualKeyboardPolicy'), "auto");
+}, 'Validating virtualKeyboardPolicy manual and changed to auto');
+
+test(function() {
+  let div3 = document.getElementById("div3");
+  assert_equals(div3.getAttribute('virtualKeyboardPolicy'), null);
+  assert_equals(div3.virtualKeyboardPolicy, "");
+}, 'Validating virtualKeyboardPolicy for non contenteditable element');
+
+test(function() {
+  let div4 = document.getElementById("div4");
+  assert_equals(div4.virtualKeyboardPolicy, "");
+}, 'Validating virtualKeyboardPolicy access');
+
+test(function() {
+  let div4 = document.getElementById("div4");
+  div4.setAttribute("virtualKeyboardPolicy", "MANUAL");
+  assert_equals(div4.virtualKeyboardPolicy, "manual");
+  div4.setAttribute("virtualKeyboardPolicy", "AUTO");
+  assert_equals(div4.virtualKeyboardPolicy, "auto");
+  div4.setAttribute("virtualKeyboardPolicy", "");
+  assert_equals(div4.virtualKeyboardPolicy, "");
+}, 'Validating virtualKeyboardPolicy with case-insensitive value in div4');
+
+test(function() {
+  let div5 = document.getElementById("div5");
+  assert_equals(div5.virtualKeyboardPolicy, "");
+  div5.setAttribute("virtualKeyboardPolicy", "MANUAL");
+  assert_equals(div5.virtualKeyboardPolicy, "manual");
+  div5.setAttribute("virtualKeyboardPolicy", "AUTO");
+  assert_equals(div5.virtualKeyboardPolicy, "auto");
+  div5.setAttribute("virtualKeyboardPolicy", "");
+  assert_equals(div5.virtualKeyboardPolicy, "");
+}, 'Validating virtualkeyboardpolicy values in div5');
+</script>
+</body>

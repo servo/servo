@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Color 4: System color support</title>
+  <link rel="author" title="Luuk Lamers" href="mailto:xaddict@protonmail.com">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+  <meta name="assert" content="system colors as defined are supported by the browser">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .group {
+      display: flex;
+      margin-bottom: 2px;
+      gap: 1em;
+    }
+    .group > div {
+      height: 1em;
+      width: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div style="display: none">
+    <div id="test"></div>
+  </div>
+  <script>
+    const testRoot = document.getElementById('test')
+    const SYSTEM_COLORS = [
+      'Canvas',
+      'CanvasText',
+      'LinkText',
+      'VisitedText',
+      'ActiveText',
+      'ButtonFace',
+      'ButtonText',
+      'ButtonBorder',
+      'Field',
+      'FieldText',
+      'Highlight',
+      'HighlightText',
+      'SelectedItem',
+      'SelectedItemText',
+      'Mark',
+      'MarkText',
+      'GrayText',
+      'AccentColor',
+      'AccentColorText',
+      'AppWorkspace',
+      'Scrollbar',
+    ];
+
+    // These colors ought to be color-scheme aware.
+    const COLOR_SCHEME_AWARE = [
+      'Canvas',
+      'CanvasText',
+      'AppWorkspace',
+      'Scrollbar',
+      'ButtonFace',
+      'ButtonText',
+      'LinkText',
+      'VisitedText',
+      'Highlight',
+      'SelectedItem',
+      'Field',
+      'FieldText',
+    ];
+
+    for (let systemColor of SYSTEM_COLORS) {
+      const group = document.createElement('div')
+      group.id = systemColor
+      group.className = 'group'
+      group.innerHTML = `
+        <div style="background-color: black; background-color: ${systemColor}"></div>
+        <div style="background-color: white; background-color: ${systemColor}"></div>
+      `
+      testRoot.appendChild(group)
+      let blackElement = group.firstElementChild
+      let whiteElement = group.lastElementChild
+      test(function() {
+        assert_equals(
+          getComputedStyle(blackElement).backgroundColor,
+          getComputedStyle(whiteElement).backgroundColor,
+          `${systemColor} should be parsed`
+        );
+        if (COLOR_SCHEME_AWARE.includes(systemColor)) {
+          blackElement.style.colorScheme = "light";
+          whiteElement.style.colorScheme = "dark";
+          assert_not_equals(
+            getComputedStyle(blackElement).backgroundColor,
+            getComputedStyle(whiteElement).backgroundColor,
+            `${systemColor} should react to color-scheme`
+          );
+        }
+      }, `System color ${systemColor} works`);
+    }
+  </script>
+</body>
+</html>

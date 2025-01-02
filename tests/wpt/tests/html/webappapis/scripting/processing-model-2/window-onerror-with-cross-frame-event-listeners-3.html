@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>
+  When a listener from window A is added to an event target in window A via the
+  addEventListener function from window A, errors in that listener should be
+  reported to window A.
+</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<iframe></iframe>
+<iframe></iframe>
+<script>
+test(function() {
+  var f = new frames[1].Function("thereIsNoSuchCallable()");
+  frames[1].document.addEventListener("myevent", f);
+  var frame0ErrorFired = false;
+  var frame1ErrorFired = false;
+  var ourErrorFired = false;
+  frames[0].addEventListener("error", function() {
+    frame0ErrorFired = true;
+  });
+  frames[1].addEventListener("error", function() {
+    frame1ErrorFired = true;
+  });
+  addEventListener("error", function() {
+    ourErrorFired = true;
+  });
+  frames[1].document.dispatchEvent(new Event("myevent"));
+  assert_false(frame0ErrorFired);
+  assert_true(frame1ErrorFired);
+  assert_false(ourErrorFired);
+}, "The error event from an event listener should fire on that listener's global");
+</script>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const editingHost = document.querySelector("h6[contenteditable]");
+  document.querySelector("wbr").addEventListener(
+    "DOMNodeInserted",
+    () => editingHost.remove()
+  );
+  window.find("A");
+  document.execCommand("indent");
+})
+</script>
+</head>
+<body>
+<h6 contenteditable>
+<time>
+<wbr>
+<main></main>
+A
+</time></h6></body>
+</html>

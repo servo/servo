@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>IDBDatabase.createObjectStore() - object store's name appears in database's list </title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+
+<script>
+
+var t = async_test(),
+    open_rq = createdb(t)
+
+open_rq.onupgradeneeded = function(e) {
+    var db = e.target.result
+
+    db.createObjectStore("My cool object store name")
+    assert_true(
+        db.objectStoreNames.contains("My cool object store name"),
+        'objectStoreNames.contains')
+}
+
+open_rq.onsuccess = function(e) {
+    var db = e.target.result
+
+    assert_true(
+        db.objectStoreNames.contains("My cool object store name"),
+        'objectStoreNames.contains (in success)')
+    t.done()
+}
+
+</script>
+
+<div id="log"></div>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/client-hints/resources/export.js"></script>
+<script src="resources/util.js"></script>
+
+<script>
+sandbox_iframe_test("allow-scripts allow-same-origin",
+                    expect_iframe_hints,
+                    "Same origin sandboxed iframe with allow-same-origin flag does send client hint headers");
+</script>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - vertical-align</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#propdef-vertical-align">
+<meta name="assert" content="Test checks that the 'vertical-align' property is animatable.">
+<style>
+  #test {
+    transition-duration: 2s;
+    transition-property: vertical-align;
+    transition-timing-function: linear;
+    vertical-align: top;
+  }
+</style>
+<body>
+  <p>Click the cat image below. Test passes if the 'FillerText' moves down to the bottom of the cat image gradually not immediately.</p>
+  <div id="test">
+    FillerText<image id="ref" src="support/cat.png"></image>
+  </div>
+  <script>
+    (function() {
+      var ref = document.querySelector("#ref");
+      ref.addEventListener("click", function(evt) {
+        document.querySelector("#test").setAttribute("style", "vertical-align: bottom;");
+      }, false);
+    })();
+  </script>
+</body>

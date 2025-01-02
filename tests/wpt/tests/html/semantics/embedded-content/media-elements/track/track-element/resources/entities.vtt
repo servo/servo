@@ -1,0 +1,30 @@
+WEBVTT
+Cue content with escape characters for &, <, >, LRM, RLM and non-breaking space.
+
+1
+00:00:00.000 --> 00:00:30.500 align:start position:20%
+This cue has an ampersand &amp; character.
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+This cue has a less than &lt; character.
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%
+This cue has a greater than &gt; character.
+
+4
+00:02:01.000 --> 00:02:30.500 align:start position:20%
+This cue has a Left-to-Right Mark &lrm;.
+
+5
+00:02:31.000 --> 00:03:00.500 align:start position:20%
+This cue has a Right-to-Left Mark &rlm;.
+
+6
+00:03:01.000 --> 00:03:30.500 align:start position:20%
+This cue has a non-breaking space &nbsp;.
+
+7
+00:03:31.000 --> 00:04:00.500
+This & is parsed to the same as &amp;.

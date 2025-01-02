@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-space-transform space collapsing</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-phase-1">
+<link rel="match" href="reference/word-space-transform-007-ref.html">
+<meta name="assert" content="word-space-transform happens between phase 1 and 2 of white space processing, so inserted spaces don't collapse with adjacent ones">
+<style>
+div {
+  font-size: 2em;
+}
+#test {
+  word-space-transform: space;
+}
+</style>
+
+<p>Test passes if the two lines below are identical.
+
+<div id=test>a<wbr> b <wbr>c &#x200B;d&#x200B; e<wbr><wbr>f&#x200B;&#x200B;g<wbr>&#x200B;h&#x200B;<wbr>i <wbr> &#x200B; j</div>
+<div id=ref>a  b  c  d  e  f  g  h  i     j</div>

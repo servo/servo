@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text reference file</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<style>
+p { font-family: monospace; white-space: pre; tab-size: 8ch;
+    width: 40ch; margin: 1em 8ch; border: 1px solid silver; }
+</style>
+The tab-stop positions should be the same in all three blocks below;
+only the ‘a’ characters affected by text-indent should be unaligned.
+<p>a&#9;b&#9;c<br>d&#9;e&#9;f</p>
+<p>&nbsp;&nbsp;&nbsp;a&#9;b&#9;c<br>d&#9;e&#9;f</p>
+<p><span style="margin-left:-3ch;">a&nbsp;&nbsp;</span>a'&#9;b&#9;c<br>d&#9;e&#9;f</p>

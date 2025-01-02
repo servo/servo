@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>IDBVersionChangeEvent fired in upgradeneeded, versionchange and deleteDatabase</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#versionchange--transaction-steps">
+<link rel=assert title="Fire a versionchange event at each object in openDatabases that is open. The event must not be fired on objects which has the closePending flag set. The event must use the IDBVersionChangeEvent interface and have the oldVersion property set to db's version and have the newVersion property set to version.">
+<link rel=assert title="Fire a upgradeneeded event targeted at request. The event must use the IDBVersionChangeEvent interface and have the oldVersion property set to old version and have the newVersion property set to version.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+
+<div id="log"></div>
+
+<script>
+
+    var db,
+        t = async_test(),
+        dbname = location + '-' + t.name;
+
+    t.step(function() {
+        indexedDB.deleteDatabase(dbname);
+
+        var openrq = indexedDB.open(dbname, 3);
+
+        openrq.onupgradeneeded = t.step_func(function(e) {
+            assert_equals(e.oldVersion, 0, "old version (upgradeneeded)");
+            assert_equals(e.newVersion, 3, "new version (upgradeneeded)");
+            assert_true(e instanceof IDBVersionChangeEvent, "upgradeneeded instanceof IDBVersionChangeEvent");
+        });
+
+        openrq.onsuccess = t.step_func(function(e) {
+            db = e.target.result;
+
+            db.onversionchange = t.step_func(function(e) {
+                assert_equals(e.oldVersion, 3, "old version (versionchange)");
+                assert_equals(e.newVersion, null, "new version (versionchange)");
+                assert_true(e instanceof IDBVersionChangeEvent, "versionchange instanceof IDBVersionChangeEvent");
+                db.close();
+            });
+
+            // Errors
+            db.onerror = fail(t, "db.error");
+            db.onabort = fail(t, "db.abort");
+
+            setTimeout(t.step_func(deleteDB), 10);
+        });
+
+        // Errors
+        openrq.onerror = fail(t, "open.error");
+        openrq.onblocked = fail(t, "open.blocked");
+
+    });
+
+    function deleteDB (e) {
+        var deleterq = indexedDB.deleteDatabase(dbname);
+
+        deleterq.onsuccess = t.step_func(function(e) {
+            assert_equals(e.result, undefined, "result (delete.success for nonexistent db)");
+            assert_equals(e.oldVersion, 3, "old version (delete.success)");
+            assert_equals(e.newVersion, null, "new version (delete.success)");
+            assert_true(e instanceof IDBVersionChangeEvent, "delete.success instanceof IDBVersionChangeEvent");
+
+            setTimeout(deleteNonExistentDB, 10);
+        });
+
+        // Errors
+        deleterq.onerror = fail(t, "delete.error");
+        deleterq.onblocked = fail(t, "delete.blocked");
+    }
+
+    function deleteNonExistentDB (e) {
+        var deleterq = indexedDB.deleteDatabase('db-does-not-exist');
+
+        deleterq.onsuccess = t.step_func(function(e) {
+            assert_equals(e.result, undefined, "result (delete.success for nonexistent db)");
+            assert_equals(e.oldVersion, 0, "old version (delete.success for nonexistent db)");
+            assert_equals(e.newVersion, null, "new version (delete.success for nonexistent db)");
+            assert_true(e instanceof IDBVersionChangeEvent, "delete.success instanceof IDBVersionChangeEvent");
+
+            setTimeout(function() { t.done(); }, 10);
+        });
+
+        // Errors
+        deleterq.onerror = fail(t, "delete.error");
+        deleterq.onblocked = fail(t, "delete.blocked");
+    }
+
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Test case for text-decoration-skip-ink</title>
+        <meta name="assert" content="text-decoration-skip-ink: a partial underline is rendered above the 'p'">
+        <link rel="author" title="Charlie Marlow" href="mailto:cmarlow@mozilla.com">
+        <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+        <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property">
+        <link rel="mismatch" href="reference/text-decoration-skip-ink-004-notref.html">
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+        <style>
+         /*
+            This test ensures that the underline offset is taken into account
+            when calculating the skip-ink. The underline should skip all
+            characters except the third.
+          */
+         div{
+             font: 20px/1 Ahem;
+             color: rgba(255,255,0,0.25);
+             text-decoration: green underline;
+             text-decoration-skip-ink: auto;
+             text-underline-offset: -.3em;
+         }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if underline appears only across the 'p' glyph</p>
+        <div>XXpX</div>
+    </body>
+</html>

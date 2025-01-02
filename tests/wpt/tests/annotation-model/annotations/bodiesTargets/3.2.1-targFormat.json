@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.1-targFormat.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a target may include format key with one or more values that are each a media type.",
+    "title": "Implements **target _format_ key** with one or more values each of which is a **media type** [model 3.2.1](https://www.w3.org/TR/annotation-model/#bodies-and-targets)",
+    "description": "True when Annotation includes one or more targets, one or more of which include format key with one or more values that are each a media type. (Section 3.2.1)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "bodyTarget.json#/definitions/formatPropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/itemFormatPropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/sourceFormatPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "bodyTarget.json#/definitions/formatPropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/itemFormatPropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/sourceFormatPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     },
+     "required": [ "target" ]
+}

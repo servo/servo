@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>document.open() does not change Content Security Policies</title>
+</head>
+<body>
+  <script>
+    let message_from = (w) => {
+      return new Promise(resolve => {
+        let listener = msg => {
+          if (msg.source != w)
+            return;
+          window.removeEventListener('message', listener);
+          resolve(msg.data);
+        };
+        window.addEventListener('message', listener);
+      });
+    };
+
+    var documentBody = function(should_load) {
+      let image = should_load ? "pass.png" : "fail.png";
+      return `
+      <script>
+        function loaded() {
+          window.top.postMessage("loaded", '*');
+        };
+        window.addEventListener('securitypolicyviolation', function(e) {
+          window.top.postMessage("blocked", '*');
+        });
+      </scr`+`ipt>
+      <img src='/content-security-policy/support/${image}' onload='loaded()'>`;
+    };
+
+    promise_test(async () => {
+      let iframe = document.createElement('iframe');
+      document.body.appendChild(iframe);
+
+      let msg = message_from(iframe.contentWindow);
+      let doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write("<html><body>" + documentBody(false) + "</body></html>");
+      doc.close();
+      assert_equals(await msg, "blocked");
+    }, "document.open() keeps inherited CSPs on empty iframe.");
+
+    promise_test(async () => {
+      let iframe = document.createElement('iframe');
+      let loaded = new Promise(resolve => iframe.onload = resolve);
+      iframe.src = "/common/blank.html";
+      document.body.appendChild(iframe);
+      await loaded;
+
+      let msg = message_from(iframe.contentWindow);
+      let doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write("<html><body>" + documentBody(true) + "</body></html>");
+      doc.close();
+      assert_equals(await msg, "loaded");
+    }, "document.open() does not change delivered CSPs.");
+
+  </script>
+</body>
+</html>

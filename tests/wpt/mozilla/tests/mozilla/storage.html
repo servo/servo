@@ -1,0 +1,17 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+  test(function() {
+    // Delete keys that don't exist in either localStorage
+    // or sessionStorage.
+    delete localStorage.a;
+    delete sessionStorage.a;
+  });
+  </script>
+</body>
+</html>

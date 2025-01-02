@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>beginElement() timing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg width="100" height="20" style="border: grey 1px solid">
+  <rect width="1" height="20">
+    <animateMotion path="M0,0h100" dur="100ms"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    const svg = document.querySelector('svg');
+    const motion = document.querySelector('animateMotion');
+    motion.addEventListener('endEvent', t.step_func(() => {
+      t.step_timeout(t.step_func(() => {
+        motion.beginElement();
+        let start = svg.getCurrentTime();
+        requestAnimationFrame(t.step_func_done(() => {
+          svg.pauseAnimations();
+          let elapsed = svg.getCurrentTime() - start;
+          let expected_pos = Math.min(elapsed * 1000, 100);
+          let actual_pos = motion.parentElement.getCTM().e;
+          assert_approx_equals(actual_pos, expected_pos, 2, `position after ${elapsed}`);
+        }));
+      }), 50);
+    }), { once: true });
+  });
+</script>

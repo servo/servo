@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>All the rectangles for the text nodes must included in getClientRects</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-range-getclientrects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .nullDims {
+    width: 0;
+    height: 0;
+  }
+
+  .nullDims > div {
+    position: absolute;
+    left: 10px;
+  }
+</style>
+<div id="container">
+  <div class="nullDims">
+    <div id="first" style="top: 10px">Hello</div>
+  </div>
+  <div class="nullDims">
+    <div style="top: 40px">Firefox</div>
+  </div>
+  <div class="nullDims">
+    <div style="top: 70px">Firefox again</div>
+  </div>
+  <div class="nullDims">
+    <div id="last" style="top: 100px">World</div>
+  </div>
+</div>
+<script>
+  test(function () {
+    const first = document.getElementById("first");
+    const last = document.getElementById("last");
+    const range = document.createRange();
+    range.setStart(first.firstChild, 0);
+    range.setEnd(last.firstChild, 5);
+
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    let rects = Array.from(range.getClientRects());
+    assert_equals(rects.length, 6, "Number of rectangles");
+    rects = rects.filter(({ width, height }) => width > 0 && height > 0);
+    assert_equals(rects.length, 4, "Number of non-empty rectangles");
+  }, "getClientRects should return non-empty rectangles for nested text nodes")
+</script>

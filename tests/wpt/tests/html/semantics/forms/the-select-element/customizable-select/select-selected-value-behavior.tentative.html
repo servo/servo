@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=match href="select-selected-value-behavior-ref.html">
+
+<select>
+  <selectedcontent style="color:blue"></selectedcontent>
+  <option>option</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>

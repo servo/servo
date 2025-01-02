@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="support/style.css" type="text/css"?>
+<?xml-stylesheet href="data:text/css,&#x41;&amp;&apos;" type="text/css"?>
+<?xml-stylesheet href="data:text/css,&#65;&amp;&apos;" type="text/css"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ProcessingInstruction numeric escapes</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-processinginstruction-target"/>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-characterdata-data"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"/>
+<script>
+<![CDATA[
+test(function() {
+  var pienc = document.firstChild.nextSibling;
+  assert_true(pienc instanceof ProcessingInstruction)
+  assert_equals(pienc.target, "xml-stylesheet")
+  assert_equals(pienc.data, 'href="data:text/css,&#x41;&amp;&apos;" type="text/css"')
+  assert_equals(pienc.sheet.href, "data:text/css,A&'");
+
+  pienc = pienc.nextSibling;
+  assert_true(pienc instanceof ProcessingInstruction)
+  assert_equals(pienc.target, "xml-stylesheet")
+  assert_equals(pienc.data, 'href="data:text/css,&#65;&amp;&apos;" type="text/css"')
+  assert_equals(pienc.sheet.href, "data:text/css,A&'");
+})
+]]>
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<title>fieldset percentage padding</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ body { margin: 0; }
+ .outer { width: 500px; position: relative; }
+ fieldset { width: 100px; padding: 10%; margin: 0; border: none; }
+ .overflow { overflow: auto; }
+</style>
+<div class=outer>
+ <fieldset>
+  <div id=no-overflow>x</div>
+ </fieldset>
+</div>
+<div class=outer>
+ <fieldset class=overflow>
+  <div id=with-overflow>x</div>
+ </fieldset>
+</div>
+<script>
+const noOverflow = document.getElementById('no-overflow');
+const withOverflow = document.getElementById('with-overflow');
+for (const div of [noOverflow, withOverflow]) {
+  test(() => {
+    assert_equals(div.offsetLeft, 50, "offsetLeft");
+    assert_equals(div.clientWidth, 100, "clientWidth");
+    assert_equals(div.offsetTop, 50, "offsetTop");
+  }, div.id);
+}
+</script>

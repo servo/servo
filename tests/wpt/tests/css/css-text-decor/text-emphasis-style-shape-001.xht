@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-style - shape - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+		<link rel="help" title="CSS Text Level 3: 11.2.1.  Emphasis Mark Style: the ‘text-emphasis-style’ property" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property" />
+		<link rel="match" href="reference/text-emphasis-style-shape-001-ref.xht"/>
+		<meta name="assert" content="This property applies emphasis marks to the element's text. " />
+		<style type="text/css"><![CDATA[
+				.parent
+				{
+					border: solid 1px gray;
+					font: 1.5em monospace;
+					width: 10em;
+				}
+				#test1
+				{
+					text-emphasis-style: circle;
+				}
+				#test2
+				{
+					text-emphasis-style: dot;
+				}
+				#test3
+				{
+					text-emphasis-style: double-circle;
+				}
+				#test4
+				{
+					text-emphasis-style: sesame;
+				}
+				#test5
+				{
+					text-emphasis-style: triangle;
+				}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if each pair of upper and lower "Filler Text" in the square box is identical.</p>
+			circle
+			<div class="parent">
+				<div><span id="test1">Filler</span> Text</div>
+				<div>
+					<ruby><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			dot
+			<div class="parent">
+				<div><span id="test2">Filler</span> Text</div>
+				<div>
+					<ruby><rb>F</rb><rt>&#x2022;</rt><rb>i</rb><rt>&#x2022;</rt><rb>l</rb><rt>&#x2022;</rt><rb>l</rb><rt>&#x2022;</rt><rb>e</rb><rt>&#x2022;</rt><rb>r</rb><rt>&#x2022;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			double-circle
+			<div class="parent">
+				<div><span id="test3">Filler</span> Text</div>
+				<div>
+					<ruby><rb>F</rb><rt>&#x25C9;</rt><rb>i</rb><rt>&#x25C9;</rt><rb>l</rb><rt>&#x25C9;</rt><rb>l</rb><rt>&#x25C9;</rt><rb>e</rb><rt>&#x25C9;</rt><rb>r</rb><rt>&#x25C9;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			sesame
+			<div class="parent">
+				<div><span id="test4">Filler</span> Text</div>
+				<div>
+					<ruby><rb>F</rb><rt>&#xFE45;</rt><rb>i</rb><rt>&#xFE45;</rt><rb>l</rb><rt>&#xFE45;</rt><rb>l</rb><rt>&#xFE45;</rt><rb>e</rb><rt>&#xFE45;</rt><rb>r</rb><rt>&#xFE45;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			triangle
+			<div class="parent">
+				<div><span id="test5">Filler</span> Text</div>
+				<div>
+					<ruby><rb>F</rb><rt>&#x25B2;</rt><rb>i</rb><rt>&#x25B2;</rt><rb>l</rb><rt>&#x25B2;</rt><rb>l</rb><rt>&#x25B2;</rt><rb>e</rb><rt>&#x25B2;</rt><rb>r</rb><rt>&#x25B2;</rt></ruby>
+					Text
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

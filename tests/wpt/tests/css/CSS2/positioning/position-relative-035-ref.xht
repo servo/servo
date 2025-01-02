@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  line-height: 1.25;
+  width: 5em;
+  }
+
+  div#black
+  {
+  background-color: black;
+  margin-top: 2em;
+  }
+
+  div#orange
+  {
+  background-color: orange;
+  padding-top: 0.25em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if a black rectangle has one and only one orange line of text below it.</p>
+
+  <div id="black">Filler Text Filler Text Filler Text</div>
+
+  <div id="orange">Text</div>
+
+ </body>
+</html>

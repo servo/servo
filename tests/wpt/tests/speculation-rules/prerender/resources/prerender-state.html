@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// Take a key used for storing a test result in the server.
+const key = params.get('key');
+
+// The main test page (state-and-event.html in the parent directory) will load
+// this page only with the "key" parameter. This page will then prerender
+// itself with the "run-test" parameter. When "run-test" is in the URL we'll
+// actually start the test process and record the results to send back to the
+// main test page. We do this because the main test page cannot navigate itself
+// but it also cannot open a popup to a prerendered browsing context so the
+// prerender triggering and activation must both happen in this popup.
+const run_test = params.has('run-test');
+if (!run_test) {
+  assert_false(document.prerendering);
+
+  // Generate a new stash key so we can communicate with the prerendered page
+  // about when to activate it.
+  const activate_key = token();
+  const url = new URL(document.URL);
+  url.searchParams.append('run-test', '');
+  url.searchParams.append('activate-key', activate_key);
+  startPrerendering(url.toString());
+
+  // Wait until the prerendered page signals us it's time to activate, then
+  // navigate to it.
+  nextValueFromServer(activate_key).then(() => {
+    window.location = url.toString();
+  });
+} else {
+  assert_true(document.prerendering);
+
+  const activate_key = params.get('activate-key');
+  const result = {
+    // Check the types of the members on document.
+    prerenderingTypeOf: typeof(document.prerendering),
+    onprerenderingChangeTypeOf: typeof(document.onprerenderingchange),
+
+    // Check the value of document.prerendering now and after activation.
+    prerenderingValueBeforeActivate: document.prerendering,
+    prerenderingValueAfterActivate: null,
+
+    // Track when the prerenderingchange event is fired.
+    onprerenderingchangeCalledBeforeActivate: false,
+    onprerenderingchangeCalledAfterActivate: false,
+
+    // Tracks the properties on the prerenderingchange event.
+    eventBubbles: null,
+    eventCancelable: null
+  };
+
+  let did_load = false;
+
+  addEventListener('load', () => {
+    did_load = true;
+
+    // Tell the harness we've finished loading so we can proceed to activation.
+    writeValueToServer(activate_key, 'did_load');
+  });
+
+  document.addEventListener('prerenderingchange', (e) => {
+    assert_false(document.prerendering);
+    result.eventBubbles = e.bubbles;
+    result.eventCancelable = e.cancelable;
+
+    if (did_load) {
+      result.onprerenderingchangeCalledAfterActivate = true;
+      result.prerenderingValueAfterActivate = document.prerendering;
+      writeValueToServer(key, JSON.stringify(result)).then(() => {
+        window.close();
+      });
+    } else {
+      result.onprerenderingchangeCalledBeforeActivate = true;
+    }
+  });
+}
+
+</script>

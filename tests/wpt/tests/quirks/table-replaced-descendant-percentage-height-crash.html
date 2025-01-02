@@ -1,0 +1,14 @@
+<!-- quirks mode -->
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://github.com/whatwg/quirks/issues/46">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=967069">
+<div style="display:table-cell; height:10000px;">
+  <div style="writing-mode:vertical-rl;">
+    <iframe style="height:100%;"></iframe>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> { }, "No crash");
+</script>

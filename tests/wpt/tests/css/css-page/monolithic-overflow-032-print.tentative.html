@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/40415661">
+<link rel="match" href="monolithic-overflow-032-print-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  @page {
+    size: 400px 300px;
+    margin: 0;
+  }
+</style>
+<!-- It's not obvious that the expected behavior here is correct, but Blink and
+     Gecko agree on it. Essentially, we expect that when the tall monolithic
+     content has been fully placed (see the third page), and there's more
+     content after it, a new fragment starts right after the fragment with tall
+     monolithic content. This means that it would appear that there are two
+     fragments from the same node on the same page, but this is not really the
+     case, since the first fragment is just a huge fragment that has run all the
+     way since the first page. -->
+<div style="box-decoration-break:clone; height:1800px; border:solid black; border-width:10px 0; border-bottom-color:gray;">
+  <div style="contain:size; width:50%; box-sizing:border-box; border:solid hotpink; height:850px; background:yellow;"></div>
+  <div style="width:25%; height:300px; background:cyan;"></div>
+</div>

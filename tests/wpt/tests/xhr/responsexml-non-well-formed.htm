@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: responseXML non well-formed tests</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol[1]/li[4]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#document-response-entity-body" data-tested-assertations="following::ol[1]/li[6] following::ol[1]/li[10]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      function request(content) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          client.open("GET", "resources/status.py?type=text/xml&content=" + encodeURIComponent(content), false)
+          client.send(null)
+          assert_equals(client.responseXML, null)
+        })
+      }
+      request("<x")
+      request("<x></x")
+      request("<x>&amp</x>")
+      request("<x><y></x></y>") // misnested tags
+      request("<x></x><y></y>") // two root elements is not allowed
+      request("<x> <![CDATA[ foobar ]></x>") // CDATA should end with ]]>
+      request("<x> <!CDATA[ foobar ]]></x>") // CDATA should start with <![
+    </script>
+  </body>
+</html>

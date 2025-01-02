@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSS animaitons with color-mix</title>
+</head>
+<style>
+  @keyframes missing-from-legacy-to {
+    to { background-color: rgb(0, 255, 0); }
+  }
+
+  @keyframes missing-to-legacy-from {
+    from { background-color: rgb(0, 255, 0); }
+  }
+
+  @keyframes missing-from-srgb-to {
+    to { background-color: color(srgb 0 1 0); }
+  }
+
+  @keyframes missing-to-srgb-from {
+    from { background-color: color(srgb 0 1 0); }
+  }
+
+  @keyframes missing-from-rgba-to {
+    to { background-color: rgba(255, 255, 255, 0.75); }
+  }
+
+  @keyframes missing-to-rgba-from {
+    from { background-color: rgba(255, 255, 255, 0.75); }
+  }
+
+  #target {
+    color: black;
+    background-color: color-mix(in srgb, white 50%, currentColor);
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-play-state: paused;
+    animation-fill-mode: forwards;
+    height: 100px;
+    width: 100px;
+  }
+  .missing-from-legacy-to {
+    animation-name: missing-from-legacy-to;
+  }
+
+  .missing-to-legacy-from {
+    animation-name: missing-to-legacy-from;
+  }
+
+  .missing-from-srgb-to {
+    animation-name: missing-from-srgb-to;
+  }
+
+  .missing-to-srgb-from {
+    animation-name: missing-to-srgb-from;
+  }
+
+  .missing-from-rgba-to {
+    background-color: color-mix(in srgb, transparent 50%, currentColor);
+    animation-name: missing-from-rgba-to;
+  }
+
+  .missing-to-rgba-from {
+    background-color: color-mix(in srgb, transparent 50%, currentColor);
+    animation-name: missing-to-rgba-from;
+  }
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+
+<body>
+  <div id="target"></div>
+  <div id="test"></div>
+</body>
+<script>
+  'use strict';
+
+  async function runAnimationTest(t, name, expected_colors) {
+    const target = document.getElementById('target');
+    target.classList.add(name);
+    t.add_cleanup(() => {
+      target.classList.remove(name);
+    });
+    const anim = document.getAnimations()[0];
+    await anim.ready;
+    expected_colors.forEach(data => {
+      anim.currentTime = 1000 * data.at;
+      const actual = getComputedStyle(target).backgroundColor;
+      const expected = data.value;
+      assert_oklab_color(
+          actual, expected,
+          `Background color at ${100*data.at}% animation progress`);
+    });
+  }
+
+  const gray_to_green = [
+    { at: 0, value: 'oklab(0.5981 0.0000 0.0000)' },
+    { at: 0.25, value: 'oklab(0.6652 -0.0584 0.0449)' },
+    { at: 0.5, value: 'oklab(0.7323 -0.1169 0.0898)' },
+    { at: 0.75, value: 'oklab(0.7994 -0.1754 0.1346)' },
+    { at: 1, value: 'oklab(0.8664 -0.2338 0.1795)' }
+  ];
+
+  const green_to_gray = [
+    { at: 0, value: 'oklab(0.8664 -0.2338 0.1795)' },
+    { at: 0.25, value: 'oklab(0.7994 -0.1754 0.1346)' },
+    { at: 0.5, value: 'oklab(0.7323 -0.1169 0.0898)' },
+    { at: 0.75, value: 'oklab(0.6652 -0.0584 0.0449)' },
+    { at: 1, value: 'oklab(0.5981 0.0000 0.0000)' }
+  ];
+
+  const translucent_black_to_white = [
+    { at: 0,    value: 'oklab(0.5981 0 0)' },
+    { at: 0.25, value: 'oklab(0.6784 0 0 / 0.9373)' },
+    { at: 0.5,  value: 'oklab(0.7702 0 0 / 0.8745)' },
+    { at: 0.75, value: 'oklab(0.8762 0 0 / 0.8118)' },
+    { at: 1,    value: 'oklab(1 0 0 / 0.75)' }
+  ];
+
+  const translucent_white_to_black = [
+    { at: 0,    value: 'oklab(1 0 0 / 0.75)' },
+    { at: 0.25, value: 'oklab(0.8762 0 0 / 0.8118)' },
+    { at: 0.5,  value: 'oklab(0.7702 0 0 / 0.8745)' },
+    { at: 0.75, value: 'oklab(0.6784 0 0 / 0.9373)' },
+    { at: 1,    value: 'oklab(0.5981 0 0)' }
+  ];
+
+  window.onload = async () => {
+    promise_test(t => {
+      return runAnimationTest(t, 'missing-from-legacy-to', gray_to_green);
+    }, 'Animate from neutral keyframe with color-mix to legacy rgb');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'missing-to-legacy-from', green_to_gray);
+    }, 'Animate from legacy rgb to neutral keyframe with color-mix');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'missing-from-srgb-to', gray_to_green);
+    }, 'Animate from neutral keyframe with color-mix to srgb');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'missing-to-srgb-from', green_to_gray);
+    }, 'Animate from srgb to neutral keyframe with color-mix');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'missing-from-rgba-to',
+                              translucent_black_to_white);
+    }, 'Animate from color-mix with transparency to legacy rgba');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'missing-to-rgba-from',
+                              translucent_white_to_black);
+    }, 'Animate from legacy rgba to color-mix with transparency');
+  };
+
+</script>
+</html>

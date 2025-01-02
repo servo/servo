@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#the-multi-column-model">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#unforced-breaks">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .ib {
+    display: inline-block;
+    width: 500%;
+    height: 30px;
+    vertical-align: top;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; column-gap:0; width:100px; height:100px; orphans:2; widows:2; background:red;">
+  <div style="contain:size; height:70px; background:green;"></div>
+  <div style="break-before:avoid; columns:5; column-fill:auto; column-gap:0;">
+    <div style="background:green;">
+      <div style="height:60px;"></div>
+      <!-- These lines should be pushed to a column in the the next outer
+           fragmentainer, or we'd violate orphans and widows settings (which
+           would otherwise be the only (and unnecessary) violation inside the
+           inner multicol container). -->
+      <div class="ib"></div><br>
+      <div class="ib"></div><br>
+      <div class="ib"></div><br>
+      <div style="width:500%; height:10px; background:green;"></div>
+    </div>
+  </div>
+</div>

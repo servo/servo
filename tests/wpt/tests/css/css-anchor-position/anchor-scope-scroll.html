@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Anchor Positioning: scroll transforms respect anchor-scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-scope">
+<link rel="help" href="https://issues.chromium.org/issues/380234225">
+<link rel="match" href="anchor-scope-scroll-ref.html">
+<style>
+#scroller {
+  width: 200px;
+  height: 200px;
+  overflow-y: hidden;
+  border: 1px solid black;
+}
+
+#item {
+  anchor-scope: --item;
+  anchor-name: --item;
+  height: 50px;
+  background: lightgray;
+}
+
+#anchored {
+  position-anchor: --item;
+  position: absolute;
+  background: skyblue;
+  right: anchor(right);
+  top: anchor(top);
+  width: 50px;
+  height: 50px;
+}
+
+.spacer {
+  height: 150px;
+}
+</style>
+<div id=scroller>
+  <div class=spacer></div>
+  <div id=item>
+    <b id=anchored></b>
+  </div>
+  <div class=spacer></div>
+</div>
+<!-- This element should *not* affect scroll transforms for #anchored: -->
+<div style="anchor-name: --item"></div>
+<script>
+  scroller.scrollTop = 50;
+</script>
+</html>

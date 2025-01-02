@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>This tests values animation with just a single entry</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<!-- an1: Change width immediately to 100 at 2s -->
+<rect width="10" height="100" fill="green">
+    <animate id="an1" attributeType="XML" attributeName="width" fill="freeze" values="100" begin="2s"/>
+</rect>
+
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sample1() {
+    assert_approx_equals(rect.width.animVal.value, 10, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+function sample2() {
+    assert_approx_equals(rect.width.animVal.value, 100, epsilon);
+    assert_equals(rect.width.baseVal.value, 10);
+}
+
+smil_async_test((t) => {
+    rect = rootSVGElement.ownerDocument.getElementsByTagName("rect")[0];
+
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an1", 0.0,  sample1],
+        ["an1", 2.0,  sample2],
+        ["an1", 4.0,  sample2],
+        ["an1", 60.0, sample2]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

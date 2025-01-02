@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="parent">
+            <div id="foo" class="test"></div>
+            <div id="bar" class="test"></div>
+            <div id="baz" class="test"></div>
+        </div>
+        <script>
+            var foo = document.getElementById("foo");
+            var bar = document.getElementById("bar");
+            var baz = document.getElementById("baz");
+
+            test(function() {
+                var nodelist = document.querySelectorAll(".test");
+                assert_true(nodelist instanceof NodeList, "Should be NodeList");
+                assert_equals(nodelist.length, 3);
+                assert_equals(nodelist.item(0), foo);
+                assert_equals(nodelist.item(1), bar);
+                assert_equals(nodelist.item(2), baz);
+
+                nodelist = document.querySelectorAll("div > .test");
+                assert_equals(nodelist.length, 3);
+            }, "Document");
+
+            test(function() {
+                var div = document.getElementById("parent");
+                var nodelist = div.querySelectorAll(".test");
+                assert_equals(nodelist.length, 3);
+
+                nodelist = div.querySelectorAll("div:nth-of-type(1)");
+                assert_equals(nodelist.item(0), div.firstElementChild);
+            }, "Element");
+
+            test(function() {
+                var docfrag = document.createDocumentFragment();
+
+                var div = document.createElement("div");
+                div.id = "foo";
+                div.className = "myClass";
+
+                var child = document.createElement("div");
+                div.appendChild(child);
+                docfrag.appendChild(div);
+
+                var nodelist = docfrag.querySelectorAll("#foo");
+                assert_equals(nodelist.item(0), div);
+
+                nodelist = docfrag.querySelectorAll("#foo:nth-child(1)");
+                assert_equals(nodelist.item(0), div);
+            }, "DocumentFragment");
+        </script>
+    </body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext(
+    {generator_api: 'fledge', register_beacon: true,
+     origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+  const new_url = new URL("resources/dummy.html", location.href);
+  let beacon_event = {
+    eventType: "reserved.top_navigation_commit",
+    eventData: "This is the second test's beacon data!",
+    destination: ["buyer"],
+  }
+
+  await fencedframe.execute((new_url, beacon_event) => {
+    let a = document.createElement('a');
+    a.textContent = "Click me!";
+    a.href = new_url;
+    a.target = "_blank";
+    a.style.position = "absolute";
+    a.style.left = "0px";
+    a.style.top = "0px";
+    a.style.width = "100%";
+    a.style.height = "100%";
+
+    // When the anchor link is clicked, the click handler will set the data
+    // before the navigation happens. This test checks to make sure that the
+    // data makes it to the correct place by the time the navigation commits.
+    a.onclick = () => {
+      window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+    };
+    document.body.appendChild(a);
+
+  }, [new_url, beacon_event]);
+
+  // This will trigger the beacon data storing + navigation.
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+
+  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData,
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+
+  // Leaving this fenced frame around for subsequent tests can lead to
+  // flakiness.
+  document.body.removeChild(fencedframe.element);
+}, 'Set and trigger an automatic beacon in an <a> click handler');
+
+</script>
+</body>

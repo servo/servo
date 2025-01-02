@@ -1,0 +1,74 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="CN" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: painting-stroke-06-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#StrokeProperties">
+        <p>
+          Test default effects of stroke-dasharray.
+        </p>
+        <p>
+          This specifically tests the values of none and 0.
+          This also tests an odd number of values in a dash-array attribute
+          and in combination with an offset.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      Run the test. No interaction required.
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The top two lines must be solid black. The next line shows a thick
+        black line with a thinner blue line on top; both must have the same
+        dash pattern. The bottom two lines, one black and one blue, must render
+        so that the gaps of one correspond to the dashes of the other.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-stroke-06-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="scale(1.8)">
+
+      <!-- No dasharray -->
+      <path stroke="black" stroke-width="10" fill="none" stroke-dasharray="none" d="   M  20 20   L  200 20"/>
+
+      <path stroke="black" stroke-width="10" fill="none" stroke-dasharray="0" d="   M  20 40   L  200 40"/>
+
+      <!-- Odd number, should repeat to make an even number -->
+      <path stroke="black" stroke-width="20" fill="none" stroke-dasharray="5,2,5,5,2,5" d="   M  20 60   L  200 60"/>
+      <path stroke="blue" stroke-width="10" fill="none" stroke-dasharray="5,2,5" d="   M  20 60   L  200 60"/>
+
+      <!-- Odd number, with a dashoffset test -->
+      <path stroke="black" stroke-width="10" fill="none" stroke-dasharray="2" d="   M  20 80   L  200 80"/>
+
+      <path stroke="blue" stroke-width="10" fill="none" stroke-dasharray="2" stroke-dashoffset="2" d="         M  20 90   L  200 90"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

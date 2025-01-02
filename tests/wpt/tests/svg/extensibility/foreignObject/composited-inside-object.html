@@ -1,0 +1,13 @@
+<!doctype HTML>
+<title>Compositing inside a non-stacking-context object works.</title>
+<link rel="author" title="Chris Harrelson" href="chrishtr@chromium.org">
+<link rel="match" href="composited-inside-object-ref.html">
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
+
+<object style="display: block; backface-visibility:hidden">
+  <svg>
+    <foreignObject>
+      <div style="will-change: transform">Test</div>
+    </foreignObject>
+  </svg>
+</object>

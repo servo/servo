@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Input Email setValue</title>
+<link rel="author" href="mailto:atotic@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#e-mail-state-(type=email)">
+<link rel="help" href="https://crbug.com/423785">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input type="email">
+
+<script>
+promise_test(async () => {
+  let input = document.querySelector("input");
+  let unsanitized = ' foo@bar   ';
+  let sanitized = unsanitized.trim();
+  await test_driver.send_keys(input, unsanitized);
+  input.select();
+  assert_equals(input.value, sanitized, "value is sanitized");
+  assert_equals(window.getSelection().toString(), unsanitized,
+    "visible value is unsanitized");
+  input.value = sanitized;
+  input.select();
+  assert_equals(window.getSelection().toString(), sanitized,
+    "visible value is sanitized after setValue(sanitized)");
+},
+"setValue(sanitizedValue) is reflected in visible text field content");
+</script>

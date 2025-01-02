@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" class="reftest-wait">
+  <link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org">
+    <meta charset="utf-8" />
+    <style>
+        @font-face {
+            font-family: roboto_hyphen;
+            src: url(../resources/roboto_hyphenation_subset.ttf)
+        }
+
+        div {
+        width: 30px;
+            hyphens: auto;
+            -webkit-hyphens: auto;
+            font-family: roboto_hyphen, cursive;
+        }
+    </style>
+  <body>
+    <div>
+    Do-<br>
+    nau-<br>
+    dampf-<br>
+    schiff-<br>
+    fahrt
+    </div>
+    <script>
+    document.fonts.ready.then(
+      () => { document.documentElement.classList.remove("reftest-wait"); });
+    </script>
+  </body>
+</html>

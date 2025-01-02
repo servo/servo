@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Static position of abspos children in a row flex container, with various margins applied, and "align-items: flex-end"</title>
+<link rel="author" title="Vitaly Dyachkov" href="mailto:obyknovenius@me.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
+<link rel="match" href="flex-abspos-staticpos-margin-003-ref.html">
+<style>
+  .container {
+    display: flex;
+    flex-flow: row;
+    align-items: flex-end;
+    padding: 1px 2px;
+    border: 1px solid black;
+    background: yellow;
+    margin-bottom: 5px;
+    margin-right: 10px;
+    float: left; /* For testing in "rows" of containers */
+  }
+  br { clear: both }
+
+  .big > .container {
+    height: 14px;
+    width: 20px;
+  }
+  .small > .container {
+    height: 2px;
+    width: 4px;
+  }
+
+  .container > * {
+    position: absolute;
+    background: teal;
+    height: 6px;
+    width: 8px;
+  }
+</style>
+<div class="big">
+  <!-- Margin just on one side: -->
+  <div class="container"><div style="margin-top: 3px"></div></div>
+  <div class="container"><div style="margin-right: 3px"></div></div>
+  <div class="container"><div style="margin-bottom: 3px"></div></div>
+  <div class="container"><div style="margin-left: 3px"></div></div>
+  <!-- Margin on all sides: -->
+  <div class="container"><div style="margin: 1px 2px 3px 4px"></div></div>
+  <br>
+
+  <!-- "auto" margin on just one side (should be treated as 0): -->
+  <div class="container"><div style="margin-top: auto"></div></div>
+  <div class="container"><div style="margin-right: auto"></div></div>
+  <div class="container"><div style="margin-bottom: auto"></div></div>
+  <div class="container"><div style="margin-left: auto"></div></div>
+  <!-- "auto" margin on all sides (should be treated as 0): -->
+  <div class="container"><div style="margin: auto"></div></div>
+  <br>
+</div>
+<div class="small">
+  <!-- Margin just on one side: -->
+  <div class="container"><div style="margin-top: 3px"></div></div>
+  <div class="container"><div style="margin-right: 3px"></div></div>
+  <div class="container"><div style="margin-bottom: 3px"></div></div>
+  <div class="container"><div style="margin-left: 3px"></div></div>
+  <!-- Margin on all sides: -->
+  <div class="container"><div style="margin: 1px 2px 3px 4px"></div></div>
+  <br>
+
+  <!-- "auto" margin on just one side (should be treated as 0): -->
+  <div class="container"><div style="margin-top: auto"></div></div>
+  <div class="container"><div style="margin-right: auto"></div></div>
+  <div class="container"><div style="margin-bottom: auto"></div></div>
+  <div class="container"><div style="margin-left: auto"></div></div>
+  <!-- "auto" margin on all sides (should be treated as 0): -->
+  <div class="container"><div style="margin: auto"></div></div>
+  <br>
+</div>

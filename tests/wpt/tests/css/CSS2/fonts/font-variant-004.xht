@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: font-variant and color</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/variant/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#small-caps" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-variant-prop" />
+  <meta name="assert" content="if ‘small-caps’ or ‘all-small-caps’ is specified but small-caps glyphs are not available for a given font, user agents should simulate a small-caps font"/>
+  <style type="text/css">
+   span { color: green; font-variant: small-caps; }
+   div { color: white; text-decoration: underline; }
+  </style>
+ </head>
+ <body>
+  <p>It must say PASSED below, in a small-caps font or a simulated small caps. Test fails if lowercase or normal uppercase used.</p>
+  <div>
+   <span>THIS TEST HAS: passed.</span>
+  </div>
+ </body>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<script src="/fenced-frame/resources/utils.js"></script>
+<body>
+<script>
+async function init() {
+  const [ancestor_key] = parseKeylist();
+  writeValueToServer(ancestor_key, "frame2_loaded");
+}
+
+init();
+</script>
+</body>
+</html>

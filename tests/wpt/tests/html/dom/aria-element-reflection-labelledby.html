@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Element Reflection for aria-labelledby</title>
+    <link rel=help href="https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes:reflected-idl-attribute-33">
+    <link rel="author" title="Alice Boxhall" href="alice@igalia.com">
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <input id="input1">
+  <span id="label1">Label for input1</span>
+
+  <script>
+    promise_test(async (t) => {
+      const label_before_labelledby_set = await test_driver.get_computed_label(input1);
+      assert_equals("", label_before_labelledby_set, "Before ariaLabelledByElements is set, accessible label should be empty.");
+
+      input1.ariaLabelledByElements = [label1];
+      const label_after_labelledby_set = await test_driver.get_computed_label(input1);
+      assert_equals(label1.innerText, label_after_labelledby_set, "After ariaLabelledByElements is set, accessible label should be '" + label1.innerText + "'");
+
+      input1.ariaLabelledByElements = null;
+      const label_after_labelledby_removed = await test_driver.get_computed_label(input1);
+      assert_equals("", label_after_labelledby_removed, "After ariaLabelledByElements is set to null, accessible label should be empty");
+
+    }, "Setting ariaLabelledByElements should determine the computed label for the labelled element");
+  </script>
+
+  <input id="input2">
+
+  <script>
+    promise_test(async (t) => {
+      const label_before_labelledby_set = await test_driver.get_computed_label(input2);
+      assert_equals("", label_before_labelledby_set, "Before ariaLabelledByElements is set, accessible label should be empty.");
+
+      const label2_1 = document.createElement("span");
+      label2_1.innerText = "Label for input2";
+      const label2_2 = document.createElement("span");
+      label2_2.innerText = "Another label for input2";
+      input2.ariaLabelledByElements = [label2_1, label2_2];
+      const label_after_labelledby_set = await test_driver.get_computed_label(input2);
+      assert_equals("", label_after_labelledby_set, "After ariaLabelledByElements is set, accessible label should still be empty, since the element is not yet in the document");
+
+      input2.after(label2_1);
+      const label_after_label2_1_inserted = await test_driver.get_computed_label(input2);
+      assert_equals(label2_1.innerText, label_after_label2_1_inserted, "After first labelledby element is inserted into the document, accessible label should be based on its text");
+
+      label2_1.after(label2_2);
+      const label_after_label2_2_inserted = await test_driver.get_computed_label(input2);
+      assert_equals(label2_1.innerText + " " + label2_2.innerText, label_after_label2_2_inserted,
+                    "After second labelledby element is inserted into the document, accessible label should be based on both labels");
+
+
+      label2_1.remove();
+      label2_2.remove();
+      const label_after_labelledby_elements_removed = await test_driver.get_computed_label(input2);
+      assert_equals("", label_after_labelledby_elements_removed, "After labelledby elements are removed, accessible label should be empty again");
+    }, "Setting ariaLabelledByElements before inserting the elements referred to in the document should cause the label to be updated once elements are inserted")
+  </script>
+
+  <span id="label3">Label for input3</span>
+
+  <script>
+    promise_test(async (t) => {
+      const input3 = document.createElement("input");
+      input3.ariaLabelledByElements = [label3];
+      const label_before_input_inserted = await test_driver.get_computed_label(input3);
+      assert_equals(label_before_input_inserted, "", "Before input is inserted in the document, its computed label should be empty");
+
+      label3.before(input3);
+      const label_after_input_inserted = await test_driver.get_computed_label(input3);
+      assert_equals(label3.innerText, label_after_input_inserted, "After input is inserted in the document, its computed label should be based on the labelledby element");
+    }, "Setting ariaLabelledByElements on an element before inserting it in the document should cause the label to be updated once the element is inserted");
+  </script>
+
+  <input id="input4">
+  <div id="shadow_host4">
+    <template shadowrootmode="open">
+      <span>Label for input4</span>
+    </template>
+  </div>
+
+  <script>
+    promise_test(async (t) => {
+      const shadow_root = shadow_host4.shadowRoot;
+      const label4 = shadow_root.firstElementChild;
+      input4.ariaLabelledByElements = [label4]
+      assert_array_equals([], input4.ariaLabelledByElements, "References into shadow DOM are invalid");
+
+      const label_before_moving_labelledby_element = await test_driver.get_computed_label(input4);
+      assert_equals("", label_before_moving_labelledby_element, "Invalid references aren't used for name computation, so label should be empty");
+
+      input4.after(label4);
+      assert_array_equals([label4], input4.ariaLabelledByElements, "Moving the label causes the reference to become valid");
+
+      const label_after_moving_labelledby_element = await test_driver.get_computed_label(input4);
+      assert_equals(label4.innerText, label_after_moving_labelledby_element,
+                    "Moving the label causes the reference to become valid, so it is used in name computation.");
+
+      shadow_root.append(label4);
+      assert_array_equals([], input4.ariaLabelledByElements, "Moving the label back into shadow DOM causes the reference to become invalid again");
+      const label_after_moving_labelledby_element_back = await test_driver.get_computed_label(input4);
+      assert_equals("", label_after_moving_labelledby_element_back, "Invalid references aren't used for name computation, so label should be empty");
+    }, "Moving the label from shadow DOM to light DOM causes the reference to become valid");
+  </script>
+
+</html>

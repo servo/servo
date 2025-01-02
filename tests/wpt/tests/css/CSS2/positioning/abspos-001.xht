@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Absolute Positioning: static position after previous margin</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/001.xml" type="application/xhtml+xml"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos" />
+  <link rel="match" href="abspos-001-ref.xht" />
+
+     <style type="text/css">
+   /* Set Up Conditions */
+   * { margin: 0; padding: 0; border: 0;
+       position: static; float: none; display: block;
+       top: auto; left: auto; right: auto; bottom: auto; }
+   head { display: none; }
+   body { padding: 1em; }
+   /* Test */
+   .margin { margin-bottom: 2em; }
+   .abs { position: absolute; background: green; z-index: 1; height: 1em; width: 10em; }
+   .flow { background: red; height: 1em; width: 10em; }
+  </style>
+ </head>
+ <body>
+
+  <div class="margin">Test passes if there is a green stripe and no red.</div>
+  <div class="abs"/> <div class="flow"/>
+
+ </body>
+</html>

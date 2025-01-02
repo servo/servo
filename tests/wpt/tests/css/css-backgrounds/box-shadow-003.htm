@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Layering of box shadows</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size" />
+        <meta name="assert" content="Shadow effects are applied front to back, where the first shadow is on the top and the last shadow is on the bottom." />
+        <style type="text/css">
+            div
+            {
+                height: 96px;
+                width: 96px;
+            }
+            #reference1
+            {
+                box-shadow: orange 30px 30px;
+            }
+            #reference2
+            {
+                margin-top: -96px;
+                box-shadow: blue 20px 20px
+            }
+            #reference3
+            {
+                margin-top: -96px;
+                box-shadow: 10px 10px;
+            }
+            #test
+            {
+                margin-top: 40px;
+                box-shadow: 10px 10px, blue 20px 20px, orange 30px 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if two drawings are exactly the same.</p>
+        <div id="reference1"></div>
+        <div id="reference2"></div>
+        <div id="reference3"></div>
+        <div id="test"></div>
+    </body>
+</html>

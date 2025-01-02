@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Definite height should be rounded up to next multiple of specified step unit.">
+<style>
+.container {
+  display: flow-root;
+  width: 100px;
+  background-color: green;
+}
+.block-step {
+  block-step-size: 50px;
+  height: 51px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+  <div class="block-step"></div>
+</div>
+</body>
+</html>
+

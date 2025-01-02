@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+
+window.onload = function() {
+  // Check issuance operation availability for both Request and XMLHttpRequest.
+  // They are tied to the same permission policy. They should be both enabled or disabled.
+  let num_enabled = 2;
+  try {
+    const issue_request = new Request("https://issuer.example/", {
+      privateToken: {
+        version: 1,
+        operation: "token-request"
+      }
+    });
+  } catch (e) {
+    num_enabled--;
+  }
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", "https://issuer.example/");
+    xhr.setPrivateToken({
+      version: 1,
+      operation: "token-request"
+    });
+  } catch (e) {
+    num_enabled--;
+  }
+  parent.postMessage({
+    type: 'availability-result',
+    num_operations_enabled: num_enabled,
+  }, '*');
+}
+</script>

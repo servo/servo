@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` with non-overflowing block with set height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="With `line-clamp: auto`, the clamp point is set at the furthermost possible clamp point where the box doesn't go past the max-height. If there is an inner box with a set height, and it doesn't overflow, every clamp point inside it would increase the line-clamp container's block size by the same amount as the clamp point after the box.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 6lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.with-height {
+  height: 3lh;
+  background-color: red;
+}
+</style>
+
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+<div class="with-height">Line 5
+Line 6</div>
+Line 7</div>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Apple Inc">
+<link rel="author" title="Seokho Song" href="seokho@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// Simple tests
+test_math_used('cos(0)', '1', {type:'number'});
+test_math_used('sin(0)', '0', {type:'number'});
+test_math_used('tan(0)', '0', {type:'number'});
+test_math_used('tan(315deg)', '-1', {type:'number', approx:0.1});
+test_math_used('tan(360deg)', '0', {type:'number', approx:0.1});
+test_math_used('tan(405deg)', '1', {type:'number', approx:0.1});
+
+// Test pi
+test_math_used('calc(sin(pi/2 - pi/2) )', '0', {type:'number', approx:0.1});
+test_math_used('calc(cos(pi - 3.14159265358979323846) )', '1', {type:'number', approx:0.1});
+
+//Test e
+test_math_used('calc(cos(e - 2.7182818284590452354) )', '1', {type:'number', approx:0.1});
+
+//Test units
+test_math_used('calc(sin(30deg + 1.0471967rad ) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(cos(30deg - 0.523599rad ) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(sin(3.14159 / 2 + 1 - 1) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(sin(100grad) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(cos(0 / 2 + 1 - 1) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(tan(30deg + 0.261799rad ) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(tan(0.7853975rad ) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(tan(3.14159 / 4 + 1 - 1) )', '1', {type:'number', approx:0.1});
+test_math_used('calc(sin(0.25turn) )', '1', {type:'number', approx:0.1});
+
+//Test nesting
+test_math_used('calc(cos(sin(cos(pi) + 1)))', '1', {type:'number', approx:0.1});
+test_math_used('calc(sin(tan(pi/4)*pi/2) )', '1', {type:'number', approx:0.1});
+</script>

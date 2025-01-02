@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+<script>
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+        sourceBuffer.appendBuffer(initSegment);
+        test.expectEvent(sourceBuffer.audioTracks, "addtrack", "sourceBuffer.audioTracks addtrack event");
+        test.expectEvent(sourceBuffer.videoTracks, "addtrack", "sourceBuffer.videoTracks addtrack event");
+        test.expectEvent(mediaElement.audioTracks, "addtrack", "mediaElement.audioTracks addtrack event");
+        test.expectEvent(mediaElement.videoTracks, "addtrack", "mediaElement.videoTracks addtrack event");
+        test.expectEvent(mediaElement, "loadedmetadata", "loadedmetadata done.");
+        test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+        test.waitForExpectedEvents(function()
+        {
+            assert_equals(sourceBuffer.videoTracks.length, 1, "videoTracks.length");
+            assert_equals(sourceBuffer.videoTracks[0].kind, "main", "videoTrack.kind");
+            assert_equals(sourceBuffer.videoTracks[0].label, "", "videoTrack.label");
+            assert_equals(sourceBuffer.videoTracks[0].language, "eng", "videoTrack.language");
+            assert_equals(sourceBuffer.videoTracks[0].sourceBuffer, sourceBuffer, "videoTrack.sourceBuffer");
+            // The first video track is selected by default.
+            assert_true(sourceBuffer.videoTracks[0].selected, "sourceBuffer.videoTracks[0].selected");
+
+            assert_equals(sourceBuffer.audioTracks.length, 1, "audioTracks.length");
+            assert_equals(sourceBuffer.audioTracks[0].kind, "main", "audioTrack.kind");
+            assert_equals(sourceBuffer.audioTracks[0].label, "", "audioTrack.label");
+            assert_equals(sourceBuffer.audioTracks[0].language, "eng", "audioTrack.language");
+            assert_equals(sourceBuffer.audioTracks[0].sourceBuffer, sourceBuffer, "audioTrack.sourceBuffer");
+            // The first audio track is enabled by default.
+            assert_true(sourceBuffer.audioTracks[0].enabled, "sourceBuffer.audioTracks[0].enabled");
+
+            assert_not_equals(sourceBuffer.audioTracks[0].id, sourceBuffer.videoTracks[0].id, "track ids must be unique");
+
+            assert_equals(mediaElement.videoTracks.length, 1, "videoTracks.length");
+            assert_equals(mediaElement.videoTracks[0], sourceBuffer.videoTracks[0], "mediaElement.videoTrack == sourceBuffer.videoTrack");
+
+            assert_equals(mediaElement.audioTracks.length, 1, "audioTracks.length");
+            assert_equals(mediaElement.audioTracks[0], sourceBuffer.audioTracks[0], "mediaElement.audioTrack == sourceBuffer.audioTrack");
+
+            test.done();
+        });
+    }, "Check that media tracks and their properties are populated properly");
+
+    function verifyTrackRemoval(test, mediaElement, mediaSource, sourceBuffer, trackRemovalAction, successCallback) {
+        assert_equals(sourceBuffer.audioTracks.length, 1, "audioTracks.length");
+        assert_true(sourceBuffer.audioTracks[0].enabled, "sourceBuffer.audioTracks[0].enabled");
+        assert_equals(sourceBuffer.videoTracks.length, 1, "videoTracks.length");
+        assert_true(sourceBuffer.videoTracks[0].selected, "sourceBuffer.videoTracks[0].selected");
+
+        var audioTrack = sourceBuffer.audioTracks[0];
+        var videoTrack = sourceBuffer.videoTracks[0];
+
+        // Verify removetrack events.
+        test.expectEvent(sourceBuffer.audioTracks, "removetrack", "sourceBuffer.audioTracks removetrack event");
+        test.expectEvent(sourceBuffer.videoTracks, "removetrack", "sourceBuffer.videoTracks removetrack event");
+        test.expectEvent(mediaElement.audioTracks, "removetrack", "mediaElement.audioTracks removetrack event");
+        test.expectEvent(mediaElement.videoTracks, "removetrack", "mediaElement.videoTracks removetrack event");
+
+        // Removing enabled audio track and selected video track should fire "change" events on mediaElement track lists.
+        test.expectEvent(mediaElement.audioTracks, "change", "mediaElement.audioTracks changed.");
+        test.expectEvent(mediaElement.videoTracks, "change", "mediaElement.videoTracks changed.");
+
+        trackRemovalAction();
+
+        test.waitForExpectedEvents(function()
+        {
+            assert_equals(mediaSource.sourceBuffers.length, 0, "mediaSource.sourceBuffers.length");
+            assert_equals(mediaElement.videoTracks.length, 0, "videoTracks.length");
+            assert_equals(mediaElement.audioTracks.length, 0, "audioTracks.length");
+            assert_equals(sourceBuffer.videoTracks.length, 0, "videoTracks.length");
+            assert_equals(sourceBuffer.audioTracks.length, 0, "audioTracks.length");
+            // Since audio and video tracks have been removed, their .sourceBuffer property should be null now.
+            assert_equals(audioTrack.sourceBuffer, null, "audioTrack.sourceBuffer");
+            assert_equals(videoTrack.sourceBuffer, null, "videoTrack.sourceBuffer");
+            test.done();
+        });
+    }
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+        sourceBuffer.appendBuffer(initSegment);
+        test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+        test.waitForExpectedEvents(function()
+        {
+            verifyTrackRemoval(test, mediaElement, mediaSource, sourceBuffer, test.step_func(function ()
+            {
+                mediaSource.removeSourceBuffer(sourceBuffer);
+            }));
+        });
+    }, "Media tracks must be removed when the SourceBuffer is removed from the MediaSource");
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+        sourceBuffer.appendBuffer(initSegment);
+        test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+        test.waitForExpectedEvents(function()
+        {
+            verifyTrackRemoval(test, mediaElement, mediaSource, sourceBuffer, test.step_func(function ()
+            {
+                mediaElement.src = "";
+            }));
+        });
+    }, "Media tracks must be removed when the HTMLMediaElement.src is changed");
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+        sourceBuffer.appendBuffer(initSegment);
+        test.expectEvent(sourceBuffer, "updateend", "initSegment append ended.");
+        test.waitForExpectedEvents(function()
+        {
+            verifyTrackRemoval(test, mediaElement, mediaSource, sourceBuffer, test.step_func(function ()
+            {
+                mediaElement.load();
+            }));
+        });
+    }, "Media tracks must be removed when HTMLMediaElement.load() is called");
+</script>

@@ -1,0 +1,86 @@
+name: Linux WPT Tests
+on:
+  workflow_call:
+
+permissions:
+  checks: write
+  pull-requests: write
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  # allows overriding bencher project for pushes
+  BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
+
+jobs:
+  linux-bencher:
+    name: Bencher
+    # keep this in sync with testbed
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 0
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: refs/pull/${{ github.event.number }}/head
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-binary-linux
+          path: release-binary-linux
+      - name: unPackage binary
+        run: tar -xzf release-binary-linux/target.tar.gz
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        run: |
+          sudo apt update
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
+          python3 ./mach bootstrap --skip-lints
+      - uses: bencherdev/bencher@main
+      - name: File size
+        run: ./etc/ci/bencher.py filesize target/release/servo --bmf-output size.json
+      - name: Speedometer
+        run: |
+            python3 ./mach test-speedometer -r --bmf-output speedometer.json
+      - name: Dromaeo
+        run: |
+            python3 ./mach test-dromaeo -r dom --bmf-output dromaeo.json
+      # set options
+      - name: Set bencher opts for PRs (label try run)
+        if: github.event_name == 'pull_request_target'
+        run: |
+            echo "RUN_BENCHER_OPTIONS=--branch ${{ github.event.number }}/PR \
+            --branch-start-point ${{ github.base_ref }} \
+            --branch-start-point-hash ${{ github.event.pull_request.base.sha }} \
+            --branch-reset \
+            --github-actions ${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_ENV"
+      - name: Set bencher opts for main
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        run: |
+            echo "RUN_BENCHER_OPTIONS=--branch main \
+            --github-actions ${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_ENV"
+      - name: Set bencher opts for try branch
+        if: ${{ github.event_name == 'push' && github.ref_name == 'try' }}
+        run: |
+            git remote add upstream https://github.com/servo/servo
+            git fetch upstream main
+            echo "RUN_BENCHER_OPTIONS=--branch try \
+            --github-actions ${{ secrets.GITHUB_TOKEN }} \
+            --hash $(git rev-parse HEAD~1) \
+            --branch-start-point main \
+            --branch-start-point-hash $(git merge-base upstream/main HEAD) \
+            --branch-reset" >> "$GITHUB_ENV"
+      # we join results and send all data once to have it all in one report
+      - name: Send results
+        continue-on-error: true
+        run: |
+          ./etc/ci/bencher.py merge size.json speedometer.json dromaeo.json --bmf-output b.json
+          bencher run --adapter json --file b.json \
+            --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed ubuntu-22.04 \
+            $RUN_BENCHER_OPTIONS

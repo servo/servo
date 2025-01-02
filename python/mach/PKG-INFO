@@ -1,0 +1,29 @@
+Metadata-Version: 1.1
+Name: mach
+Version: 1.0.0
+Summary: Generic command line command dispatching framework.
+Home-page: https://developer.mozilla.org/en-US/docs/Developer_Guide/mach
+Author: Gregory Szorc
+Author-email: gregory.szorc@gmail.com
+License: MPL 2.0
+Description: ====
+        mach
+        ====
+        
+        Mach (German for *do*) is a generic command dispatcher for the command
+        line.
+        
+        To use mach, you install the mach core (a Python package), create an
+        executable *driver* script (named whatever you want), and write mach
+        commands. When the *driver* is executed, mach dispatches to the
+        requested command handler automatically.
+        
+        To learn more, read the docs in ``docs/``.
+        
+Platform: UNKNOWN
+Classifier: Environment :: Console
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.5

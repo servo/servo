@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>border-bottom-left-radius using two percentages</title>
+    <link rel="match" href="border-bottom-left-radius-005-ref.xht" />
+    <link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-radius" />
+    <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-1" />
+    <style type="text/css">
+      div
+      {
+          width: 200px;
+          height: 100px;
+
+          background: orange;
+          border: 20px solid teal;
+          border-bottom-left-radius: 20% 10%;
+      }
+    </style>
+  </head>
+  <body>
+    <p>The box should have a border-bottom-left-radius of 48px 14px. The
+        horizontal radius should therefore be clearly larger than the
+        vertical radius.</p>
+    <div></div>
+  </body>
+</html>

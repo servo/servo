@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>Fenced frame disallowed navigations with potentially-dangling markup</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/fetch/private-network-access/resources/support.sub.js"></script>
+<script src="resources/dangling-markup-helper.js"></script>
+
+<body>
+
+<script>
+// These tests assert that fenced frames cannot be navigated to a urn:uuid URL
+// that represents an HTTPS URLs with dangling markup.
+for (const substring of kDanglingMarkupSubstrings) {
+  promise_test(async t => {
+    const key = token();
+
+    // Copied from from `generateURNFromFlege()`, since we have to modify the
+    // final URL that goes into `interestGroup.ads[0].renderURL` for
+    // `navigator.joinAdInterestGroup()`.
+    const bidding_token = token();
+    const seller_token = token();
+
+    let url_string = generateURL("resources/report-url.html?blocked",
+                                 [key]).toString();
+    url_string = url_string.replace("blocked", substring);
+
+    const interestGroup = {
+      name: 'testAd1',
+      owner: location.origin,
+      biddingLogicURL: new URL(FLEDGE_BIDDING_URL, location.origin),
+      ads: [{renderURL: url_string, bid: 1}],
+      userBiddingSignals: {biddingToken: bidding_token},
+      trustedBiddingSignalsKeys: ['key1'],
+      adComponents: [],
+    };
+
+    // Pick an arbitrarily high duration to guarantee that we never leave the
+    // ad interest group while the test runs.
+    navigator.joinAdInterestGroup(interestGroup, /*durationSeconds=*/3000000);
+
+    const auctionConfig = {
+      seller: location.origin,
+      interestGroupBuyers: [location.origin],
+      decisionLogicURL: new URL(FLEDGE_DECISION_URL, location.origin),
+      auctionSignals: {biddingToken: bidding_token, sellerToken: seller_token},
+    };
+
+    const urn = await navigator.runAdAuction(auctionConfig);
+
+    const fencedframe = attachFencedFrame(urn);
+    const loaded_promise = nextValueFromServer(key);
+    const result = await Promise.any([loaded_promise, getTimeoutPromise(t)]);
+    assert_equals(result, "NOT LOADED");
+  }, `fenced frame opaque URN => https: URL with dangling markup '${substring}'`);
+}
+
+</script>
+
+</body>

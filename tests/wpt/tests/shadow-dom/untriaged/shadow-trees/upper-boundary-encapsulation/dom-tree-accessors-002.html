@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Upper-boundary encapsulation: shadow root's DOM tree accessors</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The nodes are accessible using shadow root's DOM tree accessor methods.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+function assert_singleton_node_list(nodeList, expectedNode) {
+    assert_equals(nodeList.length, 1);
+    assert_equals(nodeList[0], expectedNode);
+}
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    var image = doc.createElement('img');
+    shadowRoot.appendChild(image);
+
+    assert_singleton_node_list(shadowRoot.querySelectorAll('img'), image);
+},
+    'Elements in a shadow tree should be accessible via shadow root\'s ' +
+    'querySelectorAll() DOM tree accessor.'
+);
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    var div = doc.createElement('div');
+    div.className = 'div-class';
+    shadowRoot.appendChild(div);
+
+    assert_singleton_node_list(
+        shadowRoot.querySelectorAll('.div-class'), div);
+},
+    'Elements with a specific class in a shadow tree should be accessible via' +
+    'shadow root\'s querySelectorAll() DOM tree accessor.'
+);
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    var div = doc.createElement('div');
+    div.id = 'div-id';
+    shadowRoot.appendChild(div);
+
+    assert_equals(shadowRoot.getElementById('div-id'), div);
+},
+    'Elements in a shadow tree should be accessible via shadow root\'s ' +
+    'getElementById() DOM tree accessor.'
+);
+</script>
+</body>
+</html>

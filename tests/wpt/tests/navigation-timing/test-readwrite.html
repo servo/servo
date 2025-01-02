@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance is read/write</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-window.performance-attribute"/>
+        <meta name="assert" content="The window.performance attribute provides a hosting area for performance related attributes. "/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that the window.performance object is read/write.</p>
+        <div id="log"></div>
+        <script>
+            test_namespace();
+
+            window.performance = 'foo';
+            test_equals(window.performance, 'foo', 'window.performance is read/write');
+
+            var performance = 'bar';
+            test_equals(performance, 'bar', 'var performance is read/write');
+        </script>
+    </body>
+</html>

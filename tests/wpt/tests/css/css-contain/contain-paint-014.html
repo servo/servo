@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Paint containment on table-cell</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-paint">
+<link rel="match" href="../reference/nothing.html">
+<meta name=assert content="Paint containment does apply to table-cell elements.">
+<style>
+div {
+  display: table-cell;
+  contain: paint;
+}
+span {
+  position: absolute;
+}
+</style>
+
+<p>There should be nothing below.</p>
+<div><span>FAIL</span></div>

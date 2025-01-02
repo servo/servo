@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Test choosing the correct text-box-edge value for requested trim metric</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<meta name="assert"
+      content="text-box-edge is an inherited property and trim metric should be used accordingly."
+> <!-- https://github.com/w3c/csswg-drafts/issues/10904 -->
+<link rel="match" href="text-box-trim-accumulation-001-ref.html">
+<style>
+@import "support/MetricsTestFont.css";
+
+.spacer {
+  block-size: 100px;
+  background: lightgray;
+}
+
+.inner {
+  font: 100px/2 MetricsTestFont;
+}
+.outer {
+  text-box-trim: trim-start;
+  text-box-edge: auto;
+}
+
+.middle {
+  text-box-trim: trim-end;
+  text-box-edge: text alphabetic;
+}
+
+.inner:first-child {
+  text-box-edge: ex alphabetic;
+}
+
+.inner:last-child {
+  text-box-edge: text;
+}
+</style>
+<div class="spacer"></div>
+<div class="outer">
+  <div class="middle">
+    <div class="inner">ApÉx</div>
+    <div class="spacer"></div>
+    <div class="inner">ApÉx</div>
+  </div>
+</div>
+<div class="spacer"></div>

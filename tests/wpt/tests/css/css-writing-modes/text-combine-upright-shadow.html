@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>text-combine-upright: all with text-shadow</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="stylesheet" href="support/tcy.css">
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-layout" title="9.1.2. Layout Rules">
+    <link rel="match" href="text-combine-upright-shadow-ref.html">
+    <style>
+    div {
+        text-shadow: 4px 10px 0px red;
+        font: 50px/1 Ahem;
+        writing-mode: vertical-rl;
+    }
+    </style>
+</head>
+<body>
+    <p>PASS if the text-shadow (red) is placed at the lower right of the text (black).</p>
+    <div>XX<span class="tcy">X</span></div>
+</body>
+</html>

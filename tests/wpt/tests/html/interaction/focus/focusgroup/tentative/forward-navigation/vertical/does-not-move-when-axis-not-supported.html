@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus does not move to next focusgroup item when the axis of the arrow key pressed isn't supported.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup=inline>
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=-1>item2</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+
+    await focusAndKeyPress(item1, kArrowDown);
+    assert_equals(document.activeElement, item1);
+  }, "When the focus is set on an item of a focusgroup that only supports the orthogonal axis to the arrow key pressed, the arrow pressed shouldn't move the focus.");
+
+</script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLTableSectionElement#insertRow</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id ="log"></div>
+
+<table>
+  <tbody id="testBody">
+    <tr><td>ABCDEF</td></tr>
+  </tbody>
+</table>
+
+<script>
+
+var tbody = document.getElementById("testBody");
+
+test(function () {
+  var trEle = tbody.insertRow(0);
+  assert_equals(tbody.rows[0], trEle);
+  assert_equals(tbody.rows.length, 2);
+}, "HTMLTableSectionElement insertRow(0)");
+
+test(function () {
+  var trEle = tbody.insertRow(-1);
+  assert_equals(tbody.rows[tbody.rows.length - 1], trEle);
+  assert_equals(tbody.rows.length, 3);
+}, "HTMLTableSectionElement insertRow(-1)");
+
+test(function () {
+  var trEle = tbody.insertRow();
+  assert_equals(tbody.rows[tbody.rows.length - 1], trEle);
+  assert_equals(tbody.rows.length, 4);
+}, "HTMLTableSectionElement insertRow()");
+
+test(function () {
+  var trEle = tbody.insertRow(tbody.rows.length);
+  assert_equals(tbody.rows[tbody.rows.length - 1], trEle);
+  assert_equals(tbody.rows.length, 5);
+}, "HTMLTableSectionElement insertRow(rows.length)");
+
+test(function () {
+  assert_throws_dom("IndexSizeError", function () {
+    tbody.insertRow(-2);
+  });
+}, "HTMLTableSectionElement insertRow(-2)");
+
+test(function () {
+  assert_throws_dom("IndexSizeError", function () {
+    tbody.insertRow(tbody.rows.length + 1);
+  });
+}, "HTMLTableSectionElement insertRow(rows.length + 1)");
+
+</script>

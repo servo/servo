@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1216308">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="If a table has visibility:hidden collapsed borders should not be painted.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; background: green;">
+  <table style="border: solid red 20px; border-collapse: collapse; width: 100px; height: 100px; box-sizing: border-box; visibility: hidden;">
+    <td></td>
+  </table>
+</table>

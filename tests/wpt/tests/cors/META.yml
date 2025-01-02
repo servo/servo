@@ -1,0 +1,6 @@
+spec: https://fetch.spec.whatwg.org/#http-cors-protocol
+suggested_reviewers:
+  - odinho
+  - hillbrad
+  - jdm
+  - annevk

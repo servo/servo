@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: tab-size, word-spacing and letter-spacing</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#tab-size-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#word-spacing-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<link rel="match" href="tab-size-spacing-001-ref.html">
+<meta name="assert" content="For the tab-size property, a <number> represents the measure as a multiple of the space character’s advance width (U+0020) including its associated letter-spacing and word-spacing">
+<style>
+.test {
+  white-space: pre;
+  tab-size: 8; /* the initial value, but since we're measuring against it, we might as well be sure */
+  font-family: monospace; /* because the ch unit is based on the size of the 0 character,
+                             and we want to measure space characters
+                             so they need to be the same size. */
+  letter-spacing: 2px;
+  word-spacing: 10px;
+}
+span {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: green;
+}
+.ref {
+  position: absolute;
+  z-index: -1;
+  width: 20px;
+  height: 20px;
+  background: red;
+  margin-left: calc( 8ch + 8 * 2px + 8 * 10px );
+
+   /* this is to avoid antialiasing effects at the edge */
+   box-sizing: border-box;
+   border: 2px solid white;
+}
+</style>
+
+<p>Test passes if there is a green square and no red.
+<div class=ref></div>
+<div class=test>&#x09;<span></span></div>

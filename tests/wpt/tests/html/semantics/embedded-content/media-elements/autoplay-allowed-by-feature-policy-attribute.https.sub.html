@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+  <script src=/common/media.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script src=/feature-policy/resources/autoplay.js></script>
+  <script>
+  'use strict';
+  const same_origin_src = '/feature-policy/resources/feature-policy-autoplay.html';
+  const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+    same_origin_src;
+  const feature_name = 'Feature policy "autoplay"';
+  const header = 'allow="autoplay" attribute';
+
+  async_test(t => {
+    simulateGesture(t, () => {
+      test_feature_availability(
+          'autoplay', t, same_origin_src,
+          expect_feature_available_default, 'autoplay');
+    });
+  }, feature_name + ' can be enabled in same-origin iframe using ' + header);
+
+  async_test(t => {
+    simulateGesture(t, () => {
+      test_feature_availability(
+          'autoplay', t, cross_origin_src,
+          expect_feature_available_default, 'autoplay');
+    });
+  }, feature_name + ' can be enabled in cross-origin iframe using ' + header);
+  </script>
+</body>

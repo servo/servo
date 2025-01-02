@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>selection.collapse() to line start</title>
+<pre id=target contenteditable>ABC<br><br></pre>
+<script>
+  target.focus();
+  getSelection().collapse(target, 3);
+</script>

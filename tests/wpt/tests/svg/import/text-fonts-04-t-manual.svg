@@ -1,0 +1,76 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="MI" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: text-fonts-04-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#FontPropertiesUsedBySVG">
+        <p>
+          Testing font-family attribute.
+          Various text elements are
+          used with varying values for the font-family attribute.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The first two text elements should display in their respective fonts,
+        <span style="font-family: Haettenschweiler">Haettenschweiler</span> and
+        <span style="font-family: Charlesworth">Charlesworth</span>,
+        if they are installed on the target system. Otherwise, simply
+        displaying the text in some fallback font is enough to pass the test.
+        The last two should be displayed using a fallback font since the
+        value specified for font-family is either invalid or not specified.
+        Failing to display the text means the test is not passed.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-fonts-04-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-size="18">
+    <!-- Deliberately leave off font-family from the template #test-body-content
+         element, since we want the default font. -->
+
+    <text x="15" y="60" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = "Haettenschweiler"</text>
+    <text x="340" y="60" font-family="Haettenschweiler" font-size="35">ABC</text>
+
+    <text x="15" y="110" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = "Charlesworth"</text>
+    <text x="340" y="110" font-family="Charlesworth" font-size="35">ABC</text>
+
+    <text x="15" y="160" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = "Invalid Name"</text>
+    <text x="340" y="160" font-family="InvalidFontFamily" font-size="35">ABC</text>
+
+    <text x="15" y="210" font-family="SVGFreeSansASCII,sans-serif" font-size="18">font-family = not specified</text>
+    <text x="340" y="210" font-size="35">ABC</text>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

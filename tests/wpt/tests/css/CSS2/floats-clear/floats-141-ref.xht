@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p {color: blue;}
+
+  div#wrapper
+  {
+  border: none 0px;
+  display: inline-block;
+  margin: 0em;
+  padding: 0em;
+  }
+
+  div
+  {
+  border: solid thin;
+  margin: 0.2em;
+  padding: 0.2em;
+  }
+
+  div#A
+  {
+  color: fuchsia;
+  width: 12em;
+  }
+
+  div#B
+  {
+  color: orange;
+  display: inline-block;
+  width: 8em;
+  }
+
+  div#C
+  {
+  color: orange;
+  display: inline-block;
+  width: 4em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>C must not be above B.</p>
+
+  <div id="wrapper">
+    <div id="A">A</div>
+    <div id="B">B</div><div id="C">C</div>
+  </div>
+
+ </body>
+</html>

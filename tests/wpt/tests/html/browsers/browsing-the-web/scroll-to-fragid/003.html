@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- this tests the spec as it hopefully will be once bug https://www.w3.org/Bugs/Public/show_bug.cgi?id=17155 is fixed -->
+<title>Fragment Navigation: Updating scroll position</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="log"></div>
+<div id="test">scroll 1</div>
+<div style="height:10000px">Filler</div>
+<div id="test1">scroll 2</div>
+<script>
+test(function() {
+  assert_equals(document.scrollingElement.scrollTop, 0);
+  location.hash = "test";
+
+  var scroll1 = document.scrollingElement.scrollTop;
+  assert_true(scroll1 > 0);
+
+  location.hash = "test1";
+  var scroll2 = document.scrollingElement.scrollTop;
+  assert_true(scroll2 > scroll1);
+
+  location.hash = ""
+});
+</script>

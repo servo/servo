@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel='match' href='float_positioned_pseudo_stacking_context_ref.html'>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+  }
+
+  #a {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: red;
+  }
+
+  #b {
+    float: left;
+    position: relative;
+    background: green;
+  }
+</style>
+
+<body>
+  <div id="a"></div>
+  <div id="b"></div>
+</body>
+

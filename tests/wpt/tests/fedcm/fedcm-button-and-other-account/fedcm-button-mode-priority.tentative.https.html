@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Active Mode priority tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let passive_test_options = request_options_with_mediation_required();
+  let active_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  active_test_options.identity.mode = "active";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let first_cred = await fedcm_get_and_select_first_account(t, active_test_options);
+      assert_equals(first_cred.token, "mode=active");
+      let second_cred = await fedcm_get_and_select_first_account(t, passive_test_options);
+      assert_equals(second_cred.token, "token");
+  });
+}, "Test that the passive mode can succeed after the active mode.");
+
+fedcm_test(async t => {
+   let passive_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+   let active_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+   active_test_options.identity.mode = "active";
+
+   let first_cred = navigator.credentials.get(passive_test_options);
+   let rej = promise_rejects_dom(t, 'NetworkError', first_cred);
+
+   return test_driver.bless('initiate FedCM request', async function() {
+       let second_cred = await fedcm_get_and_select_first_account(t, active_test_options);
+       assert_equals(second_cred.token, "mode=active");
+       await rej;
+   });
+ }, "Test that the active mode can replace passive mode.");
+
+fedcm_test(async t => {
+  let active_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  active_test_options.identity.mode = "active";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let first_cred = fedcm_get_and_select_first_account(t, active_test_options);
+      let second_cred = navigator.credentials.get(active_test_options);
+      let rej = promise_rejects_dom(t, 'NotAllowedError', second_cred);
+
+      let cred = await first_cred;
+      assert_equals(cred.token, "mode=active");
+      await rej;
+  });
+}, "Test that the active mode cannot replace active mode.");
+
+fedcm_test(async t => {
+  let passive_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  let active_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  active_test_options.identity.mode = "active";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let first_cred = fedcm_get_and_select_first_account(t, active_test_options);
+      let second_cred = navigator.credentials.get(passive_test_options);
+      let rej = promise_rejects_dom(t, 'NotAllowedError', second_cred);
+
+      let cred = await first_cred;
+      assert_equals(cred.token, "mode=active");
+      await rej;
+  });
+}, "Test that the passive mode cannot replace active mode.");
+
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<script>
+  "use strict";
+
+  const same_origin_src =
+    "/permissions-policy/resources/permissions-policy-screen-wakelock.html";
+  const cross_origin_src =
+    get_host_info().HTTPS_REMOTE_ORIGIN + same_origin_src;
+
+  const header = 'Permissions-Policy header "screen-wake-lock=self"';
+
+  promise_test(async t => {
+    await test_driver.set_permission(
+        { name: 'screen-wake-lock' }, 'granted');
+    await navigator.wakeLock.request('screen').then(lock => lock.release());
+  }, `${header} allows the top-level document.`);
+
+  async_test(t => {
+    test_feature_availability(
+      'navigator.wakeLock.request("screen")',
+      t,
+      same_origin_src,
+      expect_feature_available_default
+    );
+  }, `${header} allows same-origin iframes.`);
+
+  async_test(t => {
+    test_feature_availability(
+      'navigator.wakeLock.request("screen")',
+      t,
+      cross_origin_src,
+      expect_feature_unavailable_default,
+      'screen-wake-lock'
+    );
+  }, `${header} disallows cross-origin iframes.`);
+</script>
+</body>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Test "end-edges" of scrollable overflows in various writing modes</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+scroller {
+  display: inline-block;
+  overflow: auto;
+  width: 100px;
+  height: 100px;
+  font-size: 50px;
+  line-height: 1;
+}
+.vlr { writing-mode: vertical-lr; }
+.vrl { writing-mode: vertical-rl; }
+.htb > .block-start { padding-top: 200px; }
+.htb > .block-end { padding-bottom: 200px; }
+.vlr > .block-start { padding-left: 200px; }
+.vlr > .block-end { padding-right: 200px; }
+.vrl > .block-start { padding-right: 200px; }
+.vrl > .block-end { padding-left: 200px; }
+</style>
+<body>
+  <div id="log"></div>
+  <div class="htb">
+    <scroller class="block-start">A</scroller>
+    <scroller class="block-end">A</scroller>
+  </div>
+  <div class="vlr">
+    <scroller class="block-start">A</scroller>
+    <scroller class="block-end">A</scroller>
+  </div>
+  <div class="vrl">
+    <scroller class="block-start">A</scroller>
+    <scroller class="block-end">A</scroller>
+  </div>
+<script>
+for (let element of document.getElementsByTagName('scroller')) {
+  let writing_mode = getComputedStyle(element).writingMode;
+  test(() => {
+    assert_equals(element.scrollWidth, element.offsetWidth, "scrollWidth");
+    assert_equals(element.scrollHeight, element.offsetHeight, "scrollHeight");
+  }, writing_mode + ' ' + element.className);
+}
+</script>
+</body>

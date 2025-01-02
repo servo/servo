@@ -1,0 +1,31 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test the invalid use of a variable in an @font-face rule where the variable is defined on the root element.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
+<link rel="match" href="variable-font-face-02-ref.html">
+<meta name="flags" content="ahem">
+<style>
+:root {
+  --a: MyTestFontName;
+}
+@font-face {
+  font-family: var(--a);
+  src: url(/fonts/Ahem.ttf);
+}
+@font-face {
+  font-family: MyTestFontName2;
+  src: url(/fonts/Ahem.ttf);
+}
+#a {
+  font-family: MyTestFontName, serif;
+}
+#b {
+  font-family: MyTestFontName2, serif;
+}
+</style>
+<p id=a>This text must not be in Ahem.</p>
+<p id=b>But this text must be in Ahem.</p>

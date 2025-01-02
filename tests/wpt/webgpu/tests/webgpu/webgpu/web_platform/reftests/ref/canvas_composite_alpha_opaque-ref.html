@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <title>WebGPU canvas_composite_alpha_premultiplied (ref)</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <style>
+    body { background-color: #F0E68C; }
+    #c-canvas { background-color: #8CF0E6; }
+  </style>
+  <canvas id="c-body" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="c-canvas" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <script>
+    document.querySelectorAll('canvas').forEach(canvas => {
+      const ctx = canvas.getContext('2d');
+      ctx.globalAlpha = 1.0;
+      ctx.fillStyle = '#660000';
+      ctx.fillRect(0, 0, 15, 15);
+      ctx.fillStyle = '#006600';
+      ctx.fillRect(5, 0, 15, 15);
+      ctx.fillStyle = '#000066';
+      ctx.fillRect(0, 5, 15, 20);
+      ctx.fillStyle = '#666600';
+      ctx.fillRect(5, 5, 20, 20);
+    });
+  </script>
+</html>

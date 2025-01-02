@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Cyrillic Extended-B, uppercase</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/GentiumPlus-R.woff2') format('woff2'),
+	 url('/fonts/GentiumPlus-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Doulos SIL', 'Noto Serif', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+A641">&#xA640; &#xA640;</span> <span title="U+A643">&#xA642; &#xA642;</span> <span title="U+A645">&#xA644; &#xA644;</span> <span title="U+A647">&#xA646; &#xA646;</span> <span title="U+A649">&#xA648; &#xA648;</span> <span title="U+A64B">&#xA64A; &#xA64A;</span> <span title="U+A64D">&#xA64C; &#xA64C;</span> <span title="U+A64F">&#xA64E; &#xA64E;</span> <span title="U+A651">&#xA650; &#xA650;</span> <span title="U+A653">&#xA652; &#xA652;</span> <span title="U+A655">&#xA654; &#xA654;</span> <span title="U+A657">&#xA656; &#xA656;</span> <span title="U+A659">&#xA658; &#xA658;</span> <span title="U+A65B">&#xA65A; &#xA65A;</span> <span title="U+A65D">&#xA65C; &#xA65C;</span> <span title="U+A65F">&#xA65E; &#xA65E;</span> <span title="U+A661">&#xA660; &#xA660;</span> <span title="U+A663">&#xA662; &#xA662;</span> <span title="U+A665">&#xA664; &#xA664;</span> <span title="U+A667">&#xA666; &#xA666;</span> <span title="U+A669">&#xA668; &#xA668;</span> <span title="U+A66B">&#xA66A; &#xA66A;</span> <span title="U+A66D">&#xA66C; &#xA66C;</span> <span title="U+A681">&#xA680; &#xA680;</span> <span title="U+A683">&#xA682; &#xA682;</span> <span title="U+A685">&#xA684; &#xA684;</span> <span title="U+A687">&#xA686; &#xA686;</span> <span title="U+A689">&#xA688; &#xA688;</span> <span title="U+A68B">&#xA68A; &#xA68A;</span> <span title="U+A68D">&#xA68C; &#xA68C;</span> <span title="U+A68F">&#xA68E; &#xA68E;</span> <span title="U+A691">&#xA690; &#xA690;</span> <span title="U+A693">&#xA692; &#xA692;</span> <span title="U+A695">&#xA694; &#xA694;</span> <span title="U+A697">&#xA696; &#xA696;</span> <span title="U+A699">&#xA698; &#xA698;</span> <span title="U+A69B">&#xA69A; &#xA69A;</span></div>
+<!--Notes:
+Characters from this block that do not have case equivalents:  &#xA66E; &#xA66F; &#xA670; &#xA671; &#xA672; &#xA673; &#xA674; &#xA675; &#xA676; &#xA677; &#xA678; &#xA679; &#xA67A; &#xA67B; &#xA67C; &#xA67D; &#xA67E; &#xA67F; &#xA69C; &#xA69D; &#xA69F;
+-->
+</body>
+</html>

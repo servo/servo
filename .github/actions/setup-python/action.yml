@@ -1,0 +1,24 @@
+name: Setup Python and uv
+inputs:
+  python-version-file-path:
+    required: false
+    description: "Path to the the .python-version file"
+    default: '.python-version'
+  skip-python-setup:
+    required: false
+    description: "Whether to skip installing python using Github's `setup-python` action"
+    default: false
+runs:
+  using: "composite"
+  steps:
+    # Use the setup-python action to take advantage of the cache. uv will
+    # symlink to this version.
+    - name: Setup system python
+      if: ${{ inputs.skip-python-setup != 'true' }}
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: ${{ inputs.python-version-file-path }}
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "0.5.6"

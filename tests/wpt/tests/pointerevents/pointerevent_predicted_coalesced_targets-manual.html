@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+<title>Manual test for the target of predicted and coalesced events</title>
+<script>
+
+let counter = 0;
+let host;
+let shadowDiv;
+
+function end(succeeded, txt) {
+  host.removeEventListener("pointermove", moveListener);
+  shadowDiv.removeEventListener("pointermove", moveListener);
+  host.firstChild.textContent = txt;
+  if (succeeded) {
+    host.style.backgroundColor = "green";
+  } else {
+    host.style.backgroundColor = "red";
+  }
+}
+
+function moveListener(event) {
+  if (++counter > 50) {
+    host.removeEventListener("pointermove", moveListener);
+    shadowDiv.removeEventListener("pointermove", moveListener);
+    host.firstChild.textContent = "done";
+    end(true, "succeeded");
+  }
+
+  let cEvents = event.getCoalescedEvents();
+  for (e of cEvents) {
+    if (e.target != event.target) {
+      end(false, "Coalesced events should have the same target as the parent event! " + e.target.id + "!=" + event.target.id);
+      return;
+    }
+  }
+
+  let pEvents = event.getPredictedEvents();
+  for (e of pEvents) {
+    if (e.target != event.target) {
+      end(false, "Predicted events should have the same target as the parent event! " + e.target.id + "!=" + event.target.id);
+      return;
+    }
+  }
+}
+
+function init() {
+  host = document.getElementsByTagName("div")[0];
+  let sr = host.attachShadow({mode: "open"});
+  sr.innerHTML = '<div id="shadowDiv" style="border: 2px solid green; width: 200px; height: 200px;""><slot></slot></div>';
+  shadowDiv = sr.firstChild;
+  host.addEventListener("pointermove", moveListener);
+  shadowDiv.addEventListener("pointermove", moveListener);
+}
+
+</script>
+</head>
+<body onload="init()">
+<div id="host" style="border: 2px solid blue; width: 204px; height: 204px;">
+  Move the pointer fast over this area.
+</div>
+</body>
+</html>

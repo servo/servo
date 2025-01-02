@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Offset</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_done: true, explicit_timeout: true});
+        </script>
+        <style>
+          html {
+            width: 100%;
+            height: 100%;
+          }
+          #fullscreenBox {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            visibility: hidden;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Offset</h1>
+    <h4>
+        Test Description: Tests the offset scrolling properties on an
+        unscrollable page.
+    </h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <h4>Instruction</h4>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    <div id="fullscreenBox">
+      <!-- Invisible but needed to get maximum scrollable extents in the
+           presence of a collapsible URL bar. -->
+    </div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        // Prevent scrolling (though there should be no overflow) so that all
+        // scrolling must happen as panning the visual viewport within the
+        // layout viewport.
+        document.documentElement.style.overflow = "hidden";
+
+        addManualTestStep(
+            function() {},
+            null,
+            '1. Ensure the browser is at the default pinch and browser zoom ' +
+            'levels (100%). Most browsers: ctrl+0');
+
+        var scale = 3.0;
+        var xTarget =  2 * window.innerWidth / scale;
+        var yTarget =  2 * window.innerHeight / scale;
+        addManualTestStep(
+            showPinchWidget.bind(null, scale, xTarget, yTarget, continueTest),
+            null,
+            '2.Follow instructions on pinch zoom dialog.');
+
+        addManualTestStep(
+            function() {
+                var actualScale = window.visualViewport.scale;
+                var actualOffsetLeft = window.visualViewport.offsetLeft;
+                var actualOffsetTop = window.visualViewport.offsetTop;
+
+                // This needs to happen before assertions in case they fail. A
+                // failed assertion stops running this function.
+                window.scrollTo(0, 0);
+
+                // Ensure we zoomed in to about what we expect.
+                assert_approx_equals(actualScale, scale, 0.2,
+                    "window.visualViewport.scale reflects pinch-zoom level");
+                assert_approx_equals(actualOffsetLeft, xTarget, 5,
+                    "offsetLeft value is correct.");
+                assert_approx_equals(actualOffsetTop, yTarget, 5,
+                    "offsetTop value is correct.");
+            },
+            'With ~300% pinch-zoom',
+            '3. Pinch-zoom back out to the minimum scale');
+
+        addManualTestStep(
+            showPinchWidget.bind(null, 2, 0, 0, continueTest),
+            null,
+            '4.Follow instructions on pinch zoom dialog.');
+
+        addManualTestStep(
+            function() {
+              document.documentElement.style.overflow = "";
+              continueBtn.style.position = "absolute";
+              continueBtn.style.left = "150%";
+              continueBtn.style.top = "150%";
+
+              assert_approx_equals(window.visualViewport.scale, 2, 0.2,
+                  "window.visualViewport.scale reflects pinch-zoom level");
+            },
+            'Tester pinch zoomed in correctly',
+            '5. Scroll fully to the bottom right. Click the continue button ' +
+            'there.');
+
+        addManualTestStep(
+            function() {
+              var fullscreenBox = document.getElementById('fullscreenBox');
+              var expectedLeft = fullscreenBox.clientWidth / 2;
+              var expectedTop = fullscreenBox.clientHeight / 2;
+              var viewOffsetLeft = window.visualViewport.offsetLeft;
+              var viewOffsetTop = window.visualViewport.offsetTop;
+
+              // This needs to happen before assertions in case they fail. A
+              // failed assertion stops running this function.
+              continueBtn.style.position = "";
+              continueBtn.style.left = "";
+              continueBtn.style.top = "";
+
+              window.scrollTo(0, 0);
+
+              assert_approx_equals(viewOffsetLeft, expectedLeft, 10,
+                  "OffsetLeft is correct");
+              assert_approx_equals(viewOffsetTop, expectedTop, 10,
+                  "OffsetTop");
+            },
+            'OffsetLeft and OffsetTop correct when there\'s some layout ' +
+            'viewport scrolling as well.',
+            '6. Pinch-zoom out fully');
+
+        addManualTestStep(
+            function() {
+                continueBtn.remove();
+            },
+            null,
+            'Test Complete');
+    </script>
+</html>

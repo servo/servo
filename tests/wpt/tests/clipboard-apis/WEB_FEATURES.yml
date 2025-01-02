@@ -1,0 +1,5 @@
+features:
+- name: async-clipboard
+  files:
+  - async-*
+  - clipboard-item.https.html

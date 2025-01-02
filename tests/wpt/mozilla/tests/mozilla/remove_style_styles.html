@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing style element should remove all associated styles</title>
+<link rel="match" href="remove_style_styles_ref.html">
+<body>
+    <style>
+        body {
+            background-color: red;
+        }
+    </style>
+
+    This text should be black and the background should not be red.
+
+    <script>
+        // Force restyling
+        window.getComputedStyle(document.body);
+        var s = document.querySelector('style');
+        s.parentNode.removeChild(s);
+    </script>
+</body>

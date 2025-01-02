@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <body>
+    <input id="input" type="file" />
+    <input id="input-multiple" multiple type="file" />
+    <input id="input-disabled" disabled type="file" />
+    <input id="text-input" type="text" />
+    <script>
+      const allEvents = {events: []};
+      const onEvent = (event) => {
+        allEvents.events.push({
+          type: event.type,
+          files: [...event.target.files].map((file) => file.name),
+        });
+      };
+
+      const input = document.getElementById('input');
+      input.addEventListener('input', onEvent);
+      input.addEventListener('change', onEvent);
+      input.addEventListener('cancel', onEvent);
+
+      const multipleInput = document.getElementById('input-multiple');
+      multipleInput.addEventListener('input', onEvent);
+      multipleInput.addEventListener('change', onEvent);
+      multipleInput.addEventListener('cancel', onEvent);
+    </script>
+  </body>
+</html>

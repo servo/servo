@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1881220">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="calc-rounding-002-ref.html">
+<style>
+* {
+  box-sizing: border-box;
+}
+:root {
+  font-family: sans-serif;
+}
+.parent {
+  display: inline-flex;
+  --addon-size: 1rem;
+}
+.child {
+  min-width: 0;
+  display: inline-flex;
+  max-width: calc(100% - var(--addon-size));
+}
+.overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.addon-child {
+  display: inline-flex;
+  width: var(--addon-size);
+}
+span {
+  outline: 1px dashed red;
+  outline-offset: -1px;
+}
+p > span > span {
+  padding: .5rem .25rem;
+}
+</style>
+<p><span class="parent"><span class="child"><span class="overflow">iiiiiiiiiiiii</span></span><span class="addon-child"></span></span></p>
+<p><span class="parent"><span class="child"><span class="overflow">iiiiiiiiiiiiii</span></span><span class="addon-child"></span></span></p>
+<p><span class="parent"><span class="child"><span class="overflow">iiiiiiiiiiiiiii</span></span><span class="addon-child"></span></span></p>

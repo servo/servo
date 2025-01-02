@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script src="resources/profile-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    promise_test(async t => {
+      function namedFunctionDeclaration(sample) {
+        sample();
+      };
+      await ProfileUtils.testFunction(namedFunctionDeclaration, {
+        name: 'namedFunctionDeclaration',
+      });
+    }, 'function declaration names are logged correctly');
+  </script>
+</body>
+
+</html>

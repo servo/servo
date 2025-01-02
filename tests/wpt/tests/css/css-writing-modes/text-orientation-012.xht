@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: text-orientation - upright</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="5.1. Orienting Text: the 'text-orientation' property" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" />
+
+  <meta name="flags" content="image" />
+
+  <meta name="assert" content="This test checks that 'text-orientation: upright' causes characters from horizontal-only scripts and from vertical scripts to be translated upright." />
+
+  <style type="text/css"><![CDATA[
+  @font-face
+    {
+      font-family: "mplus-1p-regular";
+      src: url("/fonts/mplus-1p-regular.woff") format("woff");
+    }
+
+  div
+    {
+      border: gray solid 1px;
+      float: left;
+      font-family: "mplus-1p-regular";
+      font-size: 32px;
+      line-height: 1.5; /* computes to 48px */
+      margin-right: 1em;
+      text-orientation: upright;
+      writing-mode: vertical-rl;
+    }
+
+  div#reference
+    {
+      border-bottom: white none 0px;
+      border-right: white none 0px;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if characters of both rectangles have the <strong>same order</strong>, <strong>same layout</strong> and the <strong>same orientation</strong>. Note that a different inter-character spacing is considered as PASS.</p>
+
+  <div id="test">月火水Abc<br />def木金土</div>
+
+  <div id="reference"><img src="support/text-orientation-012.png" width="96" height="264" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

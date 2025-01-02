@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module: parsing inset with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#insets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+  const single_values = [
+    // [input, serialized(optional)]
+    ["0", "0px"],
+    ["auto"],
+    ["10%"],
+    ["1rem"],
+    ["-10px"],
+    ["-20%"],
+    ["calc(2em + 3ex)"],
+  ];
+  const double_values = [
+    // [input, serialized(optional)]
+    ["auto auto", "auto"],
+    ["100px 100px", "100px"],
+    ["10% -5px"],
+    ["1rem calc(0px)"]
+  ];
+  function test_inset_longhand(longhand_property) {
+    for (let value of single_values) {
+      if (value[1] === undefined)
+        test_valid_value(longhand_property, value[0]);
+      else
+        test_valid_value(longhand_property, value[0], value[1]);
+    }
+  }
+  function test_inset_shorthand(shorthand_property) {
+    for (let value of single_values) {
+      if (value[1] === undefined)
+        test_valid_value(shorthand_property, value[0]);
+      else
+        test_valid_value(shorthand_property, value[0], value[1]);
+    }
+    for (let value of double_values) {
+      if (value[1] === undefined)
+        test_valid_value(shorthand_property, value[0]);
+      else
+        test_valid_value(shorthand_property, value[0], value[1]);
+    }
+  }
+
+  test_inset_longhand("inset-block-start");
+  test_inset_longhand("inset-block-end");
+  test_inset_longhand("inset-inline-start");
+  test_inset_longhand("inset-inline-end");
+
+  test_inset_shorthand("inset-block");
+  test_inset_shorthand("inset-inline");
+</script>
+</body>
+</html>

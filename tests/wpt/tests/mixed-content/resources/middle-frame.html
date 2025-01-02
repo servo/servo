@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script>
+      onmessage = e => parent.postMessage(e.data, "*");
+
+      const path = "/fetch/api/resources/cors-top.txt";
+      const http_url = get_host_info().HTTP_ORIGIN + path;
+      const https_url = get_host_info().HTTPS_ORIGIN + path;
+
+      const ifr = document.createElement("iframe");
+      ifr.src = `data:text/html,
+        <!DOCTYPE html>
+        <script>
+          async function try_fetch(url) {
+            try {
+              const response = await fetch(url);
+              return response.ok;
+            } catch(e) {
+              return false;
+            }
+          }
+          async function try_fetch_and_report(url) {
+            parent.postMessage({
+              protocol: new URL(url).protocol,
+              success: await try_fetch(url),
+            }, "*");
+          }
+          try_fetch_and_report("${http_url}");
+          try_fetch_and_report("${https_url}");
+        <\/script>
+      `;
+      document.body.appendChild(ifr);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_10_01_02_06_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-root-methods">
+<meta name="assert" content="ShadowRoot Object: Element? elementFromPoint(float x, float y) method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+
+    var d = newHTMLDocument();
+
+    var el = d.createElement('div');
+    d.body.appendChild(el);
+
+    var s = el.attachShadow({mode: 'open'});
+
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    s.appendChild(span);
+
+    assert_equals(s.elementFromPoint(-1, 1), null, 'If x argument of elementFromPoint(x, y) is less ' +
+            'than zero then method shold return null');
+
+}, 'A_10_01_02_06_02_T01');
+
+
+test(function () {
+
+    var d = newHTMLDocument();
+
+    var el = d.createElement('div');
+    d.body.appendChild(el);
+
+    var s = el.attachShadow({mode: 'open'});
+
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    s.appendChild(span);
+
+    assert_equals(s.elementFromPoint(1, -1), null, 'If y argument of elementFromPoint(x, y) is less ' +
+            'than zero then method shold return null');
+
+}, 'A_10_01_02_06_02_T02');
+</script>
+</body>
+</html>

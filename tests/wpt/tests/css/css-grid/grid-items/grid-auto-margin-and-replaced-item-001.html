@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Margin auto and replaced grid item</title>
+<link rel="author" title="Hyunjune Kim" href="mailto:hyunjune.kim@samsung.com">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#alignment">
+<meta name="assert" content="Checks width of the nested grid container applied 'margin:auto' with a replaced item which has a property called max-height.">
+<link rel="match" href="grid-auto-margin-and-replaced-item-001-ref.html">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    left:0;
+    right:0;
+    margin: auto;
+    z-index: -1;
+  }
+  .grid {
+    display: grid;
+  }
+  .nested-grid {
+    display: grid;
+    margin: auto;
+  }
+  img {
+    max-height: 100%;
+  }
+</style>
+
+<body onload="loadImage()">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="grid">
+  <div id="reference-overlapped-red"></div>
+  <div class="nested-grid">
+    <img id="replaced">
+  </div>
+</div>
+
+<script>
+function loadImage() {
+  // Use svg for a 100x100 green square so we don't have to wait for replaced.onload.
+  replaced.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='green'/%3E%3C/svg%3E";
+}
+</script>

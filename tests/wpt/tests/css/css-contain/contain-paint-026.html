@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Paint containment and box-shadow</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-paint">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name=assert content="Paint containment should clip box-shadow effect on child.">
+<style>
+#contain-paint {
+  contain: paint;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+
+#child {
+  background: green;
+  box-shadow: 0 0 100px 100px red;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="contain-paint">
+  <div id="child"></div>
+</div>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+<script>
+    mediasource_test(function(test, mediaElement, mediaSource)
+    {
+        mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+        mediaElement.addEventListener('ended', test.step_func_done(function () {}));
+
+        var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+
+        assertSeekableEquals(mediaElement, '{ }', 'mediaElement.seekable');
+        test.done();
+    }, 'Get seekable time ranges when the sourcebuffer is empty.');
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+        test.expectEvent(mediaElement, 'durationchange', 'mediaElement got duration');
+        sourceBuffer.appendBuffer(initSegment);
+        test.waitForExpectedEvents(function()
+        {
+            assert_equals(mediaElement.duration, segmentInfo.duration);
+            assertSeekableEquals(mediaElement, '{ [0.000, ' + segmentInfo.duration.toFixed(3) + ') }', 'mediaElement.seekable');
+            test.done();
+        });
+    }, 'Get seekable time ranges after init segment received.');
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+        test.expectEvent(mediaElement, 'durationchange', 'mediaElement got duration after initsegment');
+        test.expectEvent(sourceBuffer, 'update');
+        test.expectEvent(sourceBuffer, 'updateend');
+        sourceBuffer.appendBuffer(initSegment);
+        test.waitForExpectedEvents(function()
+        {
+            assert_false(sourceBuffer.updating, "updating attribute is false");
+            test.expectEvent(mediaElement, 'durationchange', 'mediaElement got infinity duration');
+            mediaSource.duration = Infinity;
+            test.waitForExpectedEvents(function()
+            {
+                assertSeekableEquals(mediaElement, '{ }', 'mediaElement.seekable');
+
+                // Append a segment from the middle of the stream to make sure that seekable does not use buffered.start(0) or duration as first or last value
+                var midSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[2]);
+                test.expectEvent(sourceBuffer, 'update');
+                test.expectEvent(sourceBuffer, 'updateend');
+                sourceBuffer.appendBuffer(midSegment);
+                test.waitForExpectedEvents(function()
+                {
+                    assert_equals(mediaElement.seekable.length, 1, 'mediaElement.seekable.length');
+                    assert_equals(mediaElement.buffered.length, 1, 'mediaElement.buffered.length');
+                    assert_not_equals(mediaElement.seekable.start(0), mediaElement.buffered.start(0));
+                    assert_equals(mediaElement.seekable.start(0), 0);
+                    assert_not_equals(mediaElement.seekable.end(0), mediaElement.duration);
+                    assert_not_equals(mediaElement.seekable.end(0), mediaElement.buffered.start(0));
+                    assert_equals(mediaElement.seekable.end(0), mediaElement.buffered.end(0));
+                    test.done();
+                });
+            });
+        });
+    }, 'Get seekable time ranges on an infinite stream.');
+</script>

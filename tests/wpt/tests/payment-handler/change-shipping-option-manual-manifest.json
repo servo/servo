@@ -1,0 +1,20 @@
+{
+  "default_applications": ["change-shipping-option-manual-manifest.json"],
+  "name": "Test Payment Handler",
+  "icons": [
+    {
+      "src": "/images/rgrg-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "serviceworker": {
+    "src": "app-change-shipping-option.js",
+    "scope": "change-shipping-option-manual-payment-app/"
+  },
+  "payment": {
+    "supported_delegations": [
+      "shippingAddress"
+    ]
+  }
+}

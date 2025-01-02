@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Width of a table in separated borders mode</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="assert" content="The width of a CSS table is the distance from the left inner padding edge to the right inner padding edge (including the border spacing but excluding padding and border)." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+                width: 200px;
+                padding: 0 50px;
+                border-spacing: 50px 0;
+                border-right: 100px solid white;
+                border-left: 100px solid white;
+            }
+            #tr
+            {
+                display: table-row;
+            }
+            #td
+            {
+                display: table-cell;
+                background: black;
+                height: 10px;
+                width: 50px;
+                overflow: visible;
+            }
+            #reference
+            {
+                background: blue;
+                left: 208px;
+                height: 10px;
+                margin-top: 10px;
+                position: absolute;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black and blue boxes are the same width.</p>
+        <div id="table">
+            <div id="tr">
+                <div id="td"></div>
+            </div>
+        </div>
+        <div id="reference"></div>
+    </body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<title>Deferred timelines via Animation.timeline</title>
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/7759">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<main id=main></main>
+<script>
+  function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    main.append(template.content.cloneNode(true));
+    main.offsetTop;
+  }
+
+  async function scrollTop(e, value) {
+    e.scrollTop = value;
+    await waitForNextFrame();
+  }
+</script>
+<style>
+  @keyframes anim {
+    from { width: 0px; }
+    to { width: 200px; }
+  }
+  .scroller {
+    overflow-y: hidden;
+    width: 200px;
+    height: 200px;
+  }
+  .scroller > .content {
+    margin: 400px 0px;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+  .animating {
+    background-color: coral;
+    width: 0px;
+    animation: anim auto linear;
+    animation-timeline: --t1;
+  }
+  .timeline {
+    scroll-timeline-name: --t1;
+  }
+  .scope {
+    timeline-scope: --t1;
+  }
+</style>
+
+<template id=animation_timeline_attached>
+  <div class="scope">
+    <div class=animating>Test</div>
+    <div class="scroller timeline">
+      <div class="content animating"></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, animation_timeline_attached);
+    let scroller = main.querySelector('.scroller');
+    let animating = Array.from(main.querySelectorAll('.animating'));
+
+    assert_equals(animating.length, 2);
+    let animations = animating.map((e) => e.getAnimations()[0]);
+    assert_equals(animations.length, 2);
+
+    // animations[0] is attached via deferred timeline (timeline-scope),
+    // and animations[1] is attached directly.
+    assert_equals(animations[0].timeline, animations[1].timeline);
+  }, 'Animation.timeline returns attached timeline');
+</script>
+
+<template id=animation_timeline_inactive>
+  <div class="scope">
+    <div class=animating>Test</div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, animation_timeline_inactive);
+    let scroller = main.querySelector('.scroller');
+    let animating = main.querySelector('.animating');
+
+    assert_equals(animating.getAnimations()[0].timeline, null);
+  }, 'Animation.timeline returns null for inactive deferred timeline');
+</script>
+
+<template id=animation_timeline_overattached>
+  <div class="scope">
+    <div class=animating>Test</div>
+    <div class="scroller timeline">
+      <div class="content"></div>
+    </div>
+    <div class="scroller timeline">
+      <div class="content"></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    inflate(t, animation_timeline_overattached);
+    let scroller = main.querySelector('.scroller');
+    let animating = main.querySelector('.animating');
+
+    assert_equals(animating.getAnimations()[0].timeline, null);
+  }, 'Animation.timeline returns null for inactive (overattached) deferred timeline');
+</script>

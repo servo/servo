@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Empty cues should not be discarded</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/empty-cue.vtt", function(track) {
+    assert_equals(track.cues.length, 3);
+});
+</script>

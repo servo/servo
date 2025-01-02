@@ -1,0 +1,53 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden svg</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-022-ref.html">
+<meta name="assert" content="content-visibility hidden svg does not paint">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+div {
+  background: blue;
+  color: white;
+}
+svg {
+  border: 1px solid black;
+  background: lightblue;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div>Test passes if there is a plain light blue box below with no circles in it.</div>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" id="svg">
+  <g stroke-width="10" transform="translate(-30)">
+      <circle cx="80" cy="50" r="35" fill="#084" stroke="none"/>
+      <circle cx="80" cy="50" r="20" fill="#080" stroke="#FF0"/>
+      <circle cx="80" cy="120" r="35" fill="#004" stroke="none"/>
+      <circle cx="80" cy="120" r="20" fill="#080" stroke="#FF0"/>
+      <circle cx="80" cy="190" r="35" fill="#088" stroke="none"/>
+      <circle cx="80" cy="190" r="20" fill="#080" stroke="#FF0"/>
+      <circle cx="80" cy="260" r="35" fill="#008" stroke="none"/>
+      <circle cx="80" cy="260" r="20" fill="#080" stroke="#FF0"/>
+  </g>
+</svg>
+<div>Lorem ipsum consectetur adipiscing elit</div>
+
+<script>
+async function runTest() {
+  document.getElementById("svg").classList.add("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runTest);
+  });
+};
+</script>
+</html>

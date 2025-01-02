@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Line-height applied to elements with 'display' set to 'table-row'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-line-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <link rel="match" href="line-height-applies-to-001-ref.xht" />
+
+        <meta name="assert" content="The 'line-height' property applies to elements with 'display' set to 'table-row'." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+            }
+            #div2
+            {
+                background: orange;
+                height: 2in;
+                left: 1in;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #row
+            {
+                display: table-row;
+                line-height: 2in;
+            }
+            #cell
+            {
+                background: blue;
+                display: table-cell;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange rectangles have the <strong>same height</strong>.</p>
+        <div id="div1">
+            <div id="table">
+                <div id="row">
+                    <div id="cell">&nbsp;</div>
+                </div>
+            </div>
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

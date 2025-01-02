@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floats and stacking contexts with content</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-041-ref.xht" />
+
+        <meta name="assert" content="The contents of floats are stacked as if floats generated new stacking contexts." />
+        <style type="text/css">
+            div div
+            {
+                height: 0.5in;
+                width: 0.5in;
+            }
+            #div1
+            {
+                background: red;
+                float: left;
+            }
+            #div2
+            {
+                background: green;
+                display: block;
+                position: relative;
+                z-index: 10;
+            }
+            #div3
+            {
+                background: red;
+                position: relative;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red.</p>
+        <div>
+            <div id="div1">
+                <div id="div2"></div>
+            </div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

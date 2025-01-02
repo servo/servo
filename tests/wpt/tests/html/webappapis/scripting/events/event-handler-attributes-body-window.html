@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>HTMLBodyElement event handlers</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="resources/event-handler-body.js"></script>
+<div id="log"></div>
+<body>
+<script>
+setup({ explicit_done: true });
+
+handlersListPromise.then(({ shadowedHandlers, notShadowedHandlers }) => {
+  eventHandlerTest(shadowedHandlers, notShadowedHandlers, "body");
+
+  done();
+});
+</script>

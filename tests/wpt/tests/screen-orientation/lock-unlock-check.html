@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+  import {
+    attachIframe,
+    getOppositeOrientation,
+    makeCleanup,
+  } from "./resources/orientation-utils.js";
+
+  promise_test(async (t) => {
+    t.add_cleanup(makeCleanup());
+    await test_driver.bless("request full screen");
+    await document.documentElement.requestFullscreen();
+
+    const eventPromise = new Promise((res, rej) => {
+      screen.orientation.addEventListener(
+        "change",
+        () => {
+          screen.orientation
+            .lock(getOppositeOrientation())
+            .then(res)
+            .catch(rej);
+        },
+        { once: true }
+      );
+    });
+    const lockPromise = screen.orientation.lock(getOppositeOrientation());
+    await Promise.all([eventPromise, lockPromise]);
+  }, "Re-locking the screen orientation after a change event fires must not abort");
+
+  promise_test(async (t) => {
+    t.add_cleanup(makeCleanup());
+    await test_driver.bless("request full screen");
+    await document.documentElement.requestFullscreen();
+    const eventPromise = new Promise((res) => {
+      screen.orientation.addEventListener(
+        "change",
+        () => {
+          screen.orientation.unlock();
+          res();
+        },
+        { once: true }
+      );
+    });
+    const lockPromise = screen.orientation.lock(getOppositeOrientation());
+    await Promise.all([eventPromise, lockPromise]);
+  }, "Unlocking the screen orientation after a change event must not abort");
+</script>

@@ -1,0 +1,37 @@
+name: documentation
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+      - 'resources/**'
+      - 'tools/**'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'resources/**'
+      - 'tools/**'
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '14'
+      - name: Set up Virtualenv
+        run: pip install virtualenv
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - name: Run website_build.sh
+        run: ./tools/ci/website_build.sh
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

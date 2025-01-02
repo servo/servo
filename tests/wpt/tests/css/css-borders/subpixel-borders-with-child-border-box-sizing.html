@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-width">
+<link rel="match" href="reference/subpixel-borders-with-child-border-box-sizing-ref.html">
+<meta name="assert" content="Sub-pixel borders should always appear, and not be
+    overdrawn by child content with box-sizing: border-box." />
+<head>
+  <style>
+    body {    }
+    .outer {
+        border: solid .5px black;
+        background: red;
+        width: 101px;
+        height: 101px;
+        margin: 5px;
+        padding: 0px;
+        box-sizing: border-box;
+    }
+    .inner {
+        background: lightgreen;
+        padding: 0px;
+        box-sizing: border-box;
+    }
+    #inner1 {
+        width: 99px;
+        height: 99px;
+    }
+    #inner2 {
+        width: 100%;
+        height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="outer">
+    <div class="inner" id="inner1"></div>
+  </div>
+
+  <div class="outer">
+    <div class="inner" id="inner2"></div>
+  </div>
+</body>

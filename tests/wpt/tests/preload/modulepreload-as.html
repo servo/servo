@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="modulepreload" href="resources/module1.js?empty-string" as="" data-as="">
+<link rel="modulepreload" href="resources/module1.js?audio" as="audio" data-as="audio">
+<link rel="modulepreload" href="resources/module1.js?audioworklet" as="audioworklet" data-as="audioworklet">
+<link rel="modulepreload" href="resources/module1.js?document" as="document" data-as="document">
+<link rel="modulepreload" href="resources/module1.js?embed" as="embed" data-as="embed">
+<link rel="modulepreload" href="resources/module1.js?font" as="font" data-as="font">
+<link rel="modulepreload" href="resources/module1.js?frame" as="frame" data-as="frame">
+<link rel="modulepreload" href="resources/module1.js?iframe" as="iframe" data-as="iframe">
+<link rel="modulepreload" href="resources/module1.js?image" as="image" data-as="image">
+<link rel="modulepreload" href="resources/module1.js?json" as="json" data-as="json">
+<link rel="modulepreload" href="resources/module1.js?manifest" as="manifest" data-as="manifest">
+<link rel="modulepreload" href="resources/module1.js?object" as="object" data-as="object">
+<link rel="modulepreload" href="resources/module1.js?paintworklet" as="paintworklet" data-as="paintworklet">
+<link rel="modulepreload" href="resources/module1.js?report" as="report" data-as="report">
+<link rel="modulepreload" href="resources/module1.js?script" as="script" data-as="script">
+<link rel="modulepreload" href="resources/module1.js?serviceworker" as="serviceworker" data-as="serviceworker">
+<link rel="modulepreload" href="resources/module1.js?sharedworker" as="sharedworker" data-as="sharedworker">
+<link rel="modulepreload" href="resources/module1.js?style" as="style" data-as="style">
+<link rel="modulepreload" href="resources/module1.js?track" as="track" data-as="track">
+<link rel="modulepreload" href="resources/module1.js?video" as="video" data-as="video">
+<link rel="modulepreload" href="resources/module1.js?webidentity" as="webidentity" data-as="webidentity">
+<link rel="modulepreload" href="resources/module1.js?worker" as="worker" data-as="worker">
+<link rel="modulepreload" href="resources/module1.js?xslt" as="xslt" data-as="xslt">
+<link rel="modulepreload" href="resources/module1.js?fetch" as="fetch" data-as="fetch">
+<link rel="modulepreload" href="resources/module1.js?invalid-dest" as="invalid-dest" data-as="invalid-dest">
+<link rel="modulepreload" href="resources/module1.js?iMaGe" as="iMaGe" data-as="iMaGe">
+<link rel="modulepreload" href="resources/module1.js?sCrIpT" as="sCrIpT" data-as="sCrIpT">
+<body>
+<script>
+  // compared to modulepreload.html, this tests behavior when elements are
+  // initially on an HTML page instead of being added by JS
+
+  const scriptLikes = [
+    'audioworklet',
+    'paintworklet',
+    'script',
+    'serviceworker',
+    'sharedworker',
+    'worker',
+  ];
+
+  const goodAsValues = ['', 'invalid-dest', 'sCrIpT', ...scriptLikes];
+
+  for (const link of document.querySelectorAll('link')) {
+    const asValue = link.dataset.as; // don't depend on "as" attribute reflection
+    const good = goodAsValues.includes(asValue);
+
+    // promise tests are queued sequentially, so create the promise here to
+    // ensure we don't miss the error event
+    const promise = new Promise((resolve, reject) => {
+      link.onload = good ? resolve : reject;
+      link.onerror = good ? reject : resolve;
+    });
+
+    promise_test(() => promise.then(() => {
+      const downloads = performance
+        .getEntriesByName(new URL(link.href, location.href))
+        .filter(entry => entry.transferSize > 0)
+        .length;
+      assert_equals(downloads, good ? 1 : 0);
+
+    }), `Modulepreload with as="${asValue}"`);
+  }
+</script>

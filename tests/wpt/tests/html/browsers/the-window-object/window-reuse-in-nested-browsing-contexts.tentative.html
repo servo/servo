@@ -1,0 +1,158 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+const setupIframe = (t, attrs) => {
+  const iframe = document.createElement('iframe');
+  for (const [key, value] of Object.entries(attrs))
+    iframe[key] = value;
+  const watcher = new EventWatcher(t, iframe, ['load']);
+  document.body.appendChild(iframe);
+  return {iframe, watcher};
+};
+
+promise_test(async t => {
+  const {iframe, watcher} = setupIframe(t, {});
+
+  // Per https://whatwg.org/c/iframe-embed-object.html#process-the-iframe-attributes,
+  // the task to perform the "iframe load event steps" should still be queued.
+  // If a browser already fired a load event, the test will fail here since
+  // EventWatcher will have received an unexpected load event.
+
+  iframe.contentWindow.persistedString = 'Hello world!';
+  iframe.src = 'support/same-origin-iframe.html';
+  await watcher.wait_for(['load']);
+
+  assert_true(iframe.contentWindow.didLoadFrame);
+  // The <iframe>'s session history has only one Document, and that Document is
+  // the initial about:blank Document. The Window object should be reused per
+  // https://whatwg.org/c/iframe-embed-object.html#process-the-iframe-attributes.
+  assert_equals(iframe.contentWindow.persistedString, 'Hello world!');
+}, 'synchronously navigate iframe with no initial src.');
+
+promise_test(async t => {
+  const {iframe, watcher} = setupIframe(t, {});
+
+  // Per https://whatwg.org/c/iframe-embed-object.html#process-the-iframe-attributes,
+  // the task to perform the "iframe load event steps" should still be queued.
+  await watcher.wait_for(['load']);
+
+  iframe.contentWindow.persistedString = 'Hello world!';
+  iframe.src = 'support/same-origin-iframe.html';
+  await watcher.wait_for(['load']);
+
+  assert_true(iframe.contentWindow.didLoadFrame);
+  // The <iframe>'s session history has only one Document, and that Document is
+  // the initial about:blank Document. The Window object should be reused per
+  // https://whatwg.org/c/iframe-embed-object.html#process-the-iframe-attributes.
+  assert_equals(iframe.contentWindow.persistedString, 'Hello world!');
+}, 'after the first iframe load event, navigate iframe with no initial src.');
+
+// Per https://whatwg.org/c/iframe-embed-object.html#otherwise-steps-for-iframe-or-frame-elements,
+// setting the <iframe> src to an empty string before inserting the <iframe>
+// into the document should begin an attempt to navigate to a resource with
+// url == "about:blank".
+promise_test(async t => {
+  const {iframe, watcher} = setupIframe(t, {src: ''});
+
+  // Per https://whatwg.org/c/browsing-the-web.html#navigate, the "about:blank"
+  // resource should be obtained "in parallel". If a browser performs this step
+  // synchronously, the test will fail here since EventWatcher will have
+  // received an unexpected load event.
+
+  iframe.contentWindow.persistedString = 'Hello world!';
+  // An attempt to navigate to "about:blank" already exists but should not have
+  // matured yet since the resource should be obtained "in parallel". The new
+  // navigation attempt will cancel the preexisting attempt.
+  iframe.src = 'support/same-origin-iframe.html';
+  await watcher.wait_for(['load']);
+
+  assert_true(iframe.contentWindow.didLoadFrame);
+  // The navigation attempt to "about:blank" was cancelled, so the <iframe>'s
+  // session history has only one Document, and that Document is the
+  // initial about:blank Document. The Window object should be reused per
+  // https://whatwg.org/c/iframe-embed-object.html#process-the-iframe-attributes.
+  assert_equals(iframe.contentWindow.persistedString, 'Hello world!');
+}, 'synchronously navigate iframe with initial src == "".');
+
+promise_test(async t => {
+  const {iframe, watcher} = setupIframe(t, {src: ''});
+
+  // Per https://whatwg.org/c/browsing-the-web.html#navigate, the "about:blank"
+  // resource should be obtained "in parallel".
+  await watcher.wait_for(['load']);
+
+  iframe.contentWindow.persistedString = 'Hello world!';
+  iframe.src = 'support/same-origin-iframe.html';
+  await watcher.wait_for(['load']);
+
+  assert_true(iframe.contentWindow.didLoadFrame);
+  // A non-initial navigation to about:blank was committed, so the <iframe>
+  // element is no longer displaying the initial about:blank Document. Per
+  // https://whatwg.org/c/browsing-the-web.html#initialise-the-document-object,
+  // the Window object must not be reused.
+  assert_equals(iframe.contentWindow.persistedString, undefined);
+}, 'after the first iframe load event, navigate iframe with initial src == "".');
+
+promise_test(async t => {
+  const {iframe, watcher} = setupIframe(t, {src: 'about:blank'});
+
+  // Per https://whatwg.org/c/browsing-the-web.html#navigate, the "about:blank"
+  // resource should be obtained "in parallel". If a browser performs this step
+  // synchronously, the test will fail here since EventWatcher will have
+  // received an unexpected load event.
+
+  iframe.contentWindow.persistedString = 'Hello world!';
+  // An attempt to navigate to "about:blank" already exists but should not have
+  // matured yet since the resource should be obtained "in parallel". The new
+  // navigation attempt will cancel the preexisting attempt.
+  iframe.src = 'support/same-origin-iframe.html';
+  await watcher.wait_for(['load']);
+
+  assert_true(iframe.contentWindow.didLoadFrame);
+  // The navigation attempt to "about:blank" was cancelled, so the <iframe>'s
+  // session history has only one Document, and that Document is the
+  // initial about:blank Document. The Window object should be reused per
+  // https://whatwg.org/c/iframe-embed-object.html#process-the-iframe-attributes.
+  assert_equals(iframe.contentWindow.persistedString, 'Hello world!');
+}, 'synchronously navigate iframe with initial src == "about:blank".');
+
+promise_test(async t => {
+  const {iframe, watcher} = setupIframe(t, {src: 'about:blank'});
+
+  // Per https://whatwg.org/c/browsing-the-web.html#navigate, the "about:blank"
+  // resource should be obtained "in parallel".
+  await watcher.wait_for(['load']);
+
+  iframe.contentWindow.persistedString = 'Hello world!';
+  iframe.src = 'support/same-origin-iframe.html';
+  await watcher.wait_for(['load']);
+
+  assert_true(iframe.contentWindow.didLoadFrame);
+  // A non-initial navigation to about:blank was committed, so the <iframe>
+  // element is no longer displaying the initial about:blank Document. Per
+  // https://whatwg.org/c/browsing-the-web.html#initialise-the-document-object,
+  // the Window object must not be reused.
+  assert_equals(iframe.contentWindow.persistedString, undefined);
+}, 'after the first iframe load event, navigate iframe with initial src == "about:blank".');
+
+// Per https://whatwg.org/c/iframe-embed-object.html#otherwise-steps-for-iframe-or-frame-elements,
+// setting <iframe> src before inserting the <iframe> into the document should
+// begin an attempt to navigate to the value of the src attribute.
+promise_test(async t => {
+  const {iframe, watcher} = setupIframe(t, {src: 'support/same-origin-iframe.html'});
+
+  iframe.contentWindow.persistedString = 'Hello world!';
+  // Completion of the attempt to navigate happens "in parallel".
+  await watcher.wait_for(['load']);
+
+  assert_true(iframe.contentWindow.didLoadFrame);
+  // The <iframe>'s session history has only one Document, and that Document is
+  // the initial about:blank Document. The Window object should be reused per
+  // https://whatwg.org/c/iframe-embed-object.html#process-the-iframe-attributes.
+  assert_equals(iframe.contentWindow.persistedString, 'Hello world!');
+}, 'iframe with initial src == same-origin resource.');
+</script>

@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>CSS Test: Test for intrinsic widths and text-indent (intrinsic-pref)</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+<link rel="match" href="text-indent-intrinsic-002-ref.xht"/>
+<style type="text/css">
+
+body { font-size: 12px; }
+
+body &gt; div, body &gt; pre {
+	float: left; clear: left; margin: 1px; height: 2em;
+	border: medium solid;
+}
+
+span {
+    display: inline-block;
+    height: 1em;
+    width: 1em;
+}
+
+</style>
+</head>
+<body>
+
+<!-- test against inline margin -->
+<div style="text-indent: 3em;">X</div>
+
+<!-- test against block padding -->
+<div style="text-indent: 3em;">X</div>
+
+<!-- test against block width -->
+<div style="text-indent: 3em;"><span></span></div>
+
+<div style="text-indent: 3em"><span style="width: 1em"></span></div>
+<div style="text-indent: 3em"><span style="width: 1em"></span>&#8203;<span style="width: 2em"></span></div>
+<div style="text-indent: 3em"><span style="width: 1em"></span>&#8203;<span style="width: 6em"></span></div>
+<div style="text-indent: 3em"><span style="width: 1em"></span><br /><span style="width: 2em"></span></div>
+<div style="text-indent: 3em"><span style="width: 1em"></span><br /><span style="width: 6em"></span></div>
+<pre style="text-indent: 3em"><span style="width: 1em"></span>
+<span style="width: 2em"></span></pre>
+<pre style="text-indent: 3em"><span style="width: 1em"></span>
+<span style="width: 6em"></span></pre>
+
+
+
+</body></html>

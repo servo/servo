@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Don't move caret to non-editable node from a editable node</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+function getRangeDescription(range) {
+  function getNodeDescription(node) {
+    if (!node) {
+      return "null";
+    }
+    switch (node.nodeType) {
+      case Node.TEXT_NODE:
+        return `${node.nodeName} "${node.data}"`;
+      case Node.ELEMENT_NODE:
+        return `<${node.nodeName.toLowerCase()}>`;
+      default:
+        return `${node.nodeName}`;
+    }
+  }
+  if (range === null) {
+    return "null";
+  }
+  if (range === undefined) {
+    return "undefined";
+  }
+  return range.startContainer == range.endContainer &&
+    range.startOffset == range.endOffset
+    ? `(${getNodeDescription(range.startContainer)}, ${range.startOffset})`
+    : `(${getNodeDescription(range.startContainer)}, ${
+        range.startOffset
+      }) - (${getNodeDescription(range.endContainer)}, ${range.endOffset})`;
+}
+
+function sendArrowRightKey() {
+  const kArrowRight = "\uE014";
+  return new test_driver.Actions()
+    .keyDown(kArrowRight)
+    .keyUp(kArrowRight)
+    .send();
+}
+
+function sendArrowLeftKey() {
+  const kArrowLeft = "\uE012";
+  return new test_driver.Actions()
+    .keyDown(kArrowLeft)
+    .keyUp(kArrowLeft)
+    .send();
+}
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener("load", resolve, {once: true});
+  });
+}, "Initializing tests");
+
+promise_test(async t => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.focus();
+  const p = editingHost.querySelector("p");
+  getSelection().collapse(p.firstChild, "abc".length);
+  await sendArrowRightKey();
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: p.nextSibling,
+        startOffset: 0,
+        endContainer: p.nextSibling,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: first arrow-right should move caret before non-editable text`);
+  await sendArrowRightKey();
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: p.nextSibling,
+        startOffset: 1,
+        endContainer: p.nextSibling,
+        endOffset: 1,
+      }),
+    );
+  }, `${t.name}: second arrow-right should move caret after non-editable text`);
+}, "Move caret from end of editable text node to <br> following non-editable text in next paragraph");
+
+promise_test(async t => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.focus();
+  const p = editingHost.querySelector("p");
+  getSelection().collapse(p.nextSibling, 1);
+  await sendArrowLeftKey();
+  assert_false(
+    editingHost.querySelector("[contenteditable=false]").contains(getSelection().focusNode),
+    "focus node should not be the non-editable nodes"
+  );
+  assert_false(
+    editingHost.querySelector("[contenteditable=false]").contains(getSelection().anchorNode),
+    "anchor node should not be the non-editable nodes"
+  );
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: p.nextSibling,
+        startOffset: 0,
+        endContainer: p.nextSibling,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: first arrow-left should move caret before non-editable text`);
+}, "Move caret from <br> following non-editable text to end of preceding editable text in next paragraph");
+
+promise_test(async t => {
+  const editingHost = document.querySelector("div[contenteditable] + div[contenteditable]");
+  editingHost.focus();
+  const p = editingHost.querySelector("p");
+  getSelection().collapse(p.firstChild, 0);
+  await sendArrowRightKey();
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: p.nextSibling,
+        startOffset: 0,
+        endContainer: p.nextSibling,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: first arrow-right should move caret before non-editable text`);
+  await sendArrowRightKey();
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: editingHost.querySelector("[contenteditable=false]").nextSibling,
+        startOffset: 0,
+        endContainer: editingHost.querySelector("[contenteditable=false]").nextSibling,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: second arrow-right should move caret after non-editable text`);
+}, "Move caret from empty editable paragraph to editable text following non-editable text in next paragraph");
+
+promise_test(async t => {
+  const editingHost = document.querySelector("div[contenteditable] + div[contenteditable]");
+  editingHost.focus();
+  const p = editingHost.querySelector("p");
+  getSelection().collapse(editingHost.querySelector("[contenteditable=false]").nextSibling, 0);
+  await sendArrowLeftKey();
+  assert_false(
+    editingHost.querySelector("[contenteditable=false]").contains(getSelection().focusNode),
+    "focus node should not be the non-editable nodes"
+  );
+  assert_false(
+    editingHost.querySelector("[contenteditable=false]").contains(getSelection().anchorNode),
+    "anchor node should not be the non-editable nodes"
+  );
+  test(() => {
+    assert_equals(
+      getRangeDescription(getSelection().getRangeAt(0)),
+      getRangeDescription({
+        startContainer: p.nextSibling,
+        startOffset: 0,
+        endContainer: p.nextSibling,
+        endOffset: 0,
+      }),
+    );
+  }, `${t.name}: first arrow-left should move caret before non-editable text`);
+}, "Move caret from start of text following non-editable text to empty preceding editable paragraph");
+</script>
+</head>
+<body>
+<div contenteditable>
+<p>abc</p><p><span contenteditable="false">def</span><br></p>
+</div>
+<div contenteditable>
+<p><br></p><p><span contenteditable="false">abc</span>def</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - resolved value.
+  Forced colors happens at used value time. The resolved values of certain color
+  properties are used values. This test ensures that those values are forced in
+  forced colors mode.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    /* Unlike the other properties listed, accent-color is forced at computed
+    value time. */
+    accent-color: green;
+    background-color: green;
+    border-color: green;
+    caret-color: green;
+    color: green;
+    outline-color: green;
+  }
+</style>
+<div id="div"></div>
+
+<script>
+  const properties_to_test = [
+    "accent-color",
+    "background-color",
+    "border-bottom-color",
+    "border-left-color",
+    "border-right-color",
+    "border-top-color",
+    "caret-color",
+    "color",
+    "outline-color"
+  ];
+  for (let property of properties_to_test) {
+    test(function() {
+      let value =
+        window.getComputedStyle(document.getElementById("div")).getPropertyValue(property);
+        assert_not_equals(value, "rgb(0, 128, 0)")
+    }, "Forced colors affects the resolved value of " + property);
+  }
+</script>

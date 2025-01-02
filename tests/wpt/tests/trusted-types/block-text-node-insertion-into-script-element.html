@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/block-text-node-insertion.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+</head>
+<body>
+<div id="container"></div>
+<script id="script1">"hello world!";</script>
+<script id="trigger"></script>
+<script>
+  var container = document.querySelector("#container");
+  const policy_dict = {
+    createScript: s => (s.includes("fail") ? null : s.replace("default", "count")),
+    createHTML: s => s.replace(/2/g, "3"),
+  };
+
+  const policy = trustedTypes.createPolicy("policy", policy_dict);
+
+  const policy_dict_default = {
+    createScript: (s, _, sink) => {
+      assert_equals(sink, 'HTMLScriptElement text');
+      return (s.includes("fail") ? null : s.replace("default", "count"));
+    },
+    createHTML: (s, _, sink) => {
+      if (sink) {
+        assert_equals(sink, 'Element innerHTML');
+      }
+      return s.replace(/2/g, "3");
+    },
+  };
+
+  // Original report:
+  promise_test(t => {
+    // Setup: Create a <script> element with a <p> child.
+    let s = document.createElement("script");
+
+    // Sanity check: Element child content (<p>) doesn't count as source text.
+    let p = document.createElement("p");
+    p.text = "hello('world');";
+    s.appendChild(p);
+    container.appendChild(s);
+    assert_equals(s.text, "");
+
+    // Try to insertAdjacentText into the <script>, starting from the <p>
+    p.insertAdjacentText("beforebegin",
+                         "postMessage('beforebegin should be blocked', '*');");
+    assert_true(s.text.includes("postMessage"));
+    p.insertAdjacentText("afterend",
+                         "postMessage('afterend should be blocked', '*');");
+    assert_true(s.text.includes("after"));
+    return checkMessage();
+  }, "Regression test: Bypass via insertAdjacentText, initial comment.");
+
+  const script_elements = {
+    "script": doc => doc.createElement("script"),
+
+  };
+  for (let [element, create_element] of Object.entries(script_elements)) {
+    // Like the "Original Report" test case above, but avoids use of the "text"
+    // accessor that <svg:script> doesn't support.
+    promise_test(t => {
+      let s = create_element(document);
+
+      // Sanity check: Element child content (<p>) doesn't count as source text.
+      let p = document.createElement("p");
+      p.textContent = "hello('world');";
+      s.appendChild(p);
+      container.appendChild(s);
+
+      // Try to insertAdjacentText into the <script>, starting from the <p>
+      p.insertAdjacentText("beforebegin",
+                           "postMessage('beforebegin should be blocked', '*');");
+      assert_true(s.textContent.includes("postMessage"));
+      p.insertAdjacentText("afterend",
+                           "postMessage('afterend should be blocked', '*');");
+      assert_true(s.textContent.includes("after"));
+      return checkMessage();
+    }, "Regression test: Bypass via insertAdjacentText, initial comment. " + element);
+
+    // Variant: Create a <script> element and create & insert a text node. Then
+    // insert it into the document container to make it live.
+    promise_test(t => {
+      // Setup: Create a <script> element, and insert text via a text node.
+      let s = create_element(document);
+      let text = document.createTextNode("postMessage('appendChild with a " +
+                                         "text node should be blocked', '*');");
+      s.appendChild(text);
+      container.appendChild(s);
+      return checkMessage();
+    }, "Regression test: Bypass via appendChild into off-document script element" + element);
+
+    // Variant: Create a <script> element and insert it into the document. Then
+    // create a text node and insert it into the live <script> element.
+    promise_test(t => {
+      // Setup: Create a <script> element, insert it into the doc, and then create
+      // and insert text via a text node.
+      let s = create_element(document);
+      container.appendChild(s);
+      let text = document.createTextNode("postMessage('appendChild with a live " +
+                                         "text node should be blocked', '*');");
+      s.appendChild(text);
+      return checkMessage();
+    }, "Regression test: Bypass via appendChild into live script element " + element);
+  }
+
+  promise_test(t => {
+    return checkSecurityPolicyViolationEvent();
+  }, "Prep for subsequent tests: Clear SPV event queue.");
+
+  promise_test(t => {
+    const inserted_script = document.getElementById("script1");
+    assert_throws_js(TypeError, _ => {
+        inserted_script.innerHTML = "2+2";
+    });
+
+    let new_script = document.createElement("script");
+    assert_throws_js(TypeError, _ => {
+      new_script.innerHTML = "2+2";
+      container.appendChild(new_script);
+    });
+
+    const trusted_html = policy.createHTML("2*4");
+    assert_equals("" + trusted_html, "3*4");
+    inserted_script.innerHTML = trusted_html;
+    assert_equals(inserted_script.textContent, "3*4");
+
+    new_script = document.createElement("script");
+    new_script.innerHTML = trusted_html;
+    container.appendChild(new_script);
+    assert_equals(inserted_script.textContent, "3*4");
+
+    // We expect 3 SPV events: two for the two assert_throws_js cases, and one
+    // for script element, which will be rejected at the time of execution.
+    return checkSecurityPolicyViolationEvent(3);
+  }, "Spot tests around script + innerHTML interaction.");
+
+
+  // Create default policy. Wrapped in a promise_test to ensure it runs only
+  // after the other tests.
+  let default_policy;
+  promise_test(t => {
+    default_policy = trustedTypes.createPolicy("default", policy_dict_default);
+    return Promise.resolve();
+  }, "Prep for subsequent tests: Create default policy.");
+
+  for (let [element, create_element] of Object.entries(script_elements)) {
+    promise_test(t => {
+      let s = create_element(document);
+      let text = document.createTextNode("postMessage('default', '*');");
+      s.appendChild(text);
+      container.appendChild(s);
+
+      return Promise.all([checkMessage(1),
+                            checkSecurityPolicyViolationEvent(0)]);
+    }, "Test that default policy applies. " + element);
+
+    promise_test(t => {
+      let s = create_element(document);
+      let text = document.createTextNode("fail");
+      s.appendChild(text);
+      container.appendChild(s);
+      return Promise.all([checkMessage(0),
+                          checkSecurityPolicyViolationEvent(1)]);
+    }, "Test a failing default policy. " + element);
+  }
+
+  promise_test(t => {
+    const inserted_script = document.getElementById("script1");
+    inserted_script.innerHTML = "2+2";
+    assert_equals(inserted_script.textContent, "3+3");
+
+    let new_script = document.createElement("script");
+    new_script.innerHTML = "2+2";
+    container.appendChild(new_script);
+    assert_equals(inserted_script.textContent, "3+3");
+
+    const trusted_html = default_policy.createHTML("2*4");
+    assert_equals("" + trusted_html, "3*4");
+    inserted_script.innerHTML = trusted_html;
+    assert_equals(inserted_script.textContent, "3*4");
+
+    new_script = document.createElement("script");
+    new_script.innerHTML = trusted_html;
+    container.appendChild(new_script);
+    assert_equals(inserted_script.textContent, "3*4");
+
+    return checkSecurityPolicyViolationEvent(0);
+  }, "Spot tests around script + innerHTML interaction with default policy.");
+</script>
+</body>
+</html>
+

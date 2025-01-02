@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned items implicit grid</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-grids" title="7.5. The Implicit Grid">
+<meta name="assert" content="This test checks the behavior of the absolutely positioned grid items placed on the implicit grid.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+
+.grid {
+  width: 200px;
+  height: 200px;
+  border: 5px solid black;
+  margin: 30px;
+  padding: 15px;
+  /* Ensures that the grid container is the containing block of the absolutely positioned grid children. */
+  position: relative;
+}
+
+.grid-columns-rows {
+  grid-template-columns: 100px;
+  grid-template-rows: 50px;
+}
+
+.absolute {
+  position: absolute;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div id="log"></div>
+
+<div class="grid">
+  <div class="sizedToGridArea absolute secondRowSecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+  <div class="sizedToGridArea absolute endSecondRowEndSecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+  <div class="sizedToGridArea absolute onlySecondRowOnlySecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+</div>
+
+<div class="grid grid-columns-rows">
+  <div class="sizedToGridArea absolute secondRowSecondColumn"
+    data-offset-x="115" data-offset-y="65" data-expected-width="115" data-expected-height="165">
+  </div>
+  <div class="sizedToGridArea absolute endSecondRowEndSecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+  <div class="sizedToGridArea absolute onlySecondRowOnlySecondColumn"
+    data-offset-x="115" data-offset-y="65" data-expected-width="115" data-expected-height="165">
+  </div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="sizedToGridArea absolute secondRowSecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+  <div class="sizedToGridArea absolute endSecondRowEndSecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+  <div class="sizedToGridArea absolute onlySecondRowOnlySecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+</div>
+
+<div class="grid grid-columns-rows directionRTL">
+  <div class="sizedToGridArea absolute secondRowSecondColumn"
+    data-offset-x="0" data-offset-y="65" data-expected-width="115" data-expected-height="165">
+  </div>
+  <div class="sizedToGridArea absolute endSecondRowEndSecondColumn"
+    data-offset-x="0" data-offset-y="0" data-expected-width="230" data-expected-height="230">
+  </div>
+  <div class="sizedToGridArea absolute onlySecondRowOnlySecondColumn"
+    data-offset-x="0" data-offset-y="65" data-expected-width="115" data-expected-height="165">
+  </div>
+</div>
+
+</body>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=348064">
+<link rel="match" href="table-cell-content-change-000-ref.html">
+<p>You should see the text "first column" once in the first column, and the text
+  "second column" twice in the second column.</p>
+<div style="columns:2; orphans:1; widows:1;">
+  <div style="display:table-row;">
+    first column
+    <div style="height:0.1em;"></div>
+  </div>
+  <div style="display:table-row;">
+    second column
+    <div id="elm" style="display:none;">second column</div>
+  </div>
+</div>
+</body>
+<script>
+  document.body.offsetTop; // trigger layout
+  document.getElementById('elm').style.display = 'block';
+</script>

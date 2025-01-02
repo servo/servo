@@ -1,0 +1,11 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width">
+
+<title>Long Task Iframe</title>
+<h1>Long Task in Inline Script</h1>
+
+<script>
+    const begin = window.performance.now();
+    while (window.performance.now() < begin + 60);
+</script>

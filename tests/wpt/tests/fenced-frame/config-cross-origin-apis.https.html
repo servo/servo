@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Test default permission policy features gating (*)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const key = token();
+
+  const fencedframe = attachFencedFrame(
+      await generateURNFromFledge(
+          "resources/config-cross-origin-apis-inner.https.html",
+          [key]));
+
+  // The fenced frame will send its attribution reporting result and then
+  // attempt to redirect to a remote origin page.
+  const resp = await nextValueFromServer(key);
+  assert_equals(resp, "0",
+      "The call to getNestedConfigs() should not have returned anything.");
+}, 'A fenced frame that navigates itself to a cross origin page loses ' +
+   'window.fence API access.');
+
+promise_test(async(t) => {
+  const key = token();
+
+  const fencedframe = attachFencedFrame(
+      await generateURNFromFledge(
+          "resources/config-embed-cross-origin-iframe.https.html",
+          [key]));
+
+  const resp = await nextValueFromServer(key);
+  assert_equals(resp, "0",
+      "The call to getNestedConfigs() should not have returned anything.");
+}, 'A cross-origin iframe inside a fenced frame does not get ' +
+    'window.fence API access.');
+
+</script>
+</body>
+</html>

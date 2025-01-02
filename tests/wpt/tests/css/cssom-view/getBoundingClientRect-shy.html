@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container {
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+  width: 10ch;
+}
+</style>
+<body>
+  <div id="container">
+    <div id="test1">123456&shy;789012</div>
+    <div id="test2">123456&shy;789012&shy;345678&shy;901234</div>
+    <div id="test3">12&shy;456&shy;789012</div>
+    <div>123<span id="test4">&shy;</span>456<span id="test5">&shy;</span>789012</div>
+  </div>
+<script>
+function getBoundingClientRect(node, start, end) {
+  const range = document.createRange();
+  range.setStart(node, start);
+  range.setEnd(node, end);
+  const rect = range.getBoundingClientRect();
+  return rect;
+}
+
+test(() => {
+  const rect = getBoundingClientRect(test1.firstChild, 0, 5);
+  assert_equals(rect.width, 50);
+}, "Range 0-5 should not include the hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test1.firstChild, 1, 5);
+  assert_equals(rect.width, 40);
+}, "Range 1-5 should not include the hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test1.firstChild, 0, 6);
+  assert_equals(rect.width, 60);
+}, "Range 0-6 should not include the hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test1.firstChild, 1, 6);
+  assert_equals(rect.width, 50);
+}, "Range 1-6 should not include the hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test1.firstChild, 0, 7);
+  assert_equals(rect.width, 70);
+}, "Range 0-7 should include the hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test1.firstChild, 1, 7);
+  assert_equals(rect.width, 60);
+}, "Range 1-7 should include the hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test1.firstChild, 0, 8);
+  assert_equals(rect.width, 70);
+  assert_equals(rect.height, 20);
+}, "Range 0-8 should include the hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test2.firstChild, 0, 8);
+  assert_equals(rect.width, 70);
+  assert_equals(rect.height, 20);
+}, "Range 0-8 should include only the first hyphen.");
+
+test(() => {
+  const rect = getBoundingClientRect(test3.firstChild, 2, 3);
+  assert_equals(rect.width, 0);
+}, "Collapsed soft-hyphen should be 0 width.");
+
+test(() => {
+  const rect = getBoundingClientRect(test3.firstChild, 6, 7);
+  assert_equals(rect.width, 10);
+}, "Rendered soft-hyphen should have a width.");
+
+test(() => {
+  const rect = getBoundingClientRect(test4.firstChild, 0, 1);
+  assert_equals(rect.width, 0);
+}, "Collapsed soft-hyphen in a span should be 0 width.");
+
+test(() => {
+  const rect = getBoundingClientRect(test5.firstChild, 0, 1);
+  assert_equals(rect.width, 10);
+}, "Rendered soft-hyphen in a span should have a width.");
+</script>
+</body>

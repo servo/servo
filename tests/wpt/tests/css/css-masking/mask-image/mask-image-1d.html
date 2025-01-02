@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-image: mask layer image</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+    <link rel="match" href="mask-image-1-ref.html">
+    <meta name="assert" content="Test checks whether treat unresolvable mask as no-mask for a SVG element embedded in HTML document.">
+  </head>
+  <body>
+    <svg width="100" height="100">
+      <rect x="0" y="0" width="100" height="50" fill="purple" mask="url(#foo)"/>
+    </svg>
+  </body>
+</html>

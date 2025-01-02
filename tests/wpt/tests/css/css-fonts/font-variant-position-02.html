@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant-position: sub; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-position-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-position-02-ref.html">
+<meta name="assert" content="Enables display of subscript variants (OpenType feature: subs).">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 3em;
+	  line-height: 1.1;
+  }
+  .high {
+	 font-variant-position: sub;
+  }
+  .low {
+	font-feature-settings: "subs" on, "sups" off;
+  }
+</style>
+<body>
+<p>Test passes if the three lines below are identical, with two checkmarks (✓);
+  if the first line has a checkmark followed by two normally sized crosses, the test fails. </p>
+<section class="test">
+  <p>A<span class="high">H</span></p>
+  <p>A<span class="low">H</span></p>
+	<p class="ref">AA</p>
+</section>

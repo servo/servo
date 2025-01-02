@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>data URL source for navigation-timing/nav2_test_open_data_uri.html</title>
+<!-- NB: this file isn't actually used any where! -->
+<link rel="author" title="Google" href="http://www.google.com/" />
+<script>
+var observer = new PerformanceObserver(
+    function (entryList) {
+        parent.postMessage("observed", "*");
+        observer.disconnect();
+    });
+observer.observe({entryTypes: ["navigation"]});
+</script>

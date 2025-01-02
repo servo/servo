@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+// This file consists of tests for COEP reporting. The tests make COEP
+// violations and see whether reports are sent to the network as specified.
+// We only have basic tests in this file - one for each kind of reports,
+// because we can also test the reporting functionality with ReportingObserver,
+// and that way is faster, easier to debug, and less flaky.
+//
+// For more detailed tests and tests with workers, see tests in other files
+// such as
+//  - reporting-navigation.https.html
+//  - reporting-subresource-corp.https.html
+//  - cache-storage-reporting*.https.html
+// .
+
+const { REMOTE_ORIGIN } = get_host_info();
+const BASE = new URL("resources", location).pathname
+const FRAME_URL = `resources/reporting-empty-frame.html` +
+  `?pipe=header(cross-origin-embedder-policy,require-corp;report-to="endpoint")` +
+  `|header(cross-origin-embedder-policy-report-only,require-corp;report-to="report-only-endpoint")`;
+const WORKER_URL = `resources/shared-worker.js` +
+  '?pipe=header(cross-origin-embedder-policy,require-corp;report-to="endpoint")' +
+  `|header(cross-origin-embedder-policy-report-only,require-corp;report-to="report-only-endpoint")`;
+const REPORT_UUID = "4d8b6d86-c9a8-47c1-871b-111169a8f79c";
+const REPORT_ONLY_UUID = "5d7c1e33-ef88-43c2-9ca3-c67ff300b8c2";
+
+function wait(ms) {
+  return new Promise(resolve => step_timeout(resolve, ms));
+}
+
+async function fetchReports(endpoint) {
+  const res = await fetch(`resources/report.py?key=${endpoint}`, {cache: 'no-store'});
+  if (res.status == 200) {
+    return await res.json();
+  }
+  return [];
+}
+
+async function checkCorpReportExistence(endpoint, blockedUrl, contextUrl, destination, disposition) {
+  blockedUrl = new URL(blockedUrl, location).href;
+  contextUrl = new URL(contextUrl, location).href;
+
+  const timeout = 3000;
+  const retryDelay = 200;
+  for (let i = 0; i * retryDelay < timeout; i++) {
+    const reports = await fetchReports(endpoint);
+    for (const report of reports) {
+      if (report.type !== 'coep' || report.url !== contextUrl ||
+          report.body.type !== 'corp') {
+        continue;
+      }
+      if (report.body.blockedURL === blockedUrl &&
+          report.body.disposition === disposition) {
+        assert_equals(report.body.destination, destination);
+        return;
+      }
+    }
+    await wait(retryDelay);
+  }
+  assert_unreached(`A report whose blockedURL is ${blockedUrl.split("?")[0]} and url is ${contextUrl} is not found.`);
+}
+
+async function checkNavigationReportExistence(endpoint, blockedUrl, contextUrl, disposition) {
+  blockedUrl = new URL(blockedUrl, location).href;
+  contextUrl = new URL(contextUrl, location).href;
+  const timeout = 3000;
+  const retryDelay = 200;
+  for (let i = 0; i * retryDelay < timeout; i++) {
+    const reports = await fetchReports(endpoint);
+    for (const report of reports) {
+      if (report.type !== 'coep' || report.url !== contextUrl ||
+          report.body.type !== 'navigation') {
+        continue;
+      }
+      if (report.body.blockedURL === blockedUrl &&
+          report.body.disposition === disposition) {
+        return;
+      }
+    }
+    await wait(retryDelay);
+  }
+  assert_unreached(`A report whose blockedURL is ${blockedUrl.split("?")[0]} and url is ${contextUrl} is not found.`);
+}
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
+
+  iframe.src = FRAME_URL
+  document.body.appendChild(iframe);
+  await new Promise(resolve => {
+    iframe.addEventListener('load', resolve, {once: true});
+  });
+
+  const url = `${REMOTE_ORIGIN}/common/text-plain.txt?${token()}`;
+  const init = { mode: 'no-cors', cache: 'no-store' };
+  // The response comes from cross-origin, and doesn't have a CORP
+  // header, so it is blocked.
+  iframe.contentWindow.fetch(url, init).catch(() => {});
+
+  await checkCorpReportExistence(REPORT_UUID, url, iframe.src, '', 'enforce');
+  await checkCorpReportExistence(
+      REPORT_ONLY_UUID, url, iframe.src, '', 'reporting');
+}, 'subresource CORP');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
+
+  iframe.src = FRAME_URL
+  document.body.appendChild(iframe);
+  await new Promise(resolve => {
+    iframe.addEventListener('load', resolve, {once: true});
+  });
+
+  const w = iframe.contentWindow;
+
+  function attachFrame(url) {
+    const frame = w.document.createElement('iframe');
+    frame.src = url;
+    w.document.body.appendChild(frame);
+  }
+
+  const url = `${REMOTE_ORIGIN}/common/blank.html?${token()}`;
+  // The nested frame comes from cross-origin and doesn't have a CORP
+  // header, so it is blocked.
+  attachFrame(url);
+
+  await checkCorpReportExistence(
+      REPORT_UUID, url, iframe.src, 'iframe', 'enforce');
+  await checkCorpReportExistence(
+      REPORT_ONLY_UUID, url, iframe.src, 'iframe', 'reporting');
+}, 'navigation CORP');
+
+promise_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
+
+  iframe.src = FRAME_URL;
+  const targetUrl = `/common/blank.html?${token()}`;
+  iframe.addEventListener('load', t.step_func(() => {
+    const nested = iframe.contentDocument.createElement('iframe');
+    nested.src = targetUrl;
+    // |nested| doesn't have COEP whereas |iframe| has, so it is blocked.
+    iframe.contentDocument.body.appendChild(nested);
+  }), {once: true});
+
+  document.body.appendChild(iframe);
+
+  await checkNavigationReportExistence(
+      REPORT_UUID, targetUrl, iframe.src, 'enforce');
+  await checkNavigationReportExistence(
+      REPORT_ONLY_UUID, targetUrl, iframe.src, 'reporting');
+}, 'COEP violation on nested frame navigation');
+
+promise_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
+
+  iframe.src = 'resources/reporting-empty-frame-multiple-headers.html.asis';
+  const targetUrl = `/common/blank.html?${token()}`;
+
+  iframe.addEventListener('load', t.step_func(() => {
+    const nested = iframe.contentDocument.createElement('iframe');
+    nested.src = targetUrl;
+    // |nested| doesn't have COEP whereas |iframe| has, so it is blocked.
+    iframe.contentDocument.body.appendChild(nested);
+  }), {once: true});
+
+  document.body.appendChild(iframe);
+
+  await checkNavigationReportExistence(
+      REPORT_UUID, targetUrl, iframe.src, 'enforce');
+  await checkNavigationReportExistence(
+      REPORT_ONLY_UUID, targetUrl, iframe.src, 'reporting');
+
+}, 'Two COEP headers, split inside report-to value');
+
+// Shared worker do not support observer currently, so add test for endpoint
+// here.
+promise_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
+
+  iframe.src = FRAME_URL;
+  const targetUrl = `${REMOTE_ORIGIN}/common/blank.html?${token()}`;
+  document.body.appendChild(iframe);
+
+  const worker = new iframe.contentWindow.SharedWorker(WORKER_URL);
+  worker.port.start();
+  const script =
+    `fetch('${targetUrl}', {mode: 'no-cors', cache: 'no-store'}).catch(e => {});`;
+  worker.addEventListener('error', t.unreached_func('Worker.onerror'));
+  worker.port.postMessage(script);
+
+  await checkCorpReportExistence(
+      REPORT_UUID, targetUrl, WORKER_URL, 'iframe', 'enforce');
+  await checkCorpReportExistence(
+      REPORT_ONLY_UUID, targetUrl, WORKER_URL, 'iframe', 'reporting');
+}, 'Shared worker fetch');
+
+</script>

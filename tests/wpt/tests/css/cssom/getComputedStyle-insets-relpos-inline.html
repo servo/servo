@@ -1,0 +1,84 @@
+<!doctype html>
+<title>getComputedStyle OOF inset resolved against relpos inline container</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.ifc {
+  position: relative;
+  width: max-content;
+  font: 20px/1 Ahem;
+  margin-bottom: 2em;
+}
+
+.relpos {
+  position: relative;
+  background: yellow;
+  color: yellow;
+}
+
+.target {
+  position: absolute;
+  background: green;
+  width: 5em;
+  height: 1em;
+  top: 1em;
+}
+
+.fix-start {
+  inset-inline-start: 0;
+}
+
+.fix-end {
+  inset-inline-end: 0;
+}
+</style>
+
+<div class="ifc">
+  Lorem
+  <span class="relpos">
+    ipsum dolor
+    <div class="target fix-start" id="target1"></div>
+    <div class="target fix-end" id="target2"></div>
+  </span>
+  sit amet
+</div>
+<script>
+test(() => {
+  let style = getComputedStyle(target1);
+  assert_equals(style.left, '0px');
+  assert_equals(style.right, '140px');
+}, 'OOF with left fixed right auto in relpos inline container');
+
+test(() => {
+  let style = getComputedStyle(target2);
+  assert_equals(style.left, '140px');
+  assert_equals(style.right, '0px');
+}, 'OOF with left auto right fixed in relpos inline container');
+</script>
+
+<div class="ifc">
+  Lorem
+  <span class="relpos" dir="rtl">
+    ipsum dolor
+    <div class="target fix-start" id="target3" dir="ltr"></div>
+    <div class="target fix-end" id="target4" dir="ltr"></div>
+  </span>
+  sit amet
+</div>
+<script>
+test(() => {
+  let style = getComputedStyle(target3);
+  assert_equals(style.left, '0px');
+  assert_equals(style.right, '140px');
+}, 'OOF with left fixed right auto in relpos inline container with mixed directions');
+
+test(() => {
+  let style = getComputedStyle(target4);
+  assert_equals(style.left, '140px');
+  assert_equals(style.right, '0px');
+}, 'OOF with left auto right fixed in relpos inline container with mixed directions');
+</script>

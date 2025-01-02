@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: getComputedStyle property order</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that in a computed style, properties are sorted in lexicographical order." />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  const properties = [...getComputedStyle(document.documentElement)];
+  const sorted = properties.slice().sort(function(a,b) {
+    if (a === b) {
+      assert_unreached("There shouldn't be repeated properties");
+      return 0;
+    }
+    // Sort vendor-prefixed properties after standard ones
+    if (a.startsWith("-") != b.startsWith("-")) {
+      return b.startsWith("-") ? -1 : 1;
+    }
+    // Sort with lexicographical order
+    return a < b ? -1 : 1;
+  });
+  assert_array_equals(properties, sorted);
+}, "Computed style properties should be sorted lexicographically");
+</script>

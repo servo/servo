@@ -1,0 +1,13 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno25",
+  "type": "Annotation",
+  "body": "http://example.org/note1",
+  "target": {
+    "source": "http://example.org/page1.html",
+    "selector": {
+      "type": "XPathSelector",
+      "value": "/html/body/p[2]/table/tr[2]/td[3]/span"
+    }
+  }
+}

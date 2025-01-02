@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: height</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#height"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   div { font-size: 20px; background: url(support/ruler-v-50px.png) top left no-repeat; padding: 0 0 100px 45px; }
+   .one { height: 50px; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" title="10.5 Content height: the 'height' property"/>
+ </head>
+ <body>
+  <p>The square below should be exactly 50 pixels high on the ruler.</p>
+  <div><img src="support/swatch-blue.png" class="one" alt="FAIL: Image support required."/></div>
+ </body>
+</html>

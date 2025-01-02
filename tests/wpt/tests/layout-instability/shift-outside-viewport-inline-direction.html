@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift out of viewport in inline direction</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+#j { position: absolute; width: 200px; height: 600px; background: blue; }
+</style>
+<div id='j'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Move div out of viewport horizontally.
+  document.querySelector("#j").style.left = '-300px';
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Shift out of viewport in inline direction.");
+
+</script>
+

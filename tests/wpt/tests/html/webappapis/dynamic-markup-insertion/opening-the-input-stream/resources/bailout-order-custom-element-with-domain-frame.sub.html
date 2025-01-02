@@ -1,0 +1,13 @@
+<p>Text</p>
+<script>
+document.domain = "{{host}}";
+
+class CustomElement extends HTMLElement {
+  constructor() {
+    super();
+    parent.onCustomElementReady();
+  }
+}
+customElements.define("custom-element", CustomElement);
+</script>
+<custom-element></custom-element>

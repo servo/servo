@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - cursor should show drop-allowed for file drops</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  body > div + div {
+    background-color: navy;
+    left: 250px;
+  }
+  body > div + div + div {
+    background-color: fuchsia;
+    left: 500px;
+  }
+  p:first-of-type {
+    margin-top: 220px;
+  }
+</style>
+
+<script type="text/javascript">
+
+window.onload = function() {
+  var blue = document.getElementsByTagName('div')[1], fuchsia = document.getElementsByTagName('div')[2];
+  blue.ondragenter = blue.ondragover = function(e) {
+    //this test assumes the browser will default to opening the file if the page does not want it
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'none';
+  };
+  fuchsia.ondragenter = fuchsia.ondragover = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  fuchsia.ondrop = function(e) {
+    e.preventDefault();
+  };
+};
+
+</script>
+
+<div></div><div></div><div></div>
+
+<p>Use your mouse to drag a *.html file from your computer's desktop over the three coloured squares on this page. The mouse cursor should appear as a &quot;drop-allowed&quot; cursor over all three squares.<br>
+Release the drag over the pink square. If a prompt appears, accept it. The cursor should revert to the default mouse cursor.</p>
+<p>This test only applies to platforms with a mouse cursor that can change to indicate drop status.</p>
+<p>This test assumes the browser will open dropped files natively if they are not handled by a script.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

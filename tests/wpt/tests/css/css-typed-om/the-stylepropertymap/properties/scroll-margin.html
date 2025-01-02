@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>scroll-margin related properties</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+for (const suffix of ['top', 'left', 'right', 'bottom']) {
+  runPropertyTests('scroll-margin-' + suffix, [
+    { syntax: '<length>' },
+  ]);
+}
+
+for (const suffix of ['inline-start', 'block-start', 'inline-end', 'block-end']) {
+  runPropertyTests('scroll-margin-' + suffix, [
+    { syntax: '<length>' },
+  ]);
+}
+
+runUnsupportedPropertyTests('scroll-margin',
+  ['0px', '1px 2px', '3px 4px 5px', '6px 7px 8px 9px']
+);
+
+</script>

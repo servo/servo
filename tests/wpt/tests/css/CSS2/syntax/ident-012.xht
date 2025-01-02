@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Valid Identifiers (starting with escaped digits, control codes) as Classes and IDs</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+  <link rel="match" href="ident-012-ref.xht"/>
+  <style type="text/css">
+
+  .one { color: red; background: white; }
+  .\6ident, .one { color: green; }
+
+  .two { color: red; background: white; }
+  #\6ident, .two { color: green; }
+
+  .three { color: red; background: white; }
+  .\36ident, .three { color: green; }
+
+  .four { color: red; background: white; }
+  #\36ident, .four { color: green; }
+
+  </style>
+ </head>
+ <body>
+
+ <p class="one">This should be green.</p>
+ <p class="two">This should be green.</p>
+ <p class="three">This should be green.</p>
+ <p class="four">This should be green.</p>
+
+ </body>
+</html>

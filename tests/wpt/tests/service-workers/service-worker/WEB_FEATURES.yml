@@ -1,0 +1,5 @@
+features:
+- name: js-modules-service-workers
+  files:
+  - registration-script-module.https.html
+  - update-registration-with-type.https.html

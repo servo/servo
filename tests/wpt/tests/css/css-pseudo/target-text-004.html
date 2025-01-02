@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text color rendering - with selection</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<link rel="match" href="target-text-lime-green-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  p::target-text {
+    background-color: red;
+    color: lime;
+  }
+  p::selection {
+    background-color: green;
+    color: currentColor;
+  }
+  #sel {
+    font-family: Ahem;
+  }
+</style>
+<p>PASS if there are two segments of lime squares with a green square between below.</p>
+<p id="sel">match me</p>
+<script>
+  window.location.hash = "#:~:text=match%20me";
+  let range = document.createRange();
+  range.selectNodeContents(sel);
+  window.getSelection().addRange(range);
+</script>

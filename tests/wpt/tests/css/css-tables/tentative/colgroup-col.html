@@ -1,0 +1,122 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<title>COLGROUP/COL</title>
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="stylesheet" type="text/css" href="./support/table-tentative.css">
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/tables.html#the-colgroup-element" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/tables.html#the-col-element" />
+<link rel="help" href="https://stackoverflow.com/questions/29411447/what-does-the-width-attribute-of-colgroup-actually-specify" />
+<style>
+  main table {
+    background: gray;
+  }
+
+  main td {
+    background: #BFB;
+  }
+
+  main td > div {
+    display: inline-block;
+    background: rgba(56,162,56,0.3);
+  }
+</style>
+<main>
+<h1>Colgroup col widths</h1>
+<ol>
+  <li>colgroup's purpose is to "group" cols</li>
+  <li>one can think of colgroup as always generating max(colgroup.span,1) cols, unless it has &lt;col&gt; children.</li>
+  <li>colgroup css_width specifies width of generated cols.</li>
+  <li>col.css_width can override colgroup width</li>
+</ol>
+<p class="testdesc">colgroups with spans</p>
+<table>
+  <colgroup width="100px"></colgroup>
+  <colgroup width="100px" span=3></colgroup>
+  <td data-expected-width=100>cg1</td>
+  <td data-expected-width=100>cg2</td>
+  <td data-expected-width=100>cg2</td>
+  <td data-expected-width=100>cg2</td>
+  <td data-expected-width=50><div style="width:50px">50px</div></td>
+</table>
+
+<p class="testdesc">cols with spans</p>
+<table>
+  <col width="100px">
+  <col width="100px" span=3>
+  <td data-expected-width=100>col1</td>
+  <td data-expected-width=100>col2</td>
+  <td data-expected-width=100>col2</td>
+  <td data-expected-width=100>col2</td>
+  <td data-expected-width=50><div style="width:50px">50px</div></td>
+</table>
+
+<p class="testdesc">colgroups with cols</p>
+<table>
+  <colgroup span=4 style="width:100px">
+    <col>
+    <col style="width:50px">
+    <col style="width:150px">
+  </colgroup>
+  <td data-expected-width=100>cg</td>
+  <td data-expected-width=50>col1</td>
+  <td data-expected-width=150>col2</td>
+  <td data-expected-width=50><div style="width:50px">50px</div></td>
+</table>
+
+<p class="testdesc">colgroups with cols with spans</p>
+<p class="error">Legacy fails col with span inside colgroup test.</p>
+<table>
+  <colgroup span=3 style="width:100px">
+    <col>
+    <col style="width:50px" span=2>
+  </colgroup>
+  <colgroup style="width:66px">
+    <col span=2>
+  </colgroup>
+  <td data-expected-width=100>cg1</td>
+  <td data-expected-width=50>col1</td>
+  <td data-expected-width=50>col1</td>
+  <td data-expected-width=66>cg2</td>
+  <td data-expected-width=66>cg2</td>
+  <td data-expected-width=75><div style="width:75px">50px</div></td>
+</table>
+
+<p class="testdesc">0% cols are ignored</p>
+<table data-expected-width=106>
+  <colgroup>
+    <col style="width:0%">
+    <col style="width:0%">
+  </colgroup>
+  <tr>
+    <td data-expected-width=100>
+      <div><span style=" display: inline-block;word-break: break-word;font: 20px/1 Ahem">01234</span></div>
+    </td>
+    <td>
+      <div></div>
+    </td>
+  </tr>
+</table>
+<table data-expected-width=107>
+  <colgroup>
+    <col style="width:0%">
+    <col style="width:1%">
+  </colgroup>
+  <tr>
+    <td data-expected-width=100>
+      <div><span style=" display: inline-block;word-break: break-word;font: 20px/1 Ahem;">01234</span></div>
+    </td>
+    <td>
+      <div></div>
+    </td>
+  </tr>
+</table>
+
+</main>
+
+<script>
+  checkLayout("table");
+</script>

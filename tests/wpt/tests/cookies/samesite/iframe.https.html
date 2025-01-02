@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<!-- We're appending an <iframe> to the document's body, so execute tests after we have a body -->
+<body>
+<script>
+  // This test creates an iframe with postToParent.py on the specified origin,
+  // which sends a postMessage event with the cookies it received back to the
+  // parent (i.e., here). Upon receiving the message, the test verifies that the
+  // correct cookies were sent to the iframe.
+  function create_test(origin, target, expectedStatus, expectedDomStatus, title) {
+    promise_test(t => {
+      var value = "" + Math.random();
+      return resetSameSiteCookies(origin, value)
+        .then(_ => {
+          return new Promise((resolve, reject) => {
+            var iframe = document.createElement("iframe");
+            iframe.onerror = _ => reject("IFrame could not be loaded.");
+
+            var msgHandler = e => {
+              if (e.source == iframe.contentWindow) {
+                // Cleanup, then verify cookie state:
+                document.body.removeChild(iframe);
+                window.removeEventListener("message", msgHandler);
+                try {
+                  verifySameSiteCookieState(expectedStatus, value, e.data, expectedDomStatus);
+                  resolve();
+                } catch(e) {
+                  reject(e);
+                }
+              }
+            };
+            window.addEventListener("message", msgHandler);
+
+            iframe.src = target + "/cookies/resources/postToParent.py";
+            document.body.appendChild(iframe);
+          });
+        });
+    }, title);
+  }
+
+  // No redirect:
+  create_test(SECURE_ORIGIN, SECURE_ORIGIN, SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Same-host fetches are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN, SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Subdomain fetches are strictly same-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN, SameSiteStatus.CROSS_SITE, DomSameSiteStatus.CROSS_SITE, "Cross-site fetches are cross-site");
+
+  // Redirect from {same-host,subdomain,cross-site} to same-host:
+  create_test(SECURE_ORIGIN, redirectTo(SECURE_ORIGIN, SECURE_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Same-host redirecting to same-host fetches are strictly same-site");
+  create_test(SECURE_ORIGIN, redirectTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Subdomain redirecting to same-host fetches are strictly same-site");
+  create_test(SECURE_ORIGIN, redirectTo(SECURE_CROSS_SITE_ORIGIN, SECURE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.SAME_SITE, "Cross-site redirecting to same-host fetches are cross-site");
+
+  // Redirect from {same-host,subdomain,cross-site} to subdomain:
+  create_test(SECURE_SUBDOMAIN_ORIGIN, redirectTo(SECURE_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Same-host redirecting to subdomain fetches are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, redirectTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Subdomain redirecting to subdomain fetches are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, redirectTo(SECURE_CROSS_SITE_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.SAME_SITE, "Cross-site redirecting to subdomain fetches are cross-site");
+
+  // Redirect from {same-host,subdomain,cross-site} to cross-site:
+  create_test(SECURE_CROSS_SITE_ORIGIN, redirectTo(SECURE_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.CROSS_SITE, "Same-host redirecting to cross-site fetches are cross-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, redirectTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.CROSS_SITE, "Subdomain redirecting to cross-site fetches are cross-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, redirectTo(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.CROSS_SITE, "Cross-site redirecting to cross-site fetches are cross-site");
+
+  // Navigate from {same-host,subdomain,cross-site} to same-host:
+  create_test(SECURE_ORIGIN, navigateTo(SECURE_ORIGIN, SECURE_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Same-host navigating to same-host fetches are strictly same-site");
+  create_test(SECURE_ORIGIN, navigateTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Subdomain navigating to same-host fetches are strictly same-site");
+  create_test(SECURE_ORIGIN, navigateTo(SECURE_CROSS_SITE_ORIGIN, SECURE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.SAME_SITE, "Cross-site navigating to same-host fetches are cross-site");
+
+  // Navigate from {same-host,subdomain,cross-site} to subdomain:
+  create_test(SECURE_SUBDOMAIN_ORIGIN, navigateTo(SECURE_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Same-host navigating to subdomain fetches are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, navigateTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.STRICT, DomSameSiteStatus.SAME_SITE, "Subdomain navigating to subdomain fetches are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, navigateTo(SECURE_CROSS_SITE_ORIGIN, SECURE_SUBDOMAIN_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.SAME_SITE, "Cross-site navigating to subdomain fetches are cross-site-site");
+
+  // Navigate from {same-host,subdomain,cross-site} to cross-site:
+  create_test(SECURE_CROSS_SITE_ORIGIN, navigateTo(SECURE_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.CROSS_SITE, "Same-host navigating to cross-site fetches are cross-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, navigateTo(SECURE_SUBDOMAIN_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.CROSS_SITE, "Subdomain navigating to cross-site fetches are cross-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, navigateTo(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN), SameSiteStatus.CROSS_SITE, DomSameSiteStatus.CROSS_SITE, "Cross-site navigating to cross-site fetches are cross-site");
+</script>

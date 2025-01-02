@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<title>Adding a track to a MediaStream</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrackList-add-void-MediaStreamTrack-track">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#event-mediastream-addtrack">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your audio stream, then your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that adding a track to a MediaStream works as expected.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async t => {
+  await setMediaPermission();
+  const audio = await navigator.mediaDevices.getUserMedia({audio: true});
+  const video = await navigator.mediaDevices.getUserMedia({video: true});
+  assert_equals(video.getAudioTracks().length, 0, "video mediastream starts with no audio track");
+  video.addTrack(audio.getAudioTracks()[0]);
+  assert_equals(video.getAudioTracks().length, 1, "video mediastream has now one audio track");
+  video.addTrack(audio.getAudioTracks()[0]);
+  // If track is already in stream's track set, then abort these steps.
+  assert_equals(video.getAudioTracks().length, 1, "video mediastream still has one audio track");
+
+  audio.onaddtrack = t.step_func(function () {
+    assert_unreached("onaddtrack is not fired when the script directly modified the track of a mediastream");
+  });
+
+  assert_equals(audio.getVideoTracks().length, 0, "audio mediastream starts with no video track");
+  audio.addTrack(video.getVideoTracks()[0]);
+  assert_equals(audio.getVideoTracks().length, 1, "audio mediastream now has one video track");
+}, "Tests that adding a track to a MediaStream works as expected");
+</script>
+</body>
+</html>

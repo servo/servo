@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+<script>
+'use strict';
+
+// Check that RTCPeerConnection is not collected by GC while displaying video.
+
+promise_test(async t => {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 160;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "blue";
+  const drawCanvas = () => {
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    t.step_timeout(drawCanvas, 50);
+  };
+
+  drawCanvas();
+
+  let pc1 = new RTCPeerConnection();
+  let pc2 = new RTCPeerConnection();
+
+  // Attach video to pc1.
+  const [inputTrack] = canvas.captureStream().getTracks();
+  pc1.addTrack(inputTrack);
+
+  const destVideo = document.createElement('video');
+  destVideo.autoplay = true;
+  destVideo.muted = true;
+  const onVideoChange = async () => {
+    const start = performance.now();
+    const width = destVideo.videoWidth;
+    const height = destVideo.videoHeight;
+    while (destVideo.videoWidth == width && destVideo.videoHeight == height) {
+      if (performance.now() - start > 5000) {
+        throw new Error("Timeout waiting for video size change");
+      }
+      await new Promise(r => t.step_timeout(r, 50));
+    }
+  };
+
+  // Setup cleanup. We cannot keep references to pc1 or pc2 so do a best-effort with GC.
+  t.add_cleanup(async () => {
+    inputTrack.stop();
+    destVideo.srcObject = null;
+    await garbageCollect();
+  });
+
+  // Setup pc1->pc2.
+  let haveTrackEvent = new Promise(r => pc2.ontrack = r);
+  exchangeIceCandidates(pc1, pc2);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Display pc2 received track in video element.
+  const loadedMetadata = new Promise(r => destVideo.onloadedmetadata = r);
+  destVideo.srcObject = new MediaStream([(await haveTrackEvent).track]);
+
+  // Wait for video on the other side.
+  await destVideo.play();
+  const color = getVideoSignal(destVideo);
+  assert_not_equals(color, 0);
+
+  // Remove RTCPeerConnection references and garbage collect.
+  pc1 = null;
+  pc2 = null;
+  haveTrackEvent = null;
+  await garbageCollect();
+
+  // Check that a change to video input is reflected in the output, i.e., the
+  // peer connections were not garbage collected.
+  canvas.width = canvas.height = 240;
+  ctx.fillStyle = "red";
+  await onVideoChange();
+  assert_not_equals(color, getVideoSignal(destVideo));
+  }, "GC does not collect a peer connection pipe rendering to a video element");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const [track, stream] = await createTrackAndStreamWithCleanup(t, "video");
+  pc1.addTrack(track, stream);
+  exchangeIceCandidates(pc1, pc2);
+
+  const metadataToBeLoaded = [];
+  pc2.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded.push(new Promise((resolve) => {
+        v.addEventListener('loadedmetadata', () => {
+            resolve();
+        });
+    }));
+  };
+  await exchangeOfferAnswer(pc1, pc2);
+
+  garbageCollect();
+
+  await Promise.all(metadataToBeLoaded);
+}, "GC does not collect an HTMLMediaElement playing a video track");
+</script>
+</body>
+</html>
+

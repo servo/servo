@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Position set to 'static'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-19 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-position" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#choose-position" />
+        <meta name="assert" content="The 'position' property applies the value 'static' and places the element in normal document flow." />
+        <style type="text/css">
+            #wrapper
+            {
+                border: 3px solid orange;
+            }
+            #div1
+            {
+                background: blue;
+                color: white;
+                left: 1in;
+                position: static;
+                top: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue bar fills the entire area of the wide hollow orange rectangle.</p>
+        <div id="wrapper">
+            <div id="div1">Text sample</div>
+        </div>
+    </body>
+</html>

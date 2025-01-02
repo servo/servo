@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>CSS Text Decoration Test: Offset on decorating element</title>
+      <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property"/>
+      <meta name="assert" content="text-underline-offsets affects all decorations originating from this element."/>
+      <link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org"/>
+      <style>
+.test {
+font-size: 32px;
+}
+
+.underline {
+text-decoration: underline;
+text-underline-position: from-font;
+}
+
+.offset_outer_9 {
+text-underline-offset: 90px;
+text-decoration-color: #ff3366;
+}
+.offset_outer_8 {
+text-underline-offset: 80px;
+text-decoration-color: #ff6633;
+}
+
+.offset_outer_7 {
+text-underline-offset: 70px;
+text-decoration-color: #FFCC33;
+}
+
+.offset_outer_6 {
+text-underline-offset: 60px;
+text-decoration-color: #33FF66;
+}
+
+.offset_outer_5 {
+text-underline-offset: 50px;
+text-decoration-color: #33FFCC;
+}
+
+.offset_outer_4 {
+text-underline-offset: 40px;
+text-decoration-color: #33CCFF;
+}
+
+.offset_outer_3 {
+text-underline-offset: 30px;
+text-decoration-color: #3366FF;
+}
+
+.offset_outer_2 {
+text-underline-offset: 20px;
+text-decoration-color: #6633FF;
+}
+
+.offset_outer_1 {
+text-underline-offset: 10px;
+text-decoration-color: #CC33FF;
+}
+</style>
+    </head>
+    <body>
+      <p>Test passes if there is one more underline under each X, growing up in steps, with red being the furthest away
+      and a single one, purple being the closest with 8 other underlines under it.</p>
+      <div class="test">
+        <span class="underline offset_outer_9">X<span class="underline offset_outer_8">X<span class="underline offset_outer_7">X<span class="underline offset_outer_6">X<span class="underline offset_outer_5">X<span class="underline offset_outer_4">X<span class="underline offset_outer_3">X<span class="underline offset_outer_2">X<span class="underline offset_outer_1">X</span></span>
+                    </span>
+                  </span>
+                </span>
+              </span>
+            </span>
+          </span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>

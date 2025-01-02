@@ -1,0 +1,19 @@
+<!doctype html>
+<head>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/cookies/resources/testharness-helpers.js"></script>
+<title>Test partitioned cookies ancestor chain: same site embed</title>
+</head>
+<body>
+<script>
+
+test(() => {
+  // The cookie set on the top-level site has no cross-site ancestor in and this embed has a
+  // cross-site ancestor. So the partitioned cookie should not be accessible.
+  assert_false(document.cookie.includes("ancestor=chain"));
+}, "Same-site embed with a cross-site parent partitioned cookie access");
+
+</script>
+</body>

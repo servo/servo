@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<meta name="viewport" content="user-scalable=no">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+}
+:root {
+  overflow: scroll;
+  scroll-snap-type: both mandatory;
+}
+.scroller {
+  overflow: scroll;
+  scroll-snap-type: both mandatory;
+  padding: 0px;
+}
+#outer {
+  left: 1000px;
+  top: 1000px;
+  width: 600px;
+  height: 600px;
+}
+#out-snap-1 {
+  scroll-snap-align: start;
+  left: 1200px;
+  top: 1200px;
+  width: 10px;
+  height: 10px;
+}
+#out-snap-2 {
+  scroll-snap-align: start;
+  left: 1100px;
+  top: 1100px;
+  width: 10px;
+  height: 10px;
+}
+#inner {
+  left: 1000px;
+  top: 1000px;
+  width: 400px;
+  height: 400px;
+}
+.space {
+  left: 0px;
+  top: 0px;
+  width: 3000px;
+  height: 3000px;
+}
+#target {
+  scroll-snap-align: end;
+  left: 800px;
+  top: 800px;
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<div class="space"></div>
+<div id="out-snap-1"></div>
+<div id="out-snap-2"></div>
+<div class="scroller" id="outer">
+  <div class="space"></div>
+  <div class="scroller" id="inner">
+    <div class="space"></div>
+    <div id="target"></div>
+  </div>
+</div>
+
+<script>
+var outer = document.getElementById("outer");
+var inner = document.getElementById("inner");
+var target = document.getElementById("target");
+
+test(() => {
+  // Initial layout triggers a scroll snap. Reset position before calling
+  // scrollIntoView.
+  window.scrollTo(0, 0);
+  outer.scrollTo(0, 0);
+  inner.scrollTo(0, 0);
+
+  target.scrollIntoView({inline: "start", block: "start"});
+  // Although the scrollIntoView specified "start" as the alignment, the target
+  // has "end" as its snap-alignment. So the inner scroller finishes with "end"
+  // alignment
+  assert_equals(inner.scrollLeft, 1000 - inner.clientWidth, "ScrollIntoView lands on the target's snap position regardless of the specified alignment.");
+  assert_equals(inner.scrollTop, 1000 - inner.clientHeight, "ScrollIntoView lands on the target's snap position regardless of the specified alignment.");
+
+  // Since there is no snap points defined in the outer scroller, the outer
+  // scroller finishes with "start" alignment, as specified in scrollIntoView.
+  // Note that the "start" alignment aligns the target's top-left corner
+  //(inner.left + inner.clientWidth - target.width, inner.top + inner.clientHeight - target.height)
+  // with the outer scroller's top-left corner.
+  assert_equals(outer.scrollLeft, 800 + inner.clientWidth, "ScrollIntoView ends with the specified alignment if no snap position is specified.");
+  assert_equals(outer.scrollTop, 800 + inner.clientHeight, "ScrollIntoView ends with the specified alignment if no snap position is specified.");
+
+  // Although the scrollIntoView specified "start" as the alignment, the window
+  // has two other elements with snap points. So the window finishes with the
+  // closest snap point.
+  assert_equals(window.scrollX, 1100, "ScrollIntoView lands on the snap position closest to the specified alignment.");
+  assert_equals(window.scrollY, 1100, "ScrollIntoView lands on the snap position closest to the specified alignment.");
+}, "All the scrollers affected by scrollIntoView should land on a snap position if one exists. Otherwise, land according to the specified alignment");
+</script>

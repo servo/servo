@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Dynamic sticky position change doesn't break inner sticky positioned items</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#sticky-position">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1908242">
+<link rel="author" title="Emilio Cobos" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+    display: flex;
+  }
+
+  #content {
+    border: 10px dashed gray;
+    height: 600vh;
+  }
+
+  #sidebar {
+    align-self: start;
+    background-color: white;
+    border: 10px dashed gray;
+    top: 0;
+  }
+
+  #sidebar-header {
+    position: sticky;
+    top: 0;
+    background-color: rgba(255, 0, 0, .5);
+  }
+
+  #sidebar-content {
+    padding: 5px;
+    height: 200vh;
+  }
+</style>
+<div id=content>
+  CONTENT
+</div>
+<div id=sidebar>
+  <div id=sidebar-header>
+    SIDEBAR TOP STICKY
+  </div>
+  <div id=sidebar-content>
+    SIDEBAR CONTENT
+  </div>
+</div>
+<script>
+let sidebar = document.getElementById("sidebar");
+let sidebarHeader = document.getElementById("sidebar-header");
+test(function() {
+  // Make the header and sidebar stick.
+  window.scrollTo(0, 100);
+  assert_less_than(sidebar.getBoundingClientRect().top, 0, "Sidebar should not be stuck (yet)");
+  assert_equals(sidebarHeader.getBoundingClientRect().top, 0, "Sidebar header should be stuck");
+  sidebar.style.position = "sticky";
+  assert_equals(sidebar.getBoundingClientRect().top, 0, "Sidebar should be stuck now");
+  assert_equals(sidebarHeader.getBoundingClientRect().top, 10, "Sidebar header should be stuck under sidebar border");
+});
+</script>

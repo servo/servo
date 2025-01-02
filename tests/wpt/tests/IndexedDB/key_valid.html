@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!-- Submitted from TestTWF Paris -->
+<meta charset=utf-8">
+<meta name="timeout" content="long">
+<title>Valid key</title>
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#key-construct">
+<link rel=assert title="A value is said to be a valid key if it is one of the following types: Array JavaScript objects [ECMA-262], DOMString [WEBIDL], Date [ECMA-262] or float [WEBIDL]. However Arrays are only valid keys if every item in the array is defined and is a valid key (i.e. sparse arrays can not be valid keys) and if the Array doesn't directly or indirectly contain itself. Any non-numeric properties are ignored, and thus does not affect whether the Array is a valid key. Additionally, if the value is of type float, it is only a valid key if it is not NaN, and if the value is of type Date it is only a valid key if its [[PrimitiveValue]] internal property, as defined by [ECMA-262], is not NaN. Conforming user agents must support all valid keys as keys.">
+<link rel=author href="mailto:batifon@yahoo.fr" title="Baptiste Fontaine">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=resources/support.js></script>
+
+<script>
+    function valid_key(desc, key) {
+        var db;
+        var t = async_test(document.title + " - " + desc);
+        var open_rq = createdb(t);
+
+        open_rq.onupgradeneeded = function(e) {
+            db = e.target.result;
+
+            store = db.createObjectStore("store");
+            assert_true(store.add('value', key) instanceof IDBRequest);
+
+            store2 = db.createObjectStore("store2", { keyPath: ["x", "keypath"] });
+            assert_true(store2.add({ x: 'v', keypath: key }) instanceof IDBRequest);
+        };
+        open_rq.onsuccess = function(e) {
+            var rq = db.transaction("store", "readonly", {durability: 'relaxed'})
+                       .objectStore("store")
+                       .get(key)
+            rq.onsuccess = t.step_func(function(e) {
+                assert_equals(e.target.result, 'value')
+                var rq = db.transaction("store2", "readonly", {durability: 'relaxed'})
+                           .objectStore("store2")
+                           .get(['v', key])
+                rq.onsuccess = t.step_func(function(e) {
+                    assert_equals(e.target.result.x, 'v');
+                    assert_key_equals(e.target.result.keypath, key);
+                    t.done()
+                })
+            })
+        }
+    }
+
+    // Date
+    valid_key( 'new Date()'    , new Date() );
+    valid_key( 'new Date(0)'   , new Date(0) );
+
+    // Array
+    valid_key( '[]'            , [] );
+    valid_key( 'new Array()'   , new Array() );
+
+    valid_key( '["undefined"]' , ['undefined'] );
+
+    // Float
+    valid_key( 'Infinity'      , Infinity );
+    valid_key( '-Infinity'     , -Infinity );
+    valid_key( '0'             , 0 );
+    valid_key( '1.5'           , 1.5 );
+    valid_key( '3e38'          , 3e38 );
+    valid_key( '3e-38'         , 3e38 );
+
+    // String
+    valid_key( '"foo"'         , "foo" );
+    valid_key( '"\\n"'         , "\n" );
+    valid_key( '""'            , "" );
+    valid_key( '"\\""'         , "\"" );
+    valid_key( '"\\u1234"'     , "\u1234" );
+    valid_key( '"\\u0000"'     , "\u0000" );
+    valid_key( '"NaN"'         , "NaN" );
+
+</script>
+
+<div id=log></div>

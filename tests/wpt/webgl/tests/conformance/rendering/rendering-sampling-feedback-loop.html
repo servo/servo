@@ -1,0 +1,185 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Rendering and Sampling Feedback Loop Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="vs100" type="x-shader/x-vertex">
+attribute vec4 aPosition;
+attribute vec2 aTexCoord;
+varying vec2 texCoord;
+void main() {
+    gl_Position = aPosition;
+    texCoord = aTexCoord;
+}
+</script>
+
+<script id="fs100" type="x-shader/x-fragment">
+#extension GL_EXT_draw_buffers : require
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 texCoord;
+void main() {
+    gl_FragData[0] = texture2D(tex, texCoord);
+    gl_FragData[1] = texture2D(tex, texCoord);
+}
+</script>
+
+<script id="fs100-no-ext-draw-buffers" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 texCoord;
+void main() {
+    gl_FragData[0] = texture2D(tex, texCoord);
+}
+</script>
+
+<script id="vs300" type="x-shader/x-vertex">#version 300 es
+in highp vec4 aPosition;
+in vec2 aTexCoord;
+out vec2 texCoord;
+void main() {
+    gl_Position = aPosition;
+    texCoord = aTexCoord;
+}
+</script>
+
+<script id="fs300" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform sampler2D tex;
+in vec2 texCoord;
+out vec4 oColor;
+void main() {
+    oColor = texture(tex, texCoord);
+}
+</script>
+
+<script>
+"use strict";
+
+const wtu = WebGLTestUtils;
+description("This test verifies the functionality of rendering to the same texture where it samples from.");
+
+const gl = wtu.create3DContext("example");
+
+const width = 8;
+const height = 8;
+let tex;
+let fbo;
+let drawBuffers = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    if (gl.drawBuffers) {
+        debug("Using webgl2.drawBuffers.");
+        drawBuffers = (x) => gl.drawBuffers(x);
+    } else {
+        const ext = gl.getExtension("WEBGL_draw_buffers");
+        if (ext) {
+            debug("Using WEBGL_draw_buffers.drawBuffersWEBGL.");
+            drawBuffers = (x) => ext.drawBuffersWEBGL(x);
+        }
+    }
+
+    init();
+
+    // The sampling texture is bound to COLOR_ATTACHMENT1 during resource allocation
+    allocate_resource();
+
+    rendering_sampling_feedback_loop(null);
+    if (drawBuffers) {
+        rendering_sampling_feedback_loop([gl.NONE]);
+        rendering_sampling_feedback_loop([gl.COLOR_ATTACHMENT0,
+                                          gl.COLOR_ATTACHMENT0+1]);
+        rendering_sampling_feedback_loop([gl.NONE,
+                                          gl.COLOR_ATTACHMENT0+1]);
+    }
+}
+
+function init() {
+    let shaders = ["vs100", "fs100"];
+    if (gl.texStorage2D) {
+        shaders = ["vs300", "fs300"];
+    } else if (!drawBuffers) {
+        shaders = ["vs100", "fs100-no-ext-draw-buffers"];
+    }
+    const program = wtu.setupProgram(gl, shaders, ["aPosition", "aTexCoord"], [0, 1]);
+    const positionLoc = gl.getAttribLocation(program, "aPosition");
+    const texCoordLoc = gl.getAttribLocation(program, "aTexCoord");
+    if (!program || positionLoc < 0 || texCoordLoc < 0) {
+        testFailed("Set up program failed");
+        return;
+    }
+    const texLoc = gl.getUniformLocation(program, "tex");
+    gl.uniform1i(texLoc, 0);
+    testPassed("Set up program succeeded");
+
+    wtu.setupUnitQuad(gl, 0, 1);
+    gl.viewport(0, 0, width, height);
+}
+
+function allocate_resource() {
+    tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+}
+
+function rendering_sampling_feedback_loop(draw_buffers) {
+    debug("draw_buffers: " + JSON.stringify(draw_buffers));
+
+    if (draw_buffers) {
+        drawBuffers(draw_buffers);
+    }
+
+    // Make sure framebuffer is complete before feedback loop detection
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete.");
+        return;
+    }
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Feedback loop detection should ignore drawBuffers settings.");
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+    // The texture will be mipmap incomplete, so feedback cannot occur nor be consistently evaluated.
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Feedback loop detection should ignore sampled incomplete textures.");
+
+    if (draw_buffers) {
+        drawBuffers([gl.COLOR_ATTACHMENT0]);
+    }
+}
+
+gl.deleteTexture(tex);
+gl.deleteFramebuffer(fbo);
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

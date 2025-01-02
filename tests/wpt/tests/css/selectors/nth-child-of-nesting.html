@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<title>:nth-last-child nesting</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<link rel=author href="mailto:zach@zrhoffman.net" title="Zach Hoffman">
+<link rel="match" href="nth-child-of-nesting-ref.html">
+<style>
+:nth-child(2n + 1 of :nth-child(n of .target)) {
+    background-color: lime;
+}
+</style>
+</head>
+<body>
+    <p>White</p>
+    <p class="target">Green</p>
+    <p>White</p>
+    <p class="target">White</p>
+    <p>White</p>
+    <p class="target">Green</p>
+    <p>White</p>
+    <p class="target">White</p>
+    <p>White</p>
+    <p class="target">Green</p>
+    <p>White</p>
+    <p class="target">White</p>
+</body>
+</html>

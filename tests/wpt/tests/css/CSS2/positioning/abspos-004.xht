@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Positioning relative to the ICB: long root element</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/006-demo.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos"/>
+  <style type="text/css">
+   .absolute { position: absolute; bottom: 0; left: 0; right: 0;
+               height: 5em; border: solid blue; }
+   html { height: 300em; min-height: 150%; border: orange; border-style: none solid; }
+   .control { border: solid yellow; }
+   * { margin: 0; padding: 0; }
+  </style>
+ </head>
+ <body>
+  <p class="absolute">This blue box should be at the bottom of the viewport
+    / first page.</p>
+  <p class="control">This yellow box should be at the top of the
+    viewport or first page. There should also be a blue box visible at the
+    bottom of the viewport / page.</p>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection RTP extensions</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+
+async function setup() {
+  const pc1 = new RTCPeerConnection();
+  pc1.addTransceiver('audio');
+  // Make sure there is more than one rid, since there's no reason to use
+  // rtp-stream-id/repaired-rtp-stream-id otherwise. Some implementations
+  // may use them for unicast anyway, which isn't a spec violation, just
+  // a little silly.
+  pc1.addTransceiver('video', {sendEncodings: [{rid: '0'}, {rid: '1'}]});
+  const offer = await pc1.createOffer();
+  pc1.close();
+  return offer.sdp;
+}
+
+// Extensions that MUST be supported
+const mandatoryExtensions = [
+  // Directly referenced in WebRTC RTP usage
+  'urn:ietf:params:rtp-hdrext:ssrc-audio-level', // RFC 8834 5.2.2
+  'urn:ietf:params:rtp-hdrext:sdes:mid',  // RFC 8834 5.2.4
+  'urn:3gpp:video-orientation',  // RFC 8834 5.2.5
+  // Required for support of simulcast with RID
+  'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id',  // RFC 8852 4.3
+  'urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id',  // RFC 8852 4.4
+];
+
+// For further testing:
+// - Add test for rapid synchronization - RFC 8834 5.2.1
+// - Add test for encrypted header extensions (RFC 6904)
+// - Separate tests for extensions in audio and video sections
+
+for (const extension of mandatoryExtensions) {
+  promise_test(async t => {
+    const sdp = await setup();
+    const extensions = SDPUtils.matchPrefix(sdp, 'a=extmap:')
+          .map(SDPUtils.parseExtmap);
+    assert_true(!!extensions.find(ext => ext.uri === extension));
+  }, `RTP header extension ${extension} is present in offer`);
+}
+
+// Test for illegal remote behavior: Reassignment of hdrext ID
+// in a subsequent offer/answer cycle.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver('audio');
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+  // Do a second offer/answer cycle.
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  const answer = await pc2.createAnswer();
+
+  // Swap the extension number of the two required extensions
+  answer.sdp = answer.sdp.replace('urn:ietf:params:rtp-hdrext:ssrc-audio-level',
+                     'xyzzy')
+  .replace('urn:ietf:params:rtp-hdrext:sdes:mid',
+           'urn:ietf:params:rtp-hdrext:ssrc-audio-level')
+  .replace('xyzzy',
+           'urn:ietf:params:rtp-hdrext:sdes:mid');
+
+  return promise_rejects_dom(t, 'InvalidAccessError',
+                            pc1.setRemoteDescription(answer));
+}, 'RTP header extension reassignment causes failure');
+
+</script>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<body>
+<script>
+  // Policy settings for all tests
+  const noopPolicy = {
+    'createHTML': (s) => s,
+    'createScriptURL': (s) => s,
+    'createScript': (s) => s,
+  };
+
+  // isHTML tests
+  test(t => {
+    const p = trustedTypes.createPolicy('html', noopPolicy);
+    let html = p.createHTML(INPUTS.HTML);
+
+    assert_true(trustedTypes.isHTML(html));
+    let html2 = Object.create(html);
+
+    // instanceof can pass, but we rely on isHTML
+    assert_true(html2 instanceof TrustedHTML);
+    assert_false(trustedTypes.isHTML(html2));
+
+    let html3 = Object.assign({}, html, {toString: () => 'fake'});
+
+    assert_false(trustedTypes.isHTML(html3));
+  }, 'TrustedTypePolicyFactory.isHTML requires the object to be created via policy.');
+
+  // isScript tests
+  test(t => {
+    const p = trustedTypes.createPolicy('script', noopPolicy);
+    let script = p.createScript(INPUTS.SCRIPT);
+
+    assert_true(trustedTypes.isScript(script));
+    let script2 = Object.create(script);
+
+    // instanceof can pass, but we rely on isScript
+    assert_true(script2 instanceof TrustedScript);
+    assert_false(trustedTypes.isScript(script2));
+
+    let script3 = Object.assign({}, script, {toString: () => 'fake'});
+
+    assert_false(trustedTypes.isScript(script3));
+  }, 'TrustedTypePolicyFactory.isScript requires the object to be created via policy.');
+
+  // isScriptURL tests
+  test(t => {
+    const p = trustedTypes.createPolicy('script_url', noopPolicy);
+    let script = p.createScriptURL(INPUTS.SCRIPTURL);
+
+    assert_true(trustedTypes.isScriptURL(script));
+    let script2 = Object.create(script);
+
+    // instanceof can pass, but we rely on isScript
+    assert_true(script2 instanceof TrustedScriptURL);
+    assert_false(trustedTypes.isScriptURL(script2));
+
+    let script3 = Object.assign({}, script, {toString: () => 'fake'});
+
+    assert_false(trustedTypes.isScriptURL(script3));
+  }, 'TrustedTypePolicyFactory.isScriptURL requires the object to be created via policy.');
+
+  // Test non-object parameters.
+  test(t => {
+    assert_false(trustedTypes.isHTML(null));
+    assert_false(trustedTypes.isHTML(123));
+    assert_false(trustedTypes.isHTML(0.5));
+    assert_false(trustedTypes.isHTML('test'));
+    assert_false(trustedTypes.isHTML({}));
+    assert_false(trustedTypes.isScript(null));
+    assert_false(trustedTypes.isScript(123));
+    assert_false(trustedTypes.isScript(0.5));
+    assert_false(trustedTypes.isScript('test'));
+    assert_false(trustedTypes.isScript({}));
+    assert_false(trustedTypes.isScriptURL(null));
+    assert_false(trustedTypes.isScriptURL(123));
+    assert_false(trustedTypes.isScriptURL(0.5));
+    assert_false(trustedTypes.isScriptURL('test'));
+    assert_false(trustedTypes.isScriptURL({}));
+  }, 'TrustedTypePolicyFactory.isXXX should accept anything without throwing.');
+</script>

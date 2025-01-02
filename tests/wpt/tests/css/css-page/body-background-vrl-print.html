@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-page-3/">
+<meta name="assert" content="Body's background is fragmented correctly in vertical-rl writing mode.">
+<link rel="match" href="body-background-vrl-print-ref.html">
+<style>
+  html { writing-mode: vertical-rl; }
+  body {
+    margin: 0;
+    background: linear-gradient(90deg, lightgray 0%, lightgray 50%, white 50%, white 100%)
+  }
+  @page {
+    size: 800px 600px;
+    margin: 0;
+  }
+</style>
+<p style="writing-mode:horizontal-tb; position:absolute; left:20px; top:0; width:160px;">
+  There should be a top-right-aligned blue box on the first page, and a
+  top-aligned hotpink box on the second page.
+  The background of the first page is lightgray, and the background of the
+  second page is white.
+</p>
+<div style="width:600px; height:100px; break-inside:avoid; background:blue;"></div>
+<div style="width:800px; height:100px; break-inside:avoid; background:hotpink;"></div>

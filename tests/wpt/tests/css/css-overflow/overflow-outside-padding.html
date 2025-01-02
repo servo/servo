@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>CSS Overflow and Transforms: css-overflow-3</title>
+<link rel="author" href="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<meta name="assert" content="blocks wholly outside padding edges should not contribute to overflow">
+<style>
+.container {
+  position: relative;
+  display: inline-block;
+  border: 5px solid rgba(0,0,0,0.5);
+  border-width: 0px 0px 50px 80px;
+  overflow: auto;
+  width: 200px;
+  height: 200px;
+  background: gray;
+}
+.target {
+  position: absolute;
+  width: 1000px;
+  height: 1000px;
+  background: red;
+}
+.htb {
+  writing-mode: horizontal-tb;
+}
+.vrl {
+  writing-mode: vertical-rl;
+}
+.vlr {
+  writing-mode: vertical-lr;
+}
+.rtl {
+  direction: rtl;
+}
+</style>
+<!--  -->
+<div class="container htb">
+  <div class="target" style="top: -1000px"></div>
+  htb
+</div>
+<div class="container htb rtl">
+  <div class="target" style="right: -1000px" ></div>
+  htb rtl
+</div>
+<div class="container vrl">
+  <div class="target" style="top: -1000px"></div>
+  vrl
+</div>
+<div class="container vrl rtl">
+  <div class="target" style="bottom: -1000px"></div>
+  vrl rtl
+</div>
+<div class="container vlr">
+  <div class="target" style="top: -1000px"></div>
+  vlr
+</div>
+<div class="container vlr rtl">
+  <div class="target" style="left: -1000px"></div>
+  vlr rtl
+</div>
+<script>
+test(() => {
+  Array.from(document.querySelectorAll(".container")).forEach( el => {
+    assert_equals(el.scrollWidth, 200);
+  });
+}, '#target did not trigger scroll overflow');
+</script>

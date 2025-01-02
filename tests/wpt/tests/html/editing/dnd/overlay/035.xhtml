@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Drag and drop of floated overlapping elements: negative margins</title>
+<style type="text/css">
+div
+  {height:100px;
+  width:100px;
+  float:left;
+  margin-left:-50px;
+  background-color:navy;}
+div:nth-child(odd)
+  {background-color:maroon;
+  margin-top:50px;}
+div[draggable]
+  {background-color:teal;}
+</style>
+</head>
+<body>
+<p>Only green areas should be draggable.</p>
+<div/>
+<div/>
+<div draggable="true"/>
+<div/>
+<div/>
+<div draggable="true"/>
+<div/>
+<div/>
+</body>
+</html>

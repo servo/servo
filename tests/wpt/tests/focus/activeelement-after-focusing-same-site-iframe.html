@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>activeElement when focusing same-site iframe</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+window.onmessage = function(e) {
+    var actual = e.data;
+    test(function() {
+        // Handle trailing events separately to get make it easier to see
+        // if they are the only deviation from the expection.
+        var endedWith = false;
+        if (actual.endsWith(",willspineventloop,")) {
+            endedWith = true;
+            actual += "innerbodyfocus,innerbodyblur,";
+        }
+        assert_false(endedWith, "Should have gotten innerbodyfocus,innerbodyblur after willspineventloop");
+    }, "Check trailing events");
+    test(function() {
+        assert_equals(actual, "outeronload,activeElement:BODY,willfocusiframe,didfocusiframe,activeElement:IFRAME,willbluriframe,didbluriframe,activeElement:BODY,willspineventloop,innerbodyfocus,innerbodyblur,", 'Check log');
+    }, "Check result");
+    w.close();
+    done();
+};
+var w = window.open("support/activeelement-after-focusing-same-site-iframe-outer.html");
+</script>

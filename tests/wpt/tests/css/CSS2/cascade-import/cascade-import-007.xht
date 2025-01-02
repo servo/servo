@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Cascade: Controlled delays with two alternate sets (link and meta)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/import/007.html"/>
+  <link rel="help" href="http://www.w3.org/TR/html4/present/styles.html#h-14.3"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#cascading"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#cascading"/>
+
+  <link rel="alternate stylesheet" title="1"
+        href="http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=2&amp;mime=text%2Fcss&amp;text=.b+%7B+color%3A+red%3B+display%3A+block%3B+%7D"/>
+  <link rel="stylesheet"
+        href="http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=5&amp;mime=text%2Fcss&amp;text=.a+%7B+color%3A+blue%3B+display%3A+block%3B+%7D%0D%0A.b+%7B+color%3A+green%3B+%7D%0D%0A.c+%7B+color%3A+red%3B+%7D%0D%0Ap+%7B+display%3A+none%3B+%7D"/>
+  <meta http-equiv="Link"
+        content='&lt;http://software.hixie.ch/utilities/cgi/test-tools/delayed-file?pause=8&amp;mime=text%2Fcss&amp;text=.c+%7B+color%3A+green%3B+display%3A+block%3B+%7D>; rel="alternate stylesheet"; title="2"' />
+ </head>
+ <body>
+  <p class="a">Select each of the two alternate stylesheets to run this test.</p>
+  <p class="b">This line should be green. (alternate stylesheet 1 selected)</p>
+  <p class="c">This line should be green. (alternate stylesheet 2 selected)</p>
+
+
+</body>
+</html>

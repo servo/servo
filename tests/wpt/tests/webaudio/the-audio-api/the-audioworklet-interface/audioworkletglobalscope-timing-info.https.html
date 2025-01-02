@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test currentTime and currentFrame in AudioWorkletGlobalScope
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      setup(() => {
+        let sampleRate = 48000;
+        let renderLength = 512;
+        let context = new OfflineAudioContext(1, renderLength, sampleRate);
+
+        let filePath = 'processors/timing-info-processor.js';
+
+        audit.define(
+            'Check the timing information from AudioWorkletProcessor',
+            (task, should) => {
+              let portWorkletNode =
+                  new AudioWorkletNode(context, 'timing-info-processor');
+              portWorkletNode.connect(context.destination);
+
+              // Suspend at render quantum boundary and check the timing
+              // information between the main thread and the rendering thread.
+              [0, 128, 256, 384].map((suspendFrame) => {
+                context.suspend(suspendFrame/sampleRate).then(() => {
+                  portWorkletNode.port.onmessage = (event) => {
+                    should(event.data.currentFrame,
+                           'currentFrame from the processor at ' + suspendFrame)
+                        .beEqualTo(suspendFrame);
+                    should(event.data.currentTime,
+                           'currentTime from the processor at '
+                               + context.currentTime)
+                        .beEqualTo(context.currentTime);
+                    context.resume();
+                  };
+
+                  portWorkletNode.port.postMessage('query-timing-info');
+                });
+              });
+
+              context.startRendering().then(() => {
+                task.done();
+              });
+            });
+
+        context.audioWorklet.addModule(filePath).then(() => {
+          audit.run();
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+{
+    ":subcategories": ["VTTCue/categories.json"],
+    "VTTCue/*": "cues",
+    "VTTRegion/*": "regions"
+}

@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id="desc">HTML5 Selection: Insert a new element and text node into an element that is currently selected</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript">
+            function RunTest()
+            {
+                var selection = window.getSelection();
+                var div1 = document.getElementById("div1");
+                var range = document.createRange();
+                range.selectNode(div1);
+                selection.addRange(range);
+
+                assert_equals(selection.toString(), "some text");
+
+                var ele = document.createElement("div");
+                var tNode = document.createTextNode("new text");
+                ele.appendChild(tNode);
+                div1.appendChild(ele);
+
+                assert_equals(selection.toString(), "some text\nnew text");
+            }
+        </script>
+    </head>
+    <body onload="test(RunTest);">
+        <p>This test inserts a new element with a text node child into the current selection.</p>
+        <div id="div1">some text</div>
+    </body>
+</html>

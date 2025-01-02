@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions of different elements and shapes</title>
+<link rel="help" href="https://github.com/vmpstr/view-transitions">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+body {
+  background: lightpink;
+  overflow: hidden;
+}
+
+input {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 10;
+}
+
+.top {
+  top: 0px;
+  background: green;
+}
+.bottom {
+  bottom: 0px;
+  background: blue;
+}
+
+div {
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  height: 40vh;
+  contain: paint;
+}
+</style>
+
+<input id=toggle type=button value="Toggle!"></input>
+<div id=target class=top>
+The div should alternate being at the bottom and at the top.
+The color at the top is green and bottom is blue.
+During the animation, the div has an (x, y) offset and its
+content is a blend of green and blue. There is also a grey
+background with a slight offset from the top.
+</div>
+
+<script>
+let classes = ["top", "bottom"]
+let i = 0;
+
+let transitionStyle =
+  `html::view-transition {
+    top: 50px;
+  }
+
+  html::view-transition-group(root) {
+    background-color: grey;
+  }
+
+  html::view-transition-group(target) {
+    left: 50px;
+  }
+
+  html::view-transition-old(target) {
+    opacity: 0.5;
+    animation-name: none;
+  }
+
+  html::view-transition-new(target) {
+    opacity: 0.5;
+  }
+  `
+
+let pseudoStyle = document.createElement('style');
+pseudoStyle.appendChild(document.createTextNode(transitionStyle));
+
+async function runAnimation() {
+  target.style.viewTransitionName = "target";
+  let t = document.startViewTransition(() => {
+    target.classList.remove(classes[i]);
+    i = (i + 1) % classes.length;
+    target.classList.add(classes[i]);
+
+    document.head.appendChild(pseudoStyle);
+  });
+  await t.finished;
+  document.head.removeChild(pseudoStyle)
+}
+
+function init() {
+  toggle.addEventListener("click", runAnimation);
+}
+onload = init;
+</script>

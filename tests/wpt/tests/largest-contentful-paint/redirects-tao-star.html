@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates LargestContentfulPaint information for cross-origin redirect chain images.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<script src=/common/get-host-info.sub.js></script>
+</head>
+<body>
+<script>
+setup({"hide_test_state": true});
+async_test(t => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    let destUrl = get_host_info().HTTP_REMOTE_ORIGIN
+            + '/resource-timing/resources/multi_redirect.py?';
+    destUrl += 'page_origin=' +  get_host_info().HTTP_ORIGIN;
+    destUrl += '&cross_origin=' + get_host_info().HTTP_REMOTE_ORIGIN;
+    destUrl += '&final_resource=/element-timing/resources/circle-tao.svg';
+    destUrl += '&tao_steps=';
+    const sizes = [50*50, 66*66, 100*100, 200*200];
+
+    const image = document.createElement('img');
+    image.src = destUrl + '0';
+    image.setAttribute('id', 'id');
+    image.width = 200 / 4;
+    document.body.appendChild(image);
+
+    let numObserved = 0;
+    let beforeLoad = performance.now();
+    new PerformanceObserver(t.step_func(entries => {
+        assert_equals(entries.getEntries().length, 1);
+        const entry = entries.getEntries()[0];
+        const options = numObserved === 3 ? [] : ['renderTimeIs0'];
+        checkImage(entry, destUrl + numObserved, 'id', sizes[numObserved], beforeLoad, options);
+        numObserved++;
+        if (numObserved === 4)
+            t.done();
+        else {
+            // Change the image to trigger a new LCP entry.
+            const img = document.getElementById('id');
+            image.src = destUrl + numObserved;
+            // Use monotonically increasing image sizes to trigger LCP every time.
+            image.width = 200 / (4 - numObserved);
+            beforeLoad = performance.now();
+        }
+    })).observe({type: 'largest-contentful-paint'});
+}, 'Cross-origin image without TAO should not have its renderTime set, with full TAO it should.');
+</script>
+</body>
+</html>
+

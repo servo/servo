@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  table
+    {
+    border-spacing: 0px;
+    table-layout: fixed;
+    width: 154px;
+    }
+
+  td
+    {
+      height: 27px;
+      padding: 0px;
+    }
+
+  td.corner
+    {
+      background-image: url("../support/blue-and-red-diamonds-81x81.png");
+    }
+
+  img
+    {
+      vertical-align: top;
+    }
+  </style>
+
+  <p>Test passes if a blue diamond is stretched between red diamonds.
+
+  <table>
+
+    <col width="27"><col width="100"><col width="27">
+
+    <tr><td class="corner"><td><img src="../support/blue-diamond-27x27.png" width="100" height="27" alt="Image download support must be enabled"><td class="corner">
+
+    <tr><td><img src="../support/blue-diamond-27x27.png" width="27" height="100" alt="Image download support must be enabled"><td><td><img src="../support/blue-diamond-27x27.png" width="27" height="100" alt="Image download support must be enabled">
+
+    <tr><td class="corner"><td><img src="../support/blue-diamond-27x27.png" width="100" height="27" alt="Image download support must be enabled"><td class="corner">
+
+  </table>

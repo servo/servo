@@ -1,0 +1,44 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Dynamic handling of attribute selectors</title>
+  <style type="text/css"><![CDATA[
+   [test] { background: red; display: block; padding: 1em; }
+   stub ~ [|attribute^=start]:not([|attribute~=mid])[|attribute*=dle][|attribute$=end] ~ t { background: lime; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" dom namespace" />
+ </head>
+ <body>
+
+ <div>
+
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      document.getElementsByTagNameNS('', 't')[1].setAttributeNS('', 'attribute', 'start middle end');
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+
+  <p> The following block should be green. </p>
+
+  <!-- root of selector -->
+  <stub xmlns=""></stub>
+
+  <!-- middle part of selector does not match this -->
+  <t xmlns="" attribute="fake"></t>
+
+  <!-- middle part of selector matches this once attribute is fixed -->
+  <t xmlns="" attribute="start mid dle end"></t>
+
+  <!-- subject of selector -->
+  <t xmlns="" test="test"></t>
+
+ </div>
+
+</body>
+</html>

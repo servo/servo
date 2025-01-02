@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#the-multi-column-model">
+<style>
+  .mc {
+    columns: 2;
+    column-gap: 0;
+  }
+  .outer {
+    position: relative;
+    column-fill: auto;
+    width: 64px;
+    height: 40px;
+    font: 16px/32px monospace;
+    text-align: right;
+  }
+</style>
+<p>The word "WIN" should be seen below.</p>
+<div class="mc outer">
+  <div data-offset-x="0" data-offset-y="0">W</div>
+  <div class="mc">
+    <div data-offset-x="32" data-offset-y="0">
+      <span data-offset-x="32" data-offset-y="0" style="display:inline-block; width:100%;">I</span>
+    </div>
+    <div data-offset-x="48" data-offset-y="0" style="break-before:column;">N</div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout(".outer");
+</script>

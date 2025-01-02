@@ -1,0 +1,14 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>unclosed canvas tag in body</title>
+    </head>
+    <body>
+        <div><canvas></canvas></div>
+        <p>This text should be visible, even though it's preceded by an unclosed canvas tag,
+            because of the &lt;/div&gt; that closes an element opened before the canvas.
+            There's nothing special about div; we get the same results with other types of
+            elements.
+        </p>
+    </body>
+</html>

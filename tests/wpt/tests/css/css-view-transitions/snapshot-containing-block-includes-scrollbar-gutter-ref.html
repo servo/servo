@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: snapshot containing block includes scrollbar gutters (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<style>
+:root {
+  scrollbar-gutter: stable both-edges
+}
+#view-transition-mock {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: palegreen;
+}
+#target {
+  position: absolute;
+  top: 100px;
+  left: 0px;
+  width: 200px;
+  height: 200px;
+  background-color: limegreen;
+}
+</style>
+<div id="view-transition-mock">
+<!--
+    This box should be a scrollbar's width from the left edge and
+    exactly aligned with the light green background.
+-->
+  <div id="target">
+  </div>
+</div>

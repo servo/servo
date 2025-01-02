@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-repeat: repeated mask layer image</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div.outer {
+        width: 128px;
+        height: 128px;
+        position: relative;
+        border: 1px solid black;
+      }
+
+      div.inner {
+        width: 50px;
+        height: 50px;
+        position: absolute;
+        background-color: purple;
+      }
+
+      #pos-top-left { left: 0; top: 0; }
+      #pos-top-right { right: 0; top: 0; }
+      #pos-bottom-left { left: 0; bottom: 0; }
+      #pos-bottom-right { right: 0; bottom: 0; }
+    </style>
+  </head>
+  <body>
+    <div class="outer">
+      <div class="inner" id="pos-top-left"></div>
+      <div class="inner" id="pos-top-right"></div>
+      <div class="inner" id="pos-bottom-left"></div>
+      <div class="inner" id="pos-bottom-right"></div>
+    </div>
+    <div class="outer">
+      <div class="inner" id="pos-top-left"></div>
+      <div class="inner" id="pos-top-right"></div>
+    </div>
+    <div class="outer">
+      <div class="inner" id="pos-top-left"></div>
+      <div class="inner" id="pos-bottom-left"></div>
+    </div>
+  </body>
+</html>

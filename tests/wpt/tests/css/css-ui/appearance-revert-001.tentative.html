@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/4777#issuecomment-597755164">
+<link rel="match" href="appearance-revert-ref.html">
+<style>
+  div > * {
+    background-color: red;
+    border-color: red;
+    all: revert;
+  }
+</style>
+<div><input type="text" value="input-text"></div>
+<div><input type="search" value="input-search"></div>
+<div><textarea>textarea</textarea></div>
+<div><input type="button" value="input-button"></div>
+<div><input type="submit" value="input-submit"></div>
+<div><input type="reset" value="input-reset"></div>
+<div><input type="range"></div>
+<div><input type="checkbox"></div>
+<div><input type="radio"></div>
+<div><input type="color"></div>
+<div><select><option>select</option></select></div>
+<div><select multiple><option>select-multiple</option></select></div>
+<div><meter value=0.5></meter></div>
+<div><progress value=0.5></progress></div>

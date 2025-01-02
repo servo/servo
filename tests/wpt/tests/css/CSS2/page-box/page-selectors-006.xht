@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page cascade (first trumps no pseudo-class)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#cascading-and-page-context" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="Properties specified in a :first @page rule override those specified in an @page rule with no pseudo-class specified." />
+  <style type="text/css">
+
+  @page {
+    margin: 7%;
+    margin-right: 2in;
+  }
+  @page:first{
+    margin-top: 2in;
+  }
+  div {
+    page-break-after: always;
+    border-top: medium blue solid;
+    border-right: medium orange solid;
+    padding: .5em;
+  }
+
+  </style>
+ </head>
+ <body>
+   <div>
+   This test produces just this one page. The blue bar above this text is 2 inches below the top edge of the medium.  The orange bar to the right is 2 inches from the right edge of the medium.
+   </div>
+ </body>
+</html>

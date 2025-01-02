@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>:scope pseudo does not match in shadow root</title>
+<link rel="help" href="https://drafts.csswg.org/css-scoping-1/#host-element-in-tree">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11188">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host"></div>
+<script>
+  test(() => {
+    host.attachShadow({mode: 'open'}).innerHTML = `
+    <style>
+      div {
+        background-color: green;
+      }
+      :scope div {
+        background-color: red;
+      }
+      :scope > div {
+        background-color: red;
+      }
+    </style>
+    <div>Test</div>
+  `;
+    let div = host.shadowRoot.querySelector('div');
+    assert_equals(getComputedStyle(div).backgroundColor, 'rgb(0, 128, 0)');
+  }, ':scope does not match in shadow root');
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: abspos exactly at the clamp point is hidden</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="The chosen clamp point with line-clamp: auto is at the last line where the box size doesn't overflow. An immediately following box, even if it's an abspos that takes up no block size, should still be hidden.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  font: 16px / 32px serif;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.inner {
+  white-space: pre-wrap;
+}
+.abspos {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background-color: skyblue;
+}
+</style>
+
+<div class="clamp">
+<div class="inner">Line 1
+Line 2
+Line 3
+Line 4
+</div>
+<div class="abspos"></div>
+<div class="inner">Line 5
+Line 6</div>
+</div>

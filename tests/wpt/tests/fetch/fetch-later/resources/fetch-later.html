@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<head>
+</head>
+<body>
+  <script>
+    const PARAMS = new URL(location.href).searchParams;
+    const TARGET_URL= decodeURIComponent(PARAMS.get('url')) || '';
+
+    fetchLater(TARGET_URL, {activateAfter: 0});
+    if (window.opener) {
+      window.opener.postMessage("done", "*");
+    }
+  </script>
+</body>

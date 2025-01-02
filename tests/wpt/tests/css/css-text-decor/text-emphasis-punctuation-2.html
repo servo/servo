@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS text decoration test: emphasis marks and punctuation</title>
+<link rel="match" href="text-emphasis-punctuation-2-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#text-emphasis-style-property">
+<meta name="assert" content="emphasis marks are not drawn for punctuation (with a small set of exceptions)">
+
+<style>
+.emph { text-emphasis: filled circle; }
+</style>
+
+<p>The punctuation should <b>not</b> have emphasis marks:</p>
+<!-- Example text from https://www.ohchr.org/en/human-rights/universal-declaration/translations/chinese -->
+<p lang="zh" class="emph">1948年12月10日，联合国大会通过并颁布《世界人权宣言》。这一具有历史意义的《宣言》颁布后，大会要求所有会员国广为宣传，并且“不分国家或领土的政治地位,主要在各级学校和其他教育机构加以传播、展示、阅读和阐述。”《宣言》全文如下：</p>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 400px 200px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+  .pagebox {
+    display: flow-root;
+  }
+  .pagebox > div {
+    width: 300px;
+    background: gray;
+  }
+  .pagebox > div > div {
+    box-sizing: border-box;
+    border: solid;
+    width: 250px;
+    height: 100%;
+  }
+  .left {
+    margin: 50px;
+    height: 100px;
+  }
+  .left > div {
+    background: hotpink;
+  }
+  .left > div::before {
+    content: "Margins on every side.";
+  }
+  .right {
+    height: 200px;
+  }
+  .right > div {
+    background: cyan;
+  }
+  .right > div::before {
+    content: "No page margins.";
+  }
+  .first {
+    height: 200px;
+    margin-left: 50px;
+  }
+  .first > div {
+    background: yellow;
+  }
+</style>
+
+<div class="pagebox">
+  <div class="first">
+    <div>
+      Every page should have a colored box as tall as the page area (gray area).<br>
+      This particular page should have a left-margin.<br>
+      There should be 7 pages.
+    </div>
+  </div>
+</div>
+<div class="pagebox">
+  <div class="left"><div></div></div>
+</div>
+<div class="pagebox">
+  <div class="right"><div></div></div>
+</div>
+<div class="pagebox">
+  <div class="left"><div></div></div>
+</div>
+<div class="pagebox">
+  <div class="right"><div></div></div>
+</div>
+<div class="pagebox">
+  <div class="left"><div></div></div>
+</div>
+<div class="pagebox">
+  <div class="right"><div></div></div>
+</div>

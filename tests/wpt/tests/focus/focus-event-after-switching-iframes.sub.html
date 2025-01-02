@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test focus and blur event after switching focus from an iframe to another iframe</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script>
+function waitForBothIFramesLoaded() {
+  let count = 0;
+  return new Promise(resolve => {
+    window.addEventListener("message", function handler(e) {
+      if (e.data == "ready") {
+        count += 1;
+      }
+      if (count == 2) {
+        window.removeEventListener("message", handler);
+        resolve();
+      }
+    });
+  });
+}
+
+function waitForIframeFocus(w) {
+  return new Promise(resolve => {
+    window.addEventListener("message", function handler(e) {
+      if (e.data == "focus" &&
+          e.source == w) {
+        window.removeEventListener("message", handler);
+        resolve();
+      }
+    });
+  });
+}
+
+function clickFocusIFrame(w) {
+  w.postMessage("focus", "*");
+}
+
+// This will send message to the inner frame to ask it
+// send the log they collect back.
+async function getLog(w) {
+  w.postMessage("getlog", "*");
+  let log = await new Promise( r=> {
+    window.addEventListener("message", function handler(e) {
+      window.removeEventListener("message", handler);
+      r(e.data);
+    });
+  });
+  return log;
+}
+
+async function runTest(t, urlForFrame1, urlForFrame2) {
+  const iframe1 = document.createElement("iframe");
+  iframe1.src = urlForFrame1;
+  const iframe2 = document.createElement("iframe");
+  iframe2.src = urlForFrame2;
+  document.body.appendChild(iframe1);
+  document.body.appendChild(iframe2);
+
+  t.add_cleanup(() => { iframe1.remove(); iframe2.remove() });
+
+  await waitForBothIFramesLoaded();
+  iframe1.focus();
+  await waitForIframeFocus(iframe1.contentWindow);
+  // Ask the iframe2 to be focused by using test_driver to simulate
+  // a click.
+  clickFocusIFrame(iframe2.contentWindow);
+  await waitForIframeFocus(iframe2.contentWindow);
+  assert_equals(await getLog(iframe1.contentWindow), 'innerlog:windowfocus,windowblur,');
+}
+
+// Both inner frames are different sites.
+promise_test(async t => {
+  await runTest(
+    t,
+    "http://{{hosts[alt][www]}}:{{ports[http][0]}}/focus/support/focus-event-after-switching-iframes-inner.html",
+    "http://{{hosts[alt][www]}}:{{ports[http][0]}}/focus/support/focus-event-after-switching-iframes-inner.html");
+}, "Check focus and blur events after switching from a different site iframe to a different site iframe");
+
+// The one that expects to focus and blur is same site, the other one is different site.
+promise_test(async t => {
+  await runTest(
+    t,
+    "/focus/support/focus-event-after-switching-iframes-inner.html",
+    "http://{{hosts[alt][www]}}:{{ports[http][0]}}/focus/support/focus-event-after-switching-iframes-inner.html");
+}, "Check focus and blur events after switching from a same site iframe to a different site iframe");
+
+// Both inner frames are same site
+promise_test(async t => {
+  await runTest(
+    t,
+    "/focus/support/focus-event-after-switching-iframes-inner.html",
+    "/focus/support/focus-event-after-switching-iframes-inner.html");
+}, "Check focus and blur events after switching from a same site iframe to a same site iframe");
+
+// The one that expects to focus and blur is different site, the other one is same site
+promise_test(async t => {
+  await runTest(
+    t,
+    "http://{{hosts[alt][www]}}:{{ports[http][0]}}/focus/support/focus-event-after-switching-iframes-inner.html",
+    "/focus/support/focus-event-after-switching-iframes-inner.html");
+}, "Check focus and blur events after switching from a different site iframe to a same site iframe");
+</script>

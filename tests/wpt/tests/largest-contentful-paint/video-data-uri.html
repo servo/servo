@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<title>This test verifies a video element of data uri src triggers an LCP entry
+  to be emitted</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    const get_lcp_entry = () => {
+      return new Promise(resolve => {
+        new PerformanceObserver((list, observer) => {
+          if (list.getEntries()) {
+            observer.disconnect();
+            resolve(list.getEntries()[0]);
+          }
+        }).observe({ type: "largest-contentful-paint", buffered: true });
+      });
+    };
+
+    promise_test(async t => {
+      lcpEntry = await get_lcp_entry();
+      assert_true(lcpEntry.url.startsWith('data:video/webm;base64,GkXfo59C'));
+    }, "Video of data URI src should trigger an LCP entry to be emitted.")
+  </script>
+  <!--
+    This is the base64 encoding of the images/pattern.webm video file.
+  -->
+  <video autoplay muted src="data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAQxEU2bdLpNu4tT
+  q4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEpTbuMU6uEHFO7a1OsggQb7AEA
+  AAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZm
+  NTkuMjcuMTAwV0GNTGF2ZjU5LjI3LjEwMESJiECpQgAAAAAAFlSua8yuAQAAAAAAAEPXgQFzxYil
+  qEthhRpETZyBACK1nIN1bmSIgQCGhVZfVlA5g4EBI+ODhAH8oFXglLCBFLqBFJqBAlWwiFW3gQJV
+  uIECElTDZ0CBc3OgY8CAZ8iaRaOHRU5DT0RFUkSHjUxhdmY1OS4yNy4xMDBzc9tjwItjxYilqEth
+  hRpETWfIpUWjh0VOQ09ERVJEh5hMYXZjNTkuMzcuMTAwIGxpYnZweC12cDlnyKJFo4hEVVJBVElP
+  TkSHlDAwOjAwOjAzLjIzMzAwMDAwMAAAH0O2dUJl54EAo0G3gQAAgKJJg0IAACYAJsAHBIODAEAA
+  BnAAAHhP///9Q/65f////wmeP/////rwFR5Is7//mm/jI7F//4raSRl5AVkn///8c/8phq//5sl4
+  3m13ew5////YzH/quJ1///+7PmxlWQ33kfuEh+P//7od24Cqpi5QNC9i////+ElnriauN////ElQ
+  YZcxov4Yx///9zJe/hlKf///2wteAkNJPo3jxlcx//aCdOF2s2+6yc3qmgtrvSadpUHyhzKvZLHQ
+  HPfw/yBM392pGbYDf////Jt2l5ctakp//pFL/jdkaumyv2/hPNwTDXLuzq3Hshvf+xED6liPj/Yl
+  Op29O0x//+S1annta3jdCP//jCP//93mv/MS/st8352/8MPJZhn/uSe0wfT3LGr8+KY/dBfBjEv/
+  2aBMTfwh//RLcswNR+aoOCq2VZWOWaQEeS9kChnBNTwP4XHAhU1XXFbX//ZpyKr76trSCwv3k9AS
+  sQfD3WUHFH00UV+Dz33eUpd1rRhdo1WocotOnDqd3RNvs1Tx6BX9JBJ7CS/6OMSd1WhPK+CvqTn4
+  Z1Op01X0KcAq7I08pT5UGSpQAKOTgQGQAKYAQJKcAEoAAAMgAABDQKOTgQMgAKYAQJKcAEoAAAMg
+  AABDQKOTgQSwAKYAQJKcAEoAAAMgAABDQKOTgQZAAKYAQJKcAEoAAAMgAABDQKOTgQfQAKYAQJKc
+  AEoAAAMgAABDQKOTgQlgAKYAQJKcAEoAAAMgAABDQKOTgQrwAKYAQJKcAEoAAAMgAABDQKOTgQyA
+  AKYAQJKcAEoAAAMgAABDQBxTu2uRu4+zgQC3iveBAfGCAbDwgQM=" width="600"></video>
+</body>
+
+</html>

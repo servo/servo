@@ -1,0 +1,28 @@
+<topic id="myTopic">
+ <title>The ITS Topic</title>
+ <prolog>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+   <its:translateRule selector="//*" translate="no"/>
+   <its:translateRule selector="//p" translate="yes"/>
+   <!-- With these rules only the text "For the implementation of ITS, apply the rules in the order:"
+   and " The last rule wins." should end up translatable --> 
+   </its:rules>
+ </prolog>
+ <body>
+  <dl>
+   <dlentry id="tDataCat">
+    <dt>Data category</dt>
+    <dd>ITS defines <term>data category</term> as an abstract concept for a particular 
+    type of information for internationalization and localization of XML schemas and documents.</dd>
+   </dlentry>
+  </dl>
+  <p>For the implementation of ITS, apply the rules in the order:</p>
+  <ul>
+   <li>Default</li>
+   <li>Rules in the schema</li>
+   <li>Rules in the document instance</li>
+   <li>Local attributes</li>
+  </ul>
+  <p><ph xml:lang="fr">Et voilà !</ph> The last rule wins.</p>
+ </body>
+</topic>

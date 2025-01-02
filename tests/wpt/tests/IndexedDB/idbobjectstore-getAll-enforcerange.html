@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: IDBObjectStore getAll() uses [EnforceRange]</title>
+<link rel="help" href="https://w3c.github.io/IndexedDB/#object-store-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+<script>
+
+indexeddb_test(
+  (t, db) => {
+    const store = db.createObjectStore('store');
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const store = tx.objectStore('store');
+    [NaN, Infinity, -Infinity, -1, -Number.MAX_SAFE_INTEGER].forEach(count => {
+      assert_throws_js(TypeError, () => { store.getAll(null, count); },
+                       `getAll with count ${count} count should throw TypeError`);
+    });
+    t.done();
+  },
+  `IDBObjectStore.getAll() uses [EnforceRange]`
+);
+</script>

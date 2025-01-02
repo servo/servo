@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API / Storage Access API autogrants tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<link rel="help" href="https://privacycg.github.io/storage-access/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/storage-access-api/helpers.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        select_manifest,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+const www_alt = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
+const responder_html_load_ack = "/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js&should_ack_load=true";
+
+fedcm_test(async t => {
+  await MaybeSetStorageAccess("*", "*", "blocked");
+  let test_options = request_options_with_mediation_required();
+  await select_manifest(t, test_options);
+
+  await fedcm_get_and_select_first_account(t, test_options);
+
+  const frame_loaded = new Promise(r => {
+    onmessage = e => {
+      if (e.data == "loaded") {
+        r(e.data);
+      }
+    }
+  });
+  const frame = await CreateFrame(www_alt + responder_html_load_ack, false,
+    undefined, `identity-credentials-get ${www_alt};`);
+  assert_equals(await frame_loaded, "loaded");
+
+  assert_true(await RequestStorageAccessInFrame(frame),
+    "requestStorageAccess doesn't require a gesture since the FedCM account is already connected.");
+
+  assert_true(await FrameHasStorageAccess(frame), "frame should have storage access now.");
+  assert_equals(await GetPermissionInFrame(frame), "prompt");
+}, "Test that FedCM accounts autogrant storage access.");
+
+fedcm_test(async t => {
+  await MaybeSetStorageAccess("*", "*", "blocked");
+  let test_options = request_options_with_mediation_required();
+  await select_manifest(t, test_options);
+
+  await fedcm_get_and_select_first_account(t, test_options);
+
+  const frame_loaded = new Promise(r => {
+    onmessage = e => {
+      if (e.data == "loaded") {
+        r(e.data);
+      }
+    }
+  });
+  const frame = await CreateFrame(www_alt + responder_html_load_ack, false);
+  assert_equals(await frame_loaded, "loaded");
+
+  assert_false(await RequestStorageAccessInFrame(frame),
+    "requestStorageAccess requires a gesture since the 'identity-credentials-get' policy is absent.");
+
+  assert_false(await FrameHasStorageAccess(frame), "frame should not have storage access.");
+  assert_equals(await GetPermissionInFrame(frame), "prompt");
+}, "Test that FedCM accounts do not autogrant storage access without permissions policy.");
+
+fedcm_test(async t => {
+  await MaybeSetStorageAccess("*", "*", "blocked");
+  let test_options = request_options_with_mediation_required();
+  await select_manifest(t, test_options);
+
+  await fedcm_get_and_select_first_account(t, test_options);
+  try {
+    await navigator.credentials.preventSilentAccess();
+  } catch (ex) {
+    // In Chrome's content_shell, the promise will be rejected
+    // even though the part we care about succeeds.
+  }
+
+  const frame_loaded = new Promise(r => {
+    onmessage = e => {
+      if (e.data == "loaded") {
+        r(e.data);
+      }
+    }
+  });
+  const frame = await CreateFrame(www_alt + responder_html_load_ack, false,
+    undefined, `identity-credentials-get ${www_alt};`);
+  assert_equals(await frame_loaded, "loaded");
+
+  assert_false(await RequestStorageAccessInFrame(frame),
+    "requestStorageAccess requires a gesture since the preventSilentAccess flag is true.");
+
+  assert_false(await FrameHasStorageAccess(frame), "frame should not have storage access.");
+  assert_equals(await GetPermissionInFrame(frame), "prompt");
+}, "Test that FedCM accounts do not autogrant storage access if preventSilentAccess is set.");
+
+</script>

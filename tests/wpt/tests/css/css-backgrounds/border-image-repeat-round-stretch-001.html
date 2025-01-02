@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds Test: border-image-repeat: round stretch</title>
+
+  <!--
+
+  Created: June 23rd 2023
+
+  Last modified: August 23rd 2023
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-image-repeat">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-image-process">
+  <link rel="match" href="reference/border-image-repeat-round-stretch-001-ref.html">
+
+  <meta content="" name="flags">
+  <meta content="This test checks that the process of repeating the tile when 'border-image-repeat' is 'round stretch'. Thanks to a specially crafted rectangular border-image, we check how the sliced border-image is, in the first-subtest, rescaled down horizontally (top and bottom sides), and is, in the second-subtest, rescaled up horizontally (top and bottom sides). In both subtests, the border-image in the vertical axis (left and right sides) are stretched." name="assert">
+
+  <!--
+
+  'round'
+  The image is tiled (repeated) to fill the area. If it does not
+  fill the area with a whole number of tiles, the image is rescaled
+  so that it does.
+
+  https://www.w3.org/TR/css-backgrounds-3/#valdef-border-image-repeat-round
+
+
+  'stretch'
+  The image is stretched to fill the area.
+
+  https://www.w3.org/TR/css-backgrounds-3/#valdef-border-image-repeat-stretch
+
+  -->
+
+  <style>
+  div
+    {
+      border: red solid 64px;
+      border-image-repeat: round stretch;
+      /*
+      "
+      The first keyword applies to the horizontal scaling and
+      tiling of the top, middle and bottom parts, the second to
+      the vertical scaling and tiling of the left, middle and right parts
+      "
+      https://www.w3.org/TR/css-backgrounds-3/#border-image-repeat
+      */
+      border-image-slice: 64 fill; /* the center will be black */
+      border-image-source: url("support/4bicolor-squares.png");
+      display: inline-block;
+      image-rendering: pixelated; /* attempt to overcome antialias fuzziness */
+      margin-right: 1em;
+   }
+
+  div#first-subtest
+    {
+      height: 192px;
+      width: 96px;
+      /*
+      96px divided by 64px == 1.5 which is rounded up to 2.
+      So, the image should be 96px divided by 2 == 48px
+      wide. That means that the top and bottom bicolor
+      (yellow and purple) images should be 48px wide,
+      therefore rescaled down, from sliced 64px to 48px.
+
+      The left and right sides should be stretched from
+      sliced 64px to 192px (3 times).
+      */
+    }
+
+  div#second-subtest
+    {
+      height: 128px;
+      width: 80px;
+      /*
+      80px divided by 64px == 1.25 which is rounded down to 1.
+      So, each image should be 80px divided by 1 == 80px
+      wide. That means that the top and bottom bicolor
+      (yellow and purple) images should be 80px wide
+      therefore rescaled up, from sliced 64px to 80px.
+
+      The left and right sides should be stretched from
+      sliced 64px to 128px (2 times).
+      */
+    }
+  </style>
+
+  <div id="first-subtest"></div>
+
+  <div id="second-subtest"></div>

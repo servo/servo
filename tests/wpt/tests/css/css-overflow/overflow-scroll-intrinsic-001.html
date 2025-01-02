@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow Test: Intrinsic size of a "overflow:auto" vertical scroll container</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-properties">
+  <link rel="match" href="overflow-scroll-intrinsic-001-ref.html">
+
+  <style>
+  .container {
+    border: 1px solid black;
+    width: 100px;
+    display: inline-block;
+  }
+  </style>
+
+  <div class="container" style="writing-mode: vertical-rl; overflow-x: scroll;"></div>
+  <div class="container" style="writing-mode: vertical-rl; overflow-y: scroll;"></div>
+  <div class="container" style="writing-mode: vertical-lr; overflow-x: scroll;"></div>
+  <div class="container" style="writing-mode: vertical-lr; overflow-y: scroll;"></div>
+
+</html>

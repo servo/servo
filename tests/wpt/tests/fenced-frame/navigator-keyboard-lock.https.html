@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test navigator.keyboard.lock</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const keyboard_lock_key = token();
+
+  attachFencedFrame(generateURL(
+      "resources/navigator-keyboard-lock-inner.html",
+      [keyboard_lock_key]));
+  const actual_result = await nextValueFromServer(keyboard_lock_key);
+
+  assert_equals(actual_result, "rejected",
+                "The fenced frame is not allowed to lock keyboard.");
+
+}, "keyboard.lock");
+</script>
+
+</body>

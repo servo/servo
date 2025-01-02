@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Line-height recommended 'normal' value</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-line-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="flags" content="ahem should" />
+        <meta name="assert" content="It is recommended that the 'normal' value for 'line-height' is set to 1.0 or 1.2 'em' units." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 1in Ahem;
+            }
+            #div1
+            {
+                position: relative;
+            }
+            div div
+            {
+                position: absolute;
+                top: 0;
+            }
+            #div2
+            {
+                height: 1em;
+                left: 0;
+                width: 1in;
+            }
+            #div3
+            {
+                background: blue;
+                display: block;
+                left: 1in;
+                position: absolute;
+                width: 1in;
+            }
+            #div4
+            {
+                height: 1.2em;
+                left: 2in;
+                width: 1in;
+            }
+            #div2, #div4
+            {
+                background: orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue box below. It is recommended that the blue box is the same height as one of the orange boxes but it is not required.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3">&nbsp;</div>
+            <div id="div4"></div>
+        </div>
+    </body>
+</html>

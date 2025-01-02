@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: when clamping by lines, margins are respected</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-022-ref.html">
+<meta name="assert" content="When line-clamp is used with a number of lines, the box and its clamped children should be sized taking margins into account.">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  padding: 4px;
+  background-color: yellow;
+  border: 2px solid black;
+}
+.inner {
+  background-color: purple;
+  margin: 4px;
+  /* Having a border means the margins of the .inner boxes won't collapse */
+  border: 1px solid black;
+}
+.inner .inner {
+  background-color: orange;
+  white-space: pre;
+}
+</style>
+<div class="clamp"><div class="inner"><div class="inner">Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6</div></div></div>
+<p>Following content.</p>

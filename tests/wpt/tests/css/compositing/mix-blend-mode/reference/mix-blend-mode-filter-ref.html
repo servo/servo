@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: Blended element with filter.</title>
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <style type="text/css">
+            div {
+                width: 100px;
+                height: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see a green blurred square. <br>
+        The test fails if the square is drawn with red. </p>
+
+        <div style="background: #0F0; filter: opacity(0.9);"></div>
+    </body>
+</html>

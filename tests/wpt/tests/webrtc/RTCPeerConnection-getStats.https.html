@@ -1,0 +1,274 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection.prototype.getStats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // webrtc-pc 20171130
+  // webrtc-stats 20171122
+
+  // The following helper function is called from RTCPeerConnection-helper.js
+  //   getTrackFromUserMedia
+
+  // The following helper function is called from RTCPeerConnection-helper.js
+  //   exchangeIceCandidates
+  //   exchangeOfferAnswer
+
+  /*
+    8.2.  getStats
+      1.  Let selectorArg be the method's first argument.
+      2.  Let connection be the RTCPeerConnection object on which the method was invoked.
+      3.  If selectorArg is null, let selector be null.
+      4.  If selectorArg is a MediaStreamTrack let selector be an RTCRtpSender
+          or RTCRtpReceiver on connection which track member matches selectorArg.
+          If no such sender or receiver exists, or if more than one sender or
+          receiver fit this criteria, return a promise rejected with a newly
+          created InvalidAccessError.
+      5.  Let p be a new promise.
+      6.  Run the following steps in parallel:
+        1.  Gather the stats indicated by selector according to the stats selection algorithm.
+        2.  Resolve p with the resulting RTCStatsReport object, containing the gathered stats.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return pc.getStats();
+  }, 'getStats() with no argument should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return pc.getStats(null);
+  }, 'getStats(null) should succeed');
+
+  /*
+    8.2.  getStats
+      4.  If selectorArg is a MediaStreamTrack let selector be an RTCRtpSender
+          or RTCRtpReceiver on connection which track member matches selectorArg.
+          If no such sender or receiver exists, or if more than one sender or
+          receiver fit this criteria, return a promise rejected with a newly
+          created InvalidAccessError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      return promise_rejects_dom(t, 'InvalidAccessError', pc.getStats(track));
+    });
+  }, 'getStats() with track not added to connection should reject with InvalidAccessError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      pc.addTrack(track, mediaStream);
+      return pc.getStats(track);
+    });
+  }, 'getStats() with track added via addTrack should succeed');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    pc.addTransceiver(track);
+
+    return pc.getStats(track);
+  }, 'getStats() with track added via addTransceiver should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver1 = pc.addTransceiver('audio');
+
+    // Create another transceiver that resends what
+    // is being received, kind of like echo
+    const transceiver2 = pc.addTransceiver(transceiver1.receiver.track);
+    assert_equals(transceiver1.receiver.track, transceiver2.sender.track);
+
+    return promise_rejects_dom(t, 'InvalidAccessError', pc.getStats(transceiver1.receiver.track));
+  }, 'getStats() with track associated with both sender and receiver should reject with InvalidAccessError');
+
+  /*
+    8.5.  The stats selection algorithm
+      2.  If selector is null, gather stats for the whole connection, add them to result,
+          return result, and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return pc.getStats()
+    .then(statsReport => {
+      assert_true(!![...statsReport.values()].find(({type}) => type === 'peer-connection'));
+    });
+  }, 'getStats() with no argument should return stats report containing peer-connection stats on an empty PC');
+
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
+    const statsReport = await pc.getStats();
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'peer-connection'));
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'outbound-rtp'));
+  }, 'getStats() track with stream returns peer-connection and outbound-rtp stats');
+
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack);
+    exchangeIceCandidates(pc, pc2);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
+    const statsReport = await pc.getStats();
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'peer-connection'));
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'outbound-rtp'));
+  }, 'getStats() track without stream returns peer-connection and outbound-rtp stats');
+
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
+    const statsReport = await pc.getStats();
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'outbound-rtp'));
+  }, 'getStats() audio contains outbound-rtp stats');
+
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+    const [sendtrack, mediaStream] = await getTrackFromUserMedia('video');
+    pc.addTrack(sendtrack, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
+    const statsReport = await pc.getStats();
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'outbound-rtp'));
+  }, 'getStats() video contains outbound-rtp stats');
+
+  /*
+    8.5.  The stats selection algorithm
+      3.  If selector is an RTCRtpSender, gather stats for and add the following objects
+          to result:
+        - All RTCOutboundRtpStreamStats objects corresponding to selector.
+        - All stats objects referenced directly or indirectly by the RTCOutboundRtpStreamStats
+          objects added.
+  */
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+
+    let [sendtrack, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(sendtrack, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await Promise.all([
+      exchangeOfferAnswer(pc, pc2),
+      new Promise(r => pc2.ontrack = e => e.track.onunmute = r)
+    ]);
+    const statsReport = await pc.getStats(sendtrack);
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'outbound-rtp'));
+  }, `getStats() on track associated with RTCRtpSender should return stats report containing outbound-rtp stats`);
+
+  /*
+    8.5.  The stats selection algorithm
+      4.  If selector is an RTCRtpReceiver, gather stats for and add the following objects
+          to result:
+        - All RTCInboundRtpStreamStats objects corresponding to selector.
+        - All stats objects referenced directly or indirectly by the RTCInboundRtpStreamStats
+          added.
+   */
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+
+    let [track, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(track, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await exchangeOfferAnswer(pc, pc2);
+    // Wait for unmute if the track is not already unmuted.
+    // According to spec, it should be muted when being created, but this
+    // is not what this test is testing, so allow it to be unmuted.
+    if (pc2.getReceivers()[0].track.muted) {
+      await new Promise(resolve => {
+        pc2.getReceivers()[0].track.addEventListener('unmute', resolve);
+      });
+    }
+    const statsReport = await pc2.getStats(pc2.getReceivers()[0].track);
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'inbound-rtp'));
+  }, `getStats() on track associated with RTCRtpReceiver should return stats report containing inbound-rtp stats`);
+
+  promise_test(async t => {
+    const pc = createPeerConnectionWithCleanup(t);
+    const pc2 = createPeerConnectionWithCleanup(t);
+
+    let [track, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTrack(track, mediaStream);
+    exchangeIceCandidates(pc, pc2);
+    await exchangeOfferAnswer(pc, pc2);
+    // Wait for unmute if the track is not already unmuted.
+    // According to spec, it should be muted when being created, but this
+    // is not what this test is testing, so allow it to be unmuted.
+    if (pc2.getReceivers()[0].track.muted) {
+      await new Promise(resolve => {
+        pc2.getReceivers()[0].track.addEventListener('unmute', resolve);
+      });
+    }
+    const statsReport = await pc2.getStats(pc2.getReceivers()[0].track);
+    assert_true(!![...statsReport.values()].find(({type}) => type === 'inbound-rtp'));
+  }, `getStats() audio contains inbound-rtp stats`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const [track, mediaStream] = await getTrackFromUserMedia('audio');
+    pc.addTransceiver(track);
+    pc.addTransceiver(track);
+    await promise_rejects_dom(t, 'InvalidAccessError', pc.getStats(track));
+  }, `getStats(track) should not work if multiple senders have the same track`);
+
+  promise_test(async t => {
+    const kMinimumTimeElapsedBetweenGetStatsCallsMs = 500;
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const t0 = Math.floor(performance.now());
+    const t0Stats = [...(await pc.getStats()).values()].find(({type}) => type === 'peer-connection');
+    await new Promise(
+        r => t.step_timeout(r, kMinimumTimeElapsedBetweenGetStatsCallsMs));
+    const t1Stats = [...(await pc.getStats()).values()].find(({type}) => type === 'peer-connection');
+    const t1 = Math.ceil(performance.now());
+    const maximumTimeElapsedBetweenGetStatsCallsMs = t1 - t0;
+    const deltaTimestampMs = t1Stats.timestamp - t0Stats.timestamp;
+    // The delta must be at least the time we waited between calls.
+    assert_greater_than_equal(deltaTimestampMs,
+                              kMinimumTimeElapsedBetweenGetStatsCallsMs);
+    // The delta must be at most the time elapsed before the first getStats()
+    // call and after the second getStats() call.
+    assert_less_than_equal(deltaTimestampMs,
+                           maximumTimeElapsedBetweenGetStatsCallsMs);
+  }, `RTCStats.timestamp increases with time passing`);
+
+</script>

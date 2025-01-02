@@ -1,0 +1,31 @@
+[package]
+name = "canvas_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "canvas_traits"
+path = "lib.rs"
+
+[features]
+webgl_backtrace = []
+
+[dependencies]
+base = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+ipc-channel = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+pixels = { path = "../../pixels" }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+servo_config = { path = "../../config" }
+glow = { workspace = true }
+style = { workspace = true }
+webrender_api = { workspace = true }
+webxr-api = { workspace = true, features = ["ipc"] }

@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_replace</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      var href = location.href;
+      location.replace('#x');
+
+      assert_equals((href + "#x"), location.href, "location href");
+
+    }, "location replace");
+
+    test(function () {
+      var href = location.href;
+      assert_throws_dom('SYNTAX_ERR', function() { location.replace("//"); });
+      assert_equals(location.href, href);
+    }, "URL that fails to parse");
+    </script>
+  </body>
+</html>

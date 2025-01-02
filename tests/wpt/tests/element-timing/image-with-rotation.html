@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: image with rotation.</title>
+<head>
+<style>
+body {
+  margin: 0px;
+}
+.my_div {
+  width: 100px;
+  height: 50px;
+  transform: rotate(45deg);
+  transform-origin: top left;
+}
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  const beforeRender = performance.now();
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const pathname = window.location.origin + '/images/black-rectangle.png';
+        checkElement(entry, pathname, 'rectangle', 'rect_id', beforeRender,
+            document.getElementById('rect_id'));
+        checkNaturalSize(entry, 100, 50);
+        const rect = entry.intersectionRect;
+        // The div rotates with respect to the origin, so part of it will be invisible.
+        // The width of the visible part will be 100 / sqrt(2) and the height will be
+        // 100 / sqrt(2) + 50 / sqrt(2).
+        assert_equals(rect.left, 0);
+        // Checking precision only to the nearest integer.
+        assert_equals(Math.round(rect.right), 71);
+        assert_equals(rect.top, 0);
+        assert_equals(Math.round(rect.bottom), 106);
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+  }, 'Image intersectionRect is affected by rotation, but not its intrinsic size.');
+</script>
+<div class="my_div" id="div_id">
+  <img src="/images/black-rectangle.png" elementtiming="rectangle" id="rect_id"/>
+</div>
+</body>

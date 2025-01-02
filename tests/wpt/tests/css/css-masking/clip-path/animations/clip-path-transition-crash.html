@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    clip-path: circle(30% at 30% 30%);
+    background-color: green;
+    transition-property: clip-path;
+    transition-duration: 0.5s;
+  }
+</style>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container" id="target"></div>
+
+  <script>
+    window.onload = async () => {
+      await waitForNextFrame();
+      document.getElementById('target').style.clipPath = "circle(40% at 40% 40%)";
+      await waitForNextFrame();
+      await document.getAnimations()[0].finished;
+      await waitForAnimationFrames(3);
+      document.documentElement.classList.remove('test-wait');
+    }
+  </script>
+</body>
+
+</html>

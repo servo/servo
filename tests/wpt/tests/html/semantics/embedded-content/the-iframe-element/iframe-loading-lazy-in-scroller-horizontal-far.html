@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/#lazy-load-root-margin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    background-color: gray;
+    display: flex;
+  }
+
+  #spacer {
+    width: 10000vw;
+    height: 130px;
+    flex-shrink: 0;
+  }
+
+  #target {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+  }
+</style>
+
+<div id="scroller">
+  <div id="spacer"></div>
+  <iframe
+    id="target"
+    src="resources/subframe.html"
+    loading="lazy"
+    onload="iframe_onload();"
+  ></iframe>
+</div>
+
+<script>
+  const t = async_test(
+    "Test that lazy-loaded iframes do not load when far from viewport."
+  );
+
+  function img_onload() {
+    t.unreached_func(
+      "Lazy-loading iframe far from viewport should not load."
+    )();
+  }
+
+  t.step_timeout(() => {
+    t.done();
+  }, 2000);
+</script>

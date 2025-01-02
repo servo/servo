@@ -1,0 +1,24 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+
+<script>
+runBfcacheTest({
+  targetOrigin: originSameOrigin,
+  funcBeforeBackNavigation: () => {
+    window.did_navigate = false;
+    navigation.onnavigate = () => window.did_navigate = true;
+  },
+  async funcAfterAssertion(pageA, pageB) {
+    // When `funcAfterAssertion` is called, we've already navigated to pageB,
+    // then gone back to pageA with bfcache. Now go forward to pageB so we can
+    // observe whether the navigate event fired.
+    await pageA.execute_script(() => history.forward());
+    await pageB.execute_script(waitForPageShow);
+    assert_true(await pageB.execute_script(() => window.did_navigate));
+  }
+}, "navigate event should fire when traversing to a bfcache hit");
+</script>

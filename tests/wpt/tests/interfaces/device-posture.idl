@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Device Posture API (https://w3c.github.io/device-posture/)
+
+[SecureContext, Exposed=(Window)]
+partial interface Navigator {
+  [SameObject] readonly attribute DevicePosture devicePosture;
+};
+
+[SecureContext, Exposed=(Window)]
+interface DevicePosture : EventTarget {
+  readonly attribute DevicePostureType type;
+  attribute EventHandler onchange;
+};
+
+enum DevicePostureType {
+  "continuous",
+  "folded"
+};

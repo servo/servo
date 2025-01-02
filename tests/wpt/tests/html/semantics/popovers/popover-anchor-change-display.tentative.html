@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:xiaochengh@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel=match href="popover-anchor-change-display-ref.html">
+<script src="resources/popover-utils.js"></script>
+
+<p>There should be a green box attached to the right side of each orange box.</p>
+
+<div class=ex>
+  <div class=anchor id=anchor1></div>
+  <div id=popover1 popover=manual defaultopen></div>
+</div>
+
+<div class=ex>
+  <div class=anchor id=will-be-anchor2></div>
+  <div id=popover2 popover=manual anchor=anchor2 defaultopen></div>
+</div>
+
+<script>
+showDefaultopenPopoversOnLoad();
+
+function runTest() {
+  document.body.offsetLeft; // Force layout
+
+  document.getElementById('popover1').setAttribute('anchor', 'anchor1');
+  document.getElementById('will-be-anchor2').setAttribute('id', 'anchor2');
+}
+window.addEventListener('load', runTest);
+</script>
+
+<style>
+  .ex {
+    margin: 25px;
+  }
+  .ex div {
+    width: 100px;
+    height: 100px;
+  }
+  .anchor {
+    background: orange;
+  }
+  [popover] {
+    inset: auto;
+    background: lime;
+    padding:0;
+    border:0;
+    left: anchor(right);
+    top: anchor(top);
+  }
+</style>

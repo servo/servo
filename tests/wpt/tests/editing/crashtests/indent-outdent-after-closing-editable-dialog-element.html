@@ -1,0 +1,31 @@
+<html class="reftest-wait">
+<script>
+var eventCount = 0;
+document.addEventListener("DOMContentLoaded", () => {
+  const dialog = document.querySelector("dialog");
+  const object = document.createElement("object");
+  object.addEventListener("DOMSubtreeModified", () => {
+    dialog.show();
+    dialog.focus();
+    document.execCommand("selectAll");
+    dialog.close();
+    setTimeout(() => {
+      document.execCommand("selectAll");
+      document.execCommand("strikeThrough");
+      document.execCommand("indent");
+      document.execCommand("outdent");
+      eventCount--;
+      if (!eventCount) {
+        document.documentElement.removeAttribute("class");
+      }
+    });
+    eventCount++;
+  });
+  object.setAttribute("role", "x"); // Run DOMSubtreeModified
+  object.setAttribute("role", "y"); // Run DOMSubtreeModified
+  document.execCommand("forwardDelete");
+  document.execCommand("justifyRight");
+})
+</script>
+<dialog id="a" contenteditable="true">a</dialog>
+</html>

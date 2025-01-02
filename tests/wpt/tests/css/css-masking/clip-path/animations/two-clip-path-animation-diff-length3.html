@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="two-clip-path-animation-diff-length3-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: clippath2 10000s step-end, clippath1 20s 0.001s;
+  }
+
+  /* Use un-interpolatable keyframes to force discrete transition */
+  @keyframes clippath1 {
+    0% {
+      clip-path: circle(50% at 50% 50%);
+    }
+
+    100% {
+      clip-path: inset(11px 11px);
+    }
+  }
+
+  @keyframes clippath2 {
+    0% {
+      clip-path: circle(10% at 50% 50%);
+    }
+
+    100% {
+      clip-path: circle(25% at 50% 50%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/testcommon.js"></script>
+
+<body>
+  <div class="container"></div>
+
+  <script>
+    // This test ensures that when there are two animations where one of them has
+    // animation delays, we show the right clip when the delayed animation is
+    // started.
+    const animations = document.getAnimations();
+    Promise.all([animations[0].ready, animations[1].ready]).then(() => {
+      waitForAnimationFrames(3).then(() => {
+        takeScreenshot();
+      });
+    });
+  </script>
+</body>
+
+</html>

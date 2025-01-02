@@ -1,0 +1,111 @@
+<title>
+  Tests the redirect interaction with COOP same-origin-allow-popups.
+</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script>
+
+const directory = "/html/cross-origin-opener-policy";
+const same_origin = {
+  host: get_host_info().HTTPS_ORIGIN,
+  name: "Same origin"
+};
+const cross_origin = {
+  host: get_host_info().HTTPS_REMOTE_ORIGIN,
+  name: "Cross origin"
+};
+
+// Tests the redirect interaction with COOP same-origin-allow-popups and
+// reporting:
+// 1 - open the opener document on origin same_origin with COOP
+// same-origin-allow-popups.
+// 2 - opener opens popup with document on origin popup_origin, no COOP and a
+// redirect header (HTTP 302, location).
+// 3 - redirection to a document with origin same_origin and COOP
+// same-origin-allow-popups.
+//
+// The navigation (2) to the first document of the popup stays in the same
+// browsing context group due to the same-origin-allow-popups COOP of the
+// opener.
+// The redirect (3) to the final document does since it compares the
+// popup_origin/unsafe-none document with the
+// same-origin/same-origin-allow-popups document.
+//
+// A opens B, B redirects to C.
+//
+// Document  Origin        COOP
+// --------  ------------  ------------------------
+// A         same-origin   same-origin-allow-popups
+// B         popup-origin  unsafe-none
+// C         same-origin   same-origin-allow-popups
+function redirect_test( popup_origin ) {
+  promise_test(async t => {
+    // The test window.
+    const this_window_token = token();
+
+    // The "opener" window. This has COOP same-origin-allow-popups and a
+    // reporter.
+    const opener_report_token = reportToken();
+    const opener_token = token();
+    const opener_reportTo = reportingEndpointsHeaders(opener_report_token);
+    const opener_url = same_origin.host + executor_path +
+      opener_reportTo.header + opener_reportTo.coopSameOriginAllowPopupsHeader +
+      `&uuid=${opener_token}`;
+
+    // The "openee" window.
+    // The initial document does not have COOP and is on popup_origin, it
+    // redirects to a same-origin (with the opener) document with COOP
+    // same-origin-allow-popups.
+    const openee_token = token();
+    const openee_redirect_url = same_origin.host + executor_path +
+      opener_reportTo.header + opener_reportTo.coopSameOriginAllowPopupsHeader +
+      `&uuid=${openee_token}`;
+    const redirect_header = 'status(302)' +
+      `|header(Location,${encodeURIComponent(
+        openee_redirect_url
+          .replace(/,/g, "\\,")
+          .replace(/\\\\,/g, "\\\\\\,")
+          .replace(/\(/g, "%28")
+          .replace(/\)/g, "%29"))})`;
+    const openee_url = popup_origin.host + executor_path + redirect_header +
+      `&uuid=${openee_token}`;
+    // 1. Create the opener window.
+    let opener_window_proxy = window.open(opener_url);
+    t.add_cleanup(() => send(opener_token, "window.close()"));
+
+    // 2. The opener opens its openee.
+    send(opener_token, `
+      openee = window.open("${openee_url}");
+    `);
+    t.add_cleanup(() => send(openee_token, "window.close()"));
+
+    // 3. Check the opener status on the openee.
+    send(openee_token, `
+      send("${this_window_token}", opener !== null);
+    `);
+    assert_equals(await receive(this_window_token), "false", "opener");
+
+    // 4. Check the openee status on the opener.
+    send(opener_token, `
+      send("${this_window_token}", openee.closed);
+    `);
+    assert_equals(await receive(this_window_token), "true", "openee.closed");
+
+    // 5. Check a report sent to the openee.
+    let report = await receiveReport(
+        opener_report_token,
+        "navigation-to-response");
+    assert_equals(report.type, "coop");
+    assert_equals(report.body.disposition, "enforce");
+    assert_equals(report.body.effectivePolicy, "same-origin-allow-popups");
+  }, `${popup_origin.name} openee redirected to same-origin with same-origin-allow-popups`);
+}
+
+redirect_test(same_origin);
+redirect_test(cross_origin);
+</script>

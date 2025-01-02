@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: font-synthesis-position: none disables fake super/subscripts</title>
+<link rel="match" href="font-synthesis-position-001-ref.html">
+<meta name="assert" content="font-synthesis-position:none must prevent synthesizing forms for font-variant-position">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-synthesis-intro">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7441#issuecomment-1680918811">
+
+<style>
+    /* Lato has superscript Latin letters, but not subscript ones;
+     * digits are available in both super- and subscript form.
+     */
+    @font-face {
+        font-family: "lato";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    @supports not (font-synthesis-position: none) {
+        .test::before {
+            color: red;
+            content: "font-synthesis-position is unsupported!"
+        }
+    }
+    .test {
+        font-family: "lato";
+        font-size: 2em;
+    }
+    .nosynth {
+        font-synthesis-position: none;
+    }
+    .sub {
+        font-variant-position: sub;
+    }
+    .super {
+        font-variant-position: super;
+    }
+</style>
+
+<section class="test nosynth">
+    <p>Synthetic super- and subscripts <em>must not</em> be used:</p>
+    <p>Text with <span class="sub">sub</span> and <span class="sub">123</span> and <span class="sub">3.14</span></p>
+    <!-- note that Lato does not support a superscript FULL STOP, so it will look bad! -->
+    <p>Text with <span class="super">super</span> and <span class="super">123</span> and <span class="super">3.14</span></p>
+</section>

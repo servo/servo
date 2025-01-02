@@ -1,0 +1,18 @@
+<html>
+<head>
+  <script type="text/javascript">
+    function remove() {
+      const frame = document.getElementById("sub-frame");
+      const div = document.getElementById("delete");
+      div.removeChild(frame);
+    }
+  </script>
+</head>
+
+<!-- unload handler prevents the page from being added to the bfcache on navigation -->
+<body onunload="">
+  <div id="delete">
+    <iframe src="subframe.html" id="sub-frame"></iframe>
+  </div>
+</body>
+</html>

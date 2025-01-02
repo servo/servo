@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Test that documentPictureInPicture.requestWindow()
+  fails without a user gesture</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(t => {
+  return promise_rejects_dom(t, 'NotAllowedError',
+    documentPictureInPicture.requestWindow());
+},
+    "requestWindow should fail without a user gesture");
+</script>
+</body>

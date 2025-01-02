@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Speculative parsing, expect-no-linked-resources Document-Policy</title>
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+  async function get_results(uuid) {
+    const response = await fetch(`/html/syntax/speculative-parsing/expect-no-linked-resources/resources/stash.py?action=get&uuid=${uuid}`);
+    return await response.text();
+  }
+
+  promise_test(async () => {
+    const uuid = token();
+
+    await test_driver.bless('Open a URL with expect-no-linked-resources Document-Policy');
+    const popup = window.open(`/html/syntax/speculative-parsing/expect-no-linked-resources/resources/no-speculative-fetch.sub.html?pipe=sub&uuid=${uuid}`, '_blank');
+    await new Promise(resolve => popup.addEventListener('load', resolve));
+
+    const result = await get_results(uuid);
+    assert_equals(result, '', 'speculative case fetched');
+  }, `expect-no-linked-resources hint was ignored`);
+</script>

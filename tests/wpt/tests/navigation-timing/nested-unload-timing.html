@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="timeout" content="long">
+    <title>Navigation Timing: unload event with nested contexts</title>
+    <link rel="help" href="https://w3c.github.io/navigation-timing/"/>
+    <script src="/common/utils.js"></script>
+    <script src="/common/dispatcher/dispatcher.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+    const dummyURL = () => `/navigation-timing/resources/blank_page_green.html?uid=${token()}`;
+
+    promise_test(async t => {
+        const mainWindowUnloadDuration = 100;
+        const iframeUnloadDuration = 400;
+        /*
+            We create 3 contexts: One for a popup window that will load a document and then later
+            unload it, one for an iframe inside that popup window, that will unload with the parent
+            document as well, and one for document the popup window will load in order to trigger
+            those previous unload events.
+
+            The iframe is going to busy-wait on unload for 400ms, and the unloading top-level
+            document is going to busy-wait on unload for 100ms.
+
+            We verify that the total unloadEvent duration measured at the final document is ~100 but
+            less than 500ms - does not include the unload event duration from the iframe.
+        */
+        const popupContext = new RemoteContext(token());
+        const iframeContext = new RemoteContext(token());
+        const finalContext = new RemoteContext(token());
+        const popup = window.open(remoteExecutorUrl(popupContext.context_id));
+        t.add_cleanup(() => popup.close());
+        const registerBusyWaitUnload = duration => window.addEventListener('unload', () => {
+            const buffer = 3;
+            const timeoutEnd = performance.now() + duration + buffer;
+            while (timeoutEnd > performance.now()) {}
+        });
+
+        await popupContext.execute_script(registerBusyWaitUnload, [mainWindowUnloadDuration]);
+
+        const unloadIframe = iframeContext.execute_script(registerBusyWaitUnload, [iframeUnloadDuration]);
+        const loadPopup = popupContext.execute_script(async iframeUid => {
+            const iframe = document.createElement('iframe');
+            iframe.src = `/common/dispatcher/remote-executor.html?uuid=${iframeUid}`;
+            document.body.appendChild(iframe);
+            await new Promise(resolve => iframe.addEventListener('load', resolve));
+        }, [iframeContext.context_id]);
+
+        await Promise.all([unloadIframe, loadPopup]);
+        await popupContext.execute_script((uid) => location.href = `/common/dispatcher/remote-executor.html?uuid=${uid}`, [finalContext.context_id]);
+        const navigationTimingEntry = await finalContext.execute_script(() => performance.getEntriesByType('navigation')[0].toJSON());
+        const unloadDuration = navigationTimingEntry.unloadEventEnd - navigationTimingEntry.unloadEventStart;
+        assert_greater_than_equal(unloadDuration, mainWindowUnloadDuration);
+        assert_less_than(unloadDuration, mainWindowUnloadDuration + iframeUnloadDuration);
+    });
+</script>
+</body>

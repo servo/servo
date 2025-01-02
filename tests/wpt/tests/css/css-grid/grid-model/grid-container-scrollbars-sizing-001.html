@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Grid container's height with scrollbars</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#overflow"/>
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=583743"/>
+<link rel="match" href="../reference/grid-container-scrollbars-sizing-001-ref.html">
+<meta name="assert" content="This test ensures that the grid container considers the scrollbar when computing the logical height."/>
+<style>
+html {
+  overflow-x: scroll;
+}
+.grid {
+  display: grid;
+  float: left;
+  overflow-y: scroll;
+  overflow-x: scroll;
+}
+.item {
+  background: lime;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<p>This test passes if you see a 100x100px green box and scrollbars are disabled.</p>
+<div class="grid">
+    <div class="item">item</div>
+</div>

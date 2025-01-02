@@ -1,0 +1,64 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL varying struct with inline definition test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+
+in vec4 vPosition;
+
+flat out struct S {
+    int field;
+} v_s;
+
+void main() {
+    v_s.field = 1;
+    gl_Position = vPosition;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+flat in struct S {
+    int field;
+} v_s;
+
+out vec4 my_FragColor;
+
+void main() {
+    my_FragColor = vec4(1 - v_s.field, v_s.field, 0, 1);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+
+GLSLConformanceTester.runRenderTests([
+{
+  vShaderId: 'vshader',
+  vShaderSuccess: true,
+  fShaderId: 'fshader',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Vertex output struct / fragment input struct with an inline definition should compile and link'
+}
+], 2);
+</script>
+</body>
+</html>

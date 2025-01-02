@@ -1,0 +1,13 @@
+<!-- Quirks mode needed -->
+<title>CSS Flexbox: fixed positioned video in absolute positioned on quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-containers">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<link rel="help" href="https://crbug.com/841276">
+<meta name="assert" content="This test ensures that a video works with fixed position in absolute position on quirks mode.">
+<div style="position:absolute;">
+  <div>
+    <!-- Video element may work with shadow DOM using flex for media controls.
+         This is mostly useful for browsers that use flex inside of video.-->
+    <video style="position:fixed;"></video>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<title>assert_throws_dom</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(() => {
+  function f() {
+      assert_true(false, "Trivial assertion.");
+
+      // Would lead to throwing a SyntaxError.
+      document.createElement("div").contentEditable = "invalid";
+    }
+
+  assert_throws_dom("SyntaxError", () => { f(); });
+}, "Violated assertion nested in `assert_throws_dom`.");
+</script>
+<script type="text/json" id="expected">
+{
+  "type": "complete",
+  "summarized_status": {
+    "message": null,
+    "status_string": "OK"
+  },
+  "summarized_tests": [
+    {
+      "message": "assert_true: Trivial assertion. expected true got false",
+      "name": "Violated assertion nested in `assert_throws_dom`.",
+      "properties": {},
+      "status_string": "FAIL"
+    }
+  ],
+  "summarized_asserts": [
+    {
+      "assert_name": "assert_throws_dom",
+      "test": "Violated assertion nested in `assert_throws_dom`.",
+      "args": [
+        "\"SyntaxError\"",
+        "function \"() => { f(); }\""
+      ],
+      "status": 1
+    },
+    {
+      "assert_name": "assert_true",
+      "test": "Violated assertion nested in `assert_throws_dom`.",
+      "args": [
+        "false",
+        "\"Trivial assertion.\""
+      ],
+      "status": 1
+    }
+  ]
+}
+</script>
+

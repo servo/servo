@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_protocol</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      var protocol = location.protocol;
+      var url = location.href;
+
+      var pos = url.indexOf("//");
+      if (pos != -1) {
+        url = url.substr(0, pos);
+      }
+
+      assert_equals(protocol, url, "protocol");
+
+    }, "location protocol");
+    </script>
+  </body>
+</html>

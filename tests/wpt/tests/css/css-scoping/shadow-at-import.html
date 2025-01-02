@@ -1,0 +1,13 @@
+<!doctype html>
+<title>CSS Test: @import in Shadow DOM</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#at-import">
+<link rel="match" href="reference/green-box.html"/>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host">FAIL</div>
+<script>
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      @import url("resources/host-green-box.css");
+    </style>
+  `;
+</script>

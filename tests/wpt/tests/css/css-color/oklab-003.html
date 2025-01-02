@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: OKLab and OKLCH</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#predefined-to-lab-oklab">
+<link rel="match" href="whitesquare-ref.html">
+<meta name="assert" content="oklab() with no alpha">
+<style>
+    body { background-color: grey; }
+    .test { background-color: red; width: 12em; height: 12em; }
+    .test { background-color: oklab(100% 0 0); } /* white (sRGB #FFFFFF) converted to OKLab */
+</style>
+<body>
+    <p>Test passes if you see a white square, and no red.</p>
+    <div class="test"></div>
+</body>

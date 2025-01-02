@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>single-char mi and fontstyle/fontweight attributes</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1789081">
+    <link rel="match" href="mi-fontstyle-fontweight-ref.html"/>
+    <meta name="assert" content="Verify that fontstyle/fontweight don't cancel the mathvariant transform on single-char mi elements.">
+    <style>
+      @font-face {
+        font-family: TestFont;
+        src: url("/fonts/math/mathvariant-italic.woff");
+      }
+      .testfont {
+        font-family: TestFont;
+        font-size: 32px;
+       }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if you see <span class="testfont">&#x1D715;</span> rendered twice, without any bold or italic style applied:</p>
+    <p><math class="testfont"><mi fontweight="bold">&#x2202;</mi></math></p>
+    <p><math class="testfont"><mi fontstyle="normal">&#x2202;</mi></math></p>
+  </body>
+</html>

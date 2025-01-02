@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: paired cascade: UA default highlight colors are not used when highlight pseudo cascade yields foreground color</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="match" href="highlight-paired-cascade-001-ref.html">
+<meta name="assert" value="This test verifies that setting color on ::selection suppresses any UA non-initial used value for background-color. These properties are highlight colors, which are subject to paired cascade.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection {
+        /*
+            Used background-color should be initial (transparent).
+            https://www.w3.org/TR/CSS21/colors.html#propdef-background-color
+        */
+        color: transparent;
+    }
+</style>
+<p>Test passes if no text is legible below.
+<main class="highlight_reftest">FAIL</main>
+<script>selectNodeContents(document.querySelector("main"));</script>

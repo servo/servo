@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+section {
+  margin-bottom: 5px;
+}
+.target {
+  background: blue;
+  width: 100px;
+  height: 10px;
+}
+</style>
+<body>
+  <section>
+    <a href="#">
+      <div class="target"></div>
+    </a>
+  </section>
+  <section>
+    <a href="#">
+      <div class="target" style="z-index: 1"></div>
+    </a>
+  </section>
+  <section>
+    <a href="#">
+      <div class="target" style="z-index: -1"></div>
+    </a>
+  </section>
+  <section>
+    <a href="#">
+      <div class="target" style="position: relative"></div>
+    </a>
+  </section>
+  <section>
+    <a href="#">
+      <div class="target" style="position: relative; z-index: 1"></div>
+    </a>
+  </section>
+  <section>
+    <a href="#">
+      <div class="target" style="position: relative; z-index: -1"></div>
+    </a>
+  </section>
+<script>
+function isAncestorOf(target, ancestor) {
+  for (; target; target = target.parentElement) {
+    if (target === ancestor)
+      return true;
+  }
+  return false;
+}
+
+for (const root of document.getElementsByTagName('section')) {
+  const target = root.querySelector('.target');
+  const target_bounds = target.getBoundingClientRect();
+  const x = target_bounds.x + target_bounds.width / 2;
+  const y = target_bounds.y + target_bounds.height / 2;
+  const result = document.elementFromPoint(x, y);
+  const a = root.querySelector('a');
+  test(() => {
+    // For the `<a>` link to work, the `result` must be `a` or its descendant.
+    assert_true(isAncestorOf(result, a));
+  }, target.style.cssText);
+}
+</script>
+</body>

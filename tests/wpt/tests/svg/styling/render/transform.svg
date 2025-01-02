@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/styling.html#RequiredProperties"/>
+    <h:link rel="match" href="transform-ref.svg"/>
+    <h:meta name="assert" content="The transform property impacts SVG rendering."/>
+  </metadata>
+
+  <style>
+    rect {
+      fill: cyan;
+      transform: translate(29px, 11px);
+    }
+  </style>
+  <rect x="140" y="130" width="40" height="10" />
+</svg>

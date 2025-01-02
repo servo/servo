@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'container-type' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#the-stylepropertymap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runPropertyTests('container-type', [
+  { syntax: 'normal' },
+  { syntax: 'size' },
+  { syntax: 'inline-size' },
+]);
+
+</script>

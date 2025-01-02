@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Text: 'hyphens: auto' with a valid 'lang' attribute specification</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
+<link rel="match" href="reference/hyphenate-limit-chars-001-ref.html">
+<link rel="author" href="mailto:kojii@chromium.org">
+<style>
+#container > div {
+  border: black solid 2px;
+  font-family: monospace;
+  font-size: 20px;
+  line-height: 1;
+  width: 1ch;
+  hyphens: auto;
+  hyphenate-character: '-';
+}
+</style>
+<body>
+  <div lang="en-us" id="container">
+    <div>example</div>
+    <div style="hyphenate-limit-chars: 8">example</div>
+    <div style="hyphenate-limit-chars: auto 2 2">example</div>
+    <div style="hyphenate-limit-chars: auto 3 2">example</div>
+    <div style="hyphenate-limit-chars: auto 4 2">example</div>
+    <div style="hyphenate-limit-chars: auto 5 2">example</div>
+    <div style="hyphenate-limit-chars: auto 2 3">example</div>
+    <div style="hyphenate-limit-chars: auto 2 4">example</div>
+    <div style="hyphenate-limit-chars: auto 3 4">example</div>
+  </div>
+</body>

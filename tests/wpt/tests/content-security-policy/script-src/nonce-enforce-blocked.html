@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'">
+<script src="/resources/testharness.js" nonce="abc"></script>
+<script src="/resources/testharnessreport.js" nonce="abc"></script>
+<script nonce="abc">
+    var t = async_test("Unnonced scripts generate reports.");
+    var events = 0;
+    var firstLine = 43;
+    var expectations = {}
+    expectations[firstLine] = true;
+    expectations[firstLine + 3] = true;
+    expectations[firstLine + 6] = true;
+    expectations[firstLine + 9] = true;
+    expectations[firstLine + 12] = true;
+    expectations[firstLine + 15] = true;
+    expectations[firstLine + 18] = true;
+    expectations[firstLine + 21] = true;
+    expectations[firstLine + 24] = true;
+    expectations[firstLine + 28] = true;
+    expectations["/content-security-policy/support/nonce-should-be-blocked.js?1"] = true;
+    expectations["/content-security-policy/support/nonce-should-be-blocked.js?2"] = true;
+    expectations["/content-security-policy/support/nonce-should-be-blocked.js?3"] = true;
+    expectations["/content-security-policy/support/nonce-should-be-blocked.js?4"] = true;
+    expectations["/content-security-policy/support/nonce-should-be-blocked.js?5"] = true;
+    expectations["/content-security-policy/support/nonce-should-be-blocked.js?6"] = true;
+    expectations["/content-security-policy/support/nonce-should-be-blocked.js?7"] = true;
+
+    document.addEventListener('securitypolicyviolation', t.step_func(e => {
+        if (e.lineNumber) {
+            // Verify that the line is expected, then clear the expectation:
+            assert_true(expectations[e.lineNumber], "Line number: " + e.lineNumber);
+            assert_equals(e.blockedURI, "inline");
+        } else {
+            // Otherwise, verify that the URL is expected, then clear the expectation:
+            var url = new URL(e.blockedURI);
+            assert_true(expectations[url.pathname + url.search], "URL: " + e.blockedURI);
+        }
+        events++;
+        if (events == Object.keys(expectations).length)
+          t.done();
+    }));
+</script>
+<script>
+    t.unreached_func("No nonce, no execution.")();
+</script>
+<script nonce="xyz">
+    t.unreached_func("Bad nonce, no execution.")();
+</script>
+<script <script nonce="abc">
+    t.unreached_func("'<script' attribute, no execution.")();
+</script>
+<script attribute<script nonce="abc">
+    t.unreached_func("'attribute<script', no execution.")();
+</script>
+<script attribute<style="value" nonce="abc">
+    t.unreached_func("'attribute<style' attribute, no execution.")();
+</script>
+<script attribute=<script nonce="abc">
+    t.unreached_func("'<script' value, no execution.")();
+</script>
+<script attribute=value<script nonce="abc">
+    t.unreached_func("'value<script', no execution.")();
+</script>
+<script attribute attribute nonce="abc">
+    t.unreached_func("Duplicate attribute, no execution.")();
+</script>
+<script attribute attribute=<style nonce="abc">
+    t.unreached_func("2# Duplicate attribute, no execution.")();
+</script>
+<svg xmlns="http://www.w3.org/2000/svg">
+<script attribute attribute nonce="abc">
+    t.unreached_func("Duplicate attribute in SVG, no execution.")();
+</script>
+</svg>
+<script src="../support/nonce-should-be-blocked.js?1" <script nonce="abc"></script>
+<script src="../support/nonce-should-be-blocked.js?2" attribute=<script nonce="abc"></script>
+<script src="../support/nonce-should-be-blocked.js?3" <style nonce="abc"></script>
+<script src="../support/nonce-should-be-blocked.js?4" attribute=<style nonce="abc"></script>
+<script src="../support/nonce-should-be-blocked.js?5" attribute attribute nonce="abc"></script>
+<script src="../support/nonce-should-be-blocked.js?6" attribute<script nonce="abc"></script>
+<script src="../support/nonce-should-be-blocked.js?7" attribute=value<script nonce="abc"></script>

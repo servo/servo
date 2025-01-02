@@ -1,0 +1,36 @@
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  var win;
+  var messageCount = 0;
+  // Navigation steps:
+  // 1- page gets loaded and anchor element gets scrolled into view.
+  // 2- loaded page refreshed.
+  async_test(function(t) {
+    window.onmessage = function() {
+      if (++messageCount == 1) {
+        t.step(() => {
+          var anchor = win.document.getElementById('anchor');
+          anchor.scrollIntoView();
+          assert_equals(win.scrollY, 1000);
+          win.location.reload();
+        });
+      } else {
+         t.step(() => {
+            assert_equals(win.scrollY, 1000);
+            // Change height of content above anchor.
+            var ch = win.document.getElementById('changer');
+            ch.style.height = 100;
+            // Height of first + height changer.
+            assert_equals(win.scrollY, 1100)
+            t.done();
+        });
+        win.close();
+      }
+    };
+    win = window.open('support/history-restore-anchors-new-window.html');
+  }, 'Verify scroll anchoring interaction with history restoration');
+</script>

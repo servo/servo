@@ -1,0 +1,187 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for redundant mouseenter or mouseleave events</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<style>
+#outer {
+  background: grey;
+  position: absolute;
+  left: 100px;
+  top: 100px;
+  width: 100px;
+  height: 100px;
+}
+#inner {
+  background: red;
+  position: absolute;
+  left: 30px;
+  top: 30px;
+  width: 40px;
+  height: 40px;
+}
+</style>
+
+<body>
+  <!-- Verifies that dragging mouse in/out of an element doesn't fire redundant
+       mouseenter or mouseleave events (crbug.com/356090 & crbug.com/470258) -->
+  <div id="outer">
+    <div id="inner"></div>
+  </div>
+</body>
+<script>
+let eventLog = [];
+let nextUncheckedEventIndex = 0;
+
+// Ensure match to the next sequence of events in the event log.
+function assert_next_events(target, expectedEventNames, message) {
+  for (let i = 0; i < expectedEventNames.length; i++) {
+    assert_true(nextUncheckedEventIndex < eventLog.length,
+                `${message}: empty event queue`);
+    const observed = eventLog[nextUncheckedEventIndex++];
+    const expected = `${expectedEventNames[i]}@${target.id}`;
+    assert_equals(observed, expected,`${message}: Event  mismatch`);
+  }
+}
+
+// After validating the expected events, all entries in the event map
+// must be false or we have recorded an unexpected event.
+function assert_empty_event_queue(message) {
+  const uncheckedEvents = eventLog.length - nextUncheckedEventIndex;
+  assert_equals(uncheckedEvents, 0,
+                `${message}: Unexpected events ` +
+                `${eventLog.slice(-uncheckedEvents).join(", ")}`);
+}
+
+function addEventListeners(test) {
+  const eventTypes = [
+    'mousedown',
+    'mouseenter',
+    'mouseleave',
+    'mousemove',
+    'mouseout',
+    'mouseover',
+    'mouseup'
+  ];
+  ['inner', 'outer'].forEach(id => {
+    const element = document.getElementById(id);
+    eventTypes.forEach(eventType => {
+      const listener = (e) => {
+        if (e.eventPhase == Event.AT_TARGET) {
+          eventLog.push(`${eventType}@${id}`);
+        }
+      };
+      element.addEventListener(eventType, listener);
+      test.add_cleanup(() => {
+        element.removeEventListener(eventType, listener);
+      });
+    })
+  });
+}
+
+// At the end of each action sequence we move the mouse over the root element.
+// Once this event is detected, all other upstream events must be logged and
+// we can proceed with the checks.
+async function mousemoveOverRootElement() {
+  return new Promise(resolve => {
+    const listener = (e) => {
+      if (e.eventPhase == Event.AT_TARGET) {
+        document.documentElement.removeEventListener('mousemove', listener);
+        resolve();
+      }
+    };
+    document.documentElement.addEventListener('mousemove', listener);
+  });
+}
+
+window.onload = async () => {
+  const outer = document.getElementById('outer');
+  const inner = document.getElementById('inner');
+  const leftOuter = 100;
+  const rightOuter = 200;
+  const leftInner = 130;
+  const rightInner = 170;
+  const centerY = 150;
+
+  promise_test(async t => {
+    addEventListeners(t);
+    const completionPromise = mousemoveOverRootElement();
+    const actions =new test_driver.Actions();
+    actions.pointerMove(leftOuter + 10, centerY)
+           .pointerDown({button: actions.ButtonType.LEFT})
+           .pointerMove(rightOuter - 10, centerY)
+           .pointerUp({button: actions.ButtonType.LEFT})
+           .pointerMove(0, 0)
+           .send();
+    await actions;
+    await completionPromise;
+
+    assert_next_events(outer, ['mouseover', 'mouseenter', 'mousemove'],
+                       'Move over outer element');
+    assert_next_events(outer, ['mousedown', 'mousemove', 'mouseup'],
+                       'Drag across outer element');
+    assert_next_events(outer, ['mouseout', 'mouseleave'],
+                       'Move to origin');
+    assert_empty_event_queue('Drag across outer element');
+  }, 'Test dragging across inner div');
+
+  promise_test(async t => {
+    addEventListeners(t);
+    const completionPromise = mousemoveOverRootElement();
+    const actions =new test_driver.Actions();
+    actions.pointerMove(leftOuter + 10, centerY)
+           .pointerDown({button: actions.ButtonType.LEFT})
+           .pointerMove(leftInner + 10, centerY)
+           .pointerUp({button: actions.ButtonType.LEFT})
+           .pointerMove(0, 0)
+           .send();
+    await actions;
+    await completionPromise;
+
+    assert_next_events(outer, ['mouseover', 'mouseenter', 'mousemove'],
+                       'Move over outer element');
+    assert_next_events(outer, ['mousedown', 'mouseout'],
+                       'Initiate drag');
+    assert_next_events(inner,
+                       ['mouseover', 'mouseenter', 'mousemove', 'mouseup'],
+                       'Drag into inner element');
+    assert_next_events(inner, ['mouseout', 'mouseleave'],
+                       'Move to origin');
+    assert_next_events(outer, [ 'mouseleave'],
+                       'Move to origin');
+    assert_empty_event_queue('Drag into inner element');
+  }, 'Test dragging into inner div');
+
+  promise_test(async t => {
+    addEventListeners(t);
+    const completionPromise = mousemoveOverRootElement();
+    const actions =new test_driver.Actions();
+    actions.pointerMove(leftInner + 10, centerY)
+           .pointerDown({button: actions.ButtonType.LEFT})
+           .pointerMove(rightInner + 10, centerY)
+           .pointerUp({button: actions.ButtonType.LEFT})
+           .pointerMove(0, 0)
+           .send();
+    await actions;
+    await completionPromise;
+
+    assert_next_events(inner, ['mouseover'], 'Move over inner element');
+    assert_next_events(outer, ['mouseenter'], 'Enter outer');
+    assert_next_events(inner, ['mouseenter', 'mousemove'],
+                              'Move across inner element');
+    assert_next_events(inner, ['mousedown', 'mouseout', 'mouseleave'],
+                              'Drag out of inner');
+    assert_next_events(outer, ['mouseover', 'mousemove', 'mouseup'],
+                               'Drag into outer');
+    assert_next_events(outer, ['mouseout', 'mouseleave'],
+                               'Move to origin');
+    assert_empty_event_queue('Drag into inner element');
+  }, 'Test dragging out of inner div');
+};
+</script>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<link rel="href" href="https://mozilla.org" title="Mozilla">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host"><p>This text should be green</p></div>
+<script>
+  let shadow = host.attachShadow({ mode: "open" });
+  shadow.innerHTML = `
+    <style>
+      /* This is not expected to match */
+      .container ::slotted(p) {
+        color: red !important;
+      }
+
+      /* This _is_ expected to match */
+      #nested ::slotted(p) {
+        background-color: green;
+      }
+    </style>
+    <div id="nested"><slot></slot></div>
+  `;
+
+  let nested = shadow.querySelector("#nested").attachShadow({ mode: "open" });
+  nested.innerHTML = `
+    <style>
+      .container ::slotted(p) {
+        color: green;
+      }
+    </style>
+    <div class="container">
+      <slot></slot>
+    </div>
+  `;
+
+  let p = document.querySelector("p");
+  test(function() {
+    assert_equals(getComputedStyle(p).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(p).backgroundColor, "rgb(0, 128, 0)");
+  }, "Slotted matches rules against the slot in the right tree");
+  test(function() {
+    nested.querySelector(".container").classList.remove("container");
+    assert_not_equals(getComputedStyle(p).color, "rgb(0, 128, 0)");
+
+    nested.host.removeAttribute("id");
+    assert_not_equals(getComputedStyle(p).backgroundColor, "rgb(0, 128, 0)");
+  }, "Style invalidation works correctly for nested slots");
+</script>

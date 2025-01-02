@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share with non-ASCII Unicode strings</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        // Title is a string with BMP and non-BMP characters.
+        // Text contains invalid surrogates which should be converted into U+FFFD.
+        // URL contains non-ASCII characters in host and path.
+        const title = 'fáncy 写作 😱';
+        const url = 'https://测试.example.com/📄';
+        // Host is IDNA-encoded. Path is percent-encoded.
+        const url_ascii = 'https://xn--0zwm56d.example.com/%F0%9F%93%84';
+        setupManualShareTest({title, text: '\ufffdx', url: url_ascii});
+        callWhenButtonClicked(() => navigator.share({title, text: '\ud9a3x', url}));
+    </script>
+  </body>
+</html>

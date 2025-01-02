@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<body>
+<p>This test passes if it does not crash.</p>
+<input id="input" type="image" src="data:image/gif;base64,">
+<iframe id="iframe"></iframe>
+<script>
+let i_doc = iframe.contentDocument;
+iframe.remove();
+i_doc.importNode(input);
+</script>
+</body>

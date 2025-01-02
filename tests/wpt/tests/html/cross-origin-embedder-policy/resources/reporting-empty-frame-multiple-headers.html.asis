@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Content-Type: text/html
+cross-origin-embedder-policy: require-corp; foo="
+cross-origin-embedder-policy: "; report-to="endpoint"
+cross-origin-embedder-policy-report-only: require-corp; foo="
+cross-origin-embedder-policy-report-only: "; report-to="report-only-endpoint"
+
+<!doctype html>
+<meta charset="utf-8">

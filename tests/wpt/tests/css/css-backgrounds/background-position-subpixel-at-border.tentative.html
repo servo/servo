@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Backgrounds: Subpixel positions adjacent to the borders</title>
+    <link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+    <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-position">
+    <link rel="match" href="reference/background-position-subpixel-at-border-ref.tentative.html">
+    <style>
+        #no-repeat-y-bottom {
+            position: absolute;
+            top: 200.5px;
+            left: 8px;
+            width: 150px;
+            height: 37.5px;
+            border-width: 0px 0px 1.25px;
+            border-style: solid;
+            border-color: rgba(0,0,0,0.5);
+            border-bottom-color: transparent;
+            box-sizing: border-box;
+            background-color: lightgrey;
+            background-image: url("resources/green50x1.png");
+            background-position: bottom -1.25px left 0px;
+            background-repeat: repeat-x;
+            padding: 2.5px 2.5px 1.25px 2.5px;
+        }
+        #no-repeat-y-top {
+            position: absolute;
+            top: 160.25px;
+            left: 8px;
+            width: 150px;
+            height: 37.5px;
+            border-width: 1.25px 0px 0px 0px;
+            border-style: solid;
+            border-color: rgba(0,0,0,0.5);
+            border-top-color: transparent;
+            box-sizing: border-box;
+            background-color: lightgrey;
+            background-image: url("resources/green50x1.png");
+            background-position: top -1.25px left 0px;
+            background-repeat: repeat-x;
+            padding: 1.25px 2.5px 2.5px 2.5px;
+        }
+        #no-repeat-x-right {
+            position: absolute;
+            top: 8px;
+            left: 200.5px;
+            width: 37.5px;
+            height: 150px;
+            border-width: 0px 1.25px 0px 0px;
+            border-style: solid;
+            border-color: rgba(0,0,0,0.5);
+            border-right-color: transparent;
+            box-sizing: border-box;
+            background-color: lightgrey;
+            background-image: url("resources/green1x50.png");
+            background-position: right -1.25px top 0px;
+            background-repeat: repeat-y;
+            padding: 2.5px 1.25px 2.5px 2.5px;
+        }
+        #no-repeat-x-left {
+            position: absolute;
+            top: 8px;
+            left: 160.25px;
+            width: 37.5px;
+            height: 150px;
+            border-width: 0px 0px 0px 1.25px;
+            border-style: solid;
+            border-color: rgba(0,0,0,0.5);
+            border-left-color: transparent;
+            box-sizing: border-box;
+            background-color: lightgrey;
+            background-image: url("resources/green1x50.png");
+            background-position: left -1.25px top 0px;
+            background-repeat: repeat-y;
+            padding: 2.5px 2.5px 2.5px 1.25px;
+        }
+    </style>
+</head>
+<body>
+        <div id="no-repeat-y-top">
+        </div>
+        <div id="no-repeat-y-bottom">
+        </div>
+        <div id="no-repeat-x-right">
+        </div>
+        <div id="no-repeat-x-left">
+        </div>
+</body>
+</html>

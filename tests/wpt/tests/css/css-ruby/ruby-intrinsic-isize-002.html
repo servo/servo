@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>Intrinsic ISize calculation of ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#line-breaks">
+<link rel="match" href="ruby-intrinsic-isize-002-ref.html">
+<style>
+  div {
+    display: inline-block;
+    border: 1px solid black;
+  }
+</style>
+<p>No line break should happen in any block, and the content should just fit in the block.</p>
+
+<div>
+  <ruby><rb>ABC</rb> <rb>DEF</rb></ruby>
+</div>
+<div>
+  XYZ <ruby><rb>ABC</rb><rb>DEF</rb></ruby> XYZ
+</div>
+
+<div>
+  <ruby><rb>あい</rb> <rb>うえ</rb></ruby>
+</div>
+<div>
+  お <ruby><rb>あい</rb><rb>うえ</rb></ruby> お
+</div>
+<br>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flex: align-content:stretch with subpixel amounts</title>
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: stretch;
+    height: 5px;
+    border: solid;
+  }
+  #flex > div {
+    width: 100%;
+    outline: 1px solid lime;
+  }
+</style>
+<div id="flex"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+/* The flex container is 5px tall. Assuming that 1px are 60 app units,
+   that's 300 app units. Since we have 600 lines, half of them should
+   get 1 app unit, and the others should get 0. This way we ensure that
+   the container gets filled completely. */
+let flex = document.getElementById("flex");
+let item = document.createElement("div");
+for (let i = 0; i < 600; ++i) {
+  flex.appendChild(item.cloneNode());
+}
+test(() => {
+  let filled_space = flex.lastElementChild.getBoundingClientRect().bottom
+                     - flex.firstElementChild.getBoundingClientRect().top;
+  assert_approx_equals(filled_space, 5, 0.01);
+}, "Flex items fill the container entirely");
+</script>

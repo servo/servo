@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: stylesheets blocking scripts document.write</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        <div id="test">Test</div>
+
+        <!-- this stylesheet blocks scripts -->
+        <script>
+          test(function() {
+            document.write("<link rel='stylesheet' href='css/import.css?pipe=trickle(d2)'>");
+            // note that the pass condition here is not per spec (but does match implementations) as of 2012-06-26
+            assert_equals(getComputedStyle(document.getElementById("test")).position,
+                          "static");
+          });
+        </script>
+</body></html>

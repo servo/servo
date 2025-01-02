@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/common/rendering-utils.js"></script>
+<style>
+@view-transition { navigation: auto; }
+
+.hidden {
+  width: 10px;
+  height: 10px;
+  view-transition-name: hidden;
+  background: green;
+}
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { opacity: 0; }
+
+html::view-transition-old(root) {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  opacity: 1;
+  animation: unset;
+}
+html::view-transition-new(root) {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 50vw;
+  top: 0px;
+  opacity: 1;
+  animation: unset;
+}
+</style>
+<script>
+  onload = () => {
+    window.parent.postMessage("loaded", '*');
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.has("blue"))
+    document.documentElement.style.background = "blue";
+  else if (params.has("grey"))
+    document.documentElement.style.background = "grey";
+
+  onpagereveal = async (e) => {
+    if (e.viewTransition != null) {
+      await e.viewTransition.ready;
+      window.parent.postMessage("transition", '*');
+    }
+  }
+
+  window.addEventListener(
+    "message", async (e) => {
+      if (e.data === "checkrendering") {
+        await waitForAtLeastOneFrame();
+        await waitForAtLeastOneFrame();
+        window.parent.postMessage("rendered", '*');
+      }
+    }
+  );
+</script>
+</head>
+<div class="hidden"></div>
+</html>

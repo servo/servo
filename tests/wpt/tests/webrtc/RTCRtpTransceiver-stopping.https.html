@@ -1,0 +1,224 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+['audio', 'video'].forEach((kind) => {
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const transceiver = pc1.addTransceiver(kind);
+
+    // Complete O/A exchange such that the transceiver gets associated.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_not_equals(transceiver.mid, null, 'mid before stop()');
+    assert_not_equals(transceiver.direction, 'stopped',
+                      'direction before stop()');
+    assert_not_equals(transceiver.currentDirection, 'stopped',
+                      'currentDirection before stop()');
+
+    // Stop makes it stopping, but not stopped.
+    transceiver.stop();
+    assert_not_equals(transceiver.mid, null, 'mid after stop()');
+    assert_equals(transceiver.direction, 'stopped', 'direction after stop()');
+    assert_not_equals(transceiver.currentDirection, 'stopped',
+                      'currentDirection after stop()');
+
+    // Negotiating makes it stopped.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_equals(transceiver.mid, null, 'mid after negotiation');
+    assert_equals(transceiver.direction, 'stopped',
+                  'direction after negotiation');
+    assert_equals(transceiver.currentDirection, 'stopped',
+                  'currentDirection after negotiation');
+  }, `[${kind}] Locally stopped transceiver goes from stopping to stopped`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver(kind);
+    const trackEnded = new Promise(r => transceiver.receiver.track.onended = r);
+    assert_equals(transceiver.receiver.track.readyState, 'live');
+    transceiver.stop();
+    // Stopping triggers ending the track, but this happens asynchronously.
+    assert_equals(transceiver.receiver.track.readyState, 'live');
+    await trackEnded;
+    assert_equals(transceiver.receiver.track.readyState, 'ended');
+  }, `[${kind}] Locally stopping a transceiver ends the track`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const pc1Transceiver = pc1.addTransceiver(kind);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const [pc2Transceiver] = pc2.getTransceivers();
+
+    pc1Transceiver.stop();
+
+    await pc1.setLocalDescription();
+    assert_equals(pc2Transceiver.receiver.track.readyState, 'live');
+    // Applying the remote offer immediately ends the track, we don't need to
+    // create or apply an answer.
+    await pc2.setRemoteDescription(pc1.localDescription);
+    // sRD just resolved, so we're in the success task for sRD. The transition
+    // from live -> ended is queued right now.
+    assert_equals(pc2Transceiver.receiver.track.readyState, 'live');
+    await new Promise(r => pc2Transceiver.receiver.track.onended = r);
+    assert_equals(pc2Transceiver.receiver.track.readyState, 'ended');
+  }, `[${kind}] Remotely stopping a transceiver ends the track`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const pc1Transceiver = pc1.addTransceiver(kind);
+
+    // Complete O/A exchange such that the transceiver gets associated.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const [pc2Transceiver] = pc2.getTransceivers();
+    assert_not_equals(pc2Transceiver.mid, null, 'mid before stop()');
+    assert_not_equals(pc2Transceiver.direction, 'stopped',
+                      'direction before stop()');
+    assert_not_equals(pc2Transceiver.currentDirection, 'stopped',
+                      'currentDirection before stop()');
+
+    // Make the remote transceiver stopped.
+    pc1Transceiver.stop();
+
+    // Negotiating makes it stopped.
+    assert_equals(pc2.getTransceivers().length, 1);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    // As soon as the remote offer is set, the transceiver is stopped but it is
+    // not disassociated or removed until setting the local answer.
+    assert_equals(pc2.getTransceivers().length, 1);
+    assert_not_equals(pc2Transceiver.mid, null, 'mid during negotiation');
+    assert_equals(pc2Transceiver.direction, 'stopped',
+                  'direction during negotiation');
+    assert_equals(pc2Transceiver.currentDirection, 'stopped',
+                  'currentDirection during negotiation');
+    await pc2.setLocalDescription();
+    assert_equals(pc2.getTransceivers().length, 0);
+    assert_equals(pc2Transceiver.mid, null, 'mid after negotiation');
+    assert_equals(pc2Transceiver.direction, 'stopped',
+                  'direction after negotiation');
+    assert_equals(pc2Transceiver.currentDirection, 'stopped',
+                  'currentDirection after negotiation');
+  }, `[${kind}] Remotely stopped transceiver goes directly to stopped`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const transceiver = pc.addTransceiver(kind);
+
+    // Rollback does not end the track, because the transceiver is not removed.
+    await pc.setLocalDescription();
+    await pc.setLocalDescription({type:'rollback'});
+    assert_equals(transceiver.receiver.track.readyState, 'live');
+  }, `[${kind}] Rollback when transceiver is not removed does not end track`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const pc1Transceiver = pc1.addTransceiver(kind);
+
+    // Start negotiation, causing a transceiver to be created.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const [pc2Transceiver] = pc2.getTransceivers();
+
+    // Rollback such that the transceiver is removed.
+    await pc2.setRemoteDescription({type:'rollback'});
+    assert_equals(pc2.getTransceivers().length, 0);
+    // sRD just resolved, so we're in the success task for sRD. The transition
+    // from live -> ended is queued right now.
+    assert_equals(pc2Transceiver.receiver.track.readyState, 'live');
+    await new Promise(r => pc2Transceiver.receiver.track.onended = r);
+    assert_equals(pc2Transceiver.receiver.track.readyState, 'ended');
+  }, `[${kind}] Rollback when removing transceiver does end the track`);
+
+  // Same test as above but looking at direction and currentDirection.
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const pc1Transceiver = pc1.addTransceiver(kind);
+
+    // Start negotiation, causing a transceiver to be created.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const [pc2Transceiver] = pc2.getTransceivers();
+
+    // Rollback such that the transceiver is removed.
+    await pc2.setRemoteDescription({type:'rollback'});
+    assert_equals(pc2.getTransceivers().length, 0);
+    // The removed transceiver is stopped.
+    assert_equals(pc2Transceiver.currentDirection, 'stopped',
+                  'currentDirection indicate stopped');
+    // A stopped transceiver is necessarily also stopping.
+    assert_equals(pc2Transceiver.direction, 'stopped',
+                  'direction indicate stopping');
+    // A stopped transceiver has no mid.
+    assert_equals(pc2Transceiver.mid, null, 'not associated');
+  }, `[${kind}] Rollback when removing transceiver makes it stopped`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const constraints = {};
+    constraints[kind] = true;
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const [track] = stream.getTracks();
+
+    pc1.addTrack(track);
+    pc2.addTrack(track);
+    const transceiver = pc2.getTransceivers()[0];
+
+    const ontrackEvent = new Promise(r => {
+      pc2.ontrack = e => r(e.track);
+    });
+
+    // Simulate glare: both peer connections set local offers.
+    await pc1.setLocalDescription();
+    await pc2.setLocalDescription();
+    // Set remote offer, which implicitly rolls back the local offer. Because
+    // `transceiver` is an addTrack-transceiver, it should get repurposed.
+    await pc2.setRemoteDescription(pc1.localDescription);
+    assert_equals(transceiver.receiver.track.readyState, 'live');
+    // Sanity check: the track should still be live when ontrack fires.
+    assert_equals((await ontrackEvent).readyState, 'live');
+  }, `[${kind}] Glare when transceiver is not removed does not end track`);
+});
+</script>

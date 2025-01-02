@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-sizing">
+<link rel="match" href="invalid-ref.html">
+<meta name="assert" content="This test checks that min-content-size greater than max-content-size is correctly clamped to max-content-size." />
+
+<style>
+.test {
+  background: red;
+  border: solid 2px;
+  height: 100px;
+  width: max-content;
+}
+
+@supports (display: layout(invalid-sizes)) {
+  .test {
+    display: layout(invalid-sizes);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test"></div>
+
+<script id="code" type="text/worklet">
+registerLayout('invalid-sizes', class {
+  async intrinsicSizes() {
+    return { maxContentSize: 10, minContentSize: 200 };
+  }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

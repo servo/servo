@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis - color - basic cases Reftest Reference</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<style type="text/css"><![CDATA[
+			.margin
+			{
+				margin: 0.6em 0 0;
+			}
+			.parent
+			{
+				border: solid 1px gray;
+				font: 1.5em monospace;
+				width: 10em;
+			}
+			.ref1 rt
+			{
+				color: black;
+			}
+			.ref2 rt
+			{
+				color: blue;
+			}
+			.ref3 rt
+			{
+				color: green;
+			}
+			.ref4 rt
+			{
+				color: red;
+			}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if each pair of upper and lower "Filler Text" in the square box is identical.</p>
+			black
+			<div class="parent">
+				<div class="margin">
+					<ruby class="ref1"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+				<div>
+					<ruby class="ref1"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			blue
+			<div class="parent">
+				<div class="margin">
+					<ruby class="ref2"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+				<div>
+					<ruby class="ref2"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			green
+			<div class="parent">
+				<div class="margin">
+					<ruby class="ref3"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+				<div>
+					<ruby class="ref3"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			red
+			<div class="parent">
+				<div class="margin">
+					<ruby class="ref4"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+				<div>
+					<ruby class="ref4"><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+			<br />
+			current-color
+			<div class="parent">
+				<div class="margin">
+					<ruby><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+				<div>
+					<ruby><rb>F</rb><rt>&#x25CF;</rt><rb>i</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>l</rb><rt>&#x25CF;</rt><rb>e</rb><rt>&#x25CF;</rt><rb>r</rb><rt>&#x25CF;</rt></ruby>
+					Text
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

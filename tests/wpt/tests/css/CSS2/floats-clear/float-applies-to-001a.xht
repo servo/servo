@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Float applied to element with 'display' set to 'table-row-group'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#dis-pos-flo" title="9.7 Relationships between 'display', 'position', and 'float' "/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" title="9.5.1 Positioning the float: the 'float' property" />
+  <link rel="match" href="../reference/float-applies-to-001-ref.xht" />
+
+  <meta name="assert" content="If 'float' has a value other than 'none' and is applied to an element with a specified 'display' value of 'table-row-group', then the box is floated and its computed 'display' value is set to 'block'." />
+
+  <style type="text/css"><![CDATA[
+  div#table
+  {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+  }
+
+  div#table-row-group
+  {
+  background-color: blue;
+  display: table-row-group;
+  float: right;
+  height: 1in;
+  width: 1in;
+  }
+
+  div.row {display: table-row;}
+
+  div.cell
+  {
+  color: blue;
+  display: table-cell;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled blue square on the right side of the page.</p>
+
+  <div id="table">
+
+      <div id="table-row-group">
+
+          <div class="row">
+              <div class="cell">a</div><div class="cell">b</div>
+          </div>
+
+          <div class="row">
+              <div class="cell">c</div><div class="cell">d</div>
+          </div>
+
+     </div>
+
+  </div>
+
+ </body>
+</html>

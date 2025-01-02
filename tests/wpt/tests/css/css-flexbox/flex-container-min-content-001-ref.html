@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<title>Flex Container Min-Content Main Sizing: Flex Item Min-Content Contributions Reference</title>
+
+<style>
+@import "/fonts/ahem.css"; /* optional */
+
+body {
+  /* Fit it in 800x600 pixels */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 50px 50px 50px);
+  grid-auto-rows: 50px;
+  font: 10px/1 Ahem, monospace;
+}
+
+.wrap {
+  counter-increment: test;
+}
+
+.row, .col {
+  background: blue;
+  padding: 5px;
+  float: left;
+}
+
+.item {
+  padding: 3px;
+  border: 2px solid aqua;
+  color: orange;
+}
+
+
+/* help people debugging */
+.wrap:hover::before {
+  content: counter(test, decimal-leading-zero);
+  position: absolute;
+  font: initial;
+}
+</style>
+
+<!--
+
+  { row | col } x { flexible | no-grow | no-shrink } x { no | small | large } pref size  x { harmonious | disjoint larger | disjoint smaller } flex basis }
+
+-->
+
+<!-- 01 row x flexible x none x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 02 row x flexible x small x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 03 row x flexible x large x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1.5ch">X X</div>
+  </div>
+</div>
+
+
+<!-- 04 row x flexible x none x disjoint -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 05 row x flexible x small x disjoint -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 06 row x flexible x large x disjoint -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1.5ch">X X</div>
+  </div>
+</div>
+
+
+
+<!-- 07 row x no-grow x none x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 08 row x no-grow x small x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 0.4ch">X X</div>
+  </div>
+</div>
+
+<!-- 09 row x no-grow x large x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1.5ch">X X</div>
+  </div>
+</div>
+
+
+<!-- 10 row x no-grow x none x larger -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 11 row x no-grow x small x larger -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 12 row x no-grow x large x larger -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1.5ch">X X</div>
+  </div>
+</div>
+
+
+<!-- 13 row x no-grow x none x smaller -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 0.2ch">X X</div>
+  </div>
+</div>
+
+<!-- 14 row x no-grow x smaller x smaller -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 0.2ch">X X</div>
+  </div>
+</div>
+
+<!-- 15 row x no-grow x larger x smaller -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 0.2ch">X X</div>
+  </div>
+</div>
+
+
+
+<!-- 16 row x no-shrink x none x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 3ch">X X</div>
+  </div>
+</div>
+
+<!-- 17 row x no-shrink x small x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 18 row x no-shrink x large x harmonious -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1.5ch">X X</div>
+  </div>
+</div>
+
+
+<!-- 19 row x no-shrink x none x larger -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 20 row x no-shrink x small x larger -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 21 row x no-shrink x large x larger -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1.5ch">X X</div>
+  </div>
+</div>
+
+
+<!-- 22 row x no-shrink x none x smaller -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 23 row x no-shrink x smaller x smaller -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1ch">X X</div>
+  </div>
+</div>
+
+<!-- 24 row x no-shrink x larger x smaller -->
+<div class="wrap">
+  <div class="row">
+    <div class="item" style="width: 1.5ch">X X</div>
+  </div>
+</div>
+
+
+<!-- ######################################################################  -->
+
+
+<!-- 01 col x flexible x none x harmonious -->
+<div class="wrap" style="counter-reset: test; grid-column: 1"> <!-- new section -->
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 02 col x flexible x small x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 03 col x flexible x large x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1.5em">X</div>
+  </div>
+</div>
+
+
+<!-- 04 col x flexible x none x disjoint -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 05 col x flexible x small x disjoint -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 06 col x flexible x large x disjoint -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1.5em">X</div>
+  </div>
+</div>
+
+
+
+<!-- 07 col x no-grow x none x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 08 col x no-grow x small x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 0.4em">X</div>
+  </div>
+</div>
+
+<!-- 09 col x no-grow x large x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1.5em">X</div>
+  </div>
+</div>
+
+
+<!-- 10 col x no-grow x none x larger -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 11 col x no-grow x small x larger -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 0.4em">X</div>
+  </div>
+</div>
+
+<!-- 12 col x no-grow x large x larger -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1.5em">X</div>
+  </div>
+</div>
+
+
+<!-- 13 col x no-grow x none x smaller -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 0.2em">X</div>
+  </div>
+</div>
+
+<!-- 14 col x no-grow x smaller x smaller -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 0.2em">X</div>
+  </div>
+</div>
+
+<!-- 15 col x no-grow x larger x smaller -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 0.2em">X</div>
+  </div>
+</div>
+
+
+
+<!-- 16 col x no-shrink x none x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 17 col x no-shrink x small x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 18 col x no-shrink x large x harmonious -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1.5em">X</div>
+  </div>
+</div>
+
+
+<!-- 19 col x no-shrink x none x larger -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 20 col x no-shrink x small x larger -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 21 col x no-shrink x large x larger -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1.5em">X</div>
+  </div>
+</div>
+
+
+<!-- 22 col x no-shrink x none x smaller -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 23 col x no-shrink x smaller x smaller -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1em">X</div>
+  </div>
+</div>
+
+<!-- 24 col x no-shrink x larger x smaller -->
+<div class="wrap">
+  <div class="col">
+    <div class="item" style="height: 1.5em">X</div>
+  </div>
+</div>

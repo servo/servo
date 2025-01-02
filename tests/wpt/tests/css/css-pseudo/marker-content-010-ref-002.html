@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+body { margin-left: 40px; }
+.h m { display:inline-block; width:0; height:0; position:relative; left: -3ch; font-size: 16px; }
+.big { font-size:xx-large; }
+.big-marker m { font-size:xx-large; }
+li { display: block; }
+</style>
+</head><body>
+<ol class="h">
+  <li><div class="big"><m>1.</m>C<br>D</div></li>
+  <li><div></div><div class="big"><m>2.</m>C<br>D</div>
+  </li>
+</ol>
+<ol class="big-marker h">
+  <li><div><m>1.</m>C<br>D</div></li>
+  <li><div></div><div><m>2.</m>C<br>D</div></li>
+</ol>
+</body></html>

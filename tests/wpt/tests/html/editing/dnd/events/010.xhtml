@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Drag and drop of selection from iframe</title>
+<style type="text/css">
+div
+  {width:0;
+  height:0;
+  border:solid 50px silver;
+  border-radius:50px;
+  margin-left:auto;}
+iframe
+  {width:100%;
+  height:300px;}
+</style>
+<script type="application/ecmascript">
+var step = 1;
+function enterPage(event)
+  {event.preventDefault();
+  if(step++ > 0)
+    {setColor('green silver silver silver');}
+  else
+    {step = 0;
+    setColor('maroon');
+    say('Dragenter should fire before dragover and drop');}
+  }
+function overPage(event)
+  {event.preventDefault();
+  if(step++ > 1)
+    {setColor('green green silver silver');}
+  else
+    {step = 0;
+    setColor('maroon');
+    say('Dragover should fire after dragenter');}
+  }
+function dropIt(event)
+  {if(step++ > 1)
+    {setColor('green');}
+  else
+    {step = 0;
+    setColor('maroon');
+    say('Dragover should fire after dragenter');}
+  }
+function say(it)
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'))}
+function setColor(c)
+  {document.querySelector('div').setAttribute('style','border-color:' + c)}
+</script>
+</head>
+<body ondragenter="enterPage(event)" ondragover="overPage(event)" ondrop="dropIt(event)">
+<iframe src="helper-drag-me-p-with-circle.xhtml">XHTML document</iframe>
+<div/>
+<pre/>
+</body>
+</html>

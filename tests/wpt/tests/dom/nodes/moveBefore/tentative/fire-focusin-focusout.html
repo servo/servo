@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>moveBefore should not fire focus events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<section id="old_parent">
+<button id="button" tabindex="1">Button</button>
+</section>
+<section id="new_parent">
+</section>
+<section id="inert_parent" inert>
+</section>
+<section id="inert_when_not_empty_parent">
+</section>
+
+<style>
+    #inert_when_not_empty_parent:has(button) {
+        display: none;
+    }
+</style>
+
+<script>
+function collect_focusinout_events(t) {
+    const collected = [];
+    const listener = event => { collected.push(event); };
+    document.addEventListener("focusin", listener);
+    document.addEventListener("focusout", listener);
+    t.add_cleanup(() => document.removeEventListener("focusin", listener));
+    t.add_cleanup(() => document.removeEventListener("focusout", listener));
+    return collected;
+}
+
+function assert_collected_events_equals(a, b) {
+    const eventToString = event => `${event.target.id || event.target.nodeName}.on${event.type}`;
+    return assert_array_equals(a.map(eventToString), b.map(eventToString));
+}
+
+test(t => {
+    const collected_events = collect_focusinout_events(t);
+    const old_parent = document.querySelector("#old_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => old_parent.append(button));
+    button.focus();
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button},
+    ]);
+    assert_equals(document.activeElement, button);
+    new_parent.moveBefore(button, null);
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button},
+    ]);
+}, "Don't fire focusin/out when reparenting focused element directly");
+
+test(t => {
+    const collected_events = collect_focusinout_events(t);
+    const old_parent = document.querySelector("#old_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => document.body.append(old_parent));
+    button.focus();
+    new_parent.moveBefore(old_parent, null);
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button},
+    ]);
+}, "Don't fire focusin/out when reparenting an element that has focus within");
+
+test(t => {
+    const collected_events = collect_focusinout_events(t);
+    const old_parent = document.querySelector("#old_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => old_parent.append(button));
+    button.focus();
+    old_parent.moveBefore(button, null);
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button},
+    ]);
+}, "Don't fire focusin/out when moving to the same parent");
+
+promise_test(async t => {
+    const collected_events = collect_focusinout_events(t);
+    const old_parent = document.querySelector("#old_parent");
+    const inert_parent= document.querySelector("#inert_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => old_parent.append(button));
+    button.focus();
+    inert_parent.moveBefore(button, null);
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button}]);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button},
+        {type: "focusout", target: button},
+    ]);
+}, "Don't fire focusin and then correct when moving to an inert subtree");
+
+promise_test(async t => {
+    const collected_events = collect_focusinout_events(t);
+    const old_parent = document.querySelector("#old_parent");
+    const inert_when_not_empty_parent = document.querySelector("#inert_when_not_empty_parent");
+    const button = document.querySelector("#button");
+    t.add_cleanup(() => old_parent.append(button));
+    button.focus();
+    inert_when_not_empty_parent.moveBefore(button, null);
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button},
+    ]);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    assert_collected_events_equals(collected_events, [
+        {type: "focusin", target: button},
+        {type: "focusout", target: button},
+    ]);
+}, "Don't fire focusin and then correct when moving to a tree that is made inert using style");
+
+</script>

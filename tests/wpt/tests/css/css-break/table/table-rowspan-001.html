@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1396218">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; width:100px; gap:0; column-fill:auto; height:100px; background:red;">
+  <table cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="width:25px; height:20px; background:green;"></td>
+      <td style="width:25px; height:20px; background:green;"></td>
+    </tr>
+    <tr>
+      <td rowspan="2" style="background:green;"></td>
+      <td style="height:20px; background:green;"></td>
+    </tr>
+    <tr>
+      <td style="height:160px; background:green;"></td>
+    </tr>
+  </table>
+</div>

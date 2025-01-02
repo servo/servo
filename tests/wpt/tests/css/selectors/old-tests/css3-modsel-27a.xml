@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Impossible rules (:root:first-child, etc)</title>
+  <style type="text/css"><![CDATA[
+:root:first-child { background-color: red; }
+:root:last-child { background-color: red; }
+:root:only-child { background-color: red; }
+:root:nth-child(1) { background-color: red; }
+:root:nth-child(n) { background-color: red; }
+:root:nth-last-child(1) { background-color: red; }
+:root:nth-last-child(n) { background-color: red; }
+:root:first-of-type { background-color: red; }
+:root:last-of-type { background-color: red; }
+:root:only-of-type { background-color: red; }
+:root:nth-of-type(1) { background-color: red; }
+:root:nth-of-type(n) { background-color: red; }
+:root:nth-last-of-type(1) { background-color: red; }
+:root:nth-last-of-type(n) { background-color: red; }
+p { color: green; }]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+ </head>
+ <body>
+<p>This line should be green (there should be no red on this page).</p>
+</body>
+</html>

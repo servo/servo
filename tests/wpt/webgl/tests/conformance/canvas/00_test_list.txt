@@ -1,0 +1,21 @@
+buffer-offscreen-test.html
+buffer-preserve-test.html
+canvas-test.html
+canvas-zero-size.html
+drawingbuffer-static-canvas-test.html
+--min-version 1.0.2 drawingbuffer-hd-dpi-test.html
+# Uncomment once fully passing on WebGL 1
+# --min-version 1.0.4 --max-version 1.9.9 drawingbuffer-storage-test.html
+drawingbuffer-test.html
+--min-version 1.0.3 draw-webgl-to-canvas-test.html
+--min-version 1.0.3 draw-static-webgl-to-multiple-canvas-test.html
+--min-version 1.0.2 framebuffer-bindings-unaffected-on-resize.html
+--min-version 1.0.4 framebuffer-bindings-affected-by-to-data-url.html
+--min-version 1.0.3 rapid-resizing.html
+--min-version 1.0.4 render-after-resize-test.html
+--min-version 1.0.2 texture-bindings-unaffected-on-resize.html
+--min-version 1.0.2 to-data-url-test.html
+--min-version 1.0.4 to-data-url-after-composite.html
+viewport-unchanged-upon-resize.html
+--min-version 1.0.4 webgl-to-2d-canvas.html
+

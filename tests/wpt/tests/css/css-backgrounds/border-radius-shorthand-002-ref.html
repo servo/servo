@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: Border radius shorthand reference</title>
+        <link rel="author" title="arno" href="mailto:arno@arno.org">
+        <style type="text/css">
+    	/* <![CDATA[ */
+        	div
+        	{
+				border-top-left-radius: 29px  5px;
+				border-top-right-radius: 43px  11px;
+				border-bottom-left-radius: 13px  17px;
+				border-bottom-right-radius: 19px  23px;
+        		background:	#dddddd;
+        		width:		200px;
+        		height: 	100px;
+			}
+        /* ]]> */
+        </style>
+    </head>
+    <body>
+    	<p>
+			There should be one box, with four rounded corners, each corner a different radius.
+		</p>
+		<ul>
+			<li>PASS if the box below has four rounded corners.</li>
+			<li>FAIL if the corners are not rounded.</li>
+		</ul>
+
+    	<div></div>
+    </body>
+</html>

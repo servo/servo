@@ -1,0 +1,51 @@
+<html>
+  <head>
+    <style>
+      .pass { color: green; }
+      .fail { color: red; }
+      :target { color: red; }
+      span:hover { color: green; }
+    </style>
+  </head>
+  <body>
+    <div>
+        <a href="#foo">Target Foo By Link</a>
+        <span id="clickme">Target Foo By JS</span>
+    </div>
+
+    <div>
+      <button id="findme">Check for element with :target selector</button>
+      <span id="result"></span>
+    </div>
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc sodales leo in orci pulvinar, ut tincidunt ipsum vestibulum. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Duis et vestibulum metus. Maecenas erat elit, ultrices eu gravida et, sollicitudin ac est. Sed in tellus ut tortor euismod aliquet non egestas metus. Sed pellentesque arcu ut lectus feugiat molestie. Fusce et justo non dui fermentum fermentum. Nunc nec ullamcorper urna. Morbi ultricies ornare arcu nec tincidunt. In sit amet risus lectus. Nam ac lacus urna. Phasellus semper eu enim quis rutrum. Suspendisse convallis orci vel nunc blandit, ut venenatis urna elementum. Curabitur a elit elementum sapien hendrerit laoreet eget in nunc. In vitae tempus neque.
+    Cras nec porta ipsum. Ut consectetur ut elit ac vestibulum. Suspendisse efficitur congue eros rutrum porta. Suspendisse sit amet tortor id massa varius ultrices. Integer ex nulla, tempus et malesuada sit amet, viverra vel tellus. Fusce dictum risus a sapien feugiat dignissim. Nullam iaculis suscipit ante varius semper. Curabitur ut ipsum mattis, ullamcorper leo a, vulputate arcu.
+    Fusce a gravida lectus, nec vestibulum enim. Interdum et malesuada fames ac ante ipsum primis in faucibus. Nullam vitae lorem lorem. Maecenas interdum nunc nec ex vulputate, in efficitur purus tempus. Pellentesque lacinia consectetur arcu vel posuere. Suspendisse id mi congue, pellentesque elit eu, pharetra neque. Integer vel dignissim nisi. Nunc sagittis augue et rhoncus dignissim. Donec ut orci ac sapien egestas ultrices.
+    Aliquam accumsan auctor felis in rhoncus. Cras bibendum pharetra mollis. Donec rhoncus, orci quis varius rutrum, turpis arcu varius augue, pharetra cursus velit sem in nisl. Donec nec nisi quis tortor ultricies mollis eget in urna. Aliquam pellentesque felis ipsum, luctus luctus libero congue eget. In at orci ut magna luctus tristique et sit amet sem. Nam non posuere nisi. Ut ante tellus, accumsan eu ullamcorper egestas, pulvinar laoreet sapien. Nullam pulvinar at tellus et ullamcorper. Proin malesuada purus augue, id aliquet augue fringilla ut. Ut a rutrum libero. Vivamus semper faucibus purus, eu hendrerit velit vehicula a.
+    Aenean eu commodo lorem. Integer mollis vitae ipsum quis pretium. Nullam nec nisl quis erat dictum tincidunt venenatis sed est. Donec semper viverra tellus, pharetra faucibus arcu pellentesque a. Nullam faucibus efficitur pretium. Nullam risus diam, dictum vel ultricies a, interdum vel lacus. Nullam lacinia quam ac lectus imperdiet, non tincidunt ex pretium. Nullam pretium vehicula faucibus. Aliquam erat volutpat. Pellentesque tortor nisl, egestas a ante et, aliquam suscipit eros. Vestibulum porttitor sem lacus, ac vulputate dui venenatis et. Cras ultrices aliquam est, ac ultrices lorem semper et. Vivamus molestie orci quis justo condimentum tincidunt. Integer ornare pharetra ante tempus elementum. Ut vulputate eleifend dolor, ac sodales velit auctor sed.
+
+    <ul><li id="foo">hello</li></ul>
+    <script>
+      document.querySelector("ul").addEventListener("click", function() {
+        this.insertBefore(this.firstChild.cloneNode(true), this.firstChild);
+      });
+
+      document.querySelector("#clickme").addEventListener("click", function() {
+        window.location.href = "#foo"
+      });
+
+      var result = document.querySelector("#result");
+      document.querySelector("#findme").addEventListener("click", function() {
+        var target = document.querySelector(":target");
+        if (target) {
+            result.className = "pass";
+            result.textContent = ":target exists in document";
+        } else {
+            result.className = "fail";
+            result.textContent = ":target does not exist in document";
+        }
+      });
+
+    </script>
+  </body>
+</html>

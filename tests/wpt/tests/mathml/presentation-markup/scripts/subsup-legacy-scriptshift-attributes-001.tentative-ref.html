@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>msub/msup/msubsup/mmultiscripts subscriptshift and superscriptshift attributes (reference)</title>
+  </head>
+  <body>
+    <p>Test passes if the green squares are not about 300px away from the blue squares.</p>
+    <p>
+      <math>
+        <mmultiscripts>
+          <mspace width="30px" height="30px" style="background: blue;"></mspace>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+          <mprescripts/>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+        </mmultiscripts>
+        <msub>
+          <mspace width="30px" height="30px" style="background: blue;"></mspace>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+        </msub>
+        <msup>
+          <mspace width="30px" height="30px" style="background: blue;"></mspace>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+        </msup>
+        <msubsup>
+          <mspace width="30px" height="30px" style="background: blue;"></mspace>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+          <mspace width="10px" height="10px" style="background: lightgreen;"></mspace>
+        </msubsup>
+      </math>
+    </p>
+  </body>
+</html>

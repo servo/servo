@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>the figure element</title>
+    <link rel="author" title="dzenana" href="mailto:dzenana.trenutak@gmail.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-figure-element">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        "use strict";
+
+        // check that prototype matches spec's DOM interface
+        test(function () {
+            var testElement = document.createElement("figure");
+            assert_equals(Object.getPrototypeOf(testElement), HTMLElement.prototype, "HTMLElement.prototype should be used for figure");
+        }, "The prototype for figure is HTMLElement.prototype");
+
+        // Not checking: Sectioning root
+
+    </script>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>This test validates the figure element.</p>
+
+    <div id="log"></div>
+</body>
+</html>

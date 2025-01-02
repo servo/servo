@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: Crash for flex box with relpos with scrollable with abspos</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@opera.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-container">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable-overflow">
+<link rel="issue" href="https://crbug.com/498969">
+<meta name="assert" content="Check that crash doesn't happen in flex box with descendents that include relpos, overflow:auto scrollbars, and abspos.">
+
+<div style="display:flex;">
+    <div>
+        <div style="position:relative; width:5em;">
+            <div style="overflow:auto;">
+                <div>xxxxxxxxxxxxxxxxxxxxxx</div>
+                <div style="position:absolute;"></div>
+            </div>
+        </div>
+    </div>
+</div>

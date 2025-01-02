@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: font-variant-position must synthesize super/subscripts for unsupported characters</title>
+<link rel="mismatch" href="font-variant-position-05-notref.html">
+<meta name="assert" content="if a variant glyph is not available for all the characters in the run, simulated glyphs should be synthesized for all characters">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-variant-position-prop">
+
+<style>
+    /* Lato has superscript Latin letters, but not subscript ones;
+     * digits are available in both super- and subscript form.
+     */
+    @font-face {
+        font-family: "lato";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    .test {
+        font-family: "lato";
+        font-size: 2em;
+    }
+    .super {
+        font-variant-position: super;
+    }
+</style>
+
+<section class="test">
+    <p>Synthetic superscript characters <em>must</em> be used:</p>
+    <!-- Note that Lato does not have a superscript alternate for the space or period!
+         Therefore, the entire superscript run should be synthesized. -->
+    <p>Text with <span class="super">superscript 3.14</span></p>
+</section>

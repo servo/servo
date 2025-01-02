@@ -1,0 +1,14 @@
+<!doctype html>
+<title>WebSockets: getting protocol in connecting</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+test(function(t) {
+  // The protocol attribute must initially return the empty string
+  assert_equals((new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message')).protocol, '');
+});
+</script>

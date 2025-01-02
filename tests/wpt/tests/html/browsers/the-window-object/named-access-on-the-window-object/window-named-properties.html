@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Changes to named properties of the window object</title>
+<link rel="author" title="Ms2ger" href="ms2ger@gmail.com">
+<link rel="author" title="Boris Zbarsky" href="bzbarsky@mit.edu">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-window-nameditem">
+<link rel="help" href="https://webidl.spec.whatwg.org/#named-properties-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe name="bar"></iframe>
+<iframe name="baz"></iframe>
+<iframe name="baz"></iframe>
+<iframe name="constructor"></iframe>
+<iframe id="quux"></iframe>
+<script>
+function assert_data_propdesc(pd, Writable, Enumerable, Configurable) {
+  assert_equals(typeof pd, "object");
+  assert_equals(pd.writable, Writable);
+  assert_equals(pd.enumerable, Enumerable);
+  assert_equals(pd.configurable, Configurable);
+}
+test(function() {
+  assert_true("bar" in window, "bar not in window");
+  assert_equals(window["bar"],
+                document.getElementsByTagName("iframe")[0].contentWindow);
+}, "Static name");
+
+test(function() {
+  assert_true("quux" in window, "quux not in window");
+  assert_equals(window["quux"],
+                document.getElementsByTagName("iframe")[4]);
+}, "Static id");
+
+test(function() {
+  assert_true("bar" in Window.prototype, "bar in Window.prototype");
+  assert_false(Window.prototype.hasOwnProperty("bar"), "Window.prototype.hasOwnProperty(\"bar\")");
+
+  var gsp = Object.getPrototypeOf(Object.getPrototypeOf(window));
+  assert_true("bar" in gsp, "bar in gsp");
+  assert_true(gsp.hasOwnProperty("bar"), "gsp.hasOwnProperty(\"bar\")");
+  assert_data_propdesc(Object.getOwnPropertyDescriptor(gsp, "bar"),
+                       true, false, true);
+}, "Static name on the prototype");
+test(function() {
+  assert_equals(window.constructor, Window);
+  assert_false(window.hasOwnProperty("constructor"), "window.constructor should not be an own property.");
+
+  var proto = Object.getPrototypeOf(window);
+  assert_equals(proto.constructor, Window);
+  assert_true("constructor" in proto, "constructor in proto");
+  assert_data_propdesc(Object.getOwnPropertyDescriptor(proto, "constructor"),
+                       true, false, true);
+
+  var gsp = Object.getPrototypeOf(proto);
+  assert_true("constructor" in gsp, "constructor in gsp");
+  assert_false(gsp.hasOwnProperty("constructor"), "gsp.hasOwnProperty(\"constructor\")");
+  assert_equals(Object.getOwnPropertyDescriptor(gsp, "constructor"), undefined);
+}, "constructor");
+test(function() {
+  var gsp = Object.getPrototypeOf(Object.getPrototypeOf(window));
+  assert_equals(gsp.baz, document.getElementsByTagName("iframe")[1].contentWindow);
+}, "duplicate property names")
+var t = async_test("Dynamic name")
+var t2 = async_test("Ghost name")
+t.step(function() {
+  var iframe = document.getElementsByTagName("iframe")[0];
+  iframe.setAttribute("srcdoc", "<script>window.name='foo'<\/script>");
+  iframe.onload = function() {
+    t.step(function() {
+      assert_true("foo" in window, "foo not in window");
+      assert_equals(window["foo"], iframe.contentWindow);
+    });
+    t.done();
+    t2.step(function() {
+      assert_false("bar" in window, "bar still in window");
+      assert_equals(window["bar"], undefined);
+    });
+    t2.done();
+  };
+});
+</script>

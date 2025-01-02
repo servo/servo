@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>backface visibility: hidden inside preserve-3d applies to pseudo-stacking contexts</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#propdef-backface-visibility">
+
+<p>The test passes if there is a green rectangle and no red</p>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div style="transform-style: preserve-3d">
+  <div class=target style="backface-visibility: hidden">
+    <div style="background: green; isolation: isolate"></div>
+  </div>
+</div>

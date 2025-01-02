@@ -1,0 +1,23 @@
+<!doctype html>
+<title>CSS Test: preserve-3d on pseudo elements</title>
+<link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/">
+<link rel="match" href="preserve3d-pseudo-element-ref.html">
+<style>
+div {
+  width: 200px;
+  height: 200px;
+  transform: rotateX(90deg);
+  transform-style: preserve-3d;
+}
+
+div::before {
+  display: inline-block;
+  width: 200px;
+  height: 200px;
+  transform: rotateX(90deg);
+  content: '';
+  background-color: green;
+}
+</style>
+<div></div>

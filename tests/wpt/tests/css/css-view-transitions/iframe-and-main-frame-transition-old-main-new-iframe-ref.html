@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>View transitions: iframe and main frame transition at the same time (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+iframe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 50vh;
+}
+
+body {
+  background: green;
+}
+</style>
+
+<iframe srcdoc="
+<style>
+body {
+  background: lightblue;
+}
+</style>
+"></iframe>
+
+

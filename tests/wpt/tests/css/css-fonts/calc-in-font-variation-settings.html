@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: calc() function in font-variation-settings</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#test {
+  font-variation-settings: "XHGT" calc(0.7);
+}
+</style>
+<div id="test"></div>
+<script>
+const div = document.querySelector("#test");
+test(function() {
+  assert_equals(getComputedStyle(div).fontVariationSettings, "\"XHGT\" 0.7");
+}, "calc() in font-variation-settings");
+</script>

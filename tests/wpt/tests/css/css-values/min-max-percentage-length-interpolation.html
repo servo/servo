@@ -1,0 +1,43 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<title>Tests interpolation between CSS comparison functions</title>
+<style>
+@keyframes anim {
+  from {
+    width:  min(50px, 30%);
+    height: min(75%, 160px);
+  }
+  to {
+    width:  max(75%, 100px);
+    height: max(50px, 20%);
+  }
+}
+
+.test {
+  background-color: green;
+  animation: anim 1s linear;
+  animation-delay: -.5s;
+  animation-play-state: paused;
+}
+
+.fail {
+  background: red;
+  position: absolute;
+  z-index: -1;
+  width: 100px;
+  height: 100px;
+}
+
+.container {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+  <div class="fail"></div>
+  <div class="test"></div>
+</div>

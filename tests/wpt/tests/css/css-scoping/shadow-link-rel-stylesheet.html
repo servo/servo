@@ -1,0 +1,11 @@
+<!doctype html>
+<title>CSS Test: &lt;link rel="stylesheet"&gt; in Shadow DOM</title>
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-stylesheet">
+<link rel="match" href="reference/green-box.html">
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host">FAIL</div>
+<script>
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <link rel="stylesheet" href="resources/host-green-box.css">
+  `;
+</script>

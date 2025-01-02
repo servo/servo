@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<head>
+  <title>
+    Check the reported TrustedType violation's sourceFile.
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'; trusted-types id">
+  </head>
+<body>
+
+<script id="to-be-modified"></script>
+<script>
+let toBeModified = document.querySelector("#to-be-modified");
+
+let id_policy = trustedTypes.createPolicy("id", {
+  createHTML: x => x,
+  createScriptURL: x => x,
+  createScript: x => x,
+});
+
+function futureViolation() {
+  return new Promise(r => addEventListener("securitypolicyviolation", r), {
+    once: true
+  });
+}
+
+function futureScript(url) {
+  return new Promise(r => {
+    let script = document.createElement("script");
+    script.src = id_policy.createScriptURL(url);
+    script.onload = r;
+    document.body.appendChild(script);
+  });
+}
+
+promise_test(async t => {
+  let future_violation = futureViolation();
+  assert_throws_js(TypeError, _ => {
+    document.getElementById("to-be-modified").innerHTML = "'test'";
+  });
+  let violation = await future_violation;
+  assert_equals(violation.sourceFile, location.href)
+}, "same-document script")
+
+promise_test(async t => {
+  let script_origin = get_host_info().HTTP_ORIGIN;
+  let script_src = script_origin +
+    "/trusted-types/support/set-inner-html.js";
+  let script = await futureScript(script_src);
+  let future_violation = futureViolation();
+  assert_throws_js(TypeError, () => setInnerHtml(toBeModified, "'test'"));
+  let violation = await future_violation;
+  assert_equals(violation.sourceFile, script_src);
+}, "same-origin script")
+
+promise_test(async t => {
+  let script_origin = get_host_info().HTTP_REMOTE_ORIGIN;
+  let script_src = script_origin +
+    "/trusted-types/support/set-inner-html.js";
+  let script = await futureScript(script_src);
+  let future_violation = futureViolation();
+  assert_throws_js(TypeError, () => setInnerHtml(toBeModified, "'test'"));
+  let violation = await future_violation;
+  assert_equals(violation.sourceFile, script_src);
+}, "cross-origin script")
+
+// TODO(arthursonzogni): Check what happens with redirects. Do we report the
+// request's URL or the response's URL?
+
+</script>
+</body>

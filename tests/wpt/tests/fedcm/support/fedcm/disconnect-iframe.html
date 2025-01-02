@@ -1,0 +1,62 @@
+<!doctype html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+  import {disconnect_options,
+          request_options_with_mediation_required,
+          set_fedcm_cookie, manifest_origin} from './../fedcm-helper.sub.js';
+
+// Loading this iframe in the test will make a FedCM call on load, and
+// trigger a postMessage upon completion.
+//
+// message {
+//   string result: "Pass" | "Failed get" | "Failed disconnect"
+//   string errorType: error.name
+// }
+async function attemptDisconnect() {
+  try {
+    await IdentityCredential.disconnect(disconnect_options("1234"));
+    window.top.postMessage({result: "Pass"}, "*");
+  } catch (error) {
+    window.top.postMessage({result: "Failed disconnect", errorType: error.name},
+        "*");
+  }
+}
+
+window.onload = async () => {
+  window.test_driver.set_test_context(window.top);
+  const params = new URLSearchParams(document.location.search);
+  if (params.has("skip_get")) {
+    attemptDisconnect();
+    return;
+  }
+
+  // Use this variable to stop trying to select an account once the get()
+  // promise is resolved.
+  let cancelHelper = false;
+  try {
+    const credentialPromise = navigator.credentials.get(request_options_with_mediation_required());
+    async function helper() {
+      try {
+        if (cancelHelper)
+          return;
+
+        await window.test_driver.select_fedcm_account(0);
+      } catch (ex) {
+        setTimeout(helper, 100);
+      }
+    }
+    helper();
+    const cred = await credentialPromise;
+    await set_fedcm_cookie(manifest_origin);
+    // Now that we have a get(), attempt to disconnect permission.
+    attemptDisconnect();
+  } catch (error) {
+    window.top.postMessage({result: "Failed get", errorType: error.name}, '*');
+  }
+  // In case the get() call fails and no accounts may be selected, force the
+  // helper function to stop calling itself.
+  cancelHelper = true;
+};
+</script>
+

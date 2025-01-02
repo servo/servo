@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<url>",
+  from: 'url("https://example.com/from")',
+  to: 'url("https://example.com/to")',
+  expected: 'url("https://example.com/to")',
+  behavior: 'allow-discrete',
+}, 'A custom property of type <url> can yield a discrete CSS Transition');
+
+</script>

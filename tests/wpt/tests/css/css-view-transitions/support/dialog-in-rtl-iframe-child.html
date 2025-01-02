@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html dir="rtl">
+  <head>
+    <style>
+      body {
+        /* We need a background due to https://crbug.com/1414158. */
+        background-color: white;
+        height: 200vh;
+      }
+
+      ::view-transition-new(*) {
+        animation: unset;
+        opacity: 1;
+      }
+      ::view-transition-old(*) {
+        animation-duration: 30s;
+        opacity: 0;
+      }
+
+      dialog {
+        width: 50dvw;
+        height: 50dvh;
+        box-sizing: border-box;
+        background-color: limegreen;
+        border: 1px solid black;
+      }
+
+    </style>
+    <script>
+      function show() {
+        document.getElementById('dialog').showModal();
+      }
+      function startTransition() {
+        window.transition = document.startViewTransition(() => {
+          show();
+        });
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('show')) {
+        addEventListener('load', show);
+      }
+    </script>
+  </head>
+  <body>
+    <dialog id="dialog">
+    </dialog>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: blocks inside inlines &#8211; append-to-nested-split-inline-1</title>
+    <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+    <link rel="match" href="block-in-inline-append-002-nosplit-ref.xht"/>
+    <meta name="flags" content="dom" />
+    <style type="text/css">
+      #outermost { border: 2px solid; }
+      #outer { border: 4px solid yellow; }
+      #inner { border: 6px sold green; }
+    </style>
+    <script type="text/javascript">
+      function doTest() {
+        var i = document.getElementById("inner");
+        var frag = document.createDocumentFragment();
+        var newSpan = document.createElement("span");
+        newSpan.appendChild(document.createTextNode("span"));
+        newSpan.style.display = "block";
+        frag.appendChild(newSpan);
+        frag.appendChild(document.createTextNode("after span"));
+        i.appendChild(frag);
+      }
+    </script>
+  </head>
+  <body onload="doTest()">
+    <span id="outermost">
+      <span id="outer">
+        <span id="inner">
+          <span style="display: block"></span>
+          before span
+        </span>
+      </span>
+    </span>
+
+
+</body></html>

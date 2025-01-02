@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: adding and removing external and inline scripts </title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script>log('inline script #1');
+                var script=testlib.addScript('', {src:'scripts/include-1.js', onload:function(e){ e.target.parentNode.removeChild(e.target); }}, document.getElementsByTagName('head')[0], false );
+                var script=testlib.addScript( 'log( "dynamically added inline script" )', null, document.getElementsByTagName('head')[0], false );
+                script.parentNode.removeChild(script);
+                log('end script #1');
+        </script>
+
+        <script type="text/javascript">
+        log( 'inline script #2' );
+        var t = async_test()
+
+        function test() {
+        }
+        onload = t.step_func(function() {
+          assert_any(assert_array_equals, eventOrder, [['inline script #1', 'dynamically added inline script', 'end script #1', 'external script #1', 'inline script #2'],
+                                                       ['inline script #1', 'dynamically added inline script', 'end script #1', 'inline script #2', 'external script #1']]);
+          t.done();
+        })
+        </script>
+
+</body></html>

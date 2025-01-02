@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<title>load/error events for classic scripts</title>
+<!-- For module scripts see module/load-error-events*.html -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/load-error-events-helpers.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#execute-the-script-block">
+</head>
+<script>
+"use strict";
+var test1_load = event_test('src, 200, parser-inserted, defer, no async', true, false);
+var test2_load = event_test('src, 200, parser-inserted, no defer, no async', true, false);
+var test4_load = event_test('src, 200, parser-inserted, no defer, async', true, false);
+
+var test3_dynamic_load = event_test('src, 200, not parser-inserted, no defer, no async, no non-blocking', true, false);
+var test4_dynamic_load = event_test('src, 200, not parser-inserted, no defer, async', true, false);
+
+var test1_error = event_test('src, 404, parser-inserted, defer, no async', false, true);
+var test2_error = event_test('src, 404, parser-inserted, no defer, no async', false, true);
+var test4_error = event_test('src, 404, parser-inserted, no defer, async', false, true);
+
+var test3_dynamic_error = event_test('src, 404, not parser-inserted, no defer, no async, no non-blocking', false, true);
+var test4_dynamic_error = event_test('src, 404, not parser-inserted, no defer, async', false, true);
+
+var test6_load = event_test('no src, parser-inserted, no style sheets blocking scripts', false, false);
+
+var script3_dynamic_load = document.createElement('script');
+script3_dynamic_load.onload = () => onLoad(test3_dynamic_load);
+script3_dynamic_load.onerror = () => onError(test3_dynamic_load);
+script3_dynamic_load.async = false;
+script3_dynamic_load.src = "resources/load-error-events.py?test=test3_dynamic_load";
+document.head.appendChild(script3_dynamic_load);
+
+var script3_dynamic_error = document.createElement('script');
+script3_dynamic_error.onload = () => onLoad(test3_dynamic_error);
+script3_dynamic_error.onerror = () => onError(test3_dynamic_error);
+script3_dynamic_error.async = false;
+script3_dynamic_error.src = "resources/load-error-events.py?test=test3_dynamic_error";
+document.head.appendChild(script3_dynamic_error);
+
+var script4_dynamic_load = document.createElement('script');
+script4_dynamic_load.onload = () => onLoad(test4_dynamic_load);
+script4_dynamic_load.onerror = () => onError(test4_dynamic_load);
+script4_dynamic_load.async = true;
+script4_dynamic_load.src = "resources/load-error-events.py?test=test4_dynamic_load";
+document.head.appendChild(script4_dynamic_load);
+
+var script4_dynamic_error = document.createElement('script');
+script4_dynamic_error.onload = () => onLoad(test4_dynamic_error);
+script4_dynamic_error.onerror = () => onError(test4_dynamic_error);
+script4_dynamic_error.async = true;
+script4_dynamic_error.src = "resources/load-error-events.py?test=test4_dynamic_error";
+document.head.appendChild(script4_dynamic_error);
+</script>
+
+<script src="resources/load-error-events.py?test=test1_load" onload="onLoad(test1_load);" onerror="onError(test1_load);" defer></script>
+<script src="resources/load-error-events.py?test=test2_load" onload="onLoad(test2_load);" onerror="onError(test2_load);"></script>
+<script src="resources/load-error-events.py?test=test4_load" onload="onLoad(test4_load);" onerror="onError(test4_load);" async></script>
+<script src="resources/load-error-events.py?test=test1_error" onload="onLoad(test1_error);" onerror="onError(test1_error);" defer></script>
+<script src="resources/load-error-events.py?test=test2_error" onload="onLoad(test2_error);" onerror="onError(test2_error);"></script>
+<script src="resources/load-error-events.py?test=test4_error" onload="onLoad(test4_error);" onerror="onError(test4_error);" async></script>
+
+<script onload="onLoad(test6_load);" onerror="onError(test6_load);">
+"use strict";
+onExecute(test6_load);
+</script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-013-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#list-style-position-property">
+<meta name="assert" content="Checks that ::marker is updated when 'list-style-position' changes dynamically.">
+<style>
+.inside {
+  list-style-position: inside;
+}
+.string {
+  list-style-type: "string";
+}
+.content::marker {
+  content: "content";
+}
+.before, .after {
+  display: contents;
+}
+.before::before, .after::after {
+  content: "item";
+  display: list-item;
+  list-style-type: "nested";
+}
+</style>
+<ol class="inside">
+  <li class="decimal">item</li>
+  <li class="string">item</li>
+  <li class="content">item</li>
+  <li class="before"></li>
+  <li class="after"></li>
+</ol>
+<ol class="outside">
+  <li class="decimal">item</li>
+  <li class="string">item</li>
+  <li class="content">item</li>
+  <li class="before"></li>
+  <li class="after"></li>
+</ol>
+<script src="/common/reftest-wait.js"></script>
+<script>
+"use strict";
+addEventListener("load", function() {
+  requestAnimationFrame(() => {
+    for (const list of document.querySelectorAll("ol")) {
+      list.classList.toggle("inside");
+      list.classList.toggle("outside");
+    }
+    takeScreenshot();
+  });
+}, {once: true});
+</script>
+</html>

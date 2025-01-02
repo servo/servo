@@ -1,0 +1,149 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Deletion tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable></div>
+<script>
+var div = document.querySelector("div");
+
+// Format: [start html, start pos, expected html, expected pos, command]
+// Positions are a sequence of offsets starting from div, e.g., "1,2,0"
+// translates to node = div.childNodes[1].childNodes[2], offset = 0.  For a
+// non-collapsed selection, use a hyphen, like "0,0-1,0".  The selections are
+// created with collapse() followed by extend() to allow reverse selections, so
+// order is significant.
+//
+// Expected values can be arrays, in which case any is acceptable.
+var tests = [
+  ["<p><br></p><p><br></p>", "1,0", "<p><br></p>", "0,0", "delete"],
+  ["<p><br></p><p><br></p>", "0,0", "<p><br></p>", "0,0", "forwarddelete"],
+
+  // Range
+  ["<p><br></p><p><br></p>", "0,0-1,0", "<p><br></p>", "0,0", "delete"],
+  ["<p><br></p><p><br></p>", "0,0-1,0", "<p><br></p>", "0,0", "forwarddelete"],
+  ["<p><br></p><p><br></p>", "1,0-0,0", "<p><br></p>", "0,0", "delete"],
+  ["<p><br></p><p><br></p>", "1,0-0,0", "<p><br></p>", "0,0", "forwarddelete"],
+
+  // Different start values
+  ["<p>x<br></p><p><br></p>", "1,0",
+   // WebKit/Blink like to get rid of the extra <br>
+   ["<p>x<br></p>", "<p>x</p>"],
+   // The selection should really be collapsed inside the text node, but in the
+   // parent is close enough.
+   ["0,0,1", "0,1"], "delete"],
+  ["<p><br><br></p><p><br></p>", "1,0", "<p><br><br></p>", "0,1", "delete"],
+  ["<p><br></p><p><br><br></p>", "1,1",
+   "<p><br></p><p><br></p>", "1,0", "delete"],
+  ["<p><br><br><br></p>", "0,2", "<p><br><br></p>", "0,1", "delete"],
+  ["<p><br></p><p><br><br><br></p>", "1,2",
+   "<p><br></p><p><br><br></p>", "1,1", "delete"],
+  ["<p><br><br></p><p><br><br></p>", "1,1",
+   "<p><br><br></p><p><br></p>", "1,0", "delete"],
+  ["<p><br></p><br>", "1", "<p><br></p>", "0,0", "delete"],
+
+  // The trailing \n in these cases is actually significant, because it was
+  // necessary to trigger an actual Gecko bug (somehow!).
+  ["<p><br></p><p><br></p>\n", "1,0", "<p><br></p>\n", "0,0", "delete"],
+  ["<p><br></p><p><br></p>\n", "0,0", "<p><br></p>\n", "0,0", "forwarddelete"],
+  ["\n<p><tt>x</tt></p><p><tt><br></tt></p><p><tt><br></tt></p>\n", "3,0,0",
+   "\n<p><tt>x</tt></p><p><tt><br></tt></p>\n", "2,0,0", "delete"],
+];
+
+div.focus();
+
+for (var i = 0; i < tests.length; i++) {
+  test(function() {
+    var test = tests[i];
+    div.innerHTML = test[0];
+    setSelection(test[1]);
+
+    document.execCommand(test[4], false, "");
+
+    if (typeof test[2] == "string") {
+      assert_equals(div.innerHTML, test[2], "innerHTML");
+    } else {
+      assert_in_array(div.innerHTML, test[2], "innerHTML");
+    }
+
+    var actualSel = recordSelection();
+    var expectedSel = [];
+    if (typeof test[3] == "string") {
+      test[3] = [test[3]];
+    }
+    for (var j = 0; j < test[3].length; j++) {
+      setSelection(test[3][j]);
+      expectedSel.push(recordSelection());
+    }
+    assertSelectionEquals(actualSel, expectedSel, test[2]);
+  }, i + ": " + format_value(tests[i][0]) + " " + tests[i][1] +
+  " " + tests[i][4]);
+}
+
+function setSelection(selstr) {
+  var parts = selstr.split("-");
+  var collapsePoint = getPointFromArray(parts[0].split(","));
+  getSelection().collapse(collapsePoint[0], collapsePoint[1]);
+
+  if (parts[1]) {
+    var extendPoint = getPointFromArray(parts[1].split(","));
+    getSelection().extend(extendPoint[0], extendPoint[1]);
+  }
+}
+
+function getPointFromArray(offsets) {
+  var retNode = div, retOffset;
+  var offset;
+  while (offset = offsets.shift()) {
+    if (!offsets.length) {
+      retOffset = offset;
+    } else {
+      retNode = retNode.childNodes[offset];
+    }
+  }
+  return [retNode, retOffset];
+}
+
+function recordSelection() {
+  return [getSelection().anchorNode, getSelection().anchorOffset,
+          getSelection().focusNode, getSelection().focusOffset];
+}
+
+function assertSelectionEquals(actual, expected, html) {
+  if (typeof expected == "string") {
+    expected = [expected];
+  }
+  var pass = false;
+  for (var i = 0; i < expected.length; i++) {
+    if (expected[i][0] === actual[0] &&
+        expected[i][1] === actual[1] &&
+        expected[i][2] === actual[2] &&
+        expected[i][3] === actual[3]) {
+      pass = true;
+      break;
+    }
+  }
+
+  assert_true(pass, "Wrong selection, expected " + formatSel(expected) +
+              ", got " + formatSel(actual) +
+              " (in HTML " + format_value(html) + ")");
+}
+
+function formatSel(arr) {
+  if (arr.length == 1) {
+    arr = arr[0];
+  }
+  if (Array.isArray(arr[0])) {
+    var ret = [];
+    for (var i = 0; i < arr.length; i++) {
+      ret.push(formatSel(arr[i]));
+    }
+    return ret.join(" or ");
+  }
+  if (arr[0] == arr[2] && arr[1] == arr[3]) {
+    return "collapsed (" + format_value(arr[0]) + ", " + arr[1] + ")";
+  }
+  return "(" + format_value(arr[0]) + ", " + arr[1] +
+         ")-(" + format_value(arr[2]) + ", " + arr[3] + ")";
+}
+</script>

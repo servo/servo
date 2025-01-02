@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test k-rate AudioParams of PannerNode</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="automation-rate-testing.js"></script>
+  </head>
+
+  <body>
+    <script>
+      let audit = Audit.createTaskRunner();
+
+      // Define a test where we verify that a k-rate audio param produces
+      // different results from an a-rate audio param for each of the audio
+      // params of a biquad.
+      //
+      // Each entry gives the name of the AudioParam, an initial value to be
+      // used with setValueAtTime, and a final value to be used with
+      // linearRampToValueAtTime. (See |doTest| for details as well.)
+
+      [{name: 'positionX', initial: 0, final: 1000},
+       {name: 'positionY', initial: 0, final: 1000},
+       {name: 'orientationX', initial: 1, final: 10},
+       {name: 'orientationY', initial: 1, final: 10},
+       {name: 'orientationZ', initial: 1, final: 10},
+      ].forEach(paramProperty => {
+        audit.define('Panner k-rate ' + paramProperty.name, (task, should) => {
+          // Arbitrary sample rate and duration.
+          let sampleRate = 8000;
+          let testDuration = 5 * 128 / sampleRate;
+          let context = new OfflineAudioContext({
+            numberOfChannels: 3,
+            sampleRate: sampleRate,
+            length: testDuration * sampleRate
+          });
+
+          doTest(context, should, {
+            sourceNodeName: 'ConstantSourceNode',
+            verifyPieceWiseConstant: true,
+            nodeName: 'PannerNode',
+            // Make the source directional so orientation matters, and set some
+            // defaults for the position and orientation so that we're not on an
+            // axis where the azimuth and elevation might be constant when
+            // moving one of the AudioParams.
+            nodeOptions: {
+              distanceModel: 'inverse',
+              coneOuterAngle: 360,
+              coneInnerAngle: 0,
+              positionX: 1,
+              positionY: 1,
+              positionZ: 1,
+              orientationX: 0,
+              orientationY: 1,
+              orientationZ: 1
+            },
+            prefix: `k-rate ${paramProperty.name}`,
+            // Just set the frequency to k-rate
+            rateSettings: [
+              {name: paramProperty.name, value: 'k-rate'},
+            ],
+            // Automate just the given AudioParam
+            automations: [{
+              name: paramProperty.name,
+              methods: [
+                {name: 'setValueAtTime', options: [paramProperty.initial, 0]}, {
+                  name: 'linearRampToValueAtTime',
+                  options: [paramProperty.final, testDuration]
+                }
+              ]
+            }]
+          }).then(() => task.done());
+        });
+      });
+
+      // Test k-rate automation of the listener.  The intial and final
+      // automation values are pretty arbitrary, except that they should be such
+      // that the panner and listener produces non-constant output.
+      [{name: 'positionX', initial: [1, 0], final: [1000, 1]},
+       {name: 'positionY', initial: [1, 0], final: [1000, 1]},
+       {name: 'positionZ', initial: [1, 0], final: [1000, 1]},
+       {name: 'forwardX', initial: [-1, 0], final: [1, 1]},
+       {name: 'forwardY', initial: [-1, 0], final: [1, 1]},
+       {name: 'forwardZ', initial: [-1, 0], final: [1, 1]},
+       {name: 'upX', initial: [-1, 0], final: [1000, 1]},
+       {name: 'upY', initial: [-1, 0], final: [1000, 1]},
+       {name: 'upZ', initial: [-1, 0], final: [1000, 1]},
+      ].forEach(paramProperty => {
+        audit.define(
+            'Listener k-rate ' + paramProperty.name, (task, should) => {
+              // Arbitrary sample rate and duration.
+              let sampleRate = 8000;
+              let testDuration = 5 * 128 / sampleRate;
+              let context = new OfflineAudioContext({
+                numberOfChannels: 1,
+                sampleRate: sampleRate,
+                length: testDuration * sampleRate
+              });
+
+              doListenerTest(context, should, {
+                param: paramProperty.name,
+                initial: paramProperty.initial,
+                final: paramProperty.final
+              }).then(() => task.done());
+            });
+      });
+
+      audit.run();
+
+      function doListenerTest(context, should, options) {
+        let src = new ConstantSourceNode(context);
+        let panner = new PannerNode(context, {
+          distanceModel: 'inverse',
+          coneOuterAngle: 360,
+          coneInnerAngle: 10,
+          positionX: 10,
+          positionY: 10,
+          positionZ: 10,
+          orientationX: 1,
+          orientationY: 1,
+          orientationZ: 1
+        });
+
+        src.connect(panner).connect(context.destination);
+
+        src.start();
+
+        let listener = context.listener;
+
+        // Set listener properties to "random" values so that motion on one of
+        // the attributes actually changes things relative to the panner
+        // location.  And the up and forward directions should have a simple
+        // relationship between them.
+        listener.positionX.value = -1;
+        listener.positionY.value = 1;
+        listener.positionZ.value = -1;
+        listener.forwardX.value = -1;
+        listener.forwardY.value = 1;
+        listener.forwardZ.value = -1;
+        // Make the up vector not parallel or perpendicular to the forward and
+        // position vectors so that automations of the up vector produce
+        // noticeable differences.
+        listener.upX.value = 1;
+        listener.upY.value = 1;
+        listener.upZ.value = 2;
+
+        let audioParam = listener[options.param];
+        audioParam.automationRate = 'k-rate';
+
+        let prefix = `Listener ${options.param}`;
+        should(audioParam.automationRate, prefix + '.automationRate')
+            .beEqualTo('k-rate');
+        should(() => {
+          audioParam.setValueAtTime(...options.initial);
+        }, prefix + `.setValueAtTime(${options.initial})`).notThrow();
+        should(() => {
+          audioParam.linearRampToValueAtTime(...options.final);
+        }, prefix + `.linearRampToValueAtTime(${options.final})`).notThrow();
+
+        return context.startRendering().then(renderedBuffer => {
+          let prefix = `Listener k-rate ${options.param}: `;
+          let output = renderedBuffer.getChannelData(0);
+          // Sanity check that the output isn't constant.
+          should(output, prefix + `Output`).notBeConstantValueOf(output[0]);
+
+          // Verify that the output is constant over each render quantum
+          for (let k = 0; k < output.length; k += 128) {
+            should(
+                output.slice(k, k + 128), prefix + `Output [${k}, ${k + 127}]`)
+                .beConstantValueOf(output[k]);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

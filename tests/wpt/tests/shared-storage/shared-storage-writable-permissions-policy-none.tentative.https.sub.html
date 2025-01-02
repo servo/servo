@@ -1,0 +1,33 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+    'use strict';
+    const header = 'permissions policy header shared-storage=()';
+    const sameOriginUrl =
+          '/shared-storage/resources/shared-storage-write.py';
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+    const crossOriginUrl = crossOrigin + sameOriginUrl;
+
+    promise_test(async t => {
+      let response = await fetch(sameOriginUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader,
+                    "NO_SHARED_STORAGE_WRITABLE_HEADER");
+    }, header + ' disallows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the same-origin shared storage fetch request.');
+
+    promise_test(async t => {
+      let response = await fetch(crossOriginUrl,
+                                 {sharedStorageWritable: true});
+      let sharedStorageWritableHeader = await response.text();
+      assert_equals(sharedStorageWritableHeader,
+                    "NO_SHARED_STORAGE_WRITABLE_HEADER");
+    }, header + ' disallows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the cross-origin shared storage fetch request.');
+  </script>
+</body>

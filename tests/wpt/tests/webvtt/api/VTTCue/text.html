@@ -1,0 +1,41 @@
+<!doctype html>
+<title>VTTCue.text</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-text">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles');
+    document.body.appendChild(video);
+});
+test(function(){
+    var c1 = new VTTCue(0, 1, 'text1\r\n\n\u0000');
+    assert_true('text' in c1, 'text is not supported');
+    assert_equals(c1.text, 'text1\r\n\n\u0000');
+    c1.text = c1.text;
+    assert_equals(c1.text, 'text1\r\n\n\u0000');
+    c1.text = null;
+    assert_equals(c1.text, 'null');
+}, document.title+', script-created cue');
+
+var t_parsed = async_test(document.title+', parsed cue');
+t_parsed.step(function(){
+    var t = document.createElement('track');
+    t.onload = this.step_func(function(){
+        var c = t.track.cues;
+        assert_equals(c[0].text, '');
+        assert_equals(c[1].text, 'test');
+        this.done();
+    });
+    t.onerror = this.step_func(function() {
+      assert_unreached('got error event');
+    });
+    t.src = make_vtt_track('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\n'+
+                           '\n\nfoobar\n00:00:00.000 --> 00:00:00.001\ntest', this);
+    t.track.mode = 'showing';
+    video.appendChild(t);
+});
+</script>

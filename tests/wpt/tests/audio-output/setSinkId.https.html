@@ -1,0 +1,62 @@
+<!doctype html>
+<head>
+<title>Test setSinkId behavior </title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="https://www.w3.org/TR/audio-output/#dom-htmlmediaelement-setsinkid">
+</head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+<script>
+"use strict";
+
+const audio = new Audio();
+
+promise_test(t => audio.setSinkId(""), "setSinkId on default audio output should always work");
+
+promise_test(t => promise_rejects_dom(t, "NotFoundError", audio.setSinkId("nonexistent_device_id")),
+  "setSinkId fails with NotFoundError on made up deviceid");
+
+promise_test(async t => {
+  // Attempt to expose some audiooutput devices.
+  await setMediaPermission("granted", ["microphone"]);
+  await navigator.mediaDevices.getUserMedia({ audio: true });
+  const list = await navigator.mediaDevices.enumerateDevices();
+  assert_greater_than(list.length, 0,
+                      "media device list includes at least one device");
+  const audioInputList = list.filter(({kind}) => kind == "audioinput");
+  const outputDevicesList = list.filter(({kind}) => kind == "audiooutput");
+  // List of exposed microphone groupIds
+  const exposedGroupIds = new Set(audioInputList.map(device => device.groupId));
+
+  for (const { deviceId, groupId } of outputDevicesList) {
+    assert_true(exposedGroupIds.has(groupId),
+                "audiooutput device groupId must match an exposed microphone");
+    assert_greater_than(deviceId.length, 0, "deviceId.length");
+
+    const p1 = audio.setSinkId(deviceId);
+    assert_equals(audio.sinkId, "", "before it resolves, setSinkId is unchanged");
+    let r;
+    try {
+      r = await p1;
+    } catch (e) {
+      // "If sinkId is not the empty string, and the application would not be
+      // permitted to play audio through the device identified by sinkId if it
+      // weren't the current user agent default device, reject p with a new
+      // DOMException whose name is NotAllowedError and abort these
+      // substeps."
+      assert_equals(e.name, "NotAllowedError", "Non-permitted devices are failing with NotAllowed error");
+      continue;
+    }
+    assert_equals(r, undefined, "setSinkId resolves with undefined");
+    assert_equals(audio.sinkId, deviceId, "when it resolves, setSinkId updates sinkId to the requested deviceId");
+    r = await audio.setSinkId(deviceId);
+    assert_equals(r, undefined, "resetting sinkid on same current value should always work");
+    r = await audio.setSinkId("");
+    assert_equals(r, undefined, "resetting sinkid on default audio output should always work");
+  }
+}, "setSinkId() with output device IDs exposed by getUserMedia() should either reject with NotAllowedError or resolve");
+
+</script>

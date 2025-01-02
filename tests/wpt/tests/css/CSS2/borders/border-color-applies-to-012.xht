@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-color applied to element with display inline-block</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-08 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" />
+        <link rel="match" href="border-applies-to-001-ref.xht" />
+
+        <meta name="assert" content="The 'border-color' properties applies to elements with a display of inline-block." />
+        <style type="text/css">
+            span#inline-block
+            {
+                border-style: solid;
+                border-color: green;
+                border-width: 4px;
+                display: inline-block;
+                width: 96px;
+            }
+
+            span.block-descendant
+            {
+                color: white;
+                display: block;
+                height: 48px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a hollow green square.</p>
+
+        <div>
+            <span id="inline-block">
+				        <span class="block-descendant">a</span>
+				        <span class="block-descendant">b</span>
+        	  </span>
+        </div>
+
+    </body>
+</html>

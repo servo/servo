@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing hanging-punctuation with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-hanging-punctuation">
+<meta name="assert" content="hanging-punctuation supports the full grammar 'none | [ first || [ force-end | allow-end ] || last ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("hanging-punctuation", "none");
+
+test_valid_value("hanging-punctuation", "first");
+test_valid_value("hanging-punctuation", "force-end");
+test_valid_value("hanging-punctuation", "allow-end");
+test_valid_value("hanging-punctuation", "last");
+
+test_valid_value("hanging-punctuation", "first force-end");
+test_valid_value("hanging-punctuation", "first last");
+test_valid_value("hanging-punctuation", "allow-end first");
+test_valid_value("hanging-punctuation", "force-end last");
+test_valid_value("hanging-punctuation", "last first");
+test_valid_value("hanging-punctuation", "last allow-end");
+
+test_valid_value("hanging-punctuation", "first allow-end last");
+test_valid_value("hanging-punctuation", "first last force-end");
+test_valid_value("hanging-punctuation", "force-end first last");
+test_valid_value("hanging-punctuation", "allow-end last first");
+test_valid_value("hanging-punctuation", "last first force-end");
+test_valid_value("hanging-punctuation", "last allow-end first");
+</script>
+</body>
+</html>

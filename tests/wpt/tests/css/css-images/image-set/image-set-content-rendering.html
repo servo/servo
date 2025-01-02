@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Image set is supported in the content property</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
+<link rel="author" title="Traian Captan" href="mailto:tcaptan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+<link rel="help" href="https://drafts.csswg.org/css-content/#content-property">
+<link rel="match"  href="reference/image-set-rendering-ref.html">
+<meta name="assert" content="image-set content rendering">
+<style>
+  #test {
+    content: image-set(url("/images/green.png") 1x);
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="test"></div>

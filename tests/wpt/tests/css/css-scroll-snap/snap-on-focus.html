@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Scroll snap on Element.focus()</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0;
+}
+
+#scroller {
+  height: 500px;
+  width: 500px;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+}
+
+.snap {
+  width: 100%;
+  height: 300px;
+  top: 100px;
+  left: 0;
+  background-color: green;
+  scroll-snap-align: start none;
+}
+
+.no-snap {
+  width: 100%;
+  height: 300px;
+  top: 100px;
+  left: 0;
+  background-color: red;
+}
+
+.area {
+  width: 100%;
+  height: 2000px;
+}
+</style>
+
+<div id="scroller">
+  <div class="area"></div>
+  <div class="snap" style="top: 0px;"></div>
+  <div class="no-snap" style="top: 1000px;" tabindex=-1></div>
+  <div class="snap" style="top: 1200px;"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  document.querySelector(".no-snap").focus();
+  await new Promise(resolve => step_timeout(resolve, 0));
+  assert_equals(scroller.scrollTop, 1200);
+}, "scroll snap should happens on Element.focus()");
+
+</script>

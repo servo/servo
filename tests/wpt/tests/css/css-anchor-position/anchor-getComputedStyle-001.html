@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that getComputedStyle() resolves anchor functions</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.vrl { writing-mode: vertical-rl; }
+.htb { writing-mode: horizontal-tb; }
+.ltr { direction: ltr; }
+.rtl { direction: rtl; }
+
+.cb {
+  transform: scale(1);
+  width: 200px;
+  height: 150px;
+  outline: 1px dashed black;
+}
+
+.padding-10 {
+  box-sizing: border-box;
+  padding: 10px;
+}
+
+.anchor {
+  width: 40px;
+  height: 30px;
+  background: orange;
+  anchor-name: --a;
+  position: relative;
+  top: 50px;
+  left: 60px;
+}
+
+.anchored-topleft {
+  position: absolute;
+  width: anchor-size(--a width);
+  height: anchor-size(--a height);
+  bottom: anchor(--a top);
+  right: anchor(--a left);
+  background: lime;
+}
+
+.anchored-bottomright {
+  position: absolute;
+  width: anchor-size(--a width);
+  height: anchor-size(--a height);
+  top: anchor(--a bottom);
+  left: anchor(--a right);
+  background: lime;
+}
+</style>
+
+<div class=cb id=test1>
+  <div class=anchor></div>
+  <div class=anchored-topleft></div>
+  <div class=anchored-bottomright></div>
+</div>
+<script>
+test(() => {
+  const container = document.getElementById('test1');
+
+  const topleft = container.querySelector('.anchored-topleft');
+  assert_equals(getComputedStyle(topleft).bottom, '100px');
+  assert_equals(getComputedStyle(topleft).right, '140px');
+  assert_equals(getComputedStyle(topleft).width, '40px');
+  assert_equals(getComputedStyle(topleft).height, '30px');
+
+  const bottomright = container.querySelector('.anchored-bottomright');
+  assert_equals(getComputedStyle(bottomright).top, '80px');
+  assert_equals(getComputedStyle(bottomright).left, '100px');
+  assert_equals(getComputedStyle(bottomright).width, '40px');
+  assert_equals(getComputedStyle(bottomright).height, '30px');
+}, 'Basic case');
+</script>
+
+<div class="cb vrl" id=test2>
+  <div class=anchor></div>
+  <div class="anchored-topleft htb ltr"></div>
+  <div class="anchored-bottomright htb rtl"></div>
+</div>
+<script>
+test(() => {
+  const container = document.getElementById('test2');
+
+  const topleft = container.querySelector('.anchored-topleft');
+  assert_equals(getComputedStyle(topleft).bottom, '100px');
+  assert_equals(getComputedStyle(topleft).right, '-20px');
+  assert_equals(getComputedStyle(topleft).width, '40px');
+  assert_equals(getComputedStyle(topleft).height, '30px');
+
+  const bottomright = container.querySelector('.anchored-bottomright');
+  assert_equals(getComputedStyle(bottomright).top, '80px');
+  assert_equals(getComputedStyle(bottomright).left, '260px');
+  assert_equals(getComputedStyle(bottomright).width, '40px');
+  assert_equals(getComputedStyle(bottomright).height, '30px');
+}, 'Mixed writing modes and directions');
+</script>
+
+<div class="cb padding-10" id=test3>
+  <div class=anchor></div>
+  <div class=anchored-topleft></div>
+  <div class=anchored-bottomright></div>
+</div>
+<script>
+test(() => {
+  const container = document.getElementById('test3');
+
+  const topleft = container.querySelector('.anchored-topleft');
+  assert_equals(getComputedStyle(topleft).bottom, '90px');
+  assert_equals(getComputedStyle(topleft).right, '130px');
+  assert_equals(getComputedStyle(topleft).width, '40px');
+  assert_equals(getComputedStyle(topleft).height, '30px');
+
+  const bottomright = container.querySelector('.anchored-bottomright');
+  assert_equals(getComputedStyle(bottomright).top, '90px');
+  assert_equals(getComputedStyle(bottomright).left, '110px');
+  assert_equals(getComputedStyle(bottomright).width, '40px');
+  assert_equals(getComputedStyle(bottomright).height, '30px');
+}, 'With containing block padding');
+</script>
+

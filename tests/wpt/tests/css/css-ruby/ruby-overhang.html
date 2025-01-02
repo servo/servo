@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-overhang: none</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
+<link rel="match" href="ruby-overhang-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  div {
+    font: 16px/5 Ahem;
+  }
+  ruby, rt {
+    color: transparent;
+  }
+</style>
+<div>X<ruby>X<rt>XXXX</rt></ruby>X</div>
+<div>X<ruby style="ruby-overhang: none">X<rt>XXXX</rt></ruby>X</div>
+<div style="ruby-overhang: none">X<ruby>X<rt>XXXX</rt></ruby>X</div>

@@ -1,0 +1,465 @@
+- name: 2d.clearRect.basic
+  desc: clearRect clears to transparent black
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.clearRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.clearRect.path
+  desc: clearRect does not affect the current path
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 50);
+    ctx.clearRect(0, 0, 16, 16);
+    ctx.fill();
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.clearRect.zero
+  desc: clearRect of zero pixels has no effect
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.clearRect(0, 0, 100, 0);
+    ctx.clearRect(0, 0, 0, 50);
+    ctx.clearRect(0, 0, 0, 0);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.clearRect.negative
+  desc: clearRect of negative sizes works
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.clearRect(0, 0, 50, 25);
+    ctx.clearRect(100, 0, -50, 25);
+    ctx.clearRect(0, 50, 50, -25);
+    ctx.clearRect(100, 50, -50, -25);
+    @assert pixel 25,12 == 0,0,0,0;
+    @assert pixel 75,12 == 0,0,0,0;
+    @assert pixel 25,37 == 0,0,0,0;
+    @assert pixel 75,37 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.clearRect.transform
+  desc: clearRect is affected by transforms
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.scale(10, 10);
+    ctx.translate(0, 5);
+    ctx.clearRect(0, -5, 10, 5);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.clearRect.globalalpha
+  desc: clearRect is not affected by globalAlpha
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalAlpha = 0.1;
+    ctx.clearRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.clearRect.globalcomposite
+  desc: clearRect is not affected by globalCompositeOperation
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'destination-atop';
+    ctx.clearRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.clearRect.clip
+  desc: clearRect is affected by clipping regions
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.beginPath();
+    ctx.rect(0, 0, 16, 16);
+    ctx.clip();
+    ctx.clearRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 16, 16);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.clearRect.shadow
+  desc: clearRect does not draw shadows
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#f00';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 50;
+    ctx.clearRect(0, -50, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.clearRect.nonfinite
+  desc: clearRect() with Infinity/NaN is ignored
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @nonfinite ctx.clearRect(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+
+- name: 2d.fillRect.basic
+  desc: fillRect works
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillRect.path
+  desc: fillRect does not affect the current path
+  code: |
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 16, 16);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillRect.zero
+  desc: fillRect of zero pixels has no effect
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 0);
+    ctx.fillRect(0, 0, 0, 50);
+    ctx.fillRect(0, 0, 0, 0);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillRect.negative
+  desc: fillRect of negative sizes works
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 25);
+    ctx.fillRect(100, 0, -50, 25);
+    ctx.fillRect(0, 50, 50, -25);
+    ctx.fillRect(100, 50, -50, -25);
+    @assert pixel 25,12 == 0,255,0,255;
+    @assert pixel 75,12 == 0,255,0,255;
+    @assert pixel 25,37 == 0,255,0,255;
+    @assert pixel 75,37 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillRect.transform
+  desc: fillRect is affected by transforms
+  code: |
+    ctx.scale(10, 10);
+    ctx.translate(0, 5);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, -5, 10, 5);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+# don't bother testing globalalpha, globalcomposite because they're already heavily used by other test cases
+
+- name: 2d.fillRect.clip
+  desc: fillRect is affected by clipping regions
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.beginPath();
+    ctx.rect(0, 0, 16, 16);
+    ctx.clip();
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 16, 16);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillRect.shadow
+  desc: fillRect draws shadows
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#0f0';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 50;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillRect.nonfinite
+  desc: fillRect() with Infinity/NaN is ignored
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    @nonfinite ctx.fillRect(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+
+- name: 2d.strokeRect.basic
+  desc: strokeRect works
+  code: |
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 50;
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.path
+  desc: strokeRect does not affect the current path
+  code: |
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(0, 0, 16, 16);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.zero.1
+  desc: strokeRect of 0x0 pixels draws nothing
+  code: |
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 250;
+    ctx.strokeRect(50, 25, 0, 0);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.strokeRect.zero.2
+  desc: strokeRect of 0x0 pixels draws nothing, including caps and joins
+  code: |
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 250;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeRect(50, 25, 0, 0);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.strokeRect.zero.3
+  desc: strokeRect of Nx0 pixels draws a straight line
+  code: |
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 50;
+    ctx.strokeRect(0, 25, 100, 0);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.zero.4
+  desc: strokeRect of Nx0 pixels draws a closed line with no caps
+  code: |
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 250;
+    ctx.lineCap = 'round';
+    ctx.strokeRect(100, 25, 100, 0);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.strokeRect.zero.5
+  desc: strokeRect of Nx0 pixels draws a closed line with joins
+  code: |
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 250;
+    ctx.lineJoin = 'round';
+    ctx.strokeRect(100, 25, 100, 0);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.negative
+  desc: strokeRect of negative sizes works
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 25;
+    ctx.strokeRect(12, 12, 26, 1);
+    ctx.strokeRect(88, 12, -26, 1);
+    ctx.strokeRect(12, 38, 26, -1);
+    ctx.strokeRect(88, 38, -26, -1);
+    @assert pixel 25,12 == 0,255,0,255;
+    @assert pixel 75,12 == 0,255,0,255;
+    @assert pixel 25,37 == 0,255,0,255;
+    @assert pixel 75,37 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.transform
+  desc: fillRect is affected by transforms
+  code: |
+    ctx.scale(10, 10);
+    ctx.translate(0, 5);
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(2.5, -2.6, 5, 0.2);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.globalalpha
+  desc: strokeRect is affected by globalAlpha
+  code: |
+    ctx.globalAlpha = 0;
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 50;
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.strokeRect.globalcomposite
+  desc: strokeRect is not affected by globalCompositeOperation
+  code: |
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 50;
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,0,0,0;
+  expected: clear
+
+- name: 2d.strokeRect.clip
+  desc: strokeRect is affected by clipping regions
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.beginPath();
+    ctx.rect(0, 0, 16, 16);
+    ctx.clip();
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 50;
+    ctx.strokeRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 16, 16);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.shadow
+  desc: strokeRect draws shadows
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 50;
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 50;
+    ctx.strokeRect(0, -75, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeRect.nonfinite
+  desc: strokeRect() with Infinity/NaN is ignored
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 150;
+    @nonfinite ctx.strokeRect(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillStyle.colorObject
+  desc: ctx.fillStyle works with color objects
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.fillStyle = {r: 1, g: 0, b: 0};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,0,0,255;
+    ctx.fillStyle = {r: 0, g: 0, b: 1};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,255,255;
+    ctx.fillStyle = {r: 0.2, g: 0.4, b: 0.6};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 51,102,153,255;
+    ctx.fillStyle = {r: 0, g: 1, b: 0};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    ctx.fillStyle = {r: -1, g: 0, b: 0};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,255;
+    ctx.fillStyle = {r: 0, g: 2, b: 0};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillStyle.colorObject.transparency
+  desc: ctx.fillStyle with color objects has transparency
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.fillStyle = {r: 0, g: 1, b: 0, a: 0};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,0;
+    ctx.clearRect(0, 0, 100, 50);
+    ctx.fillStyle = {r: 0, g: 1, b: 0, a: -1};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,0;
+    ctx.clearRect(0, 0, 100, 50);
+    ctx.fillStyle = {r: 0, g: 1, b: 0, a: 0.5};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,128;
+    ctx.clearRect(0, 0, 100, 50);
+    ctx.fillStyle = {r: 0, g: 1, b: 0, a: 1};
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeStyle.colorObject
+  desc: ctx.strokeStyle works with color objects
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.lineWidth = 50;
+    ctx.strokeStyle = {r: 1, g: 0, b: 0};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 255,0,0,255;
+    ctx.strokeStyle = {r: 0, g: 0, b: 1};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,0,255,255;
+    ctx.strokeStyle = {r: 0.2, g: 0.4, b: 0.6};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 51,102,153,255;
+    ctx.strokeStyle = {r: 0, g: 1, b: 0};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,255,0,255;
+    ctx.strokeStyle = {r: -1, g: 0, b: 0};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,0,0,255;
+    ctx.strokeStyle = {r: 0, g: 2, b: 0};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.strokeStyle.colorObject.transparency
+  desc: ctx.strokeStyle with color objects has transparency
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.lineWidth = 50;
+    ctx.strokeStyle = {r: 0, g: 1, b: 0, a: 0};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,0,0,0;
+    ctx.strokeStyle = {r: 0, g: 1, b: 0, a: -1};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,0,0,0;
+    ctx.clearRect(0, 0, 100, 50);
+    ctx.strokeStyle = {r: 0, g: 1, b: 0, a: 0.5};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,255,0,128;
+    ctx.clearRect(0, 0, 100, 50);
+    ctx.strokeStyle = {r: 0, g: 1, b: 0, a: 1};
+    ctx.strokeRect(25, 24, 50, 2);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green

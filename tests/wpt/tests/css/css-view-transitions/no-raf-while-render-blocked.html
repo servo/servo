@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<html>
+<title>View transitions: rAF is not issued while render-blocked</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: target;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+let renderBlocked = true;
+
+promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    requestAnimationFrame(() => {
+      document.startViewTransition(() => {
+        return new Promise(async (inner_resolve) => {
+          step_timeout(() => {
+            renderBlocked = false;
+            inner_resolve();
+          }, 1000);
+        });
+      });
+
+      requestAnimationFrame(() => {
+        if (renderBlocked)
+          reject();
+        else
+          resolve();
+      });
+    });
+  });
+}, "rAF is blocked until prepare callback");
+</script>

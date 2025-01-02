@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<head>
+    <meta charset='utf-8' />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/performance-timeline-utils.js"></script>
+    <script>
+      setup({single_test: true})
+      delayedLoadListener(function(){
+        assert_not_equals(typeof performance.getEntriesByType('resource')[0].serverTiming, 'undefined',
+          'An instance of `PerformanceResourceTiming` should have a `serverTiming` attribute.')
+        done()
+      })
+    </script>
+</head>

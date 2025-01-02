@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Fonts Module Level 3: parsing font-style with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-style-prop">
+<meta name="assert" content="font-style supports the full grammar 'normal | italic | oblique'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value('font-style', 'normal');
+test_valid_value('font-style', 'italic');
+test_valid_value('font-style', 'oblique');
+</script>
+</body>
+</html>

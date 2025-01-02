@@ -1,0 +1,39 @@
+name: Docs upload
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  upload-docs:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    name: Upload docs to GitHub Pages
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap
+        run: |
+          sudo apt update
+          ./mach bootstrap --skip-lints
+      - name: Set LIBCLANG_PATH # This is needed for bindgen in mozangle.
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Compile docs
+        run: ./mach doc
+        env:
+          RUSTDOCFLAGS: --document-private-items
+      - name: Upload docs
+        run: |
+          cd target/doc
+          git config --global init.defaultBranch main
+          git init
+          git add .
+          git -c user.name="Workflow" -c user.email="" \
+              commit -q -m "Rebuild Servo documentation"
+          git remote add origin https://git:${DOC_SERVO_ORG}@github.com/servo/doc.servo.org
+          git push --force origin main:gh-pages
+        env:
+          DOC_SERVO_ORG: ${{ secrets.DOC_SERVO_ORG }}

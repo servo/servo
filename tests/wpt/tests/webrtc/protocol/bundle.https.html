@@ -1,0 +1,150 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection BUNDLE</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+
+
+  exchangeIceCandidates(caller, callee);
+  const offer = await caller.createOffer();
+  // remove the a=group:BUNDLE from the SDP when signaling.
+  const sdp = offer.sdp.replace(/a=group:BUNDLE (.*)\r\n/, '');
+  const ontrack = new Promise(r => callee.ontrack = r);
+
+  await callee.setRemoteDescription({type: 'offer', sdp});
+  await caller.setLocalDescription(offer);
+
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+  await callee.setLocalDescription(answer);
+
+  const {streams: [recvStream]} = await ontrack;
+  assert_equals(recvStream.getTracks().length, 2, "Tracks should be added to the stream before sRD resolves.");
+  const v = document.createElement('video');
+  v.autoplay = true;
+  v.srcObject = recvStream;
+  v.id = recvStream.id;
+  await new Promise(r => v.onloadedmetadata = r);
+
+  const senders = caller.getSenders();
+  const dtlsTransports = senders.map(s => s.transport);
+  assert_equals(dtlsTransports.length, 2);
+  assert_not_equals(dtlsTransports[0], dtlsTransports[1]);
+
+  const iceTransports = dtlsTransports.map(t => t.iceTransport);
+  assert_equals(iceTransports.length, 2);
+  assert_not_equals(iceTransports[0], iceTransports[1]);
+}, 'not negotiating BUNDLE creates two separate ice and dtls transports');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+
+  exchangeIceCandidates(caller, callee);
+  const offer = await caller.createOffer();
+  const ontrack = new Promise(r => callee.ontrack = r);
+  await callee.setRemoteDescription(offer);
+  await caller.setLocalDescription(offer);
+  const secondTransport = caller.getSenders()[1].transport; // Save a reference to this transport.
+
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+  await callee.setLocalDescription(answer);
+
+  const {streams: [recvStream]} = await ontrack;
+  assert_equals(recvStream.getTracks().length, 2, "Tracks should be added to the stream before sRD resolves.");
+  const v = document.createElement('video');
+  v.autoplay = true;
+  v.srcObject = recvStream;
+  v.id = recvStream.id;
+  await new Promise(r => v.onloadedmetadata = r);
+
+  const senders = caller.getSenders();
+  const dtlsTransports = senders.map(s => s.transport);
+  assert_equals(dtlsTransports.length, 2);
+  assert_equals(dtlsTransports[0], dtlsTransports[1]);
+  assert_not_equals(dtlsTransports[1], secondTransport);
+  assert_equals(secondTransport.state, 'closed');
+}, 'bundles on the first transport and closes the second');
+
+promise_test(async t => {
+  const sdp = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+a=ice-ufrag:ETEn
+a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:audio
+a=rtpmap:111 opus/48000/2
+a=setup:actpass
+m=video 9 UDP/TLS/RTP/SAVPF 100
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:video
+a=rtpmap:100 VP8/90000
+a=fmtp:100 max-fr=30;max-fs=3600
+a=setup:actpass
+`;
+  const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+  t.add_cleanup(() => pc.close());
+  await pc.setRemoteDescription({ type: 'offer', sdp });
+  await pc.setLocalDescription();
+  const transceivers = pc.getTransceivers();
+  assert_equals(transceivers.length, 2);
+  assert_false(transceivers[0].stopped);
+  assert_true(transceivers[1].stopped);
+}, 'max-bundle with an offer without bundle only negotiates the first m-line');
+
+promise_test(async t => {
+  const sdp = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE audio video
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+a=ice-ufrag:ETEn
+a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l
+a=rtcp-mux
+a=sendonly
+a=mid:audio
+a=rtpmap:111 opus/48000/2
+a=setup:actpass
+m=video 0 UDP/TLS/RTP/SAVPF 100
+c=IN IP4 0.0.0.0
+a=bundle-only
+a=sendonly
+a=mid:video
+a=rtpmap:100 VP8/90000
+a=fmtp:100 max-fr=30;max-fs=3600
+`;
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  await pc.setRemoteDescription({ type: 'offer', sdp });
+}, 'sRD(offer) works with no transport attributes in a bundle-only m-section');
+</script>

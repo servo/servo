@@ -1,0 +1,12 @@
+<!doctype html>
+<title>NOT invoking resource selection by inserting into a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function(t) {
+  var v = document.createElement('video');
+  document.body.appendChild(v);
+  assert_equals(v.networkState, v.NETWORK_EMPTY);
+});
+</script>

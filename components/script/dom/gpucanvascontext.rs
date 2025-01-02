@@ -1,0 +1,42 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use script_layout_interface::HTMLCanvasDataSource;
+
+use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
+use crate::dom::bindings::codegen::UnionTypes;
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
+
+#[dom_struct]
+pub struct GPUCanvasContext {
+    reflector_: Reflector,
+}
+
+impl GPUCanvasContext {
+    #[allow(dead_code)]
+    fn new_inherited() -> Self {
+        unimplemented!()
+    }
+
+    pub fn new(_global: &GlobalScope, _canvas: &HTMLCanvasElement) -> DomRoot<Self> {
+        unimplemented!()
+    }
+}
+
+impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
+    fn Canvas(&self) -> UnionTypes::HTMLCanvasElementOrOffscreenCanvas {
+        unimplemented!()
+    }
+}
+
+impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
+    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+        unimplemented!()
+    }
+}

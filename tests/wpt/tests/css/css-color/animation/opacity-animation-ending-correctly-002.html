@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<title>CSS Test (Color): ending of opacity animation</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="https://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1330438">
+<link rel="help" href="https://www.w3.org/TR/css-color-3/#transparency">
+<link rel="match" href="opacity-animation-ending-correctly-001-ref.html">
+
+<style>
+#test {
+  position: sticky;
+  top: 0;
+  height: 50px;
+  background: blue;
+  transform: translate(0);
+  filter: grayscale(0%);
+  transition: opacity 50ms step-start;
+}
+
+#test.fade {
+  opacity: 0.2;
+}
+
+.tall {
+  height: 5000px;
+}
+</style>
+
+<div id="test">
+</div>
+<div class="tall">
+</div>
+
+<script>
+function flushStyleLayoutAndPrePaint() {
+  document.elementFromPoint(10, 10);
+}
+
+document.getElementById("test").addEventListener("transitionend", function(e) {
+  document.documentElement.classList.remove("reftest-wait");
+});
+requestAnimationFrame(function() {
+  flushStyleLayoutAndPrePaint();
+  requestAnimationFrame(function() {
+    document.getElementById("test").classList.add("fade");
+    flushStyleLayoutAndPrePaint();
+  });
+});
+</script>

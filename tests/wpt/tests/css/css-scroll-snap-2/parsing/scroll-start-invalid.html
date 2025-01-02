@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-block with invalid values</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <script>
+    test_invalid_value("scroll-start", "-100px");
+    test_invalid_value("scroll-start", "-50%");
+    test_invalid_value("scroll-start", "invalid_keyword");
+    test_invalid_value("scroll-start", "-100px -50%");
+    test_invalid_value("scroll-start", "-50% invalid_keyword");
+    test_invalid_value("scroll-start", "invalid_keyword invalid_keyword");
+    test_invalid_value("scroll-start", "-100px - 100px");
+    test_invalid_value("scroll-start", "-50% -100px");
+    test_invalid_value("scroll-start", "invalid_keyword -50%");
+    test_invalid_value("scroll-start", "-100px invalid_keyword");
+    test_invalid_value("scroll-start", "-50% -50%");
+    test_invalid_value("scroll-start", "invalid_keyword -100px");
+    test_invalid_value("scroll-start", "100px 200px 300px");
+
+    test_invalid_value("scroll-start-block", "-100px");
+    test_invalid_value("scroll-start-block", "-50%");
+    test_invalid_value("scroll-start-block", "invalid_keyword");
+    test_invalid_value("scroll-start-block", "100px 200px");
+
+    test_invalid_value("scroll-start-inline", "-100px");
+    test_invalid_value("scroll-start-inline", "-50%");
+    test_invalid_value("scroll-start-inline", "invalid_keyword");
+    test_invalid_value("scroll-start-inline", "100px 200px");
+
+    test_invalid_value("scroll-start-x", "-100px");
+    test_invalid_value("scroll-start-x", "-50%");
+    test_invalid_value("scroll-start-x", "invalid_keyword");
+    test_invalid_value("scroll-start-x", "100px 200px");
+
+    test_invalid_value("scroll-start-y", "-100px");
+    test_invalid_value("scroll-start-y", "-50%");
+    test_invalid_value("scroll-start-y", "invalid_keyword");
+    test_invalid_value("scroll-start-y", "100px 200px");
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1371426">
+<link rel="match" href="transform-024-print-ref.html">
+<style>
+  body { margin: 0; }
+</style>
+<div style="position:relative; z-index:1; height:100vh;">
+  There should be five pages. Each page should have a unique background - but no
+  red should be seen.
+</div>
+<!-- This tests that the transform on the container is applied to all the
+     absolutely positioned descendants, and also that the transform origin is
+     correct. -->
+<div style="transform:rotate(180deg); height:250vh; background:red;">
+  <div style="position:absolute; width:100%; transform:translateY(-100vh); top:-100vh; height:100vh; background:yellow;"></div>
+  <div style="position:absolute; width:100%; height:100vh; background:pink;"></div>
+  <div style="position:absolute; width:100%; top:100vh; height:100vh; background:cyan;"></div>
+  <div style="position:absolute; width:100%; transform:translateY(-50vh); top:200vh; height:100vh; background:papayawhip;"></div>
+  <div style="position:absolute; width:100%; transform:translateY(-100vh); top:300vh; height:100vh; background:olive;"></div>
+</div>

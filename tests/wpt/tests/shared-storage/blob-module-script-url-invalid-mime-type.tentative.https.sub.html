@@ -1,0 +1,35 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  let module_content = `
+    class TestURLSelectionOperation {
+      async run(urls, data) {
+        if (data && data.hasOwnProperty('mockResult')) {
+          return data['mockResult'];
+        }
+
+        return -1;
+      }
+    }
+
+    register('test-url-selection-operation', TestURLSelectionOperation);
+  `
+
+  let blob = new Blob([module_content], {type: 'text/plain'});
+
+  return promise_rejects_dom(t, "OperationError",
+      sharedStorage.worklet.addModule(URL.createObjectURL(blob))
+  );
+}, 'addModule() with a Blob URL that has an unsupported mime type');
+
+</script>
+</body>

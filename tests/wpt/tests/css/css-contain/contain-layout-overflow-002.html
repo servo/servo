@@ -1,0 +1,67 @@
+
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: layout' should force all overflow to be ink overflow (including when the overflow comes from floated descendants)</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-layout">
+  <link rel="match" href="contain-layout-overflow-002-ref.html">
+  <style>
+  .contain {
+    contain: layout;
+  }
+  .float { float: left; }
+  .outer {
+    height: 100px;
+    width: 100px;
+  }
+  .auto {
+    overflow: auto;
+  }
+  .inner-sm {
+    height: 50px;
+    width: 50px;
+    background: lightblue;
+  }
+  .inner-lg {
+    height: 200px;
+    width: 200px;
+    background: lightblue;
+  }
+  .pass {
+    background: green;
+  }
+  .fail {
+    background: red;
+  }
+  .border {
+    border: 5px solid green;
+  }
+  </style>
+</head>
+<body>
+  <!--CSS Test: Elements with contain:layout that do not produce scrollable overflow should paint as if containment were not applied. -->
+  <div class="outer">
+    <div class="inner-sm contain float"></div>
+  </div>
+  <br>
+
+  <!--CSS Test: Layout-contained elements that overflow their container and have children who overflow should produce the same amount of scrollable overflow as if there were no children. -->
+  <div class="outer auto">
+    <div class="inner-lg contain">
+      <div class="inner-lg pass float"></div>
+      <div class="inner-lg fail float"></div>
+    </div>
+  </div>
+  <br>
+
+  <!--CSS Test: Layout-contained elements that do not overflow their container, but have children who overflow, should not allow their children to affect the scrollable overflow regions of their parent. -->
+  <div class="outer auto">
+    <div class="inner-sm contain border">
+      <div class="inner-lg float">
+      </div>
+    </div>
+  </div>
+</body>
+</html>

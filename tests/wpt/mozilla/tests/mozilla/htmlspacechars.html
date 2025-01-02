@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <!-- \u0020 Space -->
+        <div id="foo-1" class="aaa&#32;foo"></div>
+        <!-- \u0009 Character tabulation -->
+        <div id="foo-2" class="bbb&#9;foo"></div>
+        <!-- \u000a Line feed -->
+        <div id="foo-3" class="ccc&#10;foo"></div>
+        <!-- \u000c Form feed -->
+        <div id="foo-4" class="ddd&#12;foo"></div>
+        <!-- \u000d Carriage return -->
+        <div id="foo-5" class="eee&#13;foo"></div>
+        <!-- Space -->
+        <div id="foo-6" class="fff foo"></div>
+        <!-- Non-HTML space character -->
+        <div id="bar" class="ggg&#11;foo"></div>
+        <script>
+          test(function() {
+            assert_equals(document.getElementsByClassName("foo").length, 6);
+            assert_not_equals(document.getElementById("bar").className, "ggg foo");
+          });
+        </script>
+    </body>
+</html>

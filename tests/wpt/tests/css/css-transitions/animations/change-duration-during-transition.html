@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>transition duration change</title>
+  <link rel="help" href="https://drafts.csswg.org/css-transitions-1/#starting">
+  <style>
+    #box {
+      position: absolute;
+      height: 100px;
+      width: 100px;
+      left: 0px;
+      background-color: blue;
+      transition-duration: 1s;
+      transition-delay: -0.75s;
+      transition-timing-function: linear;
+      transition-property: left;
+    }
+  </style>
+</head>
+<body>
+  <div id="box"></div>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/css-transitions/support/helper.js"></script>
+  <script>
+    'use strict';
+
+    window.onload = () => {
+      promise_test(async t => {
+        // Make sure we have rendered the page before making the style change
+        // to ensure we get transitions.
+        await waitForAnimationFrames(2);
+
+        box.style.left = '400px';
+        assert_equals(
+            getComputedStyle(box).left, '300px',
+            'The transition progresses 75% immediately due to negative ' +
+            'transition-delay');
+
+        box.style.transitionDuration = '7.5s';
+        assert_equals(
+            getComputedStyle(box).left, '300px',
+            'Changing the duration does not affect the current transition');
+
+        const anim = document.getAnimations()[0];
+        anim.finish();
+
+        assert_equals(
+            getComputedStyle(box).left, '400px',
+            'The final value has been reached when finished');
+        box.style.left = '1400px';
+        assert_equals(
+            getComputedStyle(box).left, '500px',
+            'With the new duration taking effect, the transition progresses ' +
+            '10% immediately');
+      }, 'Transition duration change should not affect transition in progress');
+    };
+  </script>
+</body>
+</html>

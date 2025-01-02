@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>flexible box flex item float effect</title>
+    <link rel="author" title="zhouli" href="mailto:liz@oupeng.com">
+    <style>
+        #myDiv{
+            position: relative;
+        }
+        #myDiv p{
+            width: 300px;
+            height: 30px;
+            display: inline-block;
+            margin: 0;
+        }
+        #first-p{
+            background-color: green;
+        }
+        #second-p{
+            background-color: blue;
+        }
+        #myDiv #fail-flag{
+            width: 600px;
+            background-color: red;
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <p>'float' have no effect on a flex item.</p>
+    <p>The test passes if there is a green square, a blue square and no red square.</p>
+<div id="myDiv">
+    <p id="first-p">&nbsp;</p><p id="second-p">&nbsp;</p><p id="fail-flag">&nbsp;</p>
+</div>
+<script>
+</script>
+</body>
+</html>

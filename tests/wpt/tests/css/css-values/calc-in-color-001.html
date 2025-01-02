@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: calc() function in &lt;color&gt;</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="testNode"></div>
+<script>
+const div = document.querySelector("#testNode");
+const TESTS = {
+  // specified -> expected
+  "rgb(calc(0), calc(255 + 0), calc(140 - 139 - 1))": "rgb(0, 255, 0)",
+  "rgba(calc(0%) calc(100%) calc(0%) / calc(10% * 10))": "rgb(0, 255, 0)",
+  "hsl(calc(5deg * (360 / 5)), calc(10% * 10), calc(10% * 10))": "rgb(255, 255, 255)",
+  "hsla(calc(5 * (360 / 5)), calc(10% * 10), calc(10% * 10), calc(1.0))": "rgb(255, 255, 255)"
+}
+
+test(function() {
+  for (let test in TESTS) {
+    div.style.backgroundColor = "";
+    div.style.backgroundColor = test;
+    assert_equals(getComputedStyle(div).backgroundColor, TESTS[test], test);
+  }
+}, "calc() in color functions");
+</script>

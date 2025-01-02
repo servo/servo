@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<!-- Tests that font fallback occurs on a per-glyph basis. -->
+<style>
+body {
+    font-family: Ahem, sans-serif;
+    font-size: 24px;
+    line-height: 24px;
+}
+
+.arrow {
+    font-family: sans-serif;
+}
+</style>
+</head>
+<body>
+<section>x<span class=arrow>&larr;</span></section>
+<section><span class=arrow>&rarr;</span>x</section>
+<section><span class=arrow>&rarr;</span>x<span class=arrow>&larr;</span></section>
+</body>
+</html>
+

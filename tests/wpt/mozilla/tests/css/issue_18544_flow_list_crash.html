@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Issue 18544 - Flow list crash</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="position:fixed"></div>
+<script>
+  async_test(function(test) {
+    window.onload = test.step_func_done(function() {
+      document.body.children[0].style['column-count'] = 1;
+      document.body.offsetTop;
+      assert_true(true, "Did not crash");
+    });
+  });
+</script>
+

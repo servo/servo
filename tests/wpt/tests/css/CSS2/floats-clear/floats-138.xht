@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Clearing a float with margins</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/038.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-138-ref.xht" />
+
+  <style type="text/css">
+   div { color: navy; }
+   .float { float: left; width: 8em; }
+   .indent { margin: 0 0 0 10em; }
+   .clear { clear: both; }
+  </style>
+ </head>
+ <body>
+  <p>There should be two lines below, the second indented some way across.</p>
+  <div class="float">Line 1</div>
+  <div class="indent">
+   <div class="clear">Line 2</div>
+  </div>
+ </body>
+</html>

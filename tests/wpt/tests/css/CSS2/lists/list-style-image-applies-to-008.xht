@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: List-style-image applied to elements with 'display' set to 'inline'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-image" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="The 'list-style-image' property applies to elements with 'display' set to 'inline'." />
+        <style type="text/css">
+            div
+            {
+                display: inline;
+                list-style-image: url('support/blue15x15.png');
+            }
+            span
+            {
+                display: list-item;
+                margin-left: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single blue square below.</p>
+        <div>
+            <span></span>
+        </div>
+    </body>
+</html>

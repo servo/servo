@@ -1,0 +1,26 @@
+name: epochs
+on:
+  schedule:
+    # Trigger 10 minutes past every 3rd hour. 10 minutes is a safety margin
+    # for any manifest workflow to finish, see tools/wpt/revlist.py.
+    - cron: 10 */3 * * *
+jobs:
+  update:
+    runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Run epochs_update.sh
+      run: ./tools/ci/epochs_update.sh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload git-push output
+      uses: actions/upload-artifact@v4
+      with:
+        name: git-push-output
+        path: ${{ runner.temp }}/git-push-output.txt
+        if-no-files-found: error
+        compression-level: 1

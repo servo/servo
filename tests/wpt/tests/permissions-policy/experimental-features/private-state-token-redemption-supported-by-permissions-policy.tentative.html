@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Test that private state token redemption is advertised in the feature list</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_in_array('private-state-token-redemption', document.featurePolicy.features());
+  }, 'document.featurePolicy.features should advertise private-state-token-redemption.');
+</script>

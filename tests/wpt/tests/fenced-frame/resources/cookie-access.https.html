@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Page loaded in a frame in a fenced frame tree</title>
+<script>
+  // This page is loaded either in an iframe or a fenced frame
+  // nested inside a root fenced frame.
+  document.cookie = 'G=nested_in_fenced_frame; SameSite=Lax';
+  const [cookie_value_key] = parseKeylist()
+  const cookie_value = document.cookie;
+  writeValueToServer(cookie_value_key, cookie_value);
+</script>

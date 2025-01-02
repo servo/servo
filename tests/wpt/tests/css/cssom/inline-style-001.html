@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS Test: Inline CSSStyleDeclaration</title>
+  <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com">
+  <link rel="help" href="http://www.w3.org/TR/cssom-1/#elementcssinlinestyle">
+  <meta name="flags" content="dom">
+  <meta name="assert" content="Inline CSSStyleDeclaration is properly initialized and can be modified through its interface">
+  <script src="/resources/testharness.js" type="text/javascript"></script>
+  <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+ </head>
+ <body>
+ <noscript>Test not run - javascript required.</noscript>
+ <div id="log"></div>
+ <div id="test" style="margin-left: 5px;"></div>
+ <script type="text/javascript">
+    // Can access CSSStyleDeclaration through style property
+    test(function() {
+        var test = document.getElementById("test");
+        assert_idl_attribute(test, "style");
+        declaration = test.style;
+    }, "CSSStyleDeclaration_accessible");
+
+    // initial property values are correct
+    test(function() {
+        assert_equals(declaration.cssText, "margin-left: 5px;");
+        assert_equals(declaration.getPropertyValue("margin-left"), "5px");
+    }, "read");
+
+    // setting cssText adds new properties
+    // setting cssText removes existing properties
+    // properties set through cssText are reflected in the computed style
+    test(function() {
+        declaration.cssText = "margin-left: 10px; padding-left: 10px;";
+        assert_equals(declaration.cssText, "margin-left: 10px; padding-left: 10px;");
+        assert_equals(declaration.length, 2);
+        assert_equals(declaration.item(0), "margin-left");
+        assert_equals(declaration.item(1), "padding-left");
+        assert_equals(declaration.getPropertyValue("margin-left"), "10px");
+        assert_equals(declaration.getPropertyValue("padding-left"), "10px");
+
+        var computedStyle = window.getComputedStyle(document.getElementById("test"));
+        assert_equals(computedStyle.getPropertyValue("margin-left"), "10px");
+        assert_equals(computedStyle.getPropertyValue("padding-left"), "10px");
+    }, "csstext_write");
+
+    // setProperty adds new properties
+    // properties set through setProperty are reflected in the computed style
+    test(function() {
+        while(declaration.length > 0)
+            declaration.removeProperty(declaration.item(0));
+        declaration.setProperty("margin-left", "15px");
+        declaration.setProperty("padding-left", "15px");
+
+        assert_equals(declaration.length, 2);
+        assert_equals(declaration.item(0), "margin-left");
+        assert_equals(declaration.item(1), "padding-left");
+        assert_equals(declaration.getPropertyValue("margin-left"), "15px");
+        assert_equals(declaration.getPropertyValue("padding-left"), "15px");
+
+        var computedStyle = window.getComputedStyle(document.getElementById("test"));
+        assert_equals(computedStyle.getPropertyValue("margin-left"), "15px");
+        assert_equals(computedStyle.getPropertyValue("padding-left"), "15px");
+    }, "property_write");
+
+    // shorthand property is expanded
+    test(function() {
+        while(declaration.length > 0)
+            declaration.removeProperty(declaration.item(0));
+        declaration.cssText = "margin: 20px";
+        assert_equals(declaration.getPropertyValue("margin-top"), "20px");
+        assert_equals(declaration.getPropertyValue("margin-right"), "20px");
+        assert_equals(declaration.getPropertyValue("margin-bottom"), "20px");
+        assert_equals(declaration.getPropertyValue("margin-left"), "20px");
+    }, "shorthand_properties");
+ </script>
+ </body>
+</html>

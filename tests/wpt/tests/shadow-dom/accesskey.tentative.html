@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM: accesskey</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/accesskey.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div id="container" style="position: relative"></div>
+<script>
+
+const container = document.getElementById('container');
+
+function testAccesskeyInShadowTree(mode) {
+  promise_test(async t => {
+    const host = document.createElement('div');
+    container.appendChild(host);
+    t.add_cleanup(() => host.remove());
+
+    const shadowRoot = host.attachShadow({mode});
+    shadowRoot.innerHTML = '<button id="button" accesskey="g">Click Me with Shift+Alt+g or on Mac with Control+Option+g</button>';
+
+    let el = shadowRoot.getElementById("button");
+    let eventWatcher = new EventWatcher(t, el, ['click']);
+    let waitForClick = eventWatcher.wait_for('click');
+
+    await pressAccessKey("g");
+    await waitForClick;
+  }, `button element with accesskey in the shadow tree of ${mode} mode`);
+}
+
+testAccesskeyInShadowTree("open");
+testAccesskeyInShadowTree("closed");
+
+</script>
+</body>

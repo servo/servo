@@ -1,0 +1,32 @@
+enum AdSignals {
+  "coarse-geolocation",
+  "coarse-ua",
+  "targeting",
+  "user-ad-interests"
+};
+dictionary AdProperties{
+  DOMString width;
+  DOMString height;
+  DOMString slot;
+  DOMString lang;
+  DOMString adtype;
+  double bidFloor;
+};
+dictionary AdTargeting{
+  sequence<DOMString> interests;
+  GeolocationCoordinates geolocation;
+};
+
+dictionary AdRequestConfig{
+  required USVString adRequestUrl;
+  required(AdProperties or sequence<AdProperties>) adProperties;
+  DOMString publisherCode;
+  AdTargeting targeting;
+  sequence<AdSignals> anonymizedProxiedSignals;
+  USVString fallbackSource;
+};
+
+partial interface Navigator {
+  Promise<Ads> createAdRequest(AdRequestConfig config);
+  Promise<URL> finalizeAd(Ads ads, AuctionAdConfig config);
+};

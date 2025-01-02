@@ -1,0 +1,132 @@
+name: Try
+
+on:
+  push:
+    branches: ["try"]
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: choice
+        options: ["release", "debug", "production"]
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-layout:
+        required: false
+        type: choice
+        options: ["none", "2013", "2020", "all"]
+      unit-tests:
+        required: false
+        type: boolean
+      bencher:
+        required: false
+        type: boolean
+
+jobs:
+  decision:
+    name: Generate Try Configuration
+    runs-on: ubuntu-20.04
+    outputs:
+      configuration: ${{ steps.configuration.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            python/servo/try_parser.py
+            .github/actions/setup-python
+            .python-version
+          sparse-checkout-cone-mode: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Get Full Configuration
+        id: full_config
+        run: |
+          {
+            echo 'config<<EOF'
+            python ./python/servo/try_parser.py
+            echo EOF
+           } >> $GITHUB_OUTPUT
+      - name: Configuration
+        id: configuration
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // When triggered via a push try the `try` branch, search the last commit for a configuration object.
+            if (${{ github.ref_name == 'try' }}) {
+              let commit_msg = context.payload.head_commit.message;
+              try {
+                var config = JSON.parse(commit_msg.split('\n').slice(-1));
+
+                if (config && typeof config === "object") {
+                  console.log("Using try commit configuration: " + JSON.stringify(config));
+                  return config;
+                }
+              }
+              catch (exception) {
+                console.log("Could not parse try configuration from commit message: " + exception);
+                console.log("Triggering full try run.");
+              }
+            }
+
+            // If we reach here we are likely doing a full run.
+            configuration = ${{ steps.full_config.outputs.config }};
+
+            // Process `workflow_dispatch` provided configuration overrides.
+            if (context.eventName == "workflow_dispatch") {
+              // WPT-related overrides only affect Linux currently, as tests don't run by default on other platforms.
+              configuration.matrix[0].wpt_layout = "${{ inputs.wpt-layout }}" || "none";
+              configuration.matrix[0].wpt_args = "${{ inputs.wpt-args }}" || "";
+
+              let unit_tests = Boolean(${{ inputs.unit-tests }});
+              let profile = '${{ inputs.profile }}';
+              for (const platform of configuration.matrix) {
+                platform.profile = profile;
+                platform.unit_tests = unit_tests;
+              }
+            }
+
+            console.log("Using configuration: " + JSON.stringify(configuration));
+            return configuration;
+
+  build:
+    needs: ["decision"]
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.decision.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.decision.outputs.configuration).matrix }}
+    # We need to use `dipatch-workflow.yml` because workflows do not support using: ${}
+    uses: ./.github/workflows/dispatch-workflow.yml
+    secrets: inherit
+    with:
+      workflow: ${{ matrix.workflow }}
+      wpt-layout: ${{ matrix.wpt_layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
+      wpt-args: ${{ matrix.wpt_args }}
+      bencher: ${{ matrix.bencher }}
+
+  build-result:
+    name: Result
+    runs-on: ubuntu-latest
+    if: always()
+    # `needs: "build"` is necessary to detect cancellation.
+    needs: [ "decision", "build" ]
+    steps:
+      - name: Merge build timings
+        continue-on-error: true
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: cargo-timings
+          pattern: cargo-timings-*
+          delete-merged: true
+      - name: Success
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        run: exit 0
+      - name: Failure
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

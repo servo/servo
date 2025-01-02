@@ -1,0 +1,34 @@
+WEBVTT
+Enter and exit events should be dispatched in a sorted order according to their times.
+
+0
+00:00:04.000 --> 00:00:04.500
+Missed cue that should not be considered because of seeking.
+
+1
+00:00:05.100 --> 00:00:05.800 align:start position:20%
+Bear is Coming!!!!!
+
+2
+00:00:05.100 --> 00:00:05.101
+Missed cue 1
+
+3
+00:00:05.100 --> 00:00:05.301
+And what kind of a bear it is - just have look.
+
+4
+00:00:05.100 --> 00:00:05.101
+Missed Cue 2
+
+5
+00:00:05.300 --> 00:00:05.800 align:start position:20%
+I said Bear is coming!!!!
+
+6
+00:00:05.990 --> 00:00:05.993 align:start position:20%
+I said Bear is coming now!!!!
+
+7
+00:00:05.994 --> 00:00:05.998 align:start position:20%
+Bear is already here

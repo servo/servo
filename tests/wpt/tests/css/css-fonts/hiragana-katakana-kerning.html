@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>CSS Test: Hiragana/Katakana kerning</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <!-- Based on testcase by Harry Dalton, see https://bugzilla.mozilla.org/show_bug.cgi?id=1811471;
+         check that kerning works between hiragana and katakana, because both map to the same
+         OpenType script behavior. -->
+    <link rel="mismatch" href="hiragana-katakana-kerning-notref.html">
+    <link rel="help" href="https://learn.microsoft.com/en-us/typography/opentype/spec/scripttags">
+    <style>
+      @font-face {
+        font-family: "Noto Sans JP";
+        src: url(resources/NotoSansJP-kana_test-subset.otf);
+      }
+
+      p {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        font-size: 6em;
+        font-family: "Noto Sans JP";
+        font-feature-settings: "palt" on;
+
+        margin: 1em;
+      }
+
+      .with-kerning {
+        font-kerning: normal;
+        color: red;
+      }
+
+      .no-kerning {
+        font-kerning: none;
+        color: green;
+        mix-blend-mode: multiply;
+      }
+    </style>
+  </head>
+  <body>
+    <span>
+      RED or GREEN text is visible if kerning is applying correctly, with only
+      BLACK otherwise:
+    </span>
+    <p class="with-kerning">すペ</p>
+    <p class="no-kerning">すペ</p>
+  </body>
+</html>

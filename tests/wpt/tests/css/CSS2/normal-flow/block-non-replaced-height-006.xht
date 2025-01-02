@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Block-level non-replaced elements in normal flow when 'overflow' does not compute to 'visible' and 'height' is 'auto' adjust based on the line box height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'height' is the distance from the topmost to the bottommost line box when a block-level non-replaced element is in normal flow and 'overflow' does not compute to 'visible'." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            html, body
+            {
+                overflow: scroll;
+            }
+            div
+            {
+                position: relative;
+            }
+            #div1
+            {
+                background: red;
+                width: 200px;
+            }
+            span
+            {
+                color: blue;
+                display: inline;
+                font: 100px/1 Ahem;
+            }
+            #div2
+            {
+                background: orange;
+                height: 200px;
+                left: 200px;
+                position: absolute;
+                top: 0;
+                width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the same height and if there is <strong>no red</strong>.</p>
+        <div>
+            <div id="div1">
+                <span>XX XX</span>
+            </div>
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

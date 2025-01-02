@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Overflow properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_inherited('block-ellipsis', 'none', 'auto');
+assert_not_inherited('continue', 'auto', 'discard');
+assert_not_inherited('max-lines', 'none', '2');
+assert_not_inherited('overflow-block', 'visible', 'scroll');
+assert_not_inherited('overflow-inline', 'visible', 'scroll');
+assert_not_inherited('overflow-x', 'visible', 'scroll');
+assert_not_inherited('overflow-y', 'visible', 'scroll');
+assert_not_inherited('text-overflow', 'clip', 'ellipsis');
+assert_not_inherited('scrollbar-gutter', 'auto', 'stable');
+</script>
+</body>
+</html>

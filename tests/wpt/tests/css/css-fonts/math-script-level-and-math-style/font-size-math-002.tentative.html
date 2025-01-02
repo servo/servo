@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>font-size: math inheritance</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property">
+    <meta name="assert" content="Test inheritance for a specified font-size: math.">
+    <link rel="match" href="font-size-math-002.tentative-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      .container {
+          /* Ahem font does not have a MATH table so the font-size scale factor
+             is always 0.71^{computed - inherited math script level} */
+          font: 100px/1 Ahem;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if you see a square of side 100px.</p>
+    <div class="container">
+      <div style="font-size: math">
+        <div>
+          <div>
+            <div>
+              <div style="math-depth: 1">X</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

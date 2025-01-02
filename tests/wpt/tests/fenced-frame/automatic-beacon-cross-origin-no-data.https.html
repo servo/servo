@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Test cross-origin automatic beacons without data</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    register_beacon: true
+  });
+  const new_url = new URL("resources/close.html", location.href);
+
+  // Add a fenced frame that does not set automatic beacon data.
+  await fencedframe.execute(async (new_url) => {
+    // Add a cross-origin iframe that will perform the top-level navigation.
+    const iframe = await attachIFrameContext({
+      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+      headers: [['Allow-Fenced-Frame-Automatic-Beacons', 'true']],
+    });
+    await iframe.execute(async (new_url) => {
+      addEventListener("click", (event) => {
+        window.open(new_url);
+      });
+    }, [new_url]);
+  }, [new_url]);
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+  await verifyBeaconData("reserved.top_navigation_start", "<No data>",
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+  await verifyBeaconData("reserved.top_navigation_commit", "<No data>",
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+}, 'Automatic beacon in a cross-origin subframe with no beacon data set');
+</script>
+</body>

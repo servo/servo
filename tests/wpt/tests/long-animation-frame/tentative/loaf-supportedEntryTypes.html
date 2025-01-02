@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: supportedEntryTypes</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<h1>Long Animation Frame: supportedEntryTypes</h1>
+<div id="log"></div>
+<script>
+
+setup(() =>
+  assert_implements(window.PerformanceLongAnimationFrameTiming,
+    'Long animation frames are not supported.'));
+
+test(() => {
+  assert_true(PerformanceObserver.supportedEntryTypes.includes("long-animation-frame"));
+}, 'supportedEntryTypes should include long-animation-frame');
+
+</script>
+</body>

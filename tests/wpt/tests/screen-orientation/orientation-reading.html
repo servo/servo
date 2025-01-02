@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+"use strict";
+import {
+  makeCleanup,
+  getOppositeOrientation,
+} from "./resources/orientation-utils.js";
+
+test(() => {
+  assert_true("type" in screen.orientation, ".type must be present");
+  assert_true("angle" in screen.orientation, ".angle must be present");
+}, "screen.orientation attributes are present");
+
+async function testExpectedOrientationAngles(expectedAngles) {
+  for (const [orientation, expectedAngle] of Object.entries(expectedAngles)) {
+    try {
+      if (screen.orientation.type !== orientation) {
+        await screen.orientation.lock(orientation);
+      }
+      assert_equals(
+        screen.orientation.angle,
+        expectedAngle,
+        `Orientation angle for '${orientation}' must be ${expectedAngle} degrees`
+      );
+    } catch (err) {
+      // implementation might not support locking to this orientation
+    }
+  }
+}
+
+promise_test(async (t) => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen");
+  await document.documentElement.requestFullscreen();
+
+  const expectedAnglesPortrait = {
+    "portrait-primary": 0,
+    "landscape-primary": 90,
+    "portrait-secondary": 180,
+    "landscape-secondary": 270,
+  };
+
+  await testExpectedOrientationAngles(expectedAnglesPortrait);
+}, "Test the orientations and associated angles when the natural orientation is 'portrait'");
+
+promise_test(async (t) => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen");
+  await document.documentElement.requestFullscreen();
+
+  const expectedAnglesLandscape = {
+    "landscape-primary": 0,
+    "portrait-primary": 90,
+    "landscape-secondary": 180,
+    "portrait-secondary": 270,
+  };
+
+  await testExpectedOrientationAngles(expectedAnglesLandscape);
+}, "Test the orientations and associated angles when the natural orientation is 'landscape'");
+
+test(() => {
+  const { angle, type } = screen.orientation;
+
+  assert_throws_js(
+    TypeError,
+    () => {
+      screen.orientation.type = "foo";
+    },
+    "throws when setting ScreenOrientation.type to a string in strict mode"
+  );
+  assert_throws_js(
+    TypeError,
+    () => {
+      screen.orientation.angle = 42;
+    },
+    "throws when setting ScreenOrientation.angle to a number in strict mode"
+  );
+
+  assert_equals(screen.orientation.type, type);
+  assert_equals(screen.orientation.angle, angle);
+}, "Test that ScreenOrientation properties are not writable");
+
+test(() => {
+  assert_equals(screen.orientation, screen.orientation);
+}, "Test that ScreenOrientation is always the same object");
+
+promise_test(async (t) => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen");
+  await document.documentElement.requestFullscreen();
+  const initialType = screen.orientation.type;
+  const initialAngle = screen.orientation.angle;
+  const orientationWatcher = new EventWatcher(t, screen.orientation, "change");
+  const newOrientationType = getOppositeOrientation();
+
+  // change event is fired before resolving promise by lock.
+  const event = await Promise.race([
+    orientationWatcher.wait_for("change"),
+    screen.orientation.lock(newOrientationType),
+  ]);
+  assert_true(event instanceof Event, "expected event");
+  assert_not_equals(
+    screen.orientation.type,
+    initialType,
+    ".type must change"
+  );
+  assert_not_equals(
+    screen.orientation.angle,
+    initialAngle,
+    ".angle must change"
+  );
+}, "Test that ScreenOrientation's attribute values change after 'change' event fires");
+</script>

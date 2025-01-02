@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test that reports are sent with credentials to same-origin endpoints</title>
+  <script src="/common/utils.js"></script>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/reporting/resources/report-helper.js'></script>
+</head>
+<body>
+  <script>
+    const endpoint = '/reporting/resources/report.py';
+
+    promise_test(async t => {
+        const uid = token();
+        const win = window.open(`./support/preload-csp-report.https.sub.html?uid=${uid}`);
+        t.add_cleanup(() => win.close());
+        return t.step_wait(async () => {
+            const reports = await pollReports(endpoint, uid);
+            const failures = reports.filter(
+              r => r['csp-report']['blocked-uri'].endsWith('fail.png'));
+            return failures.length === 2;
+        }, "Should receive 2 CSP reports.", 10000, 500);
+    }, "Reporting endpoints received credentials.");
+  </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HTML Test: textarea with dir=auto, mixed L and R paragraphs</title>
+    <link rel="match" href="dir_auto-textarea-mixed-ref.html" />
+    <link rel="author" title="Aharon Lanin" href="mailto:aharon@google.com" />
+    <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dir-attribute" />
+    <link rel="help" href="http://dev.w3.org/csswg/css3-writing-modes/#unicode-bidi0" />
+    <meta name="assert" content="
+      When dir='auto', the direction is set according to the first strong character
+      of the text.
+      For textarea and pre elements, the heuristic is applied on a per-paragraph level." />
+    <style>
+      body, textarea {
+        font-size:18px;
+        text-align:left;
+      }
+      textarea {
+        resize: none;
+      }
+      .test, .ref {
+        border: medium solid gray;
+        width: 400px;
+        margin: 20px;
+      }
+      .comments {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="instructions"><p>Test passes if the two boxes below look exactly the same.</p></div>
+    <div class="comments">
+      Key to entities used below:
+        &#x200E; - LRM, the invisible left-to-right mark (strongly LTR).
+        &#x200F; - RLM, the invisible right-to-left mark (strongly RTL).
+      We use text-align:left because neither the dir="auto" nor the unicode-bidi:plaintext
+      specification states whether text-align:start and text-align:end should obey the paragraph
+      direction or the direction property in a unicode-bidi:plaintext element.
+    </div>
+    <div class="test">
+      <div dir="ltr">
+        <textarea rows="5" dir="auto">
+!&#x200F;123&#x200E;@
+@&#x200E;123&#x200F;!
+!123&#x200F;&#x200E;@
+@123&#x200E;&#x200F;!
+        </textarea>
+      </div>
+      <div dir="rtl">
+        <textarea rows="5" dir="auto">
+@&#x200E;123&#x200F;!
+!&#x200F;123&#x200E;@
+@123&#x200E;&#x200F;!
+!123&#x200F;&#x200E;@
+        </textarea>
+      </div>
+    </div>
+    <div class="ref">
+      <div dir="ltr">
+        <textarea rows="5" dir="rtl">
+!123@
+!123@
+!123@
+!123@
+        </textarea>
+      </div>
+      <div dir="rtl">
+        <textarea rows="5" dir="ltr">
+@123!
+@123!
+@123!
+@123!
+        </textarea>
+      </div>
+    </div>
+  </body>
+</html>

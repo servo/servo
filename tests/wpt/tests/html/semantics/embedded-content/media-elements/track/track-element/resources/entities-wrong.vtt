@@ -1,0 +1,15 @@
+WEBVTT
+Invalid use of < and > characters.
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+This cue has a less than < character.
+It turns everything from there on into an annotation
+for an empty tag and ends only at the next &gt; or &amp; character.
+
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%
+This cue has a greater than > character.
+Since it's not related to a &lt; character,
+it's just interpreted as text.

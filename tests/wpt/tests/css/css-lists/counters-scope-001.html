@@ -1,0 +1,34 @@
+﻿<!doctype html>
+<title>CSS Lists and Counters: counters scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="counters-scope-001-ref.html">
+<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<style type="text/css">
+.scope { counter-reset: c 1; }
+.scope::before, .scope::after { content: counter(c); }
+.c::before { content: counter(c); }
+.one::before { counter-reset: c 2; }
+.two { counter-reset: c 3; }
+</style>
+<p>The following two lines should be the same:</p>
+<!-- counter on the first span with class "c" is 1, as it inherits the counter from class="scope", as a direct ancestor -->
+<div>
+  <span class="scope">
+    <span class="one c">
+      <span class="c"></span>
+    </span>
+    <span class="c"></span>
+  </span>
+  <span class="c"></span>
+  <span class="scope">
+    <span class="two c">
+      <span class="c"></span>
+    </span>
+    <span class="c"></span>
+  </span>
+  <span class="c"></span>
+</div>
+<div>
+  1 2 1 1 1 1
+  1 3 3 1 1 1
+</div>

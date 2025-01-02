@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#the-multi-column-model">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#unforced-breaks">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; column-gap:0; width:100px; height:100px; background:red;">
+  <div style="height:50px; background:green;"></div>
+  <div style="columns:5; column-fill:auto; column-gap:0;">
+    <!-- Fill the first inner column: -->
+    <div style="height:50px; background:green;"></div>
+    <!-- Take up all the space in the next two columns, but paint a background
+         in all four remaining columns, using a large width: -->
+    <div style="float:left; width:300%; height:100px; background:green;"></div>
+    <!-- Skip the remaining columns in the first row and jump to the next outer
+         fragmentainer and start a taller row there, since the content is
+         monolithic and too tall to fit in the first one: -->
+    <div style="contain:size; height:100px; background:green;"></div>
+    <!-- Take up the remaining four columns in the second row in the second
+         outer fragmentainer: -->
+    <div style="float:left; width:100%; height:400px; background:green;"></div>
+  </div>
+</div>

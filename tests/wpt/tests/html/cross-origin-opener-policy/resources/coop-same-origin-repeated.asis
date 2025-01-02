@@ -1,0 +1,24 @@
+HTTP/1.1 200 OK
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Server: BaseHTTP/0.3 Python/2.7.15+
+Date: Wed, 18 Dec 2019 00:47:08 GMT
+
+<!doctype html>
+<meta charset=utf-8>
+<script src="/common/get-host-info.sub.js"></script>
+<iframe></iframe>
+<script>
+  const navigate = new URL(location).searchParams.get("navigate");
+  if (navigate !== null) {
+    self.location = navigate;
+  } else {
+    const iframe = document.querySelector("iframe");
+    iframe.onload = () => {
+      const payload = { name: self.name, opener: !!self.opener };
+      iframe.contentWindow.postMessage(payload, "*");
+    };
+    const channelName = new URL(location).searchParams.get("channel");
+    iframe.src = `${get_host_info().HTTPS_ORIGIN}/html/cross-origin-opener-policy/resources/postback.html?channel=${channelName}`;
+  }
+</script>

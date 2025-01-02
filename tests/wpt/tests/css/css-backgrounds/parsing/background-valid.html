@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing background with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background">
+<meta name="assert" content="background supports the full grammar '<bg-layer># , <final-bg-layer>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+
+// Background serialization varies across browsers. https://github.com/w3c/csswg-drafts/issues/418
+test_valid_value("background",
+  'url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box, rgb(5, 6, 7) url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box', [
+  'url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box, rgb(5, 6, 7) url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box', // spec, WebKit
+  'url("https://example.com/") local space round 1px 2px / 3px 4px padding-box content-box, url("https://example.com/") local space round 1px 2px / 3px 4px padding-box content-box rgb(5, 6, 7)', // Edge
+  'url("https://example.com/") space round local 1px 2px / 3px 4px padding-box content-box, rgb(5, 6, 7) url("https://example.com/") space round local 1px 2px / 3px 4px padding-box content-box', // Firefox
+  'url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box, url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box rgb(5, 6, 7)' // Blink
+]);
+
+test_shorthand_value('background', 'none', {
+    'background-image': 'none',
+    'background-position': '0% 0%',
+    'background-size': 'auto',
+    'background-repeat': 'repeat',
+    'background-attachment': 'scroll',
+    'background-origin': 'padding-box',
+    'background-clip': 'border-box',
+    'background-color': 'rgba(0, 0, 0, 0)',
+})
+test_shorthand_value('background', 'url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box, rgb(5, 6, 7) url("https://example.com/") 1px 2px / 3px 4px space round local padding-box content-box', {
+    'background-image': 'url("https://example.com/"), url("https://example.com/")',
+    'background-position': '1px 2px, 1px 2px',
+    'background-size': '3px 4px, 3px 4px',
+    'background-repeat': 'space round, space round',
+    'background-attachment': 'local, local',
+    'background-origin': 'padding-box, padding-box',
+    'background-clip': 'content-box, content-box',
+    'background-color': 'rgb(5, 6, 7)',
+})
+
+</script>
+</body>
+</html>

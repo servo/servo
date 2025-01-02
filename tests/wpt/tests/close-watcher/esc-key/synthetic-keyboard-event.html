@@ -1,0 +1,28 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+test(t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  let keydown = new KeyboardEvent("keydown", {key: "Escape", keyCode: 27});
+  window.dispatchEvent(keydown);
+  let keyup = new KeyboardEvent("keyup", {key: "Escape", keyCode: 27});
+  window.dispatchEvent(keyup);
+
+  assert_array_equals(events, []);
+
+  let keyup2 = document.createEvent("Event");
+  keyup2.initEvent("keyup", true);
+  window.dispatchEvent(keyup2);
+
+  assert_array_equals(events, []);
+}, "close via synthesized Esc key must not work");
+</script>

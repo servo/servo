@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Drop cap with U+05D0 in the document</title>
+<meta name="assert" content="The text placement within :first-line should not be affected by later presence of a right-to-left character.">
+<link rel=help href=https://drafts.csswg.org/css-pseudo-4/#first-line-styling>
+<link rel=match href=floating-first-letter-ref.html>
+<style>
+  p:first-line {
+    background: lightblue;
+  }
+
+  p::first-letter {
+    float: left;
+    font-size: 4rem;
+  }
+  div {
+  	color: transparent;
+  }
+</style>
+<p>Ab</p><div>&#x05D0;</div>

@@ -1,0 +1,29 @@
+#data
+text
+#errors
+#document-fragment
+| "text"
+
+#data
+text1\ntext2
+#errors
+#document-fragment
+| "text1\ntext2"
+
+#data
+foo\x00bar
+#errors
+#document-fragment
+| "foo\uFFFDbar"
+
+#data
+\u2713
+#errors
+#document-fragment
+| "\u2713"
+
+#data
+text1\n\ntext2
+#errors
+#document-fragment
+| "text1"

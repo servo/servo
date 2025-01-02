@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Test nested iframes inheriting permissions from fenced frames</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const key = token();
+
+  const urn = await runSelectURL(
+      'resources/default-enabled-features-subframe-fencedframe.https.html',
+      [key, /*should_restrict_select_url=*/false]);
+  const fencedframe = await attachFencedFrame(urn);
+
+  const result = await nextValueFromServer(key);
+  const [allows_shared_storage, allows_select_url] = result.split(",");
+
+  assert_equals(allows_shared_storage, "false");
+  assert_equals(allows_select_url, "true");
+}, 'Iframes nested in fenced frames inherit the fenced frame policies');
+
+promise_test(async(t) => {
+  const key = token();
+
+  const urn = await runSelectURL(
+      'resources/default-enabled-features-subframe-fencedframe.https.html',
+      [key, /*should_restrict_select_url=*/true]);
+  const fencedframe = await attachFencedFrame(urn);
+
+  const result = await nextValueFromServer(key);
+  const [allows_shared_storage, allows_select_url] = result.split(",");
+
+  assert_equals(allows_shared_storage, "false");
+  assert_equals(allows_select_url, "false");
+}, 'Iframes nested in fenced frames can further restrict policies');
+</script>
+</body>
+</html>

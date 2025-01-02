@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test COOP/COEP properties set for a Fenced Frame Tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = attachFencedFrameContext();
+  const fencedframe_loaded = fencedframe.execute(() => {});
+  const fencedframe_blocked = new Promise(r => t.step_timeout(r, 1000));
+  assert_equals("blocked", await Promise.any([
+    fencedframe_blocked.then(() => "blocked"),
+    fencedframe_loaded.then(() => "loaded"),
+  ]), "fenced frame should not be loaded.");
+}, 'Create a fencedframe without COEP from an embedder setting COEP');
+</script>
+</body>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using invalid HSL notation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#the-hsl-notation">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-sRGB-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-sRGB-values">
+<link rel="author" title="Chris Nardi" href="mailto:csnardi1@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+tests = [
+    ["hsl(none, none, none)", "The none keyword is invalid in legacy color syntax"],
+    ["hsla(none, none, none, none)", "The none keyword is invalid in legacy color syntax"],
+    ["hsl(none, 100%, 50%)", "The none keyword is invalid in legacy color syntax"],
+    ["hsla(120, 100%, 50%, none)", "The none keyword is invalid in legacy color syntax"],
+
+    ["hsl(10, 50%, 0)", "The second and third parameters of hsl/hsla must be a percent in legacy color syntax"],
+    ["hsl(50%, 50%, 0%)", "The first parameter of hsl/hsla must be a number or angle"],
+    ["hsl(0, 0% 0%)", "Modern color syntax requires no commas at all"],
+    ["hsl(0, 0%, light)", "Keywords are not accepted in the hsl function"],
+    ["hsl()", "The hsl function requires 3 or 4 arguments"],
+    ["hsl(0)", "The hsl function requires 3 or 4 arguments"],
+    ["hsl(0, 0%)", "The hsl function requires 3 or 4 arguments"],
+    ["hsl(0, 50, 30%)", "The legacy color syntax does not allow numbers for saturation"],
+    ["hsl(0, 50%, 30)", "The legacy color syntax does not allow numbers for lightness"],
+    ["hsla(10, 50%, 0, 1)", "The second and third parameters of hsl/hsla must be a percent in legacy color syntax"],
+    ["hsla(50%, 50%, 0%, 1)", "The first parameter of hsl/hsla must be a number or angle"],
+    ["hsla(0, 0% 0%, 1)", "Modern color syntax requires no commas at all"],
+    ["hsla(0, 0%, light, 1)", "Keywords are not accepted in the hsla function"],
+    ["hsla()", "The hsla function requires 3 or 4 arguments"],
+    ["hsla(0)", "The hsla function requires 3 or 4 arguments"],
+    ["hsla(0, 0%)", "The hsla function requires 3 or 4 arguments"],
+    ["hsla(0, 0%, 0%, 1, 0%)", "The hsla function requires 3 or 4 arguments"],
+    ["hsl(0, 50, 30%, 1)", "The legacy color syntax does not allow numbers for saturation"],
+    ["hsl(0, 50%, 30, 1)", "The legacy color syntax does not allow numbers for lightness"],
+];
+
+for (const test of tests) {
+    test_invalid_value("color", test[0]);
+}
+</script>
+</body>
+</html>

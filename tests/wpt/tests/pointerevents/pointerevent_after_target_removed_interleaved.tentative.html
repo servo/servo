@@ -1,0 +1,128 @@
+<!DOCTYPE HTML>
+<!--
+   Tentative due to:
+   https://github.com/w3c/pointerevents/issues/492
+-->
+<title>
+  Enter/leave events fired to parent after child is removed
+  right before compat mouse-event
+</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?touch">
+<meta name="variant" content="?pen">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<style>
+  div.target {
+      width: 100px;
+      height: 100px;
+  }
+</style>
+<div class="target" id="parent">
+  <div class="target" id="child">child</div>
+</div>
+<div id="done">done</div>
+
+<script>
+  'use strict';
+  const pointer_type = location.search.substring(1);
+
+  const parent = document.getElementById("parent");
+  const child = document.getElementById("child");
+  const done = document.getElementById("done");
+
+  let event_log = [];
+  let logged_event_prefix = "";
+  let received_compat_mouse_events = false;
+
+  function logEvent(e) {
+    if (e.type.startsWith(logged_event_prefix) && e.eventPhase == e.AT_TARGET) {
+      event_log.push(e.type + "@" + e.target.id);
+    }
+    if (e.type.startsWith("mouse")) {
+      received_compat_mouse_events = true;
+    }
+  }
+
+  function removeChild() {
+    parent.removeChild(child);
+    event_log.push("(child-removed)");
+  }
+
+  function setup() {
+    const logged_event_suffixes =
+        ["over", "out", "enter", "leave", "down", "up"];
+    let targets = document.getElementsByClassName("target");
+    for (let i = 0; i < targets.length; i++) {
+      logged_event_suffixes.forEach(suffix => {
+        targets[i].addEventListener("pointer" + suffix, logEvent);
+        targets[i].addEventListener("mouse" + suffix, logEvent);
+      });
+      targets[i].addEventListener("click", logEvent);
+    }
+  }
+
+  function addPromiseTest(remover_event, tested_event_prefix, expected_events) {
+    const test_name = `${tested_event_prefix} events from ${pointer_type} `+
+          `received before/after child removal at ${remover_event}`;
+
+    promise_test(async test => {
+      event_log = [];
+      logged_event_prefix = tested_event_prefix;
+
+      child.addEventListener(remover_event, removeChild);
+      test.add_cleanup(() => {
+        child.removeEventListener(remover_event, removeChild);
+        if (!child.parentElement) {
+          parent.appendChild(child);
+        }
+      });
+
+      let done_click_promise = getEvent("click", done);
+
+      let actions = new test_driver.Actions()
+          .addPointer("TestPointer", pointer_type)
+          .pointerMove(-30, -30, {origin: parent})
+          .pointerDown()
+          .pointerUp()
+          .pointerMove(30, 30, {origin: parent})
+          .pointerDown()
+          .pointerUp()
+          .pointerMove(0, 0, {origin: done})
+          .pointerDown()
+          .pointerUp();
+
+      await actions.send();
+      await done_click_promise;
+
+      if (tested_event_prefix == "mouse" && !received_compat_mouse_events) {
+        expected_events = [];
+      }
+
+      assert_equals(event_log.toString(), expected_events.toString(),
+          "events received");
+    }, test_name);
+  }
+
+  setup();
+
+  // Tests for dispatched compatibility mouse events
+  // after DOM modification through pointer events.
+  addPromiseTest("pointerdown", "mouse", [
+    "mouseover@child", "mouseenter@parent", "mouseenter@child",
+    "(child-removed)", "mouseover@parent", "mousedown@parent", "mouseup@parent", "click@parent",
+    "mousedown@parent", "mouseup@parent", "click@parent",
+    "mouseout@parent", "mouseleave@parent"
+  ]);
+  addPromiseTest("pointerup", "mouse", [
+    "mouseover@child", "mouseenter@parent", "mouseenter@child",
+    "mousedown@child", "(child-removed)", "mouseover@parent", "mouseup@parent",  "click@parent",
+    "mousedown@parent", "mouseup@parent", "click@parent",
+    "mouseout@parent", "mouseleave@parent"
+  ]);
+</script>

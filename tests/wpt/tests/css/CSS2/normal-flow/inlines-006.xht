@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Inline Box Model: Wrapping Spaces Outside Inline Elements</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-20 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/006.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css"><![CDATA[
+   p > span { padding: 5px 0; line-height: 3; letter-spacing: 3px; }
+   span span { border: solid blue; color: gray; }
+  ]]></style>
+ </head>
+ <body>
+
+  <p>Resize your window slowly from a wide size to a narrow size. Each
+  "XXXXXXXXXXXXXXX" should be wrapped by a blue border. The
+  XXXXXXXXXXXXXXX-filled boxes below should always be perfectly
+  aligned in a grid.</p>
+
+  <p> <span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+   <span>XXXXXXXXXXXXXXX</span> <span>XXXXXXXXXXXXXXX</span>
+  </span> </p>
+
+ </body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<title>Fenced frame attribution reporting self navigation test</title>
+
+<body>
+<script>
+// This helper function will navigate a fenced frame to a remote origin page.
+// That redirect should succeed to load and the permissions from the previous page should be in
+// place.
+const [key1, key2] = parseKeylist();
+
+const result_val = document.featurePolicy.allowsFeature('attribution-reporting');
+if (location.origin == get_host_info().ORIGIN) {
+  writeValueToServer(key1, result_val);
+
+  const next_url = getRemoteOriginURL(generateURL(
+      "default-enabled-features-navigate.https.html", [key1, key2]));
+  location.href = next_url;
+} else {
+  writeValueToServer(key2, result_val);
+}
+
+</script>
+</body>

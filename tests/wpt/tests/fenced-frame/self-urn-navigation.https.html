@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test that fenced frame-initiated self urn navigations fail.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+function getTimeoutPromise(t) {
+  return new Promise(resolve =>
+      t.step_timeout(() => resolve("NOT LOADED"), 2000));
+}
+
+// A fenced frame root should not be able to navigate itself to a urn:uuid.
+promise_test(async t => {
+  const frame = attachFencedFrameContext();
+  urn = await runSelectURL(frame.src);
+
+  // Send the urn:uuid to the fenced frame over the network, and attempt to
+  // self-"refresh" to that urn.
+  await frame.execute(async (urn) => {
+    window.executor.suspend(() => {
+      location.href = urn;
+    });
+  }, [urn]);
+
+  // The navigation should fail as intended.
+  const urn_load_success_promise = frame.execute(() => {});
+  const urn_load_failure_promise = getTimeoutPromise(t);
+  const result =
+    await Promise.any([urn_load_success_promise, urn_load_failure_promise]);
+  assert_equals(result, "NOT LOADED");
+}, 'fenced frame-initiated self urn navigation');
+</script>
+</body>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API pending disconnect() test.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        mark_signed_in,
+        set_fedcm_cookie,
+        disconnect_options,
+        fedcm_get_and_select_first_account,
+        request_options_with_mediation_required} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+  await set_fedcm_cookie();
+  // Go through the FedCM flow so that the disconnect() call is not trivial.
+  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+
+  // Invoke disconnect without awaiting it to test that the browser can handle
+  // the page being destroyed while there is a pending disconnect call.
+  IdentityCredential.disconnect(disconnect_options("1234"));
+}, 'Test that disconnect can be pending when the test finishes.');
+</script>

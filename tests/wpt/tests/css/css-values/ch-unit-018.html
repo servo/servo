@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: support for the ch unit</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#ch">
+<link rel="match" href="reference/ch-unit-016-ref.html">
+<meta name="assert" content="The ch unit = the used advance measure of the “0” (ZERO, U+0030) glyph in the font used to render it">
+<style>
+@font-face {
+  font-family: NoDigits;
+  src: local(Ahem), url("/fonts/Ahem.ttf");
+  unicode-range: U+0000-002F, U+003A-007F;
+}
+@font-face {
+  font-family: ChTestZeroWidthZero;
+  src: url("resources/ChTestZeroWidthZero.woff");
+}
+div {
+  height: 10px;
+  background-color: blue;
+  margin-top: 10px;
+}
+.test {
+  width: calc(100px + 5ch);
+}
+.ref {
+  width: 100px;
+}
+</style>
+<p>The test passes if there are two blue rectangles of equal length.</p>
+<!-- NoDigits excludes the ASCII digits, and therefore should NOT be used
+     to derive the size of the 'ch' unit, which should instead be based on the
+     '0' in ChTestZeroWidthZero, which is zero-width. -->
+<div class="test" style="font: 80px NoDigits, ChTestZeroWidthZero;"></div>
+<div class="ref"></div>

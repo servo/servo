@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Incumbent settings object for promise jobs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is the entry page. -->
+
+<iframe src="resources/promise-job-incumbent-incumbent.html"></iframe>
+<iframe src="resources/promise-job-incumbent-resolver.html"></iframe>
+
+<script>
+setup({ explicit_done: true });
+
+// postMessage should pick the incumbent page as its .source value to set on the MessageEvent, even
+// inside promise jobs.
+const expectedURL = (new URL("resources/promise-job-incumbent-incumbent.html", location.href)).href;
+
+let testId = 0;
+
+window.onload = () => {
+  const relevantWindow = frames[0].document.querySelector("#r").contentWindow;
+  const runInResolver = frames[1].runWhatYouGiveMe;
+
+  function setupTest(t) {
+    ++testId;
+    const thisTestId = testId;
+
+    relevantWindow.addEventListener("messagereceived", t.step_func(e => {
+      const [receivedTestId, receivedSourceURL] = e.detail;
+
+      if (receivedTestId !== thisTestId) {
+        return;
+      }
+
+      assert_equals(receivedSourceURL, expectedURL);
+      t.done();
+    }));
+
+    return thisTestId;
+  }
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    frames[0].runWindowPostMessageVeryIndirectly(thisTestId, "*");
+  }, "Sanity check: this all works as expected with no promises involved");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    // No t.step_func because that could change the realms
+    Promise.resolve().then(() => {
+      frames[0].runWindowPostMessageVeryIndirectly(thisTestId, "*");
+    });
+  }, "Fulfillment handler on fulfilled promise");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    const p = Promise.resolve();
+    frames[0].runWindowPostMessageVeryIndirectlyWithNoUserCode(p, "then", thisTestId, "*");
+  }, "Fulfillment handler on fulfilled promise, using backup incumbent settings object stack");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    // No t.step_func because that could change the realms
+    Promise.reject().catch(() => {
+      frames[0].runWindowPostMessageVeryIndirectly(thisTestId, "*");
+    });
+  }, "Rejection handler on rejected promise");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    const p = Promise.reject();
+    frames[0].runWindowPostMessageVeryIndirectlyWithNoUserCode(p, "catch", thisTestId, "*");
+  }, "Rejection handler on rejected promise, using backup incumbent settings object stack");
+
+  // The following tests test that we derive the incumbent settings object at promise-job time from
+  // the incumbent realm at the time the handler was added, not at the time the resolve()/reject()
+  // was done. See https://github.com/whatwg/html/issues/5213 for the spec side of this issue.
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    let resolve;
+    const p = new Promise(r => { resolve = r; });
+
+    // No t.step_func because that could change the realms
+    p.then(() => {
+      frames[0].runWindowPostMessageVeryIndirectly(thisTestId, "*");
+    });
+
+    t.step_timeout(() => {
+      runInResolver(resolve);
+    }, 0);
+  }, "Fulfillment handler on pending-then-fulfilled promise");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    let resolve;
+    const p = new Promise(r => { resolve = r; });
+
+    frames[0].runWindowPostMessageVeryIndirectlyWithNoUserCode(p, "then", thisTestId, "*");
+
+    t.step_timeout(() => {
+      runInResolver(resolve);
+    }, 0);
+  }, "Fulfillment handler on pending-then-fulfilled promise, using backup incumbent settings object stack");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    let reject;
+    const p = new Promise((_, r) => { reject = r; });
+
+    // No t.step_func because that could change the realms
+    p.catch(() => {
+      frames[0].runWindowPostMessageVeryIndirectly(thisTestId, "*");
+    });
+
+    t.step_timeout(() => {
+      runInResolver(reject);
+    }, 0);
+  }, "Rejection handler on pending-then-rejected promise");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    let reject;
+    const p = new Promise((_, r) => { reject = r; });
+
+    frames[0].runWindowPostMessageVeryIndirectlyWithNoUserCode(p, "catch", thisTestId, "*");
+
+    t.step_timeout(() => {
+      runInResolver(reject);
+    }, 0);
+  }, "Rejection handler on pending-then-rejected promise, using backup incumbent settings object stack");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    const thenable = {
+      // No t.step_func because that could change the realms
+      then(f) {
+        frames[0].runWindowPostMessageVeryIndirectly(thisTestId, "*");
+      }
+    };
+
+    Promise.resolve(thenable);
+  }, "Thenable resolution");
+
+  async_test(t => {
+    const thisTestId = setupTest(t);
+
+    frames[0].resolveThenableThatRunsWindowPostMessageVeryIndirectlyWithNoUserCode(testId, "*", []);
+  }, "Thenable resolution, using backup incumbent settings object stack");
+
+  done();
+};
+</script>

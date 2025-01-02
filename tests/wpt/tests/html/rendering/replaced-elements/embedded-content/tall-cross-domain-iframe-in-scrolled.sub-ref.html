@@ -1,0 +1,9 @@
+<!doctype html>
+<html class="reftest-wait">
+<iframe id=myframe style="width: 300px; height: 1000px" src="resources/tall.html"></iframe>
+<div style="height: 2000px"></div>
+<script>
+  window.scrollTo(0, 700);
+  myframe.onload = () => document.documentElement.classList.remove('reftest-wait');
+</script>
+</html>

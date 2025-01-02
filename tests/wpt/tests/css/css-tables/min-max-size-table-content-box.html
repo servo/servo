@@ -1,0 +1,47 @@
+<!doctype html>
+<title>min/max-{width,height} on tables with box-sizing: content-box</title>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1651530">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#computing-the-table-height">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5336">
+<link rel="author" href="mailto:mats@mozilla.com" title="Mats Palmgren">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="min-max-size-table-content-box-ref.html">
+<style>
+html,
+body {
+  color: black;
+  background-color: white;
+  font: 16px/1 monospace;
+  padding: 0;
+  margin: 0;
+}
+
+table {
+  box-sizing: content-box;
+  border: 3px solid black;
+  padding: 5px;
+  background: blue content-box;
+  border-spacing: 0;
+}
+
+td {
+  padding: 1px;
+}
+
+div {
+  width: 75px;
+  height: 75px;
+}
+
+.grid {
+  display: grid;
+}
+</style>
+<table><td></td></table>
+<table style="min-height:50px"><td></td></table>
+<table style="min-width:50px"><td></td></table>
+<table style="max-height:50px"><td><div></div></td></table>
+<table style="max-width:50px"><td><div></div></td></table>
+<div class="grid"><table style="max-height:50px"><td></td></table></div>
+<div class="grid"><table style="max-width:50px"><td></td></table></div>

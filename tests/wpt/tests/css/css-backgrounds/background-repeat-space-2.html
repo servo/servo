@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Background: background-repeat: background image round with specified position</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css3-background/#background-repeat">
+    <link rel="match" href="background-repeat-space-2-ref.html">
+    <meta name="assert" content="Test checks whether background-repeat: 'space' works correctly or not.">
+    <style type="text/css">
+      .outer {
+        width: 48px;
+        height: 48px;
+        border: 1px solid black;
+        background-image: url(support/aqua-yellow-32x32.png);
+        background-repeat: space;
+        background-position: 5px 5px;
+      }
+      .outer_gradient {
+        width: 48px;
+        height: 48px;
+        border: 1px solid black;
+        background-size: 32px 32px;
+        background-image: linear-gradient(to top left, red, green);
+        background-repeat: space;
+        background-position: 5px 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outer"></div>
+    <div class="outer_gradient"></div>
+  </body>
+</html>
+

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Image Test: SVG used as an image does not load images - mismatch reference</title>
+    <link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+    <style>
+      * {
+        padding: 0px;
+        margin: 0px;
+      }
+      .top-left {
+        position: absolute;
+        left: 0px;
+        top: 0px;
+      }
+      .bottom-left {
+        position: absolute;
+        left: 0px;
+        top: 60px;
+      }
+    </style>
+  </head>
+  <body>
+    <img class="top-left" src="support/60x60-green.png"/>
+    <img class="bottom-left" src="support/60x60-green.png"/>
+  </body>
+</html>

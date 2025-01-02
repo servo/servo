@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-margin" />
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+<body>
+  <style>
+    html {
+      padding: 10rem;
+      border-bottom: solid silver 150vh;
+    }
+    .target {
+      scroll-margin-top: 8rem;
+      font-size: 2rem;
+      border: solid grey 1px;
+    }
+  </style>
+  <div contenteditable class="target" id="target"></div>
+  <script>
+    promise_test(async (t) => {
+      document.addEventListener("scroll", t.unreached_func(
+        "document scrolled for already-in-view target."));
+      document.getElementById("target").focus();
+      await test_driver.send_keys(target, "a");
+      await waitForCompositorCommit();
+    }, "already-in-view div should not cause a scroll upon focus.");
+  </script>
+</body>
+
+</html>

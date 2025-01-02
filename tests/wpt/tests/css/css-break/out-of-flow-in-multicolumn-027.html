@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>
+  Nested abpos in a nested fragmentation context.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+  }
+  #outer {
+    height: 100px;
+    width: 100px;
+    background: red;
+  }
+  #inner {
+    width: 50px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol" id="outer">
+  <div class="rel">
+    <div class="abs">
+      <div class="multicol" id="inner">
+        <div class="rel" style="height: 400px;">
+          <div class="abs" style="height: 400px; width: 25px; background-color: green;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

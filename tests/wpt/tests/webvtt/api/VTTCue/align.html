@@ -1,0 +1,67 @@
+<!doctype html>
+<title>VTTCue.align</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-align">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var video = document.createElement('video');
+    document.body.appendChild(video);
+
+    var cue = new VTTCue(0, 1, 'text');
+    assert_true('align' in cue, 'align is not supported');
+    assert_equals(cue.align, 'center');
+
+    var track = document.createElement('track');
+    var t = track.track;
+    t.addCue(cue);
+
+    assert_equals(cue.align, 'center');
+
+    video.appendChild(track);
+    assert_equals(cue.align, 'center');
+
+    t.mode = 'showing';
+    assert_equals(cue.align, 'center');
+
+    cue.align = 'start';
+    assert_equals(cue.align, 'start');
+
+    cue.align = 'end';
+    assert_equals(cue.align, 'end');
+
+    ['start\u0000', 'centre', 'middle'].forEach(function(invalid) {
+        cue.align = invalid;
+        assert_equals(cue.align, 'end');
+    });
+}, document.title+', script-created cue');
+
+var t_parsed = async_test(document.title+', parsed cue');
+t_parsed.step(function(){
+    var video = document.createElement('video');
+    document.body.appendChild(video);
+    var t = document.createElement('track');
+    t.onload = this.step_func(function(){
+        var c1 = t.track.cues[0];
+        var c2 = t.track.cues[1];
+        var c3 = t.track.cues[2];
+        var c4 = t.track.cues[3];
+        assert_equals(c1.align, 'center');
+        assert_equals(c2.align, 'start');
+        assert_equals(c3.align, 'center');
+        assert_equals(c4.align, 'end');
+        this.done();
+    });
+    t.onerror = this.step_func(function() {
+      assert_unreached('got error event');
+    });
+    t.src = make_vtt_track('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 align:start\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 align:center\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 align:end\ntest', this);
+    t.track.mode = 'showing';
+    video.appendChild(t);
+});
+</script>

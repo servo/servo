@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>White space pre-line crashtest (#12369)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+   width: 70px;
+   white-space: pre-line;
+}
+</style>
+<div>This is an actual loooooooong line
+Line 2</div>
+<script>
+async_test(function(t) {
+  window.addEventListener('load', function() {
+    t.done();
+  });
+});
+</script>

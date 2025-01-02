@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Selectors Level 4: query using :where()</title>
+  <link rel="help" href="https://drafts.csswg.org/selectors/#zero-matches">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/query-testcommon.js"></script>
+</head>
+<body>
+  <div id="a1" class="a">
+    <div class="b" id="b1"></div>
+    <div class="c" id="c1"></div>
+    <div class="c" id="d"></div>
+    <div class="e" id="e1"></div>
+    <div class="f" id="f1"></div>
+    <div class="g">
+      <div class="b" id="b2">
+        <div class="b" id="b3"></div>
+      </div>
+    </div>
+    <div class="h" id="h1"></div>
+  </div>
+  <div class="c" id="c2">
+    <div id="a2" class="a"></div>
+    <div class="e" id="e2"></div>
+  </div>
+  <script>
+    'use strict';
+
+    // Simple selector arguments are supported by :where
+    test_query_selector(document, '.a :where(.b, .c)',
+        ['b1', 'c1', 'd', 'b2', 'b3']);
+
+    // Compound selector arguments are supported by :where
+    test_query_selector(document, '.a :where(.c#d, .e)',
+        ['d', 'e1']);
+
+    // Complex selector arguments are supported by :where
+    test_query_selector(document, '.a :where(.e+.f, .g>.b, .h)',
+        ['f1', 'b2', 'h1']);
+
+    // Nested selector arguments are supported by :where
+    test_query_selector(document, '.a+:where(.b+.f, :where(.c>.e, .g))',
+        ['e2']);
+
+    // Nested :is selector arguments are supported by :where
+    test_query_selector(document, '.a :where(:is(:is(.b ~ .c)))',
+        ['c1', 'd']);
+
+    // Nested :not selector arguments are supported by :where
+    test_query_selector(document, '.b + :where(.c + .c + .c, .b + .c:not(span), .b + .c + .e) ~ .h',
+        ['h1']);
+  </script>
+</body>
+</html>

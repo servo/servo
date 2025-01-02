@@ -1,0 +1,37 @@
+<!doctype html>
+<title>CSS Text Test: Crash rendering RLT text with unicode-bidi: bidi-override</title>
+<link rel="help" href="https://crbug.com/1152387">
+<script type="text/javascript">
+    function event_handler_CD7_readystatechange() {
+        document.designMode = document.designMode == "on" ? "off" : "on";
+        var oSelection=window.getSelection();
+        document.execCommand("SelectAll")
+        oSelection.collapseToEnd()
+        document.execCommand('CreateLink',false,'about:blank');
+    }
+    document.addEventListener("readystatechange", event_handler_CD7_readystatechange);
+    function event_handler_CD8_DOMCharacterDataModified() {
+        var oSelection=window.getSelection();
+        oSelection.modify('move', 'backward', 'line');
+    }
+    document.addEventListener("DOMCharacterDataModified", event_handler_CD8_DOMCharacterDataModified);
+    setTimeout(function() {
+        var oSelection=window.getSelection();
+        var oRange = oSelection.rangeCount ? oSelection.getRangeAt(68 % oSelection.rangeCount) : null;
+        var oParentElement = function() {
+            var oNewElement = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+            return oNewElement;
+        }();
+        oRange.surroundContents(oParentElement);
+    });
+</script>
+<style>
+    div {
+        unicode-bidi:bidi-override;
+        direction: rtl;
+    }
+</style>
+<div>
+AxBxC AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+A AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+</div>

@@ -1,0 +1,43 @@
+<!doctype html>
+<script nonce="specified" src="/resources/testharness.js"></script>
+<script nonce="specified" src="/resources/testharnessreport.js"></script>
+
+<div id=log></div>
+<script nonce="specified">
+  [
+    {
+      name: 'CSP with both source and nonce should allow matching source',
+      src: "http://{{host}}:{{ports[http][0]}}/content-security-policy/support/alert-pass.js",
+      nonce: "notspecified"
+    },
+    {
+      name: 'CSP with both source and nonce should allow both matching nonce and source',
+      src: "http://{{host}}:{{ports[http][0]}}/content-security-policy/support/alert-pass.js",
+      nonce: "specified"
+    }
+  ].forEach(elt => {
+    async_test((test) => {
+      const s = document.createElement('script');
+      s.src = elt.src;
+      s.nonce = elt.nonce;
+      s.onload = () => test.done();
+      s.onerror = test.unreached_func('Script should load correctly');
+      document.body.appendChild(s);
+    }, elt.name);
+  });
+
+  const t = async_test('No CSP violation should fire and all scripts should load');
+  let count = 0;
+  const expected = 2;
+  function alert_assert(msg) {
+    if (msg === "PASS") {
+      count++;
+      if (count == expected) {
+        t.done();
+      }
+    }
+  }
+
+  window.addEventListener('securitypolicyviolation',
+    t.unreached_func('No CSP violation should fire'));
+</script>

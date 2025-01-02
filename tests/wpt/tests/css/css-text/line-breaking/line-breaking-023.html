@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: fallback line breaking (Javanese)</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-details">
+<link rel="mismatch" href="reference/line-breaking-023-ref.html">
+<meta name=assert content="In languages requiring lexical or orthographic analysis for line breaking, some form of fallback line breaking must occur even if the UA doesn't know how to perform it correctly. Overflowing is not allowed.">
+<style>
+div {
+    border-right: 6em solid;
+    width: 6em;
+}
+.test {
+    color: blue;
+}
+.ref {
+    white-space: pre;
+    color: orange;
+}
+section {
+    width: max-content;
+}
+</style>
+
+<p>This test passes if the <strong>blue text wraps</strong> into more that one line, making it <strong>different</strong> from the orange one.
+
+
+<section>
+<div class=test lang="jv-Java">꧋ꦱꦧꦼꦤ꧀ꦲꦸꦩꦠ꧀ꦩꦤꦸꦁꦱꦭꦲꦶꦂꦏꦤ꧀ꦛꦶꦲꦏ꧀ꦲꦏ꧀ꦏꦁꦥꦺꦴꦝꦺꦴꦭꦤ꧀ꦥꦶꦤꦱ꧀ꦛꦶꦭꦤ꧀ꦏꦤ꧀ꦛꦶꦏꦧꦺꦧꦱ꧀ꦱꦤ꧀ꦏꦧꦺꦧꦱ꧀ꦱꦤ꧀ꦲꦶꦁꦧꦏꦸꦤꦶꦁꦲꦁꦒꦼꦂꦲꦁꦒꦼꦂ</div>
+
+<div class=ref lang="jv-Java">꧋ꦱꦧꦼꦤ꧀ꦲꦸꦩꦠ꧀ꦩꦤꦸꦁꦱꦭꦲꦶꦂꦏꦤ꧀ꦛꦶꦲꦏ꧀ꦲꦏ꧀ꦏꦁꦥꦺꦴꦝꦺꦴꦭꦤ꧀ꦥꦶꦤꦱ꧀ꦛꦶꦭꦤ꧀ꦏꦤ꧀ꦛꦶꦏꦧꦺꦧꦱ꧀ꦱꦤ꧀ꦏꦧꦺꦧꦱ꧀ꦱꦤ꧀ꦲꦶꦁꦧꦏꦸꦤꦶꦁꦲꦁꦒꦼꦂꦲꦁꦒꦼꦂ</div>
+</section>

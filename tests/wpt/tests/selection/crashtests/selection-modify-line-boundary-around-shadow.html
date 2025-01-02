@@ -1,0 +1,30 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const shadowRoot = b.attachShadow({mode: "closed"});
+  shadowRoot.textContent = "A";
+  getSelection().collapse(shadowRoot.firstChild, 1);
+
+  function moveCaretAndReplaceBodyWithAddress() {
+    getSelection().modify("move", "forward", "lineboundary");
+    document.documentElement.replaceChild(a, document.body);
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(moveCaretAndReplaceBodyWithAddress);
+    requestAnimationFrame(moveCaretAndReplaceBodyWithAddress);
+    requestAnimationFrame(
+      () => document.documentElement.removeAttribute("class")
+    );
+  });
+}, {once: true});
+</script>
+</head>
+<body>
+<address id="a"></address>
+<div id="b"></div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Unexpected Presences, Part 3</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/006.html" type="text/html"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/006.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <style type="text/css">
+   body * { margin: 4px; padding: 4px; border: 1px solid; display: block; }
+   .test { border-color: blue; width: 40em; }
+   .float { border-color: fuchsia; float: left; width: 5em; height: 5em; }
+   .first { border-color: purple; margin-left: 10em; }
+   .second { border-color: teal; width: 8em; }
+  </style>
+ </head>
+ <body>
+  <div class="test">
+   <div class="first"> This is the first block, with a big left
+   margin. At the end of this block is a left float which should be
+   square. Text that follows this box should flow to the right of the
+   float or go below it; no text should be on the left of the float.
+   <div class="float"> This is the square left float. </div> </div>
+   <div class="second"> This is the second block. It is sized so as to
+   be just narrow enough to fit in the gap to the left of the
+   float. Text should not want to be to the left of the float, since
+   it is a left float in flow, so instead all the text should just
+   move below the float. </div>
+  </div>
+ </body>
+</html>

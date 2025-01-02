@@ -1,0 +1,87 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="AG" author="Shenxue Zhou" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: text-path-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextOnAPath">
+      <p>
+        Test textPath element in combination with the tspan element. Properties
+        of the text on a path are changed using the tspan element.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required. Make sure scripting is enabled.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        For this test to pass the rendered output must match the reference
+        image. The letters "Te" in first "Text on a path" sentence must be
+        colored pink and offset from the path in the y direction.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-path-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <path id="Path1" fill="none" stroke="blue" d="M199 89.3 C206.6 66.6 235.8 13.2 270 30.3 286.6 38.6 298.9 59.4 310 73.3 321.7 87.9 338.6      99 356 103.3 387.3 111.1 396.6 90.4 418 74.3"/>
+      <path id="Path2" fill="none" stroke="blue" d="M33.5 145.8 C41 123 70.3 69.7 104.5 86.8 121 95 133 116 144.5 129.8 156.2 144.4 173 155.5     190.5 159.8 221.8 167.6 231 146.9 252.5 130.8"/>
+      <path id="Path3" fill="none" stroke="blue" stroke-width="4" d="M113 233 L413 233 "/>
+    </defs>
+    <g id="text-on-path-01">
+      <use xlink:href="#Path1" fill="none" stroke="blue"/>
+      <text font-size="36" font-family="Georgia" fill="black">
+        <textPath xlink:href="#Path1">Text on a path</textPath>
+      </text>
+    </g>
+    <g id="text-on-path-02">
+      <!-- using tspan to change text color and position -->
+      <use xlink:href="#Path2" fill="none" stroke="blue"/>
+      <text font-size="36" font-family="Georgia" fill="black">
+        <textPath xlink:href="#Path2">
+          <tspan dy="-12" fill="fuchsia">Te</tspan><tspan dy="12">x</tspan>t on a path
+        </textPath>
+      </text>
+      <rect x="17" y="169" width="274" height="41" fill="none" stroke="black"/>
+      <text x="19" y="185" font-size="20" font-family="Arial">'tspan' subelement inside </text>
+      <text x="19" y="207" font-size="20" font-family="Arial">the 'textPath' element.</text>
+    </g>
+    <g id="text-on-path-03">
+      <use xlink:href="#Path3" fill="none" stroke="blue" stroke-width="4"/>
+      <text font-size="24" font-family="Arial" fill="black">
+        <textPath xlink:href="#Path3" startOffset="33%">The Text on path</textPath>
+      </text>
+      <rect x="118" y="250" width="260" height="41" fill="none" stroke="black"/>
+      <text x="120" y="267" font-size="20" font-family="Arial">'startOffset' attribute of the</text>
+      <text x="120" y="287" font-size="20" font-family="Arial">'textPath' element.</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

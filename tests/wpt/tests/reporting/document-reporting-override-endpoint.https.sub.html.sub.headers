@@ -1,0 +1,3 @@
+Reporting-Endpoints: group1="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=b523d7f5-28f0-4be6-9460-e163ee9b4ab8"
+Reporting-Endpoints: group1="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=03e4474d-768c-42f2-8e17-39aa95b309e3"
+Document-Policy-Report-Only: sync-xhr=?0;report-to=group1

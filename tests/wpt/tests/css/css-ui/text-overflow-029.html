@@ -1,0 +1,20 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow and bidi interaction</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css-ui-3/#text-overflow">
+<link rel="help" href="http://www.w3.org/TR/css-ui-4/#text-overflow">
+<link rel="match" href="reference/text-overflow-029-ref.html">
+<meta name="assert" content="When there's content of mixed directionality, text-overflow ellides the characters at the physical end of the line.">
+<style>
+div {
+  font: 20px monospace;
+  width: 12.3ch; /* slightly more than 12ch because in some browsers (safari) the ellipsis is slightly large than other characters, even in monospace fonts. */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+</style>
+
+<div>Test &#x202E;deliafdessap&#x202C;</div>

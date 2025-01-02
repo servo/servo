@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS inheritance: content with tables</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/inheritance/content/002.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+  <link rel="match" href="content-inherit-002-ref.xht" />
+
+  <style type="text/css">
+    .control td:after { content: 'PASSED)'; }
+    .test1 td { content: 'PASSED'; }
+    .test1 td:after { content: inherit; color: green; }
+    .test2 tr { content: 'PASSED'; }
+    .test2 td { content: inherit; }
+    .test2 td:after { content: inherit; color: green; }
+  </style>
+ </head>
+ <body>
+   <table class="control"><tr><td>(Control: </td></tr></table>
+   <table class="test1"><tr><td>Test 1 has: </td></tr></table>
+   <table class="test2"><tr><td>Test 2 has: </td></tr></table>
+ </body>
+</html>

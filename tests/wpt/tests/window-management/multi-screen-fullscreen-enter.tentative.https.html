@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<title>Window Management test: target-screen element.requestFullscreen()</title>
+<link rel="help" href="https://w3c.github.io/window-management/">
+Tests use of multi-screen details to enter fullscreen on specific screens.<br>
+The host device must have 2+ screens to yield meaningful results.<br><br>
+<ul id="list"></ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async setUpTest => {
+  await setUpWindowManagement(setUpTest);
+  const originalScreen = window.screenDetails.currentScreen;
+  for (const s of window.screenDetails.screens) {
+    const name = `Request fullscreen on '${s.label}`;
+    await promise_test(async test => {
+      // Request fullscreen on screen `s`; `window` should move there.
+      await buttonClick(test, name);
+      await document.documentElement.requestFullscreen({ screen: s });
+      await assertWindowOnScreen(window, s);
+      assert_true(!!document.fullscreenElement);
+
+      // Exit fullscreen; `window` should move back to `originalScreen`.
+      await buttonClick(test, `Exit fullscreen`);
+      await document.exitFullscreen();
+      await assertWindowOnScreen(window, originalScreen);
+      assert_false(!!document.fullscreenElement);
+    }, name);
+  }
+}, 'Use multi-screen details to enter fullscreen on specific screens');
+</script>

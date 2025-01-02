@@ -1,0 +1,19 @@
+<!doctype html>
+<title>The cut event</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#clipboard-event-cut">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<input value="Select and cut any part of this text to continue" size="100">
+<script>
+setup({explicit_timeout: true});
+async_test(t => {
+  document.oncut = t.step_func_done(event => {
+    // Nothing can be asserted about the event target until
+    // https://github.com/w3c/clipboard-apis/issues/70 is resolved.
+    // assert_equals(event.target, document.body, 'event.target');
+    assert_true(event.isTrusted, 'event.isTrusted');
+    assert_true(event.composed, 'event.composed');
+  });
+});
+</script>

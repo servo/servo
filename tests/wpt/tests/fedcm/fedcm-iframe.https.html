@@ -1,0 +1,90 @@
+<!doctype html>
+<link rel="help" href="https://wicg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log>
+<script type="module">
+'use strict';
+
+import {fedcm_test, set_fedcm_cookie} from './support/fedcm-helper.sub.js';
+
+const host = get_host_info();
+// This regex removes the filename from the path so that we just get
+// the directory.
+const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+const remoteBaseURL = host.HTTPS_REMOTE_ORIGIN + basePath;
+const localhostBaseURL = "http://localhost:" + host.HTTP_PORT + basePath;
+
+async function createIframeAndWaitForMessage(test, iframeUrl, setPermissionPolicy, style = "") {
+    const messageWatcher = new EventWatcher(test, window, "message");
+    var iframe = document.createElement("iframe");
+    iframe.src = iframeUrl;
+    if (setPermissionPolicy) {
+      iframe.allow = "identity-credentials-get";
+    }
+    if (style !== "") {
+      iframe.style = style;
+    }
+    document.body.appendChild(iframe);
+    let message = null;
+    // Ignore internal "testdriver-complete" messages.
+    do {
+        message = await messageWatcher.wait_for("message");
+    } while (!("result" in message.data));
+    return message.data;
+}
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "support/fedcm-iframe.html",
+      /*setPermissionPolicy=*/false);
+  assert_equals(message.result, "Fail");
+  assert_equals(message.errorType, "NotAllowedError");
+}, "FedCM disabled in cross origin iframe without permissions policy");
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "support/fedcm-iframe-level2.html",
+      /*setPermissionPolicy=*/true);
+  assert_equals(message.result, "Pass");
+  assert_equals(message.token, "token");
+}, "FedCM enabled in 2 level deep nested iframe. FedCM should be enabled regardless of iframe nesting depth");
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "support/fedcm-iframe.html",
+      /*setPermissionPolicy=*/true, /*style=*/"display:none;");
+  assert_equals(message.result, "Pass");
+  assert_equals(message.token, "token");
+}, "FedCM enabled in invisible iframe. FedCM should be enabled as long as the top frame is visible");
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "support/fedcm-iframe-level2.html",
+      /*setPermissionPolicy=*/false);
+  assert_equals(message.result, "Fail");
+  assert_equals(message.errorType, "NotAllowedError");
+}, "FedCM disabled in 2 level deep nested iframe where middle iframe does not have permission policy");
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "support/fedcm-iframe-level2.html?permission=0",
+      /*setPermissionPolicy=*/true);
+  assert_equals(message.result, "Fail");
+  assert_equals(message.errorType, "NotAllowedError");
+}, "FedCM disabled in 2 level deep nested iframe where innermost iframe does not have permission policy");
+
+fedcm_test(async t => {
+  // This is only an iframe because there's no other way to have this URL
+  // loaded from localhost.
+  const message = await createIframeAndWaitForMessage(
+      t, localhostBaseURL + "support/fedcm-iframe.html",
+      /*setPermissionPolicy=*/true);
+  assert_equals(message.result, "Pass");
+  assert_equals(message.token, "token");
+}, "FedCM should work in non-HTTPS URLs on localhost");
+
+</script>

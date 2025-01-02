@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Printing with a transition that could trigger as a result of @media print</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8012">
+<link rel="match" href="transition-in-media-print-ref.html">
+<style>
+#target {
+  transition-duration: 100000s;
+  print-color-adjust: exact;
+}
+@media not print {
+  #target {
+    color: red;
+  }
+}
+</style>
+<div id="target">
+  Should not be red
+</div>

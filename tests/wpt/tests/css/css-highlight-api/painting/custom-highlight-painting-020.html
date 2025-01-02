@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Highlighting Ligatures</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-020-ref.html">
+<meta name="assert" value="Highlights should split ligatures.">
+<meta name="fuzzy" content="0-128;0-28">
+<style>
+  @font-face {
+    font-family: 'mplus';
+    src: url('../../../fonts/mplus-1p-regular.woff');
+  }
+  ::highlight(foo) {
+    color:green;
+    text-decoration: blue 2px line-through;
+  }
+  div {
+      font-size: 7em;
+      font-family: mplus, serif;
+  }
+</style>
+<body><div>fii ffi fff</div>
+<script>
+  let textNode = document.body.firstChild.firstChild;
+
+  let r1 = new Range();
+  r1.setStart(textNode, 1);
+  r1.setEnd(textNode, 9);
+  let h1 = new Highlight(r1);
+  CSS.highlights.set("foo", h1);
+</script>

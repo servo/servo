@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> MouseEvent: Default action and synthetic click event </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display: none">
+    <input type="checkbox" id="target">
+    <button id="button"> Click Here </button>
+</div>
+
+<script>
+    setup({explicit_done:true});
+    var EVENT = "click";
+    var TARGET = document.getElementById("target");
+    var BUTTON = document.getElementById("button");
+    var state;
+
+    var description = "Test Description: " +
+                      "MouseEvent: Default action is performed when a synthetic click event is dispatched on a checkbox element";
+
+    BUTTON.addEventListener(EVENT, TestEvent, true);
+    TARGET.addEventListener(EVENT, TestEvent, true);
+
+    window.onload = function()
+    {
+        state = TARGET.checked;
+        BUTTON.click();
+    }
+
+    function TestEvent(evt)
+    {
+        if (BUTTON == evt.target)
+        {
+            var e;
+            test(function()
+            {
+                BUTTON.removeEventListener(EVENT, TestEvent, true);
+
+                e = document.createEvent("MouseEvent");
+                e.initMouseEvent(EVENT,  /* type */
+                                 false,  /* bubbles */
+                                 true,   /* cancelable */
+                                 window, /* view */
+                                 1,      /* detail */
+                                 0,      /* screenX */
+                                 0,      /* screenY */
+                                 0,      /* clientX */
+                                 0,      /* clientY */
+                                 false,  /* ctrlKey */
+                                 false,  /* altKey */
+                                 false,  /* shiftKey */
+                                 false,  /* metaKey */
+                                 0,      /* button */
+                                 null    /* relatedTarget */);
+
+                assert_array_equals([TARGET.checked, e.type, e.bubbles], [state, EVENT, false]);
+
+            }, "Checkbox state is unchanged before the synthetic click event is dispatched");
+
+            TARGET.dispatchEvent(e);
+        }
+        else if (TARGET == evt.target)
+        {
+            test(function()
+            {
+                assert_array_equals([TARGET.checked, evt.type, evt.bubbles], [!state, EVENT, false]);
+
+            }, description);
+
+            done();
+        }
+    }
+</script>
+</body>
+</html>

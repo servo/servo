@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset=utf-8>
+<style>
+*:nth-child(odd) {
+  display: table-header-group;
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.execCommand("enableObjectResizing", false)
+  document.addEventListener("selectionchange", () => {
+    document.execCommand("insertImage", false, "x")
+    document.execCommand("selectAll", false)
+  }, { once: true });
+  document.getSelection().collapse(a)
+})
+</script>
+<details open="" contenteditable="true">
+<details id="a">

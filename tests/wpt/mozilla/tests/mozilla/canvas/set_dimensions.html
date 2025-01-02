@@ -1,0 +1,25 @@
+<!doctype html>
+<html class="reftest-wait">
+    <head>
+        <meta charset=utf-8>
+        <title>Resizing a canvas</title>
+        <link rel=match href=/_mozilla/mozilla/canvas/set_dimensions_ref.html>
+    </head>
+
+    <body>
+        <canvas width="50px" height="50px"></canvas>
+        <script>
+            var canvas = document.getElementsByTagName('canvas')[0];
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = "red";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            setTimeout(function() {
+                canvas.width = 100;
+                canvas.height = 100;
+                ctx.fillStyle = "green";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                document.documentElement.classList.remove("reftest-wait");
+            }, 0);
+        </script>
+    </body>
+</html>

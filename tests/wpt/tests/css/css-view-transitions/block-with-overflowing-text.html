@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: block with overflowing text is rendered correctly</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="block-with-overflowing-text-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-1200">
+
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+:root {
+  font: 20px/1 Ahem;
+}
+#target {
+  text-shadow: red -20px -50px;
+  position: relative;
+  top: 100px;
+  left: 100px;
+  view-transition-name: target;
+}
+
+.hidden {
+  view-transition-name: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+html::view-transition-group(root) { visibility: hidden; }
+
+html::view-transition-group(target) {
+  animation: unset;
+}
+
+html::view-transition-old(target) {
+  animation: unset;
+  opacity: 0;
+}
+
+html::view-transition-new(target) {
+  animation: unset;
+  opacity: 1;
+}
+
+html::view-transition {
+  background: pink;
+}
+</style>
+
+<div id="target">This text should render correctly</div>
+<div class="hidden"></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition();
+  transition.ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

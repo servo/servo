@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<title>The animation-timeline:none with preserved progress for print</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-timeline">
+<meta name="assert" content="print correctly for an animation with animation-timeline:none with preserved progress">
+<link rel="match" href="scroll-timeline-specified-scroller-ref.html">
+
+<style>
+  @keyframes anim {
+    from { transform: translateX(0px); }
+    to { transform: translateX(100px); }
+  }
+
+  #scroller {
+    scroll-timeline: --timeline;
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+    scrollbar-width: none;
+  }
+
+  #contents {
+    height: 200px;
+  }
+
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: anim 1s linear --timeline;
+  }
+</style>
+
+<div id="scroller">
+  <div id="contents"></div>
+  <div id="box"></div>
+</div>
+
+<script>
+  window.addEventListener('load', function() {
+    const scroller = document.getElementById("scroller");
+    // Move the scroller to the halfway point.
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+
+    window.requestAnimationFrame(() => {
+      let box = document.getElementById("box");
+      box.style.animationTimeline = "none";
+      getComputedStyle(box).marginLeft;
+
+      window.requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  });
+</script>

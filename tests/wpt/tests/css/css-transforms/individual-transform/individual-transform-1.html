@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Individual transform: compare individual transform with transform functions</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#individual-transforms">
+    <meta name="assert" content="Tests whether individual transforms work correctly by comparing the rendering result with transform functions of the 'transform' property."/>
+    <link rel="match" href="individual-transform-1-ref.html">
+    <style>
+      div {
+        position: fixed;
+        width: 100px;
+        height: 100px;
+        transform-origin: 0 0;
+        border-style: solid;
+        border-width: 10px 0px 10px 0px;
+        border-color: lime;
+      }
+      .row_1 {
+        top: 100px;
+      }
+      .scale_1{
+        left: 100px;
+        width: 50px;
+        height: 100px;
+        /* test 'scale: <number>' */
+        scale: 2;
+      }
+      .translate_1 {
+        left: 150px;
+        /* test 'translate: <length-percentage>' */
+        translate: 150px;
+      }
+      .rotate_1 {
+        left: 450px;
+        transform-origin: 50% 50%;
+        /* test 'rotate: <angle>' */
+        rotate: 90deg;
+      }
+
+      .row_2 {
+        top: 250px;
+      }
+      .scale_2{
+        left: 100px;
+        width: 50px;
+        height: 50px;
+        /* test 'scale: <number>{2}'' */
+        scale: 2 2;
+      }
+      .translate_2 {
+        left: 150px;
+        top: 200px;
+        /* test 'translate: <length-percentage><length-percentage>' */
+        translate: 150px 50px;
+      }
+      .rotate_2 {
+        left: 450px;
+        transform-origin: 50% 50%;
+        /* test 'rotate: axis <angle>'*/
+        rotate: x 45deg;
+      }
+      .row_3 {
+        transform: perspective(500px);
+        top: 400px;
+      }
+      .scale_3{
+        left: 100px;
+        width: 50px;
+        height: 50px;
+        /* test 'scale: <number>{3}'' */
+        scale: 2 2 2;
+      }
+      .translate_3 {
+        left: 150px;
+        /* test 'translate: <length-percentage><length>' */
+        translate: 150px 10px 10px;
+      }
+      .rotate_3 {
+        left: 450px;
+        transform-origin: 50% 50%;
+        /* test 'rotate: <number>{3}<angle>'*/
+        rotate: 0 1 0 45deg;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scale_1 row_1"></div>
+    <div class="translate_1 row_1"></div>
+    <div class="rotate_1 row_1"></div>
+    <div class="scale_2 row_2"></div>
+    <div class="translate_2 row_2"></div>
+    <div class="rotate_2 row_2"></div>
+    <div class="scale_3 row_3"></div>
+    <div class="translate_3 row_3"></div>
+    <div class="rotate_3 row_3"></div>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js" nonce="123"></script>
+<script src="/resources/testharnessreport.js" nonce="123"></script>
+<script src="/common/utils.js" nonce="123"></script>
+<script src="/preload/resources/preload_helper.js" nonce="123"></script>
+<title>CSP strict-dynamic + preload</title>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-123' 'strict-dynamic'" />
+</head>
+<body>
+<script nonce="123">
+const PATTERN = /\?key=([a-zA-Z0-9\-]+)$/;
+
+// We use async_test instead of promise_test in this file because these
+// tests take long time to run and we want to run them in parallel.
+async_test((t) => {
+  Promise.resolve().then(async () => {
+    let sawViolation = false;
+    self.addEventListener('securitypolicyviolation', (e) => {
+      const link = document.querySelector('#static-no-nonce');
+      if (e.violatedDirective == 'script-src-elem' && e.blockedURI === link.href) {
+        sawViolation = true;
+      }
+    });
+
+    await new Promise((resolve) => step_timeout(resolve, 3000));
+
+    const link = document.querySelector('#static-no-nonce');
+    const key = link.href.match(PATTERN)[1]
+
+    assert_true(sawViolation, 'sawViolation');
+    assert_false(await hasArrivedAtServer(key), 'hasArrivedAtServer');
+    t.done();
+  }).catch(t.step_func((e) => {
+    throw e;
+  }));
+}, 'static-no-nonce');
+
+async_test((t) => {
+  Promise.resolve().then(async () => {
+    let sawViolation = false;
+    self.addEventListener('securitypolicyviolation', (e) => {
+      const link = document.querySelector('#static-nonce');
+      if (e.violatedDirective == 'script-src-elem' && e.blockedURI === link.href) {
+        sawViolation = true;
+      }
+    });
+
+    // TODO: Use step_wait after
+    // https://github.com/web-platform-tests/wpt/pull/34289 is merged.
+    await new Promise((resolve) => step_timeout(resolve, 3000));
+
+    const link = document.querySelector('#static-nonce');
+    const key = link.href.match(PATTERN)[1]
+
+    assert_false(sawViolation, 'sawViolation');
+    assert_true(await hasArrivedAtServer(key), 'hasArrivedAtServer');
+    t.done();
+  }).catch(t.step_func((e) => {
+    throw e;
+  }));
+}, 'static-nonce');
+
+async_test((t) => {
+  Promise.resolve().then(async () => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    const id = token();
+    link.href = `/preload/resources/stash-put.py?key=${id}`;
+    link.as = 'script';
+
+    document.head.appendChild(link);
+    await new Promise((resolve, reject) => {
+      link.addEventListener('load', resolve, {once: true});
+      link.addEventListener('error', resolve, {once: true});
+    });
+    assert_true(await hasArrivedAtServer(id), 'hasArrivedAtServer');
+    t.done();
+  }).catch(t.step_func((e) => {
+    throw e;
+  }));
+}, 'dynamic');
+</script>
+
+<link id="static-no-nonce" href="/preload/resources/stash-put.py?key={{uuid()}}" rel=preload as=script>
+<link id="static-nonce" href="/preload/resources/stash-put.py?key={{uuid()}}" rel=preload as=script nonce="123">
+</body>
+</html>

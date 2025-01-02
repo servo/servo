@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+async function test() {
+  let params = new URL(document.location.toString()).searchParams;
+  let method = params.get("method");
+
+  try {
+    if (method == 'set') {
+      await sharedStorage.set('key0', 'key1');
+    } else if (method == 'createWorklet') {
+      await sharedStorage.createWorklet('simple-module.js')
+    } else if (method == 'createWorkletScriptOrigin') {
+      await sharedStorage.createWorklet('simple-module.js',
+                                        { dataOrigin: 'script-origin' })
+    } else if (method == 'addModule') {
+      await sharedStorage.worklet.addModule('simple-module.js')
+    }
+    window.parent.postMessage({ accessSharedStorageResult: 'success'}, "*");
+  } catch (error) {
+    window.parent.postMessage({ accessSharedStorageResult: 'failure'}, "*");
+  }
+}
+
+test();
+
+</script>
+</body>
+</html>

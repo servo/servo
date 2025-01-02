@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const log = [];
+</script>
+<script type="importmap">
+{
+  "scopes": {
+    "/": {
+      "../resources/../resources/app.js": "../resources/log.js?pipe=sub&name=first"
+    }
+  }
+}
+</script>
+<script type="importmap">
+{
+  "scopes": {
+    "/": {
+      "../resources/app.js": "../resources/log.js?pipe=sub&name=second"
+    }
+  }
+}
+</script>
+<script type="module">
+promise_test(async () => {
+  await import("../resources/app.js");
+  assert_array_equals(log, ["log:first"]);
+},
+"Second import map should not override same resolved URL");
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Selection drag and drop: events for &lt;textarea></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body data-expected-events="
+  b:drop:,
+  a:beforeinput:deleteByDrag,
+  a:input:deleteByDrag,
+  b:beforeinput:insertFromDrop,
+  b:textInput:,
+  b:input:insertFromDrop">
+<div><input id=a data-select="0,7" value="Drag me"></div>
+<div><textarea id=b placeholder="...to here"></textarea></div>
+<script src="/uievents/textInput/support/common.js"></script>
+<script src="support/events.js"></script>

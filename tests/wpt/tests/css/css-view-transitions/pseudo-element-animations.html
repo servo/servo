@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Animations on view transition pseudos run more than once</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../css-animations/support/testcommon.js"></script>
+<style>
+:root::view-transition,
+:root::view-transition-group(root),
+:root::view-transition-image-pair(root),
+:root::view-transition-old(root),
+:root::view-transition-new(root) {
+    animation: view-transition-animation 1ms;
+}
+@keyframes view-transition-animation {
+    to { opacity: 0 }
+}
+</style>
+<div id="log"></div>
+<script>
+"use strict";
+promise_test(async t => {
+    let viewTransition = document.startViewTransition(() => {});
+    await viewTransition.ready;
+    assert_equals(document.documentElement.getAnimations({ subtree: true }).length, 5, "Starting a view transition should start related animations.");
+
+    await viewTransition.finished;
+    assert_equals(document.documentElement.getAnimations({ subtree: true }).length, 0, "Stopping a view transition should stop related animations.");
+
+    await waitForNextFrame();
+    viewTransition = document.startViewTransition(() => {});
+    await viewTransition.ready;
+    assert_equals(document.documentElement.getAnimations({ subtree: true }).length, 5, "Re-starting a view-transition should restart related animations.");
+}, "CSS Animations on view transitions are canceled and restarted when the view transition starts and ends.");
+</script>

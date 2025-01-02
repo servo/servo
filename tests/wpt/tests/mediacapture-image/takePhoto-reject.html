@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10></canvas>
+</body>
+<script>
+
+let canvas = document.getElementById('canvas');
+let context = canvas.getContext('2d');
+context.fillStyle = 'red';
+context.fillRect(0, 0, 10, 10);
+
+// This test verifies that ImageCapture.takePhoto() rejects if any passed
+// option is unsupported or outside its allowed range.
+function makePromiseTest(getOption) {
+  image_capture_test(async (t, imageCaptureTest) => {
+    imageCaptureTest.mockImageCapture().state().redEyeReduction = 0;
+
+    let stream = canvas.captureStream();
+    let capturer = new ImageCapture(stream.getVideoTracks()[0]);
+    await capturer.getPhotoCapabilities();
+    const options = getOption(imageCaptureTest.mockImageCapture().state());
+
+    try {
+      await capturer.takePhoto(options);
+      assert_unreached('expected takePhoto to reject');
+    } catch (error) {
+      assert_equals(error.name, 'NotSupportedError');
+    }
+  });
+}
+
+const optionsGenerators = [
+  capabilities => ({ redEyeReduction: true }),
+  capabilities => ({ imageHeight: capabilities.height.max + 1 }),
+  capabilities => ({ imageHeight: capabilities.height.min - 1 }),
+  capabilities => ({ imageWidth: capabilities.width.max + 1 }),
+  capabilities => ({ imageWidth: capabilities.width.min - 1 }),
+  capabilities => ({ fillLightMode: 'off' }),
+];
+
+for (key in optionsGenerators) {
+  generate_tests(
+      makePromiseTest,
+      [[ 'ImageCapture.takePhoto(options) rejects with bad options, #' + key,
+         optionsGenerators[key] ]]);
+}
+
+</script>

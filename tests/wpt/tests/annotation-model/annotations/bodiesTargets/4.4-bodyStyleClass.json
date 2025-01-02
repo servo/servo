@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4.4-bodyStyleClass.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Specific Resource body  may include styleClass key with one or more values.",
+    "title": "Implements **Specific Resource body _styleClass_ key** which has one or more values - [model 4.4](https://www.w3.org/TR/annotation-model/#styles)",
+    "description": "True when Annotation includes one or more Specific Resource bodies, one or more of which include styleClass key with one or more values. (Section 4.4)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "specificResource.json#/definitions/styleClassDetected" },
+                        { "$ref": "specificResource.json#/definitions/itemStyleClassPropertyDetected" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "specificResource.json#/definitions/styleClassDetected" },
+                                  { "$ref": "specificResource.json#/definitions/itemStyleClassPropertyDetected" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     },
+     "required": ["body"]
+}

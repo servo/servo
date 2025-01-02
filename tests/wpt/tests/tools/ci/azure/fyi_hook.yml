@@ -1,0 +1,23 @@
+# This job is used to get a run into wpt.fyi and staging.wpt.fyi, by notifying
+# them with the build number and artifact to use.
+
+parameters:
+  dependsOn: ''
+  artifactName: ''
+
+jobs:
+- job: ${{ parameters.dependsOn }}_hook
+  displayName: 'wpt.fyi hook: ${{ parameters.artifactName }}'
+  dependsOn: ${{ parameters.dependsOn }}
+  pool:
+    vmImage: 'ubuntu-20.04'
+  steps:
+  - checkout: none
+  - script: |
+      set -eux -o pipefail
+      curl -f -s -S -d "artifact=${{ parameters.artifactName }}" -X POST https://wpt.fyi/api/checks/azure/$(Build.BuildId)
+    displayName: 'Invoke wpt.fyi hook'
+  - script: |
+      set -eux -o pipefail
+      curl -f -s -S -d "artifact=${{ parameters.artifactName }}" -X POST https://staging.wpt.fyi/api/checks/azure/$(Build.BuildId)
+    displayName: 'Invoke staging.wpt.fyi hook'

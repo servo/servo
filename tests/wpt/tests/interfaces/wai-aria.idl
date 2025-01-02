@@ -1,0 +1,60 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Accessible Rich Internet Applications (WAI-ARIA) 1.3 (https://w3c.github.io/aria/)
+
+interface mixin ARIAMixin {
+  [CEReactions] attribute DOMString? role;
+  [CEReactions] attribute Element? ariaActiveDescendantElement;
+  [CEReactions] attribute DOMString? ariaAtomic;
+  [CEReactions] attribute DOMString? ariaAutoComplete;
+  [CEReactions] attribute DOMString? ariaBrailleLabel;
+  [CEReactions] attribute DOMString? ariaBrailleRoleDescription;
+  [CEReactions] attribute DOMString? ariaBusy;
+  [CEReactions] attribute DOMString? ariaChecked;
+  [CEReactions] attribute DOMString? ariaColCount;
+  [CEReactions] attribute DOMString? ariaColIndex;
+  [CEReactions] attribute DOMString? ariaColIndexText;
+  [CEReactions] attribute DOMString? ariaColSpan;
+  [CEReactions] attribute FrozenArray<Element>? ariaControlsElements;
+  [CEReactions] attribute DOMString? ariaCurrent;
+  [CEReactions] attribute FrozenArray<Element>? ariaDescribedByElements;
+  [CEReactions] attribute DOMString? ariaDescription;
+  [CEReactions] attribute FrozenArray<Element>? ariaDetailsElements;
+  [CEReactions] attribute DOMString? ariaDisabled;
+  [CEReactions] attribute FrozenArray<Element>? ariaErrorMessageElements;
+  [CEReactions] attribute DOMString? ariaExpanded;
+  [CEReactions] attribute FrozenArray<Element>? ariaFlowToElements;
+  [CEReactions] attribute DOMString? ariaHasPopup;
+  [CEReactions] attribute DOMString? ariaHidden;
+  [CEReactions] attribute DOMString? ariaInvalid;
+  [CEReactions] attribute DOMString? ariaKeyShortcuts;
+  [CEReactions] attribute DOMString? ariaLabel;
+  [CEReactions] attribute FrozenArray<Element>? ariaLabelledByElements;
+  [CEReactions] attribute DOMString? ariaLevel;
+  [CEReactions] attribute DOMString? ariaLive;
+  [CEReactions] attribute DOMString? ariaModal;
+  [CEReactions] attribute DOMString? ariaMultiLine;
+  [CEReactions] attribute DOMString? ariaMultiSelectable;
+  [CEReactions] attribute DOMString? ariaOrientation;
+  [CEReactions] attribute FrozenArray<Element>? ariaOwnsElements;
+  [CEReactions] attribute DOMString? ariaPlaceholder;
+  [CEReactions] attribute DOMString? ariaPosInSet;
+  [CEReactions] attribute DOMString? ariaPressed;
+  [CEReactions] attribute DOMString? ariaReadOnly;
+
+  [CEReactions] attribute DOMString? ariaRequired;
+  [CEReactions] attribute DOMString? ariaRoleDescription;
+  [CEReactions] attribute DOMString? ariaRowCount;
+  [CEReactions] attribute DOMString? ariaRowIndex;
+  [CEReactions] attribute DOMString? ariaRowIndexText;
+  [CEReactions] attribute DOMString? ariaRowSpan;
+  [CEReactions] attribute DOMString? ariaSelected;
+  [CEReactions] attribute DOMString? ariaSetSize;
+  [CEReactions] attribute DOMString? ariaSort;
+  [CEReactions] attribute DOMString? ariaValueMax;
+  [CEReactions] attribute DOMString? ariaValueMin;
+  [CEReactions] attribute DOMString? ariaValueNow;
+  [CEReactions] attribute DOMString? ariaValueText;
+};
+Element includes ARIAMixin;

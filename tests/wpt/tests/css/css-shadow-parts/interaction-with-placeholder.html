@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Shadow Parts - Interaction with placeholder</title>
+    <!-- This reftest exists because getComputedStyle for
+      ::placeholder is not implemented everywhere --!>
+    <meta href="mailto:fergal@chromium.org" rel="author" title="Fergal Daly">
+    <link href="http://www.google.com/" rel="author" title="Google">
+    <link href="https://drafts.csswg.org/css-shadow-parts/" rel="help">
+    <link href="interaction-with-placeholder-ref.html" rel="match">
+    <script src="support/shadow-helper.js"></script>
+  </head>
+  <body>
+    <style>
+      #c-e::part(placeholder-p)::placeholder { color: green; }
+    </style>
+    <script>installCustomElement("custom-element", "custom-element-template");</script>
+    <template id="custom-element-template">
+      <style>
+        #placeholder-i::placeholder { color: red; }
+      </style>
+      <div>
+        The following text should be green:
+        <input id="placeholder-i" part="placeholder-p" placeholder="this text"></input>
+      </div>
+    </template>
+    <custom-element id="c-e"></custom-element>
+  </body>
+</html>

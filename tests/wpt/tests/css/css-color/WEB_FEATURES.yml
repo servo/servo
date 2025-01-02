@@ -1,0 +1,28 @@
+features:
+- name: color-function
+  files:
+  - a98rgb-*
+  - display-p3-*
+  - predefined-*
+  - prophoto-rgb-*
+  - rec2020-*
+  - srgb-*
+  - xyz-*
+- name: color-mix
+  files:
+  - color-mix-*
+  - nested-color-mix-with-currentcolor.html
+- name: lab
+  files:
+  - lab-*
+  - lch-*
+- name: light-dark
+  files:
+  - light-dark-*
+- name: oklab
+  files:
+  - oklab-*
+  - oklch-*
+- name: hwb
+  files:
+  - hwb-*

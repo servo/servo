@@ -1,0 +1,79 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 80 60"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: text-spacing-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#SpacingProperties">
+      <p>
+        Test properties 'letter-spacing' and 'word-spacing'
+      </p>
+      <p>
+        The first three lines test property 'letter-spacing', with
+        values 0, -1 and .3em respectively.
+      </p>
+      <p>
+        The next three lines test property 'word-spacing', with
+        values 0, -3 and 3em respectively.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test is passed if:
+      </p>
+      <ul>
+        <li>
+          The first three lines of text have the letters in the word
+          "letter-spacing" spaced according to the values 0, -1 and 0.3em
+          respectively.
+        </li>
+        <li>
+          The last three lines of text have the words in the sentence
+          "Two Words" spaced according to the values 0, -3 and 3em respectively.
+        </li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-spacing-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-family="Arial" font-size="8">
+      <text x="3" y="8"> letter-spacing:0 </text>
+      <text x="3" y="16" letter-spacing="-1">letter-spacing:-1</text>
+      <text x="3" y="24" letter-spacing=".3">letter-spacing:.3</text>
+      <text x="3" y="33">ws:0 - Two Words</text>
+      <text x="3" y="41" word-spacing="-3">ws:-3 - Two Words</text>
+      <text x="3" y="49" word-spacing="3">ws:3 - Two Words</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="6">
+    <text id="revision" x="10" y="57" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="78" height="58" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

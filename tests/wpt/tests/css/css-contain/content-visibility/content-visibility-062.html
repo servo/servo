@@ -1,0 +1,57 @@
+<!doctype HTML>
+
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: auto + scrollIntoView on display:none</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="spacer-and-container-ref.html">
+<meta name="assert" content="scrollIntoView ignores display:none element in an auto subtree">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.spacer {
+  width: 150px;
+  height: 3000px;
+  background: lightblue;
+}
+#container {
+  width: 150px;
+  height: 150px;
+  background: red;
+}
+#target {
+  display: none;
+
+  position: relative;
+  top: 75px;
+
+  width: 50px;
+  height: 50px;
+  background: pink;
+}
+.auto {
+  content-visibility: auto;
+}
+</style>
+
+<div class=spacer>Test passes if there is no red.</div>
+<div id=container class=auto>
+  <div id=target>FAIL</div>
+</div>
+
+<script>
+function runTest() {
+  document.getElementById("target").scrollIntoView();
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      runTest();
+    });
+  });
+});
+</script>
+</html>

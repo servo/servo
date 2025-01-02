@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!--
+   Tentative; contingent on merge of:
+   https://github.com/w3c/pointerevents/pull/495
+
+   This manual test validates the behavior of PointerEvent.persistentDeviceId.
+   Specifically, this test ensures that pointing devices get their own unique id, and
+   that the unique id is persistent over the session.
+
+   In order to run this test, it is necessary to have multiple pointing devices; such as a
+   pen and a mouse. Please follow the instructions exactly as written in order to ensure
+   the correct results are obtained.
+-->
+<title>persistentDeviceId is unique for pointer events from different devices</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #instructions {
+        display: inline-block;
+        border-right: 1px solid black;
+        padding-right: 10px;
+        width: 600px;
+    }
+    #testcontainer {
+        display: inline-block;
+        width: 300px;
+        touch-action: none;
+    }
+
+    #currentuniqueid {
+        display: inline-block;
+    }
+
+    .point1 {
+        height: 50px;
+        width: 50px;
+        background-color: #00eeee;
+        display: inline-block;
+    }
+    .point2 {
+        height: 50px;
+        width: 50px;
+        background-color: #aa33aa;
+        display: inline-block;
+        float: right;
+    }
+
+    .testarea {
+        border: 1px solid #000000;
+        margin-bottom: 50px;
+        width: 100%;
+    }
+
+    p {
+        padding-bottom: 10px;
+    }
+
+    html {
+        font-family: Arial, Helvetica, sans-serif;
+    }
+</style>
+<html>
+<div id="instructions">
+<h2>Instructions</h2>
+<p>1. With one pointing device (pointing device #1), drag the pointer from A to B</p>
+<p>2. With another pointing device (pointing device #2), drag the pointer from C to D</p>
+<p>3. Repeat step 1.</p>
+<p>4. Repeat step 2.</p>
+<p>5. Click finish and verify the test passes. There should be 4 passing test cases. </p>
+</div>
+<div id="testcontainer">
+    <div>
+        Current pointer's unique id: <p id="currentuniqueid"></p>
+    </div>
+    <div class="testarea" id="device1">
+        <div class="point1">A</div>
+        <div class="point2">B</div>
+    </div>
+    <div class="testarea" id="device2">
+        <div class="point1">C</div>
+        <div class="point2">D</div>
+    </div>
+
+    <p>Click on the button below after completing. If a "PASS" result appears the test
+    passes, otherwise it fails</p>
+    <button onclick="Finish()">Finish Test</button>
+</div>
+</html>
+
+<script>
+    let device1Ids = [];
+    let device2Ids = [];
+
+    setup({explicit_timeout: true, explicit_done: true});
+
+    function LogDeviceId(event, list) {
+        if (event.persistentDeviceId) {
+            const persistentDeviceId = event.persistentDeviceId;
+            currentuniqueid.innerText = persistentDeviceId ? persistentDeviceId : "Unknown";
+            list.push(persistentDeviceId);
+        }
+    }
+
+    function LogDeviceId1(event) {
+        LogDeviceId(event, device1Ids);
+    }
+
+    function LogDeviceId2(event) {
+        LogDeviceId(event, device2Ids);
+    }
+
+    function Finish() {
+        let device1UniqueIds = new Set(device1Ids);
+        let device2UniqueIds = new Set(device2Ids);
+
+        test(function () {
+            assert_greater_than(device1Ids.length, 1, "Events from Device 1 have deviceIds.");
+            assert_equals(device1UniqueIds.size, 1, "Device 1 has a consistent deviceId.");
+        }, "deviceId is consistent for device 1");
+        test(function () {
+            assert_greater_than(device2Ids.length, 1, "Events from Device 2 have deviceIds.");
+            assert_equals(device2UniqueIds.size, 1, "Device 2 has a consistent deviceId.");
+        }, "deviceId is consistent for device 2");
+        test(function () {
+            // Ensure the two sets are different.
+            assert_equals(device1UniqueIds.intersection(device2UniqueIds).size, 0, "Device 1 and 2 have different deviceIds.");
+        }, "deviceId is unique to device 1 and device 2");
+        done();
+    }
+
+    device1.addEventListener("pointerdown", LogDeviceId1, false);
+    device1.addEventListener("pointermove", LogDeviceId1, false);
+    device1.addEventListener("pointerup", LogDeviceId1, false);
+
+    device2.addEventListener("pointerdown", LogDeviceId2, false);
+    device2.addEventListener("pointermove", LogDeviceId2, false);
+    device2.addEventListener("pointerup", LogDeviceId2, false);
+
+</script>

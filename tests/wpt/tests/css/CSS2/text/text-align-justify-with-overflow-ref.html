@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>CSS Test: Overflowing content with text-align: justify</title>
+    <link rel="author" title="Martin Robinson" href="mrobinson@igalila.com">
+    <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+    <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop">
+    <link ref="help" href="https://drafts.csswg.org/css-text/#text-align-property">
+    <style type="text/css">
+        div {
+            width: 0px;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- These two divs should overflow, one because of the length of the content
+      and the other because of `text-indent`. In both of these cases, `text-align: justify`
+      should be treated like `text-align: left` since there is no extra space to
+      distribute to justification opportunities. -->
+<div>lorem&nbsp;ipsum lastline</div>
+<div style="text-indent: 50px">lorem&nbsp;ipsum lastline</div>
+</body>
+</html>

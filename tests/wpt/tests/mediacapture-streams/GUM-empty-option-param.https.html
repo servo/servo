@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<title>getUserMedia({}) rejects with TypeError</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that getUserMedia with no value in the
+options parameter raises a TypeError exception.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+promise_test(async () => {
+  try {
+    // Race a settled promise to check that the returned promise is already
+    // rejected.
+    await Promise.race([navigator.mediaDevices.getUserMedia({}),
+                       Promise.resolve()]);
+  } catch (error) {
+    assert_throws_js(TypeError, () => { throw error });
+    assert_false('constraintName' in error,
+                 "constraintName attribute not set as expected");
+    return;
+  }
+  assert_unreached("should have returned an already-rejected promise.");
+}, "Tests that getUserMedia is rejected with a TypeError when used with an empty options parameter");
+
+</script>
+</body>
+</html>

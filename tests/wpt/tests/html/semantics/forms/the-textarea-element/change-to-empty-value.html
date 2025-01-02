@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Change event when clearing a textarea</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1881457">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<textarea>abc</textarea>
+<script>
+promise_test(async function() {
+  let textarea = document.querySelector("textarea");
+  let changeFired = false;
+  textarea.addEventListener("change", () => {
+    changeFired = true;
+  }, { once: true });
+
+  textarea.focus();
+  assert_equals(document.activeElement, textarea, "Should focus textarea");
+  assert_false(changeFired, "Shouldn't have fired change event after focus");
+  textarea.select();
+  const kBackspaceKey = "\uE003";
+  await test_driver.send_keys(textarea, kBackspaceKey)
+  assert_false(changeFired, "Shouldn't have fired change event after select");
+  textarea.blur();
+  assert_true(changeFired, "Should've have fired change event after blur");
+  assert_equals(textarea.value, "", "Should've have cleared the value");
+});
+</script>

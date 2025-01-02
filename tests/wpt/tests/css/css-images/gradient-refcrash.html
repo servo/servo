@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Does this gradient crash the browser?</title>
+<link rel="match" href="../reference/blank.html">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#color-stop-syntax">
+<meta name="assert" content="Gradients with total length zero and absolute positioned stops do not crash.">
+<style>
+  div {
+    background: linear-gradient(black 0,white);
+  }
+</style>
+<div></div>

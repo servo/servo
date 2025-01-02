@@ -1,0 +1,4 @@
+<Files ~ "^cascade-import-002\.(xht|xhtml|xml|html|htm)$">
+  Header add Link "<support/cascade-import-002d.css>; rel=\"stylesheet\""
+  Header add Link "<support/cascade-import-002f.css>; rel=\"stylesheet\""
+</files>

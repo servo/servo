@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+  import {
+    getOppositeOrientation,
+    makeCleanup,
+  } from "./resources/orientation-utils.js";
+
+  promise_test(async (t) => {
+    t.add_cleanup(makeCleanup());
+    await test_driver.bless("request full screen");
+    await document.documentElement.requestFullscreen();
+    const result = await Promise.race([
+      new Promise((resolve) => {
+        screen.orientation.addEventListener("change", resolve);
+      }),
+      screen.orientation.lock(getOppositeOrientation())
+    ]);
+    assert_true(result instanceof Event, "Expected an instance of Event");
+  }, "The 'change' event must fire before the [[orientationPendingPromise]] is resolved.");
+</script>

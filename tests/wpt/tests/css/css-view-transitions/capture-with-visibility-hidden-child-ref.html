@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<title>View transitions: visibility hidden child (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+body {
+  background: pink;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+  background: blue;
+}
+.invisible {
+  width: 500px;
+  height: 500px;
+  visibility: hidden;
+}
+</style>
+
+<div class=target>
+  <div class=invisible></div>
+</div>

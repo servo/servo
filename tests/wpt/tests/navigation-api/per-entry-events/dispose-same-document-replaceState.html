@@ -1,0 +1,29 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(t => {
+  let start_index = navigation.currentEntry.index;
+
+  const currentBefore = navigation.currentEntry;
+
+  let disposeCalled = false;
+  navigation.currentEntry.ondispose = t.step_func(e => {
+    disposeCalled = true;
+
+    assert_equals(e.constructor, Event);
+    assert_equals(e.bubbles, false);
+    assert_equals(e.cancelable, false);
+    assert_equals(e.composed, false);
+
+    assert_not_equals(navigation.currentEntry, currentBefore);
+    assert_array_equals(navigation.entries().slice(start_index), [navigation.currentEntry]);
+    assert_equals((new URL(navigation.currentEntry.url)).search, "?replacement");
+    assert_equals(navigation.transition, null);
+    assert_equals(location.search, "?replacement");
+  });
+
+  history.replaceState(null, "", "?replacement");
+  assert_true(disposeCalled);
+}, "dispose events when doing a same-document replace using history.replaceState()");
+</script>

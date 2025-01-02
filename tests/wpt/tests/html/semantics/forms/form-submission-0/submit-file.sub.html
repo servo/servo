@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id=testframe name=testframe></iframe>
+<form id=testform method=post action="//{{domains[www1]}}:{{location[port]}}/html/semantics/forms/form-submission-0/resources/file-submission.py" target=testframe enctype="multipart/form-data">
+<input name=testinput id=testinput type=file>
+</form>
+<script>
+async_test(t => {
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(new File(["foobar"], "name"));
+  assert_equals(1, dataTransfer.files.length);
+
+  testinput.files = dataTransfer.files;
+  testform.submit();
+
+  onmessage = t.step_func(e => {
+    if (e.source !== testframe) return;
+    assert_equals(e.data, "foobar");
+    t.done();
+  });
+}, 'Posting a File');
+</script>

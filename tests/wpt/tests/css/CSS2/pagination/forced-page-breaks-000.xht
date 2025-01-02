@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: forced page breaks</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="assert" content="A page break MUST occur in the vertical margin between block boxes if, among the 'page-break-after' and 'page-break-before' properties of all the elements generating boxes that meet at this margin, there is at least one with the value 'always', 'left', or 'right'."/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	@page {
+		counter-increment: page;
+		margin: 7%;
+		@top-right {
+           content: content: "Page " counter(page);
+        }
+	}
+	@page :first {
+		@top-center {
+           content: "This test requires 7 pages";
+        }
+	}
+
+	.breakBefore {page-break-before: always;}
+	.breakAfter {page-break-after: always;}
+
+	.breakBeforeLeft {page-break-before: left;}
+	.breakBeforeRight {page-break-before: right;}
+
+	.avoidBefore { page-break-before: avoid; }
+	.avoidAfter { page-break-after: avoid; }
+	.avoidInside { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+<div class="avoidInside avoidAfter">
+  <p>This test requires 7 pages.</p>
+	<p class="breakBeforeLeft avoidAfter">When printed, this sentence should appear by itself on page 2.</p>
+</div>
+	<p class="breakBefore breakAfter">This sentence should appear by itself on page 3.</p>
+	<p class="breakBefore">This sentence should appear on page 4.</p>
+	<p class="breakAfter">This sentence should also appear on page 4.</p>
+	<p class="avoidBefore avoidAfter">This sentence should appear by itself on page 5.</p>
+	<p class="breakBeforeRight">This sentence should appear by itself on page 7. (Page 6 must be blank.)</p>
+</body>
+</html>

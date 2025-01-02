@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: spelling error with originating decorations</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<!-- TODO force spelling error without relying on UA under test having English spellchecking https://github.com/web-platform-tests/wpt/issues/30863 -->
+<body contenteditable spellcheck lang="en">quikc
+<script>
+    document.body.focus();
+</script>

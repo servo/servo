@@ -1,0 +1,1394 @@
+Version 3.10
+---------------------
+01/31/17: beazley
+          Changed grammar signature computation to not involve hashing
+          functions. Parts are just combined into a big string.
+
+10/07/16: beazley
+          Fixed Issue #101: Incorrect shift-reduce conflict resolution with
+          precedence specifier.
+
+          PLY was incorrectly resolving shift-reduce conflicts in certain
+          cases.  For example, in the example/calc/calc.py example, you 
+          could trigger it doing this:
+
+          calc > -3 - 4            
+          1                         (correct answer should be -7)
+          calc >
+
+          Issue and suggested patch contributed by https://github.com/RomaVis
+           
+Version 3.9
+---------------------
+08/30/16: beazley
+          Exposed the parser state number as the parser.state attribute
+          in productions and error functions. For example:
+
+          def p_somerule(p):
+              '''
+              rule : A B C
+              '''
+              print('State:', p.parser.state)
+
+          May address issue #65 (publish current state in error callback).
+
+08/30/16: beazley 
+          Fixed Issue #88. Python3 compatibility with ply/cpp.
+
+08/30/16: beazley
+          Fixed Issue #93. Ply can crash if SyntaxError is raised inside
+          a production.   Not actually sure if the original implementation
+          worked as documented at all.  Yacc has been modified to follow
+          the spec as outlined in the CHANGES noted for 11/27/07 below.
+
+08/30/16: beazley
+          Fixed Issue #97. Failure with code validation when the original
+          source files aren't present.   Validation step now ignores
+          the missing file.
+
+08/30/16: beazley
+          Minor fixes to version numbers.
+
+Version 3.8
+---------------------
+10/02/15: beazley
+          Fixed issues related to Python 3.5. Patch contributed by Barry Warsaw.
+
+Version 3.7
+---------------------
+08/25/15: beazley
+          Fixed problems when reading table files from pickled data.
+
+05/07/15: beazley
+          Fixed regression in handling of table modules if specified as module
+          objects.   See https://github.com/dabeaz/ply/issues/63
+
+Version 3.6
+---------------------
+04/25/15: beazley
+          If PLY is unable to create the 'parser.out' or 'parsetab.py' files due
+          to permission issues, it now just issues a warning message and
+          continues to operate. This could happen if a module using PLY
+	  is installed in a funny way where tables have to be regenerated, but
+          for whatever reason, the user doesn't have write permission on
+          the directory where PLY wants to put them.  
+
+04/24/15: beazley
+          Fixed some issues related to use of packages and table file
+          modules.  Just to emphasize, PLY now generates its special
+          files such as 'parsetab.py' and 'lextab.py' in the *SAME*
+          directory as the source file that uses lex() and yacc().
+
+	  If for some reason, you want to change the name of the table
+          module, use the tabmodule and lextab options:
+
+             lexer = lex.lex(lextab='spamlextab')
+             parser = yacc.yacc(tabmodule='spamparsetab')
+
+          If you specify a simple name as shown, the module will still be
+          created in the same directory as the file invoking lex() or yacc().
+          If you want the table files to be placed into a different package,
+          then give a fully qualified package name.  For example:
+
+             lexer = lex.lex(lextab='pkgname.files.lextab')
+             parser = yacc.yacc(tabmodule='pkgname.files.parsetab')
+
+          For this to work, 'pkgname.files' must already exist as a valid 
+          Python package (i.e., the directories must already exist and be
+          set up with the proper __init__.py files, etc.).
+
+Version 3.5
+---------------------
+04/21/15: beazley
+          Added support for defaulted_states in the parser.  A
+          defaulted_state is a state where the only legal action is a
+          reduction of a single grammar rule across all valid input
+          tokens.  For such states, the rule is reduced and the
+          reading of the next lookahead token is delayed until it is
+          actually needed at a later point in time.
+
+	  This delay in consuming the next lookahead token is a
+	  potentially important feature in advanced parsing
+	  applications that require tight interaction between the
+	  lexer and the parser.  For example, a grammar rule change
+	  modify the lexer state upon reduction and have such changes
+	  take effect before the next input token is read.
+
+	  *** POTENTIAL INCOMPATIBILITY ***
+	  One potential danger of defaulted_states is that syntax
+	  errors might be deferred to a a later point of processing
+	  than where they were detected in past versions of PLY.
+	  Thus, it's possible that your error handling could change
+	  slightly on the same inputs.  defaulted_states do not change
+	  the overall parsing of the input (i.e., the same grammar is
+	  accepted).
+
+	  If for some reason, you need to disable defaulted states,
+	  you can do this:
+
+              parser = yacc.yacc()
+              parser.defaulted_states = {}
+
+04/21/15: beazley
+          Fixed debug logging in the parser.  It wasn't properly reporting goto states
+          on grammar rule reductions.
+
+04/20/15: beazley
+          Added actions to be defined to character literals (Issue #32).  For example:
+
+              literals = [ '{', '}' ]
+
+              def t_lbrace(t):
+                  r'\{'
+                  # Some action
+                  t.type = '{'
+                  return t
+
+              def t_rbrace(t):
+                  r'\}'
+                  # Some action
+                  t.type = '}'
+                  return t
+
+04/19/15: beazley
+          Import of the 'parsetab.py' file is now constrained to only consider the
+          directory specified by the outputdir argument to yacc().  If not supplied,
+          the import will only consider the directory in which the grammar is defined.
+          This should greatly reduce problems with the wrong parsetab.py file being
+          imported by mistake. For example, if it's found somewhere else on the path
+          by accident.
+
+	  *** POTENTIAL INCOMPATIBILITY ***  It's possible that this might break some
+          packaging/deployment setup if PLY was instructed to place its parsetab.py
+          in a different location.  You'll have to specify a proper outputdir= argument
+          to yacc() to fix this if needed.
+
+04/19/15: beazley
+          Changed default output directory to be the same as that in which the
+          yacc grammar is defined.  If your grammar is in a file 'calc.py',
+          then the parsetab.py and parser.out files should be generated in the
+          same directory as that file.  The destination directory can be changed
+          using the outputdir= argument to yacc().
+
+04/19/15: beazley
+          Changed the parsetab.py file signature slightly so that the parsetab won't
+          regenerate if created on a different major version of Python (ie., a 
+          parsetab created on Python 2 will work with Python 3).
+
+04/16/15: beazley
+          Fixed Issue #44 call_errorfunc() should return the result of errorfunc()
+
+04/16/15: beazley
+          Support for versions of Python <2.7 is officially dropped.  PLY may work, but
+          the unit tests requires Python 2.7 or newer.
+
+04/16/15: beazley
+          Fixed bug related to calling yacc(start=...).   PLY wasn't regenerating the
+          table file correctly for this case.
+
+04/16/15: beazley
+          Added skipped tests for PyPy and Java.  Related to use of Python's -O option.
+
+05/29/13: beazley
+          Added filter to make unit tests pass under 'python -3'.
+          Reported by Neil Muller.
+       
+05/29/13: beazley
+          Fixed CPP_INTEGER regex in ply/cpp.py (Issue 21).
+	  Reported by @vbraun.
+ 
+05/29/13: beazley
+          Fixed yacc validation bugs when from __future__ import unicode_literals
+          is being used.  Reported by Kenn Knowles.
+
+05/29/13: beazley
+          Added support for Travis-CI.  Contributed by Kenn Knowles.
+
+05/29/13: beazley
+          Added a .gitignore file.  Suggested by Kenn Knowles.
+
+05/29/13: beazley
+	  Fixed validation problems for source files that include a 
+          different source code encoding specifier.  Fix relies on
+          the inspect module.  Should work on Python 2.6 and newer.
+          Not sure about older versions of Python.
+          Contributed by Michael Droettboom
+
+05/21/13: beazley
+          Fixed unit tests for yacc to eliminate random failures due to dict hash value
+	  randomization in Python 3.3
+	  Reported by Arfrever
+
+10/15/12: beazley
+          Fixed comment whitespace processing bugs in ply/cpp.py.
+          Reported by Alexei Pososin.
+
+10/15/12: beazley
+          Fixed token names in ply/ctokens.py to match rule names.
+          Reported by Alexei Pososin.
+
+04/26/12: beazley
+          Changes to functions available in panic mode error recover.  In previous versions
+          of PLY, the following global functions were available for use in the p_error() rule:
+
+                 yacc.errok()       # Reset error state
+                 yacc.token()       # Get the next token
+                 yacc.restart()     # Reset the parsing stack
+
+          The use of global variables was problematic for code involving multiple parsers
+          and frankly was a poor design overall.   These functions have been moved to methods
+          of the parser instance created by the yacc() function.   You should write code like
+          this:
+
+                def p_error(p):
+                    ...
+                    parser.errok()
+
+                parser = yacc.yacc()
+
+          *** POTENTIAL INCOMPATIBILITY ***  The original global functions now issue a
+          DeprecationWarning.
+         
+04/19/12: beazley
+          Fixed some problems with line and position tracking and the use of error
+          symbols.   If you have a grammar rule involving an error rule like this:
+
+               def p_assignment_bad(p):
+                   '''assignment : location EQUALS error SEMI'''
+                   ...
+
+          You can now do line and position tracking on the error token.  For example:
+
+               def p_assignment_bad(p):
+                   '''assignment : location EQUALS error SEMI'''
+                   start_line = p.lineno(3)
+                   start_pos  = p.lexpos(3)
+
+          If the trackng=True option is supplied to parse(), you can additionally get
+          spans:
+
+               def p_assignment_bad(p):
+                   '''assignment : location EQUALS error SEMI'''
+                   start_line, end_line = p.linespan(3)
+                   start_pos, end_pos = p.lexspan(3)
+
+          Note that error handling is still a hairy thing in PLY. This won't work
+          unless your lexer is providing accurate information.   Please report bugs.
+          Suggested by a bug reported by Davis Herring.
+              
+04/18/12: beazley
+          Change to doc string handling in lex module.  Regex patterns are now first
+          pulled from a function's .regex attribute.  If that doesn't exist, then
+	  .doc is checked as a fallback.   The @TOKEN decorator now sets the .regex
+	  attribute of a function instead of its doc string.
+	  Changed suggested by Kristoffer Ellersgaard Koch.
+
+04/18/12: beazley
+          Fixed issue #1: Fixed _tabversion. It should use __tabversion__ instead of __version__
+          Reported by Daniele Tricoli
+
+04/18/12: beazley
+          Fixed issue #8: Literals empty list causes IndexError
+          Reported by Walter Nissen.
+
+04/18/12: beazley
+          Fixed issue #12: Typo in code snippet in documentation
+          Reported by florianschanda.
+
+04/18/12: beazley
+          Fixed issue #10: Correctly escape t_XOREQUAL pattern.
+          Reported by Andy Kittner.
+
+Version 3.4
+---------------------
+02/17/11: beazley
+          Minor patch to make cpp.py compatible with Python 3.  Note: This
+          is an experimental file not currently used by the rest of PLY.
+
+02/17/11: beazley
+          Fixed setup.py trove classifiers to properly list PLY as
+          Python 3 compatible.
+
+01/02/11: beazley
+          Migration of repository to github.
+
+Version 3.3
+-----------------------------
+08/25/09: beazley
+          Fixed issue 15 related to the set_lineno() method in yacc.  Reported by
+	  mdsherry.
+
+08/25/09: beazley
+          Fixed a bug related to regular expression compilation flags not being
+          properly stored in lextab.py files created by the lexer when running
+          in optimize mode.  Reported by Bruce Frederiksen.
+
+
+Version 3.2
+-----------------------------
+03/24/09: beazley
+          Added an extra check to not print duplicated warning messages
+          about reduce/reduce conflicts.
+
+03/24/09: beazley
+          Switched PLY over to a BSD-license.
+
+03/23/09: beazley
+          Performance optimization.  Discovered a few places to make
+          speedups in LR table generation.
+
+03/23/09: beazley
+          New warning message.  PLY now warns about rules never 
+          reduced due to reduce/reduce conflicts.  Suggested by
+          Bruce Frederiksen.
+
+03/23/09: beazley
+          Some clean-up of warning messages related to reduce/reduce errors.
+
+03/23/09: beazley
+          Added a new picklefile option to yacc() to write the parsing
+          tables to a filename using the pickle module.   Here is how
+          it works:
+
+              yacc(picklefile="parsetab.p")
+
+          This option can be used if the normal parsetab.py file is
+          extremely large.  For example, on jython, it is impossible
+          to read parsing tables if the parsetab.py exceeds a certain
+          threshold.
+
+          The filename supplied to the picklefile option is opened
+          relative to the current working directory of the Python 
+          interpreter.  If you need to refer to the file elsewhere,
+          you will need to supply an absolute or relative path.
+
+          For maximum portability, the pickle file is written
+          using protocol 0. 
+ 
+03/13/09: beazley
+          Fixed a bug in parser.out generation where the rule numbers
+          where off by one.
+
+03/13/09: beazley
+          Fixed a string formatting bug with one of the error messages.
+          Reported by Richard Reitmeyer
+
+Version 3.1
+-----------------------------
+02/28/09: beazley
+          Fixed broken start argument to yacc().  PLY-3.0 broke this
+          feature by accident.
+
+02/28/09: beazley
+          Fixed debugging output. yacc() no longer reports shift/reduce
+          or reduce/reduce conflicts if debugging is turned off.  This
+          restores similar behavior in PLY-2.5.   Reported by Andrew Waters.
+
+Version 3.0
+-----------------------------
+02/03/09: beazley
+          Fixed missing lexer attribute on certain tokens when
+          invoking the parser p_error() function.  Reported by 
+          Bart Whiteley.
+
+02/02/09: beazley
+          The lex() command now does all error-reporting and diagonistics
+          using the logging module interface.   Pass in a Logger object
+          using the errorlog parameter to specify a different logger.
+
+02/02/09: beazley
+          Refactored ply.lex to use a more object-oriented and organized
+          approach to collecting lexer information.
+
+02/01/09: beazley
+          Removed the nowarn option from lex().  All output is controlled
+          by passing in a logger object.   Just pass in a logger with a high
+          level setting to suppress output.   This argument was never 
+          documented to begin with so hopefully no one was relying upon it.
+
+02/01/09: beazley
+          Discovered and removed a dead if-statement in the lexer.  This
+          resulted in a 6-7% speedup in lexing when I tested it.
+
+01/13/09: beazley
+          Minor change to the procedure for signalling a syntax error in a
+          production rule.  A normal SyntaxError exception should be raised
+          instead of yacc.SyntaxError.
+
+01/13/09: beazley
+          Added a new method p.set_lineno(n,lineno) that can be used to set the
+          line number of symbol n in grammar rules.   This simplifies manual
+          tracking of line numbers.
+
+01/11/09: beazley
+          Vastly improved debugging support for yacc.parse().   Instead of passing
+          debug as an integer, you can supply a Logging object (see the logging
+          module). Messages will be generated at the ERROR, INFO, and DEBUG
+	  logging levels, each level providing progressively more information.
+          The debugging trace also shows states, grammar rule, values passed
+          into grammar rules, and the result of each reduction.
+
+01/09/09: beazley
+          The yacc() command now does all error-reporting and diagnostics using
+          the interface of the logging module.  Use the errorlog parameter to
+          specify a logging object for error messages.  Use the debuglog parameter
+          to specify a logging object for the 'parser.out' output.
+
+01/09/09: beazley
+          *HUGE* refactoring of the the ply.yacc() implementation.   The high-level
+	  user interface is backwards compatible, but the internals are completely
+          reorganized into classes.  No more global variables.    The internals
+          are also more extensible.  For example, you can use the classes to 
+          construct a LALR(1) parser in an entirely different manner than 
+          what is currently the case.  Documentation is forthcoming.
+
+01/07/09: beazley
+          Various cleanup and refactoring of yacc internals.  
+
+01/06/09: beazley
+          Fixed a bug with precedence assignment.  yacc was assigning the precedence
+          each rule based on the left-most token, when in fact, it should have been
+          using the right-most token.  Reported by Bruce Frederiksen.
+
+11/27/08: beazley
+          Numerous changes to support Python 3.0 including removal of deprecated 
+          statements (e.g., has_key) and the additional of compatibility code
+          to emulate features from Python 2 that have been removed, but which
+          are needed.   Fixed the unit testing suite to work with Python 3.0.
+          The code should be backwards compatible with Python 2.
+
+11/26/08: beazley
+          Loosened the rules on what kind of objects can be passed in as the
+          "module" parameter to lex() and yacc().  Previously, you could only use
+          a module or an instance.  Now, PLY just uses dir() to get a list of
+          symbols on whatever the object is without regard for its type.
+
+11/26/08: beazley
+          Changed all except: statements to be compatible with Python2.x/3.x syntax.
+
+11/26/08: beazley
+          Changed all raise Exception, value statements to raise Exception(value) for
+          forward compatibility.
+
+11/26/08: beazley
+          Removed all print statements from lex and yacc, using sys.stdout and sys.stderr
+          directly.  Preparation for Python 3.0 support.
+
+11/04/08: beazley
+          Fixed a bug with referring to symbols on the the parsing stack using negative
+          indices.
+
+05/29/08: beazley
+          Completely revamped the testing system to use the unittest module for everything.
+          Added additional tests to cover new errors/warnings.
+
+Version 2.5
+-----------------------------
+05/28/08: beazley
+          Fixed a bug with writing lex-tables in optimized mode and start states.
+          Reported by Kevin Henry.
+
+Version 2.4
+-----------------------------
+05/04/08: beazley
+          A version number is now embedded in the table file signature so that 
+          yacc can more gracefully accomodate changes to the output format
+          in the future.
+
+05/04/08: beazley
+          Removed undocumented .pushback() method on grammar productions.  I'm
+          not sure this ever worked and can't recall ever using it.  Might have
+          been an abandoned idea that never really got fleshed out.  This
+          feature was never described or tested so removing it is hopefully
+          harmless.
+
+05/04/08: beazley
+          Added extra error checking to yacc() to detect precedence rules defined
+          for undefined terminal symbols.   This allows yacc() to detect a potential
+          problem that can be really tricky to debug if no warning message or error
+          message is generated about it.
+
+05/04/08: beazley
+          lex() now has an outputdir that can specify the output directory for
+          tables when running in optimize mode.  For example:
+
+             lexer = lex.lex(optimize=True, lextab="ltab", outputdir="foo/bar")
+ 
+          The behavior of specifying a table module and output directory are
+          more aligned with the behavior of yacc().
+          
+05/04/08: beazley
+          [Issue 9]
+          Fixed filename bug in when specifying the modulename in lex() and yacc(). 
+          If you specified options such as the following:
+
+             parser = yacc.yacc(tabmodule="foo.bar.parsetab",outputdir="foo/bar")
+
+          yacc would create a file "foo.bar.parsetab.py" in the given directory.
+          Now, it simply generates a file "parsetab.py" in that directory. 
+          Bug reported by cptbinho.
+
+05/04/08: beazley
+          Slight modification to lex() and yacc() to allow their table files
+	  to be loaded from a previously loaded module.   This might make
+	  it easier to load the parsing tables from a complicated package
+          structure.  For example:
+
+	       import foo.bar.spam.parsetab as parsetab
+               parser = yacc.yacc(tabmodule=parsetab)
+
+          Note:  lex and yacc will never regenerate the table file if used
+          in the form---you will get a warning message instead. 
+          This idea suggested by Brian Clapper.
+
+
+04/28/08: beazley
+          Fixed a big with p_error() functions being picked up correctly
+          when running in yacc(optimize=1) mode.  Patch contributed by
+          Bart Whiteley.
+
+02/28/08: beazley
+          Fixed a bug with 'nonassoc' precedence rules.   Basically the
+          non-precedence was being ignored and not producing the correct
+          run-time behavior in the parser.
+
+02/16/08: beazley
+          Slight relaxation of what the input() method to a lexer will
+          accept as a string.   Instead of testing the input to see
+          if the input is a string or unicode string, it checks to see
+          if the input object looks like it contains string data.
+          This change makes it possible to pass string-like objects
+          in as input.  For example, the object returned by mmap.
+
+              import mmap, os
+              data = mmap.mmap(os.open(filename,os.O_RDONLY),
+                               os.path.getsize(filename),
+                               access=mmap.ACCESS_READ)
+              lexer.input(data)
+           
+
+11/29/07: beazley
+          Modification of ply.lex to allow token functions to aliased.
+          This is subtle, but it makes it easier to create libraries and
+          to reuse token specifications.  For example, suppose you defined
+          a function like this:
+
+               def number(t):
+                    r'\d+'
+                    t.value = int(t.value)
+                    return t
+
+          This change would allow you to define a token rule as follows:
+
+              t_NUMBER = number
+
+          In this case, the token type will be set to 'NUMBER' and use
+          the associated number() function to process tokens.   
+           
+11/28/07: beazley
+          Slight modification to lex and yacc to grab symbols from both
+          the local and global dictionaries of the caller.   This
+          modification allows lexers and parsers to be defined using
+          inner functions and closures.
+
+11/28/07: beazley
+          Performance optimization:  The lexer.lexmatch and t.lexer
+          attributes are no longer set for lexer tokens that are not
+          defined by functions.   The only normal use of these attributes
+          would be in lexer rules that need to perform some kind of 
+          special processing.  Thus, it doesn't make any sense to set
+          them on every token.
+
+          *** POTENTIAL INCOMPATIBILITY ***  This might break code
+          that is mucking around with internal lexer state in some
+          sort of magical way.
+
+11/27/07: beazley
+          Added the ability to put the parser into error-handling mode
+          from within a normal production.   To do this, simply raise
+          a yacc.SyntaxError exception like this:
+
+          def p_some_production(p):
+              'some_production : prod1 prod2'
+              ...
+              raise yacc.SyntaxError      # Signal an error
+
+          A number of things happen after this occurs:
+
+          - The last symbol shifted onto the symbol stack is discarded
+            and parser state backed up to what it was before the
+            the rule reduction.
+
+          - The current lookahead symbol is saved and replaced by
+            the 'error' symbol.
+
+          - The parser enters error recovery mode where it tries
+            to either reduce the 'error' rule or it starts 
+            discarding items off of the stack until the parser
+            resets.
+
+          When an error is manually set, the parser does *not* call 
+          the p_error() function (if any is defined).
+          *** NEW FEATURE *** Suggested on the mailing list
+
+11/27/07: beazley
+          Fixed structure bug in examples/ansic.  Reported by Dion Blazakis.
+
+11/27/07: beazley
+          Fixed a bug in the lexer related to start conditions and ignored
+          token rules.  If a rule was defined that changed state, but
+          returned no token, the lexer could be left in an inconsistent
+          state.  Reported by 
+          
+11/27/07: beazley
+          Modified setup.py to support Python Eggs.   Patch contributed by
+          Simon Cross.
+
+11/09/07: beazely
+          Fixed a bug in error handling in yacc.  If a syntax error occurred and the
+          parser rolled the entire parse stack back, the parser would be left in in
+          inconsistent state that would cause it to trigger incorrect actions on
+          subsequent input.  Reported by Ton Biegstraaten, Justin King, and others.
+
+11/09/07: beazley
+          Fixed a bug when passing empty input strings to yacc.parse().   This 
+          would result in an error message about "No input given".  Reported
+          by Andrew Dalke.
+
+Version 2.3
+-----------------------------
+02/20/07: beazley
+          Fixed a bug with character literals if the literal '.' appeared as the
+          last symbol of a grammar rule.  Reported by Ales Smrcka.
+
+02/19/07: beazley
+          Warning messages are now redirected to stderr instead of being printed
+          to standard output.
+
+02/19/07: beazley
+          Added a warning message to lex.py if it detects a literal backslash
+          character inside the t_ignore declaration.  This is to help
+          problems that might occur if someone accidentally defines t_ignore
+          as a Python raw string.  For example:
+
+              t_ignore = r' \t'
+
+          The idea for this is from an email I received from David Cimimi who
+          reported bizarre behavior in lexing as a result of defining t_ignore
+          as a raw string by accident.
+
+02/18/07: beazley
+          Performance improvements.  Made some changes to the internal
+          table organization and LR parser to improve parsing performance.
+
+02/18/07: beazley
+          Automatic tracking of line number and position information must now be 
+          enabled by a special flag to parse().  For example:
+
+              yacc.parse(data,tracking=True)
+
+          In many applications, it's just not that important to have the
+          parser automatically track all line numbers.  By making this an 
+          optional feature, it allows the parser to run significantly faster
+          (more than a 20% speed increase in many cases).    Note: positional
+          information is always available for raw tokens---this change only
+          applies to positional information associated with nonterminal
+          grammar symbols.
+          *** POTENTIAL INCOMPATIBILITY ***
+	  
+02/18/07: beazley
+          Yacc no longer supports extended slices of grammar productions.
+          However, it does support regular slices.  For example:
+
+          def p_foo(p):
+              '''foo: a b c d e'''
+              p[0] = p[1:3]
+
+          This change is a performance improvement to the parser--it streamlines
+          normal access to the grammar values since slices are now handled in
+          a __getslice__() method as opposed to __getitem__().
+
+02/12/07: beazley
+          Fixed a bug in the handling of token names when combined with
+          start conditions.   Bug reported by Todd O'Bryan.
+
+Version 2.2
+------------------------------
+11/01/06: beazley
+          Added lexpos() and lexspan() methods to grammar symbols.  These
+          mirror the same functionality of lineno() and linespan().  For
+          example:
+
+          def p_expr(p):
+              'expr : expr PLUS expr'
+               p.lexpos(1)     # Lexing position of left-hand-expression
+               p.lexpos(1)     # Lexing position of PLUS
+               start,end = p.lexspan(3)  # Lexing range of right hand expression
+
+11/01/06: beazley
+          Minor change to error handling.  The recommended way to skip characters
+          in the input is to use t.lexer.skip() as shown here:
+
+             def t_error(t):
+                 print "Illegal character '%s'" % t.value[0]
+                 t.lexer.skip(1)
+          
+          The old approach of just using t.skip(1) will still work, but won't
+          be documented.
+
+10/31/06: beazley
+          Discarded tokens can now be specified as simple strings instead of
+          functions.  To do this, simply include the text "ignore_" in the
+          token declaration.  For example:
+
+              t_ignore_cppcomment = r'//.*'
+          
+          Previously, this had to be done with a function.  For example:
+
+              def t_ignore_cppcomment(t):
+                  r'//.*'
+                  pass
+
+          If start conditions/states are being used, state names should appear
+          before the "ignore_" text.
+
+10/19/06: beazley
+          The Lex module now provides support for flex-style start conditions
+          as described at http://www.gnu.org/software/flex/manual/html_chapter/flex_11.html.
+          Please refer to this document to understand this change note.  Refer to
+          the PLY documentation for PLY-specific explanation of how this works.
+
+          To use start conditions, you first need to declare a set of states in
+          your lexer file:
+
+          states = (
+                    ('foo','exclusive'),
+                    ('bar','inclusive')
+          )
+
+          This serves the same role as the %s and %x specifiers in flex.
+
+          One a state has been declared, tokens for that state can be 
+          declared by defining rules of the form t_state_TOK.  For example:
+
+            t_PLUS = '\+'          # Rule defined in INITIAL state
+            t_foo_NUM = '\d+'      # Rule defined in foo state
+            t_bar_NUM = '\d+'      # Rule defined in bar state
+
+            t_foo_bar_NUM = '\d+'  # Rule defined in both foo and bar
+            t_ANY_NUM = '\d+'      # Rule defined in all states
+
+          In addition to defining tokens for each state, the t_ignore and t_error
+          specifications can be customized for specific states.  For example:
+
+            t_foo_ignore = " "     # Ignored characters for foo state
+            def t_bar_error(t):   
+                # Handle errors in bar state
+
+          With token rules, the following methods can be used to change states
+          
+            def t_TOKNAME(t):
+                t.lexer.begin('foo')        # Begin state 'foo'
+                t.lexer.push_state('foo')   # Begin state 'foo', push old state
+                                            # onto a stack
+                t.lexer.pop_state()         # Restore previous state
+                t.lexer.current_state()     # Returns name of current state
+
+          These methods mirror the BEGIN(), yy_push_state(), yy_pop_state(), and
+          yy_top_state() functions in flex.
+
+          The use of start states can be used as one way to write sub-lexers.
+          For example, the lexer or parser might instruct the lexer to start
+          generating a different set of tokens depending on the context.
+          
+          example/yply/ylex.py shows the use of start states to grab C/C++ 
+          code fragments out of traditional yacc specification files.
+
+          *** NEW FEATURE *** Suggested by Daniel Larraz with whom I also
+          discussed various aspects of the design.
+
+10/19/06: beazley
+          Minor change to the way in which yacc.py was reporting shift/reduce
+          conflicts.  Although the underlying LALR(1) algorithm was correct,
+          PLY was under-reporting the number of conflicts compared to yacc/bison
+          when precedence rules were in effect.  This change should make PLY
+          report the same number of conflicts as yacc.
+
+10/19/06: beazley
+          Modified yacc so that grammar rules could also include the '-' 
+          character.  For example:
+
+            def p_expr_list(p):
+                'expression-list : expression-list expression'
+
+          Suggested by Oldrich Jedlicka.
+
+10/18/06: beazley
+          Attribute lexer.lexmatch added so that token rules can access the re 
+          match object that was generated.  For example:
+
+          def t_FOO(t):
+              r'some regex'
+              m = t.lexer.lexmatch
+              # Do something with m
+
+
+          This may be useful if you want to access named groups specified within
+          the regex for a specific token. Suggested by Oldrich Jedlicka.
+          
+10/16/06: beazley
+          Changed the error message that results if an illegal character
+          is encountered and no default error function is defined in lex.
+          The exception is now more informative about the actual cause of
+          the error.
+      
+Version 2.1
+------------------------------
+10/02/06: beazley
+          The last Lexer object built by lex() can be found in lex.lexer.
+          The last Parser object built  by yacc() can be found in yacc.parser.
+
+10/02/06: beazley
+          New example added:  examples/yply
+
+          This example uses PLY to convert Unix-yacc specification files to
+          PLY programs with the same grammar.   This may be useful if you
+          want to convert a grammar from bison/yacc to use with PLY.
+    
+10/02/06: beazley
+          Added support for a start symbol to be specified in the yacc
+          input file itself.  Just do this:
+
+               start = 'name'
+
+          where 'name' matches some grammar rule.  For example:
+
+               def p_name(p):
+                   'name : A B C'
+                   ...
+
+          This mirrors the functionality of the yacc %start specifier.
+
+09/30/06: beazley
+          Some new examples added.:
+
+          examples/GardenSnake : A simple indentation based language similar
+                                 to Python.  Shows how you might handle 
+                                 whitespace.  Contributed by Andrew Dalke.
+
+          examples/BASIC       : An implementation of 1964 Dartmouth BASIC.
+                                 Contributed by Dave against his better
+                                 judgement.
+
+09/28/06: beazley
+          Minor patch to allow named groups to be used in lex regular
+          expression rules.  For example:
+
+              t_QSTRING = r'''(?P<quote>['"]).*?(?P=quote)'''
+
+          Patch submitted by Adam Ring.
+ 
+09/28/06: beazley
+          LALR(1) is now the default parsing method.   To use SLR, use
+          yacc.yacc(method="SLR").  Note: there is no performance impact
+          on parsing when using LALR(1) instead of SLR. However, constructing
+          the parsing tables will take a little longer.
+
+09/26/06: beazley
+          Change to line number tracking.  To modify line numbers, modify
+          the line number of the lexer itself.  For example:
+
+          def t_NEWLINE(t):
+              r'\n'
+              t.lexer.lineno += 1
+
+          This modification is both cleanup and a performance optimization.
+          In past versions, lex was monitoring every token for changes in
+          the line number.  This extra processing is unnecessary for a vast
+          majority of tokens. Thus, this new approach cleans it up a bit.
+
+          *** POTENTIAL INCOMPATIBILITY ***
+          You will need to change code in your lexer that updates the line
+          number. For example, "t.lineno += 1" becomes "t.lexer.lineno += 1"
+         
+09/26/06: beazley
+          Added the lexing position to tokens as an attribute lexpos. This
+          is the raw index into the input text at which a token appears.
+          This information can be used to compute column numbers and other
+          details (e.g., scan backwards from lexpos to the first newline
+          to get a column position).
+
+09/25/06: beazley
+          Changed the name of the __copy__() method on the Lexer class
+          to clone().  This is used to clone a Lexer object (e.g., if
+          you're running different lexers at the same time).
+
+09/21/06: beazley
+          Limitations related to the use of the re module have been eliminated.
+          Several users reported problems with regular expressions exceeding
+          more than 100 named groups. To solve this, lex.py is now capable
+          of automatically splitting its master regular regular expression into
+          smaller expressions as needed.   This should, in theory, make it
+          possible to specify an arbitrarily large number of tokens.
+
+09/21/06: beazley
+          Improved error checking in lex.py.  Rules that match the empty string
+          are now rejected (otherwise they cause the lexer to enter an infinite
+          loop).  An extra check for rules containing '#' has also been added.
+          Since lex compiles regular expressions in verbose mode, '#' is interpreted
+          as a regex comment, it is critical to use '\#' instead.  
+
+09/18/06: beazley
+          Added a @TOKEN decorator function to lex.py that can be used to 
+          define token rules where the documentation string might be computed
+          in some way.
+          
+          digit            = r'([0-9])'
+          nondigit         = r'([_A-Za-z])'
+          identifier       = r'(' + nondigit + r'(' + digit + r'|' + nondigit + r')*)'        
+
+          from ply.lex import TOKEN
+
+          @TOKEN(identifier)
+          def t_ID(t):
+               # Do whatever
+
+          The @TOKEN decorator merely sets the documentation string of the
+          associated token function as needed for lex to work.  
+
+          Note: An alternative solution is the following:
+
+          def t_ID(t):
+              # Do whatever
+   
+          t_ID.__doc__ = identifier
+
+          Note: Decorators require the use of Python 2.4 or later.  If compatibility
+          with old versions is needed, use the latter solution.
+
+          The need for this feature was suggested by Cem Karan.
+
+09/14/06: beazley
+          Support for single-character literal tokens has been added to yacc.
+          These literals must be enclosed in quotes.  For example:
+
+          def p_expr(p):
+               "expr : expr '+' expr"
+               ...
+
+          def p_expr(p):
+               'expr : expr "-" expr'
+               ...
+
+          In addition to this, it is necessary to tell the lexer module about
+          literal characters.   This is done by defining the variable 'literals'
+          as a list of characters.  This should  be defined in the module that
+          invokes the lex.lex() function.  For example:
+
+             literals = ['+','-','*','/','(',')','=']
+ 
+          or simply
+
+             literals = '+=*/()='
+
+          It is important to note that literals can only be a single character.
+          When the lexer fails to match a token using its normal regular expression
+          rules, it will check the current character against the literal list.
+          If found, it will be returned with a token type set to match the literal
+          character.  Otherwise, an illegal character will be signalled.
+
+
+09/14/06: beazley
+          Modified PLY to install itself as a proper Python package called 'ply'.
+          This will make it a little more friendly to other modules.  This
+          changes the usage of PLY only slightly.  Just do this to import the
+          modules
+
+                import ply.lex as lex
+                import ply.yacc as yacc
+
+          Alternatively, you can do this:
+
+                from ply import *
+
+          Which imports both the lex and yacc modules.
+          Change suggested by Lee June.
+
+09/13/06: beazley
+          Changed the handling of negative indices when used in production rules.
+          A negative production index now accesses already parsed symbols on the
+          parsing stack.  For example, 
+
+              def p_foo(p):
+                   "foo: A B C D"
+                   print p[1]       # Value of 'A' symbol
+                   print p[2]       # Value of 'B' symbol
+                   print p[-1]      # Value of whatever symbol appears before A
+                                    # on the parsing stack.
+
+                   p[0] = some_val  # Sets the value of the 'foo' grammer symbol
+                                    
+          This behavior makes it easier to work with embedded actions within the
+          parsing rules. For example, in C-yacc, it is possible to write code like
+          this:
+
+               bar:   A { printf("seen an A = %d\n", $1); } B { do_stuff; }
+
+          In this example, the printf() code executes immediately after A has been
+          parsed.  Within the embedded action code, $1 refers to the A symbol on
+          the stack.
+
+          To perform this equivalent action in PLY, you need to write a pair
+          of rules like this:
+
+               def p_bar(p):
+                     "bar : A seen_A B"
+                     do_stuff
+
+               def p_seen_A(p):
+                     "seen_A :"
+                     print "seen an A =", p[-1]
+
+          The second rule "seen_A" is merely a empty production which should be
+          reduced as soon as A is parsed in the "bar" rule above.  The use 
+          of the negative index p[-1] is used to access whatever symbol appeared
+          before the seen_A symbol.
+
+          This feature also makes it possible to support inherited attributes.
+          For example:
+
+               def p_decl(p):
+                     "decl : scope name"
+
+               def p_scope(p):
+                     """scope : GLOBAL
+                              | LOCAL"""
+                   p[0] = p[1]
+
+               def p_name(p):
+                     "name : ID"
+                     if p[-1] == "GLOBAL":
+                          # ...
+                     else if p[-1] == "LOCAL":
+                          #...
+
+          In this case, the name rule is inheriting an attribute from the
+          scope declaration that precedes it.
+       
+          *** POTENTIAL INCOMPATIBILITY ***
+          If you are currently using negative indices within existing grammar rules,
+          your code will break.  This should be extremely rare if non-existent in
+          most cases.  The argument to various grammar rules is not usually not
+          processed in the same way as a list of items.
+          
+Version 2.0
+------------------------------
+09/07/06: beazley
+          Major cleanup and refactoring of the LR table generation code.  Both SLR
+          and LALR(1) table generation is now performed by the same code base with
+          only minor extensions for extra LALR(1) processing.
+
+09/07/06: beazley
+          Completely reimplemented the entire LALR(1) parsing engine to use the
+          DeRemer and Pennello algorithm for calculating lookahead sets.  This
+          significantly improves the performance of generating LALR(1) tables
+          and has the added feature of actually working correctly!  If you
+          experienced weird behavior with LALR(1) in prior releases, this should
+          hopefully resolve all of those problems.  Many thanks to 
+          Andrew Waters and Markus Schoepflin for submitting bug reports
+          and helping me test out the revised LALR(1) support.
+
+Version 1.8
+------------------------------
+08/02/06: beazley
+          Fixed a problem related to the handling of default actions in LALR(1)
+          parsing.  If you experienced subtle and/or bizarre behavior when trying
+          to use the LALR(1) engine, this may correct those problems.  Patch
+          contributed by Russ Cox.  Note: This patch has been superceded by 
+          revisions for LALR(1) parsing in Ply-2.0.
+
+08/02/06: beazley
+          Added support for slicing of productions in yacc.  
+          Patch contributed by Patrick Mezard.
+
+Version 1.7
+------------------------------
+03/02/06: beazley
+          Fixed infinite recursion problem ReduceToTerminals() function that
+          would sometimes come up in LALR(1) table generation.  Reported by 
+          Markus Schoepflin.
+
+03/01/06: beazley
+          Added "reflags" argument to lex().  For example:
+
+               lex.lex(reflags=re.UNICODE)
+
+          This can be used to specify optional flags to the re.compile() function
+          used inside the lexer.   This may be necessary for special situations such
+          as processing Unicode (e.g., if you want escapes like \w and \b to consult
+          the Unicode character property database).   The need for this suggested by
+          Andreas Jung.
+
+03/01/06: beazley
+          Fixed a bug with an uninitialized variable on repeated instantiations of parser
+          objects when the write_tables=0 argument was used.   Reported by Michael Brown.
+
+03/01/06: beazley
+          Modified lex.py to accept Unicode strings both as the regular expressions for
+          tokens and as input. Hopefully this is the only change needed for Unicode support.
+          Patch contributed by Johan Dahl.
+
+03/01/06: beazley
+          Modified the class-based interface to work with new-style or old-style classes.
+          Patch contributed by Michael Brown (although I tweaked it slightly so it would work
+          with older versions of Python).
+
+Version 1.6
+------------------------------
+05/27/05: beazley
+          Incorporated patch contributed by Christopher Stawarz to fix an extremely
+          devious bug in LALR(1) parser generation.   This patch should fix problems
+          numerous people reported with LALR parsing.
+
+05/27/05: beazley
+          Fixed problem with lex.py copy constructor.  Reported by Dave Aitel, Aaron Lav,
+          and Thad Austin. 
+
+05/27/05: beazley
+          Added outputdir option to yacc()  to control output directory. Contributed
+          by Christopher Stawarz.
+
+05/27/05: beazley
+          Added rununit.py test script to run tests using the Python unittest module.
+          Contributed by Miki Tebeka.
+
+Version 1.5
+------------------------------
+05/26/04: beazley
+          Major enhancement. LALR(1) parsing support is now working.
+          This feature was implemented by Elias Ioup (ezioup@alumni.uchicago.edu)
+          and optimized by David Beazley. To use LALR(1) parsing do
+          the following:
+
+               yacc.yacc(method="LALR")
+
+          Computing LALR(1) parsing tables takes about twice as long as
+          the default SLR method.  However, LALR(1) allows you to handle
+          more complex grammars.  For example, the ANSI C grammar
+          (in example/ansic) has 13 shift-reduce conflicts with SLR, but
+          only has 1 shift-reduce conflict with LALR(1).
+
+05/20/04: beazley
+          Added a __len__ method to parser production lists.  Can
+          be used in parser rules like this:
+
+             def p_somerule(p):
+                 """a : B C D
+                      | E F"
+                 if (len(p) == 3):
+                     # Must have been first rule
+                 elif (len(p) == 2):
+                     # Must be second rule
+
+          Suggested by Joshua Gerth and others.
+
+Version 1.4
+------------------------------
+04/23/04: beazley
+          Incorporated a variety of patches contributed by Eric Raymond.
+          These include:
+
+           0. Cleans up some comments so they don't wrap on an 80-column display.
+           1. Directs compiler errors to stderr where they belong.
+           2. Implements and documents automatic line counting when \n is ignored.
+           3. Changes the way progress messages are dumped when debugging is on. 
+              The new format is both less verbose and conveys more information than
+              the old, including shift and reduce actions.
+
+04/23/04: beazley
+          Added a Python setup.py file to simply installation.  Contributed
+          by Adam Kerrison.
+
+04/23/04: beazley
+          Added patches contributed by Adam Kerrison.
+ 
+          -   Some output is now only shown when debugging is enabled.  This
+              means that PLY will be completely silent when not in debugging mode.
+          
+          -   An optional parameter "write_tables" can be passed to yacc() to
+              control whether or not parsing tables are written.   By default,
+              it is true, but it can be turned off if you don't want the yacc
+              table file. Note: disabling this will cause yacc() to regenerate
+              the parsing table each time.
+
+04/23/04: beazley
+          Added patches contributed by David McNab.  This patch addes two
+          features:
+
+          -   The parser can be supplied as a class instead of a module.
+              For an example of this, see the example/classcalc directory.
+
+          -   Debugging output can be directed to a filename of the user's
+              choice.  Use
+
+                 yacc(debugfile="somefile.out")
+
+          
+Version 1.3
+------------------------------
+12/10/02: jmdyck
+          Various minor adjustments to the code that Dave checked in today.
+          Updated test/yacc_{inf,unused}.exp to reflect today's changes.
+
+12/10/02: beazley
+          Incorporated a variety of minor bug fixes to empty production
+          handling and infinite recursion checking.  Contributed by
+          Michael Dyck.
+
+12/10/02: beazley
+          Removed bogus recover() method call in yacc.restart()
+
+Version 1.2
+------------------------------
+11/27/02: beazley
+          Lexer and parser objects are now available as an attribute
+          of tokens and slices respectively. For example:
+ 
+             def t_NUMBER(t):
+                 r'\d+'
+                 print t.lexer
+
+             def p_expr_plus(t):
+                 'expr: expr PLUS expr'
+                 print t.lexer
+                 print t.parser
+
+          This can be used for state management (if needed).
+ 
+10/31/02: beazley
+          Modified yacc.py to work with Python optimize mode.  To make
+          this work, you need to use
+
+              yacc.yacc(optimize=1)
+
+          Furthermore, you need to first run Python in normal mode
+          to generate the necessary parsetab.py files.  After that,
+          you can use python -O or python -OO.  
+
+          Note: optimized mode turns off a lot of error checking.
+          Only use when you are sure that your grammar is working.
+          Make sure parsetab.py is up to date!
+
+10/30/02: beazley
+          Added cloning of Lexer objects.   For example:
+
+              import copy
+              l = lex.lex()
+              lc = copy.copy(l)
+
+              l.input("Some text")
+              lc.input("Some other text")
+              ...
+
+          This might be useful if the same "lexer" is meant to
+          be used in different contexts---or if multiple lexers
+          are running concurrently.
+                
+10/30/02: beazley
+          Fixed subtle bug with first set computation and empty productions.
+          Patch submitted by Michael Dyck.
+
+10/30/02: beazley
+          Fixed error messages to use "filename:line: message" instead
+          of "filename:line. message".  This makes error reporting more
+          friendly to emacs. Patch submitted by François Pinard.
+
+10/30/02: beazley
+          Improvements to parser.out file.  Terminals and nonterminals
+          are sorted instead of being printed in random order.
+          Patch submitted by François Pinard.
+
+10/30/02: beazley
+          Improvements to parser.out file output.  Rules are now printed
+          in a way that's easier to understand.  Contributed by Russ Cox.
+
+10/30/02: beazley
+          Added 'nonassoc' associativity support.    This can be used
+          to disable the chaining of operators like a < b < c.
+          To use, simply specify 'nonassoc' in the precedence table
+
+          precedence = (
+            ('nonassoc', 'LESSTHAN', 'GREATERTHAN'),  # Nonassociative operators
+            ('left', 'PLUS', 'MINUS'),
+            ('left', 'TIMES', 'DIVIDE'),
+            ('right', 'UMINUS'),            # Unary minus operator
+          )
+
+          Patch contributed by Russ Cox.
+
+10/30/02: beazley
+          Modified the lexer to provide optional support for Python -O and -OO
+          modes.  To make this work, Python *first* needs to be run in
+          unoptimized mode.  This reads the lexing information and creates a
+          file "lextab.py".  Then, run lex like this:
+
+                   # module foo.py
+                   ...
+                   ...
+                   lex.lex(optimize=1)
+
+          Once the lextab file has been created, subsequent calls to
+          lex.lex() will read data from the lextab file instead of using 
+          introspection.   In optimized mode (-O, -OO) everything should
+          work normally despite the loss of doc strings.
+
+          To change the name of the file 'lextab.py' use the following:
+
+                  lex.lex(lextab="footab")
+
+          (this creates a file footab.py)
+         
+
+Version 1.1   October 25, 2001
+------------------------------
+
+10/25/01: beazley
+          Modified the table generator to produce much more compact data.
+          This should greatly reduce the size of the parsetab.py[c] file.
+          Caveat: the tables still need to be constructed so a little more
+          work is done in parsetab on import. 
+
+10/25/01: beazley
+          There may be a possible bug in the cycle detector that reports errors
+          about infinite recursion.   I'm having a little trouble tracking it
+          down, but if you get this problem, you can disable the cycle
+          detector as follows:
+
+                 yacc.yacc(check_recursion = 0)
+
+10/25/01: beazley
+          Fixed a bug in lex.py that sometimes caused illegal characters to be
+          reported incorrectly.  Reported by Sverre Jørgensen.
+
+7/8/01  : beazley
+          Added a reference to the underlying lexer object when tokens are handled by
+          functions.   The lexer is available as the 'lexer' attribute.   This
+          was added to provide better lexing support for languages such as Fortran
+          where certain types of tokens can't be conveniently expressed as regular 
+          expressions (and where the tokenizing function may want to perform a 
+          little backtracking).  Suggested by Pearu Peterson.
+
+6/20/01 : beazley
+          Modified yacc() function so that an optional starting symbol can be specified.
+          For example:
+            
+                 yacc.yacc(start="statement")
+
+          Normally yacc always treats the first production rule as the starting symbol.
+          However, if you are debugging your grammar it may be useful to specify
+          an alternative starting symbol.  Idea suggested by Rich Salz.
+                      
+Version 1.0  June 18, 2001
+--------------------------
+Initial public offering
+

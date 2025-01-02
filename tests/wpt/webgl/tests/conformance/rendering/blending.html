@@ -1,0 +1,266 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+
+<script id="eVsSrc" type="text/plain">
+void main()
+{
+    gl_PointSize = 1.0;
+    gl_Position = vec4(0, 0, 0, 1);
+}
+</script>
+
+<script id="eFsSrc" type="text/plain">
+precision mediump float;
+uniform vec4 uColor;
+
+void main()
+{
+    gl_FragColor = uColor;
+}
+</script>
+
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Blending tests');
+
+const wtu = WebGLTestUtils;
+
+function CreateContext() {
+    const gl = wtu.create3DContext();
+    gl.viewport(0, 0, 1, 1);
+
+    gl.prog = wtu.setupProgram(gl, [eVsSrc.innerHTML, eFsSrc.innerHTML]);
+    gl.prog.uColor = (() => {
+        const loc = gl.getUniformLocation(gl.prog, 'uColor');
+        return x => gl.uniform4fv(loc, x);
+    })();
+    gl.useProgram(gl.prog);
+    gl.prog.uColor([1 / 255, 2 / 255, 3 / 255, 4 / 255]);
+
+    gl.drawAndRead = type => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+        let ret;
+        if (type == gl.UNSIGNED_BYTE) {
+            ret = new Uint8Array(4);
+        } else if (type == gl.FLOAT) {
+            ret = new Float32Array(4);
+        }
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, type, ret);
+        return ret;
+    };
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.CONSTANT_COLOR, gl.ZERO);
+
+    return gl;
+}
+
+function CreateValidFb(gl, formats) {
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    for (let i in formats) {
+        i = i|0; // Otherwise i is a string. :(
+        const f = formats[i];
+        if (!f)
+            continue;
+        if (f.length == 1) {
+            const rb = gl.createRenderbuffer();
+            gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+            gl.renderbufferStorage(gl.RENDERBUFFER, f[0], 1, 1);
+            gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+i,
+                                       gl.RENDERBUFFER, rb);
+            continue;
+        }
+        if (f.length == 3) {
+            const tex = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.texImage2D(gl.TEXTURE_2D, 0, f[0], 1, 1, 0, f[1], f[2], null);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+i,
+                                    gl.TEXTURE_2D, tex, 0);
+            continue;
+        }
+        throw new Error('Invalid format length: ' + f);
+    }
+
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+        gl.deleteFramebuffer(fb);
+        return null;
+    }
+    return fb;
+}
+
+let was, fb;
+
+const TESTS = [
+    () => {
+        debug('');
+        debug('Clamping of blendColor args:');
+
+        const gl = wtu.create3DContext();
+        if (!gl.texImage3D) { // WebGL 1.0
+            // WebGL 1.0 clamps without EXT_color_buffer_half_float or WEBGL_color_buffer_float.
+            gl.blendColor(1000, 1, 1, 1);
+            const was = gl.getParameter(gl.BLEND_COLOR);
+            expectArray(was, [1, 1, 1, 1]);
+
+            const ext = gl.getExtension('EXT_color_buffer_half_float') ||
+                        gl.getExtension('WEBGL_color_buffer_float');
+            if (!ext) return;
+        }
+
+        // WebGL 2.0 or extended WebGL 1.0 may still clamp the value on store
+        // when the underlying platform does the same.
+        gl.blendColor(1000, 1, 1, 1);
+        const was = gl.getParameter(gl.BLEND_COLOR);
+        if (was[0] == 1000) {
+            expectArray(was, [1000, 1, 1, 1]);
+        } else {
+            debug("Platform does not support unclamped blend color.")
+            expectArray(was, [1, 1, 1, 1]);
+        }
+    },
+    () => {
+        debug('');
+        debug('Blending for RGBA8:');
+
+        const gl = CreateContext();
+        // Do not use RGBA8 enum on WebGL 1.0
+        fb = CreateValidFb(gl, [[gl.texImage3D ? gl.RGBA8 : gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE]]);
+        shouldBeNonNull('fb');
+
+        // Regardless of the context version and enabled extensions,
+        // the value will be clamped at draw time,
+        gl.blendColor(10, 1, 1, 1);
+        const was = gl.drawAndRead(gl.UNSIGNED_BYTE);
+        expectArray(was, [1, 2, 3, 4]);
+
+        if (gl.getExtension('EXT_color_buffer_half_float') ||
+            gl.getExtension('WEBGL_color_buffer_float') ||
+            gl.getExtension('EXT_color_buffer_float'))
+        {
+            debug('Enable floating-point color buffers and retest');
+            gl.blendColor(1000, 1, 1, 1);
+            const was = gl.drawAndRead(gl.UNSIGNED_BYTE);
+            expectArray(was, [1, 2, 3, 4]);
+        }
+    },
+    () => {
+        debug('');
+        debug('Blending for RGBA16F:');
+
+        const gl = CreateContext();
+
+        // Set the value before enabling the extension.
+        // It must be clamped only on WebGL 1.0 contexts.
+        gl.blendColor(10, 1, 1, 1);
+        if (!gl.getExtension('EXT_color_buffer_half_float')) {
+            testPassed('Missing ext EXT_color_buffer_half_float is optional, skipping.');
+            return;
+        }
+        if (!gl.texImage3D) { // WebGL 1.0
+            const ext = gl.getExtension('OES_texture_half_float');
+            gl.HALF_FLOAT = ext.HALF_FLOAT_OES; // These aren't the same value, but this'll work.
+        }
+
+        // Do not use RGBA16F enum on WebGL 1.0
+        fb = CreateValidFb(gl, [[gl.texImage3D ? gl.RGBA16F : gl.RGBA, gl.RGBA, gl.HALF_FLOAT]]);
+        shouldBeNonNull('fb');
+        gl.prog.uColor([1, 2, 3, 4]);
+
+        let was = gl.drawAndRead(gl.FLOAT);
+        if (!gl.texImage3D) { // WebGL 1.0
+            expectArray(was, [1, 2, 3, 4]);
+        } else {
+            // Some WebGL 2.0 implementations may clamp the blend color anyway.
+            const r = gl.getParameter(gl.BLEND_COLOR)[0];
+            expectArray(was, [r, 2, 3, 4]);
+        }
+
+        // Re-set the value after the extension was enabled.
+        gl.blendColor(100, 1, 1, 1);
+        const r = gl.getParameter(gl.BLEND_COLOR)[0];
+        was = gl.drawAndRead(gl.FLOAT);
+        expectArray(was, [r, 2, 3, 4]);
+    },
+    () => {
+        debug('');
+        debug('Blending for RGBA32F:');
+
+        const gl = CreateContext();
+
+        // Set the value before enabling the extension.
+        // It must be clamped only on WebGL 1.0 contexts.
+        gl.blendColor(10, 1, 1, 1);
+        if (gl.texImage3D) { // WebGL 2.0
+            if (!gl.getExtension('EXT_color_buffer_float')) {
+                testPassed('Missing ext EXT_color_buffer_float is optional, skipping.');
+                return;
+            }
+        } else {
+            if (!gl.getExtension('WEBGL_color_buffer_float')) {
+                testPassed('Missing ext WEBGL_color_buffer_float is optional, skipping.');
+                return;
+            }
+            gl.getExtension('OES_texture_float');
+        }
+        // Do not use RGBA32F enum on WebGL 1.0
+        fb = CreateValidFb(gl, [[gl.texImage3D ? gl.RGBA32F : gl.RGBA, gl.RGBA, gl.FLOAT]]);
+        shouldBeNonNull('fb');
+        gl.prog.uColor([1, 2, 3, 4]);
+
+        let was = gl.drawAndRead(gl.FLOAT);
+        if (!gl.texImage3D) { // WebGL 1.0
+            expectArray(was, [1, 2, 3, 4]);
+        } else {
+            // Some WebGL 2.0 implementations may clamp the blend color anyway.
+            const r = gl.getParameter(gl.BLEND_COLOR)[0];
+            expectArray(was, [r, 2, 3, 4]);
+        }
+
+        // Re-set the value after the extension was enabled.
+        gl.blendColor(100, 1, 1, 1);
+        const r = gl.getParameter(gl.BLEND_COLOR)[0];
+        was = gl.drawAndRead(gl.FLOAT);
+
+        if (!gl.getExtension('EXT_float_blend')) {
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, 'Should not be able to blend 32F formats.');
+            return;
+        }
+        wtu.glErrorShouldBe(gl, 0, 'Should be able to blend 32F formats.');
+        expectArray(was, [r, 2, 3, 4]);
+    },
+];
+
+async function Test() {
+    for (const fn of TESTS) {
+        await wtu.dispatchPromise(fn);
+    }
+    wtu.destroyAllContexts();
+    finishTest();
+}
+
+Test();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

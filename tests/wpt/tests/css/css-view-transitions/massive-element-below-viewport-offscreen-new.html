@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: massive element below viewport and completely offscreen (new content)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="massive-element-below-viewport-offscreen-ref.html">
+<meta name="fuzzy" content="maxDifference=0-3;totalPixels=0-950">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+.target_after_bottom_edge {
+  position: fixed;
+  inset-block-start: 20000px;
+  inset-inline-start: 0px;
+}
+
+.target {
+  contain: paint;
+  inline-size: 100px;
+  block-size: 40000px;
+  view-transition-name: target;
+}
+
+.top {
+  inline-size: 100%;
+  block-size: 100px;
+  background: lightblue;
+}
+
+.middle {
+  inline-size: 100%;
+  block-size: 39800px;
+  background: green;
+}
+
+.bottom {
+  inline-size: 100%;
+  block-size: 100px;
+  background: blue;
+}
+
+.hidden {
+  position: fixed;
+  inset-block-start: 10000px;
+  inline-size: 10px;
+  block-size: 10px;
+  background: grey;
+  view-transition-name: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-old(*), html::view-transition-new(*) {
+  object-fit: none;
+}
+
+/* We should capture at least viewport height worth of content from the element's top edge */
+html::view-transition-group(target) {
+  animation: unset;
+  transform: unset;
+
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+html::view-transition-old(target) { animation: unset; opacity: 0; }
+html::view-transition-new(target) { animation: unset; opacity: 1; }
+
+</style>
+
+<div class="target target_after_bottom_edge" id="target">
+  <div class="top">This text is at the top of the box</div>
+  <div class="middle">This text is in the middle of the box</div>
+  <div id="scrollblue" class="bottom">This text is at the bottom of the box</div>
+</div>
+<div id=hidden class=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      requestAnimationFrame(() => requestAnimationFrame(takeScreenshot))
+    ));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

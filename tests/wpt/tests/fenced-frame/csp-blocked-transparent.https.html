@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Test transparent fenced frame navigations with blocked CSP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+
+<body>
+<script>
+const blockedCSPs = [
+  "none",
+  "https://localhost:80",
+  "https://*:80",
+  "https://localhost:*"
+];
+blockedCSPs.forEach((csp) => {
+  promise_test(async() => {
+    const iframe = setupCSP(csp);
+    const key = token();
+    const url = generateURL("/fenced-frame/resources/embeddee.html", [key]);
+
+    await iframe.execute(async (key, url, csp) => {
+      let promise = new Promise((resolve) => {
+        window.addEventListener('securitypolicyviolation', function(e) {
+          resolve(e.violatedDirective + ";" + e.blockedURI);
+        }, {once: true});
+      });
+
+      attachFencedFrame(url);
+
+      await promise.then((result) => {
+        assert_equals(result, "fenced-frame-src;" + url,
+            "The fenced frame should not load for CSP fenced-frame-src " + csp);
+      });
+    }, [key, url, csp]);
+  }, "Fenced frame loaded for CSP fenced-frame-src " + csp);
+});
+</script>
+</body>

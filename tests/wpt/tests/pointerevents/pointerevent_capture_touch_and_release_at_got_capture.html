@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Testing pointer events for touch when capturing the pointer with different element from the pointerdown target and release it at got pointer capture</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const listener = document.getElementById("listener");
+    const target = document.getElementById("target");
+    let events = [];
+    function logEvent(event) {
+      events.push({
+        type: event.type,
+        target: event.target,
+        pointerType: event.pointerType,
+        isPrimary: event.isPrimary,
+      });
+    }
+    function stringifyEvents(events) {
+      if (!events.length) {
+        return "[]";
+      }
+      let result = "";
+      for (const event of events) {
+        if (result == "") {
+          result = "[";
+        } else {
+          result += ", ";
+        }
+        result += `${event.type}@${
+            event.target.id ? event.target.id : event.target.localName
+          }(pointerType=${event.pointerType},isPrimary=${event.isPrimary})`;
+      }
+      result += "]";
+      return result;
+    }
+    target.addEventListener("pointerdown", event => {
+      logEvent(event);
+      listener.setPointerCapture(event.pointerId);
+    });
+    listener.addEventListener("gotpointercapture", event => {
+      logEvent(event);
+      listener.releasePointerCapture(event.pointerId);
+    });
+    listener.addEventListener("lostpointercapture", logEvent);
+    listener.addEventListener("pointerover", logEvent);
+    listener.addEventListener("pointermove", logEvent);
+    listener.addEventListener("pointerup", logEvent);
+    listener.addEventListener("pointerout", logEvent);
+
+    await new test_driver.Actions()
+      .addPointer("touch_pointer", "touch")
+      .pointerMove(0, 0, {origin: target})
+      .pointerDown()
+      .pointerMove(1, 1, {origin: target})
+      .pointerUp()
+      .send();
+
+    const expectedEvents = [
+      {type: "pointerdown", target: target, pointerType: "touch", isPrimary: true},
+      {type: "pointerover", target: listener, pointerType: "touch", isPrimary: true},
+      {type: "gotpointercapture", target: listener, pointerType: "touch", isPrimary: true},
+      {type: "pointermove", target: listener, pointerType: "touch", isPrimary: true},
+      {type: "lostpointercapture", target: listener, pointerType: "touch", isPrimary: true},
+      // The pointer is over the target, not over the listener.  Therefore,
+      // when the listener loses the capture, pointerout should be fired on
+      // the listener since it won't receive pointer events until the pointer
+      // moves over the listener.
+      {type: "pointerout", target: listener, pointerType: "touch", isPrimary: true},
+    ];
+    assert_equals(stringifyEvents(events), stringifyEvents(expectedEvents));
+  }, "A pointerout should be fired on the capturing element after losing the capture");
+}, {once: true});
+</script>
+</head>
+<body>
+  <div id="listener">div id=listener</div>
+  <div id="target">div id=target</div>
+</body>
+</html>

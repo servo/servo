@@ -1,0 +1,65 @@
+<html>
+<body>
+  <script>
+function Matrix(ary) {
+    this.mtx = ary
+    this.height = ary.length;
+    this.width = ary[0].length;
+}
+
+Matrix.prototype.toString = function() {
+    var s = []
+    for (var i = 0; i < this.mtx.length; i++)
+        s.push( this.mtx[i].join(",") );
+    return s.join("\n");
+}
+
+Matrix.prototype.mult = function(other) {
+    if (this.width != other.height) {
+        throw "error: incompatible sizes";
+    }
+
+    var result = [];
+    for (var i = 0; i < this.height; i++) {
+        result[i] = [];
+        for (var j = 0; j < other.width; j++) {
+            var sum = 0;
+            for (var k = 0; k < this.width; k++) {
+                sum += this.mtx[i][k] * other.mtx[k][j];
+            }
+            result[i][j] = sum;
+        }
+    }
+    return new Matrix(result);
+}
+
+function run() {
+  var now = new Date();
+  var div = document.getElementsByTagName('div')[0];
+  var elems = [];
+  for (var i = 0; i < 600; i++) {
+    elems.push(i);
+  }
+  var outer = [];
+  for (var i = 0; i < 600; i++) {
+    outer.push(elems);
+  }
+  var a = new Matrix(outer);
+  var b = new Matrix(outer);
+  var result = a.mult(b);
+  var time = (new Date()) - now;
+  var text = document.createTextNode(time.toString() + 'ms');
+  var para = document.createElement('p');
+  para.appendChild(text);
+  div.appendChild(para);
+}
+
+setTimeout(function forever() {
+  run();
+  setTimeout(forever, 1000);
+}, 0);
+  </script>
+<p>Time required to multiply two 600x600 matrices:</p>
+<div></div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test combinations of auto lengths, fixed lengths and percentage lengths. No corners or middle/center boxes.">
+<link rel="match" href="dimensions-002-print-ref.html">
+<style>
+  @page {
+    margin: 100px;
+    size: 500px 400px;
+
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      width: 20%;
+      height: 20%;
+      content: "20%";
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      content: "auto";
+    }
+    @right-top {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      content: "auto";
+    }
+    @right-bottom {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      width: 70%;
+      height: 70%;
+      content: "70%";
+    }
+    @bottom-right {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      width: 70px;
+      height: 70px;
+      content: "70px";
+    }
+    @bottom-left {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      content: "auto";
+    }
+    @left-bottom {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      content: "auto";
+    }
+    @left-top {
+      text-align: left;
+      vertical-align: top;
+      border: solid;
+      width: 70px;
+      height: 70px;
+      content: "70px";
+    }
+  }
+</style>

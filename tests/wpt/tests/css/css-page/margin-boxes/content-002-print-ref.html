@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<meta charset="utf-8">
+<style>
+  @page {
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+  .content::before {
+    content: open-quote "Trøndere gråter når " open-quote "Vinsjan på kaia" close-quote " blir deklamert" close-quote;
+  }
+  .bottom::before {
+    quotes: "[" "]" "{" "}";
+  }
+</style>
+<div style="display:grid; height:100vh; grid-template-rows:4em auto 4em; margin:0 4em;">
+  <div class="content"></div>
+  <div></div>
+  <div class="content bottom"></div>
+</div>

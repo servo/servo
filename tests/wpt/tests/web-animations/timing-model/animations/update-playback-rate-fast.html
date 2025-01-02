@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>Update playback rate zero</title>
+<link rel="match" href="update-playback-rate-fast-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="../../testcommon.js"></script>
+<style>
+  #box {
+    background: green;
+    height: 40px;
+    width: 40px;
+  }
+</style>
+<body>
+  <div id="box"></div>
+  <p id="notes">
+    This test creates a running animation and changes its playback rate
+    part way through. If the box remains red when the screenshot is captured
+    the test fails.
+  </p>
+</body>
+<script>
+  onload = async function() {
+    const box = document.getElementById('box');
+    const duration = 2000;
+    const anim =
+        box.animate({ bacground: [ 'red', 'green' ] },
+                    { duration: duration, easing: 'steps(2, jump-none)' });
+    anim.ready.then(() => {
+      const startTime = anim.timeline.currentTime;
+      waitForAnimationFrames(2).then(() => {
+        anim.updatePlaybackRate(2);
+        anim.ready.then(() => {
+          const updateTime = anim.timeline.currentTime;
+          const baseProgress = (updateTime - startTime) / duration;
+          const checkIfDone = () => {
+            const progress =
+               2 * (anim.timeline.currentTime - updateTime) / duration +
+               baseProgress;
+            if (progress > 0.5)
+              takeScreenshot();
+            else
+              requestAnimationFrame(checkIfDone);
+          };
+          requestAnimationFrame(checkIfDone);
+        });
+      });
+    });
+  };
+</script>

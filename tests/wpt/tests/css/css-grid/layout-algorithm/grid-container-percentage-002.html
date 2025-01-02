@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: indefinite grid container and percentage rows.</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-length-percentage"/>
+<meta name="assert" content="This test checks that percentage rows behave as 'auto' if the height of the grid container is indefinite to compute the grid container intrinsic height, but are afterwards resolved against that size."/>
+<link rel="issue" href="https://crbug.com/616716"/>
+<link rel="stylesheet" href="/css/support/grid.css"/>
+<link rel="stylesheet" href="/css/support/height-keyword-classes.css"/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+<style>
+.wrapper {
+    position: relative;
+    clear: both;
+}
+
+.grid {
+    font: 10px/1 Ahem;
+    width: fit-content;
+}
+
+.abspos {
+    position: absolute;
+}
+
+.fixedSize {
+    width: 200px;
+    height: 200px;
+}
+
+.oneRow100 {
+    grid-template-rows: 100%;
+}
+
+.oneRow50 {
+    grid-template-rows: 50%;
+}
+
+.twoRows {
+    grid-template-rows: 100px 50%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+    setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+<div id="log"></div>
+<div class="wrapper">
+    <div class="grid oneRow100" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="10">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fixedSize oneRow100" data-expected-width="200" data-expected-height="200">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="200">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid abspos oneRow100" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="10">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid max-content oneRow100" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="10">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fit-content oneRow100" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="10">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid min-content oneRow100" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="10">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid oneRow50" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="5">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fixedSize oneRow50" data-expected-width="200" data-expected-height="200">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid abspos oneRow50" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="5">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid max-content oneRow50" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="5">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fit-content oneRow50" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="5">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid min-content oneRow50" data-expected-width="40" data-expected-height="10">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="5">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid twoRows" data-expected-width="40" data-expected-height="110">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="55">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fixedSize twoRows" data-expected-width="200" data-expected-height="200">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100">
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid abspos twoRows" data-expected-width="40" data-expected-height="110">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="55">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid max-content twoRows" data-expected-width="40" data-expected-height="110">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="55">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fit-content twoRows" data-expected-width="40" data-expected-height="110">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="55">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid min-content twoRows" data-expected-width="40" data-expected-height="110">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="55">
+            XX X
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid twoRows" data-expected-width="40" data-expected-height="100">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+            XX X
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fixedSize twoRows" data-expected-width="200" data-expected-height="200">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100">
+            XX X
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100">
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid abspos twoRows" data-expected-width="40" data-expected-height="100">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+            XX X
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid max-content twoRows" data-expected-width="40" data-expected-height="100">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+            XX X
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid fit-content twoRows" data-expected-width="40" data-expected-height="100">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+            XX X
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <div class="grid min-content twoRows" data-expected-width="40" data-expected-height="100">
+        <div class="firstRowFirstColumn"
+            data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="100">
+            XX X
+        </div>
+        <div class="secondRowFirstColumn"
+            data-offset-x="0" data-offset-y="100" data-expected-width="40" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

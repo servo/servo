@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: border-width: inherit</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/border/width/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties"/>
+  <link rel="help" href="https://www.w3.org/Style/css2-updates/REC-CSS2-20110607-errata.html#s.6.2.1"/>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2768"/>
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht" />
+
+  <style type="text/css">
+   /* this results in a specified value of 2em and a computed value of 0 as border-style is none */
+   body { border-width: 2em; }
+   /* this then inherits from the above border-width, and checks the computed value is inherited */
+   p { border-width: inherit; border-style: solid; border-color: red; color: green; }
+  </style>
+ </head>
+ <body>
+  <p>This text should be green.</p>
+
+
+</body>
+</html>

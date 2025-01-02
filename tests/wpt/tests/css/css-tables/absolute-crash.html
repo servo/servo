@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/958381">
+<table style="position: relative; max-height: 10px;">
+  <caption>caption</caption>
+  <td><div id=target style="position: absolute;"></div></td>
+</table>
+<script>
+  document.body.offsetTop;
+  document.getElementById('target').style.top = '10px';
+</script>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<body onload="runTest()">
+  <style>
+    #scroller {
+      height: 100px;
+      width: 100px;
+      overflow: scroll;
+      scroll-start: 10vh 200px;
+    }
+
+    .spacer {
+      width: 200vw;
+      height: 200vh;
+      border: solid 1px green;
+    }
+  </style>
+  <script>
+    function runTest() {
+      // scroll position declared by scroll-start.
+      const scroll_start_top = 0.1 * window.innerHeight;
+      const scroll_start_left = 200;
+
+      // target position of the user scroll.
+      const target_scroll_delta = 100;
+      const target_scroll_top = scroll_start_top + target_scroll_delta;
+      const target_scroll_left = scroll_start_left + target_scroll_delta;
+
+      promise_test(async (t) => {
+        // verify that we are starting from the offsets indicated by scroll start.
+        assert_equals(scroller.scrollTop, scroll_start_top,
+          "scroll-start: <length> sets initial scroll position vertically");
+        assert_equals(scroller.scrollLeft, scroll_start_left,
+          "scroll-start: <length> sets initial scroll position horizontally");
+
+        // verify that the user scroll should result in an actual scroll.
+        assert_not_equals(target_scroll_top, scroll_start_top,
+          "user scroll should not be nop vertically");
+        assert_not_equals(target_scroll_left, scroll_start_left,
+          "user scroll should not be nop horizontally");
+
+        let scrollend_promise = new Promise((resolve) => {
+          scroller.onscrollend = () => { resolve(); }
+        });
+        await new test_driver.Actions().scroll(0, 0,
+          target_scroll_delta,
+          target_scroll_delta,
+          { origin: scroller }).send();
+
+        await scrollend_promise;
+        assert_equals(scroller.scrollTop, target_scroll_top,
+          "user scroll succeeds vertically");
+        assert_equals(scroller.scrollLeft, target_scroll_left,
+          "user scroll succeeds horizontally");
+
+        // Trigger a layout change.
+        scroller.style.height = "200px";
+        scroller.style.width = "200px";
+        let spacer = document.getElementById("spacer");
+        spacer.style.height = "300vh";
+        spacer.style.width = "300vw";
+        assert_equals(getComputedStyle(spacer)["height"],
+          `${3 * window.innerHeight}px`);
+        assert_equals(getComputedStyle(spacer)["width"],
+          `${3 * window.innerWidth}px`);
+        // Verify that the layout change did not affect the scroll position.
+        assert_equals(scroller.scrollTop, target_scroll_top,
+          "layout change after user scroll does not apply scroll-start " +
+          "vertically");
+        assert_equals(scroller.scrollLeft, target_scroll_left,
+          "layout change after user scroll does not apply scroll-start " +
+          "horizontally");
+      }, "scroll-start is not applied after user a scroll");
+    }
+  </script>
+  <div id="scroller">
+    <div class="spacer" id="spacer"></div>
+  </div>
+</body>

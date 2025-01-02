@@ -1,0 +1,16 @@
+<html>
+<head>
+  <script type="text/javascript">
+    function remove() {
+      const frame = document.getElementById("sub-frame");
+      const div = document.getElementById("delete");
+      div.removeChild(frame);
+    }
+  </script>
+</head>
+<body>
+  <div id="delete">
+    <iframe src="subframe.html" id="sub-frame"></iframe>
+  </div>
+</body>
+</html>

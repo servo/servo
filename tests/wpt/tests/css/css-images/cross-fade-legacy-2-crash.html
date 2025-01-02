@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Images Test: Legacy cross-fade syntax unresolvable at parse time crashes Chrome</title>
+    <link rel="help" href="https://crbug.com/40946458">
+    <style>
+      .test { background-image: -webkit-cross-fade(none, none, calc(13% + 1% * sign(1em - 1px))); }
+    </style>
+  </head>
+  <body>
+    <div class="test"></div>
+    <p>Test passes if the browser does not crash.</p>
+  </body>
+</html>

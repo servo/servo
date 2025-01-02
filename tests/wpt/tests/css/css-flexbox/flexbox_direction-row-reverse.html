@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>flexbox | flex-direction: row-reverse</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-direction-property">
+<link rel="match" href="flexbox_direction-row-reverse-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#container {
+	font: 40px "Ahem";
+	width: 13em;
+}
+ul {
+	background: black;
+	list-style: none;
+
+	display: flex;
+	flex-direction: row-reverse;
+}
+li {
+	margin: 0;
+	width: 4em;
+}
+</style>
+This test makes sure that the flex-direction: row-reverse CSS property correctly orders items.
+<div id="container"><ul>
+	<li><span style="color:     green;">I</span><span style="color:      blue;">J</span><span style="color:  cyan;">K</span><span style="color: magenta;">L</span></li>
+	<li><span style="color: lightblue;">A</span><span style="color: turquoise;">B</span><span style="color: coral;">C</span><span style="color:  violet;">D</span></li>
+	<li><span style="color:       red;">E</span><span style="color:    purple;">F</span><span style="color:  grey;">G</span><span style="color:  bisque;">H</span></li>
+</ul></div>

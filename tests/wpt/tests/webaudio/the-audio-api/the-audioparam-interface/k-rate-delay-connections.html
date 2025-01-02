@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+  <head>
+    <title>k-rate AudioParams with inputs for DelayNode</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+
+  <body>
+    <script>
+      let audit = Audit.createTaskRunner();
+
+      // Power-of-two to eliminate round-off in computing time and frames, but
+      // is otherwise arbitrary.
+      const sampleRate = 8192;
+
+      // Arbitrary duration except it must be greater than or equal to 1.
+      const testDuration = 1.5;
+
+      audit.define(
+          {label: 'delayTime', description: `DelayNode delayTime k-rate input`},
+          async (task, should) => {
+            // Two channels:  0 = test result, 1 = expected result.
+            let context = new OfflineAudioContext({
+              numberOfChannels: 2,
+              sampleRate: sampleRate,
+              length: testDuration * sampleRate
+            });
+
+            let merger = new ChannelMergerNode(
+                context, {numberOfInputs: context.destination.channelCount});
+            merger.connect(context.destination);
+
+            // Test the DelayNode by having a reference node (refNode) that uses
+            // k-rate automations of delayTime. The test node (testNode) sets
+            // delayTime to k-rate with a connected input that has the same
+            // automation vlaues as the reference node.  The test passes if the
+            // output from each node is identical to each other.
+
+            // Just some non-constant source.
+            let src = new OscillatorNode(context);
+
+            // The end value and time for the linear ramp.  These values are
+            // chosen so that the delay advances faster than real time.
+            let endValue = 1.125;
+            let endTime = 1;
+
+            let refNode;
+
+            should(
+                () => refNode = new DelayNode(context),
+                `refNode = new DelayNode(context)`)
+                .notThrow();
+
+            should(
+                () => refNode.delayTime.automationRate = 'k-rate',
+                `refNode.delayTime.automationRate = 'k-rate'`)
+                .notThrow();
+
+            should(
+                () => refNode.delayTime.setValueAtTime(0, 0),
+                `refNode.delayTime.setValueAtTime(0, 0)`)
+                .notThrow();
+
+            should(
+                () => refNode.delayTime.linearRampToValueAtTime(
+                    endValue, endTime),
+                `refNode.delayTime.linearRampToValueAtTime(${endValue}, ${
+                    endTime})`)
+                .notThrow();
+
+            let testNode;
+
+            should(
+                () => testNode = new DelayNode(context),
+                `testNode = new DelayNode(context)`)
+                .notThrow();
+
+            should(
+                () => testNode.delayTime.automationRate = 'k-rate',
+                `testNode.delayTime.automationRate = 'k-rate'`)
+                .notThrow();
+
+            let testMod;
+
+            should(
+                () => testMod = new ConstantSourceNode(context),
+                `testMod = new ConstantSourceNode(context)`)
+                .notThrow();
+
+            should(
+                () => testMod.offset.setValueAtTime(0, 0),
+                `testMod.offset.setValueAtTime(0, 0)`)
+                .notThrow();
+
+            should(
+                () => testMod.offset.linearRampToValueAtTime(endValue, endTime),
+                `testMod.offset.linearRampToValueAtTime(${endValue}, ${
+                    endTime})`)
+                .notThrow();
+
+            should(
+                () => testMod.connect(testNode.delayTime),
+                `testMod.connect(testNode.delayTime)`)
+                .notThrow();
+
+            // Connect up everything and go!
+            src.connect(testNode).connect(merger, 0, 0);
+            src.connect(refNode).connect(merger, 0, 1);
+
+            src.start();
+            testMod.start();
+
+            const buffer = await context.startRendering();
+            let expected = buffer.getChannelData(0);
+            let actual = buffer.getChannelData(1);
+
+            // Quick sanity check that output isn't zero.  This means we messed
+            // up the connections or automations or the buffer source.
+            should(expected, `Expected k-rate delayTime AudioParam with input`)
+                .notBeConstantValueOf(0);
+            should(actual, `Actual k-rate delayTime AudioParam with input`)
+                .notBeConstantValueOf(0);
+
+            // Quick sanity check.  The amount of delay after one render is
+            // endValue * 128 / sampleRate.  But after 1 render, time has
+            // advanced 128/sampleRate.  Hence, the delay exceeds the time by
+            // (endValue - 1)*128/sampleRate sec or (endValue - 1)*128 frames.
+            // This means the output must be EXACTLY zero for this many frames
+            // in the second render.
+            let zeroFrames = (endValue - 1) * RENDER_QUANTUM_FRAMES;
+            should(
+                actual.slice(
+                    RENDER_QUANTUM_FRAMES, RENDER_QUANTUM_FRAMES + zeroFrames),
+                `output[${RENDER_QUANTUM_FRAMES}, ${
+                    RENDER_QUANTUM_FRAMES + zeroFrames - 1}]`)
+                .beConstantValueOf(0);
+            should(
+                actual.slice(
+                    RENDER_QUANTUM_FRAMES + zeroFrames,
+                    2 * RENDER_QUANTUM_FRAMES),
+                `output[${RENDER_QUANTUM_FRAMES + zeroFrames}, ${
+                    2 * RENDER_QUANTUM_FRAMES - 1}]`)
+                .notBeConstantValueOf(0);
+
+            // The expected and actual results must be EXACTLY the same.
+            should(actual, `k-rate delayTime AudioParam with input`)
+                .beCloseToArray(expected, {absoluteThreshold: 0});
+          });
+
+      audit.run();
+    </script>
+  </body>
+  </html>

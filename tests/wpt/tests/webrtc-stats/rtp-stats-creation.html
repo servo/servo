@@ -1,0 +1,110 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>No RTCRtpStreamStats should exist prior to RTP/RTCP packet flow</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async (test) => {
+  const localPc = createPeerConnectionWithCleanup(test);
+  const remotePc = createPeerConnectionWithCleanup(test);
+
+  localPc.addTransceiver("audio");
+  localPc.addTransceiver("video");
+  await exchangeOfferAndListenToOntrack(test, localPc, remotePc);
+  const report = await remotePc.getStats();
+  const rtp = [...report.values()].filter(({type}) => type.endsWith("rtp"));
+  assert_equals(rtp.length, 0, "no rtp stats with only remote description");
+}, "No RTCRtpStreamStats exist when only remote description is set");
+
+promise_test(async (test) => {
+  const localPc = createPeerConnectionWithCleanup(test);
+  const remotePc = createPeerConnectionWithCleanup(test);
+
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "audio"));
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "video"));
+  await exchangeOfferAndListenToOntrack(test, localPc, remotePc);
+  const report = await localPc.getStats();
+  const rtp = [...report.values()].filter(({type}) => type.endsWith("rtp"));
+  assert_equals(rtp.length, 0, "no rtp stats with only local description");
+}, "No RTCRtpStreamStats exist when only local description is set");
+
+promise_test(async (test) => {
+  const localPc = createPeerConnectionWithCleanup(test);
+  const remotePc = createPeerConnectionWithCleanup(test);
+
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "audio"));
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "video"));
+  exchangeIceCandidates(localPc, remotePc);
+  await Promise.all([
+    exchangeOfferAnswer(localPc, remotePc),
+    new Promise(r => remotePc.ontrack = e => e.track.onunmute = r)
+  ]);
+  const start = performance.now();
+  while (true) {
+    const report = await localPc.getStats();
+    const outbound =
+      [...report.values()].filter(({type}) => type == "outbound-rtp");
+    assert_true(outbound.every(({packetsSent}) => packetsSent > 0),
+      "no outbound rtp stats before packets sent");
+    if (outbound.length == 2) {
+      // One outbound stat for each track is present. We're done.
+      break;
+    }
+    if (performance.now() > start + 5000) {
+      assert_unreached("outbound stats should become available");
+    }
+    await new Promise(r => test.step_timeout(r, 100));
+  }
+}, "No RTCOutboundRtpStreamStats exist until packets have been sent");
+
+promise_test(async (test) => {
+  const localPc = createPeerConnectionWithCleanup(test);
+  const remotePc = createPeerConnectionWithCleanup(test);
+
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "audio"));
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "video"));
+  exchangeIceCandidates(localPc, remotePc);
+  await exchangeOfferAnswer(localPc, remotePc);
+  const start = performance.now();
+  while (true) {
+    const report = await remotePc.getStats();
+    const inbound =
+      [...report.values()].filter(({type}) => type == "inbound-rtp");
+    assert_true(inbound.every(({packetsReceived}) => packetsReceived > 0),
+      "no inbound rtp stats before packets received");
+    if (inbound.length == 2) {
+      // One inbound stat for each track is present. We're done.
+      break;
+    }
+    if (performance.now() > start + 5000) {
+      assert_unreached("inbound stats should become available");
+    }
+    await new Promise(r => test.step_timeout(r, 100));
+  }
+}, "No RTCInboundRtpStreamStats exist until packets have been received");
+
+promise_test(async (test) => {
+  const localPc = createPeerConnectionWithCleanup(test);
+  const remotePc = createPeerConnectionWithCleanup(test);
+
+  localPc.addTrack(...await createTrackAndStreamWithCleanup(test, "audio"));
+  exchangeIceCandidates(localPc, remotePc);
+  await exchangeOfferAnswer(localPc, remotePc);
+  const start = performance.now();
+  while (true) {
+    const report = await remotePc.getStats();
+    const audioPlayout =
+      [...report.values()].filter(({type}) => type == "media-playout");
+    if (audioPlayout.length == 1) {
+      break;
+    }
+    if (performance.now() > start + 5000) {
+      assert_unreached("Audio playout stats should become available");
+    }
+    await new Promise(r => test.step_timeout(r, 100));
+  }
+}, "RTCAudioPlayoutStats should be present");
+</script>

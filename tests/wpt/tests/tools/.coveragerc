@@ -1,0 +1,29 @@
+[run]
+branch = True
+parallel = True
+omit =
+  html5lib/*
+  py/*
+  pytest/*
+  pywebsocket/*
+  six/*
+  webdriver/*
+  */site-packages/*
+  */lib_pypy/*
+  wpt/*
+  wptrunner/*
+  */tests/*
+  quic/*
+
+[paths]
+html5lib =
+  html5lib/html5lib
+  .tox/**/site-packages/html5lib
+
+pytest =
+  pytest/_pytest
+  .tox/**/site-packages/_pytest
+
+py =
+  py/py
+  .tox/**/site-packages/py

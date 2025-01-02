@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageNextValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has an invalid next value.",
+  "title": "True when **Annotation Page has no _next_ key** or has **_next_ key** with valid value of string of format uri - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "collections.json#/definitions/nextValidIfPresent" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/nextValidIfPresent" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

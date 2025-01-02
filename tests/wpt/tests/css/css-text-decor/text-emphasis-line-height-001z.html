@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: text-emphasis line height, top, textarea</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-position-property">
+<meta name="assert" content="text emphasis marks should expand the line height like ruby if necessary">
+<link rel="match" href="text-emphasis-line-height-001-ref.html">
+<style>
+textarea {
+  all: inherit;
+  width: 100%;
+  height: 10em; /* ensure there's plenty of height even if the default font is quite tall,
+                   to avoid risk of a vertical scrollbar showing up inside textarea */
+  box-sizing: border-box;
+  border: 0 none; margin: 0; padding: 0;
+}
+</style>
+<p>Pass if the emphasis marks are below the black line:</p>
+<textarea lang="ja" style="line-height: 1; border-top: 1px solid black; text-emphasis: circle;">試験テスト</textarea>

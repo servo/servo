@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Highlighting thick text</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-text">
+<link rel="match" href="custom-highlight-painting-021-ref.html">
+<meta name="assert" value="Text with -webkit-text-stroke-width should not be highlighted.">
+<meta name="fuzzy" content="0-128;0-4">
+<style>
+  body {
+    -webkit-text-stroke-width: 3px;
+    font-size: 25px;
+  }
+  ::highlight(foo) {
+    background-color: green;
+  }
+</style>
+<body>This thick text should not be highlighted</body>
+<script>
+  let textNode = document.body.firstChild;
+
+  let r1 = new Range();
+  r1.setStart(textNode, 4);
+  r1.setEnd(textNode, 16);
+
+  let h1 = new Highlight(r1);
+
+  CSS.highlights.set("foo", h1);
+</script>

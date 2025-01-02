@@ -1,0 +1,21 @@
+<!doctype html>
+<body>
+  <script>
+    var current_url = window.location.href;
+    var fetch_url = current_url.substring(0, current_url.lastIndexOf("/")) + '/empty.html'
+
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data.fetchUrl == fetch_url) {
+        if (e.data.topicsHeader === 'null') {
+          window.opener.postMessage(
+            {testResult: 'Service worker intercepted no topics header'}, '*');
+        } else {
+          window.opener.postMessage(
+            {testResult: 'Service worker intercepted topics header'}, '*');
+        }
+      }
+    });
+
+    fetch(fetch_url, {browsingTopics: true});
+  </script>
+</body>

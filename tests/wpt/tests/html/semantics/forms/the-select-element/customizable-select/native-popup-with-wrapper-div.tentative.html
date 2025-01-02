@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="native-popup-with-wrapper-div-ref.html">
+<link rel=assert title="The native popup of a select should show options descending from a wrapper div">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select>
+  <div>
+    <option>one</option>
+    <hr>
+    <option>two</option>
+  </div>
+</select>
+
+<script>
+(async () => {
+  await test_driver.click(document.querySelector('select'));
+  document.activeElement.blur();
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: font-variant-position must synthesize super/subscripts for unsupported characters</title>
+<link rel="mismatch" href="font-variant-position-04-notref.html">
+<meta name="assert" content="In the case of OpenType fonts that lack subscript or superscript glyphs for a given character, user agents must synthesize appropriate subscript and superscript glyphs">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-variant-position-prop">
+
+<style>
+    /* Lato has superscript Latin letters, but not subscript ones;
+     * digits are available in both super- and subscript form.
+     */
+    @font-face {
+        font-family: "lato";
+        src: url(support/fonts/Lato-Medium.ttf);
+    }
+    .test {
+        font-family: "lato";
+        font-size: 2em;
+    }
+    .sub {
+        font-variant-position: sub;
+    }
+</style>
+
+<section class="test">
+    <p>Synthetic subscript letters <em>must</em> be used:</p>
+    <p>Text with <span class="sub">subscript</span> letters</p>
+</section>

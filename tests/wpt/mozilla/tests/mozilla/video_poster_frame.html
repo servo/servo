@@ -1,0 +1,17 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="match" href="video_poster_frame_ref.html">
+  </head>
+  <body>
+    <video poster="poster.png"></video>
+    <script>
+      let video = document.querySelector("video");
+      video.addEventListener("postershown", function() {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    </script>
+  </body>
+</html>

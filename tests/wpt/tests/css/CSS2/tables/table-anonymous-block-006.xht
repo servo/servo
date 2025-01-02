@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table and the table 'float' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="assert" content="The 'float' property of a table is actually applied to its anonymous block box." />
+        <style type="text/css">
+            div
+            {
+                border: solid black;
+                height: 125px;
+                width: 200px;
+            }
+            table
+            {
+                float: right;
+                border-spacing: 0;
+            }
+            caption
+            {
+                background: orange;
+                color: orange;
+            }
+            td
+            {
+                background: blue;
+                color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the orange box is directly on top of the blue box and they are both positioned in the upper-right corner of the black box.</p>
+        <div>
+            <table>
+                <caption>Filler Text Filler Text</caption>
+                <tr>
+                    <td>Filler Text Filler Text</td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

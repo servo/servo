@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect soft navigation with replaceState that has a null URL, then
+       pushState with the URL.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <a id=link>Click me!</a>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    testSoftNavigation({
+      addContent: async (url) => {
+        await addImageToMain();
+        history.pushState({}, '', url);
+      },
+      link: link,
+      pushState: async (url) =>{
+        history.replaceState({}, '');
+      },
+      test: "Detect soft navigation with replaceState that has a null URL," +
+            " then pushState with the URL"});
+  </script>
+</body>
+</html>
+
+

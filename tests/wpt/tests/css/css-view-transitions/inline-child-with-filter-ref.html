@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>View transitions: inline child with filter (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+body { margin : 0; }
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: grey;
+  overflow-clip-margin: 40px;
+  contain: paint;
+  view-transition-name: target;
+}
+
+#child {
+  position: relative;
+  left: 100px;
+  top: 100px;
+  color: lightgreen;
+  background-color: darkgreen;
+  filter: blur(30px);
+}
+</style>
+
+<div id="target">
+  <span id="child">INLINEBOX</span>
+</div>

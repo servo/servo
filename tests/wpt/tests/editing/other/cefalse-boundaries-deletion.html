@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selecting and deleting all from the cE=true element with cE=false element at the beginning</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+
+<div contenteditable></div>
+
+<script>
+    const utils = new EditorTestUtils( document.querySelector( 'div[contenteditable]' ) );
+
+    test( () => {
+      utils.setupEditingHost( `<div contenteditable="false" id="cefalse-beginning">&nbsp;</div>
+        <p id="paragraph-beginning">Lorem ipsum dolor sit amet.</p>` );
+
+      const cefalse = document.querySelector( '#cefalse-beginning' );
+      const paragraph = document.querySelector( '#paragraph-beginning' );
+
+      utils.editingHost.focus();
+      document.execCommand( 'selectAll' );
+      document.execCommand( 'delete' );
+
+      assert_false( cefalse.isConnected, 'cE=false element should be removed' );
+      assert_false( paragraph.isConnected, 'paragraph should be removed' );
+    }, 'cE=false elements can be removed from the beginning of the cE=true elements' );
+
+    test( () => {
+      utils.setupEditingHost( `<p id="paragraph-end">Lorem ipsum dolor sit amet.</p>
+        <div contenteditable="false" id="cefalse-end">&nbsp;</div>` );
+
+      const cefalse = document.querySelector( '#cefalse-end' );
+      const paragraph = document.querySelector( '#paragraph-end' );
+
+      utils.editingHost.focus();
+      document.execCommand( 'selectAll' );
+      document.execCommand( 'delete' );
+
+      assert_false( cefalse.isConnected, 'cE=false element should be removed' );
+      assert_false( paragraph.isConnected, 'paragraph should be removed' );
+    }, 'cE=false elements can be removed from the end of the cE=true elements' );
+
+    test( () => {
+      utils.setupEditingHost( `<div contenteditable="false" id="cefalse-boundaries-beginning">&nbsp;</div>
+        <p id="paragraph-boundaries">Lorem ipsum dolor sit amet.</p>
+        <div contenteditable="false" id="cefalse-boundaries-end">&nbsp;</div>` );
+
+      const cefalseBeginning = document.querySelector( '#cefalse-boundaries-beginning' );
+      const cefalseEnd = document.querySelector( '#cefalse-boundaries-end' );
+      const paragraph = document.querySelector( '#paragraph-boundaries' );
+
+      utils.editingHost.focus();
+      document.execCommand( 'selectAll' );
+      document.execCommand( 'delete' );
+
+      assert_false( cefalseBeginning.isConnected, 'cE=false element at the beginning should be removed' );
+      assert_false( cefalseEnd.isConnected, 'cE=false element at the end should be removed' );
+      assert_false( paragraph.isConnected, 'paragraph should be removed' );
+    }, 'cE=false elements can be removed from the boundaries of the cE=true elements' );
+</script>

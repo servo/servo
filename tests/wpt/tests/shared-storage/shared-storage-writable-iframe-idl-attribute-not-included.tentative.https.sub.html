@@ -1,0 +1,33 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script>
+    const sameOrigin = new URL("", location.href).origin;
+    const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+    promise_test(async () => {
+      await navigateSharedStorageIframe({
+        hasSharedStorageWritableAttribute: false,
+        rawWriteHeader: "set;key=e;value=f",
+        isSameOrigin: true,
+        expectSharedStorageWritableHeader: false,
+      });
+      await verifyKeyNotFoundForOrigin('e', sameOrigin);
+    }, 'test <iframe src=[url]></iframe> via JS for same origin iframe');
+
+    promise_test(async () => {
+      await navigateSharedStorageIframe({
+        hasSharedStorageWritableAttribute: false,
+        rawWriteHeader: "set;key=g;value=h",
+        isSameOrigin: false,
+        expectSharedStorageWritableHeader: false,
+      });
+      await verifyKeyNotFoundForOrigin('g', crossOrigin);
+    }, 'test <iframe src=[url]></iframe> via JS for cross origin iframe');
+  </script>
+</body>

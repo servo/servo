@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, one line cue and cue that wraps - both should be fully visible</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    font-size: 9px;
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 15%;
+    right: 0;
+    width: 70%;
+    text-align: center
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+}
+</style>
+<div class="video"><span class="cue"><span>This test subtitle wraps and should be visible<br>This is a test subtitle</span></span></div>

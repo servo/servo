@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: clear</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#clear"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   div.menua, div.menub { float: left; clear: left; width: 100px; height: 100px }
+   div.menua { background: url(support/test-tl.png); }
+   div.menub { background: url(support/test-bl.png); }
+   div.article { margin-left: 100px; background: url(support/test-tr.png) no-repeat; clear: none; height: 200px; }
+   div.outer { background: url(support/test-br.png) no-repeat 100px 100px; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'"/>
+ </head>
+ <body>
+  <p>There should be a complete unbroken drawing of a yin-yang (&#x262F;) symbol below.</p>
+  <div class="outer">
+   <div class="menua"></div>
+   <div class="menub"></div>
+   <div class="article"></div>
+  </div>
+ </body>
+</html>

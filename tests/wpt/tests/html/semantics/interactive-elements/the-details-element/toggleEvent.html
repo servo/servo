@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The details element</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-details-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<details id=details1>
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<details id=details2>
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<details id=details3 style="display:none;">
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<details id=details4>
+</details>
+<details id=details6>
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<details id=details7>
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<details id=details8>
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<script>
+  window.details9TogglePromise = new Promise(resolve => {
+    window.details9TogglePromiseResolver = resolve;
+  });
+</script>
+<details id=details9 ontoggle="window.details9TogglePromiseResolver()" open>
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<details id=details10>
+  <summary>Lorem ipsum</summary>
+  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</details>
+<script>
+  var t1 = async_test("Adding open to 'details' should fire a toggle event at the 'details' element, with 'oldState: closed' and 'newState: open'"),
+  t2 = async_test("Adding open to 'details' and then removing open from that 'details' should fire only one toggle event at the 'details' element, with 'oldState: closed' and 'newState: closed'"),
+  t3 = async_test("Adding open to 'details' (display:none) should fire a toggle event at the 'details' element, with 'oldState: closed' and 'newState: open'"),
+  t4 = async_test("Adding open to 'details' (no children) should fire a toggle event at the 'details' element, with 'oldState: closed' and 'newState: open'"),
+  t6 = async_test("Adding open to 'details' and then removing open from that 'details' and then again adding open to that 'details' should fire only one toggle event at the 'details' element, with 'oldState: closed' and 'newState: closed'"),
+  t7 = async_test("Adding open to 'details' using setAttribute('open', '') should fire a toggle event at the 'details' element, with 'oldState: closed' and 'newState: open'"),
+  t8 = async_test("Adding open to 'details' and then calling removeAttribute('open') should fire only one toggle event at the 'details' element, with 'oldState: closed' and 'newState: closed'"),
+  t9 = async_test("Setting open=true on an opened 'details' element should not fire a toggle event at the 'details' element"),
+  t10 = async_test("Setting open=false on a closed 'details' element should not fire a toggle event at the 'details' element"),
+
+  details1 = document.getElementById('details1'),
+  details2 = document.getElementById('details2'),
+  details3 = document.getElementById('details3'),
+  details4 = document.getElementById('details4'),
+  details6 = document.getElementById('details6'),
+  details7 = document.getElementById('details7'),
+  details8 = document.getElementById('details8'),
+  details9 = document.getElementById('details9'),
+  details10 = document.getElementById('details10'),
+  loop=false;
+
+  function testEvent(evt) {
+    assert_true(evt.isTrusted, "event is trusted");
+    assert_false(evt.bubbles, "event doesn't bubble");
+    assert_false(evt.cancelable, "event is not cancelable");
+    assert_equals(Object.getPrototypeOf(evt), ToggleEvent.prototype, "Prototype of toggle event is ToggleEvent.prototype");
+  }
+
+  details1.ontoggle = t1.step_func_done(function(evt) {
+    assert_equals(evt.oldState, "closed");
+    assert_equals(evt.newState, "open");
+    assert_true(details1.open);
+    testEvent(evt)
+  });
+  details1.open = true; // opens details1
+
+  details2.ontoggle = t2.step_func_done(function(evt) {
+    assert_equals(evt.oldState, "closed");
+    assert_equals(evt.newState, "closed");
+    assert_false(details2.open);
+    testEvent(evt);
+  });
+  details2.open = true;
+  details2.open = false; // closes details2
+
+  details3.ontoggle = t3.step_func_done(function(evt) {
+    assert_equals(evt.oldState, "closed");
+    assert_equals(evt.newState, "open");
+    assert_true(details3.open);
+    testEvent(evt);
+  });
+  details3.open = true; // opens details3
+
+  details4.ontoggle = t4.step_func_done(function(evt) {
+    assert_equals(evt.oldState, "closed");
+    assert_equals(evt.newState, "open");
+    assert_true(details4.open);
+    testEvent(evt);
+  });
+  details4.open = true; // opens details4
+
+  async_test(function(t) {
+    var details5 = document.createElement("details");
+    details5.ontoggle = t.step_func_done(function(evt) {
+      assert_equals(evt.oldState, "closed");
+      assert_equals(evt.newState, "open");
+      assert_true(details5.open);
+      testEvent(evt);
+    })
+    details5.open = true;
+  }, "Adding open to 'details' (not in the document) should fire a toggle event at the 'details' element, with 'oldState: closed' and 'newState: open'");
+
+  details6.open = true;
+  details6.open = false;
+  details6.ontoggle = t6.step_func(function(evt) {
+    if (loop) {
+      assert_unreached("toggle event fired twice");
+    } else {
+      assert_equals(evt.oldState, "closed");
+      assert_equals(evt.newState, "closed");
+      loop = true;
+    }
+  });
+  t6.step_timeout(function() {
+    assert_true(loop);
+    t6.done();
+  }, 0);
+
+  details7.ontoggle = t7.step_func_done(function(evt) {
+    assert_equals(evt.oldState, "closed");
+    assert_equals(evt.newState, "open");
+    assert_true(details7.open);
+    testEvent(evt)
+  });
+  details7.setAttribute('open', ''); // opens details7
+
+  details8.ontoggle = t8.step_func_done(function(evt) {
+    assert_equals(evt.oldState, "closed");
+    assert_equals(evt.newState, "closed");
+    assert_false(details8.open);
+    testEvent(evt)
+  });
+  details8.open = true;
+  details8.removeAttribute('open'); // closes details8
+
+  window.details9TogglePromise.then(t9.step_func(() => {
+    // The toggle event should be fired once when declaring details9 with open
+    // attribute.
+    details9.ontoggle = t9.step_func(() => {
+      assert_unreached("toggle event fired twice on opened details element");
+    });
+    // setting open=true on details9 should not fire another event since it is
+    // already open.
+    details9.open = true;
+    t9.step_timeout(() => {
+      assert_true(details9.open);
+      t9.done();
+    });
+  }));
+
+  details10.ontoggle = t10.step_func_done(function(evt) {
+    assert_unreached("toggle event fired on closed details element");
+  });
+  details10.open = false; // closes details10
+  t10.step_timeout(function() {
+    assert_false(details10.open);
+    t10.done();
+  }, 0);
+
+  async_test(function(t) {
+    new DOMParser().parseFromString("<details open>", "text/html").querySelector("details").ontoggle = t.step_func_done(function(e) {
+      assert_true(e.target.open);
+    });
+  }, "Setting open from the parser fires a toggle event");
+</script>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8"/>
+<title>presentational hints (dynamic)</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#double-struck-mappings">
+<link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute">
+<link rel="match" href="presentational-hints-002-ref.html"/>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="assert" content="Verify dynamically setting attributes mapped to style.">
+<style>
+  math {
+      font: 25px/1 Ahem;
+  }
+  @font-face {
+    font-family: Italic;
+    src: url("/fonts/math/mathvariant-italic.woff");
+  }
+</style>
+<script>
+  window.addEventListener("load", function() {
+    // force initial layout so we're sure what we're testing against
+    document.documentElement.getBoundingClientRect();
+
+    document.getElementById("dir").setAttribute("dir", "rtl");
+    document.getElementById("mathcolor").setAttribute("mathcolor", "green");
+    document.getElementById("mathbackground").setAttribute("mathbackground", "green");
+    document.getElementById("mathsize").setAttribute("mathsize", "300%");
+    document.getElementById("mathvariant").setAttribute("mathvariant", "normal");
+    document.getElementById("displaystyle").setAttribute("displaystyle", "true");
+    document.getElementById("scriptlevel").setAttribute("scriptlevel", "-1");
+
+    document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</head>
+<body>
+  <p>dir:
+    <math id="dir">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+    </math>
+  </p>
+  <p>mathcolor:
+    <math id="mathcolor">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+    </math>
+  </p>
+  <p>mathbackground:
+    <math id="mathbackground">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+  </p>
+  <p>mathsize:
+    <math>
+      <mtext id="mathsize">X</mtext>
+    </math>
+  </p>
+  <p>mathvariant:
+    <math style="font-family: Italic">
+      <mi id="mathvariant">X</mi>
+    </math>
+  </p>
+  <p>displaystyle:
+    <math id="displaystyle">
+      <munder>
+        <mo movablelimits="true">X</mo>
+        <mo>X</mo>
+      </munder>
+    </math>
+  </p>
+  <p>scriptlevel:
+    <math>
+      <mtext id="scriptlevel">X</mtext>
+    </math>
+  </p>
+</body>
+</html>

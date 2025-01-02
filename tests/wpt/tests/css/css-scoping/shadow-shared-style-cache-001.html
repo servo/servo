@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Shared style invalidation with removals</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1707116">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host-1"></div>
+<div id="host-2"></div>
+<script>
+const INITIALLY_COMMON_STYLE = `<style>:host { background-color: red !important }</style>`;
+let helper = document.querySelector("#host-1");
+let host = document.querySelector("#host-2");
+
+test(function() {
+  helper.attachShadow({ mode: "open" }).innerHTML = INITIALLY_COMMON_STYLE;
+  assert_equals(getComputedStyle(helper).backgroundColor, "rgb(255, 0, 0)", "Common style should apply to helper");
+
+  host.attachShadow({ mode: "open" }).innerHTML = INITIALLY_COMMON_STYLE;
+  assert_equals(getComputedStyle(host).backgroundColor, "rgb(255, 0, 0)", "Common style should apply to host");
+
+  host.shadowRoot.innerHTML = `<style>:host { background-color: lime; width: 100px; height: 100px; }</style>`;
+  assert_equals(getComputedStyle(host).backgroundColor, "rgb(0, 255, 0)", "Common style should no longer apply to host");
+});
+</script>

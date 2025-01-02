@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Repeating conic gradient</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<meta name="assert" content="Rendering of repeating-conic-gradient">
+<link rel="match" href="repeating-conic-gradient-ref.html">
+<meta name="fuzzy" content="maxDifference=0-47; totalPixels=0-40000">
+<style>
+  #gradient {
+    width: 200px;
+    height: 200px;
+    background-color: red;
+    background-image: repeating-conic-gradient(black 0 25%, white 25% 50%);
+  }
+</style>
+<div id="gradient"></div>

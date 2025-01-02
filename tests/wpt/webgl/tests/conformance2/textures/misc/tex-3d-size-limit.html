@@ -1,0 +1,191 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL FramebufferTextureLayer Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var gl;
+var canvas = document.getElementById("canvas");
+
+function numLevelsFromSize(size) {
+    var levels = 0;
+    while ((size >> levels) > 0) {
+        ++levels;
+    }
+    return levels;
+}
+
+function enumToString(value) {
+    return wtu.glEnumToString(gl, value);
+}
+
+function test3DTextureDimensions() {
+    debug("");
+    debug("Checking 3D texture dimensions.");
+
+    var tex3d = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_3D, tex3d);
+    var maxTexSize = gl.getParameter(gl.MAX_3D_TEXTURE_SIZE);
+    var maxLevels = numLevelsFromSize(maxTexSize);
+
+    gl.texImage3D(gl.TEXTURE_3D,
+                  0,                                // level
+                  gl.RGBA,                          // internalFormat
+                  1,                                // width
+                  1,                                // height
+                  -1,                               // depth
+                  0,                                // border
+                  gl.RGBA,                          // format
+                  gl.UNSIGNED_BYTE,                 // type
+                  null);                            // data
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "texImage3D should fail for dimension out of range.");
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA, maxTexSize + 1, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "texImage3D should fail for dimension out of range.");
+
+    for (var i = 0; i < maxLevels; ++i) {
+        var level = maxLevels - i - 1;
+        var badSize = 1 << (i + 1);
+
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, badSize, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texImage3D should fail for dimension out of range.");
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 2, badSize, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texImage3D should fail for dimension out of range.");
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 2, 2, badSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texImage3D should fail for dimension out of range.");
+    }
+
+    // Probe to discover the max non-OOM level.
+    var numTestLevels = maxLevels;
+    while (true) {
+        gl.texImage3D(gl.TEXTURE_3D, numTestLevels-1, gl.RGBA, 1, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        var err = gl.getError();
+        if (err == gl.OUT_OF_MEMORY) {
+            debug("Probe failed for level=" + (numTestLevels-1) + ", reducing...");
+            numTestLevels -= 1;
+            if (!numTestLevels) {
+                testFailed("Failed to allocate any levels");
+                return;
+            }
+            continue;
+        }
+        if (err) {
+            testFailed("Should not hit non-OOM errors during max level probing.");
+            return;
+        }
+        break;
+    }
+
+    for (var i = 0; i < numTestLevels; ++i) {
+        var level = numTestLevels - i - 1;
+        var size = 1 << i;
+
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, size, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed for level: " + level + " " + size + "x1x1.");
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 1, size, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed for level: " + level + " 1x" + size + "x1.");
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 1, 1, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed for level: " + level + " 1x1x" + size + ".");
+    }
+
+    // Clean up
+    gl.deleteTexture(tex3d);
+}
+
+function test3DTexturePixelSize() {
+    debug("");
+    debug("Checking pixel data array is big enough for request.");
+
+    var tex3d = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_3D, tex3d);
+    var tests = [
+        {
+            internalformat: gl.RGBA,
+            format: gl.RGBA,
+            type: gl.UNSIGNED_BYTE,
+            size: 4,
+            dataType: Uint8Array
+        },
+        {
+            internalformat: gl.R8,
+            format: gl.RED,
+            type: gl.UNSIGNED_BYTE,
+            size: 1,
+            dataType: Uint8Array
+        },
+        {
+            internalformat: gl.RGB565,
+            format: gl.RGB,
+            type: gl.UNSIGNED_SHORT_5_6_5,
+            size: 1,
+            dataType: Uint16Array
+        },
+        {
+            internalformat: gl.RGBA32I,
+            format: gl.RGBA_INTEGER,
+            type: gl.INT,
+            size: 4,
+            dataType: Int32Array
+        },
+        {
+            internalformat: gl.RGBA32F,
+            format: gl.RGBA,
+            type: gl.FLOAT,
+            size: 4,
+            dataType: Float32Array
+        },
+    ];
+
+    tests.forEach(function(test) {
+        debug("");
+        debug("Testing internalformat " + enumToString(test.internalformat)
+              + ", format " + enumToString(test.format)
+              + ", type " + enumToString(test.type));
+
+        var pixels = new test.dataType(256 * 256 * 4 * test.size);
+        gl.texImage3D(gl.TEXTURE_3D, 0, test.internalformat, 256, 256, 256, 0, test.format, test.type, pixels);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "ArrayBufferView not big enough for request by texImage3D.");
+        gl.texImage3D(gl.TEXTURE_3D, 0, test.internalformat, 256, 256, 4, 0, test.format, test.type, pixels);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "ArrayBufferView big enough for request by texImage3D.");
+        pixels = new test.dataType(256 * 256 * 1 * test.size);
+        gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 256, 256, 2, test.format, test.type, pixels);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "ArrayBufferView not big enough for request by texSubImage3D.");
+    });
+
+    gl.deleteTexture(tex3d);
+}
+
+description("This tests size limits of 3D textures.");
+
+shouldBeNonNull("gl = wtu.create3DContext(undefined, undefined, 2)");
+
+test3DTextureDimensions();
+test3DTexturePixelSize();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

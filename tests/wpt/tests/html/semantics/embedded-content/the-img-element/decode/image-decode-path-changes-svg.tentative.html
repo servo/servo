@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>SVGImageElement.prototype.decode(), href mutation tests.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+// src tests
+// -------------------
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  var promise = img.decode();
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.svg");
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " xlink:href changes fail decode.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "/images/green.png");
+  var promise = img.decode();
+  img.setAttribute('href', "/images/green.svg");
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " href changes fail decode.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  var first_promise = img.decode();
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.svg");
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects_dom(t, "EncodingError", first_promise),
+    second_promise
+  ]);
+}, document.title + " xlink:href changes fail decode; following good decode succeeds.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "/images/green.png");
+  var first_promise = img.decode();
+  img.setAttribute('href', "/images/green.svg");
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects_dom(t, "EncodingError", first_promise),
+    second_promise
+  ]);
+}, document.title + " href changes fail decode; following good decode succeeds.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  var first_promise = img.decode();
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/non/existent/path.png");
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects_dom(t, "EncodingError", first_promise),
+    promise_rejects_dom(t, "EncodingError", second_promise)
+  ]);
+}, document.title + " xlink:href changes fail decode; following bad decode fails.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "/images/green.png");
+  var first_promise = img.decode();
+  img.setAttribute('href', "/non/existent/path.png");
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects_dom(t, "EncodingError", first_promise),
+    promise_rejects_dom(t, "EncodingError", second_promise)
+  ]);
+}, document.title + " href changes fail decode; following bad decode fails.");
+
+</script>

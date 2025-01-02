@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>feDiffuseLighting: no tainting with regular &lt;color> lighting-color</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#tainted-filter-primitives">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#fedisplacemnentmap-restrictions">
+<link rel="match" href="reference/green-blue-stripe-100x100.html">
+<svg>
+  <linearGradient id="g">
+    <stop stop-color="red"/>
+    <stop stop-color="red" offset=".5"/>
+    <stop stop-color="green" offset=".5"/>
+    <stop stop-color="green" offset="1"/>
+  </linearGradient>
+  <filter id="diffuse_notaint" color-interpolation-filters="sRGB"
+          filterUnits="userSpaceOnUse">
+    <feFlood/>
+    <feDiffuseLighting lighting-color="rgb(0%, 100%, 50%)">
+      <feDistantLight elevation="90"/>
+    </feDiffuseLighting>
+    <feDisplacementMap in="SourceGraphic"
+                       xChannelSelector="G" yChannelSelector="B"
+                       scale="100" x="0" y="0" width="100" height="100"/>
+  </filter>
+  <rect width="100" height="100" fill="blue"/>
+  <rect width="100" height="100" fill="url(#g)" filter="url(#diffuse_notaint)"/>
+</svg>

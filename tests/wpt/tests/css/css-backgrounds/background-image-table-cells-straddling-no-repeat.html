@@ -1,0 +1,20 @@
+<!doctype html>
+<title>'no-repeat' background on table row straddling table cells</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/tables.html#table-layers">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#drawing-cell-backgrounds">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+.green {
+  background-image: linear-gradient(green, green);
+  background-position: 100px 0px;
+  background-repeat: no-repeat;
+  background-size: 100px 100px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<table style="border-spacing: 0; margin-left: -100px">
+  <tr class="green">
+    <td style="padding: 0; height: 100px; width: 150px"></td>
+    <td style="padding: 0; height: 100px; width: 50px"></td>
+  </tr>
+</table>

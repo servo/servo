@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: align-content block fragmentation: complex block content</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#align-block">
+
+<style title="Needed for automation; delete to review/debug">
+  @import "/fonts/ahem.css";
+  html { font: 10px/1 Ahem; max-width: 800px; }
+</style>
+
+<style>
+  .pager {
+    column-fill: auto;
+    column-width: 15em;
+    height: 5em;
+  }
+  .test {
+    height: 5em; break-inside: avoid;
+    /* show bounds of test box without interfering with margin-collapsing */
+    border-inline: solid black 1em;
+  }
+  .test:last-child {
+    height: 4.5em;
+  }
+  .large, .float {
+    height: 2.5em;
+    break-inside: avoid;
+    background: orange;
+  }
+  .float {
+    float: right;
+  }
+  .margin {
+    padding: 0.2em; /* using padding because of margin handling bugs
+    margin-block: 0.5em;
+  }
+  .margin > * {
+    margin-block: -0.3em;
+switch back once fixed */
+  }
+  hr {
+    border: solid 1px; margin: 0.5em;
+  }
+
+  /* readability */
+  .pager { border: solid 2px gray; margin: 0.5em 0; }
+  .test { color: #8888; text-align: center; }
+  .label { color: black; font-weight: bold; }
+
+  /* reference */
+  .center .test { align-content: center; }
+  .end    .test { align-content: end; }
+  /* margins are truncated by unforced breaks, so mimic that */
+  .test .large:first-child { margin-top: 0; }
+  .test .large:last-child  { margin-bottom: 0; }
+</style>
+
+<!--
+   This test creates breaks:
+     * between two blocks with collapsing negative margins
+     * through the middle of a float
+     * through some nested text
+     * after a nested float
+-->
+
+<div class="pager center">
+  <div class="test">
+    <span class="label">CENTER</span>
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+  </div>
+  <div class="test">
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+    LINE 1<br>LINE 2
+  </div>
+  <div class="test">
+    <div class="float">FLT</div>
+    LINE 3
+    <hr>
+    <div>
+      LINE 4<br>LINE 5
+    </div>
+  </div>
+  <div class="test">
+    <div>
+      LINE 6
+      <div class="float">FLT</div>
+    </div>
+    LINE 7
+  </div>
+</div>
+
+<div class="pager end">
+  <div class="test">
+    <span class="label">END</span>
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+  </div>
+  <div class="test">
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+    LINE 1<br>LINE 2
+  </div>
+  <div class="test">
+    <div class="float">FLT</div>
+    LINE 3
+    <hr>
+    <div>
+      LINE 4<br>LINE 5
+    </div>
+  </div>
+  <div class="test">
+    <div>
+      LINE 6
+      <div class="float">FLT</div>
+    </div>
+    LINE 7
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test">
+    <span class="label">BASELINE</span>
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+  </div>
+  <div class="test">
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+    LINE 1<br>LINE 2
+  </div>
+  <div class="test">
+    <div class="float">FLT</div>
+    LINE 3
+    <hr>
+    <div>
+      LINE 4<br>LINE 5
+    </div>
+  </div>
+  <div class="test">
+    <div>
+      LINE 6
+      <div class="float">FLT</div>
+    </div>
+    LINE 7
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test">
+    <span class="label">LAST BASELINE</span>
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+  </div>
+  <div class="test">
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+    LINE 1<br>LINE 2
+  </div>
+  <div class="test">
+    <div class="float">FLT</div>
+    LINE 3
+    <hr>
+    <div>
+      LINE 4<br>LINE 5
+    </div>
+  </div>
+  <div class="test">
+    <div>
+      LINE 6
+      <div class="float">FLT</div>
+    </div>
+    LINE 7
+  </div>
+</div>
+
+<div class="pager center">
+  <div class="test">
+    <span class="label">UNSAFE CENTER</span>
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+  </div>
+  <div class="test">
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+    LINE 1<br>LINE 2
+  </div>
+  <div class="test">
+    <div class="float">FLT</div>
+    LINE 3
+    <hr>
+    <div>
+      LINE 4<br>LINE 5
+    </div>
+  </div>
+  <div class="test">
+    <div>
+      LINE 6
+      <div class="float">FLT</div>
+    </div>
+    LINE 7
+  </div>
+</div>
+
+<div class="pager end">
+  <div class="test">
+    <span class="label">UNSAFE END</span>
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+  </div>
+  <div class="test">
+    <div class="margin">
+      <div class="large"></div>
+    </div>
+    LINE 1<br>LINE 2
+  </div>
+  <div class="test">
+    <div class="float">FLT</div>
+    LINE 3
+    <hr>
+    <div>
+      LINE 4<br>LINE 5
+    </div>
+  </div>
+  <div class="test">
+    <div>
+      LINE 6
+      <div class="float">FLT</div>
+    </div>
+    LINE 7
+  </div>
+</div>

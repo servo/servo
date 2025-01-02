@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: Indefinite % flex-basis should cause height to be ignored</title>
+<link rel="author" title="Google LLC" href="https://www.google.com">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-basis-property">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #container {
+    background-color: red;
+    display: flex;
+    width: 100px;
+    flex-direction: column;
+  }
+  #item {
+    flex: 0 0 0%;
+    height: 500px;
+    background-color: red;
+  }
+  #child {
+    height: 100px;
+    background-color: green;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="container">
+    <div id="item">
+      <div id="child"></div>
+    </div>
+  </div>
+</body>

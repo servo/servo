@@ -1,0 +1,3 @@
+Content-Type: application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"
+Allow: GET,OPTIONS,HEAD
+Vary: Accept, Prefer

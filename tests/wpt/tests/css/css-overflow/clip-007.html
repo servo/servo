@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#valdef-overflow-clip">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="width: 100px; height: 100px; overflow-y: auto;">
+  <div style="overflow-y: clip; height: 100px;">
+    <div style="width: 100px; height: 200px; background: green;"></div>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+test(() => {
+  const customProperty = "--my-length";
+
+  CSS.registerProperty({
+    name: customProperty,
+    syntax: "<length>",
+    inherits: false,
+    initialValue: "100px"
+  });
+
+  target.style.marginLeft = `var(${customProperty})`;
+  assert_equals(getComputedStyle(target).marginLeft, "100px");
+
+  target.style.transition = `${customProperty} 1s -500ms linear`;
+  target.style.setProperty(customProperty, "200px");
+
+  assert_equals(getComputedStyle(target).marginLeft, "150px");
+}, "Running a transition a non-inherited CSS variable is reflected on a standard property using that variable as a value");
+
+</script>

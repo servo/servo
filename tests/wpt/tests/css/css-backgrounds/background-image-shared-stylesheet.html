@@ -1,0 +1,49 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: Canceled load in another page doesn't affect new stylesheet</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-image">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1800979">
+<link rel="match" href="background-image-shared-stylesheet-ref.html">
+<iframe></iframe>
+<script>
+const IMAGE_URI = new URL("/images/green.png", location.href).href + "?pipe=trickle(d2)&" + Math.random();
+const SHEET_URI = "data:text/css," + encodeURI(`:root{background-image: url('${IMAGE_URI}');}`);
+const iframe = document.querySelector("iframe");
+
+function willNavigate() {
+  // The child page has already loaded the stylesheet (guaranteed by the <script> rules)
+  // and is about to navigate away. Trigger our stylesheet load and thus image
+  // load when it does. The background-image should still apply to us.
+  iframe.addEventListener("load", function() {
+    let link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = SHEET_URI;
+    link.onload = function() {
+      iframe.remove();
+      // We need to also make sure that the image has actually finished to load,
+      // so that the reftest screenshot can be taken.
+      const image = new Image();
+      image.onload = function() {
+        document.documentElement.className = "";
+      };
+      image.src = IMAGE_URI;
+    };
+    document.head.appendChild(link);
+  }, { once: true });
+}
+
+onload = function() {
+  document.querySelector("iframe").srcdoc = `
+    <!doctype html>
+    <link rel="stylesheet" href="${SHEET_URI}">
+    <script>
+      document.documentElement.getBoundingClientRect(); // Should trigger the image load.
+      parent.willNavigate();
+      window.location = "/css/reference/blank.html";
+    </` + `script>
+  `;
+};
+</script>

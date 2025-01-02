@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Animation Test: fractional animation-iteration-count</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/#animation-iteration-count">
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes margin-animation {
+  from {
+    margin-left: 0px;
+  }
+  to {
+    margin-left: 100px;
+  }
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'margin-animation 1s -10s linear 1.5 normal forwards paused';
+  assert_equals(getComputedStyle(div).marginLeft, '50px');
+}, 'Basic floating point iteration count');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'margin-animation 1s -10s linear 3.25 normal forwards paused';
+  assert_equals(getComputedStyle(div).marginLeft, '25px');
+}, 'Floating point iteration count after multiple iterations');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'margin-animation 1s -10s linear 0.75 normal forwards paused';
+  assert_equals(getComputedStyle(div).marginLeft, '75px');
+}, 'Floating point iteration count during first iteration');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'margin-animation 1s -10s linear 1.75 alternate forwards paused';
+  assert_equals(getComputedStyle(div).marginLeft, '25px');
+}, 'Floating point iteration count with alternating directions');
+</script>

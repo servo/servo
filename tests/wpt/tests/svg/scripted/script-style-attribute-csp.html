@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="UTF-8">
+<!--
+  Allow scripts, but don't allow inline styles.
+  This does allow scripts to *set* inline styles via the .style attribute.
+-->
+<title>Setting style setters via script for an SVG element outside of the document should work</title>
+<meta http-equiv="Content-Security-Policy" content="
+    script-src 'unsafe-inline';
+    style-src 'none';
+">
+<link rel="match" href="script-style-attribute-csp-ref.html">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1494356">
+<body>
+<script>
+  const element = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  element.style.width = '100px';
+  element.style.height = '100px';
+  element.style.backgroundColor = 'green';
+  document.body.appendChild(element);
+</script>

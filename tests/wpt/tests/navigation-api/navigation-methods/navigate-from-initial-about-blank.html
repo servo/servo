@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i"></iframe>
+
+<!--
+  Sort of a regression test for https://bugs.chromium.org/p/chromium/issues/detail?id=1289864,
+  but since that is GC-dependent this will probably not fail in codebases that exhibit that bug.
+  So it's really just adding some extra general coverage for navigation.navigate().
+-->
+
+
+<script>
+async_test(t => {
+  i.contentWindow.navigation.navigate("/common/blank.html?1");
+  i.onload = t.step_func_done(() => {
+    const iframeURL = new URL(i.contentWindow.navigation.currentEntry.url);
+    assert_equals(iframeURL.pathname, "/common/blank.html");
+    assert_equals(iframeURL.search, "?1");
+  });
+}, `navigate() from <iframe> still on initial about:blank works`);
+</script>

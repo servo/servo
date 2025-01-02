@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#box-splitting">
+<link rel="help" href="https://www.w3.org/TR/cssom-view/#extensions-to-the-htmlelement-interface">
+<div style="columns:3; column-fill:auto; height:70px; background:yellow;">
+  <div id="table" style="display:table; border-spacing:7px; border:2px solid; padding:1px;">
+    <div id="colgroup" style="display:table-column-group;">
+      <div id="col" style="display:table-column;"></div>
+    </div>
+    <div id="rowgroup" style="display:table-row-group;">
+      <div id="row" style="display:table-row;">
+        <div id="cell" style="display:table-cell;">
+          <div id="content" style="width:100px; height:100px; background:blue;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> { assert_equals(table.offsetHeight, 120); }, "table");
+  test(()=> { assert_equals(colgroup.offsetHeight, 100); }, "colgroup");
+  test(()=> { assert_equals(col.offsetHeight, 100); }, "col");
+  test(()=> { assert_equals(rowgroup.offsetHeight, 100); }, "rowgroup");
+  test(()=> { assert_equals(row.offsetHeight, 100); }, "row");
+  test(()=> { assert_equals(cell.offsetHeight, 100); }, "cell");
+  test(()=> { assert_equals(content.offsetHeight, 100); }, "content");
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Simple DOM mutations with track element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var video = document.createElement("video");
+    var testTrack = document.createElement("track");
+
+    // Append the track element to the video element.
+    video.appendChild(testTrack);
+
+    // Set the mode of the text track to "showing".
+    testTrack.track.mode = "showing";
+});
+</script>

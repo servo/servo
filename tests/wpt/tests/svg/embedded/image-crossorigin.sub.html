@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html>
+<title>Test Crossorigin</title>
+<link rel="help" href="https://www.w3.org/TR/SVG/embedded.html#ImageElementCrossoriginAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script class="testbody" type="text/javascript">
+
+  function draw_and_read_image(image, should_throw) {
+      let c = document.createElement('canvas');
+      document.body.appendChild(c);
+      let ctx = c.getContext('2d');
+      ctx.drawImage(image, 0, 0);
+
+      function get_image_data() {
+          ctx.getImageData(0, 0, 4, 4);
+      }
+
+      if (should_throw) {
+          assert_throws_dom('SecurityError', get_image_data);
+      } else {
+          get_image_data();
+      }
+
+      document.body.removeChild(c);
+  }
+
+  async_test(t => {
+      let image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      image.setAttribute("href", "/images/green.png");
+      image.crossOrigin = "anonymous";
+      image.onload = t.step_func_done(() => {
+        draw_and_read_image(image, false);
+      });
+      image.onerror = t.unreached_func();
+  }, "Can get pixels of canvas with same origin image drawn");
+
+  async_test(t => {
+      let image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      image.setAttribute("href", "http://{{hosts[][www]}}:{{ports[http][0]}}/images/green.png?pipe=header(Access-Control-Allow-Origin,*)");
+      image.crossOrigin = "anonymous";
+      image.onload = t.step_func_done(() => {
+          draw_and_read_image(image, false);
+      });
+      image.onerror = t.unreached_func();
+  }, "Can get pixels of canvas with CORS enabled cross origin image drawn");
+
+  async_test(t => {
+      let image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      image.setAttribute("href", "http://{{hosts[][www]}}:{{ports[http][0]}}/images/green.png?pipe=header(Access-Control-Allow-Origin,*)");
+      image.onload = t.step_func_done(() => {
+          draw_and_read_image(image, true);
+      });
+      image.onerror = t.unreached_func();
+  }, "Can't get pixels of canvas with CORS enabled cross origin image drawn from non-CORS element");
+
+  async_test(t => {
+      let image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      image.setAttribute("href", "http://{{hosts[][www]}}:{{ports[http][0]}}/images/green.png");
+
+      image.onload = t.step_func_done(() => {
+          draw_and_read_image(image, true);
+      });
+      image.onerror = t.unreached_func();
+  }, "Can't get pixels of canvas with non-CORS enabled cross origin image drawn");
+
+</script>
+</html>

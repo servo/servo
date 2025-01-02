@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: column-rule-style parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-style">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="column-rule-style supports only the grammar '[ <line-style-list> | <auto-line-style-list> ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("column-rule-style", "auto");
+
+test_invalid_value("column-rule-style", "dashed, dotted, solid");
+test_invalid_value("column-rule-style", "repeat(auto, groove, dotted, ridge)");
+test_invalid_value("column-rule-style", "repeat(0, dotted, solid, double)");
+test_invalid_value("column-rule-style", "repeat(-1, dotted, dashed, double)");
+test_invalid_value("column-rule-style", "repeat(auto, dotted) red repeat(auto, ridge)");
+</script>
+</body>
+</html>

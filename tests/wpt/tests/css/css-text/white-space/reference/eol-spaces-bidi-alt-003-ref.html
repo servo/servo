@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text 3 test reference</title>
+<link rel="author" title="Jose Dapena Paz" href="mailto:jdapena@igalia.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+  div {
+      direction: rtl;
+
+      font: 20px/1 Ahem;
+      margin-left: 20px;
+      background: green;
+
+      width: 4ch;
+      overflow: hidden;
+  }
+  .blue { color: blue; }
+  .space { color: transparent; }
+  .text { background: blue; }
+</style>
+<p>Test passes if a blue box (the white space) is visible at the left start in first line.</p>
+<div>ب<span class="blue">X</span><span class="text">OP</span><span class="space">X<br>XXX</span>D</div>

@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+    <title>json-module-crossorigin</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <h1>json-module-crossorigin</h1>
+    <iframe id="import-WithCORS" src="crossorigin-import-with-cors.sub.html"></iframe>
+    <iframe id="import-NoCORS" src="crossorigin-import-without-cors.sub.html"></iframe>
+    <iframe id="import-parseerror-WithCors" src="crossorigin-import-parse-error-with-cors.sub.html"></iframe>
+    <script>
+
+        var tests = [
+                { "obj": async_test("Imported JSON module, cross-origin with CORS"), "id": "import-WithCORS", "expected": "imported JSON: 42" },
+                { "obj": async_test("Imported JSON module, cross-origin, missing CORS ACAO header"), "id": "import-NoCORS", "expected": "error" },
+                { "obj": async_test("Imported JSON module with parse error, cross-origin, with CORS"), "id": "import-parseerror-WithCors", "expected": "0-0" },
+            ];
+
+        window.addEventListener("load", function () {
+            tests.forEach(function (test) {
+                var target = document.getElementById(test.id);
+                test.obj.step(function () {
+                    assert_equals(target.contentDocument._log, test.expected, "Unexpected _log value");
+                });
+                test.obj.done();
+            });
+        });
+
+    </script>
+</body>
+</html>

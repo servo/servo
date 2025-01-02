@@ -1,0 +1,40 @@
+<!doctype html>
+<title>Range.commonAncestorContainer tests</title>
+<link rel="author" title="Aryeh Gregor" href=ayg@aryeh.name>
+<meta name=timeout content=long>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common.js></script>
+<script>
+"use strict";
+
+testRanges.unshift("[detached]");
+
+for (var i = 0; i < testRanges.length; i++) {
+  test(function() {
+    var range;
+    if (i == 0) {
+      range = document.createRange();
+      range.detach();
+    } else {
+      range = rangeFromEndpoints(eval(testRanges[i]));
+    }
+
+    // "Let container be start node."
+    var container = range.startContainer;
+
+    // "While container is not an inclusive ancestor of end node, let
+    // container be container's parent."
+    while (container != range.endContainer
+    && !isAncestor(container, range.endContainer)) {
+      container = container.parentNode;
+    }
+
+    // "Return container."
+    assert_equals(range.commonAncestorContainer, container);
+  }, i + ": range " + testRanges[i]);
+}
+
+testDiv.style.display = "none";
+</script>

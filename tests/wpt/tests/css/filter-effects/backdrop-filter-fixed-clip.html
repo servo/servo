@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Should not filter outside of clip/scroll.</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-fixed-clip-ref.html">
+
+<div style="width:600px;">
+  <p>Expected: A green box, overlapping red box, and a small, inset cyan box. The<br>
+  cyan should not extend to the bottom/right edges of the red box.</p>
+</div>
+
+<div id="A">
+  <div id="B">
+    <div id="F"></div>
+    <div id="T"></div>
+  </div>
+</div>
+
+<style>
+div {
+  position:absolute;
+  width: 200px;
+  height: 200px;
+}
+#A {
+  overflow:hidden;
+  top: 110px;
+  left: 10px;
+}
+#B {
+  opacity: 0.99999;
+  background:green;
+}
+#F {
+  position:fixed;
+  background:#f008;
+  top:150px;
+  left:50px;
+}
+#T {
+  background:#fff8;
+  top:90px;
+  left:90px;
+  backdrop-filter:invert(1);
+}
+</style>

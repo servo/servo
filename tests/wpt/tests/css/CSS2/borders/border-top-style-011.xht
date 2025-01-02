@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-top-style set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-24 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-top-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties" />
+        <meta name="assert" content="The 'border-top-style' property set to 'inherit' properly applies the value from the parent's 'border-top-style' property value." />
+        <style type="text/css">
+            body
+            {
+                border-top-style: dotted;
+                border-top-width: 0;
+            }
+            div
+            {
+                border-top-style: inherit;
+                border-top-color: green;
+                border-top-width: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a dotted line.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The incumbent page being cross-origin must not prevent the BroadcastChannel message from being seen</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is the entry global -->
+
+<iframe src="http://{{hosts[][www]}}:{{ports[http][0]}}/webmessaging/multi-globals/support/incumbent-document-domain.sub.html" id="incumbent"></iframe>
+<iframe src="support/current-document-domain.sub.html" id="current"></iframe>
+
+<script>
+"use strict";
+document.domain = "{{hosts[][]}}";
+
+setup({ explicit_done: true });
+
+const incumbentIframe = document.querySelector("#incumbent");
+const currentIframe = document.querySelector("#current");
+
+window.onload = () => {
+  async_test(t => {
+    const createdThroughCrossOrigin = frames[0].createBroadcastChannel("incumbent");
+    const createdSameOrigin = new BroadcastChannel("incumbent");
+
+    createdSameOrigin.onmessage = () => t.done();
+    createdSameOrigin.onmessageerror = t.unreached_func("messageerror event fired");
+
+    createdThroughCrossOrigin.postMessage("the message");
+  });
+
+  done();
+};
+</script>

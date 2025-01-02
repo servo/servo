@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scoping Module Level 1 - Dynamic mutations to both shadow root and shadow host subtrees</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors-data-model">
+<link rel="help" href="https://bugzil.la/1303605">
+<link rel="match" href="reference/green-box.html"/>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<style>
+  #host {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+
+  #host > div {
+    width: 100px;
+    height: 50px;
+    background: green;
+  }
+</style>
+<div id="host"></div>
+<script>
+  let root = host.attachShadow({ mode: "open" });
+  document.body.offsetTop;
+
+  root.innerHTML = `<slot name="slot1"></slot><slot name="slot2"></slot>`;
+  host.innerHTML = `<div slot="slot1"></div><div slot="slot2"></div>`;
+</script>

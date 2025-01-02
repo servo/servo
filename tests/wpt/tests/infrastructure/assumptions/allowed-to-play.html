@@ -1,0 +1,23 @@
+<!doctype html>
+<title>&lt;audio and &lt;video> autoplay</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#dom-media-play">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<video></video>
+<script>
+async_test(t => {
+  const a = new Audio(getAudioURI("/media/sound_5"));
+  a.play();
+  assert_false(a.paused);
+  a.onplaying = t.step_func_done();
+}, "<audio> autoplay");
+
+async_test(t => {
+  const v = document.querySelector("video");
+  v.src = getVideoURI("/media/movie_5");
+  v.play();
+  assert_false(v.paused);
+  v.onplaying = t.step_func_done();
+}, "<video> autoplay");
+</script>

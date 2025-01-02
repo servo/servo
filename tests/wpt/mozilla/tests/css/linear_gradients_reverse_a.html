@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='linear_gradients_reverse_ref.html'>
+<!-- Tests that reversed linear gradients are equivalent. -->
+<style>
+section {
+    display: block;
+    width: 100px;
+    height: 100px;
+    border: solid black 1px;
+}
+#a {
+    background: linear-gradient(to bottom, red, red 50%, green 50%, green);
+}
+#b {
+    background: linear-gradient(90deg, black, white);
+}
+#c {
+    background: linear-gradient(45deg, yellow, yellow 50%, purple 50%, purple);
+}
+#d {
+    background: linear-gradient(to bottom right, lime, lime 50%, pink 50%, pink);
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c></section>
+<section id=d></section>
+</body>
+</html>

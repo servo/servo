@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<body>
+  <script>
+    'use strict';
+
+    idl_test(
+          ['js-self-profiling'],
+          ['hr-time', 'dom'],
+          async idl_array => {
+                idl_array.add_objects({
+                      Profiler: ['profiler'],
+                    });
+
+                self.profiler = new Profiler({
+                      sampleInterval: 1,
+                      maxBufferSize: 1,
+                    });
+              }
+        );
+  </script>

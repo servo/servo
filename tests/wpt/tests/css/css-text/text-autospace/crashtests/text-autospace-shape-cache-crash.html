@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<span>る</span>
+<div>X</div>
+<div>X</div>
+<script>
+document.body.offsetHeight;
+const span = document.querySelector('span');
+const divs = Array.prototype.slice.call(document.querySelectorAll('div'));
+for (const e of divs) {
+  const n = span.cloneNode(span);
+  e.appendChild(n);
+  e.offsetHeight;
+}
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: getComputedStyle() for overflow-clip-margin</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#overflow-clip-margin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("overflow-clip-margin", "0px", "0px");
+test_computed_value("overflow-clip-margin", "10px");
+
+test_computed_value("overflow-clip-margin", "content-box");
+test_computed_value("overflow-clip-margin", "content-box 0px", "content-box");
+test_computed_value("overflow-clip-margin", "content-box 10px");
+test_computed_value("overflow-clip-margin", "10px content-box", "content-box 10px");
+
+test_computed_value("overflow-clip-margin", "padding-box", "0px");
+test_computed_value("overflow-clip-margin", "padding-box 0px", "0px");
+test_computed_value("overflow-clip-margin", "padding-box 10px", "10px");
+test_computed_value("overflow-clip-margin", "10px padding-box", "10px");
+
+test_computed_value("overflow-clip-margin", "border-box");
+test_computed_value("overflow-clip-margin", "border-box 0px", "border-box");
+test_computed_value("overflow-clip-margin", "border-box 10px");
+test_computed_value("overflow-clip-margin", "10px border-box", "border-box 10px");
+</script>
+</body>
+</html>

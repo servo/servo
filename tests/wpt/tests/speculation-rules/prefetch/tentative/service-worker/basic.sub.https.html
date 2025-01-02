@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../../../resources/utils.js"></script>
+<script src="../../resources/utils.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<meta name="variant" content="?origin=same-site&sw=fetch-handler">
+<meta name="variant" content="?origin=same-site&sw=fetch-handler-to-fallback">
+<meta name="variant" content="?origin=same-site&sw=no-fetch-handler">
+<meta name="variant" content="?origin=same-site&sw=no-controller">
+
+<meta name="variant" content="?origin=cross-site&sw=fetch-handler">
+<meta name="variant" content="?origin=cross-site&sw=fetch-handler-to-fallback">
+<meta name="variant" content="?origin=cross-site&sw=no-fetch-handler">
+<meta name="variant" content="?origin=cross-site&sw=no-controller">
+
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const originOption = new URL(location.href).searchParams.get('origin');
+const swOption = new URL(location.href).searchParams.get('sw');
+
+promise_test(async t => {
+  // Current Chromium's expected behavior: prefetch only works when there
+  // are no controlling service worker.
+  const expectsPrefetch = swOption === 'no-controller';
+
+  const hostname = originOption === 'cross-site' ? '{{hosts[alt][www]}}'
+                                                 : undefined;
+  const win = await spawnWindow(t, { protocol: 'https', hostname: hostname });
+  const nextUrl = win.getExecutorURL({ executor: 'counting-executor.py', protocol: 'https', page: 2 });
+
+  const swUrl = '../../resources/basic-service-worker.js?sw=' + swOption;
+
+  // Register a SW not controlling any pages below, just to confirm such
+  // unrelated SWs in the same-origin doesn't affect the behavior.
+  const reg_unrelated = await service_worker_unregister_and_register(
+      t, swUrl, nextUrl + '&unrelated');
+  await wait_for_state(t, reg_unrelated.installing, 'activated');
+
+  // Register a SW for `nextUrl`.
+  let sw;
+  if (swOption !== 'no-controller') {
+    const reg = await service_worker_unregister_and_register(
+        t, swUrl, nextUrl);
+    await wait_for_state(t, reg.installing, 'activated');
+    sw = reg.installing;
+  }
+
+  // Start speculation rules prefetch and navigate to the URL.
+  await win.forceSinglePrefetch(nextUrl);
+
+  await win.navigate(nextUrl);
+
+  const requestCount = await (await fetch(nextUrl + '&check')).json();
+
+  const headers = await win.execute_script(() => {
+    return requestHeaders;
+  }, []);
+
+  if (expectsPrefetch) {
+    assert_prefetched(headers, "Prefetched result should be served.");
+    assert_equals(requestCount.prefetch, 1,
+        'a prefetch request should be sent to the server.');
+    assert_equals(requestCount.nonPrefetch, 0,
+        'non-prefetch requests should not be sent to the server.');
+    assert_prefetched(headers, "Prefetched result should be served.");
+  } else {
+    assert_not_prefetched(headers, "Prefetched result should not be served.");
+    assert_equals(requestCount.nonPrefetch, 1,
+        'a non-prefetch request should be sent to the server.');
+    assert_equals(requestCount.prefetch, 0,
+        'prefetch requests should not be sent to the server.');
+  }
+}, "Prefetch with ServiceWorker (" + swOption + ")");
+</script>

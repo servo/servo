@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Event: Dispatch pointerleave (pen). </title>
+        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
+        <meta name="assert" content="When a pointing device that supports hover (pen stylus) leaves the range of the digitizer while over an element, the pointerleave event must be dispatched."/>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <!-- /resources/testharness.js -->
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointerleave event"); // set up test harness
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var count = 0;
+
+                on_event(target0, "pointerenter", function (event) {
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.pointerType, "pen", "Test should be run using a pen as input");
+                        assert_equals(event.type, "pointerenter", "The " + event.type + " event was received");
+                        assert_equals(event.isPrimary, true, "The " + event.type + ".isPrimary is true");
+                    });
+                });
+
+                on_event(target0, "pointerleave", function (event) {
+                    count++;
+                    detected_pointertypes[event.pointerType] = true;
+                    if (count == 1)
+                        check_PointerEvent(event);
+
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.pointerType, "pen", "Test should be run using a pen as input");
+                        assert_equals(event.type, "pointerleave", "The " + event.type + " event was received");
+                        assert_equals(event.isPrimary, true, "The " + event.type + ".isPrimary is true");
+                        assert_true((event.clientX > target0.getBoundingClientRect().left)&&
+                            (event.clientX < target0.getBoundingClientRect().right)&&
+                            (event.clientY > target0.getBoundingClientRect().top)&&
+                            (event.clientY < target0.getBoundingClientRect().bottom),
+                            "pointerleave should be received inside of target bounds");
+                    });
+                    if (count >= 2)
+                      test_pointerEvent.done(); // complete test
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Event: Dispatch pointerleave (pen)</h1>
+        <h4>
+            Test Description:
+            When a pointing device that supports hover (pen stylus) leaves the range of the digitizer while over an element, the pointerleave event must be dispatched. In addition, all the pointer events' isPrimary should always be true when the pointing device leaves and enters the range of the digitizer again.
+        </h4>
+        <br />
+        <div id="target0">
+            Use a pen to hover over then lift up away from this element, and repeat it again.
+        </div>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

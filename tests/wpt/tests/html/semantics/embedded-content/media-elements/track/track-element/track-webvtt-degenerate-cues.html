@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Degenerate cues without separating blank lines</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/degenerate-cues.vtt", function(track) {
+    var expected = [
+        { startTime: 0, endTime: 1, text: "" },
+        { startTime: 2, endTime: 3, text: "" },
+        { startTime: 4, endTime: 5, text: "" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+</script>

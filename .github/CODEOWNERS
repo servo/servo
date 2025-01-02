@@ -1,0 +1,18 @@
+# Reviewers for the `script` crate
+/components/script/  @gterzian
+
+# Reviewers for OpenHarmony related code
+/support/openharmony/                       @jschwe
+/ports/servoshell/egl/                      @jschwe
+/components/fonts/platform/freetype/ohos/   @jschwe
+/.github/workflows/ohos.yml                 @jschwe
+
+# Reviewers for compositing-related code
+/components/compositing @mrobinson
+
+# Reviewers for layout-related code
+/components/layout_2020 @mrobinson @Loirooriol @nicoburns
+/components/layout @mrobinson @Loirooriol @nicoburns
+
+# Reviewers for Minibrowser related code
+/ports/servoshell/desktop @atbrakhi

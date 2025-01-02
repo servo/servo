@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Test that encrypted-media is advertised in the feature list</title>
+<link rel="help" href="https://w3c.github.io/webappsec-feature-policy/#dom-featurepolicy-features">
+<link rel="help" href="https://github.com/w3c/encrypted-media/pull/432">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+    assert_in_array('encrypted-media', document.featurePolicy.features());
+}, 'document.featurePolicy.features should advertise encrypted-media.');
+</script>

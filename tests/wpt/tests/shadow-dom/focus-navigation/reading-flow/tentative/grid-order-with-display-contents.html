@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-order and display: contents elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+</style>
+
+<div class="test-case" data-expect="order1,order2,order4,order3"
+      data-description="Items in display contents are sorted in same grid container and are placed in the position where their first child resides.">
+  <div class="wrapper">
+    <div style="display: contents">
+      <button id="order3" style="order: 3">Order 3</button>
+      <button id="order1" style="order: 1">Order 1</button>
+      <div style="display: contents">
+        <button id="order4" style="order: 4">Order 4</button>
+        <button id="order2" style="order: 2">Order 2</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="div1B,order1B,div2B,order2B,order4B,order3B"
+      data-description="Items in display contents are sorted in same grid container and are placed in the position where their first child resides. The display contents have tabindex and should be focusable.">
+  <div class="wrapper">
+    <div id="div1B" style="display: contents" tabindex="0">
+      <button id="order3B" style="order: 3">Order 3</button>
+      <button id="order1B" style="order: 1">Order 1</button>
+      <div id="div2B" style="display: contents" tabindex="0">
+        <button id="order4B" style="order: 4">Order 4</button>
+        <button id="order2B" style="order: 2">Order 2</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="C1,C2,C3,D1,D2,D3,B1,B2,B3,A1,A2,A3"
+      data-description="Grid items are in nested display contents containers.">
+  <div class=wrapper>
+    <div style="display:contents" tabindex="0" id="A1">
+      <div style="display:contents" tabindex="0" id="A2">
+        <button style="order: 4" id="A3">A</button>
+      </div>
+    </div>
+    <div style="display:contents" tabindex="0" id="B1">
+      <div style="display:contents" tabindex="0" id="B2">
+        <button style="order: 3" id="B3">B</button>
+      </div>
+    </div>
+    <div style="display:contents" tabindex="0" id="C1">
+      <div style="display:contents" tabindex="0" id="C2">
+        <button style="order: 1" id="C3">C</button>
+      </div>
+    </div>
+    <div style="display:contents" tabindex="0" id="D1">
+      <div style="display:contents" tabindex="0" id="D2">
+        <button style="order: 2" id="D3">D</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

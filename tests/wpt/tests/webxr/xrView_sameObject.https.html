@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRView attributes meet [SameObject] requirement";
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve) => {
+    session.requestReferenceSpace('local').then((referenceSpace) => {
+      session.requestAnimationFrame((time, xrFrame) => {
+        // Make sure that the projectionMatrix and transform attributes on
+        // XRView always return the same object.
+        let viewerPose = xrFrame.getViewerPose(referenceSpace);
+        let view = viewerPose.views[0];
+
+        let transform = view.transform;
+        let projectionMatrix = view.projectionMatrix;
+
+        t.step(() => {
+          assert_equals(transform, view.transform,
+            "XRView.transform returns the same object.");
+          assert_equals(projectionMatrix, view.projectionMatrix,
+            "XRView.projectionMatrix returns the same object.");
+        });
+
+        resolve();
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+</script>

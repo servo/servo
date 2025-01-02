@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notifications in cross origin iframes</title>
+<link rel="help" href="https://github.com/whatwg/notifications/issues/177">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+// The syntax below will give us a third party URL.
+// See: https://web-platform-tests.org/writing-tests/server-features.html
+const thirdPartyIframe =
+  'https://{{hosts[alt][]}}:{{ports[https][0]}}/notifications/resources/cross-origin-nested-parent.sub.html';
+const promises = new Map();
+
+// Firefox and Chrome deny notification permission in a third party partitioned
+// iframe even if the permission is granted for origin of the iframe.
+
+// Set up the listeners and then create a third party iframe.
+// The iframe will again create a first party iframe.
+promise_setup(async () => {
+  await trySettingPermission("granted");
+
+  // parent: the third party iframe
+  // child: the first party iframe in the third party one (ABA)
+  for (const iframe of ["parent", "child"]) {
+    // from the iframe window, or the worker opened from there
+    for (const worker of ["", "Worker"]) {
+      // permission attribute (.permission), or
+      // the permission request (.requestPermission())
+      for (const type of ["", "Request"]) {
+        const sender = iframe + worker + type;
+        promises.set(sender, new Promise(r => window.addEventListener("message", ev => {
+          if (ev.data.sender === sender) {
+            r(ev.data);
+          }
+        })));
+      }
+    }
+  }
+
+  const iframe = document.createElement("iframe");
+  iframe.src = thirdPartyIframe;
+  document.body.append(iframe);
+})
+
+promise_test(async t => {
+  const result = await promises.get("parent");
+  assert_equals(result.permission, "denied", `should deny the permission`);
+  assert_false(result.shown, `notification should not be shown`);
+
+  const parentRequestResult = await promises.get("parentRequest");
+  assert_equals(parentRequestResult.permission, "denied", "should deny the permission request");
+}, "third party iframe");
+
+promise_test(async t => {
+  const result = await promises.get("child");
+  assert_equals(result.permission, "granted", `should grant the permission`);
+  assert_true(result.shown, `notification should be shown`);
+
+  const childRequestResult = await promises.get("childRequest");
+  assert_equals(childRequestResult.permission, "granted", "should accept the permission request");
+}, "nested first party iframe");
+
+promise_test(async t => {
+  const result = await promises.get("parentWorker");
+  assert_equals(result.permission, "denied", `should deny the permission`);
+  assert_false(result.shown, `notification should not be shown`);
+}, "third party worker");
+
+promise_test(async t => {
+  const result = await promises.get("childWorker");
+  assert_equals(result.permission, "granted", `should grant the permission`);
+  assert_true(result.shown, `notification should be shown`);
+}, "nested first party worker");
+</script>

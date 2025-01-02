@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body {
+  height: 1200px;
+}
+#header {
+  position: relative;
+  height: 100px;
+}
+#evil {
+  position: relative;
+  top: -900px;
+  height: 1000px;
+  width: 100px;
+}
+#changer {
+  height: 100px;
+}
+#anchor {
+  height: 100px;
+  background-color: green;
+}
+
+</style>
+<div id="header">
+  <div id="evil"></div>
+</div>
+<div id="changer"></div>
+<div id="anchor"></div>
+<script>
+
+// Tests that the anchor selection algorithm correctly accounts for negative
+// positioning when computing bounds for visibility.
+
+test(() => {
+  document.scrollingElement.scrollTop = 250;
+  document.querySelector("#changer").style.height = "200px";
+  assert_equals(document.scrollingElement.scrollTop, 350);
+}, "Anchor selection accounts for negative positioning.");
+
+</script>

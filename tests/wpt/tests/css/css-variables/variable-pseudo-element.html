@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Variables work in ::before/::after pseudos</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact/">
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <style>
+        :root {
+            --color: green;
+            --color2: red;
+        }
+        div::before {
+            content: '[before]';
+        }
+        div::after {
+            content: '[after]';
+        }
+
+        #div1 {
+            color: red;
+        }
+        #div1::before, #div1::after {
+            color: var(--color2);
+            --color2: green;
+        }
+
+        #div2 {
+            color: var(--color2);
+        }
+        #div2::before, #div2::after {
+            color: var(--color);
+        }
+
+        #div3 {
+            color: var(--color);
+        }
+        #div3::before, #div3::after {
+            --color: red;
+        }
+    </style>
+
+    <div id="div1">div1</div>
+    <div id="div2">div2</div>
+    <div id="div3">div3</div>
+    <span id="control" style="color: green;"></span>
+
+<script>
+    "use strict";
+
+    [...document.querySelectorAll("div")].forEach(function (div) {
+        test( function () {
+            const expectedColor = getComputedStyle(document.querySelector("#control")).color;
+            var actualBeforeColor = window.getComputedStyle(div, ':before').getPropertyValue('color');
+            var actualAfterColor = window.getComputedStyle(div, ':after').getPropertyValue('color');
+            assert_equals(actualBeforeColor, expectedColor);
+            assert_equals(actualAfterColor, expectedColor);
+        }, div.getAttribute("id"));
+    });
+</script>
+
+</body>
+</html>

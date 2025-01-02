@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+</head>
+<body>
+<script>
+// Ensure that only the right events trigger violation reports.
+// The Promise will resolve, when an event including the string "done" is
+// received. The last line of this test file will cause this trigger.
+promise_test(t => {
+  let count = { "null": 0, "undefined": 0, "nodefault": 0 };
+  return new Promise((resolve, reject) => {
+    document.addEventListener("securitypolicyviolation", e => {
+      e.stopPropagation();
+      // We count the violation reports. We expect one each for "null" and
+      // "undefined", one each for the "no default" test case above, and one
+      // for the "done" line at the end, which signals the end of the test run.
+      if (e.sample.includes("done")) {
+        resolve(count);
+      } else if (e.sample.includes("null")) {
+        count["null"]++;
+      } else if (e.sample.includes("undefined")) {
+        count["undefined"]++;
+      } else if (e.sample.includes("nodefault")) {
+        count["nodefault"]++;
+      } else {
+        reject();
+      }
+    });
+  }).then(counters => {
+    for (const counter of ["null", "undefined", "nodefault"]) {
+      assert_equals(counters[counter], testCases.length,
+                    "event count of " + counter);
+    }
+  });
+}, "Count SecurityPolicyViolation events.");
+
+const testCases = [
+  [ "script", "src" ],
+  [ "div", "innerHTML" ],
+  [ "script", "text" ],
+];
+
+// Try each test case _without_ a default policy.
+testCases.forEach(c => {
+  test(t => {
+    const element = document.createElement(c[0]);
+    element[c[1]] = "nodefault";
+    assert_true(element[c[1]].includes("nodefault"));
+  }, `${c[0]}.${c[1]} no default policy`);
+});
+
+// A trusted type policy that forces a number of edge cases.
+function policy(str, type, sink) {
+  if (str == "throw")
+    throw RangeError();
+  else if (str == "null")
+    return null;
+  else if (str == "undefined")
+    return undefined;
+  else if (str == "typeerror")
+    return document.bla();
+  else if (str == "done")
+    return null;
+  else {
+    switch (type) {
+      case TrustedScriptURL:
+        assert_equals(sink, 'HTMLScriptElement src');
+        break;
+      case TrustedHTML:
+        assert_equals(sink, 'Element innerHTML');
+        break;
+      case TrustedScript:
+        assert_equals(sink, 'HTMLScriptElement text');
+        break;
+    }
+    return "sanitized: " + str;
+  }
+}
+
+trustedTypes.createPolicy("default", {
+  createScriptURL: policy,
+  createHTML: policy,
+  createScript: policy
+});
+
+testCases.forEach(c => {
+  const name = `${c[0]}.${c[1]} `;
+  test(t => {
+    const element = document.createElement(c[0]);
+    element[c[1]] = "abc";
+    assert_equals(element[c[1]], "sanitized: abc");
+  }, name + "default");
+  test(t => {
+    const element = document.createElement(c[0]);
+    element[c[1]] = "null";
+    assert_true(element[c[1]].includes("null"));
+  }, name + "null");
+  test(t => {
+    const element = document.createElement(c[0]);
+    assert_throws_js(RangeError, _ => element[c[1]] = "throw");
+  }, name + "throw");
+  test(t => {
+    const element = document.createElement(c[0]);
+    element[c[1]] = "undefined";
+    assert_true(element[c[1]].includes("undefined"));
+  }, name + "undefined");
+  test(t => {
+    const element = document.createElement(c[0]);
+    assert_throws_js(TypeError, _ => element[c[1]] = "typeerror");
+  }, name + "typeerror");
+});
+
+// Trigger the exit condition in the "Count" promise test above.
+try { document.createElement("script").text = "done"; } catch (e) {}
+</script>
+</body>

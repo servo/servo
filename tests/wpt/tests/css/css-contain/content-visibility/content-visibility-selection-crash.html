@@ -1,0 +1,20 @@
+<style>
+* { content-visibility: auto; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.documentElement.setAttribute('contenteditable', true)
+  let a = document.createElement('map')
+  let b = document.createElement('h1')
+  let c = document.createElement('kbd')
+  b.appendChild(c)
+  a.appendChild(b)
+  document.documentElement.appendChild(a)
+  let d = new Range()
+  let f = document.getSelection()
+  f.addRange(d)
+  d.setStart(c, 0)
+  f.addRange(d)
+  f.removeRange(d)
+})
+</script>

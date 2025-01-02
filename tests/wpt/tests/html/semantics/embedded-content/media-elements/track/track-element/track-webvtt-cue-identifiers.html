@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Any text other than "-->" is recognized as optional cue identifier</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/cue-id.vtt", function(track) {
+    var expected = [
+        { id: "random_id", startTime: 0, endTime: 30.5, text: "Bear is Coming!!!!!" },
+        { id: "another random identifier", startTime: 31, endTime: 60.5, text: "I said Bear is coming!!!!" },
+        { id: "identifier--too", startTime: 61, endTime: 120.5, text: "I said Bear is coming now!!!!" },
+        { id: "identifier--too", startTime: 121, endTime: 180.5, text: "Duplicate identifier" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+
+check_cues_from_track("resources/cue-id-error.vtt", function(track) {
+    var expected = [
+        { id: "", startTime: 0, endTime: 30.5, text: "Bear is Coming!!!!!" },
+        { id: "", startTime: 31, endTime: 60.5, text: "I said Bear is coming!!!!" },
+        { id: "", startTime: 61, endTime: 1200.5, text: "I said Bear is coming now!!!!" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+</script>

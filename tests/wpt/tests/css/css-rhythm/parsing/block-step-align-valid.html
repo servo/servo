@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Rhythm: block-step-align valid values</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-align">
+<meta name="assert" content="Parsing valid values for block-step-align property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+    test_valid_value("block-step-align", "auto");
+    test_valid_value("block-step-align", "center");
+    test_valid_value("block-step-align", "start");
+    test_valid_value("block-step-align", "end");
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  let oncurrententrychange_called = false;
+  let original_entry = navigation.currentEntry;
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_called = true;
+    assert_equals(e.from, original_entry);
+    assert_equals(e.from.index, -1);
+    assert_equals(e.navigationType, "replace");
+    assert_equals(navigation.currentEntry.index, start_index);
+  });
+  let result = navigation.navigate("#foo", { history: "replace" });
+  assert_true(oncurrententrychange_called);
+  await result.committed;
+}, "currententrychange fires for navigation.navigate() with replace");
+</script>

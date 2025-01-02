@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Grid Layout Test: no crash with positioned block grid items</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-definition">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=273898">
+<meta name="assert" content="Test that adding a positioned block grid item after an inline grid item does not crash." />
+
+<style>
+#grid {
+  display: grid;
+  grid-auto-flow: dense;
+}
+
+embed {
+  position: absolute;
+}
+</style>
+</head>
+
+<body>
+<div id="grid">
+    test
+</div>
+
+<script>
+  var grid = document.getElementById("grid");
+  grid.offsetTop;
+  var embed = document.createElement("embed");
+  embed.setAttribute("type", "image/png");
+  grid.appendChild(embed);
+</script>
+</body>
+</html>

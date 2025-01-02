@@ -1,0 +1,15 @@
+<msgList>
+ <head>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0"
+   xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="locnote5xmlrules.xml">
+   <its:locNoteRule selector="//msg[@id='1']/img/@alt" locNoteType="alert">
+    <its:locNote>Do not translate the word "Chobe"</its:locNote>
+   </its:locNoteRule>
+  </its:rules>
+ </head>
+ <body>
+  <msg id="1">This is a hippoptamus: <img src="hippo.png" alt="Hippo in the Chobe River"/>.</msg>
+  <msg id="2">This is an elephant: <img src="elephants.png" alt="Elephants taking a mud bath"/>.</msg>
+  <msg id="DisableInfo">The {0} has been disabled.</msg>
+ </body>
+</msgList>

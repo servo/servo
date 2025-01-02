@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://crbug.com/1173843">
+<meta name="assert" content="No crash when a flexbox lays out a frameset with a border in the main axis direction.">
+<style>
+frameset {
+  border-right: 50px solid red;
+}
+</style>
+
+<div id='flex' style="display: flex"></div>
+
+<script>
+  // I couldn't get the parser to accept a framset inside a div, so this uses
+  // JS instead.
+  flex.appendChild(document.createElement('frameset'));
+</script>

@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  .outer {
+    height: 100px;
+    width: 100px;
+  }
+  .auto {
+    overflow: auto;
+  }
+  .inner-sm {
+    height: 50px;
+    width: 50px;
+    background: lightblue;
+  }
+  .inner-lg-1 {
+    height: 95px;
+    width: 95px;
+    background: lightblue;
+  }
+  .inner-lg-2 {
+    height: 200px;
+    width: 200px;
+  }
+  .pass {
+    background: green;
+  }
+  .border {
+    border: 5px solid green;
+  }
+
+  </style>
+</head>
+<body>
+  <div class="outer">
+    <div class="inner-sm"></div>
+  </div>
+  <br>
+
+  <div class="outer auto">
+    <div class="inner-lg-2 pass">
+    </div>
+  </div>
+  <br>
+
+  <div class="inner-sm border">
+    <div class="inner-lg-1">
+    </div>
+  </div>
+</body>
+</html>

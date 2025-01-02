@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-gaps-and-rules">
+<link rel="match" href="multicol-span-all-rule-002-ref.html">
+<meta name="assert" content="This test verifies that the column-rule is not painted over a column-span in vertical wirting-modes.">
+
+<style>
+section {
+  display: inline-block;
+  width: 100px;
+  height: 400px;
+  border: 2px solid purple;
+  columns: 2;
+  column-gap: 10px;
+  column-rule: 10px solid orange;
+}
+
+.span {
+  column-span: all;
+  block-size: 20px;
+}
+
+.p {
+  block-size: 80px;
+  background-color: lightgreen;
+}
+</style>
+
+<section style="writing-mode:vertical-lr">
+<div class="p"></div>
+<div class="span"></div>
+<div class="p"></div>
+</section>
+
+<section style="writing-mode:vertical-rl">
+<div class="p"></div>
+<div class="span"></div>
+<div class="p"></div>
+</section>
+
+<section style="writing-mode:sideways-lr">
+<div class="p"></div>
+<div class="span"></div>
+<div class="p"></div>
+</section>
+
+<section style="writing-mode:sideways-rl">
+<div class="p"></div>
+<div class="span"></div>
+<div class="p"></div>
+</section>

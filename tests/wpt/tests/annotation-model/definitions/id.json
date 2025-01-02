@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id" : "id.json",
+  "title": "Definitions: id key",
+  "description": "Schemas in #/definitions used to detect valid id (string of format uri or array containing 1 item of string, format uri).",
+  "definitions":
+  {
+    "stringUri" :
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "type": "string",
+      "format": "uri"
+    },
+
+    "arraySingleStringUri":
+    {
+      "oneOf":
+        [
+        { "$ref": "#/definitions/stringUri" },
+        { "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": { "$ref": "#/definitions/stringUri" }
+        }
+        ]
+    },
+
+    "idValueFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "type": "object",
+      "required": [ "id" ],
+      "properties": {
+        "id" : { "$ref": "#/definitions/arraySingleStringUri" }
+      }
+    }
+  }
+}

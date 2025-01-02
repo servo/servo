@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<link rel="help"
+  href="https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11044">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<meta name="assert"
+  content="preceding floats don't prevent margin adjoiningness for stretch sizing purposes">
+
+<style>
+  .outer {
+    width: 100px;
+    height: 100px;
+    outline: solid;
+    position: relative;
+  }
+
+  .float {
+    float: left;
+    width: 30px;
+    height: 30px;
+    background: skyblue;
+  }
+
+  p {
+    margin-top: 20px;
+    margin-bottom: 0px;
+  }
+</style>
+
+<p>This test asserts the behavior seemingly agreed upon through
+  https://github.com/w3c/csswg-drafts/issues/11044#issuecomment-2486935794. This
+  is unlikely to be the final specified behavior, hence the test is marked
+  tentative.</p>
+
+<p>New BFC fits next to float, so top margins will collapse, so we want the
+  stretched height to match .outer's height.</p>
+<div class="outer">
+  <div class="float"></div>
+  <div
+    style="height: stretch; width: 30px; margin-top: 50px; display: flow-root; border: solid magenta;"
+    data-expected-height="100" data-offset-y="0">
+  </div>
+</div>
+
+<p>New BFC does not fit next to float, so margins DON'T collapse, but for
+  simplicity we still ignore margins when stretch sizing</p>
+<div class="outer">
+  <div class="float"></div>
+  <div
+    style="height: stretch; width: 90px; margin-top: 50px; display: flow-root; border: solid cyan;"
+    data-expected-height="100" data-offset-y="30">
+  </div>
+</div>
+
+<p>In-flow child overlaps the float, so margins DO collapse, so we want the
+  stretched height to match .outer's height.</p>
+<div class="outer">
+  <div class="float"></div>
+  <div
+    style="height: stretch; width: 90px; margin-top: 50px; border: solid green;"
+    data-expected-height="100" data-offset-y="0">
+  </div>
+</div>
+
+<p>In-flow child clears the float, so margins DON'T collapse, but for
+  simplicity we still ignore margins when stretch sizing</p>
+<div class="outer">
+  <div class="float"></div>
+  <div
+    style="height: stretch; width: 90px; clear: both; margin-top: 50px; border: solid orange;"
+    data-expected-height="100" data-offset-y="30">
+  </div>
+</div>
+
+<script>checkLayout(".float + div")</script>

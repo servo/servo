@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>scroll-snap-type on non-scrollers traps snap positions</title>
+<link rel=author title="Tab Atkins-Bittner" href="https://www.xanthir.com/contact/">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#captures-snap-positions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+.scroller {
+  width: 100px;
+  height: 100px;
+  overflow: auto;
+  scroll-snap-type: block mandatory;
+}
+.item {
+  background: gray;
+  height: 100px;
+  scroll-snap-type: block mandatory;
+}
+.item.snapped {
+  background: green;
+  scroll-snap-align: center;
+}
+.subitem {
+  background: red;
+  height: 100px;
+  scroll-snap-align: center;
+}
+
+</style>
+
+
+<!--
+Boxes with a non-none value for scroll-snap-type
+will capture snap positions from their descendents,
+preventing them from affecting higher-up scrollers,
+even if they are not, themselves, scrollers.
+-->
+
+<div class=scroller>
+  <div class=item></div>
+  <div class=item><div class=subitem></div></div>
+  <div class="item snapped"></div>
+  <div class=item></div>
+</div>
+
+<script>
+
+test(()=>{
+  const el = document.querySelector('.scroller');
+  assert_equals(el.scrollTop, 200);
+}, "The third item should be snapped to by default, not the second's child.");
+
+</script>

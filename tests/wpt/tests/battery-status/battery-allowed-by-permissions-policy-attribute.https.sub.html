@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/permissions-policy/resources/permissions-policy.js></script>
+<script>
+'use strict';
+
+const same_origin_src = '/permissions-policy/resources/permissions-policy-battery.html';
+const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+  same_origin_src;
+const feature_name = 'permissions policy "battery"';
+const header = 'allow="battery" attribute';
+
+async_test(t => {
+  test_feature_availability(
+      'navigator.getBattery()', t, same_origin_src,
+      expect_feature_available_default, 'battery');
+}, `${feature_name} can be enabled in same-origin iframe using ${header}`);
+
+async_test(t => {
+  test_feature_availability(
+      'navigator.getBattery()', t, cross_origin_src,
+      expect_feature_available_default, 'battery');
+}, `${feature_name} can be enabled in cross-origin iframe using ${header}`);
+</script>
+</body>

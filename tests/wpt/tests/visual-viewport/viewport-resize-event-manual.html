@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Window Resize Fires Event</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_timeout: true, explicit_done: true})
+        </script>
+    </head>
+    <body>
+    <h1>Viewport: Window Resize Fires Event</h1>
+    <h4>
+        Test Description: This test checks that a resize event is fired against
+        the window.visualViewport object when the browser window is resized.
+    </h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        var didResizeView;
+        var cancelable;
+        var bubbles;
+
+        function resetValues() {
+            didResizeView = false;
+            cancelable = undefined;
+            bubbles = undefined;
+        }
+
+        addManualTestStep(
+            function() {
+                resetValues();
+                window.visualViewport.addEventListener('resize', function(e) {
+                    didResizeView = true;
+                    cancelable = e.cancelable;
+                    bubbles = e.bubbles;
+                });
+            },
+            null,
+            '1. Resize the browser window (if on mobile, rotate the device)');
+
+
+        addManualTestStep(
+            function() {
+                assert_true(didResizeView);
+                assert_false(cancelable);
+                assert_false(bubbles);
+             },
+            'Resize event fired at window.visualViewport after window resized',
+            '2. Unrotate the device or reset window size if needed.');
+
+        addManualTestStep(
+            resetValues,
+            null,
+            '3. Pinch-zoom anywhere on the page by any amount.');
+
+        addManualTestStep(
+            function() {
+                assert_true(didResizeView);
+                assert_false(cancelable);
+                assert_false(bubbles);
+            },
+            'Pinch-zooming fires a resize event',
+            '4. Pinch-zoom back out');
+
+        addManualTestStep(
+            function() { continueBtn.remove(); },
+            null,
+            'Test Complete');
+    </script>
+</html>

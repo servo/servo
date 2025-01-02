@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: test scale x</title>
+  <link rel="author" title="Ebay Inc." href="mailto:xiatian@ebay.com"/>
+  <link rel="help" href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-scalex"/>
+  <link rel="match" href="scalex-ref.html"/>
+  <meta name="assert" content="scale x 2"/>
+  <style type="text/css">
+      .container {
+        z-index: 11;
+        position: absolute;
+          height: 100px;
+          width: 100px;
+          margin-left: 500px;
+          transform: scaleX(2);
+          background-color: green;
+      }
+
+       .hidden {
+        z-index: 10;
+        background-color: red;
+          position: absolute;
+          height: 100px;
+          width: 200px;
+          margin-left: 450px;
+      }
+  </style>
+
+ </head>
+ <body>
+  <p>You should see only 1 green area, no red area.</p>
+  <div class="container">
+  </div>
+ <div class="hidden">
+  </div>
+</body>
+</html>

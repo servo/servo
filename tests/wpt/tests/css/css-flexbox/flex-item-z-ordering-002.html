@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Flex painting order with z-index</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#painting">
+<meta name="assert"
+  content="z-index works on flex items even though they do not have `position: relative`" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+    #flex {
+        display: flex;
+        width: 100px;
+        height: 100px;
+    }
+
+    #flex > div {
+        width: 0px;
+        height: 0px;
+    }
+    #flex > div > div {
+        width: 100px;
+        height: 100px;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id="flex">
+    <div><div style="background: green"></div></div>
+    <div style="z-index: -10"><div style="background: red;"></div></div>
+</div>

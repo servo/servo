@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Bounce Tracking Mitigations: Stateful Client Bounce (Start Page)</title>
+<body></body>
+<script src=/resources/testdriver.js></script>
+<script>
+  const url = new URL(
+    'cross-origin-client-redirect-with-cookie-header.sub.https.html',
+    window.location.href);
+  url.hostname = '{{hosts[alt][]}}';
+
+  const link = document.createElement('a');
+  link.href = url;
+  // Used by the main test page to retrieve the button.
+  link.id = 'navigate-link';
+  link.text = 'navigate to redirecting page';
+  document.body.append(link);
+</script>

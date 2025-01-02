@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Inheriting outline-style should compute the right outline-width</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-width">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-style">
+<link rel="match" href="outline-style-inherit-ref.html">
+<style>
+  div { width: 100px; height: 100px }
+</style>
+<div style="outline-style: solid; outline-color: transparent">
+  <div style="outline-style: inherit; outline-color: green"></div>
+</div>

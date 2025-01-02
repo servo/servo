@@ -1,0 +1,39 @@
+<!doctype html>
+<title>CSS Test: @keyframes applies in the shadow tree.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors-data-model">
+
+<style>
+#in-document {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  animation: myanim 10s infinite;
+}
+</style>
+<div id="host"><div id="in-document"></div></div>
+<script>
+test(function() {
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      @keyframes myanim {
+        from { background: red; }
+        to { background: green; }
+      }
+      #in-shadow {
+        width: 100px;
+        height: 100px;
+        background: blue;
+        animation: myanim 10s infinite;
+      }
+    </style>
+    <slot></slot>
+    <div id="in-shadow"></div>
+  `;
+
+  assert_equals(document.getElementById('in-document').getAnimations().length, 0);
+  assert_equals(host.shadowRoot.getElementById('in-shadow').getAnimations().length, 1);
+}, "@keyframes applies in the shadow tree")
+</script>

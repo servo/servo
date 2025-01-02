@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>HTML: Document.prototype.currentScript</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="If the script element is in a document, then set the script element's node document's currentScript attribute to the script element.">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#execute-the-script-block">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script id="outerScriptElement">
+
+function assert_shadowdom_supported() {
+  assert_true('attachShadow' in document.createElement('div'), 'Shadow DOM is not supported');
+}
+
+var outerScriptElement = document.currentScript;
+
+function testInlineScript(mode)
+{
+    test(function () {
+        assert_shadowdom_supported();
+        var host = document.createElement('div');
+        var shadowRoot = host.attachShadow({mode: mode});
+        var scriptElement = document.createElement('script');
+        scriptElement.textContent = 'assert_equals(document.currentScript, null)';
+        shadowRoot.appendChild(scriptElement);
+
+        assert_equals(document.currentScript, outerScriptElement,
+            'document.currentScript must be set to the currently excusing script element in a document tree before executing a script in a shadow tree');
+        document.body.appendChild(host);
+        assert_equals(document.currentScript, outerScriptElement,
+            'document.currentScript must be set to the currently excusing script element in a document tree after executing a script in a shadow tree');
+
+    }, 'document.currentScript must not to be set to a script element in a shadow tree in ' + mode + ' mode');
+}
+
+testInlineScript('open');
+testInlineScript('closed');
+
+var executeExternalScript = null;
+var testedScriptElement = null;
+function executeNextTest()
+{
+    var testCase = asyncScriptTests.shift();
+    if (!testCase)
+        return;
+
+    var mode = testCase.mode;
+
+    testCase.test.add_cleanup(() => {
+        setTimeout(executeNextTest, 1);
+    });
+    testCase.test.step(function () {
+        assert_shadowdom_supported();
+        testedScriptElement = document.createElement('script');
+        testedScriptElement.src = 'resources/Document-prototype-currentScript-helper.js';
+
+        if (mode !== null) {
+            var host = document.createElement('div');
+            var shadowRoot = host.attachShadow({mode: mode});
+            shadowRoot.appendChild(testedScriptElement);
+            document.body.appendChild(host);
+        } else {
+            document.body.appendChild(testedScriptElement);
+        }
+
+        if (testCase.remove)
+            testedScriptElement.parentNode.removeChild(testedScriptElement);
+    });
+
+    executeExternalScript = function () {
+        testCase.test.step(function () {
+            assert_equals(document.currentScript, testCase.expected());
+        });
+        testCase.test.done();
+    }
+}
+
+var asyncScriptTests = [
+    {
+        test: async_test('document.currentScript must be set to a script element that loads an external script in a document tree'),
+        mode: null, remove: false, expected: function () { return testedScriptElement; }},
+    {
+        test: async_test('document.currentScript must be set to a script element that loads an external script in a document tree (2)'),
+        mode: null, remove: true, expected: function () { return testedScriptElement; }},
+    {
+        test: async_test('document.currentScript must not be set to a script element that loads an external script in an open shadow tree'),
+        mode: 'open', remove: false, expected: function () { return null; }},
+    {
+        test: async_test('document.currentScript must not be set to a script element that loads an external script in a closed shadow tree'),
+        mode: 'closed', remove: false, expected: function () { return null; }},
+    {
+        test: async_test('document.currentScript must be set to a script element that loads an external script that was in an open shadow tree and then removed'),
+        mode: 'open', remove: true, expected: function () { return testedScriptElement; }},
+    {
+        test: async_test('document.currentScript must be set to a script element that loads an external script that was in a closed shadow tree and then removed'),
+        mode: 'closed', remove: true, expected: function () { return testedScriptElement; }},
+];
+
+executeNextTest();
+
+</script>
+</body>
+</html>

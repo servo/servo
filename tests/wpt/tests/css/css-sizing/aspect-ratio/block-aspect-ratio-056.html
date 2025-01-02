@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="width: fit-content; background: green;">
+  <!-- The auto min-size should apply. -->
+  <div style="aspect-ratio: 1/2; height: 100px;">
+    <div style="width: 100px;"></div>
+  </div>
+</div>

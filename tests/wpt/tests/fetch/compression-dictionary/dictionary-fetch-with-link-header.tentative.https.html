@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.js"></script>
+</head>
+<body>
+<script>
+
+async function addIframeWithLinkRelCompressionDictionaryHeader(dict_url) {
+  return new Promise((resolve) => {
+    const base_page_url = './resources/empty.html';
+    const page_url =
+        base_page_url +
+        `?pipe=header(link,<${dict_url}>; rel="compression-dictionary")`;
+    const iframe = document.createElement('iframe');
+    iframe.src = page_url;
+    iframe.addEventListener('load', () => {
+      resolve(iframe);
+    });
+    document.body.appendChild(iframe);
+  })
+}
+
+compression_dictionary_promise_test(async (t) => {
+  const dict_token = token();
+  const url = new URL(
+      `${kRegisterDictionaryPath}?save_header=${dict_token}`, location.href);
+  const iframe =
+      await addIframeWithLinkRelCompressionDictionaryHeader(url.href);
+  t.add_cleanup(() => {
+    iframe.remove();
+  });
+  // Wait for a while to ensure that the dictionary is fetched.
+  await new Promise(resolve => window.requestIdleCallback(resolve));
+  const headers = await waitUntilPreviousRequestHeaders(t, dict_token);
+  assert_true(headers !== undefined, 'Headers should be available');
+  assert_equals(headers['sec-fetch-mode'], 'cors');
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'Fetch same origin dictionary using link header');
+
+</script>
+</body>

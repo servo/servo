@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageItemsValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page is missing items key or value of items key is not an array of strings of format uri and/or objects of type Annotation.",
+  "title": "Implements **Annotation Page _items_ key** such that value of items key is an array of strings of format uri and/or objects of type Annotation - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "$ref": "collections.json#/definitions/itemsFound" },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/itemsFound" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

@@ -1,0 +1,41 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL function test test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-generator.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+GLSLGenerator.runFeatureTest({
+  feature: "the_GLSL_test_harness",
+  testFunc: "pass through",
+  emuFunc: "float $(func)_base(float value) { return 0.0; }",
+  gridRes: 4,
+  tests: [
+     "$(output) = vec4($(input).x, 0, 0, 1);",
+     "$(output) = vec4(0, $(input).xy, 1);",
+     "$(output) = vec4($(input).xyz, 1);",
+     "$(output) = $(input);"
+  ]
+});
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

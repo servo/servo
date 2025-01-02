@@ -1,0 +1,48 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Marker: 'orient'</title>
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("../fonts/FreeSans.woff") format("woff");
+    }
+    text {
+      font-family: FreeSans, sans-serif;
+      text-anchor: middle;
+      fill: black;
+    }
+    #title {
+      font-size: 24px;
+    }
+    .label {
+      font-size: 18px;
+    }
+  </style>
+
+  <defs>
+    <path id="triangle" d="m 0,0 0,-2.5 10,2.5 -10,2.5 z"/>
+  </defs>
+
+  <g id="test-body-reference" style="fill:black">
+    <path d="m 120,120 120,0 120,0" style="stroke:black;stroke-width:4px"/>
+    <path d="m 120,220 120,0 120,0" style="stroke:black;stroke-width:4px"/>
+    <path d="m 120,320 120,0 120,0" style="stroke:black;stroke-width:4px"/>
+    <use xlink:href="#triangle" transform="translate(120,120) scale(4,4)"/>
+    <use xlink:href="#triangle" transform="translate(240,120) scale(4,4)"/>
+    <use xlink:href="#triangle" transform="translate(360,120) scale(4,4)"/>
+    <use xlink:href="#triangle" transform="translate(120,220) scale(4,4) rotate(45)"/>
+    <use xlink:href="#triangle" transform="translate(240,220) scale(4,4) rotate(45)"/>
+    <use xlink:href="#triangle" transform="translate(360,220) scale(4,4) rotate(45)"/>
+    <use xlink:href="#triangle" transform="translate(120,320) scale(4,4) rotate(180)"/>
+    <use xlink:href="#triangle" transform="translate(240,320) scale(4,4)"/>
+    <use xlink:href="#triangle" transform="translate(360,320) scale(4,4)"/>
+  </g>
+
+</svg>

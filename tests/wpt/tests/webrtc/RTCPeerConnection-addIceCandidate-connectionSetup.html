@@ -1,0 +1,92 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Test RTCPeerConnection.prototype.addIceCandidate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+// This test may be flaky, so it's in its own file.
+// The test belongs in RTCPeerConnection-addIceCandidate.
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const transceiver = pc1.addTransceiver('video');
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOffer(pc1, pc2);
+  const answer = await pc2.createAnswer();
+  // Note that sequence of the following two calls is critical
+  // for test stability.
+  await pc1.setRemoteDescription(answer);
+  await pc2.setLocalDescription(answer);
+  await waitForState(transceiver.sender.transport, 'connected');
+}, 'Candidates are added dynamically; connection should work');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const transceiver = pc1.addTransceiver('video');
+
+  let candidates1to2 = [];
+  let candidates2to1 = [];
+  pc1.onicecandidate = e => candidates1to2.push(e.candidate);
+  pc2.onicecandidate = e => candidates2to1.push(e.candidate);
+  const pc2GatheredCandidates = new Promise((resolve) => {
+    pc2.addEventListener('icegatheringstatechange', () => {
+      if (pc2.iceGatheringState == 'complete') {
+        resolve();
+      }
+    });
+  });
+  await exchangeOffer(pc1, pc2);
+  let answer = await pc2.createAnswer();
+  await pc1.setRemoteDescription(answer);
+  await pc2.setLocalDescription(answer);
+  await pc2GatheredCandidates;
+  // Add candidates to pc1, ensuring that it goes to "connecting" state before "connected".
+  // We do not iterate/await because repeatedly awaiting while we serially add
+  // the candidates opens the opportunity to miss the 'connecting' transition.
+  const addCandidatesDone = Promise.all(candidates2to1.map(c => pc1.addIceCandidate(c)));
+  await waitForState(transceiver.sender.transport, 'connecting');
+  await addCandidatesDone;
+  await waitForState(transceiver.sender.transport, 'connected');
+}, 'Candidates are added at PC1; connection should work');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const transceiver = pc1.addTransceiver('video');
+
+  let candidates1to2 = [];
+  let candidates2to1 = [];
+  pc1.onicecandidate = e => candidates1to2.push(e.candidate);
+  pc2.onicecandidate = e => candidates2to1.push(e.candidate);
+  const pc1GatheredCandidates = new Promise((resolve) => {
+    pc1.addEventListener('icegatheringstatechange', () => {
+      if (pc1.iceGatheringState == 'complete') {
+        resolve();
+      }
+    });
+  });
+  await exchangeOffer(pc1, pc2);
+  let answer = await pc2.createAnswer();
+  await pc1.setRemoteDescription(answer);
+  await pc2.setLocalDescription(answer);
+  await pc1GatheredCandidates;
+  // Add candidates to pc2
+  // We do not iterate/await because repeatedly awaiting while we serially add
+  // the candidates opens the opportunity to miss the ICE state transitions.
+  await Promise.all(candidates1to2.map(c => pc2.addIceCandidate(c)));
+  await waitForState(transceiver.sender.transport, 'connected');
+}, 'Candidates are added at PC2; connection should work');
+
+</script>

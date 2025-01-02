@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift with counterscroll not counted, with 2 scrollers</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+.scroller {
+  overflow: scroll;
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 200px;
+  height: 200px;
+}
+.content {
+  width: 170px;
+  height: 600px;
+}
+.changer {
+  position: relative;
+  background: yellow;
+  left: 10px;
+  top: 100px;
+  width: 150px;
+  height: 150px;
+}
+
+</style>
+<div id="scroller1" class="scroller">
+  <div class="content">
+    <div id="changer1" class="changer"></div>
+  </div>
+</div>
+<div id="scroller2" class="scroller">
+  <div class="content">
+    <div id="changer2" class="changer"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Top goes from 100 to 200. scroll by 100 to counter it.
+  changer1.style.top = "200px";
+  scroller1.scrollTop = 100;
+  // Top goes from 100 to 300. scroll by 200 to counter it.
+  changer2.style.top = "300px";
+  scroller2.scrollTop = 200;
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Shift with counterscroll not counted, with 2 scrollers.");
+
+</script>

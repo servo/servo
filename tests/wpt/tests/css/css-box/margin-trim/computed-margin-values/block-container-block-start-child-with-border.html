@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="item with border should prevent trimming within itself">
+<style>
+container {
+    display: block;
+    margin-trim: block;
+    border: 1px solid black;
+    margin-block-start: 10px;
+}
+item {
+    display: block;
+    inline-size: 50px;
+    block-size: 50px;
+    background-color: green;
+}
+.collapsed {
+    margin-block: 50px;
+    block-size: 0px
+}
+.with-border-and-margin {
+    border: 1px solid black;
+    margin-block-start: 30px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('item')">
+    <container>
+        <item data-expected-margin-top="0" class="collapsed">
+            <item data-expected-margin-top="0" class="collapsed"></item>
+        </item>
+        <item class="with-border-and-margin" data-expected-margin-top="0">
+            <item class="with-border-and-margin" data-expected-margin-top="30"></item>
+        </item>
+    </container>
+</body>
+</html>

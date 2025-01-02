@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+ <head>
+  <title>window.onerror - compile error in cross-origin setTimeout</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <div id=log></div>
+  <script>
+    setup({allow_uncaught_exception:true});
+    var t = async_test();
+    var ran = false;
+    window.addEventListener('error', t.step_func(e => {
+        ran = true;
+        assert_equals(e.error.constructor, SyntaxError);
+    }));
+    var script = document.createElement('script');
+    script.src = location.href.replace('://', '://www1.').replace(/\/[^\/]+$/, '/support/syntax-error-in-setTimeout.js');
+    document.body.appendChild(script);
+  </script>
+ </body>
+</html>

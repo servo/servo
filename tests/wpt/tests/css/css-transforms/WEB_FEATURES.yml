@@ -1,0 +1,12 @@
+features:
+- name: abs-sign
+  files:
+  - transform-with-sign-function.html
+- name: individual-transforms
+  files:
+  - transform-and-individual-transform-properties-computed-style.html
+- name: transforms3d
+  files:
+  - "*3d*"
+  - backface-visibility-*
+  - perspective-*

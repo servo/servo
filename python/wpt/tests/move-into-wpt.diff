@@ -1,0 +1,4 @@
+diff --git a/tests/wpt/mozilla/tests/mozilla/mozilla-test.html b/tests/wpt/tests/mozilla-test.html
+similarity index 100%
+rename from tests/wpt/mozilla/tests/mozilla/mozilla-test.html
+rename to tests/wpt/tests/mozilla-test.html

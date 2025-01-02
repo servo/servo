@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="all of the self-collapsing children at the bottom of the block should be positioned at the bottom of the block">
+<style>
+.trim {
+    margin-trim: block;
+}
+container {
+    display: block;
+}
+item {
+    display: block;
+    inline-size: 50px;
+    block-size: 50px;
+    background-color: green;
+}
+.collapsed {
+    block-size: 0px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('.collapsed')">
+    <div id="target">
+        <container class="trim">
+            <container>
+                <item></item>
+                <item data-offset-y="58" class="collapsed" style="margin-block: 10px 20px;">
+                    <item data-offset-y="58" class="collapsed" style="margin-block: -40px 50px;"></item>
+                    <item data-offset-y="58" class="collapsed" style="margin-block: 35px 5px;">
+                        <item data-offset-y="58" class="collapsed" style="margin-block: 300px 100px"></item>
+                    </item>
+                </item>
+            </container>
+            <item data-offset-y="58" class="collapsed" style="margin-block: 40px 23px;"></item>
+            <item data-offset-y="58" class="collapsed" style="margin-block: 100px 200px">
+                <item data-offset-y="58" class="collapsed" style="margin-block: -100px -200px;"></item>
+            </item>
+        </container>
+    </div>
+</body>
+</html>

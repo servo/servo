@@ -1,0 +1,15 @@
+<script>
+addEventListener("load", () => {
+  document.querySelector("ol[contenteditable]").blur();
+  document.execCommand("selectAll");
+  const targetListItem = document.querySelector("li + li");
+  targetListItem.addEventListener("DOMSubtreeModified", () => {
+    document.execCommand("forwardDelete");
+    document.querySelector("script").appendChild(targetListItem);
+  });
+  targetListItem.setAttribute("scrolling", "auto");
+});
+</script>
+<ol contenteditable>
+<li>
+<li>a</li>

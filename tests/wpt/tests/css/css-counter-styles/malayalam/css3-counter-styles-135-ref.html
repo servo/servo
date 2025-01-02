@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>malayalam, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name="assert" content="list-style-type: malayalam produces numbers after 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: malayalam;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="10"><div><bdi>൧൦. </bdi>൧൦</div></ol>
+<ol start="11"><div><bdi>൧൧. </bdi>൧൧</div></ol>
+<ol start="12"><div><bdi>൧൨. </bdi>൧൨</div></ol>
+<ol start="43"><div><bdi>൪൩. </bdi>൪൩</div></ol>
+<ol start="77"><div><bdi>൭൭. </bdi>൭൭</div></ol>
+<ol start="80"><div><bdi>൮൦. </bdi>൮൦</div></ol>
+<ol start="99"><div><bdi>൯൯. </bdi>൯൯</div></ol>
+<ol start="100"><div><bdi>൧൦൦. </bdi>൧൦൦</div></ol>
+<ol start="101"><div><bdi>൧൦൧. </bdi>൧൦൧</div></ol>
+<ol start="222"><div><bdi>൨൨൨. </bdi>൨൨൨</div></ol>
+<ol start="540"><div><bdi>൫൪൦. </bdi>൫൪൦</div></ol>
+<ol start="999"><div><bdi>൯൯൯. </bdi>൯൯൯</div></ol>
+<ol start="1000"><div><bdi>൧൦൦൦. </bdi>൧൦൦൦</div></ol>
+<ol start="1005"><div><bdi>൧൦൦൫. </bdi>൧൦൦൫</div></ol>
+<ol start="1060"><div><bdi>൧൦൬൦. </bdi>൧൦൬൦</div></ol>
+<ol start="1065"><div><bdi>൧൦൬൫. </bdi>൧൦൬൫</div></ol>
+<ol start="1800"><div><bdi>൧൮൦൦. </bdi>൧൮൦൦</div></ol>
+<ol start="1860"><div><bdi>൧൮൬൦. </bdi>൧൮൬൦</div></ol>
+<ol start="1865"><div><bdi>൧൮൬൫. </bdi>൧൮൬൫</div></ol>
+<ol start="5865"><div><bdi>൫൮൬൫. </bdi>൫൮൬൫</div></ol>
+<ol start="7005"><div><bdi>൭൦൦൫. </bdi>൭൦൦൫</div></ol>
+<ol start="7800"><div><bdi>൭൮൦൦. </bdi>൭൮൦൦</div></ol>
+<ol start="7864"><div><bdi>൭൮൬൪. </bdi>൭൮൬൪</div></ol>
+<ol start="9999"><div><bdi>൯൯൯൯. </bdi>൯൯൯൯</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+The test relies on the start attribute working.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

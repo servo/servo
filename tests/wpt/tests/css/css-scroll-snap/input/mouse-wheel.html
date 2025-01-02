@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<title>Mouse-wheel scroll snapping speed</title>
+<meta name="assert"
+      content="Test passes if mousewheel snaps without pausing">
+<style>
+  #scroller {
+    scroll-snap-type: block mandatory;
+    overflow: scroll;
+    height:  400px;
+    width: 400px
+  }
+  #space {
+    width: 200px;
+    height: 4000px;
+  }
+  .box {
+    scroll-snap-align: start;
+    background: blue;
+    margin-bottom:  10px;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../support/common.js"></script>
+<div id="scroller">
+  <div class="box"></div>
+  <div class="box"></div>
+  <div id="space"></div>
+</div>
+<script>
+promise_test(async t => {
+  const scroller = document.getElementById("scroller");
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
+  const scrollTop = () => {
+    return scroller.scrollTop;
+  };
+  const scrollPromise = waitForScrollEvent(scroller);
+  const wheelPromise = waitForWheelEvent(scroller);
+  const actions = new test_driver.Actions()
+       .scroll(50, 50, 0, 50, {origin: scroller, duration: 100});
+  await actions.send();
+  await wheelPromise;
+  await scrollPromise;
+  let scrollEndTime;
+  let snapEndTime;
+  // Detect first pause in scrolling.
+  const scrollStabilizedPromise =
+      waitForAnimationEnd(scrollTop).then((timestamp) => {
+        scrollEndTime = timestamp;
+      });
+  const snapEndPromise =
+      waitForScrollTo(scroller, () => {
+        return scroller.scrollTop;
+      }, 110).then((evt) => {
+    snapEndTime = evt.timestamp;
+  });
+  await Promise.all([scrollStabilizedPromise, snapEndPromise]);
+  assert_equals(scroller.scrollTop, 110,
+                'Failed to advance to next snap target');
+  assert_true(snapEndTime < scrollEndTime,
+              'Detected pause in scrolling before reaching snap target');
+}, "Wheel-scroll triggers snap to target position immediately.");
+</script>

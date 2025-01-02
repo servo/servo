@@ -1,0 +1,32 @@
+<!doctype html>
+<body>Body needed for test_driver.click()</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script src="../../resources/user-activation.js"></script>
+<script>
+'use strict';
+
+const same_origin_src =
+  '/feature-policy/resources/feature-policy-clipboard-read.html';
+const cross_origin_src =
+  'https://{{hosts[alt][]}}:{{ports[https][0]}}' + same_origin_src;
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+  await waitForUserActivation();
+  await navigator.clipboard.readText('test text');
+}, 'Feature-Policy header clipboard-read "*" allows the top-level document.');
+
+promise_test(async t => {
+  await waitForUserActivation();
+  test_feature_availability(
+    'navigator.clipboard.readText()',
+    t,
+    same_origin_src,
+    expect_feature_available_default
+  );
+}, 'Feature-Policy header clipboard-read "*" allows same-origin iframes.');
+</script>

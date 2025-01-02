@@ -1,0 +1,34 @@
+<!doctype html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<script>
+try {
+  function onDOMNodeInsertedOfContentEditable() {
+    getSelection().collapse(document.querySelector("input"));
+    document.execCommand("justifyCenter");
+    document.querySelector("dl").addEventListener("DOMSubtreeModified", onDOMSubtreeModifiedOfDLElement);
+    document.querySelector("dl").appendChild(document.querySelector("style"));
+  }
+  function onDOMSubtreeModifiedOfDLElement() {
+    document.execCommand("delete");
+    document.querySelector("label").appendChild(document.querySelector("input"));
+    document.querySelector("dd[contenteditable]").addEventListener("DOMNodeInserted", onDOMNodeInsertedOfContentEditable);
+  }
+  addEventListener("load", () => {
+    onDOMNodeInsertedOfContentEditable();
+    document.documentElement.removeAttribute("class");
+  });
+} catch (ex) {
+  // maybe too many recursive exception would be thrown.
+  document.documentElement.removeAttribute("class");
+}
+</script>
+</head>
+<body><label></label>
+<dl>
+<dd contenteditable>
+<style>@</style>
+<input>
+</body>
+</html>

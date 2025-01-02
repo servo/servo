@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-space-transform: auto-phrase forbidden</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="match" href="reference/word-space-transform-022-ref.html">
+<meta name="assert" content="The UA must not insert a virtual word boundary immediately adjacent to ZERO WIDTH SPACE (U+200B) character.">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+#test {
+  word-space-transform: ideographic-space auto-phrase;
+}
+</style>
+
+<p>Test passes if the two boxes below are identical.
+
+<div id=test lang=ja>一生懸命&#X200B;働きます。</div>
+<div id=ref lang=ja>一生懸命　働きます。</div>

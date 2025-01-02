@@ -1,0 +1,12 @@
+<!doctype html>
+<title>CSS Text Test: Hyphenation in a contenteditable with a x20+x9+x20 trailing space sequence, makes chrome to crash</title>
+<link rel="help" href="https://crbug.com/1133254">
+<style>
+    span {
+        display: table-row;
+        hyphens: auto;
+    }
+</style>
+<div contenteditable=plaintext-only>
+    <span>XXX	 </span>
+</div>

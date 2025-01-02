@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: promise resolution ordering</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: target;
+}
+.green {
+  background: green;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise((resolve, reject) => {
+    let dom_change_ran = false;
+    let transition = document.startViewTransition(() => {
+      target.classList.add("green");
+      dom_change_ran = true;
+    });
+
+    let dom_updated_resolved = false;
+    transition.updateCallbackDone.then(() => {
+      if (!dom_change_ran)
+        reject();
+      // If there's a rAF before ready resolves, we fail.
+      requestAnimationFrame(reject);
+      dom_updated_resolved = true;
+    });
+
+    transition.ready.then(() => {
+      if (!dom_updated_resolved)
+        reject();
+      resolve();
+    });
+  });
+}, "updateCallbackDone resolves, then ready resolves with no rAF in between");
+</script>

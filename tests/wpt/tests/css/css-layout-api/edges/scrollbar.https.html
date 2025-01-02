@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutedges">
+<link rel="match" href="scrollbar-ref.html">
+<meta name="assert" content="This test checks that scrollbar sizes are passed to the layout correctly." />
+<style>
+td { text-align: center; }
+
+.parent {
+  box-sizing: border-box;
+  width: 50px;
+  height: 50px;
+  border: solid;
+  position: relative;
+  background: red;
+}
+
+@supports (display: layout(test)) {
+  .parent {
+    display: layout(test);
+    background: initial;
+  }
+}
+
+.child {
+  width: 10px;
+  height: 10px;
+  background: green;
+}
+</style>
+<!--
+  This test works by placing four children in each corner of the layout using the edges.
+  The reference to this test uses absolute positioning to achieve the same effect.
+-->
+<table>
+  <tr>
+    <td></td>
+    <td colspan=2>LTR</td>
+    <td colspan=2>RTL</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Y</td>
+    <td>X</td>
+    <td>Y</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td>HTB</td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: ltr; overflow-y: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: ltr; overflow-x: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: rtl; overflow-y: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: horizontal-tb; direction: rtl; overflow-x: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>VRL</td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: ltr; overflow-y: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: ltr; overflow-x: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: rtl; overflow-y: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-rl; direction: rtl; overflow-x: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>VLR</td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: ltr; overflow-y: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: ltr; overflow-x: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: rtl; overflow-y: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+    <td>
+      <div class="parent" style="writing-mode: vertical-lr; direction: rtl; overflow-x: scroll;">
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+        <div class="child"></div>
+      </div>
+    </td>
+  </tr>
+</table>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script id="code" type="text/worklet">
+registerLayout('test', class {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints) {
+    const topLeftFragment = await children[0].layoutNextFragment();
+    const topRightFragment = await children[1].layoutNextFragment();
+    const bottomLeftFragment = await children[2].layoutNextFragment();
+    const bottomRightFragment = await children[3].layoutNextFragment();
+
+    topLeftFragment.inlineOffset = edges.inlineStart;
+    topLeftFragment.blockOffset = edges.blockStart;
+
+    topRightFragment.inlineOffset =
+        constraints.fixedInlineSize - topRightFragment.inlineSize - edges.inlineEnd;
+    topRightFragment.blockOffset = edges.blockStart;
+
+    bottomLeftFragment.inlineOffset = edges.inlineStart;
+    bottomLeftFragment.blockOffset =
+        constraints.fixedBlockSize - bottomLeftFragment.blockSize - edges.blockEnd;
+
+    bottomRightFragment.inlineOffset =
+        constraints.fixedInlineSize - bottomRightFragment.inlineSize - edges.inlineEnd;
+    bottomRightFragment.blockOffset =
+        constraints.fixedBlockSize - bottomRightFragment.blockSize - edges.blockEnd;
+
+    return {childFragments: [
+        topLeftFragment,
+        topRightFragment,
+        bottomLeftFragment,
+        bottomRightFragment
+    ]};
+  }
+});
+</script>
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>

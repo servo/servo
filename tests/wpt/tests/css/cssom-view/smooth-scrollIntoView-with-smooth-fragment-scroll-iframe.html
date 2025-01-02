@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+      * {
+        scroll-behavior: smooth;
+      }
+      .scroller {
+        overflow-y: scroll;
+        height: 200px;
+        width: 200px;
+        background-color: teal;
+        border: solid 1px black;
+        position: relative;
+        display: inline-block;
+      }
+      .space {
+        height: 200vh;
+        width: 200vw;
+      }
+      .box {
+        height: 50px;
+        width: 50px;
+        background-color: purple;
+      }
+      .target {
+        position: absolute;
+        top: 150%;
+      }
+    </style>
+    <div id="fragment_scroll_container" class="scroller">
+      <div class="space"></div>
+      <div class="box target" id="fragment_scroll_target">target</div>
+    </div>
+    <div id="scrollintoview_container" class="scroller">
+      <div class="space"></div>
+      <div class="box target" id="scrollintoview_target"></div>
+    </div>
+    <a id="fragment_link" href="#fragment_scroll_target">Scroll To Fragment</a>
+    </style>
+    <script>
+      const fragment_scroll_container =
+        document.getElementById("fragment_scroll_container");
+      const scrollintoview_container =
+        document.getElementById("scrollintoview_container");
+      const scrollintoview_target =
+        document.getElementById("scrollintoview_target");
+      const parent = window.parent;
+
+      // Post a message to the parent frame when the scroll ends to the test can
+      // proceed.
+      scrollintoview_container.addEventListener("scrollend", () => {
+          parent.postMessage("ready");
+        }, { once: true });
+
+      // Start a scroll on the scrollintoview container as soon as we start
+      // scrolling the fragment's container.
+      fragment_scroll_container.addEventListener("scroll", () => {
+        scrollintoview_target.scrollIntoView({ behavior: "smooth" });
+      }, { once: true });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: start, textarea dir=auto on control</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<meta name="assert" content="text-align:start aligns inline-level content to the start edge of the line box – ie. when dir=auto on textarea, left when first strong is ltr, right when rtl.">
+<style type='text/css'>
+.test { text-align: start; }
+/* the CSS below is not part of the test */
+.test { border: 1px solid blue;  margin: 20px; width: 300px;  font-size: 24px; line-height: 1;}
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the first word is left-aligned, and the second right-aligned in the box.</div>
+<div>
+<textarea class="test" dir="auto">latin
+و·کمی</textarea>
+</div>
+</body>
+</html>

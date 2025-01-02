@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value normal</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: normal;
+}
+</style>
+
+<div class="test-case" data-expect="t1-c,t1-d,t1-g1,t1-h2,t2-e,t2-f,t2-g2,a,b,g,h,h1"
+      data-description="Grid items with `order` property and tabindex. Focus should be in DOM tabindexed-order.">
+  <div class="wrapper">
+    <button id="a" style="order: -1">Item A</button>
+    <button id="b" style="order: 0">Item B</button>
+    <button id="t1-c" tabindex="1" style="order: -1">Item C</button>
+  </div>
+  <div class="wrapper">
+    <button id="t1-d" tabindex="1" style="order: 1">Item D</button>
+    <button id="t2-e" tabindex="2" style="order: 0">Item E</button>
+    <button id="t2-f" tabindex="2" style="order: -1">Item F</button>
+  </div>
+  <div class="wrapper">
+    <div id="g" style="order: 2" tabindex="0">G
+      <div id="t1-g1" tabindex="1">Item G1</div>
+      <div id="t2-g2" tabindex="2">Item G2</div>
+    </div>
+    <div id="h" style="order: 1" tabindex="0">H
+      <div id="h1" tabindex="0">Item H1</div>
+      <div id="t1-h2" tabindex="1">Item H2</div>
+    </div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

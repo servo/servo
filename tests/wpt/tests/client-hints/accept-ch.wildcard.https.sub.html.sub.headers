@@ -1,0 +1,2 @@
+Accept-CH: sec-ch-ua-platform-version
+Permissions-Policy: ch-ua-platform-version=("https://*.{{domains[]}}:{{ports[https][0]}}")

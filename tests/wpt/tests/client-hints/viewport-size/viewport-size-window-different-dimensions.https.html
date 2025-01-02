@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(t => {
+  return new Promise(resolve => {
+    window.addEventListener("message", t.step_func(e => {
+      assert_equals(e.data.viewportWidth, "503");
+      assert_equals(e.data.viewportHeight, "614");
+      resolve();
+    }));
+  });
+});
+window.open("../resources/viewport-frame.py", "", "width=503,height=614");
+</script>

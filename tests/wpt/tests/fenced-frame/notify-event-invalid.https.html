@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test that fenced frame notifyEvent() fails with invalid event parameters</title>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      let notified = false;
+      fencedframe.element.addEventListener('fencedtreeclick', () => notified = true);
+
+      // Only "click" is supported for now, so any other type of event should
+      // fail to notify.
+      await fencedframe.execute(() => {
+        document.addEventListener('mousedown', (e) => {
+          try {
+            window.fence.notifyEvent(e);
+          } catch (err) {
+            window.click_error = err;
+            return;
+          }
+          window.click_error = new TypeError('No exception');
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      await fencedframe.execute(() => {
+        assert_equals(window.click_error.name, 'SecurityError');
+        assert_equals(window.click_error.message,
+        "Failed to execute 'notifyEvent' on 'Fence': notifyEvent called with an unsupported event type.");
+      });
+
+      assert_false(notified);
+    }, "Test that fenced frame notifyEvent() fails using the incorrect event type.");
+
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      let notified = false;
+      fencedframe.element.addEventListener('fencedtreeclick', () => notified = true);
+
+      await fencedframe.execute(() => {
+        // Event objects constructed manually are not "trusted", so this event
+        // should fail to notify. "Trusted" means that the event was created by
+        // the user agent itself.
+        let fake_click = new Event('click');
+        try {
+          window.fence.notifyEvent(fake_click);
+        } catch (err) {
+          assert_equals(err.name, 'SecurityError');
+          assert_equals(err.message, "Failed to execute 'notifyEvent' on 'Fence': The triggering_event object is in an invalid state.");
+          return;
+        }
+        assert_unreached('An untrusted event must cause a SecurityError.');
+      });
+
+      assert_false(notified);
+    }, "Test that fenced frame notifyEvent() fails using an untrusted event.");
+
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      let notified = false;
+      fencedframe.element.addEventListener('fencedtreemousedown', () => {
+        notified = true;
+      });
+
+      // This click handler should not trigger the above handler on the
+      // HTMLFencedFrameElement, because its type is not 'fencedtreeclick'.
+      await fencedframe.execute(() => {
+        document.addEventListener('click', (e) => {
+          window.fence.notifyEvent(e);
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      // Wait 2s to let any event handling code settle.
+      await new Promise((resolve) => t.step_timeout(
+          () => resolve(), 2000));
+
+      assert_false(notified);
+    }, "Test that fenced frame notifyEvent() only invokes 'fencedtreeclick'.");
+  </script>
+</body>

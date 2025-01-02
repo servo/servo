@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap 2 Test: scroll-start-*</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <style>
+    :root {
+      scroll-start: 10vh 200px;
+    }
+
+    .spacer {
+      width: 200vw;
+      height: 200vh;
+      border: solid 1px green;
+    }
+  </style>
+  <div class="spacer"></div>
+  <script>
+    promise_test(async (t) => {
+      assert_equals(window.scrollX, 200,
+        "scroll-start: <length> sets initial scroll position");
+      assert_equals(window.scrollY, 0.1 * window.innerHeight,
+        "scroll-start: <length> sets initial scroll position");
+    }, "scroll-start sets the initial scroll position of the document");
+  </script>
+</body>

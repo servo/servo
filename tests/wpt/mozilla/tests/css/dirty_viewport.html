@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test elements subject to viewport units are restyled correctly</title>
+<link rel="match" href="dirty_viewport_ref.html">
+<iframe seamless src="dirty_viewport_inner.html" width="500" height="500"></iframe>
+<script>
+  window.onload = function() {
+    var iframe = document.querySelector('iframe');
+    iframe.width = iframe.height = 100;
+  }
+</script>

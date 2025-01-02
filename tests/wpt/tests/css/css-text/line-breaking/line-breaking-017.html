@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — line breaking at element boundaries</title>
+<meta name=assert content="An out-of-flow element should not introduce a line-break opportunity">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-break-details">
+<link rel=match href="reference/line-breaking-017-ref.html">
+<link rel=author title="Jonathan Kew" href="jkew@mozilla.com">
+<style>
+.test { margin: 1em 0; width: 0; }
+.oof { float: left; }
+</style>
+<body>
+The word "unbroken" below should <b>not</b> be broken:
+<div class="test">un<span class="oof"></span>bro<b class="oof">float</b>ken</div>
+</body>
+</html>

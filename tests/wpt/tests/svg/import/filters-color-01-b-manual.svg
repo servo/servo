@@ -1,0 +1,112 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-color-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feColorMatrixElement">
+      <p>
+        Test which verifies the basic facilities of
+        feColorMatrix.
+      </p>
+      <p>
+        This test uses the following elements : a nested
+        &lt;svg&gt; with a viewBox attribute, &lt;linearGradient&gt;,
+        &lt;filter&gt;, &lt;feColorMatrix&gt;, &lt;feComposite&gt;.
+      </p>
+      <p>
+        The test case shows five rectangles filled with a
+        gradient showing the effects of feColorMatrix: an
+        unfiltered rectangle acting as a reference, use of the
+        feColorMatrix matrix option to convert to grayscale,
+        use of the feColorMatrix saturate option, use of the
+        feColorMatrix hueRotate option, and use of the
+        feColorMatrix luminanceToAlpha option.
+      </p>
+      <p>
+        The test is somewhat self-explanatory as the strings
+        document the type of feColorMatrix operation that is
+        being used.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image
+        exactly, except for possible variations in the
+        labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-color-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <svg xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="-10" y="5" width="500" height="290" viewBox="0 0 800 500">
+      <title>Example feColorMatrix - Examples of feColorMatrix operations</title>
+      <desc>Five rectangles filled with a gradient showing the effects of feColorMatrix: an unfiltered rectangle acting as a reference, use of the feColorMatrix matrix option to convert to grayscale, use of the feColorMatrix saturate option, use of the feColorMatrix hueRotate option, and use of the feColorMatrix luminanceToAlpha option.</desc>
+      <defs>
+        <linearGradient id="MyGradient" gradientUnits="userSpaceOnUse" x1="20" y1="0" x2="760" y2="0">
+          <stop offset="0" stop-color="#dd00dd"/>
+          <stop offset=".33" stop-color="#22cc22"/>
+          <stop offset=".67" stop-color="#400000"/>
+          <stop offset="1" stop-color="#a0a0ff"/>
+        </linearGradient>
+        <filter id="Matrix" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feColorMatrix type="matrix" in="SourceGraphic" values=".33 .33 .33 0 0                       .33 .33 .33 0 0                       .33 .33 .33 0 0                       .33 .33 .33 0 0"/>
+        </filter>
+        <filter id="Saturate40" filterUnits="objectBoundingBox" x="-5%" y="-5%" width="110%" height="110%">
+          <feColorMatrix type="saturate" in="SourceGraphic" values=".25"/>
+        </filter>
+        <filter id="HueRotate90" filterUnits="objectBoundingBox" x="-5%" y="-5%" width="110%" height="110%">
+          <feColorMatrix type="hueRotate" in="SourceGraphic" values="90"/>
+        </filter>
+        <filter id="LuminanceToAlpha" filterUnits="objectBoundingBox" x="-5%" y="-5%" width="110%" height="110%">
+          <feColorMatrix type="luminanceToAlpha" in="SourceGraphic" result="a"/>
+          <feComposite in="SourceGraphic" in2="a" operator="in"/>
+        </filter>
+      </defs>
+      <g font-size="40" font-family="Verdana">
+        <rect fill="none" stroke="blue" x="1" y="1" width="798" height="498"/>
+        <rect x="20" y="20" width="760" height="40" fill="url(#MyGradient)"/>
+        <text x="20" y="95">Unfiltered</text>
+        <rect x="20" y="120" width="760" height="40" fill="url(#MyGradient)" filter="url(#Matrix)"/>
+        <text x="20" y="195">type="matrix" (grayscale matrix)</text>
+        <rect x="20" y="220" width="760" height="40" fill="url(#MyGradient)" filter="url(#Saturate40)"/>
+        <text x="20" y="295">type="saturate" values=".4"</text>
+        <rect x="20" y="320" width="760" height="40" fill="url(#MyGradient)" filter="url(#HueRotate90)"/>
+        <text x="20" y="395">type="hueRotate" values="90"</text>
+        <rect x="20" y="420" width="760" height="40" fill="url(#MyGradient)" filter="url(#LuminanceToAlpha)"/>
+        <text x="20" y="495">type="luminanceToAlpha"</text>
+      </g>
+    </svg>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/41493875">
+<style>
+  #ellipsis {
+    overflow: clip;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 18ch;
+  }
+  img {
+    width: 10ch;
+  }
+  .ib {
+    display: inline-block;
+    width: 10ch;
+    height: 10px;
+  }
+</style>
+<div id="ellipsis">
+  <span style="border-top:1px solid;">
+    x<br>
+    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><div class="ib"></div>
+  </span>
+</div>

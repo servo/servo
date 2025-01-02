@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+    "use strict";
+    const same_origin_src =
+      "/permissions-policy/resources/permissions-policy-payment.html";
+    const cross_origin_src =
+      "https://{{hosts[alt][]}}:{{ports[https][0]}}" + same_origin_src;
+    const feature_name = 'permissions policy "payment"';
+    const header = 'allow="payment" attribute';
+
+    promise_test((test) => {
+      return test_feature_availability({
+        feature_description: "PaymentRequest()",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        is_promise_test: true
+      });
+    }, `${feature_name} is enabled by default`);
+
+    promise_test((test) => {
+      return test_feature_availability({
+        feature_description: "PaymentRequest()",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        feature_name: "payment",
+        is_promise_test: true,
+      });
+    }, `${feature_name} can be enabled in same-origin iframe using ${header}`);
+
+    promise_test((test) => {
+      return test_feature_availability({
+        feature_description: "PaymentRequest()",
+        test,
+        src: cross_origin_src,
+        expect_feature_available: expect_feature_available_default,
+        feature_name: "payment",
+        is_promise_test: true,
+      });
+    }, `${feature_name} can be enabled in cross-origin iframe using ${header}`);
+  </script>
+</body>

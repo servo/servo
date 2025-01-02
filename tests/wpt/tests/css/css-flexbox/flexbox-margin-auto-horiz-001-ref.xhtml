@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div { height: 20px; }
+      div.flexbox {
+        width: 200px;
+        background: lightgray;
+        margin-bottom: 2px;
+      }
+      div.a {
+        width: 20px;
+        background: green;
+        display: inline-block;
+      }
+      div.b {
+        width: 20px;
+        background: pink;
+        display: inline-block;
+      }
+      div.c {
+        width: 20px;
+        background: purple;
+        display: inline-block;
+      }
+
+      <!-- These classes allow us to conveniently/concisely specify margin
+           values below, for exact positioning of the items on each reference
+           line. ("l" = "margin-_l_eft", and the number = number of pixels) -->
+      div.l180 { margin-left: 180px }
+      div.l90  { margin-left:  90px }
+      div.l80  { margin-left:  80px }
+      div.l70  { margin-left:  70px }
+      div.l53  { margin-left: calc(160px / 3) } <!-- == 53.33333px -->
+      div.l35  { margin-left:  35px }
+    </style>
+  </head>
+  <body>
+    <!-- just one item -->
+    <div class="flexbox">
+      <div class="a l180"/>
+    </div>
+    <div class="flexbox">
+      <div class="b l90"/>
+    </div>
+    <div class="flexbox">
+      <div class="c"/>
+    </div>
+
+    <!-- Two items -->
+    <div class="flexbox">
+      <div class="a l53"/><div class="b l53"/>
+    </div>
+    <div class="flexbox">
+      <div class="a l80"/><div class="c"/>
+    </div>
+    <div class="flexbox">
+      <div class="b l53"/><div class="c l53"/>
+    </div>
+
+    <!-- Three items -->
+    <div class="flexbox">
+      <div class="a l35"/><div class="b l35"/><div class="c l35"/>
+    </div>
+    <div class="flexbox">
+      <div class="a l35"/><div class="c"/><div class="b l70"/>
+    </div>
+    <div class="flexbox">
+      <div class="b l35"/><div class="a l70"/><div class="c"/>
+    </div>
+    <div class="flexbox">
+      <div class="b l35"/><div class="c l35"/><div class="a l70"/>
+    </div>
+    <div class="flexbox">
+      <div class="c"/><div class="a l70"/><div class="b l35"/>
+    </div>
+    <div class="flexbox">
+      <div class="c"/><div class="b l70"/><div class="a l70"/>
+    </div>
+  </body>
+</html>

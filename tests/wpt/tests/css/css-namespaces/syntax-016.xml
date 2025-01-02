@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Disruptive Innovations SAS" href="http://disruptive-innovations.com/"/>
+  <link rel="help" href="http://www.w3.org/TR/css-namespaces-3/#syntax"/>
+  <title>CSS Namespaces Test Suite: @namespace and other rules ordering</title>
+  <style>
+    @namespace test url("test");
+    @media all {
+      test|test { background-color: lime; }
+    }
+    @namespace test2 url("test");
+    test2|test { background: red }
+  </style>
+ </head>
+ <body>
+  <p>
+    <test xmlns="test">This sentence should have a green
+                       background.</test>
+  </p>
+ </body>
+</html>

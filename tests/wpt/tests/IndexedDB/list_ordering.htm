@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>objectStoreNames and indexNames order</title>
+<link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
+<link rel=help href="http://dvcs.w3.org/hg/IndexedDB/raw-file/tip/Overview.html#widl-IDBDatabase-objectStoreNames">
+<link rel=assert title="The list must be sorted in ascending order using the algorithm defined by step 4 of section 11.8.5, The Abstract Relational Comparison Algorithm of the ECMAScript Language Specification [ECMA-262].">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+
+<script>
+    function list_order(desc, unsorted, expected) {
+        var objStore, db,
+          t = async_test(document.title + " - " + desc);
+
+        var open_rq = createdb(t);
+        open_rq.onupgradeneeded = function(e) {
+            db = e.target.result;
+            for (var i = 0; i < unsorted.length; i++)
+                objStore = db.createObjectStore(unsorted[i]);
+
+            assert_equals(db.objectStoreNames.length, expected.length, "objectStoreNames length");
+            for (var i = 0; i < expected.length; i++)
+               assert_equals(db.objectStoreNames[i], expected[i], "objectStoreNames["+i+"]");
+
+            for (var i = 0; i < unsorted.length; i++)
+                objStore.createIndex(unsorted[i], "length");
+
+            assert_equals(objStore.indexNames.length, expected.length, "indexNames length");
+            for (var i = 0; i < expected.length; i++)
+                assert_equals(objStore.indexNames[i], expected[i], "indexNames["+i+"]");
+        };
+
+        open_rq.onsuccess = function(e) {
+            assert_equals(db.objectStoreNames.length, expected.length, "objectStoreNames length");
+            for (var i = 0; i < expected.length; i++)
+                assert_equals(db.objectStoreNames[i], expected[i], "objectStoreNames["+i+"]");
+
+            assert_equals(objStore.indexNames.length, expected.length, "indexNames length");
+            for (var i = 0; i < expected.length; i++)
+                assert_equals(objStore.indexNames[i], expected[i], "indexNames["+i+"]");
+
+            t.done();
+        };
+    }
+
+    list_order("numbers",
+        [123456, -12345, -123, 123, 1234, -1234, 0, 12345, -123456],
+        ["-123", "-1234", "-12345", "-123456", "0", "123", "1234", "12345", "123456"]);
+
+    list_order("numbers 'overflow'",
+        [9, 1, 1000000000, 200000000000000000],
+        ["1", "1000000000", "200000000000000000", "9"]);
+
+    list_order("lexigraphical string sort",
+        [ "cc", "c", "aa", "a", "bb", "b", "ab", "", "ac" ],
+        [ "", "a", "aa", "ab", "ac", "b", "bb", "c", "cc" ]);
+
+</script>
+
+<div id="log"></div>

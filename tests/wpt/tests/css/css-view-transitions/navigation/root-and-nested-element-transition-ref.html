@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>View transitions: basic cross-document navigation (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+.old {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  background: grey;
+}
+.new {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 50vw;
+  top: 0px;
+  background: orange;
+}
+.old_text {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  transform: translate(8px, 8px);
+}
+.new_text {
+  position: fixed;
+  top: 200px;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background: lightgreen;
+  transform: translate(8px, 8px);
+}
+.inner {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  border: 5px solid black;
+}
+</style>
+<div class="old"></div>
+<div class="new"></div>
+<div class="old_text">
+  This is old element
+  <div class="inner"></div>
+</div>
+<div class="new_text">
+  This is new element
+  <div class="inner" style="border:5px solid blue"></div>
+</div>

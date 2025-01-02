@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src 'self' 'nonce-nonceynonce'">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <script>
+      var t = async_test("Should not load inline style element with invalid nonce");
+      var t_spv = async_test("Should fire a securitypolicyviolation event");
+
+      document.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+        assert_equals("style-src-elem", e.violatedDirective);
+      }));
+    </script>
+    <style nonce="not-nonceynonce">
+        #content {
+            margin-left: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content">Lorem ipsum</div>
+
+    <script>
+      t.step(function() {
+        var contentEl = document.getElementById("content");
+        var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
+        assert_not_equals(marginLeftVal, "2px");
+        t.done();
+      });
+    </script>
+
+</body>
+</html>

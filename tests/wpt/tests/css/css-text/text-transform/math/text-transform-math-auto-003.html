@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>text-transform math-auto</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#italic-mappings">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="italic-mapping.js"></script>
+    <meta name="assert" content="Verify Selection.toString() on a character with 'text-transform: math-auto' returns the transformed unicode character.">
+    <style>
+      #container {
+        text-transform: math-auto;
+      }
+    </style>
+  </head>
+  <body>
+    <span id="container"></span>
+    <script>
+      add_completion_callback(() => {
+        container.remove();
+      });
+      for (let code_point in italic_mapping) {
+        test(() => {
+          container.textContent = String.fromCodePoint(code_point);
+          window
+            .getSelection()
+            .setBaseAndExtent(container.firstChild, 0, container.firstChild, 1);
+          assert_equals(
+            window.getSelection().toString(),
+            String.fromCodePoint(italic_mapping[code_point])
+          );
+        }, `Selection.toString() for math-auto '${String.fromCodePoint(code_point)}' returns the transformed character.`);
+      }
+    </script>
+  </body>
+</html>

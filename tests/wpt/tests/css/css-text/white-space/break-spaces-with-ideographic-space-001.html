@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: ideographic space at the end of line and white-space is break-spaces</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<link rel="match" href="reference/pre-wrap-001-ref.html">
+<meta name="assert" content="ideographic space at the end of the line is wrapped when the white-space property is set to break-spaces.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
+  white-space: break-spaces;
+  color: green;
+
+  background: linear-gradient(red, red) 1ch 0/2ch 2ch no-repeat;
+
+  width: 4ch;
+  margin-left: -1ch;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <div>&#x3000;XX&#x3000;&#x3000;XX</div>
+</body>

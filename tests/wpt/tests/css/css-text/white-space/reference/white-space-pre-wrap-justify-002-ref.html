@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Text reference</title>
+
+<style>
+div {
+  border: 1px solid gray;
+  font: 22px monospace;
+  width: 22ch;
+  margin: 1em;
+}
+.ref {
+  white-space: normal;
+  text-align: justify;
+}
+</style>
+
+<p>Test passes if the two blocks are rendered identically</p>
+
+<div class=ref>one two&nbsp; three &nbsp; four five six seven eight nine &nbsp; ten</div>
+
+<div class=ref>one two&nbsp; three &nbsp; four five six seven eight nine &nbsp; ten</div>

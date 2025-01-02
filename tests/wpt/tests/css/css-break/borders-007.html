@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#break-decoration">
+<link rel="match" href="borders-007-ref.html">
+<p>There should be a yellow box that starts in the first column and ends in the
+  third. The block-start border should be in the first column, and the block-end
+  border should be in the third.</p>
+<div style="columns:3; column-gap:10px; column-fill:auto; writing-mode:vertical-rl; inline-size:320px; block-size:100px;">
+  <div style="border:10px solid hotpink; block-size:250px; background:yellow;"></div>
+</div>

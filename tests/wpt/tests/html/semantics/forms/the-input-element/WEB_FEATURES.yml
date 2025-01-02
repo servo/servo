@@ -1,0 +1,11 @@
+features:
+- name: constraint-validation
+  files:
+  - input-checkvalidity.html
+  - input-setcustomvalidity.html
+  - input-validationmessage.html
+  - input-validity.html
+  - input-willvalidate.html
+- name: show-picker-input
+  files:
+  - show-picker-*

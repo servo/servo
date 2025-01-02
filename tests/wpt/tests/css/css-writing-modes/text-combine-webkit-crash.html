@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>text-combine-upright and -webkit-text-combine do not crash when used together</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org"/>
+<link rel="help" href="https://crbug.com/1355087"/>
+<body>
+<div id="div"></div>
+<script>
+  div.style.setProperty("-webkit-text-combine", "none");
+  div.style.setProperty("text-combine-upright", "all");
+  div.style.setProperty("background-color", "white");
+  div.offsetTop;
+  div.style.setProperty("background-color", "black");
+</script>
+</body>
+</html>

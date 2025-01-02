@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>hebrew, outside range</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel='match' href='css3-counter-styles-016a-ref.html'>
+<link rel='match' href='css3-counter-styles-016a-alt-ref.html'><!-- Gecko prefers this rendering over the fallback rendering -->
+<meta name="assert" content="list-style-type: hebrew produces numbers in the fallback counter style above the limit per the spec.">
+<style>
+ol li { list-style-type: hebrew;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; list-style-position: inside; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="10999">
+<li title="10999">י׳תתקצט</li>
+<li title='11000'>11000</li>
+<li title='11001'>11001</li>
+</ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

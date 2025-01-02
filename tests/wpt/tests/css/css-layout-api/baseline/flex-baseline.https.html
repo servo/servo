@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-alignment">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that a baseline aligned element uses the baseline set in layout()."/>
+<style>
+.parent {
+  background: red;
+  display: flex;
+  padding: 0 10px;
+  width: 80px;
+  height: 100px;
+  align-items: baseline;
+}
+
+.child {
+  color: red;
+}
+
+@supports (display: layout(parent)) {
+  .parent {
+    background: green;
+  }
+  .child {
+    display: layout(child);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="parent">
+  <div style="position: absolute; top: 50px; width: 50px; height: 25px; background: green;"></div>
+  <div></div>
+  <div class="child">text</div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('child', class {
+  async intrinsicSizes() {}
+  async layout(children) {
+    const childFragments = await Promise.all(children.map(child => child.layoutNextFragment({})));
+    return {childFragments, baseline: -50};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

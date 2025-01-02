@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-position - over right - basic cases Reftest Reference</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+		<style type="text/css"><![CDATA[
+			.vertical
+			{
+				writing-mode: vertical-rl;
+			}
+			.displayarea
+			{
+				border: solid 1px gray;
+				padding: 10px;
+				width: 10em;
+			}
+			.floatright
+			{
+				float: right;
+			}
+			.ref {
+				ruby-position: over;  /* to match emphasis position 'right' */
+			}
+			.parent
+			{
+				background: yellow;
+				border: solid 1px gray;
+				color: blue;
+				font: 20px/1em ahem;
+				height: 6em;
+				width: 2em;
+			}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of left and right block in the square box is identical.</p>
+			<p>vertical</p>
+			<div class="displayarea">
+				<div class="parent vertical floatright ref">
+					<div>
+						<ruby><rb>a</rb><rt>&#x25CF;</rt><rb>b</rb><rt>&#x25CF;</rt><rb>c</rb><rt>&#x25CF;</rt></ruby>
+						 de<br />
+						<br />
+					</div>
+				</div>
+				<div class="parent vertical ref">
+					<div>
+						<ruby><rb>a</rb><rt>&#x25CF;</rt><rb>b</rb><rt>&#x25CF;</rt><rb>c</rb><rt>&#x25CF;</rt></ruby>
+						 de<br />
+						<br />
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

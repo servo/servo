@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-09 -->
+
+  <style type="text/css"><![CDATA[
+   p { margin: 0; padding: 0; font-size: 3em; }
+   .eight {float: left; width: 25%;
+           background-color: #000080; color: white;
+           padding: 0; margin: 0}
+   .nine {float: right; width: 25%;
+          background-color: teal; color: white;
+          padding: 0; margin: 0}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+ </head>
+ <body>
+  <div class="eight">
+   <p>
+    &#x21E6; This blue box should be on the left.
+   </p>
+  </div>
+  <div class="nine">
+   <p>
+    This teal box should be on the right. &#x21E8;
+   </p>
+  </div>
+  <p>
+   This text should be in between a blue box on the &#x21E6;left and a teal box on the right&#x21E8;.
+  </p>
+ </body>
+</html>

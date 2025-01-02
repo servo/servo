@@ -1,0 +1,84 @@
+@import "reset.css";
+.yes { color: green }
+.no { color: red }
+.maybe { color: orange }
+.yes, .no, .maybe {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 3em;
+    /* Somehow Opera doesn't render the X's if the font is serif, on my
+     * machine. */
+    font-family: sans-serif;
+    border-color: black;
+}
+div.alert {
+    color: red;
+    font-weight: bold;
+}
+.extra-results { font-size: small }
+.good-result { color: green }
+.bad-result { color: red }
+body > div > table > tbody > tr > td > div:first-child {
+    padding-bottom: 0.2em;
+}
+body > div > table > tbody > tr > td > div:last-child {
+    padding-top: 0.2em;
+    border-top: 1px solid black;
+}
+/* Workaround for browsers that don't treat <wbr> as a line-break opportunity
+ * (activated via JS feature-detection) */
+body.wbr-workaround > div > table > tbody > tr > td > div:last-child {
+    word-wrap: break-word;
+}
+body > div > table > tbody > tr > td > div:last-child {
+    white-space: pre-wrap;
+}
+/* Let the rendered HTML line up so it's easier to compare whitespace */
+body > div > table > tbody > tr > td { vertical-align: top }
+/* We don't want test cells to not wrap */
+listing, plaintext, pre, xmp { white-space: pre-wrap }
+img, video { width: 50px }
+body > div > table {
+    width: 100%;
+    table-layout: fixed;
+}
+body > div > table > tbody > tr > td,
+body > div > table > tbody > tr > th {
+    width: 30%;
+}
+body > div > table > tbody > tr > td:last-child,
+body > div > table > tbody > tr > th:last-child {
+    width: 10%;
+}
+body > div > p > label > input { width: 30% }
+#toolbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1.5em;
+    background: white;
+    border-bottom: 2px solid gray;
+}
+body {
+    /* So the toolbar doesn't block it */
+    margin-top: 2em;
+}
+/* For easy visibility of nesting */
+ol ol { list-style-type: lower-alpha }
+ol ol ol { list-style-type: lower-roman }
+/* For manual tests */
+#overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    color: red;
+    background: yellow;
+    font-size: 4em;
+    font-weight: bold;
+    text-align: center;
+    padding: 2em;
+}

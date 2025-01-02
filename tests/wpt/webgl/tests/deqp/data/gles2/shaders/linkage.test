@@ -1,0 +1,1715 @@
+# not declared in vertex shader, declared in fragment shader
+case varying_1
+	desc "varying declared in fragment shader, no reference in vertex shader"
+	values { output float out0 = 1.0; }
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		varying mediump float var;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{
+			out0 = 1.0;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+# declared in vertex shader, no reference in frag shader
+case varying_2
+	desc "varying declared in vertex shader, no reference in fragment shader"
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+# declared in vertex shader, declared in frag shader
+case varying_3
+	desc "varying declared in both vertex and fragment shader, but not used"
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying mediump float var;
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+# declared in vertex shader, static use in frag shader
+case varying_4
+	desc "varying declared in both shaders, statically used in fragment shader"
+	values { uniform bool u_false = false; }
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying mediump float var;
+		uniform bool u_false;
+		void main()
+		{
+			if (u_false)
+				gl_FragColor = vec4(var);
+			else
+				gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+# static use in vertex shader, no reference in fragment shader
+case varying_5
+	desc "varying declared and statically used in vertex shader, no reference in fragment shader"
+	values { uniform bool u_false = false; }
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			if (u_false)
+				var = 1.0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+# static use in vertex shader, declared in fragment shader
+case varying_6
+	desc "varying declared and statically used in vertex shader, only declared in fragment shader"
+	values { uniform bool u_false = false; }
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			if (u_false)
+				var = 1.0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying mediump float var;
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+# static use in vertex shader, used in fragment shader
+case varying_7
+	desc "varying statically used in both vertex and fragment shader"
+	values { uniform bool u_false = false; }
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			if (u_false)
+				var = 1.0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			if (u_false)
+				gl_FragColor = vec4(var);
+			else
+				gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+case varying_type_float
+	desc "varying of type float"
+	values
+	{
+		input float in0		= [ -1.25 | -25.65 | 1.0 | 2.25 | 3.4 | 16.0 ];
+		output float out0	= [ -1.25 | -25.65 | 1.0 | 2.25 | 3.4 | 16.0 ];
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying float var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case varying_type_vec2
+	desc "varying of type vec2"
+	values
+	{
+		input vec2 in0		= [ vec2(-1.25, 1.25) | vec2(-25.65, -7.25) | vec2(0.0, 1.0) | vec2(2.25, 2.25) | vec2(3.4, 9.5) | vec2(16.0, 32.0) ];
+		output vec2 out0	= [ vec2(-1.25, 1.25) | vec2(-25.65, -7.25) | vec2(0.0, 1.0) | vec2(2.25, 2.25) | vec2(3.4, 9.5) | vec2(16.0, 32.0) ];
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump vec2 var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying vec2 var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case varying_type_vec3
+	desc "varying of type vec3"
+	values
+	{
+		input vec3 in0		= [ vec3(-1.25, 1.25, -9.5) | vec3(-25.65, -7.25, 14.21) | vec3(0.0, 1.0, -1.0) | vec3(2.25, 2.25, 22.5) | vec3(3.4, 9.5, 19.5) | vec3(16.0, 32.0, -64.0) ];
+		output vec3 out0	= [ vec3(-1.25, 1.25, -9.5) | vec3(-25.65, -7.25, 14.21) | vec3(0.0, 1.0, -1.0) | vec3(2.25, 2.25, 22.5) | vec3(3.4, 9.5, 19.5) | vec3(16.0, 32.0, -64.0) ];
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump vec3 var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying vec3 var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case varying_type_vec4
+	desc "varying of type vec4"
+	values
+	{
+		input vec4 in0		= [ vec4(-1.25, 1.25, -9.5, -12.2) | vec4(-25.65, -7.25, 14.21, -77.7) | vec4(0.0, 1.0, -1.0, 2.0) | vec4(2.25, 2.25, 22.5, 225.0) | vec4(3.4, 9.5, 19.5, 29.5) | vec4(16.0, 32.0, -64.0, -128.0) ];
+		output vec4 out0	= [ vec4(-1.25, 1.25, -9.5, -12.2) | vec4(-25.65, -7.25, 14.21, -77.7) | vec4(0.0, 1.0, -1.0, 2.0) | vec4(2.25, 2.25, 22.5, 225.0) | vec4(3.4, 9.5, 19.5, 29.5) | vec4(16.0, 32.0, -64.0, -128.0) ];
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump vec4 var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying vec4 var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case varying_type_mat2
+	desc "varying of type mat2"
+	values
+	{
+		input mat2 in0		= [ mat2(1.0, 1.0, 1.0, 1.0) | mat2(-1.25, 1.25, -9.5, -12.2) | mat2(-25.65, -7.25, 14.21, -77.7) | mat2(0.0, 1.0, -1.0, 2.0) | mat2(2.25, 2.25, 22.5, 225.0) | mat2(3.4, 9.5, 19.5, 29.5) | mat2(16.0, 32.0, -64.0, -128.0) ];
+		output mat2 out0	= [ mat2(1.0, 1.0, 1.0, 1.0) | mat2(-1.25, 1.25, -9.5, -12.2) | mat2(-25.65, -7.25, 14.21, -77.7) | mat2(0.0, 1.0, -1.0, 2.0) | mat2(2.25, 2.25, 22.5, 225.0) | mat2(3.4, 9.5, 19.5, 29.5) | mat2(16.0, 32.0, -64.0, -128.0) ];
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump mat2 var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying mat2 var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case varying_type_mat3
+	desc "varying of type mat3"
+	values
+	{
+		input mat3 in0		= [ mat3(-1.25, 1.25, -9.5, -12.2, -25.65, -7.25, 14.21, -77.7, 9.9) | mat3(0.0, 1.0, -1.0, 2.0, 2.25, 2.25, 22.5, 225.0, -9.9) | mat3(3.4, 9.5, 19.5, 29.5, 16.0, 32.0, -64.0, -128.0, 256.0) ];
+		output mat3 out0	= [ mat3(-1.25, 1.25, -9.5, -12.2, -25.65, -7.25, 14.21, -77.7, 9.9) | mat3(0.0, 1.0, -1.0, 2.0, 2.25, 2.25, 22.5, 225.0, -9.9) | mat3(3.4, 9.5, 19.5, 29.5, 16.0, 32.0, -64.0, -128.0, 256.0) ];
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump mat3 var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying mat3 var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case varying_type_mat4
+	desc "varying of type mat4"
+	values
+	{
+		input mat4 in0		= [ mat4(-1.25, 1.25, -9.5, -12.2, -25.65, -7.25, 14.21, -77.7, 0.0, 1.0, -1.0, 2.0, 2.25, 2.25, 22.5, 225.0) ];
+		output mat4 out0	= [ mat4(-1.25, 1.25, -9.5, -12.2, -25.65, -7.25, 14.21, -77.7, 0.0, 1.0, -1.0, 2.0, 2.25, 2.25, 22.5, 225.0) ];
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump mat4 var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying mat4 var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+# differing precision tests
+case varying_differing_precision_1
+	desc "varying declared as highp in vertex shader, but mediump in fragment shader"
+	values
+	{
+		input float in0		= [ -1.25 | -25.55 | 1.0 | 2.25 | 3.4 | 16.0 ];
+		output float out0	= [ -1.25 | -25.55 | 1.0 | 2.25 | 3.4 | 16.0 ];
+	}
+
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying highp float var;
+		void main()
+		{
+			var = in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			out0 = var;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+# differing precision tests
+case varying_differing_precision_2
+	desc "varying declared as highp in vertex shader, but lowp in fragment shader"
+	values
+	{
+		input float in0		= [ -1.25 | -25.56 | 1.0 | 2.25 | 3.4 | 16.0 ];
+		output float out0	= [ -1.25 | -25.56 | 1.0 | 2.25 | 3.4 | 16.0 ];
+	}
+
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying highp vec2 var;
+		void main()
+		{
+			var = vec2(in0, 2.0*in0);
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying lowp vec2 var;
+		void main()
+		{
+			out0 = var.y - var.x;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+# differing precision tests
+case varying_differing_precision_3
+	desc "varying declared as lowp in vertex shader, but mediump in fragment shader"
+	values
+	{
+		input float in0		= [ -1.25 | -25.0 | 1.0 | 2.25 | 3.4 | 16.0 ];
+		output float out0	= [ -1.25 | -25.0 | 1.0 | 2.25 | 3.4 | 16.0 ];
+	}
+
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying lowp vec4 var;
+		void main()
+		{
+			var = vec4(in0, 2.0*in0, -in0, -in0);
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump vec4 var;
+		void main()
+		{
+			out0 = var.x + var.y + var.z + var.w;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+# mismatched type, static use but no runtime use in the fragment shader
+case varying_type_mismatch_1
+	desc "varying type mismatch (float vs. vec2), static use but no runtime use in the fragment shader"
+	expect link_fail
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			var = 2.0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying mediump vec2 var;
+		void main()
+		{
+			if (false)
+			{
+				gl_FragColor = vec4(var.y);
+			}
+			else
+			{
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		}
+	""
+end
+
+# mismatched type, varyings used
+case varying_type_mismatch_2
+	desc "varying type mismatch (float vs. vec2)"
+	expect link_fail
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump float var;
+		void main()
+		{
+			var = 2.0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying mediump vec2 var;
+		void main()
+		{
+			gl_FragColor = var.xyyx;
+		}
+	""
+end
+
+# no declaration in vertex shader, but static use in fragment
+case varying_illegal_usage_1
+	desc "varying not declared in vertex shader, but statically used in fragment shader"
+	expect link_fail
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying mediump float var;
+		void main()
+		{
+			gl_FragColor = vec4(var);
+		}
+	""
+end
+
+# integer varyings not allowed
+case invalid_varying_type_int
+	desc "integer varying used"
+	expect compile_fail
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying mediump int var;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying mediump int var;
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+# bool varyings not allowed
+case invalid_varying_type_bool
+	desc "boolean varying used"
+	expect compile_fail
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying bool var;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying bool var;
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+# struct varyings not allowed
+case invalid_varying_type_struct
+	desc "struct varying used"
+	expect compile_fail
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		varying struct { mediump float foo; } var;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		varying struct { mediump float foo; } var;
+		void main()
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end
+
+case varying_readback_1
+	desc "read back (an already written) varying in the vertex shader"
+	values
+	{
+		input float in0		= [ 1.0 | 0.0 | -2.0 | 10.0 ];
+		output float out0	= [ 3.0 | 0.0 | -6.0 | 30.0 ];
+	}
+	vertex ""
+		precision mediump float;
+		${VERTEX_DECLARATIONS}
+		varying float var1;
+		varying float var2;
+
+		void main()
+		{
+			var1 = in0;
+			var2 = var1 + in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying float var1;
+		varying float var2;
+
+		void main()
+		{
+			out0 = var1 + var2;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case varying_writeback_1
+	desc "write back a varying in the fragment shader"
+	expect compile_fail
+	vertex ""
+		precision mediump float;
+		${VERTEX_DECLARATIONS}
+		varying float var1;
+		varying float var2;
+
+		void main()
+		{
+			var1 = in0;
+			var2 = var1 + in0;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+		precision mediump float;
+		${FRAGMENT_DECLARATIONS}
+		varying float var1;
+		varying float var2;
+
+		void main()
+		{
+			var2 = var1;
+			out0 = var1;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+# Struct linkage handling
+case uniform_struct
+	desc "Same uniform struct in both shaders"
+	values {
+		uniform float val.a = 1.0;
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		void main()
+		{
+			dummy = val.a + val.b;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.b + val.a;
+			out0 = out0 + dummy;
+			out0 = out0 - dummy;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_vertex_only
+	desc "Uniform struct declared in both, used only in vertex."
+	values {
+		uniform float val.a = 1.0;
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a + val.b;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		varying mediump float res;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = res;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_fragment_only
+	desc "Uniform struct declared in both, used only in fragment."
+	values {
+		uniform float val.a = 1.0;
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.a + val.b;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial
+	desc "Uniform struct declared in both, used partially in both."
+	values {
+		uniform float val.a = 1.0;
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_vec4
+	desc "Same uniform struct in both shaders. Datatype vec4"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec4 val.b = vec4(1.0, 2.0, 3.0, 4.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		void main()
+		{
+			dummy = val.a.x + val.b.y;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.b.y + val.a.x;
+			out0 = out0 + dummy;
+			out0 = out0 - dummy;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_vertex_only_vec4
+	desc "Uniform struct declared in both, used only in vertex. Datatype vec4	"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec4 val.b = vec4(1.0, 2.0, 3.0, 4.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x + val.b.y;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		varying mediump float res;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = res;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_fragment_only_vec4
+	desc "Uniform struct declared in both, used only in fragment. Datatype vec4"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec4 val.b = vec4(1.0, 2.0, 3.0, 4.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.a.x + val.b.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_vec4
+	desc "Uniform struct declared in both, used partially in both. Datatype vec4"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec4 val.b = vec4(1.0, 2.0, 3.0, 4.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec4 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_vec4_vec3
+	desc "Same uniform struct in both shaders. Datatype vec4 and vec3"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec3 val.b = vec3(1.0, 2.0, 3.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		void main()
+		{
+			dummy = val.a.x + val.b.y;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.b.y + val.a.x;
+			out0 = out0 + dummy;
+			out0 = out0 - dummy;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_vertex_only_vec4_vec3
+	desc "Uniform struct declared in both, used only in vertex. Datatype vec4 and vec3"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec3 val.b = vec3(1.0, 2.0, 3.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x + val.b.y;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		varying mediump float res;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = res;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_fragment_only_vec4_vec3
+	desc "Uniform struct declared in both, used only in fragment. Datatype vec4 and vec3"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec3 val.b = vec3(1.0, 2.0, 3.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.a.x + val.b.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_vec4_vec3
+	desc "Uniform struct declared in both, used partially in both. Datatype vec4 and vec3"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec3 val.b = vec3(1.0, 2.0, 3.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump vec3 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_vec4_float
+	desc "Same uniform struct in both shaders. Datatype vec4 and float"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		void main()
+		{
+			dummy = val.a.x + val.b;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		varying mediump float dummy;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.b + val.a.x;
+			out0 = out0 + dummy;
+			out0 = out0 - dummy;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_vertex_only_vec4_float
+	desc "Uniform struct declared in both, used only in vertex. Datatype vec4 and float"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x + val.b;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		varying mediump float res;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = res;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_fragment_only_vec4_float
+	desc "Uniform struct declared in both, used only in fragment. Datatype vec4 and float"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		void main()
+		{
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		void main()
+		{	 
+			out0 = val.a.x + val.b;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_vec4_float
+	desc "Uniform struct declared in both, used partially in both. Datatype vec4 and float"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform float val.b = 2.0;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a; mediump float b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_vec4_struct
+	desc "Uniform struct declared in both, used partially in both. Datatype vec4 and struct with vec4"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec4 val.b.c = vec4(1.0, 2.0, 3.0, 4.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Inner {mediump vec4 c;};
+		struct Struct {mediump vec4 a; Inner b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Inner {mediump vec4 c;};
+		struct Struct {mediump vec4 a; Inner b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b.c.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+
+
+case uniform_struct_partial_vec4_vec3_struct
+	desc "Uniform struct declared in both, used partially in both. Datatype vec4 and struct with vec3"
+	values {
+		uniform vec4 val.a = vec4(1.0, 2.0, 3.0, 4.0);
+		uniform vec3 val.b.c = vec3(1.0, 2.0, 3.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Inner {mediump vec3 c;};
+		struct Struct {mediump vec4 a; Inner b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Inner {mediump vec3 c;};
+		struct Struct {mediump vec4 a; Inner b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b.c.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_vec2_vec3
+	desc "Uniform struct declared in both, used partially in both. Datatype vec2 and vec3"
+	values {
+		uniform vec2 val.a = vec2(1.0, 2.0);
+		uniform vec3 val.b = vec3(1.0, 2.0, 3.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec2 a; mediump vec3 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec2 a; mediump vec3 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_vec2_int
+	desc "Uniform struct declared in both, used partially in both. Datatype vec2 and int"
+	values {
+		uniform vec2 val.a = vec2(1.0, 2.0);
+		uniform int val.b = 2;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec2 a; mediump int b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a.x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec2 a; mediump int b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + float(val.b);
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_int_float
+	desc "Uniform struct declared in both, used partially in both. Datatype int and float"
+	values {
+		uniform float val.a = 1.0;
+		uniform int val.b = 2;
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump float a; mediump int b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a; mediump int b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + float(val.b);
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_bvec2_vec2
+	desc "Uniform struct declared in both, used partially in both. Datatype bvec2 and vec2"
+	values {
+		uniform bvec2 val.a = bvec2(true, true);
+		uniform vec2 val.b = vec2(1.0, 2.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {bvec2 a; mediump vec2 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = float(val.a.x);
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {bvec2 a; mediump vec2 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_ivec2_vec2
+	desc "Uniform struct declared in both, used partially in both. Datatype ivec2 and vec2"
+	values {
+		uniform ivec2 val.a = ivec2(1, 2);
+		uniform vec2 val.b = vec2(1.0, 2.0);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump ivec2 a; mediump vec2 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = vec2(val.a).x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump ivec2 a; mediump vec2 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.b.y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_partial_ivec2_ivec2
+	desc "Uniform struct declared in both, used partially in both. Datatype ivec2 and ivec2"
+	values {
+		uniform ivec2 val.a = ivec2(1, 2);
+		uniform ivec2 val.b = ivec2(1, 2);
+		output float out0 = 3.0;
+	}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump ivec2 a; mediump ivec2 b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = vec2(val.a).x;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump ivec2 a; mediump ivec2 b;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + vec2(val.b).y;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_type_conflict_1
+	desc "Fragment struct has one less member than fragment version"
+	expect link_fail
+	values {output float out0 = 3.0;}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump float a; mediump float b;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.a;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_type_conflict_2
+	desc "Vertex struct has int, fragment struct has float."
+	expect link_fail
+	values {output float out0 = 3.0;}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump int a;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = float(val.a);
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = val.a;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_type_conflict_3
+	desc "Vertex struct has vec3, fragment struct has vec4."
+	expect link_fail
+	values {output float out0 = 3.0;}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump vec3 a;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = float(val.a.x);
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump vec4 a;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = val.a.x;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_precision_conflict_1
+	desc "Vertex side struct has highp, fragment side struct mediump."
+	expect link_fail
+	values {output float out0 = 3.0;}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {highp float a;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = val.a;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_precision_conflict_2
+	desc "Vertex side struct has mediump, fragment side struct lowp."
+	expect link_fail
+	values {output float out0 = 3.0;}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {mediump float a;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {lowp float a;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = val.a;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_precision_conflict_3
+	desc "Vertex side struct has lowp, fragment side struct mediump."
+	expect link_fail
+	values {output float out0 = 3.0;}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {lowp float a;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {mediump float a;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = val.a;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_precision_conflict_4
+	desc "Vertex side struct has lowp, fragment side struct implicit mediump."
+	expect link_fail
+	values {output float out0 = 3.0;}
+	vertex ""
+		${VERTEX_DECLARATIONS}
+		struct Struct {lowp float a;};
+		uniform Struct val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.a;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	    precision mediump float;
+		struct Struct {float a;};
+		uniform Struct val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = val.a;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_use_case_rip
+	desc "Complex Light struct from use case tests."
+	values {
+		uniform float val.constantAttenuation = 1.0;
+		uniform float val.quadraticAttenuation = 1.0;   
+	    output float out0 = 2.0;
+    }
+	vertex ""
+   		 struct Light
+   		 {
+		     mediump vec3	color;
+			 highp vec4		position;
+			 highp vec3		direction;
+			 mediump float	constantAttenuation;
+			 mediump float	linearAttenuation;
+			 mediump float	quadraticAttenuation;
+	    };
+		${VERTEX_DECLARATIONS}
+		uniform Light val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.constantAttenuation;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	     precision mediump float;
+   		 struct Light
+   		 {
+		     mediump vec3	color;
+			 highp vec4		position;
+			 highp vec3		direction;
+			 mediump float	constantAttenuation;
+			 mediump float	linearAttenuation;
+			 mediump float	quadraticAttenuation;
+	    };
+		struct Struct {float a;};
+		uniform Light val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.quadraticAttenuation;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end
+
+case uniform_struct_use_case_rip_sans_highp
+	desc "Complex Light struct from use case tests, without highp usage"
+	values {
+		uniform float val.constantAttenuation = 1.0;
+		uniform float val.quadraticAttenuation = 1.0;   
+	    output float out0 = 2.0;
+    }
+	vertex ""
+   		 struct Light
+   		 {
+		     mediump vec3	color;
+			 mediump vec4	position;
+			 mediump vec3	direction;
+			 mediump float	constantAttenuation;
+			 mediump float	linearAttenuation;
+			 mediump float	quadraticAttenuation;
+	    };
+		${VERTEX_DECLARATIONS}
+		uniform Light val;
+		varying mediump float res;
+		void main()
+		{
+			res = val.constantAttenuation;
+			${VERTEX_OUTPUT}
+		}
+	""
+	fragment ""
+	     precision mediump float;
+   		 struct Light
+   		 {
+		     mediump vec3	color;
+			 mediump vec4	position;
+			 mediump vec3	direction;
+			 mediump float	constantAttenuation;
+			 mediump float	linearAttenuation;
+			 mediump float	quadraticAttenuation;
+	    };
+		struct Struct {float a;};
+		uniform Light val;
+		${FRAGMENT_DECLARATIONS}
+		varying mediump float res;
+		void main()
+		{	 
+			out0 = res + val.quadraticAttenuation;
+			${FRAGMENT_OUTPUT}
+		}
+	""
+end

@@ -1,0 +1,13 @@
+<!doctype html>
+<title>::first-letter doesn't consider an abspos</title>
+<meta charset="utf-8">
+<link rel="help" href="https://www.w3.org/TR/CSS21/selector.html#first-letter">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1788785">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="first-letter-abspos-ref.html">
+<style>
+  div::first-letter { color: green }
+  span { position: absolute; color: transparent; }
+</style>
+<div><span>F</span>PASS</div>

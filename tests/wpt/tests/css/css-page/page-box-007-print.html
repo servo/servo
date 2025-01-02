@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="match" href="page-box-007-print-ref.html">
+<meta name="assert" content="Test percentage-based @page padding">
+<style>
+  @page {
+    size: 400px 800px;
+    margin: 0;
+    padding: 5% 20% 15% 40%;
+    background: red;
+  }
+  body {
+    margin: 0;
+    background: hotpink;
+  }
+</style>
+<div style="box-sizing:border-box; padding:4px; height:100vh; background:yellow;">
+  The page padding (in hotpink) should be smallest at the top, larger at the
+  right, even larger at the bottom, and largest at the left. There should be no
+  red.
+</div>

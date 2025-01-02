@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A column-spanning cell</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="assert" content="A cell can span several columns." />
+        <style type="text/css">
+            td
+            {
+                background: orange;
+                height: 100px;
+                width: 100px;
+            }
+            #cell
+            {
+                background: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box below spans the width of the three orange squares.</p>
+        <table>
+            <tr>
+                <td id="cell" colspan="3">&nbsp;</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

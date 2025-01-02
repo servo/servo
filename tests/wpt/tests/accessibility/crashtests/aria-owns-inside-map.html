@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<!-- Test that aria-owns pointing into a map does not crash -->
+<html class="test-wait">
+<map >
+  <a href=''>
+    <del id='1' hidden></del>
+    <del id='2'></del>
+  </a>
+</map>
+<div></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector('div').setAttribute('aria-owns','2 1');
+      document.documentElement.className = '';
+    });
+  });
+});
+</script>
+</html>

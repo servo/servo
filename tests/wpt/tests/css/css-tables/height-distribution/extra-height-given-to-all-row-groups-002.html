@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#height-distribution-algorithm">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="bookmark" href="https://bugs.chromium.org/p/chromium/issues/detail?id=708345" />
+<meta name="assert" content="height of rows in tbody are increased to match table height" />
+<title>
+all row groups receive extra height distribution
+</title>
+
+<style>
+table {
+  background: green;
+  border-collapse:collapse;
+}
+
+td {
+  padding:0px;
+}
+
+#redSquare {
+  height: 100px;
+  width: 100px;
+  background-color: red;
+  position: absolute;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+<div id="redSquare"></div>
+<table style="height:100px">
+  <tbody>
+    <tr>
+      <td><div style="display:inline-block; width:100px;">
+      </div></td>
+    </tr>
+  </tbody>
+</table>

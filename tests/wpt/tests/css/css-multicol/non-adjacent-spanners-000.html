@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#spanning-columns">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="columns:2; column-fill:auto; column-gap:0; width:100px; background:green;">
+  <div style="height:80px;">
+    <div style="column-span:all; height:10px; margin-bottom:20px;"></div>
+  </div>
+  <div style="column-span:all; height:10px; margin-top:20px;"></div>
+</div>

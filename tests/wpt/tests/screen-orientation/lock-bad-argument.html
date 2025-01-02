@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(t => {
+  const invalid_lock_types = [
+    "invalid-orientation",
+    null,
+    undefined,
+    123,
+    window,
+    "",
+    true,
+    ["portrait-primary", "landscape-primary"],
+  ];
+  const promisesToReject = invalid_lock_types.map(type =>
+    promise_rejects_js(t, TypeError, screen.orientation.lock(type))
+  );
+  return Promise.all(promisesToReject);
+}, "screen.orientation.lock() must throw given invalid input.");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, screen.orientation.lock());
+}, "screen.orientation.lock() must throw when the input is missing.");
+</script>
+

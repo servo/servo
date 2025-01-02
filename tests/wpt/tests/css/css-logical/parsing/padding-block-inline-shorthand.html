@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: padding-block and padding-inline set longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-padding-block">
+<meta name="assert" content="padding-block, padding-inline support the full grammar '<'padding-top'>{1,2}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('padding-block', '0% 10px', {
+  'padding-block-start': '0%',
+  'padding-block-end': '10px'
+});
+
+test_shorthand_value('padding-block', '20%', {
+  'padding-block-start': '20%',
+  'padding-block-end': '20%'
+});
+
+test_shorthand_value('padding-inline', '10px 30%', {
+  'padding-inline-start': '10px',
+  'padding-inline-end': '30%'
+});
+
+test_shorthand_value('padding-inline', '0%', {
+  'padding-inline-start': '0%',
+  'padding-inline-end': '0%'
+});
+</script>
+</body>
+</html>

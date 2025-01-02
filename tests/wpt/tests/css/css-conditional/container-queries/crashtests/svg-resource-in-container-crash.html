@@ -1,0 +1,26 @@
+<!doctype html>
+<title>@container with SVG resource shouldn't crash</title>
+<link rel="help" href="https://crbug.com/367752728">
+<style>
+  .cq {
+    container-name: cq;
+    container-type: inline-size;
+  }
+  @container cq (min-width: 1px) {
+    .cq {
+      border: 2px solid blue;
+    }
+  }
+</style>
+<div class="cq">
+  <svg>
+    <clipPath id="c">
+      <rect width="100" height="100"/>
+    </clipPath>
+    <rect width="200" height="200" clip-path="url(#c)"/>
+  </svg>
+</div>
+<script>
+  document.body.offsetTop;
+  document.querySelector('.cq > svg').style.width = "100%";
+</script>

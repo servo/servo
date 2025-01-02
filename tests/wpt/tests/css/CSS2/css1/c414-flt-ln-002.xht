@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Vertical Position of Floats</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#floating-elements"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <meta name="flags" content="interact"/>
+  <style type="text/css"><![CDATA[
+  .gutter { width: 9em; background: yellow; border-left: solid 9em aqua;
+            margin-left: auto; /* CSS1 agents */
+            position: absolute; top: 0; right: 0; bottom: 0; z-index: -1; /* CSS2 agents */ }
+   p, ul { color: navy; }
+   .test { position: relative; font: 1em serif;
+           border: 5px solid gray; margin: 1em; color: silver; }
+   .test p { width: 7em; padding: 1em; margin: 0; }
+   .test p, .test span { color: white; }
+   .test .a { background-color: blue; }
+   .test p.a { float: left; }
+   .test .b { background-color: purple; }
+   .test p.b { float: right; }
+   .test .c { background-color: orange; }
+   .test p.c { float: left; }
+   .test .d { background-color: green; }
+   .test p.d { float: left; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" title="9.5.1 Positioning the float: the 'float' property"/>
+ </head>
+ <body>
+  <p>Test passes if for each matching pair of colored boxes either:</p>
+  <ul>
+    <li>the top of the small box is level with the top of the big box <em>or</em></li>
+    <li>the top of the big box is level with the bottom of the the small box
+      and either
+      <ul>
+        <li>the small box crosses into the righthand region marked by the yellow box or</li>
+        <li>the small box crosses into the righthand region marked by the aqua box and
+          the region marked by the yellow box on the small box's line is filled by another big box</li>
+      </ul>
+    </li>
+  </ul>
+  <p>These conditions must hold true even if the window is resized or the font
+  size changed.</p>
+  <div class="test">
+   <div class="gutter"></div>
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text
+   <span class="a">A</span>
+   <p class="a">AAAA</p>
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   <span class="b">B</span>
+   <p class="b">BBBB</p>
+   dummy text dummy text dummy text
+   <span class="c">C</span>
+   <p class="c">CCCC</p>
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   <span class="d">D</span>
+   <p class="d">DDDD</p>
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+   dummy text dummy text dummy text dummy text dummy text dummy text
+  </div>
+ </body>
+</html>

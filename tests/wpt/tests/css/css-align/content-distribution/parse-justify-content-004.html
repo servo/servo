@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Content Distribution: justify-content - invalid values</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-content" />
+<meta name="assert" content="Check bad combinations of specified values."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    element = document.createElement("div");
+    document.body.appendChild(element);
+
+    let values = ["auto", "legacy", "self-start", "baseline", "first baseline", "last baseline"].concat(invalidPositionValues, invalidDistributionValues);
+
+    values.forEach(function(value) {
+        test(function() {
+            checkBadValues(element, "justifyContent", "justify-content",  value);
+        }, "Checking invalid combination - justify-content: " + value);
+    });
+</script>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Entry settings object for promise jobs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- https://github.com/whatwg/html/pull/5212 -->
+<!-- https://github.com/whatwg/html/issues/1426 -->
+
+<!-- This is the entry page, so window.open() should resolve relative to it, even inside promise jobs. -->
+
+<iframe src="resources/promise-job-entry-incumbent.html"></iframe>
+
+<script>
+setup({ explicit_done: true });
+
+const relativeURL = "resources/window-to-open.html";
+const expectedURL = (new URL(relativeURL, location.href)).href;
+
+const incumbentWindow = frames[0];
+
+window.onload = () => {
+  async_test(t => {
+    const w = incumbentWindow.runWindowOpenVeryIndirectly(relativeURL);
+    w.onload = t.step_func_done(() => {
+      t.add_cleanup(() => w.close());
+      assert_equals(w.location.href, expectedURL);
+    });
+  }, "Sanity check: this all works as expected with no promises involved");
+
+  async_test(t => {
+    // No t.step_func because that could change the realms
+    Promise.resolve().then(() => {
+      const w = incumbentWindow.runWindowOpenVeryIndirectly(relativeURL);
+      w.onload = t.step_func_done(() => {
+        t.add_cleanup(() => w.close());
+        assert_equals(w.location.href, expectedURL);
+      });
+    });
+  }, "Fulfillment handler on fulfilled promise");
+
+  async_test(t => {
+    // No t.step_func because that could change the realms
+    Promise.reject().catch(() => {
+      const w = incumbentWindow.runWindowOpenVeryIndirectly(relativeURL);
+      w.onload = t.step_func_done(() => {
+        t.add_cleanup(() => w.close());
+        assert_equals(w.location.href, expectedURL);
+      });
+    });
+  }, "Rejection handler on rejected promise");
+
+  async_test(t => {
+    let resolve;
+    const p = new Promise(r => { resolve = r; });
+
+    // No t.step_func because that could change the realms
+    p.then(() => {
+      const w = incumbentWindow.runWindowOpenVeryIndirectly(relativeURL);
+      w.onload = t.step_func_done(() => {
+        t.add_cleanup(() => w.close());
+        assert_equals(w.location.href, expectedURL);
+      });
+    });
+
+    t.step_timeout(resolve, 0);
+  }, "Fulfillment handler on pending-then-fulfilled promise");
+
+  async_test(t => {
+    let reject;
+    const p = new Promise((_, r) => { reject = r; });
+
+    // No t.step_func because that could change the realms
+    p.catch(() => {
+      const w = incumbentWindow.runWindowOpenVeryIndirectly(relativeURL);
+      w.onload = t.step_func_done(() => {
+        t.add_cleanup(() => w.close());
+        assert_equals(w.location.href, expectedURL);
+      });
+    });
+
+    t.step_timeout(reject, 0);
+  }, "Rejection handler on pending-then-rejected promise");
+
+  async_test(t => {
+    const thenable = {
+      // No t.step_func because that could change the realms
+      then(f) {
+        const w = incumbentWindow.runWindowOpenVeryIndirectly(relativeURL);
+        w.onload = t.step_func_done(() => {
+          t.add_cleanup(() => w.close());
+          assert_equals(w.location.href, expectedURL);
+        });
+      }
+    };
+
+    Promise.resolve(thenable);
+  }, "Thenable resolution");
+
+  done();
+};
+</script>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - drag interrupted by alert must not break mouse interaction with UI</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+  body > div + div {
+    margin-top: 10px;
+    height: 200px;
+    width: 200px;
+    background-color: blue;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1];
+  orange.ondragstart = function(e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text', 'dummy text');
+  };
+  blue.ondragover = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    if( !window.doneonce ) {
+      alert('2. It should also ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
+    }
+    window.doneonce = true;
+  };
+  blue.ondragenter = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    alert('1. It should ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
+  };
+  blue.ondrop = function(e) {
+    e.preventDefault();
+  };
+};
+</script>
+
+<p>Drag the orange square onto the blue square.</p>
+<div draggable="true"></div>
+<div></div>
+
+<noscript><p>Enable JavaScript and reload</p></noscript>

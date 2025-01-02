@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference case for text-decoration with subelements</title>
+    <style>
+      div.wrapper {
+        font-size: 2em;
+        position: relative;
+      }
+      sup.baseline {
+        vertical-align: baseline;
+      }
+      .hide {
+        color: transparent;
+      }
+      div {
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a single uniform underline for all the text in each line,
+      <i>not</i> a separate underline for the superscripts:
+    </p>
+    <div class=wrapper>
+      <div style="position: absolute; top: 1em;">
+        <!-- We use position:absolute and overflow:hidden so that this element will be
+             shrink-wrapped to fit the width of its content, and clip the underline of
+             the descendant span to the width of this text. -->
+        <div style="position: absolute; overflow: hidden;">Einstein said that <i>e = mc<sup>2</sup></i>.
+          <div style="position: absolute; top: 0;">
+            <!-- Generate a single continuous underline with the appropriate style
+                 by underlining a span of transparent text; it will be too wide for the
+                 actual test text, as we're not matching its mixture of font styles,
+                 but then will be clipped to the shrink-wrap width of the abs-pos
+                 containing block. -->
+            <span style="text-decoration: underline;">
+              <span class=hide>Einstein said that e = mc2......</span></span>
+            <span class=hide><sup>2</sup></span><!-- to ensure baseline is consistent with testcase -->
+          </div>
+        </div>
+      </div>
+      <div style="position: absolute; top: 3em;">
+        <div style="position: absolute; overflow: hidden;">Is <i>a<sup>n</sup> + b<sup>n</sup> = c<sup>n</sup></i> ever true for <i>n</i> &gt; 2.
+          <div style="position: absolute; top: 0;">
+            <span style="text-decoration: underline;">
+              <span class=hide>Is an + bn = cn ever true for n &gt; 2......</span></span>
+            <span class=hide><sup>n</sup></span><!-- to ensure baseline is consistent with testcase -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

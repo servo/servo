@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API SameSite=None tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        alt_request_options_with_mediation_required,
+        select_manifest,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const options = alt_request_options_with_mediation_required('manifest_check_same_site_strict.json');
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "token");
+  assert_equals(cred.isAutoSelected, false);
+}, "FedCM requests should be considered cross-origin and therefore not send SameSite=Strict or Lax cookies.");
+
+</script>

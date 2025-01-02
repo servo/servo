@@ -1,0 +1,109 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const ancestorKey = token();
+
+  let fencedFrameConfig0 = await runSelectURL(
+    "/shared-storage/resources/embedder-context-inner.https.html",
+    [ancestorKey], true);
+  assert_true(validateSelectURLResult(fencedFrameConfig0, true));
+
+  fencedFrameConfig0.setSharedStorageContext("here is some context");
+
+  attachFencedFrame(fencedFrameConfig0, 'opaque-ads');
+  const result0 = await nextValueFromServer(ancestorKey);
+  assert_equals(result0, "embedder_context_inner_loaded");
+
+  let url0 = generateURL("/shared-storage/resources/frame0.html", [ancestorKey]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html", [ancestorKey]);
+
+  let fencedFrameConfig1 = await sharedStorage.selectURL(
+    "verify-key-value", [{url: url0}, {url: url1}],
+    {data: {'expectedKey': ancestorKey,
+            'expectedValue': 'here is some context'},
+     resolveToConfig: true,
+     keepAlive: true});
+  assert_true(validateSelectURLResult(fencedFrameConfig1, true));
+
+  attachFencedFrame(fencedFrameConfig1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestorKey);
+  assert_equals(result1, "frame1_loaded");
+}, 'embedder sharedStorage.context');
+
+promise_test(async () => {
+  const ancestorKey = token();
+
+  let fencedFrameConfig0 = await runSelectURL(
+    "/shared-storage/resources/embedder-context-inner.https.html",
+    [ancestorKey], true);
+  assert_true(validateSelectURLResult(fencedFrameConfig0, true));
+
+  attachFencedFrame(fencedFrameConfig0, 'opaque-ads');
+  const result0 = await nextValueFromServer(ancestorKey);
+  assert_equals(result0, "embedder_context_inner_loaded");
+
+  let url0 = generateURL("/shared-storage/resources/frame0.html", [ancestorKey]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html", [ancestorKey]);
+
+  let fencedFrameConfig1 = await sharedStorage.selectURL(
+    "verify-key-value", [{url: url0}, {url: url1}],
+    {data: {'expectedKey': ancestorKey, 'expectedValue': 'undefined'},
+     resolveToConfig: true,
+     keepAlive: true});
+  assert_true(validateSelectURLResult(fencedFrameConfig1, true));
+
+  attachFencedFrame(fencedFrameConfig1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestorKey);
+  assert_equals(result1, "frame1_loaded");
+}, 'undefined embedder sharedStorage.context');
+
+promise_test(async () => {
+  const outerKey = token();
+  const innerKey0 = token();
+  const innerKey1 = token();
+
+  let fencedFrameConfig0 = await runSelectURL(
+    "/shared-storage/resources/embedder-context-nested-inner.https.html",
+    [outerKey, innerKey0, innerKey1], true);
+  assert_true(validateSelectURLResult(fencedFrameConfig0, true));
+
+  fencedFrameConfig0.setSharedStorageContext("here is some context");
+
+  attachFencedFrame(fencedFrameConfig0, 'opaque-ads');
+  const result0 = await nextValueFromServer(outerKey);
+  assert_equals(result0, "embedder_context_nested_inner_loaded");
+
+  let url0 = generateURL("/shared-storage/resources/frame0.html", [outerKey]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html", [outerKey]);
+
+  let fencedFrameConfig1 = await sharedStorage.selectURL(
+    "verify-key-value", [{url: url0}, {url: url1}],
+    {data: {'expectedKey': innerKey0,
+            'expectedValue': 'here is some context'},
+     resolveToConfig: true});
+  assert_true(validateSelectURLResult(fencedFrameConfig1, true));
+
+  attachFencedFrame(fencedFrameConfig1, 'opaque-ads');
+  const result1 = await nextValueFromServer(outerKey);
+  assert_equals(result1, "frame1_loaded");
+
+  let iframeURL =
+    generateURL("/shared-storage/resources/embedder-context-nested-iframe.https.html",
+                [outerKey, innerKey1]);
+  iframeURL = getRemoteOriginURL(iframeURL);
+  attachIFrame(iframeURL);
+  const result2 = await nextValueFromServer(outerKey);
+  assert_equals(result2, "embedder_context_nested_iframe_loaded");
+}, 'embedder sharedStorage.context with nested iframes');
+</script>
+</body>

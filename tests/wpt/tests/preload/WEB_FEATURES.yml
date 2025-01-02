@@ -1,0 +1,8 @@
+features:
+- name: modulepreload
+  files:
+  - "*modulepreload*"
+- name: preloading-responsive-images
+  files:
+  - dynamic-adding-preload-imagesrcset.html
+  - link-header-preload-imagesrcset.html

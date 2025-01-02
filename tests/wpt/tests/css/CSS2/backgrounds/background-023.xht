@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background with (position image)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+		<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-position" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Background with (position image) sets the background to the image specified, tiling it to cover the full area from the position specified." />
+        <style type="text/css">
+            div
+            {
+                background: bottom left url("support/cat.png");
+                border: 1px solid black;
+                height: 150px;
+                width: 196px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below has a cat image tiled throughout it, and the cat image is not cut off at the bottom (it can appear cut off at the top).</p>
+        <div></div>
+    </body>
+</html>

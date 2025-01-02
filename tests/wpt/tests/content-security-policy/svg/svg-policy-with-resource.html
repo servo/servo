@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>svg-policy-with-resource</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script>
+        window.addEventListener("message", function(event) {
+            alert_assert(event.data);
+        }, false);
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                log("TEST COMPLETE");
+            }, 0);
+        });
+    </script>
+</head>
+
+<body>
+    <p>Tests that an SVG loaded in an iframe with a policy enforces it, not
+    the policy enforced by this parent frame.  The SVG should render and
+    not redirect to a different resource.</p>
+    <iframe name="test_target" id="test_iframe" src="scripted.svg"></iframe>
+    <object type="image/svg+xml" data="scripted.svg"></object>
+    <div id="log"></div>
+</body>
+
+</html>

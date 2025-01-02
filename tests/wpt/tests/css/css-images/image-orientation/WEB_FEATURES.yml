@@ -1,0 +1,4 @@
+features:
+- name: image-orientation
+  files:
+  - "*"

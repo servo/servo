@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: IDBIndex query method Ordering</title>
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-get">
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-getall">
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-getallkeys">
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-count">
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-opencursor">
+<link rel="help" href="https://w3c.github.io/IndexedDB/#dom-idbindex-openkeycursor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+<script>
+
+['get',
+ 'getAll',
+ 'getAllKeys',
+ 'count',
+ 'openCursor',
+ 'openKeyCursor'
+].forEach(method => {
+
+  indexeddb_test(
+    (t, db) => {
+      const store = db.createObjectStore('s');
+      const store2 = db.createObjectStore('s2');
+      const index = store2.createIndex('i', 'keyPath');
+
+      store2.deleteIndex('i');
+
+      setTimeout(t.step_func(() => {
+        assert_throws_dom(
+          'InvalidStateError', () => { index[method]('key'); },
+          '"has been deleted" check (InvalidStateError) should precede ' +
+          '"not active" check (TransactionInactiveError)');
+        t.done();
+      }), 0);
+    },
+    (t, db) => {},
+    `IDBIndex.${method} exception order: ` +
+    'InvalidStateError vs. TransactionInactiveError'
+  );
+
+  indexeddb_test(
+    (t, db) => {
+      const store = db.createObjectStore('s');
+      const index = store.createIndex('i', 'keyPath');
+    },
+    (t, db) => {
+      const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
+      const store = tx.objectStore('s');
+      const index = store.index('i');
+
+      setTimeout(t.step_func(() => {
+        assert_throws_dom(
+          'TransactionInactiveError', () => { index[method]({}); },
+          '"not active" check (TransactionInactiveError) should precede ' +
+          'query check (DataError)');
+        t.done();
+      }), 0);
+    },
+    `IDBIndex.${method} exception order: ` +
+    'TransactionInactiveError vs. DataError'
+  );
+});
+
+</script>

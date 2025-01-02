@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This test checks that a dynamic change in the intrinsic size of a canvas element correctly changes the intrinsic size of a parent." />
+<body style="position: relative;">
+  <p>Test passes if there is a filled green square.</p>
+  <div style="position: absolute; background: green; line-height: 0;">
+    <canvas id="target"></canvas>
+  </div>
+</body>
+<script>
+  document.body.offsetTop;
+  const target = document.getElementById('target');
+  target.width = '100';
+  target.height = '100';
+</script>

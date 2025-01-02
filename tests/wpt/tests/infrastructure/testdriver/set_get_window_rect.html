@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver set / get rect method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(async t => {
+    var orig_rect = await test_driver.get_window_rect();
+    var new_rect = { "width": orig_rect.width, "height": orig_rect.height, "x": 150, "y": 175 };
+    await test_driver.set_window_rect(new_rect);
+    var result = await test_driver.get_window_rect()
+    assert_equals(result.width, orig_rect.width, "The 'Width' property should not have changed");
+    assert_equals(result.height, orig_rect.height, "The 'Height' property should not have changed.");
+    assert_equals(result.x, new_rect.x, "The 'X' property has been changed.");
+    assert_equals(result.y, new_rect.y, "The 'y' property has been changed.");
+}, "Window Position");
+
+promise_test(async t => {
+    var orig_rect = await test_driver.get_window_rect();
+    var new_rect = { "width": 800, "height": 500, "x": 150, "y": 175 };
+    await test_driver.set_window_rect(new_rect);
+    var result = await test_driver.get_window_rect()
+    assert_equals(result.width, new_rect.width, "The 'Width' property has been changed");
+    assert_equals(result.height, new_rect.height, "The 'Height' property has been changed.");
+    assert_equals(result.x, orig_rect.x, "The 'X' property should not have changed.");
+    assert_equals(result.y, orig_rect.y, "The 'y' property should not have changed.");
+}, "Window Size");
+</script>

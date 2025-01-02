@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div#wrapper
+  {
+  border: solid 5px black;
+  height: 150px;
+  margin: 10px;
+  }
+
+  img#orange {margin-top: 10px;}
+
+  span, img#blue {vertical-align: 20px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the orange box is within the black box, below the words "Filler Text 1", and to the left of both the blue box and the words "Filler Text 2".</p>
+
+  <div id="wrapper">
+    <div>Filler Text 1</div>
+    <div><img id="orange" src="support/swatch-orange.png" width="96" height="106" alt="Image download support must be enabled" /><span>Filler Text 2</span> <img id="blue" alt="Image download support must be enabled" src="support/blue15x15.png" width="96" height="96" /></div>
+  </div>
+
+ </body>
+</html>

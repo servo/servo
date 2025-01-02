@@ -1,0 +1,137 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="VH" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-68-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This tests performs basic tests on the repeatCount attribute.
+      </p>
+      <p>
+        Each row in the test shows different rectangles subject to &lt;set&gt;
+        animations with different configurations with regards to the repeatCount
+        attribute. For each row, the animation should be active
+        during the first 5 seconds of the animations where the red rectangle
+        should show in the right column. At five seconds into the animation,
+        all the rectangles should move to their left position.
+      </p>
+      <p>
+        On the first row, the &lt;set&gt; animation has its dur attribute set to
+        '5s' and its repeatCount unspecified. Consequently, its only interval
+        is (0s &lt;= t &lt; 5s).
+      </p>
+      <p>
+        On the second row, the &lt;set&gt; animation has its dur attribute set to
+        1s and its repeatCount set to 5. Consequently, its only interval is
+        (0s &lt;= t &lt; 5s (1s*5)).
+      </p>
+      <p>
+        On the third row, the &lt;set&gt; animation has its dur attribute set to
+        10s and its repeatCount set to 0.5. Consequently, its only interval is
+        (0s &lt;= t &lt; 5s (10s*0.5))
+      </p>
+      <p>
+        On the fourth row, the &lt;set&gt; animation has its dur attribute set to
+        1s and its repeatCount set to indefinite. It also has an end attribute
+        set to 5s. Consequently, the repeat duration is indefinite, but the active
+        duration is limited by the end attribute and the active interval is (0s &lt;= t &lt; 5s).
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test and observe it for at least six seconds. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if for the first five seconds after the document loads,
+      the red squares in each row are in the right column, and after the five seconds,
+      they all move to the left column.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-68-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">repeatCount</text>
+    <g transform="translate(130, 80)">
+      <g transform="translate(120,45)" text-anchor="end" font-size="14">
+        <text>dur=5s repeatCount unspecified</text>
+        <text y="25">dur=1s repeatCount=5</text>
+        <text y="50">dur=10s repeatCount=0.5</text>
+        <text y="75">dur=1s repeatCount=indefinite</text>
+        <text y="90">end=5s</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(180, 25)" text-anchor="middle" font-size="14">
+        <text>&gt; 5s</text>
+        <text x="80">0s-5s</text>
+      </g>
+      <g transform="translate(180,40)" stroke="black">
+        <defs>
+          <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
+        </defs>
+
+        <g id="setOne">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set id="firstSet" attributeName="x" to="74" dur="5s"/>
+          </rect>
+
+        </g>
+
+        <g id="setTwo" transform="translate(0, 25)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" dur="1s" repeatCount="5"/>
+          </rect>
+
+        </g>
+
+        <g id="setThree" transform="translate(0, 50)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" dur="10s" repeatCount="0.5"/>
+          </rect>
+        </g>
+
+        <g id="setFour" transform="translate(0, 75)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <set attributeName="x" to="74" dur="1s" end="5s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

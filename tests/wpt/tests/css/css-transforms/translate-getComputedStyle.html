@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Transform Module Level 2: translate getComputedStyle</title>
+  <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#propdef-translate">
+  <meta name="assert" content="translate computed style does not resolve percentages.">
+  <style type="text/css">
+    #container {
+      transform-style: preserve-3d;;
+    }
+    #first {
+      font-size: 10px;
+      translate: 10px 2em;
+    }
+    #second {
+      translate: 30% 40% 50px;
+    }
+    #third {
+      font-size: 10px;
+      width: 98px;
+      height: 76px;
+      translate: calc(7em + 80%) -9em;
+    }
+  </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="first"></div>
+    <div id="second"></div>
+    <div id="third"></div>
+  </div>
+  <script>
+    'use strict';
+    function getTranslateFor(id) {
+      return window.getComputedStyle(document.getElementById(id)).getPropertyValue("translate");
+    }
+
+    test(function() {
+      assert_equals(getTranslateFor("first"), "10px 20px");
+      assert_equals(getTranslateFor("second"), "30% 40% 50px");
+      assert_equals(getTranslateFor("third"), "calc(80% + 70px) -90px");
+    }, "computed style for translate");
+  </script>
+</body>
+</html>

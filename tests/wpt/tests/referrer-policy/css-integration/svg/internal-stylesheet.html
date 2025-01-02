@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - styling SVG from internal style</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <!-- Helper functions for referrer-policy css tests. -->
+    <script src="/referrer-policy/css-integration/css-test-helper.js"></script>
+    <meta name="referrer" content="origin">
+  </head>
+  <body>
+    <p>Check that resources from internal styles are loaded with
+    the referrer and referrer policy from the document.</p>
+    <script>
+      function setInternalStyle(test) {
+        test.expected = location.origin + "/";
+        let style = document.createElementNS(svg_ns, "style");
+        style.textContent = "path { " + test.property + ": url(" + url_prefix +
+                            "svg.py?id=" + test.id + "#invalidFragment);";
+        let svg = createSvg();
+        svg.appendChild(style);
+        document.body.appendChild(svg);
+      }
+
+      runSvgTests(svg_test_properties,
+                  "Styling SVG from internal styles",
+                  setInternalStyle);
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

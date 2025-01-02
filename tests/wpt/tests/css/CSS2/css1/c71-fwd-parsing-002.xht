@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Forward-Compatible Parsing</title>
+  <meta name="flags" content="invalid" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#forward-compatible-parsing"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c71-fwd-parsing-002-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: green; }
+   h1 + p.three {color: red;}
+   p.four + h1 {color: red;}
+   p.five {background-color: "red";}
+   @three-dee {
+    @background-lighting {
+     azimuth: 30deg;
+     elevation: 190deg;
+     }
+    p.seven { color: red }
+    }
+   ol:wait {color:red;}
+   p.ten:first-child {color: red;}
+   ul:lang(fr) {color:red;}
+   blockquote[href] {color: red;}
+   acronym[href="foo"] {color: red;}
+   address[href~="foo"] {color: red;}
+   span[lang|="fr"] {color: #f00;}
+   @media tty {
+    h1 {color: red;}
+    p.sixteen {color: red;}
+    }
+   @three-dee {
+    p.seventeen {color: red }
+    }
+   // UL.nineteenb,
+   p.nineteenb {color: red;}
+   p.twentythree {text-indent: 0.5in;}
+    color: red
+   p.twentyfour {color: red;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" title="4.2 Rules for handling parsing errors"/>
+ </head>
+ <body>
+  <p class="three">
+   This sentence should be green.
+  </p>
+  <p class="four">
+   This sentence should be green.
+  </p>
+  <p class="five">
+   This sentence should be green.
+  </p>
+  <p class="seven"> This sentence should be green. </p>
+  <ol>
+   <li> This sentence should be green. </li>
+  </ol>
+  <p class="ten"> This sentence should be green. </p>
+  <ul>
+   <li> This sentence should be green. </li>
+  </ul>
+  <blockquote>
+   <p> This sentence should be green. </p>
+  </blockquote>
+  <p>
+   <acronym> This sentence should be green. </acronym>
+  </p>
+  <address>
+   This sentence should be green.
+  </address>
+  <p>
+   <span>This sentence should be green.</span>
+  </p>
+  <p class="sixteen">
+   This sentence should be green.
+  </p>
+  <p class="seventeen">
+   This sentence should be green.
+  </p>
+  <p class="nineteenb">
+   This sentence should be green.
+  </p>
+  <p class="twentythree">
+   This sentence should be green.
+  </p>
+  <p class="twentyfour">
+   This sentence should be green.
+  </p>
+ </body>
+</html>

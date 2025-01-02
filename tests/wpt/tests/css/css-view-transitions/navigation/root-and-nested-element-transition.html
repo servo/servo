@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: basic cross-document navigation with nested element</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="root-and-nested-element-transition-ref.html">
+<meta name="fuzzy" content="root-and-nested-element-transition-ref.html:0-2;0-2000">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition { navigation: auto; }
+html {
+  background: grey;
+}
+.hidden {
+  width: 10px;
+  height: 10px;
+  view-transition-name: hidden;
+  background: green;
+  contain: layout;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  contain: layout;
+  view-transition-name: target;
+  overflow: visible;
+}
+.inner {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  border: 5px solid black;
+}
+</style>
+<div class="target">
+  This is old element
+  <div class="inner"></div>
+</div>
+<div class="hidden"></div>
+
+<script>
+function runTest() {
+  const url = "resources/root-and-nested-element-transition.html";
+  window.location.replace(new URL(url, window.location));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

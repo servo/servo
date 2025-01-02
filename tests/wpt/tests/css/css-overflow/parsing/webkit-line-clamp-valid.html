@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing -webkit-line-clamp with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#webkit-line-clamp">
+<meta name="assert" content="-webkit-line-clamp supports the full grammar 'none | <integer>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("-webkit-line-clamp", 'none');
+
+test_valid_value("-webkit-line-clamp", '1');
+test_valid_value("-webkit-line-clamp", '6');
+</script>
+</body>
+</html>

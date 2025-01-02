@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Lostpointercapture fires on document when target is removed</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body>
+        <h1>Pointer Events - lostpointercapture removes new capture element</h1>
+        <input type="button" id="button" value="Set Capture"><br>
+        <div id="target0"></div>
+        <div id="target1"></div>
+        <script type='text/javascript'>
+          var target0 = document.getElementById('target0');
+          var target1 = document.getElementById('target1');
+          var captureButton = document.getElementById('button');
+          var targets = [target0, target1, captureButton];
+          const LOG_EVENT_TYPES = ['pointerover', 'pointerenter', 'pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'pointerout', 'pointerleave', 'gotpointercapture', 'lostpointercapture'];
+          promise_test(async (test) => {
+            captureButton.focus();
+            var events = [];
+            var lastLogMessage = "";
+            let logEvent = (event) => {
+              let logMessage = `${event.type}@${event.target.id || event.target.tagName || 'document'}`;
+              // Only log a particular event once to avoid coalescing differences.
+              if (logMessage == lastLogMessage)
+                return;
+              lastLogMessage = logMessage;
+              events.push(logMessage);
+            };
+            document.addEventListener('lostpointercapture', logEvent);
+            for (const target of targets) {
+              for (const eventType of LOG_EVENT_TYPES) {
+                target.addEventListener(eventType, logEvent);
+              }
+            }
+            const nextSibling = target1.nextSibling;
+            test.add_cleanup(() => {
+              document.removeEventListener('lostpointercapture', logEvent);
+              for (const target of targets) {
+                for (const eventType of LOG_EVENT_TYPES) {
+                  target.removeEventListener(eventType, logEvent);
+                }
+              }
+              nextSibling.parentNode.insertBefore(target1, nextSibling);
+            });
+
+            let finishPromise = Promise.any([
+              getEvent('pointerup', document.body, test),
+              getEvent('pointerup', target1, test)]);
+
+            getEvent('pointerdown', captureButton, test).then((event) => {
+              target0.setPointerCapture(event.pointerId);
+            });
+            // On the first captured move, we'll set capture to target1.
+            getEvent('pointermove', target0, test).then((event) => {
+              target1.setPointerCapture(event.pointerId);
+            });
+            // But remove the new capture target when we lose capture.
+            getEvent('lostpointercapture', target0, test).then((event) => {
+              target1.remove();
+            });
+            getEvent('gotpointercapture', target1, test).then((event) => {
+              assert_unreached("target1 is removed and should never get pointer capture.");
+            });
+
+            // Inject mouse inputs.
+            const actions = new test_driver.Actions();
+            actions_promise = actions
+                .pointerMove(0, 0, {origin: captureButton})
+                .pointerDown()
+                .pointerMove(10, 0, {origin: captureButton})
+                .pointerUp()
+                .send();
+
+            await finishPromise;
+
+            assert_equals(events.join(", "), [
+                // Pointer down on button
+                "pointerover@button", "pointerenter@button", "pointermove@button", "pointerdown@button",
+                // Captured by target0
+                "pointerout@button", "pointerleave@button", "pointerover@target0", "pointerenter@target0", "gotpointercapture@target0", "pointermove@target0",
+                // Captured by target1, losing capture on target0 which removes target1.
+                "lostpointercapture@target0", "pointerout@target0", "pointerleave@target0",
+                // Uncaptured pointer re-enters button and is lifted.
+                "pointerover@button", "pointerenter@button", "pointermove@button", "pointerup@button"
+            ].join(", "));
+          }, "setPointerCapture target removed by lostpointercapture");
+        </script>
+    </body>
+</html>

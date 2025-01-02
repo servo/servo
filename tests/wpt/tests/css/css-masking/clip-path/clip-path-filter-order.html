@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clip-path should be applied after filtering</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#placement">
+<link rel="match" href="clip-path-filter-order-ref.html">
+
+<div>
+  <p>Expected: A green box.<br>
+  There should be no red visible.<br>
+  There should be a crisp, clipped edge around the green box (no blurring).</p>
+</div>
+
+<style>
+  #testcase {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: green;
+    will-change: transform;
+    filter: drop-shadow(16px 16px 20px red);
+    clip-path: inset(0px 200px 200px 0px);
+  }
+</style>
+<div id="testcase"></div>

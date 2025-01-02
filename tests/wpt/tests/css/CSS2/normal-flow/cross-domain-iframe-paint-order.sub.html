@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Cross-domain iframe paint order</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+<link rel="match" href="cross-domain-iframe-paint-order-ref.html">
+<style>
+  iframe {
+    display: block;
+    background: red;
+    width: 100px;
+    height: 100px;
+    padding: 30px;
+    border: none;
+    box-sizing: border-box;
+  }
+  #negative-margin {
+    width: 100px;
+    height: 100px;
+    background: lime;
+    margin-top: -100px;
+  }
+</style>
+<iframe src="http://{{hosts[alt][www]}}:{{ports[http][0]}}/css/CSS2/normal-flow/support/green.html"></iframe>
+<!-- #negative-margin should paint on top of the background of the iframe
+    (but not the contents). -->
+<div id="negative-margin"></div>

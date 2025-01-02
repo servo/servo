@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Check that sandboxed iframe can not navigate other frame's popup</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+// This HTML file is loaded 3 times.
+//   (1) As the initial test file (mode = '').
+//   (2) In the popup window (mode = 'popup').
+//   (3) In the sandboxed iframe (mode = 'iframe').
+// Note: The sandboxed iframe (3) tries to navigate the popup window (2) to
+// a new mode=iframenavigated URL. But this must be blocked because (3) is not
+// the 'one permitted sandboxed navigator'.
+// https://html.spec.whatwg.org/multipage/origin.html#one-permitted-sandboxed-navigator
+(() => {
+  const mode = '{{GET[mode]}}';
+  if (mode == 'popup') {
+    // (2): Loaded in the popup window.
+    return;
+  }
+  if (mode == 'iframe') {
+    // (3): Loaded in the sandboxed iframe.
+    try {
+      // Attempts to navigate the popup window (2).
+      parent.document.popupWin.location = location.href + 'navigated';
+    } catch (e) {
+      parent.postMessage('cannot navigate');
+    }
+    return;
+  }
+  if (mode == 'iframenavigated') {
+    // This URL page must not be loaded.
+    opener.postMessage('can navigate');
+    return;
+  }
+
+  // (1): Loaded as the initial test file.
+  promise_test(async t => {
+    // Opens a popup window to load the page (2).
+    document.popupWin = window.open(location.href + '?mode=popup', '_blank');
+    t.add_cleanup(() => document.popupWin.close());
+    await new Promise(resolve => {
+      document.popupWin.addEventListener('load', resolve);
+    });
+
+    // Adds an iframe to load the page (3).
+    const iframe = document.createElement('iframe');
+    t.add_cleanup(() => iframe.remove());
+    iframe.sandbox = 'allow-popups allow-same-origin allow-scripts';
+    iframe.src = location.href + '?mode=iframe';
+    const message_promise = new Promise(resolve => {
+      window.addEventListener('message', (e) => { resolve(e.data); });
+    });
+    document.body.appendChild(iframe);
+
+    const result = await message_promise;
+    assert_equals(result, 'cannot navigate');
+  }, "Sandboxed iframe can not navigate other frame's popup");
+
+})();
+</script>
+</body>

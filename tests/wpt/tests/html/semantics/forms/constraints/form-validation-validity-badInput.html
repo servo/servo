@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The constraint validation API Test: element.validity.badInput</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/association-of-controls-and-forms.html#suffering-from-bad-input">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/the-button-element.html#the-constraint-validation-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/validator.js"></script>
+<div id="log"></div>
+<script>
+var testElements = [
+    {
+      tag: "input",
+      types: ["email"],
+      testData: [
+        {conditions: {multiple: false, value: ""}, expected: false, name: "[target] The multiple attribute is false and the value attribute is empty"},
+        {conditions: {multiple: false, value: "test1@example.com"}, expected: false, name: "[target] The multiple attribute is false and the value attribute is a valid e-mail address"},
+        {conditions: {multiple: true, value: "test1@example.com,test2@eample.com"}, expected: false, name: "[target] The multiple attribute is true and the value contains valid e-mail addresses"},
+        {conditions: {multiple: true, value: "test,1@example.com"}, expected: false, name: "[target] The multiple attribute is true and the value attribute contains a ','"}
+        //TODO, the value contains characters that cannot be converted to punycode.
+        //Can not find a character that cannot be converted to punycode.
+      ]
+    },
+    {
+      tag: "input",
+      types: ["datetime-local"],
+      testData: [
+        {conditions: {value: ""}, expected: false, name: "[target] The value attribute is empty"},
+        {conditions: {value: "2000-01-01T12:00:00"}, expected: false, name: "[target] The value attribute is a valid date and time string"},
+        {conditions: {value: "abc"}, expected: false, name: "[target] The value attribute cannot convert to a valid normalized forced-UTC global date and time string"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["color"],
+      testData: [
+        {conditions: {value: ""}, expected: false, name: "[target] The value attribute is empty"},
+        {conditions: {value: "#000000"}, expected: false, name: "[target] The value attribute is a valid sample color"},
+        {conditions: {value: "#FFFFFF"}, expected: false, name: "[target] The value attribute is not a valid lowercase sample color"},
+        {conditions: {value: "abc"}, expected: false, name: "[target] The value attribute cannot convert to a valid sample color"}
+      ]
+    },
+  ];
+  validator.run_test (testElements, "badInput");
+</script>

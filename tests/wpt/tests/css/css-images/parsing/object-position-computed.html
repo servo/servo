@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3 Test: getComputedStyle().objectPosition</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-object-position">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("object-position", "10% center", "10% 50%");
+test_computed_value("object-position", "right 30% top 60px", "70% 60px");
+test_computed_value("object-position", "-20% -30px");
+test_computed_value("object-position", "30px center", "30px 50%");
+test_computed_value("object-position", "40px top", "40px 0%");
+test_computed_value("object-position", "right 20% bottom 10%", "80% 90%");
+test_computed_value("object-position", "right bottom", "100% 100%");
+test_computed_value("object-position", "center 50px", "50% 50px");
+test_computed_value("object-position", "center bottom", "50% 100%");
+test_computed_value("object-position", "left center", "0% 50%");
+test_computed_value("object-position", "left bottom", "0% 100%");
+test_computed_value("object-position", "right 40%", "100% 40%");
+test_computed_value("object-position", "center top", "50% 0%");
+test_computed_value("object-position", "center", "50% 50%");
+test_computed_value("object-position", "center center", "50% 50%");
+test_computed_value("object-position", "right 20px bottom 10px", "calc(100% - 20px) calc(100% - 10px)");
+</script>
+</body>
+</html>

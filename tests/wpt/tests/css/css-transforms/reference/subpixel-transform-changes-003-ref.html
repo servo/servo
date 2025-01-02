@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transforms Reference Test: Subpixel transform changes fixed positioning</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+div {
+  position: fixed;
+  left: 10px;
+}
+</style>
+
+<div id="translateX1" style="transform: translateX(0.48px); top: 0px;">transform: translateX(0.48px);</div>
+<div id="translateX2" style="transform: translateX(3.17px); top: 30px;">transform: translateX(3.17px);</div>
+<div id="translateX3" style="transform: translateX(0.34px); top: 60px;">transform: translateX(0.34px);</div>
+
+<div id="translateY1" style="transform: translateY(0.48px); top: 90px;">transform: translateY(0.48px);</div>
+<div id="translateY2" style="transform: translateY(3.17px); top: 120px;">transform: translateY(3.17px);</div>
+<div id="translateY3" style="transform: translateY(0.34px); top: 150px;">transform: translateY(0.34px);</div>
+
+<div id="translateZ1" style="transform: translateZ(0.48px); top: 180px;">transform: translateZ(0.48px);</div>
+<div id="translateZ2" style="transform: translateZ(3.17px); top: 210px;">transform: translateZ(3.17px);</div>
+<div id="translateZ3" style="transform: translateZ(0.34px); top: 240px;">transform: translateZ(0.34px);</div>
+
+<!-- Force overflow on the body element. -->
+<div style="width: 200vw; height: 300vh;"></div>

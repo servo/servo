@@ -1,0 +1,84 @@
+<html class="reftest-wait">
+<title>Layout changes on percentage-based scroll timeline</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations/">
+<meta name="assert" content="Scroll timeline should properly handle
+layout changes on percentage-based scroll offset">
+<link rel="match" href="animation-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    color: red;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+    will-change: transform;
+  }
+
+  #contents {
+    height: 500px;
+    width: 100%;
+  }
+
+  #spacer {
+    height: 80px;
+  }
+
+  .invisible {
+    display: none;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered">Scrolling Test</div>
+<div id="scroller">
+  <div id="contents"></div>
+  <div id="spacer" class="invisible"></div>
+</div>
+
+<script>
+  const box = document.getElementById('box');
+  const effect = new KeyframeEffect(box,
+    [
+      { transform: 'translateY(0)', opacity: 1 },
+      { transform: 'translateY(200px)', opacity: 0 }
+    ]
+  );
+
+  const scroller = document.getElementById('scroller');
+  const timeline = new ScrollTimeline({
+    source: scroller
+  });
+  const animation = new Animation(effect, timeline);
+  animation.play();
+  animation.ready.then(_ => {
+    // Moves the scroller to the end point (240px).
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = maxScroll * 0.6;
+
+    // Makes sure that the animation runs on compositor with current scroll offset
+    waitForAnimationFrames(2).then(_ => {
+      // Adds 80px to scroll height which pushes scroll progress back to 50%.
+      const spacer = document.getElementById('spacer');
+      spacer.classList.remove('invisible');
+      // Makes sure that the change is propagated to the compositor.
+      waitForAnimationFrames(2).then(_ => {
+        takeScreenshot();
+      });
+    });
+  });
+</script>

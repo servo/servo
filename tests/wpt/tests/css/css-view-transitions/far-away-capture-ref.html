@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: offscreen content</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+body { background: pink }
+.flex {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+.box {
+  width: 100px;
+  height: 500px;
+  contain: paint;
+  background: green;
+  border: 1px solid black;
+  box-sizing: border-box;
+}
+</style>
+
+<div class=flex>
+ <div class=box>500</div>
+ <div class=box>2000</div>
+ <div class=box>3500</div>
+ <div class=box>5000</div>
+ <div class=box>6500</div>
+</div>
+

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Multicol under vertical-rl scrolling container</title>
+<link rel="match" href="multicol-under-vertical-rl-scroll-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-multicol">
+<meta name="assert" content="Test that multicol works as expected when overflow is scrolling in vertical-rl" />
+<p>Passes if there are two green squares</p>
+<div style="width: 200px; height: 200px; overflow: scroll; writing-mode: vertical-rl; border: 1px solid black">
+  <div style="columns: 2; column-gap: 20px; width: 80px; height: 180px">
+    <div style="width: 160px; background: green"></div>
+  </div>
+  <div style="width: 500px; height: 500px"></div>
+</div>

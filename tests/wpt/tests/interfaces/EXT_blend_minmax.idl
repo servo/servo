@@ -1,0 +1,10 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL EXT_blend_minmax Khronos Ratified Extension Specification (https://registry.khronos.org/webgl/extensions/EXT_blend_minmax/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface EXT_blend_minmax {
+  const GLenum MIN_EXT = 0x8007;
+  const GLenum MAX_EXT = 0x8008;
+};

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>PerformanceNavigationTiming's activationStart in prerendered page</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const ACTIVATION_DELAY = 10;
+
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const prerenderedRC = await addPrerenderRC(referrerRC);
+  const iframeRC = await prerenderedRC.addIframe();
+
+  assert_equals(
+    await getActivationStart(prerenderedRC),
+    0,
+    'activationStart must be 0 while prerendering'
+  );
+
+  assert_equals(
+    await getActivationStart(iframeRC),
+    0,
+    'activationStart must be 0 while prerendering the iframe'
+  );
+
+  // Wait ACTIVATION_DELAY ms before activation.
+  await new Promise(resolve => t.step_timeout(resolve, ACTIVATION_DELAY));
+
+  await activatePrerenderRC(referrerRC, prerenderedRC);
+
+  assert_greater_than_equal(
+    await getActivationStart(prerenderedRC),
+    ACTIVATION_DELAY,
+    'activationStart after activation must be greater than or equal to ' +
+    'ACTIVATION_DELAY'
+  );
+
+  assert_greater_than_equal(
+    await getActivationStart(iframeRC),
+    ACTIVATION_DELAY,
+    'activationStart after activation must be greater than or equal to ' +
+    'ACTIVATION_DELAY in the iframe'
+  );
+});
+
+// A utility to both extract activationStart from the prerendered
+// RemoteContextWrapper, and also check that it shows up in toJSON().
+async function getActivationStart(prerenderedRC) {
+  const [activationStart, activationStartInToJSON] = await prerenderedRC.executeScript(() => {
+    const entry = performance.getEntriesByType("navigation")[0];
+    return [entry.activationStart, entry.toJSON().activationStart];
+  });
+
+  assert_equals(
+    activationStart,
+    activationStartInToJSON,
+    "activationStart value must be available in the result of toJSON()"
+  );
+
+  return activationStart;
+}
+</script>

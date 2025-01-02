@@ -1,0 +1,12 @@
+<title>Test ImageDecoder destruction w/ ReadableStream doesn't crash.</title>
+<body>
+<script>
+let iframe = document.createElement('iframe');
+document.body.appendChild(iframe);
+let decoder = new iframe.contentWindow.ImageDecoder({
+    data: new Blob(['blob']).stream(),
+    type: 'image/jpeg',
+});
+document.querySelector('body').remove();
+</script>
+</body>

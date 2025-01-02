@@ -1,0 +1,85 @@
+<!doctype html>
+<head>
+<title>Test setSinkId() before and after selectAudioOutput()</title>
+<link rel="help" href="https://www.w3.org/TR/audio-output/#dom-htmlmediaelement-setsinkid">
+</head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+let deviceId;
+promise_test(async t => {
+  await test_driver.bless('transient activation for selectAudioOutput()');
+  ({deviceId} = await navigator.mediaDevices.selectAudioOutput());
+
+  const audio = new Audio();
+  const p1 = audio.setSinkId(deviceId);
+  assert_equals(audio.sinkId, "", "before it resolves, setSinkId is unchanged");
+  let r = await p1;
+  assert_equals(r, undefined, "setSinkId resolves with undefined");
+  assert_equals(audio.sinkId, deviceId, "when it resolves, setSinkId updates sinkId to the requested deviceId");
+
+  r = await audio.setSinkId(deviceId);
+  assert_equals(r, undefined, "resetting sinkid on same current value should always work");
+
+  r = await audio.setSinkId("");
+  assert_equals(r, undefined, "resetting sinkid on default audio output should always work");
+}, "setSinkId() after selectAudioOutput()");
+
+const src = "/media/movie_5.webm";
+
+promise_test(async t => {
+  assert_not_equals(deviceId, undefined, "selectAudioOutput() resolved");
+  const video = document.createElement('video');
+  try {
+    document.body.appendChild(video);
+    video.src = src;
+    await new Promise(r => video.onloadeddata = r);
+    await video.setSinkId(deviceId);
+    assert_equals(video.sinkId, deviceId, "sinkId after setSinkId()");
+  } finally {
+    video.remove();
+  }
+}, "setSinkId() on video after loadeddata");
+
+promise_test(async t => {
+  assert_not_equals(deviceId, undefined, "selectAudioOutput() resolved");
+  const video = document.createElement('video');
+  try {
+    video.src = src;
+    video.autoplay = true;
+    video.loop = true;
+    await new Promise(r => video.onplay = r);
+    await video.setSinkId(deviceId);
+    assert_equals(video.sinkId, deviceId, "sinkId after setSinkId()");
+  } finally {
+    video.pause();
+  }
+}, "setSinkId() on video after play");
+
+// Use the same sinkId in another same-origin top-level browsing context.
+// "the identifier MUST be the same in documents of the same origin in
+// top-level browsing contexts."
+// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-deviceid
+promise_test(async t => {
+  assert_not_equals(deviceId, undefined, "selectAudioOutput() resolved");
+  const proxy = window.open('/common/blank.html');
+  t.add_cleanup(() => proxy.close());
+  await new Promise(r => proxy.onload = r);
+  const pAudio = new proxy.Audio();
+  await promise_rejects_dom(t, "NotFoundError", proxy.DOMException,
+                            pAudio.setSinkId(deviceId),
+                            "before selectAudioOutput()");
+  await test_driver.bless('transient activation for selectAudioOutput()',
+                          null, proxy);
+  const { deviceId: pDeviceId } =
+        await proxy.navigator.mediaDevices.selectAudioOutput({deviceId});
+  assert_equals(pDeviceId, deviceId,
+                "deviceIds should be same in each browsing context");
+  await pAudio.setSinkId(deviceId);
+  assert_equals(pAudio.sinkId, deviceId, "sinkId after setSinkId()");
+}, "setSinkId() with deviceID from another window");
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Test the definite max-block-size wins the automatic content-based minimum block-size in flex container's cross axis (block axis)</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+
+<style>
+#container {
+  display: flex;
+  inline-size: 100px;
+  aspect-ratio: 2 / 1;
+  background: green;
+  max-block-size: 100px;
+}
+#item {
+  flex: 1;
+  block-size: 200px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container">
+  <div id="item"></div>
+</div>

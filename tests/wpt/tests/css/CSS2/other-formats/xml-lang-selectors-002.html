@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title>CSS Test: xml:lang with :lang() selector in HTML</title>
+    <link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com">
+    <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/">
+    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#attribute-selectors">
+    <meta name="flags" content="HTMLonly">
+    <meta name="assert" content="xml:lang in HTML cannot apply language for :lang() selectors.">
+  <style type="text/css">
+   :lang(ch) { background: red; color: yellow; }
+  </style>
+ </head>
+ <body>
+  <p xml:lang="ch">There must be no red.</p>
+ </body>
+</html>

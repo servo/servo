@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+
+  const result = i.contentWindow.navigation.navigate("?1");
+  assertNeverSettles(t, result, i.contentWindow);
+
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+}, "cross-document navigate() promises never settle");
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>CSS Transforms Test: transform property with scale function</title>
+    <link rel="author" title="Noah Lu" href="mailto:codedancerhua@gmail.com" />
+    <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com" /> <!-- 2013-09-04 -->
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property" />
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-scale" />
+    <link rel="match" href="reference/css3-transform-scale-ref.html" />
+    <meta name="assert" content="box width and height will be twice larger if transform scale(2) applied">
+    <style type="text/css">
+        .red,
+        .green{
+            width: 100px;
+            height: 100px;
+            background-color: green;
+            position: absolute;
+            top: 150px;
+            left: 150px;
+            z-index: 10;
+        }
+        .red{
+            background-color: red;
+            width: 200px;
+            height: 200px;
+            left: 100px;
+            top: 100px;
+            z-index:9;
+        }
+        .green{
+            transform:scale(2);
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <div class="red"></div>
+    <div class="green"></div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: test the mouse click counts at different cases</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+div#test {
+  position: fixed;
+  touch-action: none;
+  top: 5px;
+  left: 5px;
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+</style>
+
+<div id="test">
+</div>
+
+<script>
+let clickCountList = [];
+
+async_test(t => {
+  let test = document.getElementById("test");
+  test.addEventListener("click", e => {
+    clickCountList.push(e.detail);
+  });
+
+  let div = document.getElementById("test");
+  var actions = new test_driver.Actions();
+  actions.pointerMove(0, 0, {origin: test})
+    .pointerDown()
+    .pointerUp()
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(15, 15, {origin: test})
+    .pointerDown()
+    .pointerUp()
+    .pointerDown()
+    .pointerUp()
+    .pointerDown()
+    .pointerUp()
+    .send()
+    .then(t.step_func_done(() => {
+      let expectedClickCountList = [1, 2, 1, 2, 3];
+      assert_array_equals(clickCountList, expectedClickCountList);
+  })).catch(e => t.step_func(() => assert_unreached("Actions sequence failed " + e)));
+});
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<title>Test that nobody implemented the now-removed menu type and attribute on button</title>
+<meta charset="utf-8">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://github.com/whatwg/html/pull/2342">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id="b" type="menu" menu="m">button</button>
+<menu id="m"></menu>
+
+<script>
+"use strict";
+
+const button = document.querySelector("button");
+
+test(() => {
+  assert_false('menu' in button, 'The menu property must not exist on the button');
+  assert_equals(button.menu, undefined, 'The value of the menu property on the button must be undefined');
+}, 'button.menu, the potentially-reflecting IDL attribute, does not exist');
+
+test(() => {
+  assert_equals(button.type, 'submit', 'The type property must reflect as its invalid value default of submit');
+}, 'button.type reflects properly');
+</script>

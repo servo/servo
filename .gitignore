@@ -1,0 +1,70 @@
+/.servo
+/.cargo/*
+!/.cargo/config.*
+/.rustup
+/.servobuild
+/.wpt
+/.vs
+/android-toolchains
+/target
+/tests/wpt/reftests-report/report.html
+/python/_virtualenv*
+/python/_venv*
+/python/tidy/servo_tidy.egg-info
+/tests/wpt/sync
+/tests/wpt/**/**/.cache/
+/tests/dromaeo/dromaeo
+*.pkl
+*.pyc
+*.swp
+*.swo
+*.csv
+*.rej
+*.orig
+.coverage
+.DS_Store
+Servo.app
+servo.pftrace
+.config.mk.last
+/glfw
+webrender-captures/
+/screenshots
+
+# Allow CSV files to be used as resources in tests
+!/tests/**/*.csv
+
+# Editors
+## IntelliJ
+.idea
+*.iws
+*.iml
+
+## Gradle
+.gradle
+
+## VSCode
+.vscode
+!/.vscode/extensions.json
+!/.vscode/settings.json
+
+## Emacs
+*~
+.#*
+\#*
+\#*\#
+
+## Vim
+Session.vim
+Sessionx.vim
+
+/unminified-js
+/unminified-css
+
+# Layout debugger trace files
+layout_trace*
+
+# Package managers
+support/macos/Brewfile.lock.json
+
+# direnv
+.envrc

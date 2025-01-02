@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+
+<script>
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-media-{camera, microphone}.https.html) loads
+// the initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  const promise = navigator.mediaDevices.getUserMedia({
+      audio: params.get("audio") === "true",
+      video: params.get("video") === "true"
+  });
+  prerenderEventCollector.start(promise, 'navigator.mediaDevices.getUserMedia');
+}
+
+</script>

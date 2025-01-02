@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--The permission element should have some limits for the min/max-width/height:
+  * min-width should be sufficient to fit the element text (depends on user agent implementation)
+  * max-width should be at most 3x min-width
+  * min-height should be sufficient to fit the element text (1em)
+  * max-height should be at most 3x min-height
+-->
+<style>
+  #el_outside_bounds {
+    font-size: 10px;
+    width: auto;
+    height: auto;
+    border: 0px;
+
+    min-height: 1px;
+    max-height: 100px;
+
+    padding-top: 12px;
+    padding-left: 60px;
+    padding-bottom: 1000px;
+    padding-right: 1000px;
+
+    /* These values are extreme enough that they should be out of bounds for any implementation */
+    min-width: 10px;
+    max-width: 1000px;
+  }
+  #el_inside_bounds {
+    font-size: 10px;
+    width: auto;
+    height: auto;
+    border: 0px;
+
+    min-height: 11px;
+    max-height: 29px;
+
+    padding-top: 5px;
+    padding-left: 45px;
+    padding-bottom: 6px;
+    padding-right: 46px;
+  }
+  #el_large_min_size {
+    font-size: 10px;
+    width: auto;
+    height: auto;
+    border: 0px;
+
+    min-height: 50px;
+    min-width: 1000px;
+  }
+</style>
+
+
+<permission id="el_outside_bounds" type="geolocation">
+<permission id="el_inside_bounds" type="camera">
+<permission id="el_large_min_size" type="microphone">
+
+<script>
+  test(function(){
+    let min_height = getComputedStyle(el_outside_bounds).minHeight;
+    let max_height = getComputedStyle(el_outside_bounds).maxHeight;
+    assert_true(min_height === "calc(10px)" || min_height === "10px", "min-height");
+    assert_true(max_height === "calc(30px)" || max_height === "30px", "max-height");
+    assert_not_equals(getComputedStyle(el_outside_bounds).minWidth, "10px", "min-width");
+    assert_not_equals(getComputedStyle(el_outside_bounds).maxWidth, "1000px", "max-width");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingLeft, "50px", "padding-left");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingRight, "50px", "padding-right");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingTop, "10px", "padding-top");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingBottom, "10px", "padding-bottom");
+  }, "Properties with out-of-bounds values should be corrected");
+
+  test(function(){
+    assert_equals(getComputedStyle(el_inside_bounds).minHeight, "calc(11px)", "min-height");
+    assert_equals(getComputedStyle(el_inside_bounds).maxHeight, "calc(29px)", "max-height");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingLeft, "45px", "padding-left");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingRight, "45px", "padding-right");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingTop, "5px", "padding-top");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingBottom, "5px", "padding-bottom");
+  }, "Properties with values in bounds should not be modified");
+
+  test(function() {
+    let min_height = getComputedStyle(el_large_min_size).minHeight;
+    assert_true(min_height === "calc(30px)" || min_height === "30px", "min-height");
+    assert_not_equals(getComputedStyle(el_outside_bounds).minWidth, "1000px", "min-width");
+  }, "'Min' properties should not be allowed to go over the maximum allowed values for 'max' properties");
+
+</script>
+</body>

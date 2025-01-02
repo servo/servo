@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>HTMLAreaElement stringifier</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://webidl.spec.whatwg.org/#es-stringifier">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/stringifiers.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  test_stringifier_attribute(document.createElement("area"), "href", false);
+  var area = document.createElement("area");
+  area.setAttribute("href", "foo");
+  test_stringifier_attribute(area, "href", false);
+})
+</script>

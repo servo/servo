@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test test</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<style>
+  table {
+    font-size: 3em;
+    border-spacing: 0 3px;
+  }
+  td {
+    padding: 0 0.5ch;
+    line-height: 1;
+    border: 1px solid;
+  }
+  @font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+  }
+  table {
+    font-family: 'csstest_noto';
+  }
+</style>
+
+<p>Test passes if both halves of each of the pairs below are identical:
+
+<table dir=rtl lang=ar>
+<tr><!-- alef, isolated rather than final -->
+  <td>&#x640;&#xFE8D;
+  <td>&#x640;&#xFE8D;
+<tr><!-- beh, isolated rather than initial -->
+  <td>&#xFE8F;&#x640;
+  <td>&#xFE8F;&#x640;
+<tr><!-- beh, final rather than medial -->
+  <td>&#x640;&#xFE90;&#x640;
+  <td>&#x640;&#xFE90;&#x640;
+<tr><!-- beh, isolated rather than medial -->
+  <td>&#x640;&#xFE8F;&#x640;
+  <td>&#x640;&#xFE8F;&#x640;
+<tr><!-- beh, initial rather than medial -->
+  <td>&#x640;&#xFE91;&#x640;
+  <td>&#x640;&#xFE91;&#x640;
+<tr><!-- beh, isolated rather than final -->
+  <td>&#x640;&#xFE8F;
+  <td>&#x640;&#xFE8F;
+</table>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>overflow-clip-margin applies to svg</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow-clip">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="overflow-clip-margin-svg-ref.html">
+<style>
+  svg {
+    width: 100px;
+    height: 100px;
+    overflow-clip-margin: 10px;
+  }
+</style>
+<svg>
+  <rect width="150" height="150" fill="green"></rect>
+</svg>

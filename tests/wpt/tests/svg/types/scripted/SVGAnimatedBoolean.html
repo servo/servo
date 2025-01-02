@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<title>SVGAnimatedBoolean interface - utilizing the preserveAlpha property of SVGFEConvolveMatrixElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the SVGAnimatedBoolean API - utilizing the preserveAlpha property of SVGFEConvolveMatrixElement.
+
+  var convElement = document.createElementNS("http://www.w3.org/2000/svg", "feConvolveMatrix");
+  // Check initial preserveAlpha value.
+  assert_false(convElement.preserveAlpha.baseVal);
+
+  // Set value to true.
+  convElement.preserveAlpha.baseVal = true;
+  assert_true(convElement.preserveAlpha.baseVal);
+
+  // Caching baseVal in local variable.
+  var baseVal = convElement.preserveAlpha.baseVal;
+  assert_true(baseVal);
+
+  // Modify local baseVal variable to false.
+  baseVal = false;
+
+  // Assure that convElement.preserveAlpha has not been changed, but the local baseVal variable.
+  assert_false(baseVal);
+  assert_true(convElement.preserveAlpha.baseVal);
+
+  // Check assigning values of various types.
+  // ECMA-262, 9.2, "ToBoolean"
+  convElement.preserveAlpha.baseVal = convElement.preserveAlpha;
+  assert_true(convElement.preserveAlpha.baseVal);
+
+  convElement.preserveAlpha.baseVal = null;
+  assert_false(convElement.preserveAlpha.baseVal);
+
+  convElement.preserveAlpha.baseVal = 'aString';
+  assert_true(convElement.preserveAlpha.baseVal);
+
+  convElement.preserveAlpha.baseVal = false;
+  assert_false(convElement.preserveAlpha.baseVal);
+
+  convElement.preserveAlpha.baseVal = convElement;
+  assert_true(convElement.preserveAlpha.baseVal);
+});
+</script>

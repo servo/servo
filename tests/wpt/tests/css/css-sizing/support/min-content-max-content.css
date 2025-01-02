@@ -1,0 +1,107 @@
+/*
+ * All classes here intentionally declare height/width/block-size
+ * twice. Just reveals if keyword is supported.
+ *
+ * According to the spec, for the sizing properties,
+ * height/min-height/max-height, and width/min-width/max-width,
+ * if specified for the inline axis, use the min-content/max-content inline
+ * size; otherwise behaves as the property’s initial value.
+ *
+ * The 'block-size' property (and its max-/min- properties) is just an alias
+ * for height (or width) and accepts the same values. Since it's not
+ * inline-axis, by definition, it always treats the 'min-content' and
+ * 'max-content' values as the initial value.
+ *
+ * https://drafts.csswg.org/css-sizing/#sizing-values
+ *
+ */
+
+.height-min-content {
+  height: 0px;
+  height: min-content;
+}
+
+.height-max-content {
+  height: 0px;
+  height: max-content;
+}
+
+.min-height-min-content {
+  min-height: 600px;
+  min-height: min-content;
+}
+
+.min-height-max-content {
+  min-height: 600px;
+  min-height: max-content;
+}
+
+.max-height-min-content {
+  max-height: 0px;
+  max-height: min-content;
+}
+
+.max-height-max-content {
+  max-height: 0px;
+  max-height: max-content;
+}
+
+.width-min-content {
+  width: 0px;
+  width: min-content;
+}
+
+.width-max-content {
+  width: 0px;
+  width: max-content;
+}
+
+.min-width-min-content {
+  min-width: 600px;
+  min-width: min-content;
+}
+
+.min-width-max-content {
+  min-width: 600px;
+  min-width: max-content;
+}
+
+.max-width-min-content {
+  max-width: 0px;
+  max-width: min-content;
+}
+
+.max-width-max-content {
+  max-width: 0px;
+  max-width: max-content;
+}
+
+.block-min-content {
+  block-size: 0px;
+  block-size: min-content;
+}
+
+.block-max-content {
+  block-size: 0px;
+  block-size: max-content;
+}
+
+.min-block-min-content {
+  min-block-size: 600px;
+  min-block-size: min-content;
+}
+
+.min-block-max-content {
+  min-block-size: 600px;
+  min-block-size: max-content;
+}
+
+.max-block-min-content {
+  max-block-size: 0px;
+  max-block-size: min-content;
+}
+
+.max-block-max-content {
+  max-block-size: 0px;
+  max-block-size: max-content;
+}

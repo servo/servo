@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ServiceWorker Bridge</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  // This bridge document exists to perform service worker commands on behalf
+  // of a test page. It lives within the same scope (including origin) as the
+  // service worker script, allowing it to be controlled by the service worker.
+
+  async function register({ url, options }) {
+    await navigator.serviceWorker.register(url, options);
+    return { loaded: true };
+  }
+
+  async function unregister({ scope }) {
+    const registration = await navigator.serviceWorker.getRegistration(scope);
+    if (!registration) {
+      return { unregistered: false, error: "no registration" };
+    }
+
+    const unregistered = await registration.unregister();
+    return { unregistered };
+  }
+
+  async function update({ scope }) {
+    const registration = await navigator.serviceWorker.getRegistration(scope);
+    if (!registration) {
+      return { updated: false, error: "no registration" };
+    }
+
+    const newRegistration = await registration.update();
+    return { updated: true };
+  }
+
+  // Total number of `controllerchange` events since document creation.
+  let totalNumControllerChanges = 0;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    totalNumControllerChanges++;
+  });
+
+  // Using `navigator.serviceWorker.ready` does not allow noticing new
+  // controllers after an update, so we count `controllerchange` events instead.
+  // This has the added benefit of ensuring that subsequent fetches are handled
+  // by the service worker, whereas `ready` does not guarantee that.
+  async function wait({ numControllerChanges }) {
+    if (totalNumControllerChanges >= numControllerChanges) {
+      return {
+        controlled: !!navigator.serviceWorker.controller,
+        numControllerChanges: totalNumControllerChanges,
+      };
+    }
+
+    let remaining = numControllerChanges - totalNumControllerChanges;
+    await new Promise((resolve) => {
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        remaining--;
+        if (remaining == 0) {
+          resolve();
+        }
+      });
+    });
+
+    return {
+      controlled: !!navigator.serviceWorker.controller,
+      numControllerChanges,
+    };
+  }
+
+  async function doFetch({ url, options }) {
+    const response = await fetch(url, options);
+    const body = await response.text();
+    return {
+      ok: response.ok,
+      body,
+    };
+  }
+
+  async function setPermission({ name, state }) {
+    await test_driver.set_permission({ name }, state);
+
+    // Double-check, just to be sure.
+    // See the comment in `../service-worker-background-fetch.js`.
+    const permissionStatus = await navigator.permissions.query({ name });
+    return { state: permissionStatus.state };
+  }
+
+  async function backgroundFetch({ scope, url }) {
+    const registration = await navigator.serviceWorker.getRegistration(scope);
+    if (!registration) {
+      return { error: "no registration" };
+    }
+
+    const fetchRegistration =
+        await registration.backgroundFetch.fetch("test", url);
+    const resultReady = new Promise((resolve) => {
+      fetchRegistration.addEventListener("progress", () => {
+        if (fetchRegistration.result) {
+          resolve();
+        }
+      });
+    });
+
+    let ok;
+    let body;
+    const record = await fetchRegistration.match(url);
+    if (record) {
+      const response = await record.responseReady;
+      body = await response.text();
+      ok = response.ok;
+    }
+
+    // Wait for the result after getting the response. If the steps are
+    // inverted, then sometimes the response is not found due to an
+    // `UnknownError`.
+    await resultReady;
+
+    return {
+      result: fetchRegistration.result,
+      failureReason: fetchRegistration.failureReason,
+      ok,
+      body,
+    };
+  }
+
+  function getAction(action) {
+    switch (action) {
+      case "register":
+        return register;
+      case "unregister":
+        return unregister;
+      case "wait":
+        return wait;
+      case "update":
+        return update;
+      case "fetch":
+        return doFetch;
+      case "set-permission":
+        return setPermission;
+      case "background-fetch":
+        return backgroundFetch;
+    }
+  }
+
+  window.addEventListener("message", async (evt) => {
+    let message;
+    try {
+      const action = getAction(evt.data.action);
+      message = await action(evt.data);
+    } catch(e) {
+      message = { error: e.name };
+    }
+    parent.postMessage(message, "*");
+  });
+</script>

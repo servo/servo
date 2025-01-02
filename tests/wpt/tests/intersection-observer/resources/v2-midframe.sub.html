@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<style>
+iframe {
+  width: 300px;
+  height: 150px;
+  border: none;
+}
+</style>
+
+<iframe src="http://{{domains[www2]}}:{{ports[http][0]}}/intersection-observer/resources/v2-subframe.html"></iframe>
+
+<script>
+window.addEventListener("message", event => {
+  requestAnimationFrame(() => setTimeout(() => {
+    document.querySelector('iframe').contentWindow.postMessage(event.data, "*");
+  }));
+});
+</script>

@@ -1,0 +1,180 @@
+<svg version="1.1" baseProfile="full" onload="onLoad(evt)" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: extend-namespace-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/extend.html#ForeignNamespaces">
+      <p>
+        Test mixing a business data namespace with elements in SVG namespace.
+      </p>
+      <p>
+        The test case uses a different namespace to hold fake sales data.
+        Using ECMAScript to make calls to the DOM, the test case extracts
+        the sales data and then makes calls to the SVG DOM to build up
+        a 'path' element and a 'text' element for each individual pie slice.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The result should show five pie slices.
+        The first pie slice should be exploded, with a pink fill and a blue border.
+        The other pie slices should have various levels of gray fill and black borders.
+        The name of each region should appear in black towards the center of
+        the pie slice.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: extend-namespace-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g xmlns:bd="http://example.org/ExampleBusinessData" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <script type="text/ecmascript">
+          var svg_ns = "http://www.w3.org/2000/svg";
+          var bd_ns = "http://example.org/ExampleBusinessData";
+          function onLoad(evt){
+          // Get Document
+          var svgElement = evt.target;
+          var doc = svgElement.ownerDocument;
+
+          var resultsElement = doc.getElementById('results');
+          var gElement = doc.getElementById('PieParent');
+
+          // Count the number of regions.
+          RegionNodeList = doc.getElementsByTagNameNS(bd_ns, "Region");
+          regionCount = RegionNodeList.length;
+
+          // Get the region data.
+          RegionNameNodeList = doc.getElementsByTagNameNS(bd_ns, "RegionName");
+          RegionResultNodeList = doc.getElementsByTagNameNS(bd_ns, "RegionResult");
+
+          // Get the sum of the values of the regions.
+          var total = 0;
+          for (regionIndex = 0; regionIndex &lt; regionCount; regionIndex++)
+          total = total + Number(RegionResultNodeList.item(regionIndex).firstChild.nodeValue);
+
+          // Build a pie chart.
+          var startAngle = 0;
+          for (regionIndex = 0; regionIndex &lt; regionCount; regionIndex++) {
+          regionName = RegionNameNodeList.item(regionIndex).firstChild.nodeValue;
+          regionResult = Number(RegionResultNodeList.item(regionIndex).firstChild.nodeValue);
+
+          // Build the pie slice.
+          textElement = doc.createElementNS(svg_ns, "text");
+          textNode = doc.createTextNode(regionName);
+          textElement.appendChild(textNode);
+          pathElement = doc.createElementNS(svg_ns, "path");
+
+          endAngle = startAngle - regionResult * Math.PI * 2 / total;
+          dAttribute = "M240,170 L";
+          gray =  Math.round(Number(255 * (regionIndex+2)) / (regionCount+2));
+          midAngle = (startAngle + endAngle) / 2;
+          textElement.setAttributeNS(null, "x", Math.round(240+65*Math.cos(midAngle)));
+          textElement.setAttributeNS(null, "y", Math.round(170+65*Math.sin(midAngle)));
+
+          dAttribute = dAttribute + Math.round(240+100*Math.cos(startAngle));
+          dAttribute = dAttribute + ',';
+          dAttribute = dAttribute + Math.round(170+100*Math.sin(startAngle));
+          dAttribute = dAttribute + ' A100,100 0 0,0 ';
+          dAttribute = dAttribute + Math.round(240+100*Math.cos(endAngle));
+          dAttribute = dAttribute + ',';
+          dAttribute = dAttribute + Math.round(170+100*Math.sin(endAngle));
+          dAttribute = dAttribute + 'z';
+          pathElement.setAttributeNS(null, "d", dAttribute);
+          pathElement.setAttributeNS(null, "fill", "rgb("+gray+","+gray+","+gray+")");
+          pathElement.setAttributeNS(null, "stroke", "black");
+          pathElement.setAttributeNS(null, "stroke-width", "2");
+
+          // Temporary, for CSS styling.
+          pathElement.setAttributeNS(null, "fill", "rgb("+gray+","+gray+","+gray+")");
+          pathElement.setAttributeNS(null, "stroke", "black");
+          pathElement.setAttributeNS(null, "stroke-width", "2");
+
+          if (regionIndex == 0) {
+          var firstSliceOffset = 30;
+          var transformValue = "translate(" +
+          Math.round(firstSliceOffset * Math.cos(midAngle)) +
+          "," +
+          Math.round(firstSliceOffset * Math.sin(midAngle)) +
+          ")";
+          pathElement.setAttributeNS(null, "transform", transformValue);
+          textElement.setAttributeNS(null, "transform", transformValue);
+          pathElement.setAttributeNS(null, "fill", "#FF6666");
+          pathElement.setAttributeNS(null, "stroke", "#0000FF");
+          pathElement.setAttributeNS(null, "stroke-width", "3");
+
+          // Temporary, for CSS styling.
+          pathElement.setAttributeNS(null, "fill", "#FF8888");
+          pathElement.setAttributeNS(null, "stroke", "#0000FF");
+          pathElement.setAttributeNS(null, "stroke-width", "3");
+
+          }
+          gElement.appendChild(pathElement);
+          gElement.appendChild(textElement);
+          startAngle = endAngle;
+          }
+          }
+        </script>
+      </defs>
+      <bd:Results id="results">
+        <bd:Region>
+          <bd:RegionName>East</bd:RegionName>
+          <bd:RegionResult>3</bd:RegionResult>
+        </bd:Region>
+        <bd:Region>
+          <bd:RegionName>North</bd:RegionName>
+          <bd:RegionResult>4</bd:RegionResult>
+        </bd:Region>
+        <bd:Region>
+          <bd:RegionName>West</bd:RegionName>
+          <bd:RegionResult>5</bd:RegionResult>
+        </bd:Region>
+        <bd:Region>
+          <bd:RegionName>Central</bd:RegionName>
+          <bd:RegionResult>3.2</bd:RegionResult>
+        </bd:Region>
+        <bd:Region>
+          <bd:RegionName>South</bd:RegionName>
+          <bd:RegionResult>6</bd:RegionResult>
+        </bd:Region>
+      </bd:Results>
+      <text font-family="Arial" font-size="16" text-anchor="middle" x="240" y="30">
+        Pie chart built from data in a different namespace.
+      </text>
+    </g>
+    <g id="PieParent" font-family="Arial" text-anchor="middle" font-size="14">
+      <desc>Pie chart is built within this 'g' element</desc>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

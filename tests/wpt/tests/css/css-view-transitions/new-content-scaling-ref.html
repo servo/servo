@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>View transitions: display content in a pseudo with proper scaling (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.inner {
+  position: absolute;
+  inset: 4px;
+  background: green;
+}
+.dst {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid blue;
+  box-sizing: border-box;
+}
+body { background: lightpink; }
+</style>
+
+<div class=dst><div class=inner></div></div>

@@ -1,0 +1,59 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: auto + overflow clip + scrollIntoView</title>
+<link rel="author" title="Cathie Chen" href="mailto:cathiechen@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert"
+    content="Test if target scrollIntoView is hidden when it is inside the overflow area of a content-visibility: auto which is not relevent content">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+    .auto {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 1px auto 10000px;
+    }
+
+    .child {
+        height: 40000px;
+        position: relative;
+    }
+
+    #target {
+        position: absolute;
+        bottom: 0;
+    }
+
+    .before_target {
+        height: 40000px;
+    }
+
+    #overflow_clip {
+        overflow: clip;
+        height: 20000px;
+    }
+</style>
+
+<div id=e1 class="auto before_target"></div>
+<div id=e2 class="auto before_target"></div>
+<div id=e3 class="auto">
+    <div id="overflow_clip">
+        <div class=child>
+            <div id=target>PASS</div>
+        </div>
+    </div>
+</div>
+<div id=e4 class=auto>
+    <div class=child></div>
+</div>
+
+
+<script>
+    function runTest() {
+        target.scrollIntoView();
+        requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+    }
+
+    window.onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

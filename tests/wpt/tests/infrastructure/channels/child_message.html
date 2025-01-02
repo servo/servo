@@ -1,0 +1,13 @@
+<!doctype html>
+<script src="/resources/channel.sub.js"></script>
+<script>
+function handleMessage(msg) {
+    // We expect the message to be a SendChannel
+    respChannel = msg;
+    respChannel.send("PASS");
+}
+
+let channel = global_channel();
+channel.addMessageHandler(handleMessage);
+channel.connect();
+</script>

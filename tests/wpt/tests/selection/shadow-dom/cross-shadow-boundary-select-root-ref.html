@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+ <body>
+ <div id="outerText">OuterText1</div>
+ <div>InnerText1</div>
+ <div>OuterText2</div>
+ <div id="host">InnerText2</div>
+ <script>
+   window.getSelection().setBaseAndExtent(outerText, 0, host, host.childNodes.length);
+ </script>
+</body></html>

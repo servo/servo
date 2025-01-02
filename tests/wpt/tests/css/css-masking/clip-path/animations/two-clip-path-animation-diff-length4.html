@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="two-clip-path-animation-diff-length1-ref.html">
+<style>
+  #container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: clippath2 0.5s;
+  }
+
+  @keyframes clippath2 {
+    0% {
+      clip-path: inset(10px 10px);
+    }
+
+    1% {
+      clip-path: inset(10px 10px);
+    }
+
+    100% {
+      clip-path: inset(40px 40px);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/testcommon.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div id="container"></div>
+
+  <script>
+    // This test ensures that a new no-op animation still invalidates paint
+    // and the animation running on the compositor.
+    document.getAnimations()[0].ready.then(() => {
+      let anim = document.getElementById("container").animate(
+        [
+          { clipPath: "inset(10px 10px)" },
+          { clipPath: "inset(10px 10px)" },
+        ],
+        2000,
+      );
+      anim.ready.then(() => { return requestAnimationFrame(takeScreenshot); });
+    });
+  </script>
+</body>
+
+</html>

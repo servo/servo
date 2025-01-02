@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=fuzzy content="maxDifference=0-20;totalPixels=0-100000">
+<title>backdrop-filter: Correctly apply backdrop-filter with an SVG filter</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="reference/backdrop-filter-boundary-ref.html">
+<style>
+.bg {
+    position: relative;
+    display: inline-block;
+    width: 160px;
+    height: 90px;
+    background-image: url("resources/reference.png");
+}
+.fg {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    width: 150px;
+    height: 80px;
+}
+body {
+    background-color: lime;
+}
+</style>
+<div style="width:550px">
+  <div class="bg"><div class="fg" style="backdrop-filter: blur(3px);"></div></div>
+  <div class="bg"><div class="fg" style="backdrop-filter: blur(6px);"></div></div>
+  <div class="bg"><div class="fg" style="backdrop-filter: blur(12px);"></div></div>
+  <div class="bg"><div class="fg" style="backdrop-filter: blur(24px);"></div></div>
+  <div class="bg"><div class="fg" style="backdrop-filter: blur(48px);"></div></div>
+  <div class="bg"><div class="fg" style="backdrop-filter: blur(96px);"></div></div>
+</div>
+
+<!-- This should show an increasing series of blurred blocks. No lime green should
+    be brought in to the blurred regions. -->

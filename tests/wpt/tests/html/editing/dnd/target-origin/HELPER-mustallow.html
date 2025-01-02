@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Must be allowed</title>
+    <style type="text/css">
+html { background: blue; }
+html, body { margin: 0; padding: 0; height: 100%; width: 100%; }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+if( location.search && location.search.indexOf('domain') != -1 ) {
+  document.domain = location.hostname.replace(/^[^.]+\./,'');
+}
+var seentypes = {};
+document.body.ondragenter = document.body.ondragover = document.body.ondrop = function (e) {
+  e.preventDefault();
+  if( e.type == 'drop' ) {
+    document.body.innerHTML = ( seentypes.dragenter && seentypes.dragover && e.dataTransfer.getData('text') == 'dummy text' ) ? 'PASS' : 'FAIL';
+  } else {
+    seentypes[e.type] = true;
+  }
+}
+    </script>
+  </body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<title>default styles for select as a listbox</title>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/rendering/support/test-ua-stylesheet.js"></script>
+<style>
+/* Specify this bogus namespace, so the rules in this stylesheet only apply to the `fakeClone`d elements in #refs, not the HTML elements in #tests. */
+@namespace url(urn:not-html);
+
+select {
+  letter-spacing: initial;
+  word-spacing: initial;
+  line-height: initial;
+  text-transform: initial;
+  text-indent: initial;
+  text-shadow: initial;
+  appearance: auto;
+}
+
+select {
+  text-align: initial;
+}
+
+select {
+  box-sizing: border-box;
+}
+
+/* When the element renders as a list box, it is a devolvable widget expected to render as an 'inline-block' box whose 'height' is the height necessary to contain as many rows for items as given by the element's display size, or four rows if the attribute is absent, and whose 'width' is the width of the select's labels plus the width of a scrollbar. */
+select {
+  display: inline-block;
+}
+
+</style>
+
+<style>
+/* non-initial styles on parent to test 'initial' in UA stylesheet */
+#tests, #refs {
+  letter-spacing: 1px;
+  word-spacing: 1px;
+  line-height: 20px;
+  text-transform: lowercase;
+  text-indent: 1px;
+  text-shadow: 0px 0px;
+  text-align: justify;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="tests">
+
+  <select multiple><option>1</option><optgroup label=2><option>3</select>
+
+</div>
+
+<div id="refs"></div>
+
+<script>
+  const props = [
+    'display',
+    'margin-top',
+    'margin-right',
+    'margin-bottom',
+    'margin-left',
+    'padding-top',
+    'padding-right',
+    'padding-bottom',
+    'padding-left',
+    'letter-spacing',
+    'word-spacing',
+    'text-transform',
+    'text-indent',
+    'text-shadow',
+    'appearance',
+    'box-sizing',
+    'border-top-width',
+    'border-right-width',
+    'border-bottom-width',
+    'border-left-width',
+    'border-top-style',
+    'border-right-style',
+    'border-bottom-style',
+    'border-left-style',
+    'border-top-color',
+    'border-right-color',
+    'border-bottom-color',
+    'border-left-color',
+    'align-items',
+    'white-space',
+    'color',
+    'background-color',
+    'cursor',
+    'font-style',
+    'font-weight',
+    'font-size',
+    'font-family',
+    'writing-mode',
+    'scrollbar-width',
+    'overflow',
+    'vertical-align',
+    'user-select',
+    'page-break-inside',
+    'overflow-clip-box',
+    'font-variant-ligatures',
+    'font-variant-caps',
+    'font-variant-numeric',
+    'font-variant-east-asian',
+    'text-rendering',
+  ];
+  runUAStyleTests(props);
+
+</script>

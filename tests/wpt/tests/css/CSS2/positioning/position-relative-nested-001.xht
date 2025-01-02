@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical centering with negative and positive top positioning</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#positioning-scheme" />
+		<link rel="match" href="position-relative-nested-001-ref.xht" />
+
+        <meta name="assert" content="Equal 50% positive and negative positioning can vertically center objects." />
+        <style type="text/css">
+            #outer
+            {
+                background: green repeat-x center url('support/red_box.png');
+                /* red_box.png is a 100px by 100px red square */
+                height: 300px;
+                width: 200px;
+            }
+            #inner
+            {
+                background-color: red;
+                height: 100px;
+                position: relative;
+                top: 50%
+            }
+            #inner-most
+            {
+                background-color: green;
+                height: 150px;
+                /* 150px == top-half of red_box.png's height + #inner's height */
+                position: relative;
+                top: -50%;
+                /* 50% is 50% of the height of #inner-most's containing block
+                which is #inner */
+                /* to move the top of the #inner-most box from pixel 150
+                on the y-axis of #outer to pixel 100 on the y-axis of #outer */
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="outer">
+            <div id="inner">
+                <div id="inner-most"></div>
+            </div>
+        </div>
+    </body>
+</html>

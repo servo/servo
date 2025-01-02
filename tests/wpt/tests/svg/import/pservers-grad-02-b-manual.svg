@@ -1,0 +1,79 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Haroon Sheikh" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: pservers-grad-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Gradients">
+      <p>
+        Test that the viewer can handle the xlink:href attribute on
+        radial gradients.
+      </p>
+      <p>
+        There are two rectangles. The top one has
+        a radial gradient (black to orange) that should appear elliptical
+        to fit the aspect ratio of the rectangle. The units are
+        specified in objectBoundingBox space. The gradient
+        on the lower one
+        references the gradient of the top rectangle, but modifies
+        the units to use userSpace instead. So it is only using the
+        stops from the gradient to the left, with a different geometry. The radial gradient appears circular.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the rendering matches the reference image, except
+      for any differences in text due to CSS2 rules.  Specifically:</p>
+      <ul>
+        <li>The top rectangle is filled with an elliptical radial gradient,
+        with black in the center and orange at the outside edges of the rectangle.</li>
+        <li>The bottom rectangle is filled with a circular radial gradient,
+        with black in the center and orange at the top and bottom edges of the rectangle.
+        Outside the circular area, the rectangle is filled with plain orange.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: pservers-grad-02-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- Radial Gradient using a xlink:href to another radial gradient          -->
+    <!-- ====================================================================== -->
+    <radialGradient id="Grad2a" gradientUnits="objectBoundingBox" cx=".5" cy=".5" fx=".5" fy=".5" r=".5">
+      <stop stop-color="black" offset="0"/>
+      <stop stop-color="rgb(255,165,0)" offset="1"/>
+    </radialGradient>
+    <radialGradient id="Grad2b" xlink:href="#Grad2a" gradientUnits="userSpaceOnUse" cx="240" cy="190" fx="240" fy="190" r="40"/>
+    <rect x="20" y="20" width="440" height="80" fill="url(#Grad2a)"/>
+    <text font-size="30" x="20" y="130">Radial gradient.</text>
+    <rect x="20" y="150" width="440" height="80" fill="url(#Grad2b)"/>
+    <text font-size="30" x="20" y="260">Referencing gradient below.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

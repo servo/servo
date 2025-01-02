@@ -1,0 +1,23 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_blend_equation_advanced_coherent Extension Draft Specification (https://registry.khronos.org/webgl/extensions/WEBGL_blend_equation_advanced_coherent/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_blend_equation_advanced_coherent  {
+  const GLenum MULTIPLY       = 0x9294;
+  const GLenum SCREEN         = 0x9295;
+  const GLenum OVERLAY        = 0x9296;
+  const GLenum DARKEN         = 0x9297;
+  const GLenum LIGHTEN        = 0x9298;
+  const GLenum COLORDODGE     = 0x9299;
+  const GLenum COLORBURN      = 0x929A;
+  const GLenum HARDLIGHT      = 0x929B;
+  const GLenum SOFTLIGHT      = 0x929C;
+  const GLenum DIFFERENCE     = 0x929E;
+  const GLenum EXCLUSION      = 0x92A0;
+  const GLenum HSL_HUE        = 0x92AD;
+  const GLenum HSL_SATURATION = 0x92AE;
+  const GLenum HSL_COLOR      = 0x92AF;
+  const GLenum HSL_LUMINOSITY = 0x92B0;
+};

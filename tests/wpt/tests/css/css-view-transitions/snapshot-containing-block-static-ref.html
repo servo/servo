@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: use snapshot containing block for static position (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+
+<style>
+body {
+  height: 400vh;
+  background-color: limegreen;
+}
+
+div {
+  position: absolute;
+  left: 200px;
+  top: 600px;
+  width: 100px;
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+
+  background: darkseagreen;
+}
+
+</style>
+
+<div id="target">TARGET</div>
+
+<script>
+onload = () => {
+  const scrollTargetY = document.getElementById('target').offsetTop - 100;
+  window.scrollTo(0, scrollTargetY);
+};
+</script>

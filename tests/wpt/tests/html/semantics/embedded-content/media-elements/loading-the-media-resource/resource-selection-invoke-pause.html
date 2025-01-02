@@ -1,0 +1,20 @@
+<!doctype html>
+<title>invoking resource selection with pause()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var v;
+var t = async_test(function(t) {
+  v = document.createElement('video');
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after creating v');
+  v.pause();
+  assert_equals(v.networkState, v.NETWORK_NO_SOURCE, 'networkState after v.pause()');
+});
+</script>
+<script>
+t.step(function() {
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState in separate script');
+  t.done();
+});
+</script>

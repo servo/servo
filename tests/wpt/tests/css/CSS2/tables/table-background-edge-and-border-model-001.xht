@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table background edge in the collapsing borders model</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="The background edge of a table could start either behind the table's border or at its edge in the collapsing borders model (non-normative rule)." />
+        <style type="text/css">
+            #table
+            {
+                background-image: url("support/blue-orange-rectangle.png");
+                background-repeat: no-repeat;
+                border-collapse: collapse;
+                border-left: 100px solid black;
+                border-spacing: 0;
+                display: table;
+                height: 100px;
+                width: 100px;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a black square below followed by either a blue or orange box.</p>
+        <div id="table">
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+        </div>
+    </body>
+</html>

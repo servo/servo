@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float right, circle(50% at right top) reference</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <style>
+  .container {
+    direction: rtl;
+    position: absolute;
+    width: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    /* Omit shape-outside */
+    clip-path: circle(50% at right top);
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px;
+    border: 20px solid lightgreen;
+    background-color: orange;
+  }
+
+  .box {
+    position: absolute;
+    width: 120px;
+    background-color: blue;
+  }
+
+  .long {
+    width: 200px;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="box" style="height: 36px; top: 0px; right: 60px;"></div>
+    <div class="box" style="height: 12px; top: 36px; right: 48px;"></div>
+    <div class="box" style="height: 12px; top: 48px; right: 36px;"></div>
+    <div class="long box" style="height: 60px; top: 60px; right: 0px;"></div> <!-- Fill the space between two floats -->
+    <div class="box" style="height: 36px; top: 120px; right: 60px;"></div>
+    <div class="box" style="height: 12px; top: 156px; right: 48px;"></div>
+    <div class="box" style="height: 12px; top: 168px; right: 36px;"></div>
+  </main>
+</html>

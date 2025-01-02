@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popover API CSS parsing with computed values</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<div id=target></div>
+<div id=scratch></div>
+
+<script>
+function testprop(prop) {
+  // Computed values:
+  test_computed_value(prop, '0s');
+  test_computed_value(prop, '0ms', '0s');
+  test_computed_value(prop, '32s');
+  test_computed_value(prop, '123ms', '0.123s');
+
+  // Valid values:
+  test_valid_value(prop, '0s');
+  test_valid_value(prop, '0ms');
+  test_valid_value(prop, '32s');
+  test_valid_value(prop, '123ms');
+  test_valid_value(prop, 'inherit');
+
+  // Invalid values:
+  test_invalid_value(prop, '0');
+  test_invalid_value(prop, 'foo');
+  test_invalid_value(prop, '-1s');
+  test_invalid_value(prop, 'none');
+  test_invalid_value(prop, 'auto');
+
+  // Animations:
+  test_interpolation({
+    property: prop,
+    from: '1s',
+    to: '2000ms',
+  }, [
+    {at: -1.5, expect: '0s'}, // Clamping at 0
+    {at: -0.3, expect: '0.7s'},
+    {at: 0, expect: '1s'},
+    {at: 0.5, expect: '1.5s'},
+    {at: 1, expect: '2s'},
+    {at: 1.5, expect: '2.5s'},
+  ]);
+}
+
+testprop('popover-show-delay');
+testprop('popover-hide-delay');
+</script>

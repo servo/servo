@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Makes sure that preloaded resources are downloaded</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<link rel=preload href="resources/dummy.js" as=script>
+<link rel=preload href="resources/dummy.css" as=style>
+<link rel=preload href="resources/square.png" as=image>
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
+<link rel=preload href="resources/white.mp4" as=video>
+<link rel=preload href="resources/sound_5.oga" as=audio>
+<link rel=preload href="resources/foo.vtt" as=track>
+<link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing>
+<link rel=preload href="resources/dummy.xml?novalue">
+<link rel=preload href="resources/dummy.xml" as="fetch">
+<body>
+<script>
+    setup({single_test: true});
+
+    var iterations = 0;
+
+    function check_finished() {
+        if (numberOfResourceTimingEntries("resources/dummy.js") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.css") == 1 &&
+            numberOfResourceTimingEntries("/fonts/CanvasTest.ttf") == 1 &&
+            numberOfResourceTimingEntries("resources/white.mp4") == 1 &&
+            numberOfResourceTimingEntries("resources/sound_5.oga") == 1 &&
+            numberOfResourceTimingEntries("resources/foo.vtt") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.xml?foo=bar") == 0 &&
+            numberOfResourceTimingEntries("resources/dummy.xml?novalue") == 0 &&
+            numberOfResourceTimingEntries("resources/dummy.xml") == 1) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
+            verifyNumberOfResourceTimingEntries("resources/dummy.js", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.css", 1);
+            verifyNumberOfResourceTimingEntries("/fonts/CanvasTest.ttf", 1);
+            verifyNumberOfResourceTimingEntries("resources/white.mp4", 1);
+            verifyNumberOfResourceTimingEntries("resources/sound_5.oga", 1);
+            verifyNumberOfResourceTimingEntries("resources/foo.vtt", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.xml?foo=bar", 0);
+            verifyNumberOfResourceTimingEntries("resources/dummy.xml?novalue", 0);
+            verifyNumberOfResourceTimingEntries("resources/dummy.xml", 1);
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
+        verifyPreloadAndRTSupport();
+        step_timeout(check_finished, 500);
+    });
+</script>
+</body>

@@ -1,0 +1,21 @@
+<style>
+body {
+  margin: 0;
+  --expected-block-size: 200;
+}
+
+.child {
+  background: green;
+}
+
+@supports (display: layout(test)) {
+  body {
+    display: layout(test);
+  }
+}
+</style>
+
+<!-- In Quirks mode, we should stretch to 100% of the inital containing block. -->
+<body>
+<div class="child"></div>
+</body>

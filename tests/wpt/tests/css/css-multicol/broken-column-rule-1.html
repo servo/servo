@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<title>CSS Test: breaking of column rule</title>
+<meta charset="utf-8">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/#column-gaps-and-rules">
+<link rel="match" href="broken-column-rule-1-ref.html">
+<style>
+
+.outer {
+  height: 100px;
+  column-fill: auto;
+  width: 550px;
+  column-count: 4;
+  column-gap: 50px;
+  /* leaves 100px for each column */
+}
+
+.inner {
+  column-count: 2;
+  column-rule: 2px solid blue;
+  height: 250px;
+}
+
+.fill {
+  height: 500px; /* work around https://bugzilla.mozilla.org/show_bug.cgi?id=1374479#c4 */
+}
+
+</style>
+
+<div class="outer">
+  <div class="inner">
+    <div class="fill"></div>
+  </div>
+</div>

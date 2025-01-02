@@ -1,0 +1,92 @@
+<!doctype html>
+<title>Range.comparePoint() tests</title>
+<link rel="author" title="Aryeh Gregor" href=ayg@aryeh.name>
+<meta name=timeout content=long>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common.js></script>
+<script>
+"use strict";
+
+// Will be filled in on the first run for that range
+var testRangesCached = [];
+
+for (var i = 0; i < testPoints.length; i++) {
+  var node = eval(testPoints[i])[0];
+  var offset = eval(testPoints[i])[1];
+
+  // comparePoint is an unsigned long, so per WebIDL, we need to treat it as
+  // though it wrapped to an unsigned 32-bit integer.
+  var normalizedOffset = offset % Math.pow(2, 32);
+  if (normalizedOffset < 0) {
+    normalizedOffset += Math.pow(2, 32);
+  }
+
+  for (var j = 0; j < testRanges.length; j++) {
+    test(function() {
+      if (testRangesCached[j] === undefined) {
+        try {
+          testRangesCached[j] = rangeFromEndpoints(eval(testRanges[i]));
+        } catch(e) {
+          testRangesCached[j] = null;
+        }
+      }
+      assert_not_equals(testRangesCached[j], null,
+        "Setting up the range failed");
+
+      var range = testRangesCached[j].cloneRange();
+
+      // "If node's root is different from the context object's root,
+      // throw a "WrongDocumentError" exception and terminate these
+      // steps."
+      if (furthestAncestor(node) !== furthestAncestor(range.startContainer)) {
+        assert_throws_dom("WRONG_DOCUMENT_ERR", function() {
+          range.comparePoint(node, offset);
+        }, "Must throw WrongDocumentError if node and range have different roots");
+        return;
+      }
+
+      // "If node is a doctype, throw an "InvalidNodeTypeError" exception
+      // and terminate these steps."
+      if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
+        assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
+          range.comparePoint(node, offset);
+        }, "Must throw InvalidNodeTypeError if node is a doctype");
+        return;
+      }
+
+      // "If offset is greater than node's length, throw an
+      // "IndexSizeError" exception and terminate these steps."
+      if (normalizedOffset > nodeLength(node)) {
+        assert_throws_dom("INDEX_SIZE_ERR", function() {
+          range.comparePoint(node, offset);
+        }, "Must throw IndexSizeError if offset is greater than  length");
+        return;
+      }
+
+      // "If (node, offset) is before start, return −1 and terminate
+      // these steps."
+      if (getPosition(node, normalizedOffset, range.startContainer, range.startOffset) === "before") {
+        assert_equals(range.comparePoint(node, offset), -1,
+          "Must return -1 if point is before start");
+        return;
+      }
+
+      // "If (node, offset) is after end, return 1 and terminate these
+      // steps."
+      if (getPosition(node, normalizedOffset, range.endContainer, range.endOffset) === "after") {
+        assert_equals(range.comparePoint(node, offset), 1,
+          "Must return 1 if point is after end");
+        return;
+      }
+
+      // "Return 0."
+      assert_equals(range.comparePoint(node, offset), 0,
+        "Must return 0 if point is neither before start nor after end");
+    }, "Point " + i + " " + testPoints[i] + ", range " + j + " " + testRanges[j]);
+  }
+}
+
+testDiv.style.display = "none";
+</script>

@@ -1,0 +1,11 @@
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<title>Test case for bug 459613 of Mozilla</title>
+</head>
+<body>
+<iframe
+  srcdoc="support/unloading-editor-in-subdocument-containing-misspelled-word-iframe.html"
+  onload="document.documentElement.removeAttribute('class')"></iframe>
+</body>
+</html>

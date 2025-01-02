@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Firing a connectionavailable event at a controlling user agent</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="https://w3c.github.io/presentation-api/#starting-a-presentation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<p>Click the button below and select the available presentation display, to start the manual test.</p>
+<button id="presentBtn">Start Presentation Test</button>
+
+
+<script>
+    // disable the timeout function for the tests
+    setup({explicit_timeout: true});
+
+    // ----------
+    // DOM Object
+    // ----------
+    const presentBtn = document.getElementById('presentBtn');
+
+    // --------------------------------------------------------------------------
+    // Start New PresentationRequest.onconnectionavailable Test (success) - begin
+    // --------------------------------------------------------------------------
+    promise_test(t => {
+        const clickWatcher = new EventWatcher(t, presentBtn, 'click');
+        const request = new PresentationRequest(presentationUrls);
+        let connection;
+
+        t.add_cleanup(() => {
+            if (connection) {
+                connection.onconnect = () => { connection.terminate(); };
+                if (connection.state === 'closed')
+                    request.reconnect(connection.id);
+                else
+                    connection.terminate();
+            }
+        });
+
+        const watchEvent = (obj, watcher, type) => {
+            const watchHandler = new Promise(resolve => {
+                obj['on' + type] = evt => { resolve(evt); };
+            });
+            return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+                assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+                return results[0];
+            });
+        };
+
+        return clickWatcher.wait_for('click').then(() => {
+            presentBtn.disabled = true;
+
+            // Note: During starting a presentation, the connectionavailable event is fired (step 9)
+            //       after the promise P is resolved (step 8).
+            return request.start();
+        }).then(c => {
+            connection = c;
+            assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
+            assert_true(!!connection.id, 'The connection ID is set.');
+            assert_equals(typeof connection.id, 'string', 'The connection ID is a string.');
+            assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
+
+            const eventWatcher = new EventWatcher(t, request, 'connectionavailable');
+            const timeout = new Promise((_, reject) => {
+                // This test fails if request.onconnectionavailable is not invoked although the presentation is started successfully
+                // or the presentation fails to be started.
+                t.step_timeout(() => { reject('The connectionavailable event was not fired (timeout).'); }, 5000);}
+            );
+            return Promise.race([ watchEvent(request, eventWatcher, 'connectionavailable'), timeout ]);
+        }).then(evt => {
+            assert_true(evt instanceof PresentationConnectionAvailableEvent, 'An event using PresentationConnectionAvailableEvent is fired.');
+            assert_true(evt.isTrusted, 'The event is a trusted event.');
+            assert_false(evt.bubbles, 'The event does not bubbles.');
+            assert_false(evt.cancelable, 'The event is not cancelable.');
+            assert_equals(evt.type, 'connectionavailable', 'The event name is "connectionavailable".');
+            assert_equals(evt.target, request, 'event.target is the presentation request.');
+            assert_true(evt.connection instanceof PresentationConnection, 'event.connection is a presentation connection.');
+            assert_equals(evt.connection, connection, 'event.connection is set to the presentation which the promise is resolved with.');
+        });
+    });
+    // ------------------------------------------------------------------------
+    // Start New PresentationRequest.onconnectionavailable Test (success) - end
+    // ------------------------------------------------------------------------
+</script>
+

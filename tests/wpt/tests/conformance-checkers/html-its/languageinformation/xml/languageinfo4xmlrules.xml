@@ -1,0 +1,4 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+<its:param name="langParam">fr-CA</its:param>
+<its:langRule selector="//q[@language=$langParam]" langPointer="@language"/>
+</its:rules>

@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Shorthand Properties (border)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-26 -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/about.html#shorthand"/>
+  <link rel="match" href="shand-border-000-ref.xht" />
+
+  <style type="text/css">
+
+  body { background: white; }
+  span { color: black; }
+
+  p { color: red; }
+  p { border-color: red; }
+  p { border: medium solid; }
+  p { color: green; }
+
+  </style>
+ </head>
+ <body>
+
+ <p><span>This text should have a green border.</span></p>
+
+ </body>
+</html>

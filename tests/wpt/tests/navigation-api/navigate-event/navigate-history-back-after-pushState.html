@@ -1,0 +1,34 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  window.onload = () => t.step_timeout(() => {
+    let start_history_length = history.length;
+    let start_index = navigation.currentEntry.index;
+    let target_key = navigation.currentEntry.key;
+    let target_id = navigation.currentEntry.id;
+    history.pushState(1, "", "pushState.html");
+    assert_equals(history.length, start_history_length + 1);
+
+    navigation.onnavigate = t.step_func_done(e => {
+      assert_equals(e.navigationType, "traverse");
+      assert_true(e.cancelable);
+      assert_true(e.canIntercept);
+      assert_false(e.userInitiated);
+      assert_false(e.hashChange);
+      assert_equals(e.downloadRequest, null);
+      assert_equals(new URL(e.destination.url).hash, "");
+      assert_true(e.destination.sameDocument);
+      assert_equals(e.destination.key, target_key);
+      assert_equals(e.destination.id, target_id);
+      assert_equals(e.destination.index, start_index);
+      assert_equals(e.formData, null);
+      // NavigateEvent sourceElement is still in development, so test whether it is available.
+      if ("sourceElement" in e) assert_equals(e.sourceElement, null);
+    });
+
+    history.back();
+  }, 0);
+}, "history.back() fires the navigate event when reversing a pushState()");
+</script>

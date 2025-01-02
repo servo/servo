@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-UI test: outline block with outline inline</title>
+  <link rel="author" title="Aleks Totic <atotic@chromium.org>" href="atotic@">
+  <meta name=assert content="">
+  <link rel=help href="https://drafts.csswg.org/css-ui-3/#outline-props">
+  <link rel="match" href="./reference/outline-020-ref.html">
+<style>
+#container {
+  outline: green solid 5px;
+  width: 100px;
+  height: 30px;
+  padding: 5px;
+}
+#target {
+  outline: blue solid 5px;
+}
+</style>
+
+  <p>Test passes if blue outline touches top left of green outline.</p>
+  <div id="container"><span id="target">x</span></div>
+

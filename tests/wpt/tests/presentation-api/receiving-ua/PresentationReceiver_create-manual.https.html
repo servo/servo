@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Creating a receiving browsing context</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="https://w3c.github.io/presentation-api/#creating-a-receiving-browsing-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script src="support/stash.js"></script>
+
+<p id="notice">
+  Click the button below and select the available presentation display, to start the manual test. The test passes if a "PASS" result appears.<br>
+  This test asks you to click the button twice, unless the test fails.<br>
+  <button id="presentBtn">Start Presentation Test</button>
+</p>
+
+<script>
+    setup({explicit_timeout: true});
+
+    let receiverStack;
+    add_completion_callback(() => {
+        // overwrite a stack written in the test result
+        if (receiverStack) {
+            document.querySelector('#log pre').textContent = receiverStack;
+        }
+    });
+
+    let connection;
+    const presentBtn = document.getElementById('presentBtn');
+
+    const dbName = {
+        controller: 'db-presentation-api-controlling-ua',
+        receiver: 'db-presentation-api-receiving-ua'
+    };
+
+    const main = () => {
+        promise_test(t => {
+            presentBtn.disabled = true;
+            const stash = new Stash(stashIds.toController, stashIds.toReceiver);
+            const request = new PresentationRequest('support/PresentationReceiver_create_receiving-ua.html');
+
+            t.add_cleanup(() => {
+                const notice = document.getElementById('notice');
+                notice.parentNode.removeChild(notice);
+                stash.stop();
+
+                // history.back();
+                document.cookie = 'PresentationApiTest=true; Expires=' + new Date().toUTCString();
+                sessionStorage.removeItem('presentation_api_test');
+                localStorage.removeItem('presentation_api_test');
+
+                Object.values(dbName).forEach(name => {
+                    indexedDB.deleteDatabase(name);
+                });
+
+                if (connection) {
+                    connection.onconnect = () => { connection.terminate(); };
+                    if (connection.state === 'closed')
+                        request.reconnect(connection.id);
+                    else
+                        connection.terminate();
+                }
+
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        return Promise.all(registrations.map(reg => reg.unregister()));
+                    });
+                }
+                if ('caches' in window) {
+                    caches.keys().then(keys => {
+                        return Promise.all(keys.map(key => caches.delete(key)));
+                    });
+                }
+            });
+
+            history.pushState(null, 'test', 'PresentationReceiver_create-manual.https.html');
+            document.cookie = 'PresentationApiTest=Controlling-UA';
+
+            const storageName = 'presentation_api_test';
+            const storageValue = 'receiving-ua';
+            sessionStorage.setItem(storageName, storageValue);
+            localStorage.setItem(storageName, storageValue);
+
+            const openIndexedDB = () => {
+                if ('indexedDB' in window) {
+                    const req = indexedDB.open(dbName.controller, 1);
+                    const eventWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                    return eventWatcher.wait_for('upgradeneeded').then(evt => {
+                        evt.target.result.close();
+                    });
+                }
+                else
+                    return Promise.resolve();
+            };
+
+            const cacheName = 'controlling-ua';
+            let clientUrls;
+            const getClientUrls = () => {
+                return new Promise(resolve => {
+                    navigator.serviceWorker.getRegistration().then(reg => {
+                        if (reg) {
+                            const channel = new MessageChannel();
+                            channel.port1.onmessage = event => {
+                                resolve(event.data);
+                            };
+                            reg.active.postMessage('', [channel.port2]);
+                        }
+                        else
+                            resolve([]);
+                    });
+                });
+            };
+            const registerServiceWorker = () => {
+                return ('serviceWorker' in navigator ?
+                    navigator.serviceWorker.register('serviceworker.js').then(registration => {
+                        return new Promise((resolve, reject) => {
+                            if (registration.installing) {
+                                registration.installing.addEventListener('statechange', event => {
+                                    if(event.target.state === 'installed')
+                                        resolve();
+                                });
+                            }
+                            else
+                                resolve();
+                        });
+                    }) : Promise.resolve()).then(getClientUrls).then(urls => {
+                        clientUrls = urls;
+                    });
+            };
+            const openCaches = () => {
+                return 'caches' in window ? caches.open(cacheName).then(cache => cache.add('cache.txt')) : Promise.resolve();
+            };
+
+            const checkUpdates = () => {
+                // Cookie
+                assert_equals(document.cookie, 'PresentationApiTest=Controlling-UA', 'A cookie store is not shared with a receiving user agent.');
+
+                // Web Storage
+                assert_equals(sessionStorage.length, 1, 'Session storage is not shared with a receiving user agent.');
+                assert_equals(sessionStorage.getItem(storageName), storageValue, 'Session storage is not shared with a receiving user agent.');
+                assert_equals(localStorage.length, 1, 'Local storage is not shared with a receiving user agent.');
+                assert_equals(localStorage.getItem(storageName), storageValue, 'Local storage is not shared with a receiving user agent.');
+            };
+
+            // Indexed Database
+            const checkIndexedDB = t => {
+                if ('indexedDB' in window) {
+                    const req = indexedDB.open(dbName.receiver);
+                    const upgradeneededWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                    const successWatcher = new EventWatcher(t, req, 'success');
+                    return Promise.race([
+                        upgradeneededWatcher.wait_for('upgradeneeded').then(evt => {
+                            evt.target.result.close();
+                        }),
+                        successWatcher.wait_for('success').then(evt => {
+                            evt.target.result.close();
+                            // This would fail if the database created by the receiving UA is visible to the controlling UA
+                            assert_unreached('Indexed Database is not shared with a receiving user agent.');
+                        })
+                    ]);
+                }
+                else
+                    return Promise.resolve();
+            };
+
+            // Service Workers
+            const checkServiceWorkers = () => {
+                return 'serviceWorker' in navigator ? navigator.serviceWorker.getRegistrations().then(registrations => {
+                    const message = 'List of registered service worker registrations is not shared with a receiving user agent.';
+                    assert_equals(registrations.length, 1, message);
+                    assert_equals(registrations[0].active.scriptURL, new Request('serviceworker.js').url, message);
+                }) : Promise.resolve();
+            };
+            const checkCaches = () => {
+                const message = 'Cache storage is not shared with a receiving user agent.';
+                return 'caches' in window ? caches.keys().then(keys => {
+                    assert_equals(keys.length, 1, message);
+                    assert_equals(keys[0], cacheName, message);
+                    return caches.open(keys[0]);
+                }).then(cache => cache.matchAll())
+                .then(responses => {
+                    assert_equals(responses.length, 1, message);
+                    assert_equals(responses[0].url, new Request('cache.txt').url, message);
+                }) : Promise.resolve();
+            };
+
+            let timeout;
+            const enableTimeout = () => {
+                timeout = t.step_timeout(() => {
+                    t.force_timeout();
+                    t.done();
+                }, 5000);
+            };
+            const disableTimeout = () => {
+                clearTimeout(timeout);
+            };
+            const cancelWait = () => {
+                connection.removeEventListener('close', onTerminate);
+                connection.removeEventListener('terminate', onTerminate);
+            };
+            const onTerminate = (reject, event) => {
+                cancelWait();
+                reject('A receiving user agent unexpectedly ' + event.type + 'd a presentation. ');
+            };
+            const waitForTerminate = () => {
+                return new Promise((resolve, reject) => {
+                    connection.addEventListener('close', onTerminate.bind(this, reject));
+                    connection.addEventListener('terminate', onTerminate.bind(this, reject));
+                });
+            };
+
+            // Start a presentation for receiving user agent tests
+            return request.start().then(c => {
+                connection = c;
+                enableTimeout();
+
+                // This Promise.race will be rejected if a receiving side terminates/closes the connection when window.close() is invoked
+                return Promise.race([
+                    openIndexedDB()
+                        .then(registerServiceWorker)
+                        .then(openCaches)
+                        .then(() => { return stash.init(); })
+                        .then(() => { return stash.receive(); }),
+                    waitForTerminate()]);
+            }).then(result => {
+                // terminate and connect again if the result is PASS
+                cancelWait();
+                const json = JSON.parse(result);
+                if (json.test.status !== 0)
+                    return json;
+
+                // Check accessibility to window clients before terminating a presentation
+                return getClientUrls().then(urls => {
+                    assert_true(urls.length === clientUrls.length && urls.every((value, index) => { return clientUrls[index] === value}),
+                        'A window client in a receiving user agent is not accessible to a service worker on a controlling user agent.');
+                    const eventWatcher = new EventWatcher(t, connection, 'terminate');
+                    connection.terminate();
+                    return eventWatcher.wait_for('terminate');
+                }).then(() => {
+                    connection = null;
+                    disableTimeout();
+                    presentBtn.removeEventListener('click', main);
+                    presentBtn.textContent = 'Continue Presentation Test';
+                    presentBtn.disabled = false;
+                    const eventWatcher = new EventWatcher(t, presentBtn, 'click');
+                    return eventWatcher.wait_for('click');
+                }).then(() => {
+                    presentBtn.disabled = true;
+                    return request.start();
+                }).then(c => {
+                    connection = c;
+                    enableTimeout();
+                    return stash.receive();
+                }).then(result => {
+                    return JSON.parse(result);
+                });
+            }).then(json => {
+                if (json.test.status === 0) {
+                    checkUpdates();
+                    return checkIndexedDB(t)
+                            .then(checkServiceWorkers)
+                            .then(checkCaches);
+                }
+                else {
+                    receiverStack = json.test.stack;
+                    parseResult(json.test.message);
+                }
+            });
+        });
+    };
+    presentBtn.addEventListener('click', main);
+</script>

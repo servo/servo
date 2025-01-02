@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/css/cssom-view/support/scroll-behavior.js"></script>
+<style>
+.spacer {
+  height: calc(100vh + 100px);
+}
+</style>
+<div class="spacer"></div>
+<iframe id="iframe"></iframe>
+<script>
+iframe.src =      // secure port
+  get_host_info().HTTPS_NOTSAMESITE_ORIGIN + "/intersection-observer/resources/nested-cross-origin-grand-child-iframe.html";
+
+window.addEventListener("message", async event => {
+  if (event.data == "scroll") {
+    iframe.scrollIntoView({ behavior: "instant" });
+    await waitForScrollEnd(document.scrollingElement);
+    window.parent.postMessage("scrollEnd", "*");
+  }
+});
+</script>

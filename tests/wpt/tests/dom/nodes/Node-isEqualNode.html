@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Node.prototype.isEqualNode</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-isequalnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(function() {
+
+  var doctype1 = document.implementation.createDocumentType("qualifiedName", "publicId", "systemId");
+  var doctype2 = document.implementation.createDocumentType("qualifiedName", "publicId", "systemId");
+  var doctype3 = document.implementation.createDocumentType("qualifiedName2", "publicId", "systemId");
+  var doctype4 = document.implementation.createDocumentType("qualifiedName", "publicId2", "systemId");
+  var doctype5 = document.implementation.createDocumentType("qualifiedName", "publicId", "systemId3");
+
+  assert_true(doctype1.isEqualNode(doctype1), "self-comparison");
+  assert_true(doctype1.isEqualNode(doctype2), "same properties");
+  assert_false(doctype1.isEqualNode(doctype3), "different name");
+  assert_false(doctype1.isEqualNode(doctype4), "different public ID");
+  assert_false(doctype1.isEqualNode(doctype5), "different system ID");
+
+}, "doctypes should be compared on name, public ID, and system ID");
+
+test(function() {
+
+  var element1 = document.createElementNS("namespace", "prefix:localName");
+  var element2 = document.createElementNS("namespace", "prefix:localName");
+  var element3 = document.createElementNS("namespace2", "prefix:localName");
+  var element4 = document.createElementNS("namespace", "prefix2:localName");
+  var element5 = document.createElementNS("namespace", "prefix:localName2");
+
+  var element6 = document.createElementNS("namespace", "prefix:localName");
+  element6.setAttribute("foo", "bar");
+
+  assert_true(element1.isEqualNode(element1), "self-comparison");
+  assert_true(element1.isEqualNode(element2), "same properties");
+  assert_false(element1.isEqualNode(element3), "different namespace");
+  assert_false(element1.isEqualNode(element4), "different prefix");
+  assert_false(element1.isEqualNode(element5), "different local name");
+  assert_false(element1.isEqualNode(element6), "different number of attributes");
+
+}, "elements should be compared on namespace, namespace prefix, local name, and number of attributes");
+
+test(function() {
+
+  var element1 = document.createElement("element");
+  element1.setAttributeNS("namespace", "prefix:localName", "value");
+
+  var element2 = document.createElement("element");
+  element2.setAttributeNS("namespace", "prefix:localName", "value");
+
+  var element3 = document.createElement("element");
+  element3.setAttributeNS("namespace2", "prefix:localName", "value");
+
+  var element4 = document.createElement("element");
+  element4.setAttributeNS("namespace", "prefix2:localName", "value");
+
+  var element5 = document.createElement("element");
+  element5.setAttributeNS("namespace", "prefix:localName2", "value");
+
+  var element6 = document.createElement("element");
+  element6.setAttributeNS("namespace", "prefix:localName", "value2");
+
+  assert_true(element1.isEqualNode(element1), "self-comparison");
+  assert_true(element1.isEqualNode(element2), "attribute with same properties");
+  assert_false(element1.isEqualNode(element3), "attribute with different namespace");
+  assert_true(element1.isEqualNode(element4), "attribute with different prefix");
+  assert_false(element1.isEqualNode(element5), "attribute with different local name");
+  assert_false(element1.isEqualNode(element6), "attribute with different value");
+
+}, "elements should be compared on attribute namespace, local name, and value");
+
+test(function() {
+
+  var pi1 = document.createProcessingInstruction("target", "data");
+  var pi2 = document.createProcessingInstruction("target", "data");
+  var pi3 = document.createProcessingInstruction("target2", "data");
+  var pi4 = document.createProcessingInstruction("target", "data2");
+
+  assert_true(pi1.isEqualNode(pi1), "self-comparison");
+  assert_true(pi1.isEqualNode(pi2), "same properties");
+  assert_false(pi1.isEqualNode(pi3), "different target");
+  assert_false(pi1.isEqualNode(pi4), "different data");
+
+}, "processing instructions should be compared on target and data");
+
+test(function() {
+
+  var text1 = document.createTextNode("data");
+  var text2 = document.createTextNode("data");
+  var text3 = document.createTextNode("data2");
+
+  assert_true(text1.isEqualNode(text1), "self-comparison");
+  assert_true(text1.isEqualNode(text2), "same properties");
+  assert_false(text1.isEqualNode(text3), "different data");
+
+}, "text nodes should be compared on data");
+
+test(function() {
+
+  var comment1 = document.createComment("data");
+  var comment2 = document.createComment("data");
+  var comment3 = document.createComment("data2");
+
+  assert_true(comment1.isEqualNode(comment1), "self-comparison");
+  assert_true(comment1.isEqualNode(comment2), "same properties");
+  assert_false(comment1.isEqualNode(comment3), "different data");
+
+}, "comments should be compared on data");
+
+test(function() {
+
+  var documentFragment1 = document.createDocumentFragment();
+  var documentFragment2 = document.createDocumentFragment();
+
+  assert_true(documentFragment1.isEqualNode(documentFragment1), "self-comparison");
+  assert_true(documentFragment1.isEqualNode(documentFragment2), "same properties");
+
+}, "document fragments should not be compared based on properties");
+
+test(function() {
+
+  var document1 = document.implementation.createDocument("", "");
+  var document2 = document.implementation.createDocument("", "");
+
+  assert_true(document1.isEqualNode(document1), "self-comparison");
+  assert_true(document1.isEqualNode(document2), "another empty XML document");
+
+  var htmlDoctype = document.implementation.createDocumentType("html", "", "");
+  var document3 = document.implementation.createDocument("http://www.w3.org/1999/xhtml", "html", htmlDoctype);
+  document3.documentElement.appendChild(document3.createElement("head"));
+  document3.documentElement.appendChild(document3.createElement("body"));
+  var document4 = document.implementation.createHTMLDocument();
+  assert_true(document3.isEqualNode(document4), "default HTML documents, created different ways");
+
+}, "documents should not be compared based on properties");
+
+test(function() {
+
+  testDeepEquality(function() { return document.createElement("foo") });
+  testDeepEquality(function() { return document.createDocumentFragment() });
+  testDeepEquality(function() { return document.implementation.createDocument("", "") });
+  testDeepEquality(function() { return document.implementation.createHTMLDocument() });
+
+  function testDeepEquality(parentFactory) {
+    // Some ad-hoc tests of deep equality
+
+    var parentA = parentFactory();
+    var parentB = parentFactory();
+
+    parentA.appendChild(document.createComment("data"));
+    assert_false(parentA.isEqualNode(parentB));
+    parentB.appendChild(document.createComment("data"));
+    assert_true(parentA.isEqualNode(parentB));
+  }
+
+}, "node equality testing should test descendant equality too");
+</script>

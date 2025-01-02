@@ -1,0 +1,61 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Depth Sensing Module (https://immersive-web.github.io/depth-sensing/)
+
+enum XRDepthUsage {
+  "cpu-optimized",
+  "gpu-optimized",
+};
+
+enum XRDepthDataFormat {
+  "luminance-alpha",
+  "float32",
+  "unsigned-short",
+};
+
+dictionary XRDepthStateInit {
+  required sequence<XRDepthUsage> usagePreference;
+  required sequence<XRDepthDataFormat> dataFormatPreference;
+};
+
+partial dictionary XRSessionInit {
+  XRDepthStateInit depthSensing;
+};
+
+partial interface XRSession {
+  readonly attribute XRDepthUsage depthUsage;
+  readonly attribute XRDepthDataFormat depthDataFormat;
+};
+
+[SecureContext, Exposed=Window]
+interface XRDepthInformation {
+  readonly attribute unsigned long width;
+  readonly attribute unsigned long height;
+
+  [SameObject] readonly attribute XRRigidTransform normDepthBufferFromNormView;
+  readonly attribute float rawValueToMeters;
+};
+
+[Exposed=Window]
+interface XRCPUDepthInformation : XRDepthInformation {
+  [SameObject] readonly attribute ArrayBuffer data;
+
+  float getDepthInMeters(float x, float y);
+};
+
+partial interface XRFrame {
+  XRCPUDepthInformation? getDepthInformation(XRView view);
+};
+
+[Exposed=Window]
+interface XRWebGLDepthInformation : XRDepthInformation {
+  [SameObject] readonly attribute WebGLTexture texture;
+
+  readonly attribute XRTextureType textureType;
+  readonly attribute unsigned long? imageIndex;
+};
+
+partial interface XRWebGLBinding {
+  XRWebGLDepthInformation? getDepthInformation(XRView view);
+};

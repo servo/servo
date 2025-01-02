@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that a popover can be anchored to an unrendered element.</title>
+<link rel=author href="mailto:xiaochengh@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=popover popover anchor=anchor></div>
+<div id=anchor></div>
+
+<style>
+  #anchor {
+    display: none;
+  }
+  [popover] {
+    inset: auto;
+    background: lime;
+    padding: 0;
+    border: 0;
+    width: 100px;
+    height: 100px;
+    top: anchor(top, 100px);
+    left: anchor(left, 100px);
+  }
+</style>
+
+<script>
+test(() => {
+  popover.showPopover();
+  assert_equals(popover.offsetLeft, 100);
+  assert_equals(popover.offsetTop, 100);
+});
+</script>

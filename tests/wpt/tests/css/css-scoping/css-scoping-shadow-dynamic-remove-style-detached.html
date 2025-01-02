@@ -1,0 +1,29 @@
+<!doctype html>
+<title>CSS Scoping: Invalidation of style data while ShadowRoot is disconnected.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scoping">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1612114">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host"></div>
+<script>
+let t = async_test("Invalidation of style data while ShadowRoot is disconnected.");
+
+let host = document.getElementById("host");
+host.attachShadow({ mode: "open" }).innerHTML = `
+  <style>
+    div { color: red }
+  </style>
+  <div></div>
+`;
+assert_equals(getComputedStyle(host.shadowRoot.querySelector("div")).color, "rgb(255, 0, 0)");
+host.remove();
+host.shadowRoot.querySelector("style").remove();
+requestAnimationFrame(t.step_func(function() {
+  requestAnimationFrame(t.step_func_done(function() {
+    document.body.appendChild(host);
+    assert_not_equals(getComputedStyle(host.shadowRoot.querySelector("div")).color, "rgb(255, 0, 0)");
+  }));
+}));
+</script>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1918906">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#scroll-adjustment">
+<style>
+html {
+  scroll-behavior: smooth;
+}
+#anchor {
+  height: 100px;
+  background-color: blue;
+}
+a {
+  transition: font-size 0.2s;
+  font-size: 10px;
+}
+a:hover {
+  font-size: 13px;
+}
+</style>
+<a href="#anchor">Go to an anchor</a>
+<div style="height: 500vh;"></div>
+<div id="anchor"></div>
+<div style="height: 100vh;"></div>
+<script>
+promise_test(async t => {
+  assert_equals(window.scrollY, 0);
+
+  const anchorRect = anchor.getBoundingClientRect();
+
+  const scrollEndPromise =
+      new Promise(resolve => window.addEventListener("scrollend", resolve));
+
+  const anchorNode = document.querySelector("a");
+  test_driver.click(anchorNode);
+
+  await scrollEndPromise;
+
+  assert_approx_equals(window.scrollY, anchorRect.y, 3);
+}, "Ignore scroll position adjustments during smooth scrolling to anchor");
+</script>
+</html>

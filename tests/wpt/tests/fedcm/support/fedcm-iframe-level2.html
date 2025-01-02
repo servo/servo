@@ -1,0 +1,23 @@
+<!doctype html>
+<link rel="help" href="https://wicg.github.io/FedCM">
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log>
+<script>
+'use strict';
+
+const host = get_host_info();
+const remoteBaseURL =
+    host.AUTHENTICATED_ORIGIN +
+    window.location.pathname.replace(/\/[^\/]*$/, '/');
+
+window.onload = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  var iframe = document.createElement("iframe");
+  iframe.src = remoteBaseURL + "fedcm-iframe.html";
+  if (urlParams.get("permission") != '0') {
+    iframe.allow = "identity-credentials-get";
+  }
+  document.body.appendChild(iframe);
+};
+
+</script>

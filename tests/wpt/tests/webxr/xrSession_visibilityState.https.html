@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "Ensures that the XRSession's visibilityState is correctly "
+  + "reported and that the associated visibilitychange event fires.";
+
+let watcherDone = new Event("watcherdone");
+let frameFired = new Event("framefired");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let eventWatcher = new EventWatcher(
+    t, session, ["visibilitychange", "framefired", "watcherdone"]);
+  let eventPromise = eventWatcher.wait_for(
+    ["visibilitychange", "visibilitychange", "framefired", "watcherdone"]);
+
+  function onFrame(timestamp, frame) {
+    t.step( () => {
+      // The session should not fire any animation frames while the visibility
+      // state is hidden.
+      assert_not_equals(session.visibilityState, "hidden");
+    });
+
+    // Make sure the frame does fire when the visibility is changed back to "visible"
+    session.dispatchEvent(frameFired);
+  }
+
+  function onSessionVisibilityChangeHidden(event) {
+    t.step( () => {
+      assert_equals(session.visibilityState, "hidden");
+    });
+
+    session.removeEventListener("visibilitychange", onSessionVisibilityChangeHidden, false);
+    session.addEventListener("visibilitychange", onSessionVisibilityChangeVisible, false);
+
+    session.requestAnimationFrame(onFrame)
+
+    t.step_timeout(() => {
+      fakeDeviceController.simulateVisibilityChange("visible");
+    }, 300);
+  }
+
+  function onSessionVisibilityChangeVisible(event) {
+    t.step( () => {
+      assert_equals(session.visibilityState, "visible");
+    });
+
+    session.removeEventListener("visibilitychange", onSessionVisibilityChangeVisible, false);
+    session.addEventListener("visibilitychange", onSessionVisibilityChangeInvalid, false);
+    fakeDeviceController.simulateVisibilityChange("visible");
+
+    t.step_timeout(() => {
+      session.dispatchEvent(watcherDone);
+    }, 300);
+  }
+
+  function onSessionVisibilityChangeInvalid(event) {
+    t.step( () => {
+      assert_not_reached("Should not fire visibilitychange events for the same state");
+    });
+  }
+
+  t.step( () => {
+    // Session visibility should start out as "visible"
+    assert_equals(session.visibilityState, "visible");
+  });
+
+  session.addEventListener("visibilitychange", onSessionVisibilityChangeHidden, false);
+  fakeDeviceController.simulateVisibilityChange("hidden");
+
+  return eventPromise;
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

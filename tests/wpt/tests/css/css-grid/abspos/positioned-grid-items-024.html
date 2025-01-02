@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Positioned grid items</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#abspos">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Checks that absolutely positioned items are properly placed and sized.">
+<style>
+  #grid {
+    display: grid;
+    grid-template-columns: 50px 50px;
+    grid-template-rows: 50px 50px;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    position: relative;
+  }
+
+  #grid > div {
+    background-color: green;
+  }
+
+  #abspos {
+    position: absolute;
+    margin-top: auto;
+    margin-left: auto;
+    width: 50%;
+    height: 50%;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="grid">
+  <div style="grid-column: 2 / 3; grid-row: 1 / 2;"></div>
+  <div style="grid-column: 1 / 2; grid-row: 2 / 3;"></div>
+  <div style="grid-column: 2 / 3; grid-row: 2 / 3;"></div>
+  <div id="abspos"></div>
+</div>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_in_array('private-state-token-issuance', document.featurePolicy.features());
+  }, 'document.featurePolicy.features should advertise private-state-token-issuance.');
+</script>

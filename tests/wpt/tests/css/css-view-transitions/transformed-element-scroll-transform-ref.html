@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html style="reftest-wait">
+<head>
+    <style>
+        #target {
+            width: 100px;
+            height: 100px;
+            background: green;
+            margin: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="target"></div>
+    <div style="height: 1000px"></div>
+    <script>
+        function scrollBy(y) {
+            return new Promise(resolve => {
+                addEventListener("scroll", () => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(resolve);
+                    });
+                }, { once: true, capture: true });
+                document.documentElement.scrollBy({
+                    top: y,
+                    behavior: "instant"
+                });
+            });
+        }
+        addEventListener("load", async () => {
+            await scrollBy(200);
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    </script>
+</body>
+</html>

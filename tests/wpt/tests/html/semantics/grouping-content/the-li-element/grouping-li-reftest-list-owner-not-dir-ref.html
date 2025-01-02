@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The dir element is not treated specially when calculating list owners</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#list-owner">
+
+<style>
+  li {
+    list-style-type: decimal;
+  }
+</style>
+
+<p>This test matches if the list displays similar to the following</p>
+
+<pre>1. A
+2. B
+3. C
+4. D
+5. E
+     6. F
+     7. G
+8. H
+     9. I
+     10. J
+          11. K
+          12. L</pre>
+
+<hr>
+
+<ol>
+  <li value="1">A</li>
+  <li value="2">B</li>
+  <li value="3">C</li>
+  <li value="4">D</li>
+  <li value="5">E</li>
+  <dir>
+    <li value="6">F</li>
+    <li value="7">G</li>
+  </dir>
+  <li value="8">H</li>
+  <dir>
+    <li value="9">I</li>
+    <li value="10">
+      J
+      <dir>
+        <li value="11">K</li>
+        <li value="12">L</li>
+      </dir>
+    </li>
+  </dir>
+</ol>

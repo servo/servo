@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>import(): error cases caused by the imported module script</title>
+<link rel="author" title="Kouhei Ueno" href="mailto:kouhei@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+const cases = [
+  ["parse error", "../syntaxerror.js", SyntaxError],
+  ["bad module specifier", "does-not-start-with-dot.js", TypeError, { differentErrorObjects: true }],
+  ["bad module specifier in a dependency", "../bad-module-specifier.js", TypeError],
+  ["instantiation error", "../instantiation-error-1.js", SyntaxError, { differentErrorObjects: true }],
+  ["evaluation error", "../throw-error.js", Error]
+];
+
+for (const [label, specifier, error, { differentErrorObjects } = {}] of cases) {
+  promise_test(t => {
+    return promise_rejects_js(t, error, import(specifier));
+  }, "import() must reject when there is a " + label);
+
+  const errorObjectsLabel = differentErrorObjects ? "different error objects" : "the same error object";
+  promise_test(async t => {
+    // The use of ?x is used to separate tests so they don't interfere with each other.
+    // (However, it shouldn't matter anyway, in a spec-compliant implementation.)
+    const promise1 = import(specifier + "?x");
+    const promise2 = import(specifier + "?x");
+
+    await promise_rejects_js(t, error, promise1, "It must reject the first time");
+    await promise_rejects_js(t, error, promise2, "It must reject the second time");
+
+    const error1 = await promise1.catch(e => e);
+    const error2 = await promise2.catch(e => e);
+
+    if (differentErrorObjects) {
+      assert_not_equals(error1, error2, "The error objects must be different");
+    } else {
+      assert_equals(error1, error2, "The error objects must be equal");
+    }
+  }, `import() must reject with ${errorObjectsLabel} for each import when there is a ${label}`);
+}
+
+promise_test(t => {
+  delete window.before_throwing_error;
+  delete window.after_throwing_error;
+
+  return promise_rejects_js(t, Error, import("../throw-error.js?y")).then(() => {
+    assert_true(window.before_throwing_error,
+        "the module script should run to a point where it throws exception");
+    assert_equals(window.after_throwing_error, undefined,
+        "the module script should not run after it throws exception");
+  });
+}, "import()ing a module with an evaluation error must stop evaluation");
+</script>

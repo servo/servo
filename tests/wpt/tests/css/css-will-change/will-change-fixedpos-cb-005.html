@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: will-change: backdrop-filter on an inline should generate a containing block for fixed positioned elements.</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=960953">
+<link rel="help" href="https://drafts.csswg.org/css-will-change/#will-change">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="will-change-fixedpos-cb-005-ref.html">
+<style>
+  .inline {
+    margin-left: 100px;
+    will-change: backdrop-filter;
+  }
+  .fixedpos {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: green;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<span class="inline">
+  <!-- "FAIL" should be hidden by the green box and should not be visible. -->
+  FAIL
+  <div class="fixedpos"></div>
+</span>

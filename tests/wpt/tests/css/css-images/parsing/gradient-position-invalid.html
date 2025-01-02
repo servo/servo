@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: parsing gradients with invalid position values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#typedef-position">
+<meta name="assert" content="gradient positions support only the '<position>' grammar.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("background-image", "radial-gradient(at top 0px, red, blue)");
+
+// The following were supported in an earlier version of the spec.
+// https://github.com/w3c/csswg-drafts/issues/2140
+// Deprecated in Blink with support to be removed in M68, around July 2018.
+test_invalid_value("background-image", "radial-gradient(at center left 1px, red, blue)");
+test_invalid_value("background-image", "radial-gradient(at center top 2px, red, blue)");
+test_invalid_value("background-image", "radial-gradient(at right 3% center, red, blue)");
+test_invalid_value("background-image", "radial-gradient(at left 4px top, red, blue)");
+test_invalid_value("background-image", "radial-gradient(at right top 5px, red, blue)");
+test_invalid_value("background-image", "radial-gradient(at bottom 6% center, red, blue)");
+test_invalid_value("background-image", "radial-gradient(at bottom 7% left, red, blue)");
+test_invalid_value("background-image", "radial-gradient(at bottom right 8%, red, blue)");
+</script>
+</body>
+</html>

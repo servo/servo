@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script src=/common/get-host-info.sub.js></script>
+  <script>
+  'use strict';
+  var relative_path = '/permissions-policy/resources/permissions-policy-payment.html';
+  var base_src = '/permissions-policy/resources/redirect-on-load.html#';
+  var same_origin_src = base_src + relative_path;
+  var cross_origin_src = base_src + get_host_info().REMOTE_ORIGIN +
+    relative_path;
+  var header = 'permissions policy allow="payment"';
+
+  async_test(t => {
+    test_feature_availability(
+        'PaymentRequest()', t, same_origin_src,
+        expect_feature_available_default, 'payment');
+  }, header + ' allows same-origin navigation in an iframe.');
+
+  async_test(t => {
+    test_feature_availability(
+        'PaymentRequest()', t, cross_origin_src,
+        expect_feature_unavailable_default, 'payment');
+  }, header + ' disallows cross-origin navigation in an iframe.');
+
+  </script>
+</body>

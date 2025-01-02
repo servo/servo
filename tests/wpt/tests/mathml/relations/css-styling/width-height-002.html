@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>content position with width/height</title>
+<link rel="match" href="width-height-002-ref.html">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+<meta name="assert" content="Verify the inline-start and block-start edges of the math content box for the mtext, mrow, mpadded, mfrac, msqrt, mroot layout algorithms."/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body, math {
+      font: 25px/1 Ahem;
+      color: black;
+  }
+  .test {
+      margin: .5em;
+  }
+  .box {
+      width: 7em;
+      height: 3em;
+      border: 1px solid blue;
+  }
+
+  /* Revert style specified in the UA style sheet that changes box size. */
+  mfrac { padding: 0; }
+</style>
+</head>
+<body>
+
+  <div class="test">
+    <math>
+      <mtext class="box">X</mtext>
+    </math>
+    <math dir="rtl">
+      <mtext class="box">X</mtext>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mrow class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mrow>
+    </math>
+    <math dir="rtl">
+      <mrow class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mrow>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mpadded lspace="1em" voffset="-1em" class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mpadded>
+    </math>
+    <math dir="rtl">
+      <mpadded lspace="1em" voffset="-1em" class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mpadded>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mpadded width="9em" height="1em" depth=".5em" class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mpadded>
+    </math>
+    <math dir="rtl">
+      <mpadded width="9em" height="1em" depth=".5em" class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mpadded>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mfrac class="box" linethickness="0">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mfrac>
+    </math>
+    <math dir="rtl">
+      <mfrac class="box" linethickness="0">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mfrac>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <msqrt class="box">
+        <mtext>X</mtext>
+      </msqrt>
+    </math>
+    <math dir="rtl">
+      <msqrt class="box">
+        <mtext>X</mtext>
+      </msqrt>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mroot class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mroot>
+    </math>
+    <math dir="rtl">
+      <mroot class="box">
+        <mtext>X</mtext>
+        <mtext>X</mtext>
+      </mroot>
+    </math>
+  </div>
+
+</body>
+</htmL>

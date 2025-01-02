@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+
+    let makeSpaceTest = (space_type) => {
+      return (session, fakeDeviceController, t) => {
+        return session.requestReferenceSpace(space_type).then( (referenceSpace) => {
+          t.step(() => {
+            assert_true(referenceSpace instanceof XRReferenceSpace,
+              "reference space is not correct type.");
+          });
+        });
+      };
+    };
+
+    let makeInvalidSpaceTest = (space_type) => {
+      return (session, fakeDeviceController, t) => {
+          return  promise_rejects_dom(t, "NotSupportedError",
+                                  session.requestReferenceSpace(space_type),
+                                  "requestReferenceSpace('" + space_type + "')");
+      };
+    };
+
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    // Test that reference spaces matching default features work.
+    xr_session_promise_test(
+        "Non-immersive session supports viewer space by default",
+        makeSpaceTest('viewer'), fakeDeviceInitParams, 'inline', {});
+    xr_session_promise_test(
+        "Immersive session supports viewer space by default",
+        makeSpaceTest('viewer'), fakeDeviceInitParams, 'immersive-vr', {});
+    xr_session_promise_test(
+        "Immersive session supports local space by default",
+        makeSpaceTest('local'), fakeDeviceInitParams, 'immersive-vr', {});
+
+    // Test that session-appropriate non-default reference spaces work when requested
+    xr_session_promise_test(
+        "Non-immersive session supports local space when required",
+        makeSpaceTest('local'), fakeDeviceInitParams, 'inline',
+        {requiredFeatures: ['local']});
+    xr_session_promise_test(
+        "Non-immersive session supports local space when optional",
+        makeSpaceTest('local'), fakeDeviceInitParams, 'inline',
+        {optionalFeatures: ['local']});
+    xr_session_promise_test(
+        "Non-immersive session supports local-floor space when required",
+        makeSpaceTest('local-floor'), fakeDeviceInitParams, 'inline',
+        {requiredFeatures: ['local-floor']});
+    xr_session_promise_test(
+        "Immersive session supports local-floor space when required",
+        makeSpaceTest('local-floor'), fakeDeviceInitParams, 'immersive-vr',
+        {requiredFeatures: ['local-floor']});
+    xr_session_promise_test(
+        "Immersive session supports local-floor space when optional",
+        makeSpaceTest('local-floor'), fakeDeviceInitParams, 'immersive-vr',
+        {optionalFeatures: ['local-floor']});
+
+    // Test that inline space can't request 'bounded-floor' or 'unbounded'
+    xr_session_promise_test(
+        "Non-immersive session rejects bounded-floor space even when requested",
+        makeInvalidSpaceTest('bounded-floor'), fakeDeviceInitParams, 'inline',
+        {optionalFeatures: ['bounded-floor']});
+    xr_session_promise_test(
+       "Non-immersive session rejects unbounded space even when requested",
+        makeInvalidSpaceTest('unbounded'), fakeDeviceInitParams, 'inline',
+        {optionalFeatures: ['unbounded']});
+
+    // Test that reference spaces that aren't default features are rejected
+    // when not requested as a feature.
+    xr_session_promise_test(
+       "Non-immersive session rejects local space if not requested",
+        makeInvalidSpaceTest('local'), fakeDeviceInitParams, 'inline', {});
+    xr_session_promise_test(
+       "Immersive session rejects local-floor space if not requested",
+        makeInvalidSpaceTest('local-floor'), fakeDeviceInitParams, 'immersive-vr', {});
+  </script>
+</body>

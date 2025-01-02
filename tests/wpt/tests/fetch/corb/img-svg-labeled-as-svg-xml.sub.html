@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<!-- Verifies CORB/ORB SVG image blocking.
+  This image is served with a proper SVG MIME type and is expected to load. -->
+<meta charset="utf-8">
+<link rel="match" href="img-svg.sub-ref.html">
+<img src="http://{{domains[www1]}}:{{ports[http][0]}}/fetch/corb/resources/svg-labeled-as-svg-xml.svg">

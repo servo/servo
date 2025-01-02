@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: box-sizing:border-box and CSS2.1 10.3.7</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#box-sizing">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width">
+<link rel="match" href="reference/box-sizing-001-ref.html">
+<meta name="assert" content="When box-sizing is border-box, the content width, rather than the computed value of the width property,
+                             should be used in the the constraint that determines the used values of sizing and positioning properties
+			     of absolutely positioned elements.">
+<style>
+#cb {
+	position: absolute;
+	width: 100px;
+	height: 100px;
+}
+#test {
+	position:absolute;
+	box-sizing: border-box;
+	margin-right: 5px;
+	margin-left: auto; /* should resolve to 25px, but would resolve to -25px if the wrong interpretation of width is used in CSS2.1 10.3.7 */
+	top: 25px;
+	left:0;
+	right:0;
+	padding-left: 25px;
+	padding-right: 25px;
+	width: 70px;
+	height: 70px;
+	background:green;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <div id="cb">
+	  <div id="test"></div>
+  </div>
+</body>

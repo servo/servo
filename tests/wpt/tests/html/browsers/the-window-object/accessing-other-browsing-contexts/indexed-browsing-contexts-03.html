@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>HTML Test: indexed property of a Window object</title>
+  <link rel="author" title="Intel" href="http://www.intel.com/" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+
+  var t1 = async_test("Indexed child browsing contexts");
+  function on_load() {
+    t1.step(function () {
+      assert_equals(window[0], document.getElementsByTagName("object")[0].contentWindow,
+                    "The first child browsing context's container should be the object element.");
+      assert_equals(window[1], document.getElementsByTagName("iframe")[0].contentWindow,
+                    "The second child browsing context's container should be the iframe element.");
+    });
+    t1.done();
+  }
+
+  </script>
+</head>
+<body onload="on_load()">
+  <div id="log"></div>
+  <div style="display:none">
+    <div id="0"></div>
+    <object name="0" type="text/html" data="test2.html"></object>
+    <iframe name="0" src="about:blank"></iframe>
+  </div>
+</body>

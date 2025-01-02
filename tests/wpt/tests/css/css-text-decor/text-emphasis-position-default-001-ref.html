@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>text-emphasis-position default values</title>
+<style>
+p {
+	border: solid silver;
+	text-emphasis: dot;
+	margin: 0.5em;
+	text-emphasis-position: over right;
+}
+
+div {
+	float: left;
+	margin: 0.5em;
+}
+</style>
+
+<div style="writing-mode: horizontal-tb">
+	<p style="text-emphasis-position: over right">text
+	<p style="text-emphasis-position: over right">text
+	<p style="text-emphasis-position: under right">text
+</div>
+
+<div style="writing-mode: vertical-rl">
+	<p>text
+	<p>text
+	<p>text
+</div>
+
+<div style="writing-mode: vertical-lr">
+	<p>text
+	<p>text
+	<p>text
+</div>

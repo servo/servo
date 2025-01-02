@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<title>Prerender with the referrer policy specified in speculation rules</title>
+
+<!--Split test cases due to the use of timeouts in test utilities.-->
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-last">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+subsetTest(promise_test, async t => {
+  const {exec, tryToActivate} = await create_prerendered_page(
+      t, {},
+      {referrer_policy: 'strict-origin-when-cross-origin'},
+      {referrer_policy: 'strict-origin'});
+
+  const actualReferrer = await exec(() => { return document.referrer; });
+  const expectedReferrer = location.origin + "/";
+  assert_equals(actualReferrer, expectedReferrer, 'must send the origin as the referrer');
+
+  const result = await tryToActivate();
+  assert_equals(result, 'activated');
+}, 'with "strict-origin" referrer policy in rule set overriding "strict-origin-when-cross-origin" of referring page');
+
+subsetTest(promise_test, async t => {
+  const {exec, tryToActivate} = await create_prerendered_page(
+      t, {},
+      {referrer_policy: 'strict-origin-when-cross-origin'},
+      {referrer_policy: 'no-referrrrrrrer'});
+  const result = await tryToActivate();
+  assert_equals(result, 'discarded');
+}, 'unrecognized policies invalidate the rule');
+</script>

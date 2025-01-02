@@ -1,0 +1,34 @@
+<!doctype html>
+<title>'calcMode' paced and 'keyPoints' on &lt;animateMotion> with 'path'</title>
+<link rel="help" href="https://svgwg.org/specs/animations/#AnimateMotionElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<svg>
+  <rect width="100" height="100" fill="red"/>
+  <rect id="target" transform="translate(100, -50)" width="100" height="100" fill="green">
+    <animateMotion dur="5s" keyPoints="1;0" keyTimes="0;1" path="M-200,50h250"/>
+  </rect>
+</svg>
+<script>
+const rootSVGElement = document.querySelector('svg');
+
+function sample(expectedX) {
+  const target = document.getElementById('target');
+  const targetCTM = target.getCTM();
+  assert_approx_equals(targetCTM.e, expectedX, 1e-3, 'x position');
+  assert_equals(targetCTM.f, 0, 'y position');
+  const restOfCTM = ['a', 'b', 'c', 'd'].map(p => targetCTM[p]);
+  assert_array_equals(restOfCTM, [1, 0, 0, 1], 'rest of CTM');
+}
+
+smil_async_test(t => {
+  runAnimationTest(t, [
+    // [animationId, time, sampleCallback]
+    ['anim', 1, sample.bind(this, 100)],
+    ['anim', 2, sample.bind(this, 50)],
+    ['anim', 3, sample.bind(this, 0)],
+  ]);
+});
+window.animationStartsImmediately = true;
+</script>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="match" href="bounded-sizes-reftest-ref.html">
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<body>
+  <div>
+    The permission element should have some limits for the min/max-width/height:
+    <ul>
+    <li>min-width should be sufficient to fit the element text (depends on user agent implementation)</li>
+    <li>max-width should be at most 3x min-width</li>
+    <li>min-height should be sufficient to fit the element text (1em)</li>
+    <li>max-height should be at most 3x min-height</li>
+    <li>padding-left/top only work with width/height: auto and are at most 5em/1em</li>
+    <li>padding-right/bottom are copied over from padding-left/top in this case</li>
+    </ul>
+  </div>
+
+<style>
+  #id1 {
+    font-size: 10px;
+    min-height: 1px;
+    max-height: 100px;
+    border: 0px;
+
+    /* These values are extreme enough that they should be out of bounds for any implementation */
+    min-width: 10px;
+    max-width: 1000px;
+
+    /* This element will be as tiny as possible */
+    width: 1px;
+    height: 1px;
+  }
+  #id2 {
+    font-size: 10px;
+    min-height: 1px;
+    max-height: 100px;
+    border: 0px;
+
+    /* These values are extreme enough that they should be out of bounds for any implementation */
+    min-width: 10px;
+    max-width: 1000px;
+
+    /* This element will be as large as possible */
+    width: 1000px;
+    height: 1000px;
+  }
+  #id3 {
+    font-size: 10px;
+    width: auto;
+    height: auto;
+    border: 0px;
+
+    /* There is a slight misalignment of the text (by 1px) when using
+       padding vs using width/height. Since this test's purpose is to
+       check that the bounds are identical, the color and background-color
+       are set to the same value to cover the slight text misalignment */
+    color:black;
+    background-color: black;
+
+    /* Only padding-top and padding-left are taken into account */
+    padding-top: 1000px;
+    padding-left: 1000px;
+    padding-bottom: 1px;
+    padding-right: 1px;
+  }
+</style>
+
+<div><permission id="id1" type="geolocation"></div>
+<div><permission id="id2" type="camera"></div>
+<div><permission id="id3" type="microphone"></div>
+</body>

@@ -1,0 +1,6 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Cache-Control: post-check=0, pre-check=0, false
+Pragma: no-cache
+Set-Cookie: dedicatedworker-connect-src={{$id:uuid()}}; Path=/content-security-policy/inside-worker/
+Content-Security-Policy: connect-src 'self' ; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}

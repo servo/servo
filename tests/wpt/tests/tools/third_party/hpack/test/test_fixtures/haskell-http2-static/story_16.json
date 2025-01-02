@@ -1,0 +1,396 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "02034745540604687474700110656e2e77696b6970656469612e6f726704012f0f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f043f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e380f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f117f830163656e7472616c6e6f746963655f6275636b65743d313b20636c69636b747261636b696e672d73657373696f6e3d654a6b6f3649695563456d36396568516661616b516c4a66694c79396c53684e503b206d6564696157696b692e757365722e6275636b65742533416578742e61727469636c65466565646261636b2d747261636b696e673d3130253341747261636b3b206d6564696157696b692e757365722e69643d454d38336a736a6171507a494d4c774254694b4633614c6969544b657765657a3b206d6564696157696b692e757365722e6275636b65742533416578742e61727469636c65466565646261636b2d6f7074696f6e733d3825334173686f77",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "en.wikipedia.org"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "cookie": "centralnotice_bucket=1; clicktracking-session=eJko6IiUcEm69ehQfaakQlJfiLy9lShNP; mediaWiki.user.bucket%3Aext.articleFeedback-tracking=10%3Atrack; mediaWiki.user.id=EM83jsjaqPzIMLwBTiKF3aLiiTKeweez; mediaWiki.user.bucket%3Aext.articleFeedback-options=8%3Ashow"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "02034745540604687474700110656e2e77696b6970656469612e6f7267040f2f77696b692f4d61696e5f506167650f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f043f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e380f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f117f830163656e7472616c6e6f746963655f6275636b65743d313b20636c69636b747261636b696e672d73657373696f6e3d654a6b6f3649695563456d36396568516661616b516c4a66694c79396c53684e503b206d6564696157696b692e757365722e6275636b65742533416578742e61727469636c65466565646261636b2d747261636b696e673d3130253341747261636b3b206d6564696157696b692e757365722e69643d454d38336a736a6171507a494d4c774254694b4633614c6969544b657765657a3b206d6564696157696b692e757365722e6275636b65742533416578742e61727469636c65466565646261636b2d6f7074696f6e733d3825334173686f77",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "en.wikipedia.org"
+                },
+                {
+                    ":path": "/wiki/Main_Page"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "cookie": "centralnotice_bucket=1; clicktracking-session=eJko6IiUcEm69ehQfaakQlJfiLy9lShNP; mediaWiki.user.bucket%3Aext.articleFeedback-tracking=10%3Atrack; mediaWiki.user.id=EM83jsjaqPzIMLwBTiKF3aLiiTKeweez; mediaWiki.user.bucket%3Aext.articleFeedback-options=8%3Ashow"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "02034745540604687474700112626974732e77696b696d656469612e6f7267041a2f656e2e77696b6970656469612e6f72672f6c6f61642e7068700f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0412746578742f6373732c2a2f2a3b713d302e310f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d5765642c203331204f637420323031322031373a35323a303420474d54",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "bits.wikimedia.org"
+                },
+                {
+                    ":path": "/en.wikipedia.org/load.php"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Wed, 31 Oct 2012 17:52:04 GMT"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "02034745540604687474700112626974732e77696b696d656469612e6f7267041a2f656e2e77696b6970656469612e6f72672f6c6f61642e7068700f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0412746578742f6373732c2a2f2a3b713d302e310f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d5468752c203031204e6f7620323031322030393a33333a323720474d54",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "bits.wikimedia.org"
+                },
+                {
+                    ":path": "/en.wikipedia.org/load.php"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Thu, 01 Nov 2012 09:33:27 GMT"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "02034745540604687474700112626974732e77696b696d656469612e6f7267041a2f656e2e77696b6970656469612e6f72672f6c6f61642e7068700f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f04032a2f2a0f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d5361742c203033204e6f7620323031322031323a35333a323720474d54",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "bits.wikimedia.org"
+                },
+                {
+                    ":path": "/en.wikipedia.org/load.php"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Sat, 03 Nov 2012 12:53:27 GMT"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "02034745540604687474700112626974732e77696b696d656469612e6f7267041a2f656e2e77696b6970656469612e6f72672f6c6f61642e7068700f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f04032a2f2a0f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d5765642c203331204f637420323031322031373a35323a303420474d54",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "bits.wikimedia.org"
+                },
+                {
+                    ":path": "/en.wikipedia.org/load.php"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Wed, 31 Oct 2012 17:52:04 GMT"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "02034745540604687474700112626974732e77696b696d656469612e6f7267041a2f656e2e77696b6970656469612e6f72672f6c6f61642e7068700f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f04032a2f2a0f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d5468752c203031204e6f7620323031322030393a33333a323720474d54",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "bits.wikimedia.org"
+                },
+                {
+                    ":path": "/en.wikipedia.org/load.php"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Thu, 01 Nov 2012 09:33:27 GMT"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "0203474554060468747470011475706c6f61642e77696b696d656469612e6f726704292f77696b6970656469612f656e2f632f63612f4b616e746869726176615f63726f707065642e706e670f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e350f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d4672692c203032204e6f7620323031322032333a34363a353920474d540f1a203238386264623266643565356134663732373266353866636230383361376531",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "upload.wikimedia.org"
+                },
+                {
+                    ":path": "/wikipedia/en/c/ca/Kanthirava_cropped.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Fri, 02 Nov 2012 23:46:59 GMT"
+                },
+                {
+                    "if-none-match": "288bdb2fd5e5a4f7272f58fcb083a7e1"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "0203474554060468747470011475706c6f61642e77696b696d656469612e6f7267046e2f77696b6970656469612f636f6d6d6f6e732f7468756d622f642f64322f44616e63696e675f6769726c5f616a616e74615f25323863726f707065642532392e6a70672f373270782d44616e63696e675f6769726c5f616a616e74615f25323863726f707065642532392e6a70670f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e350f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d5475652c203330204f637420323031322031373a33373a313520474d540f1a203665386435366466396265333534393462346439663065613732656431613365",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "upload.wikimedia.org"
+                },
+                {
+                    ":path": "/wikipedia/commons/thumb/d/d2/Dancing_girl_ajanta_%28cropped%29.jpg/72px-Dancing_girl_ajanta_%28cropped%29.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Tue, 30 Oct 2012 17:37:15 GMT"
+                },
+                {
+                    "if-none-match": "6e8d56df9be35494b4d9f0ea72ed1a3e"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "02034745540604687474700112626974732e77696b696d656469612e6f7267041a2f656e2e77696b6970656469612e6f72672f6c6f61642e7068700f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f04032a2f2a0f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2426687474703a2f2f656e2e77696b6970656469612e6f72672f77696b692f4d61696e5f506167650f191d5361742c203033204e6f7620323031322031323a35333a323720474d54",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "bits.wikimedia.org"
+                },
+                {
+                    ":path": "/en.wikipedia.org/load.php"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://en.wikipedia.org/wiki/Main_Page"
+                },
+                {
+                    "if-modified-since": "Sat, 03 Nov 2012 12:53:27 GMT"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Static - static table=yes, header table=no, huffman=no"
+}

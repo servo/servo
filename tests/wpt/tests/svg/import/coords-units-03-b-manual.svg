@@ -1,0 +1,160 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: coords-units-03-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#Units">
+      <p>
+        This test verifies both the initial viewport size and the support for the various
+        unit specifiers.
+      </p>
+      <p>
+        The units in SVG can be: user coordinate and CSS units: em, ex, px, pt, pc, cm, mm,
+        in and percentages. The test does not check the absolute length accuracy as this
+        can only be truly validated with a ruler. However, it validates that the different
+        units are supported by drawing multiple elements who have the same length specified
+        in different units.
+      </p>
+      <p>
+        The viewport is the "finite rectangular region" where rendering occurs in SVG.
+        Hence, nothing should be rendered outside the viewport (paragraph 7.1). Furthermore,
+        when no positioning properties are set on the top svg element, the initial viewport
+        size should have the value of the top svg element's "width" and "height" attributes.
+        To check this behavior, the test does not define positioning properties on the top
+        svg element but defines its "width" and "height" properties. Then it fills a red
+        rectangle that is bigger than the viewport size. Then, a rectangle, the size of the
+        viewport is drawn in white. If rendering is limited to the viewport area, none of the
+        red should show.
+      </p>
+      <p>
+        The line showing the "ex" units will not necessarily appear with the same length
+        as shown in the reference image because the X-height of a font is not
+        necessarily half of the font size (which is assumed in the reference image where
+        1ex is considered to be .5em).
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the top three lines (user units, px, em) are the same length,
+      the fifth line (%) is the same length as the top three lines, and the bottom
+      five lines (in, cm, mm, pt, pc) are the same length.  The fourth line (ex) may have
+      any non-zero length, since the X-height of the font will depend on the exact font
+      chosen by the user agent (which may vary).</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-units-03-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="viewport-initial-size-test">
+      <!-- ====================================================================== -->
+      <!-- First fill a rectangle that is bigger than the defined viewport ====== -->
+      <!-- ====================================================================== -->
+      <rect x="0px" y="0px" width="2000px" height="2000px" fill="red"/>
+      <!-- ====================================================================== -->
+      <!-- This second rectangle should cover the previous one, so none of the == -->
+      <!-- red should show if the initial viewport has the requested size      == -->
+      <!-- ====================================================================== -->
+      <rect x="0px" y="0px" width="480px" height="360px" fill="white"/>
+    </g>
+    <!-- viewport-initial-size-test -->
+    <!-- Title -->
+    <text x="125" y="20" fill="black" font-size="12" font-family="Arial">Initial viewport and CSS units test</text>
+    <g id="units-test" fill="black" font-size="10pt" transform="translate(0, 60)">
+      <!-- ====================================================================== -->
+      <!-- Now, draw rectangles using the various unit specifiers                 -->
+      <!-- ====================================================================== -->
+      <!-- User Space -->
+      <text x="20" y="18">200</text>
+      <text x="230" y="20">User space units (no specifier)</text>
+      <rect x="20" y="20" width="200" height="1"/>
+      <!-- ================== -->
+      <!-- Relative CSS Units -->
+      <!-- ================== -->
+      <!-- Pixels : Should correspond to User Space, because the initial user -->
+      <!-- coordinate is such that one user space unit equals one pixel in    -->
+      <!-- viewport.                                                          -->
+      <text x="20" y="38">200 px</text>
+      <text x="230" y="40">Pixels (px)</text>
+      <rect x="20" y="40" width="200px" height="1"/>
+      <!-- Font size (em). Should be equal to 200pt because current font's    -->
+      <!-- point size is 10pt                                                 -->
+      <text x="20" y="58">20 em = 200 px (font-size=10px)</text>
+      <text x="230" y="60">Relative to font size (em)</text>
+      <g font-size="10px">
+        <rect x="20" y="60" width="20em" height="1"/>
+      </g>
+      <!-- X-Height (ex). With a 10px font-size, x-height is about 5px, so  -->
+      <!-- ex units would be about 200px                                    -->
+      <text x="20" y="78">40 ex</text>
+      <text x="230" y="80">Relative to font x-height (ex)</text>
+      <g font-size="10px">
+        <rect x="20" y="80" width="40ex" height="1"/>
+      </g>
+      <!-- ========================= -->
+      <!-- Percentage                -->
+      <!-- ========================= -->
+      <!-- 1% = 4.8px because viewport is 480px -->
+      <text x="20" y="98">41.67% = 200 px</text>
+      <text x="230" y="100">Percentage (%)</text>
+      <rect x="20" y="100" width="41.67%" height="1"/>
+      <!-- ========================= -->
+      <!-- Absolute Length CSS Units -->
+      <!-- ========================= -->
+      <!-- Inches (should be the same length as following (cm) rect)          -->
+      <text x="20" y="118">1 in</text>
+      <text x="230" y="120">Inches (in)</text>
+      <rect x="20" y="120" width="1in" height="1"/>
+      <!-- Centimeters(should be the same length as previous (in) rect)       -->
+      <!-- 1in = 2.54cm -->
+      <text x="20" y="138">2.54 cm = 1 in</text>
+      <text x="230" y="140">Centimeters (cm)</text>
+      <rect x="20" y="140" width="2.54cm" height="1"/>
+      <!-- Millimeters (should be the same length as previous (cm) rect)      -->
+      <!-- 10mm = 1cm -->
+      <text x="20" y="158">25.4 mm = 1 in</text>
+      <text x="230" y="160">Millimeters (mm)</text>
+      <rect x="20" y="160" width="25.4mm" height="1"/>
+      <!-- Points (should be the same length as (in) rect                     -->
+      <!-- 1pt = 1/72 in -->
+      <text x="20" y="178">72pt = 1 in</text>
+      <text x="230" y="180">Points (pt)</text>
+      <rect x="20" y="180" width="72pt" height="1"/>
+      <!-- Picas (should be the same length as previous (pt) rect)            -->
+      <!-- 1pc = 12pt -->
+      <text x="20" y="198">6pc = 1 in</text>
+      <text x="230" y="200">Picas (pc)</text>
+      <rect x="20" y="200" width="6pc" height="1"/>
+    </g>
+    <!-- units-test -->
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

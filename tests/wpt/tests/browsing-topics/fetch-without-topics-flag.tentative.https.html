@@ -1,0 +1,15 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+    promise_test(async t => {
+      let response = await fetch('./resources/check-topics-request-header.py');
+      let topics_header = await response.text();
+
+      // The request was not eligible for topics, as the `browsingTopics` flag
+      // was not set.
+      assert_equals(topics_header, "NO_TOPICS_HEADER");
+    }, 'test fetch(<url>)');
+  </script>
+</body>

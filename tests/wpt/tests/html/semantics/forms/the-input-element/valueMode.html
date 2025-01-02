@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Input element value mode</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+// MODE DEFAULT
+test(function () {
+  var input = document.createElement("input");
+  input.type = "hidden";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type hidden without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "hidden";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type hidden with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "submit";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type submit without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "submit";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type submit with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "image";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type image without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "image";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type image with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "reset";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type reset without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "reset";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type reset with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "button";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type button without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "button";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type button with value attribute");
+
+// MODE DEFAULT/ON
+test(function () {
+  var input = document.createElement("input");
+  input.type = "checkbox";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type checkbox without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "checkbox";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type checkbox with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "radio";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type radio without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "radio";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\r\r\n\n\0");
+}, "value IDL attribute of input type radio with value attribute");
+
+// MODE VALUE
+test(function () {
+  var input = document.createElement("input");
+  input.type = "text";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type text without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "text";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type text with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "search";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type search without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "search";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type search with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "tel";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type tel without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "tel";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type tel with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "url";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type url without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "url";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type url with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "email";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type email without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "email";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type email with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "password";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type password without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "password";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "foo\0");
+}, "value IDL attribute of input type password with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "datetime-local";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type datetime-local without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "datetime-local";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type datetime-local with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "date";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type date without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "date";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type date with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "time";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type time without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "time";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type time with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "number";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type number without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "number";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "");
+}, "value IDL attribute of input type number with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "range";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "50");
+}, "value IDL attribute of input type range without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "range";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "50");
+}, "value IDL attribute of input type range with value attribute");
+
+test(function () {
+  var input = document.createElement("input");
+  input.type = "color";
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "#000000");
+}, "value IDL attribute of input type color without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "color";
+  input.setAttribute("value", "bar");
+  input.value = "foo\r\r\n\n\0";
+  assert_equals(input.value, "#000000");
+}, "value IDL attribute of input type color with value attribute");
+
+// MODE FILENAME
+test(function () {
+  var input = document.createElement("input");
+  input.type = "file";
+
+  for (const emptyValue of ["", null]) {
+    input.value = emptyValue;
+    assert_equals(input.value, "", `input.value is empty after assigning ${emptyValue}`);
+  }
+
+  for (const invalidValue of ["foo", 10, undefined]) {
+    assert_throws_dom("InvalidStateError", () => {
+      input.value = invalidValue;
+    });
+    assert_equals(input.value, "", `input.value is empty after assigning ${invalidValue}`);
+  }
+}, "value IDL attribute of input type file without value attribute");
+test(function() {
+  var input = document.createElement("input");
+  input.type = "file";
+  input.setAttribute("value", "bar");
+  assert_equals(input.value, "", "input.value is empty even with a value attribute");
+
+  input.value = "";
+  assert_equals(input.getAttribute("value"), "bar", "Setting input.value does not change the value attribute");
+}, "value IDL attribute of input type file with value attribute");
+</script>

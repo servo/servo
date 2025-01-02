@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<h1>Capturing mouse coordinates</h1>
+<link rel="help" href="https://screen-share.github.io/captured-mouse-events" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  li.highlight {
+    font-weight: bold;
+  }
+  #latest_captured_mouse_event {
+    font-family: monospace;
+  }
+</style>
+<ol class="instructions">
+  <li>
+    <button id="start_capture">Click here</button> and share this window as a
+    captured surface.
+  </li>
+  <li>Move the mouse near the top left corner of the window.</li>
+  <li>Move the mouse near the top right corner of the window.</li>
+  <li>Move the mouse near the bottom right corner of the window.</li>
+  <li>Move the mouse near the bottom left corner of the window.</li>
+  <li>Move the mouse near the center of the window.</li>
+  <li>Move the mouse outside the window.</li>
+  <li>Move the mouse inside the window.</li>
+</ol>
+<pre id="log"></pre>
+<video width="1024" height="512" id="captured_content" autoplay></video>
+<div id="latest_captured_mouse_event"></div>
+<script>
+  setup({explicit_timeout: true});
+
+  const items = document.querySelectorAll('ol.instructions > li');
+  let highlighted_item_index = 0;
+  function clear_all_highlight() {
+    Array.from(items).forEach(item => item.classList.remove('highlight'));
+  }
+  function highlight_next_item() {
+    clear_all_highlight();
+    items[highlighted_item_index].classList.add('highlight');
+    highlighted_item_index++;
+  }
+  add_completion_callback(clear_all_highlight);
+
+  let capture_controller;
+  let latest_captured_mouse_event_index = 0;
+  function observe_mouse_coordinates(check_condition) {
+    assert_true(!!capture_controller, 'Screen capture started.');
+    assert_own_property(window, 'CapturedMouseEvent');
+    return new Promise(resolve => {
+      const listener = (event) => {
+        if (check_condition(event.surfaceX, event.surfaceY)) {
+          capture_controller.removeEventListener(
+              'capturedmousechange', listener);
+          resolve();
+        }
+      };
+      capture_controller.addEventListener('capturedmousechange', listener);
+    });
+  }
+
+  promise_test(async () => {
+    assert_own_property(window, 'CaptureController');
+    const controller = new CaptureController();
+    highlight_next_item();
+    await new Promise(resolve => {
+      document.getElementById('start_capture')
+          .addEventListener('click', (event) => {
+            event.target.disabled = true;
+            resolve();
+          });
+    });
+    const video = document.getElementById('captured_content');
+    video.srcObject =
+        await navigator.mediaDevices.getDisplayMedia({controller});
+    await new Promise(resolve => video.onloadedmetadata = resolve);
+    controller.addEventListener('capturedmousechange', (event) => {
+      document.getElementById('latest_captured_mouse_event').textContent =
+          `Last event (#${++latest_captured_mouse_event_index}) observed at ${
+              (new Date()).toTimeString()}, was {surfaceX: ${
+              event.surfaceX}, surfaceY: ${event.surfaceY}}.`;
+    });
+    capture_controller = controller;
+  }, 'Starting Screen Capture');
+
+  const max_distance = 100;
+  [{x: 0, y: 0, name: 'top left corner'},
+   {x: window.outerWidth, y: 0, name: 'top right corner'},
+   {x: window.outerWidth, y: window.outerHeight, name: 'bottom right corner'},
+   {x: 0, y: window.outerHeight, name: 'bottom left corner'},
+   {x: window.outerWidth / 2, y: window.outerHeight / 2, name: 'center'},
+  ].forEach(target => {
+    promise_test(async () => {
+      highlight_next_item();
+      assert_less_than(
+          max_distance, Math.min(window.outerWidth, window.outerHeight) / 4,
+          'window is large enough');
+      await observe_mouse_coordinates((x, y) => {
+        return x >= 0 && y >= 0 &&
+            Math.hypot(target.x - x, target.y - y) < max_distance;
+      })
+    }, `Moving mouse to the ${target.name} of the window.`);
+  });
+
+  promise_test(async () => {
+    highlight_next_item();
+    await observe_mouse_coordinates((x, y) => {
+      return x == -1 && y == -1;
+    })
+  }, `Moving mouse outside the window.`);
+
+  promise_test(async () => {
+    highlight_next_item();
+    await observe_mouse_coordinates((x, y) => {
+      return x >= 0 && y >= 0;
+    })
+  }, `Moving mouse inside the window.`);
+</script>

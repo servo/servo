@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for dynamic insertion of ruby frames</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="match" href="ruby-dynamic-insertion-004-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<script src="support/ruby-dynamic-insertion.js"></script>
+<p>No space should exist between 'a' and 'b':</p>
+
+<!-- insert white space -->
+<!--     leading white space -->
+<p>a<ruby data-insert="start" data-text=" "><rb></rb></ruby>b</p>
+<p>a<rbc data-insert="start" data-text=" "><rb></rb></rbc>b</p>
+<p>a<rtc data-insert="start" data-text=" "><rt></rt></rtc>b</p>
+<!--     trailing white space -->
+<p>a<ruby data-insert="end" data-text=" "><rb></rb></ruby>b</p>
+<p>a<rbc data-insert="end" data-text=" "><rb></rb></rbc>b</p>
+<p>a<rtc data-insert="end" data-text=" "><rt></rt></rtc>b</p>
+<!--     inter-level white space -->
+<p>a<rb data-insert="after" data-text=" "></rb><rt></rt>b</p>

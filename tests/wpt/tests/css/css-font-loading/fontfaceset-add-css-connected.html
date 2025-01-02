@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Myles C. Maxfield" href="mmaxfield@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading-3/#dom-fontfaceset-add">
+<meta name="assert" content="Ensure that calling add() with a CSS-connected FontFace throws." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "WebFont";
+    src: url("resources/Rochester.otf") format("opentype");
+}
+</style>
+<script>
+test(function(t) {
+    let font = document.fonts.keys().next().value;
+    let fontFaceSet = new FontFaceSet([]);
+    assert_equals(fontFaceSet.size, 0);
+    assert_throws_dom("InvalidModificationError", function() { fontFaceSet.add(font); });
+    assert_equals(fontFaceSet.size, 0);
+    let newFont = new FontFace("MyFont", "url('resources/Rochester.otf')");
+    fontFaceSet.add(newFont);
+    assert_equals(fontFaceSet.size, 1);
+    fontFaceSet.add(newFont);
+    assert_equals(fontFaceSet.size, 1);
+});
+</script>
+</html>

@@ -1,0 +1,20 @@
+<head>
+<link rel='match' href='box_shadow_border_box_ref.html'>
+<!-- Tests that the entire border-box is shadowed, not just the content box. -->
+<style>
+section {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    top: 100px;
+    left: 100px;
+    border-left: solid green 10px;
+    border-right: solid green 10px;
+    box-shadow: 20px 10px;
+}
+</style>
+</head>
+<body>
+<section></section>
+</body>
+

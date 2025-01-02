@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://w3c.github.io/pointerevents/#firing-events-using-the-pointerevent-interface">
+<title>Enter/leave events fired to parent after child is removed from slot</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?touch">
+<meta name="variant" content="?pen">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<template id="template">
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+    }
+  </style>
+  <div id="parent">
+    <slot id="slot">slot</slot>
+  </div>
+</template>
+
+<style>
+  div, my-elem {
+    width: 100px;
+    height: 100px;
+    display: block;
+  }
+</style>
+
+<my-elem id="host">
+  <div id="child">child</div>
+</my-elem>
+<div id="done">done</div>
+
+<script>
+  "use strict";
+
+  customElements.define(
+    "my-elem",
+    class extends HTMLElement {
+      constructor() {
+        super();
+        let content = document.getElementById("template").content;
+        const shadowRoot = this.attachShadow({ mode: "open" });
+        shadowRoot.appendChild(content.cloneNode(true));
+      }
+    },
+  );
+
+  const pointer_type = location.search.substring(1);
+
+  const shadow_host = document.getElementById("host");
+  const parent = shadow_host.shadowRoot.getElementById("parent");
+  const slot = parent.firstElementChild;
+  const slotted_child = document.getElementById("child");
+  const done = document.getElementById("done");
+
+  let event_log = [];
+
+  function logEvent(e) {
+    if (e.eventPhase == e.AT_TARGET) {
+      event_log.push(e.type + "@" + e.target.id);
+    }
+  }
+
+  function setup() {
+    const events = ["pointerover", "pointerout",
+          "pointerenter", "pointerleave", "pointerdown", "pointerup"];
+    let targets = [shadow_host, parent, slot, slotted_child];
+    for (let i = 0; i < targets.length; i++) {
+      events.forEach(event => targets[i].addEventListener(event, logEvent));
+    }
+  }
+
+  setup();
+
+  promise_test(async test => {
+    event_log = [];
+
+    let done_click_promise = getEvent("click", done);
+
+    let actions = new test_driver.Actions()
+        .addPointer("TestPointer", pointer_type)
+        .pointerMove(0, 0, {origin: shadow_host})
+        .pointerDown()
+        .pointerUp()
+        .pointerMove(0, 0, {origin: done})
+        .pointerDown()
+        .pointerUp();
+
+    await actions.send();
+    await done_click_promise;
+
+    const expected_events = [
+      "pointerover@child",
+      "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
+      "pointerdown@child", "pointerup@child",
+      "pointerout@child",
+      "pointerleave@child", "pointerleave@slot", "pointerleave@parent", "pointerleave@host"
+    ];
+    assert_equals(event_log.toString(), expected_events.toString(),
+        "events received");
+  }, `Pointer events from ${pointer_type} to slotted element and shadow-host`);
+</script>

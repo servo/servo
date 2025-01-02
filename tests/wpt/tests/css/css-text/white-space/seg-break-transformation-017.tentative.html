@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>Thai with ZWSP after line break</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#line-break-transform'>
+<meta name="assert" content="If the character immediately before or immediately after the segment break is the zero-width space character (U+200B), then the break is removed, leaving behind the zero-width space.">
+<style type='text/css'>
+.test span { font-size: 24px; font-family: sans-serif; background-color: #2AA5F7; color: white; }
+.ref span { font-size: 24px; font-family: sans-serif; background-color: #270CEF; color: white; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id='log'></div>
+<div id='test1' class="test"><span>ภาษา
+&#x200B;ไทย</span></div>
+<div id='test2' class="test"><span>ภาษา
+&#x20;&#x20;&#x20;&#x200B;ไทย</span></div>
+<div id='test3' class="test"><span>ภาษา&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;&#x20;
+&#x200B;ไทย</span></div>
+<div id='test4' class="test"><span>ภาษา&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;&#x20;&#x20;&#x200B;ไทย</span></div>
+<div id='test5' class="test"><span>ภาษา
+
+
+&#x200B;ไทย</span></div>
+<div id='test6' class="test"><span>ภาษา&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;
+&#x20;&#x20;&#x20;&#x200B;ไทย</span></div>
+<div id="ref" class="ref"><span>ภาษาไทย</span></div>
+<script>
+test(function() {
+assert_equals(document.getElementById('test1').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "linebreak only");
+var matches = document.getElementById('test1').firstChild.textContent.match(/\u200B/g)
+test(function() {
+assert_equals(matches.length, 1);
+}, "zwsp retained 1");
+test(function() {
+assert_equals(document.getElementById('test2').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "spaces linebreak");
+var matches = document.getElementById('test2').firstChild.textContent.match(/\u200B/g)
+test(function() {
+assert_equals(matches.length, 1);
+}, "zwsp retained 2");
+test(function() {
+assert_equals(document.getElementById('test3').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "linebreak spaces");
+var matches = document.getElementById('test3').firstChild.textContent.match(/\u200B/g)
+test(function() {
+assert_equals(matches.length, 1);
+}, "zwsp retained 3");
+test(function() {
+assert_equals(document.getElementById('test4').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "spaces linebreak spaces");
+var matches = document.getElementById('test4').firstChild.textContent.match(/\u200B/g)
+test(function() {
+assert_equals(matches.length, 1);
+}, "zwsp retained 4");
+test(function() {
+assert_equals(document.getElementById('test5').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "multiple linebreaks");
+var matches = document.getElementById('test5').firstChild.textContent.match(/\u200B/g)
+test(function() {
+assert_equals(matches.length, 1);
+}, "zwsp retained 5");
+test(function() {
+assert_equals(document.getElementById('test6').firstChild.offsetWidth, document.getElementById('ref').firstChild.offsetWidth);
+}, "multiple linebreaks + spaces");
+var matches = document.getElementById('test6').firstChild.textContent.match(/\u200B/g)
+test(function() {
+assert_equals(matches.length, 1);
+}, "zwsp retained 6");
+</script>
+<!-- Notes:
+The assertion will fail if space is produced for any line in the test paragraph.
+-->
+</body>
+</html>

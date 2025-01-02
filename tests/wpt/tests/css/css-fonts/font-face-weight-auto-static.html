@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Support for font-weight: auto in @font-face</title>
+<link rel="match" href="font-face-weight-auto-static-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-prop-desc" />
+<meta name="assert" content="font-weight: auto applies initial value for non-variable fonts in @font-face descriptor">
+<style>
+    @font-face {
+        font-family: "Lato";
+        src: url('support/fonts/Lato-Medium.ttf') format('truetype');
+        font-display: swap;
+        font-weight: auto;
+    }
+    .test {
+        font-family: "Lato";
+        font-size: 3em;
+        font-weight: bold;
+    }
+</style>
+
+<p class="test">text</p>

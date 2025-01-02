@@ -1,0 +1,76 @@
+name: Dispatch Workflow
+on:
+  workflow_call:
+    inputs:
+      workflow:
+        required: true
+        type: string
+      profile:
+        required: true
+        type: string
+      wpt-args:
+        required: true
+        type: string
+      wpt-layout:
+        required: true
+        type: string
+      unit-tests:
+        required: true
+        type: boolean
+      bencher:
+        required: true
+        type: boolean
+
+jobs:
+  win:
+    if: ${{ inputs.workflow == 'windows' }}
+    name: Windows
+    uses: ./.github/workflows/windows.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      unit-tests: ${{ inputs.unit-tests }}
+
+  macos:
+    if: ${{ inputs.workflow == 'macos' }}
+    name: MacOS
+    uses: ./.github/workflows/mac.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-layout: ${{ inputs.wpt-layout }}
+      unit-tests: ${{ inputs.unit-tests }}
+      wpt-args: ${{ inputs.wpt-args }}
+
+  linux:
+    if: ${{ inputs.workflow == 'linux' }}
+    name: Linux
+    uses: ./.github/workflows/linux.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-layout: ${{ inputs.wpt-layout }}
+      unit-tests: ${{ inputs.unit-tests }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+
+  lint:
+    if: ${{ inputs.workflow == 'lint' }}
+    name: Lint
+    uses: ./.github/workflows/lint.yml
+    secrets: inherit
+
+  android:
+    if: ${{ inputs.workflow == 'android' }}
+    name: Android
+    uses: ./.github/workflows/android.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+
+  ohos:
+    if: ${{ inputs.workflow == 'ohos' }}
+    name: OpenHarmony
+    uses: ./.github/workflows/ohos.yml
+    with:
+      profile: ${{ inputs.profile }}

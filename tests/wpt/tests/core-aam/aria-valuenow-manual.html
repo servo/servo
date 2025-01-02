@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-valuenow</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "result",
+                  "atk_value_get_current_value()",
+                  "is",
+                  "5"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXValue",
+                  "is",
+                  "5"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "currentValue",
+                  "is",
+                  "5"
+               ],
+               [
+                  "property",
+                  "accValue",
+                  "is",
+                  "5"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "RangeValue.Value",
+                  "is",
+                  "5"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-valuenow"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-valuenow.</p>
+    <div role='scrollbar' id='test' aria-valuenow='5'>content</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

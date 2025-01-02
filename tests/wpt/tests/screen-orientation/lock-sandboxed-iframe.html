@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+  import {
+    attachIframe
+  } from "./resources/orientation-utils.js";
+
+  function wait_result() {
+    return new Promise((resolve) => {
+      function callback(evt) {
+        switch (evt.data.result) {
+          case "locked":
+            resolve(evt.data.orientation);
+            break;
+          case "errored":
+            resolve(evt.data.name);
+            break;
+          default:
+            assert_unreached(`Unexpected message: ${evt.data.result}`);
+            return;
+        }
+        window.removeEventListener("message", callback);
+        resolve(evt.data.msg);
+      }
+      window.addEventListener("message", callback);
+    });
+  }
+
+  promise_test(async (t) => {
+    const iframe = await attachIframe({
+      src: "resources/sandboxed-iframe-locking.html",
+      sandbox: "allow-scripts allow-same-origin",
+    });
+    const message = await wait_result();
+    assert_equals(
+      message,
+      "SecurityError",
+      "screen.lockOrientation() throws a SecurityError"
+    );
+  }, "Test without 'allow-orientation-lock' sandboxing directive");
+
+  promise_test(async (t) => {
+    const iframe = await attachIframe({
+      src: "resources/sandboxed-iframe-locking.html",
+      sandbox: "allow-scripts allow-same-origin allow-orientation-lock",
+    });
+    const message = await wait_result();
+    assert_equals(
+      message,
+      "portrait-primary",
+      "screen.orientation lock to portrait-primary"
+    );
+  }, "Test with 'allow-orientation-lock' sandboxing directive");
+</script>

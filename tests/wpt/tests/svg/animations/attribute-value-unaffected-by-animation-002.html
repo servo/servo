@@ -1,0 +1,21 @@
+<!doctype html>
+<title>An animation of an attribute ('orient') does not change the DOM attribute value</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#BasicAnim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <marker orient="90">
+    <set attributeName="orient" to="auto"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    onload = t.step_func(() => {
+      requestAnimationFrame(t.step_func_done(() => {
+        let marker = document.querySelector('marker');
+        marker.orientAngle.baseVal.valueInSpecifiedUnits = 180;
+        assert_equals(marker.getAttribute('orient'), '180');
+      }));
+    });
+  });
+</script>

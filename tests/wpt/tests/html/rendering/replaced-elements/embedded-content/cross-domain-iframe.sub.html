@@ -1,0 +1,17 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Rendering of iframe element with src attribute from another domain</title>
+<link rel="match" href="cross-domain-iframe.sub-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#embedded-content-rendering-rules">
+<meta name="assert" content="Checks that iframe content is correctly rendered even if it is retrieved from a different domain.">
+<iframe id=myframe src="http://{{domains[www1]}}:{{ports[http][0]}}/images/green.png"></iframe>
+<script>
+  myframe.onload = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('reftest-wait');
+      });
+    });
+  }
+</script>
+</html>

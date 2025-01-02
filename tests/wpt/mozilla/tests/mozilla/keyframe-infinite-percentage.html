@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shouldn't end up with an invalid keyframe when inf or nan are at play.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes anim {
+  0e309% {}
+}
+</style>
+<script>
+test(function() {
+  assert_true(true, "Doesn't crash");
+}, "Doesn't crash");
+</script>

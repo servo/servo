@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Doc xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+ <body>
+  <p><its:span locNote="If possible keep the non-English terms in the translated version too">Everything started when
+   Zebulon discovered that he had a <its:span locNoteRef="http://en.wikipedia.org/wiki/Doppelganger">doppelgänger</its:span>
+   who was a <b>serious</b> baseball <its:span locNoteRef="http://en.wikipedia.org/wiki/Aficionado">aficionado</its:span>.</its:span></p>
+ </body>
+</Doc>

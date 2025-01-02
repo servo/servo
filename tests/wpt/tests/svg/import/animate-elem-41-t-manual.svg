@@ -1,0 +1,445 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN, CM" author="VH" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-41-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This test validates the operation of the animate element on the various graphics
+        properties. This test is very similar to animate-elem-78-t which uses the set element
+        instead of the animate element to modify graphics properties.
+      </p>
+      <p>
+        For each of the graphics properties, there are three tests. One animates the graphics
+        property directly on an element (such as a rect or a line) which uses the
+        property. The other two tests apply the animation on a container element (g and
+        a), and validate that the animated property is inherited by elements which
+        are child of the container.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        There are 11 graphics properties that are animated, and for each of these,
+        they are animated in one of three different ways (the three columns).  The
+        three animations in each row must be the same.
+      </p>
+      <p>
+        For each animation test, the element on which the animation is applied is also
+        translated by an animation so that the various states of the animation can
+        be checked more easily:
+      </p>
+      <ul>
+        <li>For those tests that have two light gray silhouettes
+        (fill-rule, stroke-linecap, stroke-linejoin, stroke-miterlimit and stroke-dashoffset),
+        the animated element's shape must be the same as the left silouhette at the
+        start of the animation and the same as the right silhouette at the end of
+        the animation.</li>
+        <li>For the continous paint animations (fill, stroke and color),
+        three references shapes show the color that the animated element must be
+        at the start, middle and end of the animation.</li>
+        <li>For the stroke-width test, the two dark gray reference shapes show the
+        width of the short, animated horizontal line must be at the start and the end
+        of the animation.</li>
+        <li>For the display and visibility tests, the single light gray silhouette
+        shows the position the animated element must be at at the start of the animation.
+        At the end of the animation, these animated elements must not be visible.</li>
+      </ul>
+      <p>
+        The following animations must show continuous changes: fill, stroke,
+        stroke-width, stroke-dashoffset and color.
+      </p>
+      <p>
+        The following animations must show discrete animation changes: fill-rule, stroke-linecap,
+        stroke-linejoin, stroke-miterlimit, display and visibility.  The point at which
+        the change takes place must be half way through the animation, except for the
+        stroke-miter animation, which must change a quarter of the way through.
+        (Note that visually, stroke-miterlimit shows a sharp transition even though its value
+        is animated continuously, but that is because the miter is cut off when
+        the animated miter limit reaches the test sharp angle's miter value.)
+      </p>
+      <p>The test passes if all of the above criteria are met.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-41-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="25" font-size="20">graphics</text>
+    <g transform="translate(80, 75)">
+      <g transform="translate(30,10)" text-anchor="end" font-size="12">
+        <text>fill</text>
+        <text y="20">fill-rule</text>
+        <text y="40">stroke</text>
+        <text y="60">stroke-width</text>
+        <text y="80">stroke-linecap</text>
+        <text y="100">stroke-linejoin</text>
+        <text y="120">stroke-miterlimit</text>
+        <text y="140">stroke-dashoffset</text>
+        <text y="160">display</text>
+        <text y="180">visibility</text>
+        <text y="200">color</text>
+      </g>
+
+      <g id="type" transform="translate(90, -20)" text-anchor="middle" font-size="14">
+        <text x="20" y="3">element</text>
+        <text x="130" y="3">&lt;g&gt;</text>
+        <text x="235" y="3">&lt;a&gt;</text>
+      </g>
+
+      <g transform="translate(80,0)" fill="rgb(204,0,102)">
+        <g id="setZero">
+          <defs>
+            <g id="animateZeroRef">
+              <rect x="10" y="-6" width="8" height="4" fill="rgb(204,0,102)"/>
+              <rect x="10" y="-6" width="8" height="4" fill="rgb(230,82,51)" transform="translate(15,0)"/>
+              <rect x="10" y="-6" width="8" height="4" fill="rgb(255,165,0)" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#animateZeroRef"/>
+          <use xlink:href="#animateZeroRef" x="110"/>
+          <use xlink:href="#animateZeroRef" x="220"/>
+
+          <rect x="10" width="8" height="8" fill="rgb(204,0,102)">
+            <animate attributeName="fill" to="rgb(255,165,0)" dur="3s" fill="freeze"/>
+            <animate attributeName="x" to="40" dur="3s" fill="freeze"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <rect x="10" width="8" height="8"/>
+            <animate attributeName="fill" to="rgb(255,165,0)" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <rect x="10" width="8" height="8"/>
+            <animate attributeName="fill" to="rgb(255,165,0)" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </a>
+
+        </g>
+
+        <g id="setOne" transform="translate(5,15)" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setOneRef" fill="#ccc" stroke="none">
+              <polyline stroke-width="1" points="20,10,0,10,15,20,10,2,5,20,20,10"/>
+              <polyline fill-rule="evenodd" stroke-width="1" points="20,10,0,10,15,20,10,2,5,20,20,10" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setOneRef"/>
+          <use xlink:href="#setOneRef" x="110"/>
+          <use xlink:href="#setOneRef" x="220"/>
+
+          <polyline points="20,10,0,10,15,20,10,2,5,20,20,10">
+            <animate attributeName="fill-rule" from="nonzero" to="evenodd" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </polyline>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="fill-rule" from="nonzero" to="evenodd" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <polyline points="20,10,0,10,15,20,10,2,5,20,20,10"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="fill-rule" from="nonzero" to="evenodd" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <polyline points="20,10,0,10,15,20,10,2,5,20,20,10"/>
+          </a>
+
+        </g>
+
+        <g id="setTwo" transform="translate(0,45)" fill="none">
+          <defs>
+            <g id="setTwoRef" fill="none" stroke-width="4">
+              <rect x="10" width="8" height="8" stroke="rgb(204,0,102)"/>
+              <rect x="10" width="8" height="8" transform="translate(15,0)" stroke="rgb(230,82,51)"/>
+              <rect x="10" width="8" height="8" transform="translate(30,0)" stroke="rgb(255,165,0)"/>
+
+            </g>
+          </defs>
+          <use xlink:href="#setTwoRef"/>
+          <use xlink:href="#setTwoRef" x="110"/>
+          <use xlink:href="#setTwoRef" x="220"/>
+
+          <rect x="10" width="8" height="8" stroke-width="3">
+            <animate attributeName="stroke" from="rgb(204,0,102)" to="rgb(255,165,0)" dur="3s"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="stroke" from="rgb(204,0,102)" to="rgb(255,165,0)" dur="3s"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8" stroke-width="3"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="stroke" from="rgb(204,0,102)" to="rgb(255,165,0)" dur="3s"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8" stroke-width="3"/>
+          </a>
+        </g>
+
+        <g id="setThree" transform="translate(0,60)">
+          <defs>
+            <g id="setThreeRef">
+              <line x1="10" y1="3" x2="20" y2="3" stroke-width="1" stroke="gray"/>
+              <line x1="10" y1="3" x2="20" y2="3" stroke-width="5" stroke="gray" transform="translate(30,0)"/>
+            </g>
+          </defs>
+
+          <use xlink:href="#setThreeRef"/>
+          <use xlink:href="#setThreeRef" x="110"/>
+          <use xlink:href="#setThreeRef" x="220"/>
+
+          <line x1="10" y1="8" x2="20" y2="8" stroke="gray">
+            <animate attributeName="stroke-width" from="1" to="5" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </line>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="stroke-width" from="1" to="5" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <line x1="10" y1="8" x2="20" y2="8" stroke="gray"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="stroke-width" from="1" to="5" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <line x1="10" y1="8" x2="20" y2="8" stroke="gray"/>
+          </a>
+        </g>
+
+        <g id="setFour" transform="translate(0,80)" stroke-width="4" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setFourRef" stroke-width="12">
+              <line x1="10" y1="8" x2="12" y2="8" stroke="#ccc"/>
+              <line x1="10" y1="8" x2="12" y2="8" stroke-linecap="round" stroke="#ccc" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setFourRef"/>
+          <use xlink:href="#setFourRef" x="110"/>
+          <use xlink:href="#setFourRef" x="220"/>
+
+          <line x1="10" y1="8" x2="12" y2="8" stroke-width="12">
+            <animate attributeName="stroke-linecap" from="butt" to="round" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </line>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="stroke-linecap" from="butt" to="round" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <line x1="10" y1="8" x2="12" y2="8" stroke-width="12"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="stroke-linecap" from="butt" to="round" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <line x1="10" y1="8" x2="12" y2="8" stroke-width="12"/>
+          </a>
+        </g>
+
+        <g id="setFive" transform="translate(5,100)" fill="none" stroke-miterlimit="10" stroke-width="3" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setFiveRef">
+              <polyline stroke="#ccc" points="5,2,20,5,5,8"/>
+              <polyline stroke="#ccc" points="5,2,20,5,5,8" stroke-linejoin="bevel" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setFiveRef"/>
+          <use xlink:href="#setFiveRef" x="110"/>
+          <use xlink:href="#setFiveRef" x="220"/>
+
+          <polyline points="5,2,20,5,5,8">
+            <animate attributeName="stroke-linejoin" from="miter" to="bevel" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </polyline>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="stroke-linejoin" from="miter" to="bevel" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <polyline points="5,2,20,5,5,8"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="stroke-linejoin" from="miter" to="bevel" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <polyline points="5,2,20,5,5,8"/>
+          </a>
+        </g>
+
+        <g id="setSix" transform="translate(5,120)" stroke-miterlimit="1" fill="none" stroke-width="3" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setSixRef">
+              <polyline points="5,0,20,5,5,10" stroke="#ccc"/>
+              <polyline points="5,0,20,5,5,10" stroke="#ccc" stroke-miterlimit="10" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setSixRef"/>
+          <use xlink:href="#setSixRef" x="110"/>
+          <use xlink:href="#setSixRef" x="220"/>
+
+          <polyline points="5,0,20,5,5,10">
+            <animate attributeName="stroke-miterlimit" from="1" to="10" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </polyline>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="stroke-miterlimit" from="1" to="10" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <polyline points="5,0,20,5,5,10"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="stroke-miterlimit" from="1" to="10" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <polyline points="5,0,20,5,5,10"/>
+          </a>
+
+        </g>
+
+        <g id="setSeven" transform="translate(-5,145)" stroke-dasharray="3,4,5" stroke-width="3" stroke="rgb(204,0,102)">
+          <defs>
+            <g id="setSevenRef">
+              <line x1="0" y1="0" x2="25" y2="0" stroke="#ccc"/>
+              <line x1="0" y1="0" x2="25" y2="0" stroke="#ccc" stroke-dashoffset="5.5" transform="translate(40,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#setSevenRef"/>
+          <use xlink:href="#setSevenRef" x="110"/>
+          <use xlink:href="#setSevenRef" x="220"/>
+
+          <line x1="0" y1="0" x2="25" y2="0">
+            <animate attributeName="stroke-dashoffset" from="0" to="5.5" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="40" dur="3s" fill="freeze" additive="sum"/>
+          </line>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="stroke-dashoffset" from="0" to="5.5" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="40" dur="3s" fill="freeze" additive="sum"/>
+            <line x1="0" y1="0" x2="25" y2="0"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="stroke-dashoffset" from="0" to="5.5" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="40" dur="3s" fill="freeze" additive="sum"/>
+            <line x1="0" y1="0" x2="25" y2="0"/>
+          </a>
+        </g>
+
+        <g id="setEight" transform="translate(0,160)">
+          <defs>
+            <g id="setEightRef">
+              <rect x="10" width="8" height="8" fill="#ccc"/>
+              <rect x="10" width="8" height="8" fill="#ccc" transform="translate(30,0)" display="none"/>
+            </g>
+          </defs>
+          <use xlink:href="#setEightRef"/>
+          <use xlink:href="#setEightRef" x="110"/>
+          <use xlink:href="#setEightRef" x="220"/>
+          <rect x="10" width="8" height="8">
+            <animate attributeName="display" from="inline" to="none" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="display" from="inline" to="none" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="display" from="inline" to="none" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8"/>
+          </a>
+        </g>
+
+        <g id="setNine" transform="translate(0,180)">
+          <defs>
+            <g id="setNineRef">
+              <rect x="10" width="8" height="8" fill="#ccc"/>
+            </g>
+          </defs>
+          <use xlink:href="#setNineRef"/>
+          <use xlink:href="#setNineRef" x="110"/>
+          <use xlink:href="#setNineRef" x="220"/>
+
+          <rect x="10" width="8" height="8">
+            <animate attributeName="visibility" from="visible" to="hidden" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </rect>
+
+          <g transform="translate(110, 0)">
+            <animate attributeName="visibility" from="visible" to="hidden" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)">
+            <animate attributeName="visibility" from="visible" to="hidden" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8"/>
+          </a>
+        </g>
+
+        <g id="setTen" color="rgb(204,0,102)" transform="translate(0,200)">
+          <defs>
+            <g id="animateTenRef">
+              <rect x="10" y="-6" width="8" height="4" fill="rgb(204,0,102)"/>
+              <rect x="10" y="-6" width="8" height="4" fill="rgb(230,82,51)" transform="translate(15,0)"/>
+              <rect x="10" y="-6" width="8" height="4" fill="rgb(255,165,0)" transform="translate(30,0)"/>
+            </g>
+          </defs>
+          <use xlink:href="#animateTenRef"/>
+          <use xlink:href="#animateTenRef" x="110"/>
+          <use xlink:href="#animateTenRef" x="220"/>
+
+          <rect x="10" width="8" height="8" fill="currentColor">
+            <animate attributeName="color" from="rgb(204,0,102)" to="rgb(255,165,0)" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+          </rect>
+
+          <g transform="translate(110, 0)" fill="currentColor">
+            <animate attributeName="color" from="rgb(204,0,102)" to="rgb(255,165,0)" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8"/>
+          </g>
+
+          <a xlink:href="" transform="translate(220, 0)" fill="currentColor">
+            <animate attributeName="color" from="rgb(204,0,102)" to="rgb(255,165,0)" dur="3s" fill="freeze"/>
+            <animateTransform type="translate" attributeName="transform" from="0" to="30" dur="3s" fill="freeze" additive="sum"/>
+            <rect x="10" width="8" height="8"/>
+          </a>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

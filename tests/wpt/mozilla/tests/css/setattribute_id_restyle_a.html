@@ -1,0 +1,13 @@
+<link rel='match' href='setattribute_id_restyle_b.html'>
+<style>
+    #foo { background-color: #FF0000; }
+</style>
+
+<div>hello</div>
+<div id="">world</div>
+
+<script>
+    var divs = document.getElementsByTagName('div');
+    divs[0].setAttribute('id', 'foo');
+    divs[1].setAttribute('id', 'foo');
+</script>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Access-Control-Allow-Origin handling</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Access-Control-Allow-Origin handling</h1>
+
+<div id=log></div>
+
+<script>
+
+var remote_tests = [];
+var iframe = document.createElement("iframe")
+iframe.src = CROSSDOMAIN + 'resources/remote-xhrer.html';
+document.body.appendChild(iframe);
+
+function reverseOrigin(expect_pass, origin)
+{
+    var real_origin = origin.replace("<host>", REMOTE_HOST)
+                        .replace("<remote_origin>", location.protocol + "//" + location.host)
+                        .replace("<origin>", REMOTE_ORIGIN)
+                        .replace("<protocol>", REMOTE_PROTOCOL)
+                        .replace("<HOST>", REMOTE_HOST.toUpperCase())
+                        .replace("<ORIGIN>", REMOTE_ORIGIN.toUpperCase())
+                        .replace("<PROTOCOL>", REMOTE_PROTOCOL.toUpperCase());
+
+    var t = async_test((expect_pass ? 'Allow origin: ' : 'Disallow origin: ') + real_origin
+                            .replace(/\0/g, "\\0")
+                            .replace(/\t/g, "[tab]")
+                            .replace(/ /g, '_'));
+    t.step(function() {
+        this.test_url = dirname(location.href)
+                            + 'resources/cors-makeheader.py?origin='
+                            + encodeURIComponent(real_origin);
+        iframe.contentWindow.postMessage({ url: this.test_url, origin: origin }, "*");
+    });
+
+    if (expect_pass)
+    {
+        t.callback = t.step_func(function(e) {
+            assert_equals(e.state, "load");
+            r = JSON.parse(e.response)
+            assert_equals(r['origin'], REMOTE_ORIGIN, 'Request Origin: should be ' + REMOTE_ORIGIN)
+            this.done();
+        });
+    }
+    else
+    {
+        t.callback = t.step_func(function(e) {
+            assert_equals(e.state, "error");
+            assert_equals(e.response, "");
+            this.done();
+        });
+    }
+
+    remote_tests[origin] = t;
+}
+
+function shouldPass(origin) { reverseOrigin(true, origin); }
+function shouldFail(origin) { reverseOrigin(false, origin); }
+
+
+iframe.onload = function() {
+    shouldPass('*');
+    shouldPass(' *  ');
+    shouldPass('	*');
+    shouldPass("<origin>");
+    shouldPass(" <origin>");
+    shouldPass(" <origin>   	 ");
+    shouldPass("	<origin>");
+
+    shouldFail("<remote_origin>")
+    shouldFail("//" + "<host>")
+    shouldFail("://" + "<host>")
+    shouldFail("ftp://" + "<host>")
+    shouldFail("http:://" + "<host>")
+    shouldFail("http:/" + "<host>")
+    shouldFail("http:" + "<host>")
+    shouldFail("<host>")
+    shouldFail("<origin>" + "?")
+    shouldFail("<origin>" + "/")
+    shouldFail("<origin>" + " /")
+    shouldFail("<origin>" + "#")
+    shouldFail("<origin>" + "%23")
+    shouldFail("<origin>" + ":80")
+    shouldFail("<origin>" + ", *")
+    shouldFail("<origin>" + "\0")
+    shouldFail(("<ORIGIN>"))
+    shouldFail("<PROTOCOL>//<host>")
+    shouldFail("<protocol>//<HOST>")
+    shouldFail("-")
+    shouldFail("**")
+    shouldFail("\0*")
+    shouldFail("*\0")
+    shouldFail("'*'")
+    shouldFail('"*"')
+    shouldFail("* *")
+    shouldFail("*" + "<protocol>" + "//" + "*")
+    shouldFail("*" + "<origin>")
+    shouldFail("* " + "<origin>")
+    shouldFail("*, " + "<origin>")
+    shouldFail("\0" + "<origin>")
+    shouldFail("null " + "<origin>")
+    shouldFail('http://example.net')
+    shouldFail('null')
+    shouldFail('')
+    shouldFail(location.href)
+    shouldFail(dirname(location.href))
+    shouldFail(CROSSDOMAIN)
+}
+
+window.addEventListener("message", function(e) {
+    remote_tests[e.data.origin].callback(e.data);
+});
+
+add_completion_callback(function() {
+    iframe.parentElement.removeChild(iframe);
+});
+</script>

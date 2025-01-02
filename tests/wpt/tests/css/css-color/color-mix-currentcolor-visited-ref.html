@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>currentcolor is taken from :visited pseudo-class correctly in color-mix()</title>
+<style>
+a { color: green; background-color: color-mix(in srgb, green, white 75%); }
+</style>
+
+<a href="unvisited">This background should be green and not red</a>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<link rel="help" href="https://crbug.com/1448846">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(() => {
+  "use strict";
+  const pathname = document.location.pathname;
+  const form = document.createElement('form');
+  form.name = 'location';
+  document.body.appendChild(form);
+  assert_equals(document.location?.pathname, pathname);
+  form.remove();
+}, "Adding/removing form with a name referring to a non-configurable property");
+</script>
+</body>

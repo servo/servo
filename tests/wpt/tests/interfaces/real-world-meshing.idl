@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Mesh Detection Module (https://immersive-web.github.io/real-world-meshing/)
+
+[Exposed=Window] interface XRMesh {
+    [SameObject] readonly attribute XRSpace meshSpace;
+
+    readonly attribute FrozenArray<Float32Array> vertices;
+    readonly attribute Uint32Array indices;
+    readonly attribute DOMHighResTimeStamp lastChangedTime;
+    readonly attribute DOMString? semanticLabel;
+};
+
+[Exposed=Window] interface XRMeshSet {
+  readonly setlike<XRMesh>;
+};
+
+partial interface XRFrame {
+  readonly attribute XRMeshSet detectedMeshes;
+};

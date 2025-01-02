@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>DOM and Shadow DOM: Document.prototype.adoptNode</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="The adoptNode(node) method must throw a HierarchyRequestError exception if node is a shadow root.">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-document-adoptnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+function testAdoptNode(mode) {
+    test(function () {
+        var newDocument = document.implementation.createHTMLDocument();
+        assert_throws_dom('HierarchyRequestError', function () {
+            var element = document.createElement('div');
+            var shadowRoot = element.attachShadow({mode: mode});
+            newDocument.adoptNode(shadowRoot);
+        });
+    }, 'adoptNode on a shadow root in ' + mode + ' mode must throw a HierarchyRequestError');
+}
+
+testAdoptNode('open');
+testAdoptNode('closed');
+
+</script>
+</body>
+</html>

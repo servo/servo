@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    let expected = 'SecurityError';
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => Promise.all([
+        promise_rejects_dom(t, expected, gattServer.getPrimaryService(glucose.alias)),
+        promise_rejects_dom(t, expected, gattServer.getPrimaryService(glucose.name)),
+        promise_rejects_dom(t, expected, gattServer.getPrimaryService(glucose.uuid))]));
+}, 'Request for absent service without permission. Reject with SecurityError.');
+</script>

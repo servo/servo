@@ -1,0 +1,16 @@
+<!doctype html>
+<title>WebSockets: navigating nested browsing context with closed websocket</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script>
+<div id=log></div>
+<script>
+var uuid;
+var t = async_test();
+t.step(function() {uuid = token()});
+var navigate = t.step_func(function() {
+  document.getElementsByTagName("iframe")[0].src = 'data:text/html,<body onload="history.back()">';
+});
+</script>
+<iframe src=002-1.html></iframe>

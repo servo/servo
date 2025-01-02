@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+
+<head>
+
+<title>CSS Backgrounds and Borders Test: background-clip on root</title>
+<link rel="author" title="Lea Verou" href="http://lea.verou.me" />
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-clip" />
+<meta name="flags" content="image" />
+<meta name="assert" content="The root element has a different background painting area, and thus the 'background-clip' property has no effect when specified on it." />
+<style>
+
+html {
+	padding: 20px;
+	background: url('support/1x1-green.png'), red;
+	background-clip: content-box, border-box;
+}
+
+</style>
+
+</head>
+<body>
+
+<p>Test passes if there is green and <strong>no red</strong>.</p>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="100" height="50">
+  <style>use:not(:target) { display: none; }</style>
+  <defs>
+    <rect id="green-box" fill="#00ff00" width="100" height="50"/>
+    <rect id="red-box" fill="#ff0000" width="100" height="50"/>
+  </defs>
+  <use id="green" xlink:href="#green-box"/>
+  <use id="red" xlink:href="#red-box"/>
+</svg>

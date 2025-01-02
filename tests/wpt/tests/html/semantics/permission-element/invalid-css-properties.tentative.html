@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--The permission element does not allow certain CSS properties
+-->
+<style>
+  #id1 {
+    border-image: url('test-url');
+    background-image: url('test-url');
+    clip-path: circle(10px);
+    filter: blur(10px);
+    mask: url('test-url');
+    padding-left: 10px;
+    transform: rotate(10);
+    border: 0px;
+  }
+</style>
+
+<permission id="id1" type="geolocation">
+
+<script>
+  test(function(){
+    var el_with_negatives = document.getElementById("id1");
+    assert_equals(getComputedStyle(el_with_negatives).borderImage, "none", "border-image");
+    assert_equals(getComputedStyle(el_with_negatives).backgroundImage, "none", "background-image");
+    assert_equals(getComputedStyle(el_with_negatives).clipPath, "none", "clip-path");
+    assert_equals(getComputedStyle(el_with_negatives).filter, "none", "filter");
+    assert_equals(getComputedStyle(el_with_negatives).mask, "none", "mask");
+    assert_equals(getComputedStyle(el_with_negatives).paddingLeft, "0px", "padding-left");
+    assert_equals(getComputedStyle(el_with_negatives).transform, "none", "transform");
+  }, "None of the listed properties should be applied");
+</script>
+</body>

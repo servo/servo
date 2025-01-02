@@ -1,0 +1,59 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 getExtension while PBO bound stability conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+
+function runTest(extension_name) {
+  debug("");
+  debug("getExtension('" + extension_name + "') while PIXEL_UNPACK_BUFFER bound should be stable");
+
+  var gl = wtu.create3DContext(null, undefined, 2);
+  if (!gl) {
+    testFailed("Fail to get a WebGL context");
+    return;
+  }
+
+  var pbo = gl.createBuffer();
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
+  var ext = gl.getExtension('EXT_color_buffer_float');
+  var gl_texture_float_linear = gl.getExtension(extension_name);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Late-enable of extension should succeed");
+  if (pbo != gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING)) {
+      testFailed("Fail to maintain PIXEL_UNPACK_BUFFER binding when enabling extension " + extension_name);
+  }
+}
+
+function runTests() {
+  debug("This is a regression test for <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=641643'>Chromium Issue 641642</a>");
+  runTest('EXT_color_buffer_float');
+  runTest('OES_texture_float_linear');
+}
+
+runTests();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

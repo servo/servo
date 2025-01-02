@@ -1,0 +1,68 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Markers on Path (Linear).</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/painting.html#Markers"/>
+    <html:link rel="match"  href="marker-path-001-ref.svg" />
+    <html:meta name="fuzzy" content="0-8;0-8"/>
+  </g>
+
+  <defs>
+    <marker id="Start"
+            viewBox="0 0 10 10" refX="0" refY="5"
+            markerUnits="strokeWidth"
+            markerWidth="10"
+            markerHeight="10"
+            orient="auto"
+            overflow="visible"
+            fill="green">
+      <path d="M 0 0 L 10 5 L 0 10 z"/>
+    </marker>
+    <marker id="Mid"
+            viewBox="0 0 10 10" refX="0" refY="5"
+            markerUnits="strokeWidth"
+            markerWidth="10"
+            markerHeight="10"
+            orient="auto"
+            overflow="visible"
+            fill="orange">
+      <path d="M 0 0 L 10 5 L 0 10 z"/>
+    </marker>
+    <marker id="End"
+            viewBox="0 0 10 10" refX="0" refY="5"
+            markerUnits="strokeWidth"
+            markerWidth="10"
+            markerHeight="10"
+            orient="auto"
+            overflow="visible"
+            fill="blue">
+      <path d="M 0 0 L 10 5 L 0 10 z"/>
+    </marker>
+  </defs>
+
+  <g id="test-body-content" style="fill:none;stroke:black;stroke-width:2;marker-start:url(#Start);marker-mid:url(#Mid);marker-end:url(#End)">
+    <path d="m 50,120   50,0    50,0     50,0"/>
+    <path d="m 50,140   50,20   50,-20   50,20"/>
+
+    <path d="m 50,200 l 50,0  l 50,0   l 50,0"/>
+    <path d="m 50,220 l 50,20 l 50,-20 l 50,20"/>
+
+    <path d="m 50,280 h 50 v 50 h 50"/>
+
+    <path d="M 290,120   340,120   390,120   440,120"/>
+    <path d="M 290,140   340,160   390,140   440,160"/>
+
+    <path d="M 290,200 L 340,200 L 390,200 L 440,200"/>
+    <path d="M 290,220 L 340,240 L 390,220 L 440,240"/>
+
+    <path d="M 290,280 H 340 V 330 H 390"/>
+</g>
+
+</svg>

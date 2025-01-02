@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>text-box getComputedStyle() returns correctly resolved values</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-edges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="values.js"></script>
+<body>
+<div id="target"></div>
+<script>
+for (let value of text_box_edge_values) {
+  if (Array.isArray(value)) {
+    test_computed_value('text-box-edge', ...value);
+  } else {
+    test_computed_value('text-box-edge', value);
+  }
+}
+</script>
+</body>

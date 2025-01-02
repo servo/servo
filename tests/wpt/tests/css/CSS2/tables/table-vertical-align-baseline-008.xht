@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Test for baseline alignment of table cells</title>
+  <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com" />
+  <link rel="help" href="https://github.com/servo/servo/issues/31722" />
+  <link rel="help" href="https://drafts.csswg.org/css2/#height-layout" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+  <meta name="assert" content="Since the cell is empty, the baseline of the row
+      is synthesized from the bottom content edge of the cell." />
+  <style><![CDATA[
+  .wrapper { float: left; font-size: 0; background: red }
+  .wrapper > * { width: 50px; height: 100px; background: green }
+  ]]></style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="wrapper">
+    <div style="display: inline-block"></div>
+    <table style="display: inline-table; border-spacing: 0">
+      <td style="vertical-align: baseline; padding: 0"></td>
+    </table>
+  </div>
+ </body>
+</html>

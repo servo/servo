@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: shared element writing-modes</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="old-content-element-writing-modes-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#hidden {
+  width: 100px;
+  height: 100px;
+  background: red;
+  position: absolute;
+  top: 0;
+  left: 0;
+  contain: paint;
+  view-transition-name: hidden;
+}
+.tb { writing-mode: horizontal-tb; }
+.lr { writing-mode: vertical-lr; }
+.rl { writing-mode: vertical-rl; }
+.shared {
+  margin: 2px;
+  width: 100px;
+  height: 50px;
+  background: green;
+  contain: paint;
+  border: 1px solid black;
+}
+#target1, #target2, #target3 {
+  background: red;
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  width: 100px;
+  height: 500px;
+  contain: paint;
+}
+#one { view-transition-name: s1; }
+#two { view-transition-name: s2; }
+#three { view-transition-name: s3; }
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-group(s1),
+html::view-transition-group(s2),
+html::view-transition-group(s3) {
+  animation-delay: 300s;
+  animation-fill-mode: both;
+}
+
+html::view-transition-new(s1),
+html::view-transition-new(s2),
+html::view-transition-new(s3) { animation: unset; opacity: 0; }
+
+html::view-transition-old(s1),
+html::view-transition-old(s2),
+html::view-transition-old(s3) { animation: unset; opacity: 1; }
+
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+
+</style>
+
+<div id=hidden>Should not be visible</div>
+<div id=target1>Should not be visible</div>
+<div id=target2>Should not be visible</div>
+<div id=target3>Should not be visible</div>
+<div id=one class="shared tb">T</div>
+<div id=two class="shared lr">T</div>
+<div id=three class="shared rl">T</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    one.remove();
+    two.remove();
+    three.remove();
+    hidden.style.left = "200px";
+    target1.style.viewTransitionName = "s1";
+    target2.style.viewTransitionName = "s2";
+    target3.style.viewTransitionName = "s3";
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+
+
+

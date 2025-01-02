@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      font-size: 300%;
+    }
+
+  span
+    {
+      background-color: yellow;
+      color: green;
+    }
+  </style>
+
+  <script type="text/javascript">
+  function startTest()
+  {
+  document.getElementById("target").focus();
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>PREREQUISITE: User agent needs to have an enabled and capable grammar error module and an enabled and capable spelling error module. If it does not, then this test does not apply to such user agent.
+
+  <p>This test also requires that the targeted editable text element must receive system focus.
+
+  <p>Test passes if each glyph of "wolks" is green and if the background of "wolks" is yellow.
+
+  <div contenteditable="true" id="target">I <span>wolks</span> on the sidewalk.</div>

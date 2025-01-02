@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test document.execCommand("createLink") when selecting an img element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.focus();
+  const utils = new EditorTestUtils(editingHost);
+  for (const imgDisplay of ["inline", "block", "inline-block"]) {
+    test(t => {
+      utils.setupEditingHost(`{<img src="/img/lion.svg" style="display:${imgDisplay}">}`);
+      document.execCommand("createLink", false, "foo.html");
+      utils.normalizeStyleAttributeValues();
+      assert_equals(
+        editingHost.innerHTML,
+        `<a href="foo.html"><img src="/img/lion.svg" style="display:${imgDisplay}"></a>`
+      );
+    }, `createLink should wrap the <img style="display:${imgDisplay}>"`);
+  }
+});
+</script>
+</head>
+<body>
+<div contenteditable></div>
+</body>
+</html>

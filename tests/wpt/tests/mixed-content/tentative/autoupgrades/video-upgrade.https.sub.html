@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Autoupgrade mixed content: Video.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+</head>
+<body>
+  <script>
+    async_test(t => assert_video_loads(t), "Video autoupgraded");
+
+    function assert_video_loads(test) {
+        // Since autoupgrades don't upgrade custom ports, we use the https port with an HTTP scheme. A successful autoupgrade will result in the right URL loading (and no autoupgrade will result in failure).
+        var url = new URL("http://{{host}}:{{ports[https][0]}}/mixed-content/tentative/resources/test.webm")
+        var i = document.createElement('video');
+        i.oncanplaythrough = test.step_func_done(_ => {
+            assert_equals(Math.floor(i.duration), 1, "Length.");
+        });
+        i.onerror = test.unreached_func("Video should load successfully from " + url);
+        i.src = url;
+    }
+
+    // Test the same just with another host
+    async_test(t => assert_other_host_video_loads(t), "Video of other host autoupgraded");
+
+    function assert_other_host_video_loads(test) {
+        // Since autoupgrades don't upgrade custom ports, we use the https port with an HTTP scheme. A successful autoupgrade will result in the right URL loading (and no autoupgrade will result in failure).
+        var otherHost = get_host_info().HTTP_NOTSAMESITE_ORIGIN.slice(0,-4); // cut of http port
+        var url = new URL( otherHost + "{{ports[https][0]}}/mixed-content/tentative/resources/test.webm")
+        var i = document.createElement('video');
+        i.oncanplaythrough = test.step_func_done(_ => {
+            assert_equals(Math.floor(i.duration), 1, "Length. Other host");
+        });
+        i.onerror = test.unreached_func("Video of other host should load successfully from " + url);
+        i.src = url;
+    }
+</script>
+</body>
+</html>

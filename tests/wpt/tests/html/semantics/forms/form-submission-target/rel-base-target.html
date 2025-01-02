@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>&lt;form rel> with &lt;base target></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=resources/reltester.js></script>
+<base target=_blank>
+<div id=log></div>
+<form action=resources/endpoint.html><input type=hidden name=channelname></form>
+<script>
+const submitter = document.querySelector("form"),
+      channelInput = document.querySelector("input");
+relTester(submitter, channelInput, "<base target>");
+</script>

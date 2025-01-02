@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Terminating a presentation in a receiving browsing context</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="https://w3c.github.io/presentation-api/#terminating-a-presentation-in-a-receiving-browsing-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script src="support/stash.js"></script>
+<style>
+iframe { display: none; }
+</style>
+
+<p>Click the button below and select the available presentation display, to start the manual test.</p>
+<button id="presentBtn" disabled>Start Presentation Test</button>
+<iframe id="childFrame" sandbox="allow-scripts allow-presentation" src="support/iframe.html"></iframe>
+
+<script>
+  setup({explicit_timeout: true});
+
+  let connection;
+
+  const presentBtn = document.getElementById('presentBtn');
+  const child = document.getElementById('childFrame');
+
+  child.onload = () => { presentBtn.disabled = false; };
+
+  presentBtn.onclick = () => {
+    presentBtn.disabled = true;
+    const stash = new Stash(stashIds.toController, stashIds.toReceiver);
+    const request = new PresentationRequest('support/PresentationConnection_terminate_receiving-ua.html');
+
+    promise_test(t => {
+      t.add_cleanup(() => {
+        connection.onconnect = () => { connection.terminate(); };
+        if (connection.state === 'closed')
+          request.reconnect(connection.id);
+        else
+          connection.terminate();
+        stash.stop();
+      });
+
+      return request.start().then(c => {
+        // enable timeout again, cause no user action is needed from here.
+        t.step_timeout(() => {
+          t.force_timeout();
+          t.done();
+        }, 5000);
+
+        connection = c;
+        const eventWatcher = new EventWatcher(t, connection, 'connect');
+        return eventWatcher.wait_for('connect');
+      }).then(() => {
+        return stash.init();
+      }).then(() => {
+        child.contentWindow.postMessage({ type: 'connect', id: connection.id, url: connection.url }, '*');
+        const eventWatcher1 = new EventWatcher(t, connection, 'terminate');
+        const eventWatcher2 = new EventWatcher(t, window, 'message');
+        return Promise.all([ eventWatcher1.wait_for('terminate'), eventWatcher2.wait_for('message') ]);
+      }).then(() => {
+        return Promise.race([
+          stash.receive().then(data => {
+            if (data.type === 'error')
+              assert_unreached('The presentation is not terminated successfully.');
+          }),
+          new Promise(resolve => { t.step_timeout(resolve, 2000); })
+        ]);
+      });
+    });
+  };
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/open-and-add-load-event.js"></script>
+
+<script>
+
+promise_test(async t => {
+  t.add_cleanup(() => {
+    return open_and_add_load_event("resources/accept-ch-empty.html");
+  });
+
+  await open_and_add_load_event("resources/accept-ch-malformed.html");
+  // Verify that the browser does not include client hints in the headers
+  // since Accept-CH is malformed (includes whitespace between attributes
+  // instead of comma).
+  await open_and_expect_headers("resources/expect-no-client-hints-headers.html");
+}, "Accept-CH malformed header test");
+
+</script>
+
+</body>
+</html>

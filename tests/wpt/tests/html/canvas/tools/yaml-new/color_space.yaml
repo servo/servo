@@ -1,0 +1,312 @@
+- name: 2d.color.space.p3.to.p3
+  desc: test getImageData with display-p3 and uint8 from display p3 uint8 canvas
+  attributes: '{colorSpace: "display-p3"}'
+  code: |
+    var color_style = 'rgb(50, 100, 150)';
+    // [0.24304, 0.38818, 0.57227, 1.0] * 255 = [62, 99, 146, 255]
+    var pixel_expected = [62, 99, 146, 255];
+    var epsilon = 2;
+    ctx.fillStyle = color_style;
+    ctx.fillRect(0, 0, 10, 10);
+
+    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "display-p3", storageFormat: "uint8"}).data;
+    @assert pixel.length === pixel_expected.length;
+    assert_approx_equals(pixel[0], pixel_expected[0], 2);
+    assert_approx_equals(pixel[1], pixel_expected[1], 2);
+    assert_approx_equals(pixel[2], pixel_expected[2], 2);
+    assert_approx_equals(pixel[3], pixel_expected[3], 2);
+
+- name: 2d.color.space.p3.to.srgb
+  desc: test getImageData with srsb and uint8 from display p3 uint8 canvas
+  attributes: '{colorSpace: "display-p3"}'
+  code: |
+    var color_style = 'rgb(50, 100, 150)';
+    var pixel_expected = [50, 100, 150, 255];
+    var epsilon = 2;
+    ctx.fillStyle = color_style;
+    ctx.fillRect(0, 0, 10, 10);
+
+    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "srgb", storageFormat: "uint8"}).data;
+    @assert pixel.length === pixel_expected.length;
+    assert_approx_equals(pixel[0], pixel_expected[0], 2);
+    assert_approx_equals(pixel[1], pixel_expected[1], 2);
+    assert_approx_equals(pixel[2], pixel_expected[2], 2);
+    assert_approx_equals(pixel[3], pixel_expected[3], 2);
+
+- name: 2d.color.space.p3.toBlob.p3.canvas
+  desc: test if toblob returns p3 data from p3 color space canvas
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.fillStyle = "rgba(155, 27, 27, 1)";
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = "rgba(27, 155, 27, 0)";
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
+    ctx.fillRect(1, 1, 1, 1);
+    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+
+    var image = new Image();
+    image.onload = t.step_func_done(function() {
+        var dstCanvas = document.createElement("canvas");
+        dstCanvas.width = 2;
+        dstCanvas.height = 2;
+        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
+        ctx.drawImage(image, 0, 0);
+        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+        assert_array_approx_equals(actualPixels, expectedPixels, 2);
+    });
+
+    canvas.toBlob(function(blob) {
+        var urlCreator = window.URL || window.webkitURL;
+        image.src = urlCreator.createObjectURL(blob);
+    }, 'image/png', 1);
+
+- name: 2d.color.space.p3.toDataURL.p3.canvas
+  desc: test if toDataURL returns p3 data from canvas with p3 color space
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.fillStyle = "rgba(155, 27, 27, 1)";
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = "rgba(27, 155, 27, 0)";
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
+    ctx.fillRect(1, 1, 1, 1);
+    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+
+    var image = new Image();
+    image.onload = t.step_func_done(function() {
+        var dstCanvas = document.createElement("canvas");
+        dstCanvas.width = 2;
+        dstCanvas.height = 2;
+        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
+        ctx.drawImage(image, 0, 0);
+        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+        assert_array_approx_equals(actualPixels, expectedPixels, 2);
+    });
+    image.src = canvas.toDataURL();
+
+- name: 2d.color.space.p3.toDataURL.jpeg.p3.canvas
+  desc: test if toDataURL('image/jpeg') returns p3 data from canvas with p3 color space
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    ctx.fillStyle = "rgba(155, 27, 27, 1)";
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = "rgba(27, 155, 27, 0)";
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = "rgba(27, 27, 155, 0.5)";
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = "rgba(27, 27, 27, 0.5)";
+    ctx.fillRect(1, 1, 1, 1);
+    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+
+    var image = new Image();
+    image.onload = t.step_func_done(function() {
+        var dstCanvas = document.createElement("canvas");
+        dstCanvas.width = 2;
+        dstCanvas.height = 2;
+        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
+        ctx.drawImage(image, 0, 0);
+        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+        assert_array_approx_equals(actualPixels, expectedPixels, 2);
+    });
+    image.src = canvas.toDataURL("image/jpeg");
+
+- name: 2d.color.space.p3.toBlob.with.putImageData
+  desc: Use putImageData to put some p3 data in canvas and test if toBlob returns the same data
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.width = 2;
+    canvas.height = 2;
+
+    // Create an ImageData using createImageData and populate its data array.
+    var image_data = ctx.createImageData(canvas.width, canvas.height, {colorSpace: "display-p3"});
+    var color_data = [[255, 100, 150, 1.0], [255, 100, 150, 0.5],
+                     [255, 100, 150, 0.5], [255, 100, 150, 0]];
+    var data = image_data.data;
+    for (var i = 0; i < data.length / 4; ++i) {
+      data[4*i + 0] = color_data[i][0];
+      data[4*i + 1] = color_data[i][1];
+      data[4*i + 2] = color_data[i][2];
+      data[4*i + 3] = color_data[i][3];
+    }
+    ctx.putImageData(image_data, 0, 0);
+    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+
+    var image = new Image();
+    image.onload = t.step_func_done(function() {
+        var dstCanvas = document.createElement("canvas");
+        dstCanvas.width = 2;
+        dstCanvas.height = 2;
+        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
+        ctx.drawImage(image, 0, 0);
+        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+        assert_array_approx_equals(actualPixels, expectedPixels, 2);
+    });
+    canvas.toBlob(function(blob) {
+        var urlCreator = window.URL || window.webkitURL;
+        image.src = urlCreator.createObjectURL(blob);
+    }, 'image/png', 1);
+
+- name: 2d.color.space.p3.toDataURL.with.putImageData
+  desc: Use putImageData to put some p3 data in canvas and test if toDataURL returns the same data
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.width = 2;
+    canvas.height = 2;
+
+    // Create an ImageData using createImageData and populate its data array.
+    var image_data = ctx.createImageData(canvas.width, canvas.height, {colorSpace: "display-p3"});
+    var color_data = [[255, 100, 150, 1.0], [255, 100, 150, 0.5],
+                     [255, 100, 150, 0.5], [255, 100, 150, 0]];
+    var data = image_data.data;
+    for (var i = 0; i < data.length / 4; ++i) {
+      data[4*i + 0] = color_data[i][0];
+      data[4*i + 1] = color_data[i][1];
+      data[4*i + 2] = color_data[i][2];
+      data[4*i + 3] = color_data[i][3];
+    }
+    ctx.putImageData(image_data, 0, 0);
+    expectedPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+
+    var image = new Image();
+    image.onload = t.step_func_done(function() {
+        var dstCanvas = document.createElement("canvas");
+        dstCanvas.width = 2;
+        dstCanvas.height = 2;
+        var ctx = dstCanvas.getContext('2d', {colorSpace: "display-p3"});
+        ctx.drawImage(image, 0, 0);
+        var actualPixels = ctx.getImageData(0, 0, 2, 2, {colorSpace: "display-p3"}).data;
+        assert_array_approx_equals(actualPixels, expectedPixels, 2);
+    });
+    image.src = canvas.toDataURL();
+
+- name: 2d.color.space.p3.fillText
+  desc: Test if fillText can be used with a solid display-p3 color
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    deferTest();
+
+    const fullRedInP3 = [255, 0, 0, 255];
+    const sRGBRedInP3 = [234, 51, 35, 255];
+
+    canvas.width = 100;
+    canvas.height = 100;
+
+    let f = new FontFace("Ahem", "url(/fonts/Ahem.ttf)");
+    document.fonts.add(f);
+    f.load().then(function() {
+        t.step(function() {
+            ctx.font = "40px Ahem";
+
+            ctx.fillStyle = "#f00";
+            ctx.fillText("A", 0, 50);
+
+            ctx.fillStyle = "black";
+            ctx.fillStyle = "color(display-p3 100% 0 0)";
+            ctx.fillText("A", 50, 50);
+
+            let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" }).data;
+            let pixelAt = function(x, y) {
+                let offset = (y * canvas.width + x) * 4;
+                return [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]];
+            };
+
+            assert_array_equals(pixelAt(25, 25), sRGBRedInP3);
+            assert_array_equals(pixelAt(75, 25), fullRedInP3);
+
+            t.done();
+        });
+    });
+
+- name: 2d.color.space.p3.strokeText
+  desc: Test if strokeText can be used with a solid display-p3 color
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    deferTest();
+
+    const fullRedInP3 = [255, 0, 0, 255];
+    const sRGBRedInP3 = [234, 51, 35, 255];
+
+    canvas.width = 100;
+    canvas.height = 100;
+
+    let f = new FontFace("Ahem", "url(/fonts/Ahem.ttf)");
+    document.fonts.add(f);
+    f.load().then(function() {
+        t.step(function() {
+            ctx.font = "40px Ahem";
+
+            ctx.strokeStyle = "#f00";
+            ctx.lineWidth = 20;
+            ctx.strokeText("A", 0, 50);
+
+            ctx.strokeStyle = "black";
+            ctx.strokeStyle = "color(display-p3 100% 0 0)";
+            ctx.strokeText("A", 50, 50);
+
+            let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" }).data;
+            let pixelAt = function(x, y) {
+                let offset = (y * canvas.width + x) * 4;
+                return [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]];
+            };
+
+            assert_array_equals(pixelAt(25, 25), sRGBRedInP3);
+            assert_array_equals(pixelAt(75, 25), fullRedInP3);
+
+            t.done();
+        });
+    });
+
+- name: 2d.color.space.p3.fillText.shadow
+  desc: Test if fillText can be used with a display-p3 shadow color
+  attributes: '{colorSpace: "display-p3"}'
+  canvas_types: ['HtmlCanvas']
+  code: |
+    deferTest();
+
+    const fullRedInP3 = [255, 0, 0, 255];
+    const sRGBRedInP3 = [234, 51, 35, 255];
+
+    canvas.width = 100;
+    canvas.height = 100;
+
+    let f = new FontFace("Ahem", "url(/fonts/Ahem.ttf)");
+    document.fonts.add(f);
+    f.load().then(function() {
+        t.step(function() {
+            ctx.font = "40px Ahem";
+
+            ctx.fillStyle = "black";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 50;
+            ctx.shadowColor = "#f00";
+            ctx.fillText("A", 0, 0);
+
+            ctx.shadowColor = "black";
+            ctx.shadowColor = "color(display-p3 100% 0 0)";
+            ctx.fillText("A", 50, 0);
+
+            let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" }).data;
+            let pixelAt = function(x, y) {
+                let offset = (y * canvas.width + x) * 4;
+                return [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]];
+            };
+
+            assert_array_equals(pixelAt(25, 25), sRGBRedInP3);
+            assert_array_equals(pixelAt(75, 25), fullRedInP3);
+
+            t.done();
+        });
+    });

@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Detached layout doesn't panic</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+    setup({ single_test: true });
+
+    var i = document.querySelector('iframe');
+    var d = i.contentDocument;
+    var e = d.createElement('div');
+    d.body.appendChild(e);
+    i.remove();
+
+    setTimeout(function () {
+        let r = e.getBoundingClientRect();
+        assert_equals(r.width, 0, "rectangle should be zero-sized");
+        assert_equals(r.height, 0, "rectangle should be zero-sized");
+
+        done();
+    }, 10);
+</script>

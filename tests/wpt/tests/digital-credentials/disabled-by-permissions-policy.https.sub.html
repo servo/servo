@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body></body>
+<script type="module">
+    import { makeGetOptions } from "/digital-credentials/support/helper.js";
+    const { HTTPS_REMOTE_ORIGIN } = get_host_info();
+    const same_origin_src =
+        "/permissions-policy/resources/digital-credentials-get.html";
+    const cross_origin_src = new URL(same_origin_src, HTTPS_REMOTE_ORIGIN).href;
+
+    promise_test(async (test) => {
+        await test_driver.bless("user activation");
+        await promise_rejects_dom(
+            test,
+            "NotAllowedError",
+            navigator.credentials.get(makeGetOptions([]))
+        );
+    }, "Permissions-Policy header digital-credentials-get=() disallows the top-level document.");
+
+    promise_test(async (test) => {
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: same_origin_src,
+            expect_feature_available: expect_feature_unavailable_default,
+            is_promise_test: true,
+            needs_focus: true,
+        });
+    }, "Permissions-Policy header digital-credentials-get=() disallows same-origin iframes.");
+
+    promise_test(async (test) => {
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: cross_origin_src,
+            expect_feature_available: expect_feature_available_default,
+            feature_name: "digital-credentials-get",
+            is_promise_test: true,
+            needs_focus: true,
+        });
+    }, "Header-set policy is overridden in cross-origin iframe using allow attribute.");
+
+    promise_test(async (test) => {
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: same_origin_src,
+            expect_feature_available: expect_feature_unavailable_default,
+            is_promise_test: true,
+            needs_focus: true,
+        });
+    }, "Setting digital-credentials-get=(self) disallows the API in same-origin iframes.");
+</script>

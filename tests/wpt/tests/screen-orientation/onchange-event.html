@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+import { makeCleanup } from "./resources/orientation-utils.js";
+promise_test(async t => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen");
+  await document.documentElement.requestFullscreen();
+  const type = screen.orientation.type.startsWith("portrait") ? "portrait" : "landscape";
+  screen.orientation.onchange = t.unreached_func("change event should not be fired");
+  await screen.orientation.lock(type);
+  assert_true(screen.orientation.type.startsWith(type));
+}, "Test that orientationchange event is not fired when the orientation does not change.");
+
+promise_test(async t => {
+  t.add_cleanup(makeCleanup());
+  await test_driver.bless("request full screen");
+  await document.documentElement.requestFullscreen();
+  let orientations = [
+    'portrait',
+    'landscape',
+  ];
+  if (screen.orientation.type.startsWith('portrait')) {
+    orientations = orientations.reverse();
+  }
+  const orientationWatcher = new EventWatcher(t, screen.orientation, 'change');
+
+  for (const orientation of orientations) {
+    // change event is fired before resolving promise by lock.
+    let lockPromise = screen.orientation.lock(orientation);
+    const result = await Promise.race([
+      lockPromise,
+      orientationWatcher.wait_for('change'),
+    ]);
+    assert_true(result instanceof Event, "The event must be fired first.");
+    assert_true(screen.orientation.type.startsWith(orientation), "The orientation must match");
+    await lockPromise;
+  }
+}, "Test that orientationchange event is fired when the orientation changes.");
+</script>

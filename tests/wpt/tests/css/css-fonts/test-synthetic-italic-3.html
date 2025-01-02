@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+     <head>
+        <title>CSS Test: Test for synthetic italics in vertical upright mode</title>
+        <meta charset="utf-8" />
+        <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <link rel="match" href="test-synthetic-italic-3-ref.html">
+        <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2869#issuecomment-402034497"/>
+        <meta name="assert" content="Synthetic italics in vertical upright mode should skew vertically" />
+        <style type="text/css">
+            div {
+              /* use Ahem font which has no italic/oblique face, so that the oblique
+                 will be synthesized with the given angle */
+              font: 50px/1 Ahem;
+              position: absolute;
+            }
+            /* test elements will use Ahem with various values of obliqueness */
+            .test {
+              writing-mode: vertical-rl;
+              -webkit-text-orientation: upright;
+              text-orientation: upright;
+              color: green;
+            }
+            /* check that the sheared glyphs are still correct when transforms are
+               also in effect */
+            #test3 {
+              font-style: oblique 25deg;
+              top: 150px;
+              left: 100px;
+              transform: scale(1.5) rotate(45deg) skew(30deg);
+            }
+            /* create a set of background shapes that should be entirely covered by the
+               appropriately sheared Ahem glyphs in the test elements */
+            .bg {
+              width: 50px;
+              height: 150px;
+            }
+            .inner {
+              /* we shrink the inner red shape slightly to try and avoid pixels
+                 "bleeding through" around antialiased glyph edges */
+              margin: 2px;
+              width: calc(100% - 4px);
+              height: calc(100% - 4px);
+              background-color: red;
+            }
+            #bg3 {
+              top: 150px;
+              left: 100px;
+              /* same transform as the test element, plus skewY for the oblique */
+              transform: scale(1.5) rotate(45deg) skew(30deg) skewY(25deg);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if no red shows, just a sheared green block:</p>
+        <div id=bg3 class=bg><div class=inner></div></div>
+        <div id=test3 class=test>ABC</div>
+    </body>
+</html>

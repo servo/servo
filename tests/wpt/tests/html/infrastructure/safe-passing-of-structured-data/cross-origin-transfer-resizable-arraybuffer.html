@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>postMessage transfer ArrayBuffer cross origin iframe</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/common/get-host-info.sub.js'></script>
+
+<script>
+
+async_test(t => {
+  const oopif = document.createElement('iframe');
+
+  window.addEventListener('message', t.step_func((e) => {
+    if (e.data === 'started') {
+      const rab = new ArrayBuffer(32, { maxByteLength: 1024 });
+      oopif.contentWindow.postMessage(rab, '*', [rab]);
+    } else {
+      assert_equals(e.data, 'byteLength=32,maxByteLength=1024,resizable=true');
+      t.done();
+    }
+  }));
+
+  window.addEventListener('load', () => {
+    oopif.src = `${get_host_info().HTTP_REMOTE_ORIGIN}/html/infrastructure/safe-passing-of-structured-data/resources/iframe-resizable-arraybuffer-helper.html`;
+    document.body.appendChild(oopif);
+  });
+}, 'postMessaging resizable ArrayBuffer to OOPIF');
+
+</script>

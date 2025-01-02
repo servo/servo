@@ -1,0 +1,45 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<title>caption</title>
+<meta name="flags" content="ahem">
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://crbug.com/1180592"/>
+<style>
+  main table {
+    border-spacing: 0;
+  }
+  main table td {
+    border: 1px solid black;
+    padding: 0;
+    width: 50px;
+    height: 25px;
+  }
+</style>
+
+<main>
+  <table>
+    <tbody>
+      <tr>
+        <td></td>
+        <td id="target" rowspan=5></td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td rowspan=5></td>
+        <td rowspan=5></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</main>
+
+<script>
+  test(_ => {
+    assert_equals(document.body.querySelector("#target").offsetHeight, 81);
+  }, "table tracks correct use of rowspan");
+</script>

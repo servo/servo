@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'break' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+for (const suffix of ['after', 'before']) {
+  runPropertyTests('break-' + suffix, [
+    { syntax: 'auto' },
+    { syntax: 'avoid' },
+    { syntax: 'avoid-column' },
+    { syntax: 'avoid-page' },
+    { syntax: 'avoid-region' },
+    { syntax: 'column' },
+    { syntax: 'left' },
+    { syntax: 'page' },
+    { syntax: 'recto' },
+    { syntax: 'region' },
+    { syntax: 'right' },
+    { syntax: 'verso' },
+  ]);
+}
+
+runPropertyTests('break-inside', [
+    { syntax: 'auto' },
+    { syntax: 'avoid' },
+    { syntax: 'avoid-column' },
+    { syntax: 'avoid-page' },
+    { syntax: 'avoid-region' },
+  ]);
+
+</script>

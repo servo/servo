@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#container {
+  position: relative;
+  font-family: Ahem;
+  font-size: 10px;
+  line-height: 1;
+  width: 10em;
+}
+#anchor1 {
+  anchor-name: --a1;
+}
+.target {
+  position: absolute;
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div id="container">
+    <div>spacer</div>
+    <div>
+      <br>
+      <!-- The bidi reordering creates two fragments of the `span` in a line. -->
+      a<span id="anchor1">1&#x202E;2&#x202D;</span>z
+    </div>
+
+    <div class="target" style="left: anchor(--a1 left)" data-offset-x=10></div>
+    <div class="target" style="right: anchor(--a1 right)" data-offset-x=40></div>
+    <div class="target" style="top: anchor(--a1 top)" data-offset-y=20></div>
+    <div class="target" style="bottom: anchor(--a1 bottom)" data-offset-y=30></div>
+  </div>
+</body>

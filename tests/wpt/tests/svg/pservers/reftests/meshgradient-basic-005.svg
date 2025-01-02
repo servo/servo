@@ -1,0 +1,226 @@
+<svg id="svg-root"
+  width="480" height="360" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Mesh gradient: Star: 10x2 patches.</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/pservers.html#MeshGradients"/>
+    <html:link rel="match"  href="meshgradient-basic-005-ref.png" />
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("../fonts/FreeSans.woff") format("woff");
+    }
+    text {
+      font-family: FreeSans, sans-serif;
+      text-anchor: middle;
+      fill: black;
+    }
+    #title {
+      font-size: 24px;
+    }
+    .label {
+      font-size: 18px;
+    }
+  </style>
+
+  <defs>
+    <meshgradient id="StarMesh" x="240" y="140" gradientUnits="userSpaceOnUse">
+      <meshrow>
+        <meshpatch>
+          <stop
+             style="stop-color:#0000ff"
+             path="l 32.3286,65.5041" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l -16.1641,22.248" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l -16.1643,-32.752" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l -0.000202026,-55" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 72.2879,10.5037" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l -52.308,16.9961" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l -36.144,-5.25184" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -52.308,50.9882" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l -26.1541,-8.49796" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l 26.154,-25.4941" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 12.3486,71.9957" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l -32.3284,-44.4958" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l -6.1743,-35.9979" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -64.6567,-33.9916" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l -5.60788e-06,-27.5" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l 32.3283,16.9958" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -64.6561,33.9921" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l 32.328,-44.4961" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l 32.328,-16.9961" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 12.3479,-71.9962" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l 26.1541,-8.49797" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l -6.17397,35.9981" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -52.3082,-50.9874" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l 52.3082,16.9957" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l 26.1541,25.4937" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 72.2881,-10.5044" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l 16.1641,22.248" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l -36.1441,5.25222" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 32.3278,-65.5041" />
+          <stop
+             style="stop-color:#0000ff"
+             path="l 0.000202026,55" />
+          <stop
+             style="stop-color:#00ff00"
+             path="l -16.1639,32.752" />
+        </meshpatch>
+      </meshrow>
+      <meshrow>
+        <meshpatch>
+          <stop
+             path="l -16.1641,22.248" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l -0.000202026,-55" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -52.308,16.9961" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -26.1541,-8.49796" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -32.3284,-44.4958" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l -5.60788e-06,-27.5" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 32.328,-44.4961" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 26.1541,-8.49797" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 52.3082,16.9957" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 16.1641,22.248" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+        <meshpatch>
+          <stop
+             path="l 0.000202026,55" />
+          <stop
+             style="stop-color:#ffff00"
+             path="l 0,0" />
+        </meshpatch>
+      </meshrow>
+    </meshgradient>
+  </defs>
+
+  <g id="test-body-content">
+    <path d="m 240,140 32.328,65.504 72.288,10.504 -52.308,50.988 12.349,71.996 -64.657,-33.992 -64.6561,33.992 12.348,-71.996 -52.3082,-50.987 72.2881,-10.505 z"
+          style="fill:url(#StarMesh)" />
+  </g>
+
+</svg>

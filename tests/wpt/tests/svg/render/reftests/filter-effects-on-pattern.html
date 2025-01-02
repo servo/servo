@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>'mix-blend-mode' for &lt;svg:pattern&gt;</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/render.html#PaintersModel">
+<link rel="help" href="https://github.com/w3c/fxtf-drafts/issues/309">
+<link rel="match"  href="filter-effects-on-pattern-ref.html">
+<div>Expected: a solid green square.</div>
+<svg style="width: 200px; height: 200px; background: green;">
+  <defs>
+    <pattern id="pattern" x="0" y="0" width=".25" height=".25" style="mix-blend-mode: difference;">
+      <rect x="0" y="0" width="25" height="25" fill="green"/>
+    </pattern>
+  </defs>
+  <rect fill="url(#pattern)" width="200" height="200"/>
+</svg>

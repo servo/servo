@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta name=help href="https://privacycg.github.io/storage-partitioning/">
+<title>Partitioned estimate() usage details for caches test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+  <script>
+    const usageDetails = async () =>
+      (await navigator.storage.estimate()).usageDetails.caches || 0;
+
+    const createSomeUsage = async () => {
+      const cache_name = token();
+      const cache_url = `/foo-${cache_name}`;
+      const cache = await caches.open(cache_name);
+      await cache.put(cache_url, new Response('x'.repeat(128)));
+      return [cache, cache_url];
+    }
+
+    const testPath = () => location.pathname.split("/").slice(0, -1).join("/");
+
+    let alt_origin = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
+    let details = {};
+
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://{{host}}:{{ports[https][0]}}${testPath()}` +
+      `/resources/partitioned-estimate-usage-details-caches-helper-frame.html`
+    document.body.appendChild(iframe);
+
+
+    async_test(test => {
+      if (location.origin === alt_origin)
+        return;
+
+
+      let cache, cache_url;
+      window.addEventListener("message", test.step_func(async event => {
+        if (event.data === "iframe-is-ready") {
+          details.init = await usageDetails();
+          [cache, cache_url] = await createSomeUsage(test);
+          details.after = await usageDetails();
+          assert_greater_than(details.after, details.init);
+
+          iframe.contentWindow.postMessage("get-details", iframe.origin);
+        }
+      }));
+
+      window.addEventListener("message", test.step_func(event => {
+        if (event.data.source === "same-site") {
+          details.same_site = event.data;
+
+          const cross_site_window = window
+            .open(`${alt_origin}${location.pathname}`, "", "noopener=false");
+
+          test.add_cleanup(() => cross_site_window.close());
+        }
+        if (event.data.source === "cross-site") {
+          details.cross_site = event.data;
+
+          // Some cleanup
+          test.step(async () => await cache.delete(cache_url));
+
+          test.step(() => {
+            assert_true(details.cross_site.init == 0, "Usage should be 0.");
+            assert_equals(details.same_site.init, details.after);
+          });
+
+          test.done();
+        }
+      }));
+    }, "Partitioned estimate() usage details for caches test.");
+  </script>
+</body>

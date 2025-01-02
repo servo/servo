@@ -1,0 +1,25 @@
+<!doctype HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+  <div contenteditable="true" id="target">
+    <h1><br></h1>
+  </div>
+  <script>
+    // Selection should be updated when removing element in contenteditable div
+    promise_test(async () => {
+        let selectionChangeCount = 0;
+        document.addEventListener("selectionchange", () => ++selectionChangeCount);
+        document.getElementById("target").focus();
+        await new Promise(resolve => step_timeout(resolve, 50));
+        // Remove the <h1> element
+        test_driver.send_keys(target, "\uE003");
+        // Waits a short time to allow any events to be processed.
+        await new Promise(resolve => step_timeout(resolve, 50));
+        assert_greater_than(selectionChangeCount, 1, "Selection change count should be greater than 1");
+    }, "Selection is updated after removing the element in contenteditable div");
+  </script>
+</body>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - word-spacing</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#word-spacing-property">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Test checks that the 'word-spacing' property is animatable.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #test {
+    font-family: ahem;
+    transition-duration: 2s;
+    transition-property: word-spacing;
+    transition-timing-function: linear;
+  }
+</style>
+<body>
+  <p>Click any black rectangle below. Test passes if the second rectangle moves gradually not immediately from left to right until it stops and the first one does not move.</p>
+  <div id="test">text text</div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      test.addEventListener("click", function(evt) {
+        test.setAttribute("style", "word-spacing: 40px;");
+      }, false);
+    })();
+  </script>
+</body>

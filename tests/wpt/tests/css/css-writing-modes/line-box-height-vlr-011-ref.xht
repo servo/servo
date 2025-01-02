@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  body
+    {
+      margin-left: 32px;
+    }
+
+  div
+    {
+      border: blue solid 2px;
+      font-size: 32px;
+      margin: 1em;
+      writing-mode: vertical-lr;
+      text-orientation: upright;
+    }
+  ]]></style>
+
+  </head>
+
+  <body>
+
+    <p>Test passes if there are 2 identical blue rectangles with "123456" upright. The size of each blue rectangles must be identical and the two "123456" numbers must be enclosed by the two blue borders.</p>
+
+    <div>123456</div>
+
+    <div>123456</div>
+
+  </body>
+</html>

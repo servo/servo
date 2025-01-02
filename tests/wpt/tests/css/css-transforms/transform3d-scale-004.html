@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale3d(2, 2, 0)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#three-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#funcdef-scale3d">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#transform-function-lists">
+    <meta name="assert" content="This tests that scale3d(2, 2, 0), being
+    singular, causes the contents not to display.">
+    <link rel="match" href="transform-blank-ref.html">
+  </head>
+  <body>
+    <p>Nothing should appear except this sentence.</p>
+    <div style="transform: scale3d(2, 2, 0); transform-origin: 0 0; width: 100px; height: 100px;">
+      <div style="background: blue; width: 50px; height: 50px;"></div>
+      <div style="background: lime; width: 50px; height: 50px; margin-left: 50px;"></div>
+    </div>
+  </body>
+</html>

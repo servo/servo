@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale(0.5) on Root Element With Background</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content="This is the same as
+    transform-root-bg-001.html, except that it uses scale(0.5) instead of
+    scale(-1).  It also specifies a transform-origin, because the default of
+    50% 50% wouldn't work well with the way the reference image is constructed.">
+    <link rel="match" href="transform-root-bg-001-ref.html">
+    <style>
+      html {
+        background: url(support/transform-triangle-left.svg);
+        transform: scale(0.5);
+        /**
+         * The transform-origin here has to fall between two triangles, i.e.,
+         * at a multiple of 100px.  Otherwise after the transform, the shrunken
+         * images won't line up with the left edge of the body, and it won't
+         * match the ref (since the background here is positioned at the left).
+         * We deliberately make it an odd multiple of the number of images so
+         * it catches an IE bug; it shouldn't matter per spec
+         */
+        transform-origin: 300px 0;
+      }
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>WebVTT rendering, cue should repaint after hiding a covering abspos box</title>
+<link rel="match" href="repaint-ref.html">
+<style>
+#wrapper {
+  position: relative;
+}
+#cover {
+  position: absolute;
+  left: 0px;
+  top: 180px;
+  width: 320px;
+  height: 60px;
+  background-color: gray;
+}
+video {
+  width: 320px;
+  height: 240px;
+}
+::cue {
+  font-size: 50px;
+  color: green;
+}
+</style>
+<p>You should see the word 'PASS' below.</p>
+<script src="/common/reftest-wait.js"></script>
+<div id=wrapper>
+  <video>
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+  </video>
+  <div id=cover></div>
+</div>
+<script>
+var v = document.querySelector('video');
+var c = document.getElementById('cover');
+var t = v.addTextTrack('subtitles');
+t.mode = "showing";
+t.addCue(new VTTCue(0, 100, 'PASS'));
+v.onplaying = function() {
+  setTimeout(function() {
+    v.pause();
+    setTimeout(function() {
+      c.style.visibility = 'hidden';
+      setTimeout(takeScreenshot, 100);
+    }, 100);
+  }, 100);
+};
+v.play();
+</script>

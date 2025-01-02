@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: border-style sets longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-style">
+<meta name="assert" content="border-style supports the full grammar '<line-style>{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('border-style', 'none', {
+  'border-top-style': 'none',
+  'border-right-style': 'none',
+  'border-bottom-style': 'none',
+  'border-left-style': 'none'
+});
+
+test_shorthand_value('border-style', 'inset outset', {
+  'border-top-style': 'inset',
+  'border-right-style': 'outset',
+  'border-bottom-style': 'inset',
+  'border-left-style': 'outset'
+});
+
+test_shorthand_value('border-style', 'hidden dotted dashed', {
+  'border-top-style': 'hidden',
+  'border-right-style': 'dotted',
+  'border-bottom-style': 'dashed',
+  'border-left-style': 'dotted'
+});
+
+test_shorthand_value('border-style', 'solid double groove ridge', {
+  'border-top-style': 'solid',
+  'border-right-style': 'double',
+  'border-bottom-style': 'groove',
+  'border-left-style': 'ridge'
+});
+</script>
+</body>
+</html>

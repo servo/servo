@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test AudioParam.setValueCurveAtTime
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audioparam-testing.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      // Play a long DC signal out through an AudioGainNode and for each time
+      // interval call setValueCurveAtTime() to set the values for the duration
+      // of the interval.  Each curve is a sine wave, and we assume that the
+      // time interval is not an exact multiple of the period. This causes a
+      // discontinuity between time intervals which is used to test timing.
+
+      // Number of tests to run.
+      let numberOfTests = 20;
+
+      // Max allowed difference between the rendered data and the expected
+      // result. Because of the linear interpolation, the rendered curve isn't
+      // exactly the same as the reference.  This value is experimentally
+      // determined.
+      let maxAllowedError = 3.7194e-6;
+
+      // The amplitude of the sine wave.
+      let sineAmplitude = 1;
+
+      // Frequency of the sine wave.
+      let freqHz = 440;
+
+      // Curve to use for setValueCurveAtTime().
+      let curve;
+
+      // Sets the curve data for the entire time interval.
+      function automation(value, startTime, endTime) {
+        gainNode.gain.setValueCurveAtTime(
+            curve, startTime, endTime - startTime);
+      }
+
+      audit.define(
+          {
+            label: 'test',
+            description: 'AudioParam setValueCurveAtTime() functionality.'
+          },
+          function(task, should) {
+            // The curve of values to use.
+            curve = createSineWaveArray(
+                timeInterval, freqHz, sineAmplitude, sampleRate);
+
+            createAudioGraphAndTest(
+                task, should, numberOfTests, sineAmplitude,
+                function(k) {
+                  // Don't need to set the value.
+                },
+                automation, 'setValueCurveAtTime()', maxAllowedError,
+                createReferenceSineArray,
+                2 * Math.PI * sineAmplitude * freqHz / sampleRate,
+                differenceErrorMetric);
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>Test for intrinsic widths and text-indent</title>
+<style type="text/css">
+
+body { font-size: 12px; }
+
+body &gt; div, body &gt; pre {
+	float: left; clear: left; margin: 1px; height: 2em;
+	border: medium solid;
+}
+
+</style>
+</head>
+<body>
+
+<!-- test against inline margin -->
+<div><span style="margin-left: 3em">X</span></div>
+
+<!-- test against block padding -->
+<div style="padding-left: 3em;">X</div>
+
+<!-- test against block width -->
+<div style="width: 4em;"></div>
+
+<div style="width: 4em;"></div>
+<div style="width: 4em;"></div>
+<div style="width: 6em;"></div>
+<div style="width: 4em;"></div>
+<div style="width: 6em;"></div>
+<div style="width: 4em;"></div>
+<div style="width: 6em;"></div>
+
+
+
+</body></html>

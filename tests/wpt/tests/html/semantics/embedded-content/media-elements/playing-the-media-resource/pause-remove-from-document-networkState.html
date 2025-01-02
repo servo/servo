@@ -1,0 +1,27 @@
+<!doctype html>
+<title>paused state when removing from a document when networkState is NETWORK_EMPTY</title>
+<meta name="timeout" content="long" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<video hidden></video>
+<script>
+// Negative test for the specified behavior prior to HTML r8447.
+promise_test(async function(t) {
+  var v = document.querySelector('video');
+  var watcher = new EventWatcher(t, v, [ 'pause' ]);
+  var p = v.play();
+
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_equals(v.networkState, v.NETWORK_EMPTY,
+                'networkState after stable state');
+  assert_false(v.paused, 'paused after stable state');
+  v.parentNode.removeChild(v);
+  assert_false(v.paused, 'paused after removing');
+
+  await watcher.wait_for('pause');
+
+  await promise_rejects_dom(t, 'AbortError', p, 'We expect promise being rejected');
+  assert_true(v.paused, 'paused after removing and stable state');
+});
+</script>

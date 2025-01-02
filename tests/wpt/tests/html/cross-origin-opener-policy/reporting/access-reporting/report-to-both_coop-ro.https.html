@@ -1,0 +1,124 @@
+<title>
+  Both the openee and the opener have a COOP reporter. The report are sent to
+  both side.
+</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/try-access.js"></script>
+<script>
+
+const directory = "/html/cross-origin-opener-policy";
+const origin_opener = get_host_info().HTTPS_ORIGIN;
+const origin_openee = get_host_info().HTTPS_REMOTE_ORIGIN;
+
+let escapeComma = url => url.replace(/,/g, '\\,');
+
+let genericSetup = async function(test) {
+  // The test window.
+  const this_window_token = token();
+
+  // The "opener" window. This has COOP and a reporter.
+  const opener_report_token= token();
+  const opener_token = token();
+  const opener_reportTo = reportToHeaders(opener_report_token);
+  const opener_url = origin_opener+ executor_path + opener_reportTo.header +
+    opener_reportTo.coopReportOnlySameOriginHeader + coep_header +
+    `&uuid=${opener_token}`;
+
+  // The "openee" window. This has COOP and a reporter.
+  const openee_report_token= token();
+  const openee_token = token();
+  const openee_reportTo = reportToHeaders(openee_report_token);
+  const openee_url = origin_openee + executor_path + openee_reportTo.header +
+    openee_reportTo.coopReportOnlySameOriginHeader + coep_header +
+    `&uuid=${openee_token}`;
+
+  // Cleanup at the end of the test.
+  test.add_cleanup(() => {
+    send(openee_token, 'window.close()');
+    send(opener_token, 'window.close()');
+  });
+
+  // 1. Spawn the opener and the openee windows.
+  window.open(opener_url);
+  send(opener_token, `
+    openee = window.open('${escapeComma(openee_url)}');
+  `);
+
+  // 2. Wait for both to be loaded.
+  send(openee_token, `send('${this_window_token}', 'ACK');`);
+  assert_equals(await receive(this_window_token), 'ACK');
+
+  return [
+    this_window_token,
+    opener_token, opener_report_token, opener_url,
+    openee_token, openee_report_token, openee_url,
+  ];
+}
+
+let assert_generic_coop_report = function(report) {
+  assert_equals(report.type, "coop");
+  assert_equals(report.body.disposition, "reporting");
+  assert_equals(report.body.effectivePolicy, "same-origin-plus-coep");
+  assert_equals(report.body.property, "blur");
+}
+
+promise_test(async test => {
+  let [
+    this_window_token,
+    opener_token, opener_report_token, opener_url,
+    openee_token, openee_report_token, openee_url,
+  ] = await genericSetup(test);
+
+  send(opener_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js",
+    "tryAccess(openee);")
+  );
+
+  let report_opener =
+    await receiveReport(opener_report_token, "access-from-coop-page-to-openee")
+  let report_openee =
+    await receiveReport(openee_report_token, "access-to-coop-page-from-opener")
+
+  assert_generic_coop_report(report_openee);
+  assert_generic_coop_report(report_opener);
+
+  assert_equals(report_opener.url, opener_url.replace(/"/g, '%22'));
+  assert_equals(report_openee.url, openee_url.replace(/"/g, '%22'));
+  assert_source_location_found(report_opener);
+  assert_source_location_missing(report_openee);
+}, "Access from opener")
+
+promise_test(async test => {
+  let [
+    this_window_token,
+    opener_token, opener_report_token, opener_url,
+    openee_token, openee_report_token, openee_url,
+  ] = await genericSetup(test);
+
+  send(openee_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js",
+    "tryAccess(opener);")
+  );
+
+  let report_opener =
+    await receiveReport(opener_report_token, "access-to-coop-page-from-openee")
+  let report_openee =
+    await receiveReport(openee_report_token, "access-from-coop-page-to-opener")
+
+  assert_generic_coop_report(report_openee);
+  assert_generic_coop_report(report_opener);
+
+  assert_equals(report_opener.url, opener_url.replace(/"/g, '%22'));
+  assert_equals(report_openee.url, openee_url.replace(/"/g, '%22'));
+  assert_source_location_missing(report_opener);
+  assert_source_location_found(report_openee);
+}, "Access from openee")
+
+</script>

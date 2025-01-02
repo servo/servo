@@ -1,0 +1,31 @@
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+<head>
+
+<script>
+var MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+
+function foo()
+{
+  var mmultiscripts = document.createElementNS(MATHML_NS, 'mmultiscripts');
+  var mtd = document.createElementNS(MATHML_NS, 'mtd');
+
+
+  document.body.appendChild(mmultiscripts);
+  aC(mmultiscripts, mtd);
+  aC(mmultiscripts, document.createTextNode('foo'));
+
+  document.documentElement.removeAttribute("class");
+}
+
+function aC(q1, q2) { q1.appendChild(q2); }
+
+</script>
+</head>
+
+<body onload="setTimeout(foo, 30)">
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
+const BASE = new URL("resources", location).pathname
+const FRAME_URL = `${ORIGIN}/common/blank.html` +
+  '?pipe=header(cross-origin-embedder-policy,require-corp)' +
+  `|header(cross-origin-embedder-policy-report-only,require-corp)`;
+const WORKER_URL = `${ORIGIN}${BASE}/reporting-worker.js` +
+  '?pipe=header(cross-origin-embedder-policy,require-corp)' +
+  `|header(cross-origin-embedder-policy-report-only,require-corp)`;
+const REPORTING_FRAME_URL = `${ORIGIN}${BASE}/reporting-empty-frame.html` +
+  '?pipe=header(cross-origin-embedder-policy,require-corp)' +
+  `|header(cross-origin-embedder-policy-report-only,require-corp)`;
+
+async function observeReports(global, expected_count) {
+  const reports = [];
+  const receivedEveryReports = new Promise(resolve => {
+    if (expected_count == 0)
+      resolve();
+
+    const observer = new global.ReportingObserver((rs) => {
+      for (const r of rs) {
+        reports.push(r.toJSON());
+      }
+      if (expected_count <= reports.length)
+        resolve();
+    });
+    observer.observe();
+
+  });
+
+  await receivedEveryReports;
+  // Wait 500ms more to catch additionnal unexpected reports.
+  await new Promise(r => step_timeout(r, 500));
+  return reports;
+}
+
+function checkReport(report, contextUrl, blockedUrl, disposition, destination) {
+  assert_equals(report.type, 'coep');
+  assert_equals(report.url, contextUrl);
+  assert_equals(report.body.type, 'corp');
+  assert_equals(report.body.blockedURL, blockedUrl);
+  assert_equals(report.body.disposition, disposition);
+  assert_equals(report.body.destination, destination);
+}
+
+async function fetchInFrame(t, frameUrl, url, expected_count) {
+  const frame = await with_iframe(frameUrl);
+  t.add_cleanup(() => frame.remove());
+
+  const init = { mode: 'no-cors', cache: 'no-store' };
+  let future_reports = observeReports(frame.contentWindow, expected_count);
+  await frame.contentWindow.fetch(url, init).catch(() => {});
+
+  return await future_reports;
+}
+
+async function fetchInWorker(workerOrPort, url) {
+  const script =
+    `fetch('${url}', {mode: 'no-cors', cache: 'no-store'}).catch(() => {});`;
+  const mc = new MessageChannel();
+  workerOrPort.postMessage({script, port: mc.port2}, [mc.port2]);
+  return (await new Promise(r => mc.port1.onmessage = r)).data;
+}
+
+// We want to test several URLs in various environments (document,
+// dedicated worker, shared worser, service worker). As expectations
+// are independent of environment except for the context URLs in reports,
+// we define ENVIRONMENTS and CASES to reduce the code duplication.
+//
+// ENVIRONMENTS is a list of dictionaries. Each dictionary consists of:
+//  - tag: the name of the environment
+//  - contextUrl: the URL of the environment settings object
+//  - run: an async function which generates reports
+//    - test: a testharness Test object
+//    - url: the URL for a test case (see below)
+//
+// CASES is a list of test cases. Each test case consists of:
+//  - name: the name of the test case
+//  - url: the URL of the test case
+//  - check: a function to check the results
+//    - reports: the generated reports
+//    - url: the URL of the test case
+//    - contextUrl: the URL of the environment settings object (see
+//                  ENVORONMENTS)
+
+const ENVIRONMENTS = [{
+  tag: 'document',
+  contextUrl: FRAME_URL,
+  run: async (test, url, expected_count) => {
+    return await fetchInFrame(test, FRAME_URL, url, expected_count);
+  },
+}, {
+  tag: 'dedicated worker',
+  contextUrl: WORKER_URL,
+  run: async (test, url, expected_count) => {
+    const worker = new Worker(WORKER_URL);
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    test.add_cleanup(() => worker.terminate());
+    return await fetchInWorker(worker, url);
+  },
+}, {
+  tag: 'shared worker',
+  contextUrl: WORKER_URL,
+  run: async (test, url, expected_count) => {
+    const worker = new SharedWorker(WORKER_URL);
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    return await fetchInWorker(worker.port, url);
+  },
+}, {
+  tag: 'service worker',
+  contextUrl: WORKER_URL,
+  run: async (test, url, expected_count) => {
+    // As we don't want the service worker to control any page, generate a
+    // one-time scope.
+    const SCOPE = new URL(`resources/${token()}.html`, location).pathname;
+    const reg =
+      await service_worker_unregister_and_register(test, WORKER_URL, SCOPE);
+    test.add_cleanup(() => reg.unregister());
+    const worker = reg.installing || reg.waiting || reg.active;
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    return await fetchInWorker(worker, url);
+  },
+}, {
+  tag: 'between service worker and page',
+  contextUrl: REPORTING_FRAME_URL,
+  run: async (test, url, expected_count) => {
+    // Here we use a Service Worker without COEP.
+    const WORKER_URL = `${ORIGIN}${BASE}/sw.js`;
+    const reg = await service_worker_unregister_and_register(
+      test, WORKER_URL, REPORTING_FRAME_URL);
+    test.add_cleanup(() => reg.unregister());
+    const worker = reg.installing || reg.waiting || reg.active;
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    return await fetchInFrame(
+      test, REPORTING_FRAME_URL, url, expected_count);
+  },
+}];
+
+const CASES = [{
+  name: 'same-origin',
+  url: '/common/text-plain.txt',
+  expected_count: 0,
+  check: (reports, url, contextUrl) => {}
+}, {
+  name: 'blocked by CORP: same-origin',
+  url: `${REMOTE_ORIGIN}${BASE}/nothing-same-origin-corp.txt`,
+  expected_count: 0,
+  check: (reports, url, contextUrl) => {}
+}, {
+  name: 'blocked due to COEP',
+  url: `${REMOTE_ORIGIN}/common/text-plain.txt`,
+  expected_count: 2,
+  check: (reports, contextUrl, url) => {
+    checkReport(reports[0], contextUrl, url, 'reporting', '');
+    checkReport(reports[1], contextUrl, url, 'enforce', '');
+  }
+}, {
+  name: 'blocked during redirect',
+  url: `${ORIGIN}/common/redirect.py?location=` +
+    encodeURIComponent(`${REMOTE_ORIGIN}/common/text-plain.txt`),
+   expected_count: 2,
+  check: (reports, contextUrl, url) => {
+    checkReport(reports[0], contextUrl, url, 'reporting', '');
+    checkReport(reports[1], contextUrl, url, 'enforce', '');
+  },
+}];
+
+for (const env of ENVIRONMENTS) {
+  for (const testcase of CASES) {
+    promise_test(async (t) => {
+      const reports = await env.run(
+        t, testcase.url, testcase.expected_count);
+
+      assert_equals(reports.length, testcase.expected_count);
+      testcase.check(reports, env.contextUrl, testcase.url);
+    }, `[${env.tag}] ${testcase.name}`);
+  }
+}
+
+// A test for a non-empty destination.
+promise_test(async (t) => {
+  const frame = await with_iframe(FRAME_URL);
+  t.add_cleanup(() => frame.remove());
+
+  const url = `${REMOTE_ORIGIN}/common/utils.js`;
+  const script = frame.contentDocument.createElement('script');
+  script.src = url;
+  const future_reports = observeReports(frame.contentWindow, 2);
+  frame.contentDocument.body.appendChild(script);
+
+  const reports = await future_reports;
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], FRAME_URL, url, 'reporting', 'script');
+  checkReport(reports[1], FRAME_URL, url, 'enforce', 'script');
+}, 'destination: script');
+
+</script>

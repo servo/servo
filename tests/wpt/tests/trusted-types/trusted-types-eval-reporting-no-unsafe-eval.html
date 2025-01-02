@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<head>
+  <script nonce="123" src="/resources/testharness.js"></script>
+  <script nonce="123"src="/resources/testharnessreport.js"></script>
+  <script nonce="123"src="/content-security-policy/support/testharness-helper.js"></script>
+</head>
+<body>
+  <script nonce="123">
+  // CSP insists the "trusted-types: ..." directives are deliverd as headers
+  // (rather than as "<meta http-equiv" tags). This test assumes the following
+  // headers are set in the .headers file:
+  //
+  //   Content-Security-Policy: script-src 'unsafe-inline'; report-uri ...
+  //   Content-Security-Policy: object-src 'none'
+  //   Content-Security-Policy: require-trusted-types-for 'script'
+  //
+  // The second rule is there so we can provoke a CSP violation report at will.
+  // The intent is that in order to test that a violation has *not* been thrown
+  // (and without resorting to abominations like timeouts), we force a *another*
+  // CSP violation (by violating the object-src rule) and when that event is
+  // processed we can we sure that an earlier event - if it indeed occurred -
+  // must have already been processed.
+
+  // Return function that returns a promise that resolves on the given
+  // violation report.
+  // how_many - how many violation events are expected.
+  // filter_arg - iff function, call it with the event object.
+  //              Else, string-ify and compare against event.originalPolicy.
+  function promise_violation(filter_arg) {
+    return _ => new Promise((resolve, reject) => {
+      function handler(e) {
+        let matches = (filter_arg instanceof Function)
+            ? filter_arg(e)
+            : (e.originalPolicy.includes(filter_arg));
+        if (matches) {
+          document.removeEventListener("securitypolicyviolation", handler);
+          e.stopPropagation();
+          resolve(e);
+        }
+      }
+      document.addEventListener("securitypolicyviolation", handler);
+    });
+  }
+
+  // Like assert_throws_*, but we don't care about the exact error. We just want
+  // to run the code and continue.
+  function expect_throws(fn) {
+    try { fn(); assert_unreached(); } catch (err) { /* ignore */ }
+  }
+
+  // A sample policy we use to test trustedTypes.createPolicy behaviour.
+  const id = x => x;
+  const a_policy = {
+    createHTML: id,
+    createScriptURL: id,
+    createScript: id,
+  };
+
+  const scriptyPolicy = trustedTypes.createPolicy('allowEval', a_policy);
+
+  // Provoke/wait for a CSP violation, in order to be sure that all previous
+  // CSP violations have been delivered.
+  function promise_flush() {
+    return promise_violation("object-src 'none'");
+  }
+  function flush() {
+   expect_throws(_ => {
+      var o = document.createElement('object');
+      o.type = "application/x-shockwave-flash";
+      document.body.appendChild(o);
+    });
+  }
+
+  window.script_run_beacon = 'never_overwritten';
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"))
+        .then(promise_flush());
+    expect_throws(_ => eval('script_run_beacon="should not run"'));
+    assert_equals(script_run_beacon, 'never_overwritten');
+    flush();
+    return p;
+  }, "Trusted Type violation report: evaluating a string violates both script-src and trusted-types.");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("script-src"))
+        .then(promise_flush());
+    expect_throws(_ => eval(scriptyPolicy.createScript('script_run_beacon="i ran"')));
+    flush();
+    assert_not_equals(script_run_beacon, 'i ran'); // Code did not run.
+    assert_equals(script_run_beacon, 'never_overwritten');
+    return p;
+  }, "Trusted Type violation report: evaluating a Trusted Script violates script-src.");
+
+  promise_test(t => {
+    trustedTypes.createPolicy('default', {
+      createScript: s => s,
+    }, true);
+    let p = Promise.resolve()
+        .then(promise_violation((e) =>
+           e.effectiveDirective.includes('script-src') &&
+           e.sample.includes("should not run")))
+        .then(promise_flush());
+    expect_throws(_ => eval('script_run_beacon="should not run"')); // script-src will block.
+    assert_not_equals(script_run_beacon, 'should not run'); // Code did not run.
+    assert_equals(script_run_beacon, 'never_overwritten');
+    flush();
+    return p;
+  }, "Trusted Type violation report: script-src restrictions apply after the default policy runs.");
+
+  </script>
+</body>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Fenced frame disallowed navigations to blob: URL</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/fetch/private-network-access/resources/support.sub.js"></script>
+
+<body>
+<script>
+const kPublicUtils = resolveUrl("resources/utils.js", Server.HTTPS_PUBLIC);
+
+function getTimeoutPromise(t) {
+  return new Promise(resolve =>
+      t.step_timeout(() => resolve("NOT LOADED"), 2000));
+}
+
+// The following tests ensure that an embedder cannot navigate a
+// `mode=opaque-ads` fenced frame to an opaque URN or a fenced frame config
+// object that represents a blob: URL
+for (const resolve_to_config of [true, false]) {
+  promise_test(async t => {
+    const key = token();
+    const blobURL = URL.createObjectURL(
+        new Blob([`${createLocalSource(key, kPublicUtils)}`],
+                 {type: 'text/html'}));
+    const select_url_result = await runSelectURL(blobURL);
+    attachFencedFrame(select_url_result);
+    const loaded_promise = nextValueFromServer(key);
+    const result = await Promise.any([loaded_promise, getTimeoutPromise(t)]);
+    assert_equals(result, "NOT LOADED");
+  }, "fenced frame " + (resolve_to_config ? "config" : "urn:uuid") +
+     " => blob: URL");
+}
+</script>
+</body>

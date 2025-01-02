@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: aspect-ratio shouldn't apply to internal table boxes</title>
+<link rel="author" title="mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<style>
+table {
+  border-collapse: collapse;
+}
+th, td {
+  padding: 0px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!-- aspect-ratio shouldn't apply to internal table boxes -->
+<table>
+  <tr>
+    <th style='background: green; width: 100px; aspect-ratio: 1/1;'></th>
+    <td style='background: red; height: 50px; aspect-ratio: 4/1;'></td>
+    <td style='background: red; height: 50px; min-width: min-content; aspect-ratio: 4/1;'></td>
+  </tr>
+</table>
+<!-- aspect-ratio should apply to the table element -->
+<table style='background: green; width: 100px; aspect-ratio: 2/1;'></table>

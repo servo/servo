@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FP followed by FCP</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="main"></div>
+<div id="image"></div>
+
+<script>
+setup({"hide_test_state": true});
+async_test(function (t) {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    const bufferedEntries = performance.getEntriesByType('paint');
+    assert_equals(bufferedEntries.length, 0, "No paint entries yet");
+    const div = document.createElement("div");
+    div.style.width = "100px";
+    div.style.height = "100px";
+    div.style.backgroundColor = "red";
+    div.style.color = "blue";
+    document.getElementById("main").appendChild(div);
+    function testPaintEntries() {
+      const bufferedEntries = performance.getEntriesByType('paint');
+      if (bufferedEntries.length < 1) {
+        t.step_timeout(function() {
+          testPaintEntries();
+        }, 20);
+        return;
+      }
+      t.step(function() {
+        assert_equals(bufferedEntries.length, 1, "FP only.");
+        assert_equals(bufferedEntries[0].entryType, "paint");
+        assert_equals(bufferedEntries[0].name, "first-paint");
+      });
+      const img = document.createElement("IMG");
+      img.src = "../resources/circles.png";
+      img.onload = function() {
+        function secondTestPaintEntries() {
+          const moreBufferedEntries = performance.getEntriesByType('paint');
+          if (moreBufferedEntries.length < 2) {
+            t.step_timeout(function() {
+              secondTestPaintEntries();
+            }, 20);
+            return;
+          }
+          t.step(function() {
+            assert_equals(moreBufferedEntries.length, 2, "FP and FCP.");
+            assert_equals(moreBufferedEntries[0].entryType, "paint");
+            assert_equals(moreBufferedEntries[0].name, "first-paint");
+            const fpEntriesGotByName =
+                performance.getEntriesByName('first-paint');
+            assert_equals(fpEntriesGotByName.length, 1);
+            assert_equals(moreBufferedEntries[0], fpEntriesGotByName[0]);
+            assert_equals(moreBufferedEntries[1].entryType, "paint");
+            assert_equals(moreBufferedEntries[1].name, "first-contentful-paint");
+            const fcpEntriesGotByName =
+                performance.getEntriesByName('first-contentful-paint');
+            assert_equals(fcpEntriesGotByName.length, 1);
+            assert_equals(moreBufferedEntries[1], fcpEntriesGotByName[0]);
+            t.done();
+          });
+        }
+        t.step(function() {
+          secondTestPaintEntries();
+        });
+      };
+      document.getElementById('image').appendChild(img);
+    }
+    t.step(function() {
+      testPaintEntries();
+    });
+}, "First Paint triggered by non-contentful paint. Image load triggers First Contentful Paint.");
+</script>
+</body>
+</html>

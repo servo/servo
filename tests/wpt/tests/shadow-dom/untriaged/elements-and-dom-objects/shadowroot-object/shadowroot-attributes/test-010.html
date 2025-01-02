@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_10_01_01_04_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-root-attributes">
+<meta name="assert" content="ShadowRoot Object: innerHTML of type DOMString; Test setter">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+<script src="../../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    s.appendChild(span);
+
+    s.innerHTML = '<input type="text"><div>new text</div>';
+
+    assert_equals(s.innerHTML.toLowerCase(), '<input type="text"><div>new text</div>',
+            'Wrong value of ShadowRoot innerHTML attribute');
+
+}), 'A_10_01_01_04_02_T01_01');
+
+
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var span = d.createElement('span');
+    span.setAttribute('id', 'spanId');
+    span.innerHTML = 'Some text';
+    s.appendChild(span);
+
+    s.innerHTML = '<input type="text" id="inputId"><div id="divId">new text</div>';
+
+    assert_equals(s.querySelector('#spanId'), null, 'Point 1:innerHTML attribute must replace all content of ' +
+            'the ShadowRoot object');
+
+    assert_true(s.querySelector('#inputId') != null, 'Point 2:innerHTML attribute must replace all content of ' +
+        'the ShadowRoot object');
+    assert_equals(s.querySelector('#inputId').getAttribute('id'), 'inputId',
+            'Point 3:innerHTML attribute must replace all content of the ShadowRoot object');
+
+    assert_true(s.querySelector('#divId') != null, 'Point 3:innerHTML attribute must replace all content of ' +
+        'the ShadowRoot object');
+    assert_equals(s.querySelector('#divId').getAttribute('id'), 'divId',
+        'Point 4:innerHTML attribute must replace all content of the ShadowRoot object');
+}), 'A_10_01_01_04_02_T01_02');
+</script>
+</body>
+</html>

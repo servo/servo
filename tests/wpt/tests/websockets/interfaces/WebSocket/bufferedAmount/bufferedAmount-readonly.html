@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>WebSockets: setting bufferedAmount</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+test(function(){
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  ws.bufferedAmount = 5;
+  assert_equals(ws.bufferedAmount, 0);
+});
+</script>

@@ -1,0 +1,5 @@
+This example is Andrew Dalke's GardenSnake language. It shows how to process an
+indentation-like language like Python.   Further details can be found here:
+
+http://dalkescientific.com/writings/diary/archive/2006/08/30/gardensnake_language.html
+

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - Response headers</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Response headers</h1>
+<div id=log></div>
+<script>
+
+/*
+ * Response Headers
+ */
+
+function check_response_header(head, value, desc) {
+    test(function() {
+        var client = new XMLHttpRequest()
+        client.open('GET', CROSSDOMAIN + 'resources/cors-headers.asis', false)
+        client.send(null)
+
+        if (typeof value === 'function')
+            value(client, head)
+        else
+            assert_equals(client.getResponseHeader(head), value, head)
+    },
+    desc)
+}
+check_response_header('X-Custom-Header-Comma', '1, 2', 'getResponseHeader: Expose Access-Control-Expose-Headers (x-custom-header-comma)')
+check_response_header('X-Second-Expose', 'flyingpig', 'getResponseHeader: Expose second Access-Control-Expose-Headers (x-second-expose)')
+check_response_header(' x-custom-header', null, 'getResponseHeader: Don\'t trim whitespace')
+check_response_header('x-custom-header-bytes', "\xE2\x80\xA6", 'getResponseHeader: x-custom-header bytes')
+check_response_header('Date',
+    function(client, head) { assert_true(client.getResponseHeader(head).length > 2) },
+    'getResponseHeader: Exposed server field readable (Date)')
+
+function default_readable(head, value) {
+    check_response_header(head, value, 'getResponseHeader: '+head+': readable by default')
+}
+default_readable("Cache-Control", "no-cache");
+default_readable("Content-Language", "nn");
+default_readable("Expires", "Thu, 01 Dec 1994 16:00:00 GMT");
+default_readable("Last-Modified", "Thu, 01 Dec 1994 10:00:00 GMT");
+default_readable("Pragma", "no-cache");
+default_readable("Content-Length", "4");
+default_readable("Content-Type", "text/plain");
+
+
+function default_unreadable(head) {
+    check_response_header(head, null, 'getResponseHeader: '+head+': unreadable by default')
+}
+default_unreadable("Server")
+default_unreadable("X-Powered-By")
+
+
+async_test("getResponseHeader: Combined testing of cors response headers")
+.step(function()
+{
+    var client = new XMLHttpRequest();
+    client.open("GET", CROSSDOMAIN + 'resources/cors-headers.asis')
+    window.c=client;
+    client.onreadystatechange = this.step_func(function()
+    {
+        if (client.readyState == 1)
+        {
+            assert_equals(client.getResponseHeader("x-custom-header"), null, 'x-custom-header')
+        }
+        if (client.readyState > 1)
+        {
+            assert_equals(client.getResponseHeader("x-custom-header"), "test, test", 'x-custom-header')
+            assert_equals(client.getResponseHeader("x-custom-header-empty"), "", 'x-custom-header-empty')
+            assert_equals(client.getResponseHeader("set-cookie"), null)
+            assert_equals(client.getResponseHeader("set-cookie2"), null)
+            assert_equals(client.getResponseHeader("x-non-existent-header"), null)
+            assert_equals(client.getResponseHeader("x-nonexposed"), null)
+        }
+        if (client.readyState == 4)
+        {
+            this.done()
+        }
+    })
+    client.send()
+})
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-headers.asis', false)
+    client.send(null)
+    assert_equals(client.getResponseHeader("x-custom-header"), "test, test", 'x-custom-header')
+    assert_equals(client.getResponseHeader("x-nonexposed"), null, 'x-nonexposed')
+}, "getResponse: don't expose x-nonexposed")
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-headers.asis', false)
+    client.send(null)
+
+    h = client.getAllResponseHeaders().toLowerCase()
+    assert_true( h.indexOf('x-custom-header') >= 0, 'x-custom-header present')
+    assert_true( h.indexOf('x-nonexposed') === -1, 'x-nonexposed not present')
+}, "getAllResponseHeaders: don't expose x-nonexposed")
+
+</script>

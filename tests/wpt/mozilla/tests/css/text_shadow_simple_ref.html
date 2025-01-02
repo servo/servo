@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+     Tests that `text-shadow` works with multiple unblurred shadows in the right order with the
+     right offsets.
+-->
+<style>
+html, body {
+    margin: 0;
+}
+div {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+}
+#c {
+    background: green;
+    left: 0;
+    top: 0;
+}
+#b {
+    background: blue;
+    left: 20px;
+    top: 10px;
+}
+#a {
+    background: red;
+    left: 30px;
+    top: 40px;
+}
+</style>
+</head>
+<body><div id=a></div><div id=b></div><div id=c></div></body>
+</html>

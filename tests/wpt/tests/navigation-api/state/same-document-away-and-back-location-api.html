@@ -1,0 +1,49 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(async () => {
+    let start_length = navigation.entries().length;
+    let entry0 = navigation.currentEntry;
+    let start_index = entry0.index;
+
+    let navState = { statevar: "state" };
+    await navigation.navigate("#1", { state: navState });
+    let entry1 = navigation.currentEntry;
+
+    location.href = "#2";
+    let entry2 = navigation.currentEntry;
+
+    assert_equals(navigation.entries().length, start_length + 2);
+    assert_equals(entry0, navigation.entries()[start_index]);
+    assert_equals(entry1, navigation.entries()[start_index + 1]);
+    assert_equals(entry2, navigation.entries()[start_index + 2]);
+
+    assert_equals(entry0.getState(), undefined);
+
+    let state1 = entry1.getState();
+    assert_not_equals(state1, undefined);
+    assert_not_equals(state1, navState);
+    assert_equals(state1.statevar, "state");
+
+    let state2 = entry2.getState();
+    assert_not_equals(state2, undefined);
+    assert_not_equals(state2, navState);
+    assert_equals(state2.statevar, "state");
+
+    history.back();
+    window.onpopstate = t.step_func_done(() => {
+      assert_equals(navigation.entries().length, start_length + 2);
+      let back_entry = navigation.currentEntry;
+      assert_equals(back_entry, navigation.entries()[start_index + 1]);
+      let back_state = back_entry.getState();
+      assert_not_equals(back_state, state1);
+      assert_not_equals(back_state, state2);
+      assert_equals(back_state.statevar, "state");
+    });
+  }, 0);
+}, "entry.getState() behavior after navigating away using a fragment change, then back");
+</script>

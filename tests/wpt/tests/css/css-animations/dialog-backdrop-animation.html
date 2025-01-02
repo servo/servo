@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Animations on a &lt;dialog> ::backdrop</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+
+dialog[open]::backdrop {
+    animation: dialog-backdrop-animation 1ms;
+}
+
+@keyframes dialog-backdrop-animation {
+    from { opacity: 0 }
+}
+
+</style>
+<div id="log"></div>
+<script>
+
+"use strict";
+
+promise_test(async t => {
+  const dialog = addElement(t, "dialog");
+
+  // Open the dialog a first time, this should trigger a CSS Animation.
+  dialog.showModal();
+  const animations = dialog.getAnimations({ subtree: true });
+  assert_equals(animations.length, 1, "As the <dialog> is shown intially an animation is started on its ::backdrop");
+
+  await animations[0].finished;
+
+  await waitForNextFrame();
+
+  dialog.close();
+  assert_equals(dialog.getAnimations({ subtree: true }).length, 0, "As the <dialog> is closed the animation is removed from its ::backdrop");
+
+  await waitForNextFrame();
+
+  dialog.showModal();
+  assert_equals(dialog.getAnimations({ subtree: true }).length, 1, "As the <dialog> is shown again an animation is started again on its ::backdrop");
+}, "CSS Animations on a <dialog> ::backdrop are canceled and restarted as the dialog is hidden and shown");
+</script>

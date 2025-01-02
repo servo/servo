@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: custom scrollbar (new page)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/common/reftest-wait.js"></script>
+<script>
+onload = takeScreenshot;
+</script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+@layer {
+    ::-webkit-scrollbar {
+        background-color: hsl(0, 100%, 10%);
+        color: hsl(0, 100%, 90%);
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color: hsl(0, 100%, 50%);
+    }
+    ::-webkit-scrollbar-corner {
+        background-color: hsl(0, 100%, 0%);
+    }
+}
+html {
+  background: grey;
+  overflow: scroll;
+}
+html::view-transition-group(root) { animation-duration: 300s; }
+/* Hold the old image for the entire duration. */
+html::view-transition-old(root) {
+  animation: none;
+  opacity: 1;
+}
+html::view-transition-new(root) {
+  animation: none;
+  opacity: 0;
+}
+html::view-transition-old(root) {
+  animation-duration: 3s;
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+}
+html::view-transition-new(root) {
+  animation-duration: 3s;
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 50vw;
+  top: 0px;
+}
+</style>
+</html>

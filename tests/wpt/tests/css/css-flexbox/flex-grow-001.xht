@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Flex-grow Property of Block-level Flex Items</title>
+  <link rel="author" title="Hanrui Gao" href="mailto:hanrui.gao@gmail.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-grow-property"/>
+  <link rel="match" href="flex-grow-001-ref.xht"/>
+  <meta name="assert" content="'flex-grow' property specifies the flex grow factor, which determines how much the flex item will grow relative to the rest of the flex items in the flex container when positive free space is distributed." />
+  <style type="text/css"><![CDATA[
+   #container {
+     width: 240px;
+     height: 60px;
+     border: 1px solid #000;
+     display: flex;
+   }
+   #container > div {
+     width: 30px;
+     height: 100%;
+   }
+   #child_1 {
+     flex-grow: 0;
+     background-color: green;
+   }
+   #child_2 {
+     flex-grow: 1;
+     background-color: blue;
+   }
+   #child_3 {
+     flex-grow: 2;
+     background-color: gray;
+   }
+  ]]></style>
+ </head>
+ <body>
+   <div id="container">
+      <div id="child_1"></div>
+      <div id="child_2"></div>
+      <div id="child_3"></div>
+   </div>
+ </body>
+</html>

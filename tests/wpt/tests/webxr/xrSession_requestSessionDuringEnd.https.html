@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+
+  <script>
+    function testFunctionGenerator(createSessionFromEventCallback) {
+        return function(session, testDeviceController, t) {
+            let done = false;
+
+            function createSession() {
+              return new Promise((resolve) => {
+                  navigator.xr.requestSession("immersive-vr")
+                  .then((new_session) => {
+                    // The test framework ensures that the created session ends,
+                    // but will not do cleanup for this session, so if it gets
+                    // created, we need to ensure that it gets cleaned up.
+                    return new_session.end();
+                  }).then(() => {
+                    done = true;
+                    resolve();
+                  }).catch((err) => {
+                    // Only one catch is needed for the whole promise chain.
+                    // If ending the new session throws, it's fine to fail as
+                    // we'd otherwise end up in a bad state.
+                    t.step(() => {
+                      assert_unreached("Session creation should not throw: " + err);
+                    });
+                  });
+              });
+            }
+
+            function onSessionEnd() {
+                if (createSessionFromEventCallback) {
+                  createSession();
+                }
+            }
+
+            session.addEventListener("end", onSessionEnd, false);
+
+            // We need to simulate the user activation before we call end as
+            // otherwise (depending on the implementation) it can interfere with
+            // the scheduling of the dispatched event/promise, and make session
+            // creation succeed even when there may be bugs preventing it from
+            // doing so in real scenarios.
+            navigator.xr.test.simulateUserActivation(() => {
+              session.end().then(() => {
+                if (!createSessionFromEventCallback) {
+                  createSession();
+                }
+              });
+            });
+
+            return t.step_wait(() => done);
+        };
+    }
+
+    xr_session_promise_test("Create new session in OnSessionEnded event",
+      testFunctionGenerator(/*createSessionFromEventCallback=*/true),
+      TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+
+    xr_session_promise_test("Create mew session in end promise",
+      testFunctionGenerator(/*createSessionFromEventCallback=*/false),
+      TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+  </script>
+</body>

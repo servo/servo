@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>@scope - inner @starting-style</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/8876">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#scope-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @scope (.a) {
+    @starting-style {
+      :scope {
+        width: 100px;
+      }
+
+      .b {
+        width: 100px;
+      }
+    }
+  }
+
+  .a, .b {
+    transition: width 100s steps(2, start); /* 50% progress */
+    width: 200px;
+  }
+</style>
+<main>
+  <div class=a>
+    <div class=b>
+    </div>
+  </div>
+  <div class=b></div>
+</main>
+<script>
+  test(() => {
+    let a = document.querySelector('main > .a');
+    let b = document.querySelector('main > .a > .b');
+    assert_equals(getComputedStyle(a).width, '150px');
+    assert_equals(getComputedStyle(b).width, '150px');
+
+    let out_of_scope_b = document.querySelector('main > .b');
+    assert_equals(getComputedStyle(out_of_scope_b).width, '200px');
+  }, 'Style rules within @starting-style are scoped');
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Transformability of List-Item</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <meta name="assert" content='This tests that transforms specified on a
+    list-item work as expected.'>
+    <link rel="match" href="transform-transformable-list-item-ref.html">
+    <style>
+      body {
+        overflow: hidden;
+      }
+      div {
+        display: list-item;
+        transform: translate(50px, 50px);
+      }
+    </style>
+  </head>
+  <body>
+    <div>Some text</div>
+  </body>
+</html>

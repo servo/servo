@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus does not ascend out of current focusgroup if it does not extend the parent focusgroup.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<ul focusgroup=block>
+  <li id=item1 tabindex="-1">
+    <ul focusgroup=inline>
+      <li id=item2 tabindex="-1">item2</li>
+    </ul>
+  </li>
+</ul>
+
+<script>
+
+  promise_test(async t => {
+    var item2 = document.getElementById("item2");
+
+    await focusAndKeyPress(item2, kArrowUp);
+    assert_equals(document.activeElement, item2);
+  }, "When the focus is set on the first element of a non-extending focusgroup located inside another focusgroup, we should be able to ascend to that other focusgroup.");
+
+</script>

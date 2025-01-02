@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+<script src=/fetch/metadata/resources/redirectTestHelper.sub.js></script>
+<script src=/common/security-features/resources/common.sub.js></script>
+<script src=/common/utils.js></script>
+<body>
+<script>
+  let nonce = token();
+  let expected = { "site": "cross-site", "user": "", "mode": "cors", "dest": "font" };
+
+  // Validate various scenarios handle a request that redirects from http => https correctly and add the proper Sec- headers.
+  RunCommonRedirectTests("Http upgrade", upgradeRedirectTo, expected);
+</script>
+</body>

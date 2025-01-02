@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Paged Media root container</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="For a single-page document, the containing box for the root element is the page area."/>
+  <style type="text/css">
+	@page {
+			margin: 2cm;
+	}
+	html {
+			background: #fee;
+	}
+  </style>
+ </head>
+ <body>
+  <p>There must be a pale pink background covering this page up to the two centimeter margin.</p>
+ </body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>flexbox | singleline flexcontainer versus stf :: table</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-items">
+<link rel="match" href="flexbox_stf-table-singleline-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#test {
+	background: red;
+	display: table;
+}
+div div {
+	background: red;
+	width: 0;
+
+	display: flex;
+}
+p {
+	font-family: Ahem;
+	margin: 1em 0;
+	width: 200px;
+}
+</style>
+
+<div id="test">
+	<div>
+		<p>filler</p>
+		<p>filler</p>
+		<p>filler</p>
+		<p>filler</p>
+		<p>filler</p>
+	</div>
+</div>

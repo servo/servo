@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: white-space-collapse - preserve-breaks - basic cases</title>
+		<link rel="author" title="Satoshi Umehara" href="mailto:umehara@est.co.jp" />
+		<link rel="help" title="CSS Text Level 4: 3.1. White Space Collapsing: the ‘white-space-collapse’ property" href="https://drafts.csswg.org/css-text-4/#white-space-collapsing" />
+		<link rel="match" href="reference/white-space-collapse-preserve-breaks-001-ref.xht"/>
+		<meta name="assert" content="The UA should collapse sequences of white space into a single character but preserve segment breaks as forced line breaks when white-space-collapse is set to preserve-breaks." />
+		<style type="text/css">
+			<![CDATA[
+				.test span {
+					white-space-collapse: preserve-breaks;
+				}
+				/* the CSS below is not part of the test */
+				span {
+					color: Blue;
+				}
+			]]>
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if the first two sentences matches the second one.
+		</p>
+		<p class="test">
+			<span>
+				Sequences of  white   space    should     collapse      into       a        single         character.
+				But segment  breaks   as    forced     line      breaks       are        preserved.
+			</span>
+		</p>
+		<p>
+			<span>
+				Sequences of white space should collapse into a single character.<br />
+				But segment breaks as forced line breaks are preserved.
+			</span>
+		</p>
+	</body>
+</html>

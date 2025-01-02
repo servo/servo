@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-transform uppercase German sharp S and selection</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text/#propdef-text-transform">
+<link rel="match" href="reference/text-transform-upperlower-105-ref.html">
+<meta name="assert" content="text-transform: uppercase will uppercase the German sharp S as SS, and the whole 2 characters width is selectable.">
+<style>
+#target {
+  text-transform: uppercase;
+  color: white;
+  background: red;
+}
+#target::selection {
+  background: green;
+}
+</style>
+
+<p>The test passes if you see no red below (when you select the text below you can select the whole "SS" text).</p>
+
+<span id="target" lang="de">&#x00DF;</span>
+
+<script>
+  window.getSelection().setBaseAndExtent(target, 0, target, 1);
+</script>

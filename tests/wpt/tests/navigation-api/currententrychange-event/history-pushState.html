@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(t => {
+  let start_index = navigation.currentEntry.index;
+
+  let oncurrententrychange_called = false;
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_called = true;
+    assert_equals(e.from, navigation.entries()[start_index]);
+    assert_equals(e.navigationType, "push");
+    assert_equals(navigation.currentEntry.index, start_index + 1);
+  });
+  history.pushState(1, "", "#1");
+  assert_true(oncurrententrychange_called);
+}, "currententrychange fires for history.pushState()");
+</script>

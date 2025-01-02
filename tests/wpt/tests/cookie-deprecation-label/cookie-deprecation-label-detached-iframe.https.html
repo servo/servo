@@ -1,0 +1,31 @@
+<!doctype html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+  promise_test(async t => {
+    let label = await navigator.cookieDeprecationLabel.getValue();
+    assert_equals(label, 'label_test');
+
+    const iframe = document.createElement('iframe');
+    iframe.src = "dummy.html";
+    const iframeLoadedPromise = new Promise(resolve => {
+      iframe.addEventListener('load', resolve, { once: true });
+      document.body.append(iframe);
+    });
+    await iframeLoadedPromise;
+
+    const iframeNavigator = iframe.contentWindow.navigator;
+    let iframeLabel = await iframeNavigator.cookieDeprecationLabel.getValue();
+    assert_equals(iframeLabel, 'label_test');
+
+    iframe.parentNode.removeChild(iframe);
+
+    label = await navigator.cookieDeprecationLabel.getValue();
+    assert_equals(label, 'label_test');
+
+    iframeLabel = await iframeNavigator.cookieDeprecationLabel.getValue();
+    assert_equals(iframeLabel, '');
+  }, 'Test navigator.cookieDeprecationLabel behavior in detached iframes');
+</script>
+</body>

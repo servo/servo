@@ -1,0 +1,126 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: filters-comptran-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feComponentTransferElement">
+      <p>
+        Test which verifies the basic facilities of
+        feComponentTransfer.
+      </p>
+      <p>
+        This test uses the following elements : a nested &lt;svg&gt;
+        with a viewBox attribute, &lt;linearGradient&gt;, &lt;filter&gt;,
+        &lt;feComponentTransfer&gt;.
+      </p>
+      <p>
+        The test case shows four rectangles filled with a
+        gradient showing the effects of feComponentTransfer: an
+        identity function acting as a reference, use of the
+        feComponentTransfer table option, use of the
+        feComponentTransfer linear option, and use of the
+        feComponentTransfer gamma option.
+      </p>
+      <p>
+        The test is somewhat self-explanatory as the strings
+        document the type of feComponentTransfer operation that
+        is being used.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image
+        exactly, except for possible variations in the
+        labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-comptran-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <svg xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="15" y="5" width="450" height="300" viewBox="0 0 630 420">
+      <title>Example feComponentTransfer - Examples of feComponentTransfer operations</title>
+      <desc>Four rectangles filled with a gradient showing the effects of feComponentTransfer: an identity function acting as a reference, use of the feComponentTransfer table option, use of the feComponentTransfer linear option, and use of the feComponentTransfer gamma option.</desc>
+      <defs>
+        <linearGradient id="MyGradient" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="590" y2="0">
+          <stop offset="0" stop-color="#ff0000"/>
+          <stop offset=".33" stop-color="#00ff00"/>
+          <stop offset=".67" stop-color="#0000ff"/>
+          <stop offset="1" stop-color="#000000"/>
+        </linearGradient>
+        <filter id="Identity" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feComponentTransfer>
+            <feFuncR type="identity"/>
+            <feFuncG type="identity"/>
+            <feFuncB type="identity"/>
+            <feFuncA type="identity"/>
+          </feComponentTransfer>
+        </filter>
+        <filter id="Table" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feComponentTransfer>
+            <feFuncR type="table" tableValues="0 0 1 1"/>
+            <feFuncG type="table" tableValues="1 1 0 0"/>
+            <feFuncB type="table" tableValues="0 1 1 0"/>
+          </feComponentTransfer>
+        </filter>
+        <filter id="Linear" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feComponentTransfer>
+            <feFuncR type="linear" slope=".5" intercept=".25"/>
+            <feFuncG type="linear" slope=".5" intercept="0"/>
+            <feFuncB type="linear" slope=".5" intercept=".5"/>
+          </feComponentTransfer>
+        </filter>
+        <filter id="Gamma" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feComponentTransfer>
+            <feFuncR type="gamma" amplitude="2" exponent="5" offset="0"/>
+            <feFuncG type="gamma" amplitude="2" exponent="3" offset="0"/>
+            <feFuncB type="gamma" amplitude="2" exponent="1" offset="0"/>
+          </feComponentTransfer>
+        </filter>
+      </defs>
+      <rect fill="none" stroke="blue" x="1" y="1" width="628" height="418"/>
+      <g font-size="30" font-family="Verdana">
+        <rect fill="none" stroke="blue" x="1" y="1" width="628" height="418"/>
+        <rect x="10" y="10" width="580" height="40" fill="url(#MyGradient)" filter="url(#Identity)"/>
+        <text x="10" y="80">type: identity</text>
+        <rect x="10" y="110" width="580" height="40" fill="url(#MyGradient)" filter="url(#Table)"/>
+        <text x="10" y="180">type: table</text>
+        <rect x="10" y="210" width="580" height="40" fill="url(#MyGradient)" filter="url(#Linear)"/>
+        <text x="10" y="280">type:linear slope:.5 intercepts:.25/0/.5</text>
+        <rect x="10" y="310" width="580" height="40" fill="url(#MyGradient)" filter="url(#Gamma)"/>
+        <text x="10" y="380">type: gamma ampl:2 exponents:5/3/1</text>
+      </g>
+    </svg>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

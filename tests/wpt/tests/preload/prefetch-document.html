@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Ensures that prefetch works with documents</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/prefetch-helper.js"></script>
+<body>
+<script>
+
+const {ORIGIN, REMOTE_ORIGIN, HTTP_NOTSAMESITE_ORIGIN} = get_host_info();
+
+async function prefetch_document_and_count_fetches(options, t) {
+    const {href, uid} = await prefetch({
+        "cache-control": "public, max-age=3600",
+        file: "prefetch-exec.html",
+        type: "text/html",
+        corssOrigin: "anonymous",
+        ...options});
+    const popup = window.open(href);
+    const remoteContext = new RemoteContext(uid);
+    t.add_cleanup(() => popup.close());
+    const result = await remoteContext.execute_script(() => "OK");
+    assert_equals(result, "OK");
+    const requests = await get_prefetch_info(href);
+    return requests.length;
+}
+
+promise_test(async t => {
+    assert_equals(await prefetch_document_and_count_fetches({origin: ORIGIN}, t), 1);
+}, "same origin document prefetch without 'as' should be consumed");
+
+promise_test(async t => {
+    // This (pre-)fetch will be blocked by ORB, which will prevent it from
+    // being cached. Thus this prefetch is not consumed.
+    assert_equals(await prefetch_document_and_count_fetches({origin: REMOTE_ORIGIN}, t), 2);
+}, "same-site different-origin document prefetch without 'as' should not be consumed");
+
+promise_test(async t => {
+    assert_equals(await prefetch_document_and_count_fetches({origin: HTTP_NOTSAMESITE_ORIGIN}, t), 2);
+}, "different-site document prefetch without 'as' should not be consumed");
+
+promise_test(async t => {
+    assert_equals(await prefetch_document_and_count_fetches({origin: HTTP_NOTSAMESITE_ORIGIN, as: "document"}, t), 2);
+}, "different-site document prefetch with 'as=document' should not be consumed");
+
+promise_test(async t => {
+    const {href, uid} = await prefetch({
+        file: "prefetch-exec.html",
+        type: "text/html",
+        corssOrigin: "anonymous",
+        origin: ORIGIN});
+    const popup = window.open(href + "&cache_bust=" + token());
+    const remoteContext = new RemoteContext(uid);
+    t.add_cleanup(() => popup.close());
+    await remoteContext.execute_script(() => "OK");
+    const results = await get_prefetch_info(href);
+    assert_equals(results.length, 2);
+    assert_equals(results[0].headers.accept, results[1].headers.accept);
+}, "Document prefetch should send the exact Accept header as navigation")
+</script>
+</body>

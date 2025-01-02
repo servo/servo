@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
+
+<meta name="variant" content="?include=noPrefetch">
+<meta name="variant" content="?include=afterResponse">
+<meta name="variant" content="?include=waitingForResponse">
+<meta name="variant" content="?include=waitingForRedirect">
+
+<script>
+const setupProperties = {};
+if (shouldRunSubTest('waitingForResponse') || shouldRunSubTest('waitingForRedirect')) {
+  // These tests rely on the relationship between these timeouts, the delays
+  // on the server, and any vendor specific timeouts. Force a multiplier of 1,
+  // since using setTimeout directly incurs the wrath of `wpt lint`.
+  setupProperties.timeout_multiplier = 1;
+}
+setup(() => assertSpeculationRulesIsSupported(), setupProperties);
+
+subsetTestByKey('noPrefetch', promise_test, async t => {
+  const agent = await spawnWindow(t);
+  const landingUrl = agent.getExecutorURL({page: 2});
+
+  await agent.navigate(landingUrl);
+  assert_not_prefetched(await agent.getRequestHeaders(), `${landingUrl} should not be prefetched.`);
+
+  // It's generally expected that events occur in this order:
+  //   ... -> connectEnd --> requestStart --> responseStart --> ...
+  const [entry] = await agent.execute_script(
+      () => performance.getEntriesByType('navigation'));
+  assert_less_than_equal(entry.connectEnd, entry.requestStart);
+  assert_less_than_equal(entry.requestStart, entry.responseStart);
+}, "PerformanceNavigationTiming data should be in the correct order (no prefetch)");
+
+subsetTestByKey('afterResponse', promise_test, async t => {
+  const agent = await spawnWindow(t);
+  const landingUrl = agent.getExecutorURL({page: 2});
+  await agent.forceSinglePrefetch(landingUrl);
+
+  await agent.navigate(landingUrl);
+  assert_prefetched(await agent.getRequestHeaders(), `${landingUrl} should have been prefetched.`);
+
+  // Since the response should have started before the navigation, these should
+  // all have the same value (i.e., the start of the fetch).
+  const [entry] = await agent.execute_script(
+      () => performance.getEntriesByType('navigation'));
+  assert_equals(entry.connectEnd, entry.requestStart);
+  assert_equals(entry.requestStart, entry.responseStart);
+}, "PerformanceNavigationTiming data should show 'instantaneous' events completed beforehand");
+
+subsetTestByKey('waitingForResponse', promise_test, async t => {
+  const agent = await spawnWindow(t);
+  const landingUrl = agent.getExecutorURL({executor: 'slow-executor.py', delay: '4', page: 2});
+  await agent.forceSinglePrefetch(landingUrl, {}, /*wait_for_completion=*/false);
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  await agent.navigate(landingUrl);
+  assert_prefetched(await agent.getRequestHeaders(), `${landingUrl} should have been prefetched.`);
+
+  // We should have to wait for this response. While timing is going to be
+  // somewhat variable here, it's probably wrong for the response to seem
+  // to take less than 1 second (since we only waited for 1 second).
+  // Regardless, these events should be normally ordered.
+  const [entry] = await agent.execute_script(
+      () => performance.getEntriesByType('navigation'));
+  assert_less_than_equal(entry.connectEnd, entry.requestStart);
+  assert_less_than_equal(entry.requestStart + 1000, entry.responseStart);
+  assert_greater_than(entry.responseStart, 1000);
+}, "PerformanceNavigationTiming data should show noticeable TTFB if the response is slow");
+
+subsetTestByKey('waitingForRedirect', promise_test, async t => {
+  const agent = await spawnWindow(t);
+  const landingUrl = agent.getExecutorURL({page: 2});
+  const slowRedirectUrl = new URL(`/common/slow-redirect.py?delay=4&location=${encodeURIComponent(landingUrl)}`, document.baseURI);
+  await agent.forceSinglePrefetch(slowRedirectUrl, {}, /*wait_for_completion=*/false);
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  await agent.navigate(slowRedirectUrl, {expectedDestinationUrl: landingUrl});
+  assert_prefetched(await agent.getRequestHeaders(), `${landingUrl} should have been prefetched.`);
+
+  // We should have to wait for this response. While timing is going to be
+  // somewhat variable here, it's probably wrong for the response to seem
+  // to take less than 1 second (since we only waited for 1 second).
+  // Regardless, these events should be normally ordered.
+  const [entry] = await agent.execute_script(
+      () => performance.getEntriesByType('navigation'));
+  assert_less_than_equal(entry.connectEnd, entry.requestStart);
+  assert_less_than_equal(entry.requestStart, entry.responseStart);
+  assert_greater_than(entry.responseStart, 1000);
+}, "PerformanceNavigationTiming data should show noticeable TTFB if the response is slow");
+</script>

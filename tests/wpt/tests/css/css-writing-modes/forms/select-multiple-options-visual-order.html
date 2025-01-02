@@ -1,0 +1,75 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://html.spec.whatwg.org/#the-select-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Test &lt;select&gt; multiple attribute options visual order</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select multiple size="4"></select>
+<script>
+const select = document.querySelector("select");
+for (let i = 0; i < 4; i++) {
+    const option = document.createElement("option");
+    option.textContent = `Option ${i + 1}`;
+    select.appendChild(option);
+}
+
+for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+    if (!CSS.supports(`writing-mode: ${writingMode}`))
+        continue;
+
+    const isHorizontal = writingMode === "horizontal-tb";
+    const isReversedBlockFlowDirection = writingMode.endsWith("-rl");
+
+    promise_test(async function() {
+        select.style.writingMode = writingMode;
+        this.add_cleanup(() => {
+            select.removeAttribute("style");
+            select.value = "";
+        });
+
+        const elementBox = select.getBoundingClientRect();
+        const computedStyle = getComputedStyle(select);
+
+        const borderAndPaddingTop = parseFloat(computedStyle.borderTopWidth) + parseFloat(computedStyle.paddingTop);
+        const borderAndPaddingRight = parseFloat(computedStyle.borderRightWidth) + parseFloat(computedStyle.paddingRight);
+        const borderAndPaddingBottom = parseFloat(computedStyle.borderBottomWidth) + parseFloat(computedStyle.paddingBottom);
+        const borderAndPaddingLeft = parseFloat(computedStyle.borderLeftWidth) + parseFloat(computedStyle.paddingLeft);
+
+        const contentX = elementBox.x + borderAndPaddingLeft;
+        const contentY = elementBox.y + borderAndPaddingTop;
+        const contentWidth = elementBox.width - borderAndPaddingLeft - borderAndPaddingRight;
+        const contentHeight = elementBox.height - borderAndPaddingTop - borderAndPaddingBottom;
+
+        const logicalOptionHeight = (isHorizontal ? contentHeight : contentWidth) / select.size;
+
+        let currentX = contentX + (isHorizontal ? contentWidth : logicalOptionHeight) / 2;
+        let currentY = contentY + (isHorizontal ? logicalOptionHeight : contentHeight) / 2;
+
+        for (let i = 0; i < select.size; i++) {
+            await new test_driver.Actions()
+                .pointerMove(Math.round(currentX), Math.round(currentY))
+                .pointerDown()
+                .pointerUp()
+                .send();
+
+            assert_equals(
+                select.value,
+                select.options[isReversedBlockFlowDirection ? (select.size - i - 1) : i].value,
+                "options are in visually incorrect order"
+            );
+
+            if (isHorizontal) {
+                currentY += logicalOptionHeight;
+            } else {
+                currentX += logicalOptionHeight;
+            }
+        }
+    }, `select[multiple][style="writing-mode: ${writingMode}"] has visually correct option order`);
+};
+</script>

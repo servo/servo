@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>Test that file-input widgets have 'auto' height (not some other arbitrary value) when printed</title>
+  <meta name="assert" content="file-input widgets should have 'auto' height (not some other arbitrary value) when printed">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=133984">
+  <link rel="match" href="input-file-print-ref.html">
+  <style>
+    .with-outline {
+      outline: 2px solid teal;
+    }
+    .wrapper {
+      border: 2px solid fuchsia;
+    }
+  </style>
+</head>
+<body>
+  <input type="file">
+  <br><br>
+  <input type="file" class="with-outline">
+  <br><br>
+  <div class="wrapper"><input type="file"></div>
+</body>

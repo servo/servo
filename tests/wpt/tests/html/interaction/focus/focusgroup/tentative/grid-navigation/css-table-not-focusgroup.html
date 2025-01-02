@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Validate that Focusgroup doesn't work on CSS table when the focusgroup attribute is not present.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div style="display:table">
+  <div style="display:table-row">
+    <div id=r1c1 style="display:table-cell" tabindex=0>r1c1</div>
+    <div id=r1c2 style="display:table-cell" tabindex=-1>r1c2</div>
+  </div>
+  <div style="display:table-row">
+    <div id=r2c1 style="display:table-cell" tabindex=-1>r2c1</div>
+    <div id=r2c2 style="display:table-cell" tabindex=-1>r2c2</div>
+  </div>
+</div>
+
+<script>
+  promise_test(async t => {
+    var r1c1 = document.getElementById("r1c1");
+
+    await focusAndKeyPress(r1c1, kArrowRight);
+    assert_equals(document.activeElement, r1c1);
+  }, "Validates that a CSS table that doesn't have the focusgroup=grid attribute set doesn't allow arrow-keys navigation");
+
+</script>

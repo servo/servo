@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: Matching @font-face font-weight, font-style, and font-stretch descriptors with reversed ranges</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-prop-desc">
+<link rel="match" href="font-descriptor-range-reversed-ref.html">
+
+<!-- Using csstest-weights-{100,900}-kerned.ttf just as two convenient
+     different fonts here with different "A" glyphs -->
+
+<style>
+@font-face {
+  font-family: TestWeight;
+  src: url(resources/csstest-weights-100-kerned.ttf);
+  font-weight: 300 200;
+}
+@font-face {
+  font-family: TestWeight;
+  src: url(resources/csstest-weights-900-kerned.ttf);
+  font-weight: 300 400;
+}
+@font-face {
+  font-family: TestStyle;
+  src: url(resources/csstest-weights-100-kerned.ttf);
+  font-style: oblique 30deg 20deg;
+}
+@font-face {
+  font-family: TestStyle;
+  src: url(resources/csstest-weights-900-kerned.ttf);
+  font-style: oblique 30deg 40deg;
+}
+@font-face {
+  font-family: TestStretch;
+  src: url(resources/csstest-weights-100-kerned.ttf);
+  font-stretch: 120% 110%;
+}
+@font-face {
+  font-family: TestStretch;
+  src: url(resources/csstest-weights-900-kerned.ttf);
+  font-stretch: 120% 130%;
+}
+</style>
+
+<!-- Matches `font-weight: 300 200;` -->
+<p style="font-family: TestWeight; font-weight: 250;">A</p>
+
+<!-- Matches `font-style: oblique 30deg 20deg;` -->
+<p style="font-family: TestStyle; font-style: oblique 25deg;">A</p>
+
+<!-- Matches `font-style: oblique 120% 110%;` -->
+<p style="font-family: TestStretch; font-stretch: 115%;">A</p>
+
+<script>
+document.fonts.ready.then(function() {
+  document.documentElement.className = "";
+});
+</script>

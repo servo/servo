@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1748339">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+
+<style>
+.outer {
+  /* This is just to make the percent values resolve to something
+     predictable, and not browser-viewport-size-dependent. */
+  width: 500px;
+}
+
+.abspos-cb {
+  position: relative;
+  height: 0;
+  width: 0;
+
+  /* This element's padding-box ends up 90px-by-90px, calculated as 9% of the
+     .outer elements's 500px width (9% * 500px = 45px) on all four sides (top,
+     left, right, and bottom). This padding-box serves as the containing block
+     for the abspos flex container, and its size should be considered definite,
+     since the percentage-based padding has a definite percentage basis to
+     resolve against. So, all the percentage heights down the descendant-chain
+     (all the way down to the canvas) should be considered definite as well, and
+     that should contribute to canvas's intrinsic width contribution
+     (transferring via its aspect-ratio) when the flex item resolves its
+     'flex-basis:content'. */
+  padding: 9%;
+  border: 5px solid green;
+}
+
+.flex-container {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  display: flex;
+  border: 5px solid green;
+  box-sizing: border-box;
+  top: 0;
+  left: 0;
+}
+
+.item {
+  border: 5px solid green;
+  height: 100%;
+  /* width unset */
+  flex-basis: content;
+  box-sizing: border-box;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  border: 5px solid green;
+  background: green;
+  box-sizing: border-box;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+<div class="outer">
+  <div class="abspos-cb">
+    <div class="flex-container">
+      <div class="item">
+        <canvas width="10" height="10"></canvas>
+      </div>
+    </div>
+  </div>
+</div>

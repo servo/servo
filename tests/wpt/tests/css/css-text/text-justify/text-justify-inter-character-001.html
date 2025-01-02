@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text 7.4. Justification Method: text-justify: inter-character</title>
+<link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-justify-property">
+<link rel='match' href='text-justify-inter-character-001-ref.html'>
+<meta name="assert" content="text-justify:inter-character means justification adjusts spacing between each pair of adjacent typographic character units.">
+<style type='text/css'>
+p {
+  font-size: 1.5em;
+  border: 1px solid black;
+  padding: 10px;
+  margin-right: 310px;
+}
+.test {
+  text-align-last: justify;
+  text-justify: inter-character;
+}
+</style>
+</head>
+<body>
+<p lang="en" class="test">XX</p>
+<p lang="ja" class="test">文字</p>
+</body>
+</html>

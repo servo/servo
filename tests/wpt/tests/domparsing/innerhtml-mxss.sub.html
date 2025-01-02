@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div><a></a></div>
+  <script>
+    var whitespaces = [
+      "1680", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007",
+      "2008", "2009", "200a", "2028", "205f", "3000"
+    ];
+
+    for (var i = 0; i < whitespaces.length; i++) {
+      var container = document.querySelector('a').parentNode;
+      var entity = `&#x${whitespaces[i]};`;
+      var character = String.fromCharCode(parseInt(whitespaces[i], 16));
+      var url = encodeURIComponent(character);
+      container.innerHTML = `<a href="${entity}javascript:alert(1)">Link</a>`;
+
+      var a = document.querySelector('a');
+
+      test(_ => {
+        assert_equals(
+            container.innerHTML,
+            `<a href="${character}javascript:alert(1)">Link</a>`);
+      }, `innerHTML before setter: ${whitespaces[i]}`);
+      test(_ => {
+        assert_equals(
+            a.href,
+            `http://{{host}}:{{ports[http][0]}}/domparsing/${url}javascript:alert(1)`);
+      }, `href before setter: ${whitespaces[i]}`);
+
+      a.parentNode.innerHTML += 'foo';
+      a = document.querySelector('a');
+
+      test(_ => {
+        assert_equals(
+            container.innerHTML,
+            `<a href="${character}javascript:alert(1)">Link</a>foo`);
+      }, `innerHTML after setter: ${whitespaces[i]}`);
+      test(_ => {
+        assert_equals(
+            a.href,
+            `http://{{host}}:{{ports[http][0]}}/domparsing/${url}javascript:alert(1)`);
+      }, `href after setter: ${whitespaces[i]}`);
+    }
+  </script>
+</body>

@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+      async_test(function() {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/well-formed.xml")
+        client.responseType = "document"
+        assert_equals(client.responseType, "document")
+        client.send()
+        client.onload = this.step_func_done(function() {
+          var first = client.response
+          var second = client.response
+          assert_not_equals(first, null)
+          assert_not_equals(second, null)
+          assert_equals(first, second)
+        })
+      }, "Getting response, then response")
+
+      async_test(function() {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/well-formed.xml")
+        client.responseType = "document"
+        assert_equals(client.responseType, "document")
+        client.send()
+        client.onload = this.step_func_done(function() {
+          var first = client.responseXML
+          var second = client.responseXML
+          assert_not_equals(first, null)
+          assert_not_equals(second, null)
+          assert_equals(first, second)
+        })
+      }, "Getting responseXML, then responseXML")
+
+      async_test(function() {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/well-formed.xml")
+        client.responseType = "document"
+        assert_equals(client.responseType, "document")
+        client.send()
+        client.onload = this.step_func_done(function() {
+          var first = client.responseXML
+          var second = client.response
+          assert_not_equals(first, null)
+          assert_not_equals(second, null)
+          assert_equals(first, second)
+        })
+      }, "Getting responseXML, then response")
+
+      async_test(function() {
+        var client = new XMLHttpRequest()
+        client.open("GET", "resources/well-formed.xml")
+        client.responseType = "document"
+        assert_equals(client.responseType, "document")
+        client.send()
+        client.onload = this.step_func_done(function() {
+          var first = client.response
+          var second = client.responseXML
+          assert_not_equals(first, null)
+          assert_not_equals(second, null)
+          assert_equals(first, second)
+        })
+      }, "Getting response, then responseXML")
+</script>

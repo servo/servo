@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="match" href="accent-color-visited-ref.html">
+
+<!-- :visited shouldn't apply to accent-color. -->
+
+<style>
+:visited {
+  accent-color: red;
+}
+</style>
+<a href="">
+  <input type=checkbox checked>
+</a>

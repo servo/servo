@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<body>
+<div id="container"></div>
+<script>
+var container = document.querySelector('#container');
+const policy = createScript_policy(window, 'onclick');
+const policy_html = createHTML_policy(window, 'onclick-html');
+
+// Trusted Type assignments do not throw.
+async_test(t => {
+  window.onclickDone1 = t.step_func_done();
+  let script = policy.createScript("window.onclickDone1();");
+  let el = document.createElement('a');
+  el.setAttribute('onclick', script);
+  container.appendChild(el);
+  el.click();
+}, "a.setAttribte('onclick') sets a trusted script.");
+
+// Unsuitable TrustedType assignments do throw.
+async_test(t => {
+  window.onclickFail1 = t.unreached_func();
+  let script = policy_html.createHTML("window.onclickFail1();");
+  let el = document.createElement('a');
+  try {
+    el.setAttribute('onclick', script);
+    container.appendChild(el);
+    el.click();
+  } catch (e) {
+    t.done();
+  }
+  assert_unreached();
+}, "a.setAttribute('onclick') sets an unsuitable trusted type.");
+
+// So do plain test assignments.
+async_test(t => {
+  window.onclickFail2 = t.unreached_func();
+  let el = document.createElement('a');
+  try {
+    el.setAttribute("onclick", "window.onclickFail2();");
+    container.appendChild(el);
+    el.click();
+  } catch (e) {
+    t.done();
+  }
+  assert_unreached();
+}, "a.setAttribute('click') sets a test string.");
+/*
+// Trusted Type assignments via property access does not throw.
+async_test(t => {
+  window.onclickDone2 = t.step_func_done();
+  let script = policy.createScript("window.onclickDone2();");
+  let el = document.createElement('a');
+  el.onclick = script;
+  container.appendChild(el);
+  el.click();
+}, "a.onclick assigned via policy (successful Script transformation).");
+
+// Unsuitable TrustedType assignments do throw.
+async_test(t => {
+  window.onclickFail3 = t.unreached_func();
+  let script = policy_html.createHTML("window.onclickFail3();");
+  let el = document.createElement('a');
+  try {
+    el.onclick = script;
+    container.appendChild(el);
+    el.click();
+  } catch (e) {
+    t.done();
+  }
+  assert_unreached();
+}, "a.onclick assigned via an unsuitable policy.");
+
+// So do plain test assignments.
+async_test(t => {
+  window.onclickFail4 = t.unreached_func();
+  let el = document.createElement('a');
+  try {
+    el.onclick = window.onclickFail4();
+    container.appendChild(el);
+    el.click();
+  } catch (e) {
+    t.done();
+  }
+  assert_unreached();
+}, "a.onclick assigned a test string.");
+*/
+</script>

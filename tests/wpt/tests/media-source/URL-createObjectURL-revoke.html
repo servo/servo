@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>Revoking a created URL with URL.revokeObjectURL(url)</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+async_test(function(t) {
+    var mediaSource = new MediaSource();
+    var url = window.URL.createObjectURL(mediaSource);
+    window.URL.revokeObjectURL(url);
+    mediaSource.addEventListener('sourceopen',
+                                 t.unreached_func("url should not reference MediaSource."));
+    var video = document.createElement('video');
+    video.src = url;
+    video.addEventListener('error', t.step_func_done(function(e) {
+        assert_equals(e.target.error.code,
+                      MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
+                      'Expected error code');
+        assert_equals(mediaSource.readyState, 'closed');
+    }));
+}, "Check revoking behavior of URL.revokeObjectURL(url).");
+async_test(function(t) {
+    var mediaSource = new MediaSource();
+    var url = window.URL.createObjectURL(mediaSource);
+    var video = document.createElement('video');
+    var unexpectedErrorHandler = t.unreached_func("Unexpected error.")
+    video.addEventListener('error', unexpectedErrorHandler);
+    video.src = url;
+    window.URL.revokeObjectURL(url);
+    mediaSource.addEventListener('sourceopen', t.step_func_done(function(e) {
+        assert_equals(mediaSource.readyState, 'open');
+        mediaSource.endOfStream();
+        video.removeEventListener('error', unexpectedErrorHandler);
+    }));
+}, "Check referenced MediaSource can open after URL.revokeObjectURL(url).");
+async_test(function(t) {
+    var mediaSource = new MediaSource();
+    var url = window.URL.createObjectURL(mediaSource);
+    setTimeout(function() {
+        mediaSource.addEventListener('sourceopen',
+                                     t.unreached_func("url should not reference MediaSource."));
+        var video = document.createElement('video');
+        video.src = url;
+        video.addEventListener('error', t.step_func_done(function(e) {
+            assert_equals(e.target.error.code,
+                          MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
+                          'Expected error code');
+            assert_equals(mediaSource.readyState, 'closed');
+        }));
+    }, 0);
+}, "Check auto-revoking behavior with URL.createObjectURL(MediaSource).");
+</script>
+</body>
+</html>

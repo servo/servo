@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Transitions start at the same time regardless of on-screen status</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1888748">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.transition {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  transition: translate 10000ms linear;
+  will-change: translate;
+  translate: 0;
+}
+.offscreen {
+  background-color: purple;
+  translate: -1000px;
+}
+</style>
+<div class="transition"></div>
+<div class="transition offscreen"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  let [a, b] = document.querySelectorAll(".transition");
+
+  // Ensure a paint happens to make sure a transition gets triggered (otherwise
+  // getAnimations() would flush sync, and maybe not trigger a transition if
+  // it's the first style of the elements).
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  // Trigger both transitions at the same time.
+  a.style.translate = b.style.translate = "100px";
+
+  let ta = a.getAnimations()[0];
+  let tb = b.getAnimations()[0];
+
+  await Promise.all([ta.ready, tb.ready]);
+  assert_equals(ta.startTime, tb.startTime, "Both transitions should've started at the same time");
+});
+</script>

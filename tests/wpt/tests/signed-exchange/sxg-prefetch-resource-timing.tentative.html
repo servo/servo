@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Resource Timing for prefetched SignedHTTPExchange</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+function addPrefetch(url) {
+  let link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = url;
+  document.body.appendChild(link);
+}
+
+async function waitForPerformanceEntries(url) {
+  let entries = performance.getEntriesByName(url);
+  if (entries.length > 0) {
+    return entries;
+  }
+  return new Promise((resolve) => {
+    new PerformanceObserver((list) => {
+      const entries = list.getEntriesByName(url);
+      if (entries.length > 0) {
+        resolve(entries);
+      }
+    }).observe({ entryTypes: ['resource'] });
+  });
+}
+
+promise_test(async (t) => {
+  const url = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-location.sxg';
+  addPrefetch(url);
+  return waitForPerformanceEntries(url).then((entries) => {
+    assert_equals(entries.length, 1, "Should have only one resource timing entry");
+    const e = entries[0];
+    assert_greater_than(e.duration, 0, "duration should be greater than 0");
+    assert_greater_than(e.fetchStart, 0, "fetchStart should be greater than 0");
+    assert_greater_than(e.responseEnd, e.fetchStart,
+                        "responseEnd should be greater than fetchStart");
+  });
+}, 'Resource Timing for prefetched SignedHTTPExchange');
+</script>
+</body>

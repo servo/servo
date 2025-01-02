@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link><img src="/images/lcp-256x256.png" id="img"></a>
+    </div>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    let first_lcp_painted;
+    let second_lcp_painted;
+    (async () => {
+      await new Promise(r => { first_lcp_painted = r; });
+      addTextParagraphToMain("LOREM IPSUMR", "no lcp");
+      (new PerformanceObserver(second_lcp_painted)).observe({type: "element"});
+    })();
+    testSoftNavigation({
+      pushState: null,
+      addContent: async () => {
+        // Add an LCP element.
+        await new Promise(resolve => {
+          const p = addTextParagraphToMain("Lorem Ipsum", /*element_timing=*/"first_lcp");
+          p.id = "first_lcp";
+          (new PerformanceObserver(resolve)).observe({type: "element"});
+        });
+        first_lcp_painted();
+        // Wait for the unrelated LCP to be painted.
+        await new Promise(r => { second_lcp_painted = r; });
+        const url = URL + "?" + counter;
+        history.pushState({}, '', url);
+      },
+      link: link,
+      validate: async () => {
+        const lcps = await getLcpEntries();
+        assert_equals(lcps.length, 2, "Got 2 LCP entries");
+        assert_equals(lcps[lcps.length - 1].id, "first_lcp", "Got the first LCP");
+      },
+      test: "Text LCP discovered between user interaction and soft " +
+            "navigation detection are properly reported, while unrelated " +
+            "LCPs are ignored during that time. As a side effect, we also " +
+            "test element timing."});
+  </script>
+</body>
+</html>
+

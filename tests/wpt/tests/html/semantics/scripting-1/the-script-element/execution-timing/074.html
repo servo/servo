@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html><head>
+  <title> scheduler: document.write into IFRAME a script that creates new inline script in parent that again adds script to IFRAME </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+  <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+  <iframe style="width:1px;height:1px"></iframe>
+
+  <script type="text/javascript">
+    var doc = document.getElementsByTagName('iframe')[0].contentDocument;
+    doc.open();
+    var str1='';
+    var html = '<html><head><title>test</title></head>'+
+              '<script>top.log("inline script #1");'+
+              '<\/script>'+
+              '</head>'+
+              '<body>'+
+              '<script>top.testlib.addScript( \'top.log("inline script added to parent");top.doc.write( "<script>top.log(\\\\"inline script added to iframe\\\\")<\\\/script>");\', null, top.document.body, true ) <\/script>'+
+              '</body></html>';
+    log("calling document.write");
+    doc.write(html);
+
+    log("calling document.close");
+    doc.close();
+
+    var t = async_test()
+
+
+    function test() {
+      assert_array_equals(eventOrder, ['calling document.write',
+          'inline script #1',
+          'inline script added to parent',
+          'inline script added to iframe',
+          'calling document.close',
+        ]);
+      t.done();
+    }
+
+    onload = t.step_func(test)
+  </script>
+</head>
+
+</body>
+</html>

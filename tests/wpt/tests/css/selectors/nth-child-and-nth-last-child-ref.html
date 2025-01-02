@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    target {
+        background-color: red;
+    }
+
+    #success1, #success2, #success3 {
+        background-color: green;
+    }
+</style>
+</head>
+<body>
+    <p>Test the matching of an element only if it is the only child matching the selector list. If the test succeed, every instance of the text "Success" should be on green background.</p>
+    <div>
+        <div></div>
+        <target>Foo</target>
+        <div></div>
+        <target>Bar</target>
+        <div></div>
+    </div>
+    <div>
+        <div></div>
+        <div></div>
+        <target id="success1">Success</target>
+        <div></div>
+    </div>
+    <div>
+        <div></div>
+        <target>Foo</target>
+        <div></div>
+        <target>Bar</target>
+        <div></div>
+    </div>
+    <div>
+        <div></div>
+        <div></div>
+        <target id="success2">Success</target>
+        <div></div>
+    </div>
+    <div>
+        <div></div>
+        <target>Foo</target>
+        <div></div>
+        <target>Bar</target>
+        <div></div>
+    </div>
+    <div>
+        <div></div>
+        <div></div>
+        <target id="success3">Success</target>
+        <div></div>
+    </div>
+</body>
+</html>

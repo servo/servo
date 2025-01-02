@@ -1,0 +1,11 @@
+features:
+- name: autonomous-custom-elements
+  files:
+  - Document-importNode.html
+  - Node-cloneNode.html
+  - upgrading-enqueue-reactions.html
+  - upgrading-parser-created-element.html
+- name: customized-built-in-elements
+  files:
+  - Document-importNode-customized-builtins.html
+  - Node-cloneNode-customized-builtins.html

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes" title="first paragraph">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#orthogonal-auto">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The intrinsic size of an orthogonal child is its shrink to fit size after layout" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width:min-content; background:red;">
+  <div style="writing-mode:vertical-rl; background:green;">
+    <div style="margin-right:50%; width:50px; height:100px;"></div>
+  </div>
+</div>

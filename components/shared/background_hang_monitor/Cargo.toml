@@ -1,0 +1,19 @@
+[package]
+name = "background_hang_monitor_api"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "background_hang_monitor_api"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+base = { workspace = true }
+ipc-channel = { workspace = true }
+serde = { workspace = true }

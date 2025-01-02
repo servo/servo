@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  promise_test(async t => {
+    window.onload = () => {
+        // Trigger a long task.
+        const begin = window.performance.now();
+        while (window.performance.now() < begin + 60);
+    };
+
+    assert_implements(window.PerformanceLongAnimationFrameTiming, 'Lon are not supported.');
+    const entry = await new Promise(resolve => new PerformanceObserver(
+      t.step_func(entryList => {
+        const entries = entryList.getEntries();
+        assert_greater_than_equal(entries.length, 1);
+        resolve(entries[0]);
+      })).observe({entryTypes: ["long-animation-frame"]}));
+
+    assert_equals(typeof(entry.toJSON), 'function');
+    const entryJSON = entry.toJSON();
+    assert_equals(typeof(entryJSON), 'object');
+    // Check attributes inheritted from PerformanceEntry.
+    const performanceEntryKeys = [
+        'name',
+        'entryType',
+        'startTime',
+        'duration',
+        'renderStart',
+        'styleAndLayoutStart',
+        'blockingTime',
+        'firstUIEventTimestamp'
+    ];
+    for (const key of performanceEntryKeys) {
+        assert_equals(entryJSON[key], entry[key],
+            `entry.toJSON().${key} should match entry.${key}`);
+    }
+
+  }, 'Test toJSON() in PerformanceLongAnimationFrameTiming');
+</script>
+</body>
+</html>

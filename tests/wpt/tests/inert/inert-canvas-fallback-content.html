@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Focusability of inert inside canvas</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focusable-area">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#being-used-as-relevant-canvas-fallback-content">
+<link rel="help" href="https://github.com/whatwg/html/issues/7534">
+<meta name="assert" content="
+  Checks that inert elements are not focusable
+  even when being used as relevant canvas fallback content,
+  even in a display:none subtree">
+<div id="log"></div>
+<canvas>
+  <section>
+    <div tabindex="-1" data-focusable="true">
+      normal `div`
+    </div>
+    <span tabindex="-1" data-focusable="true">
+      normal `span`
+    </span>
+    <a href="#" data-focusable="true">
+      normal `a`
+    </a>
+  </section>
+  <section style="display: none">
+    <div tabindex="-1" data-focusable="false">
+      `div` in `display: none`
+    </div>
+    <span tabindex="-1" data-focusable="false">
+      `span` in `display: none`
+    </span>
+    <a href="#" data-focusable="false">
+      `a` in `display: none`
+    </a>
+  </section>
+  <section inert>
+    <div tabindex="-1" data-focusable="false">
+      inert `div`
+    </div>
+    <span tabindex="-1" data-focusable="false">
+      inert `span`
+    </span>
+    <a href="#" data-focusable="false">
+      inert `a`
+    </a>
+  </section>
+  <section inert style="display: none">
+    <div tabindex="-1" data-focusable="false">
+      inert `div` in `display: none`
+    </div>
+    <span tabindex="-1" data-focusable="false">
+      inert `span` in `display: none`
+    </span>
+    <a href="#" data-focusable="false">
+      inert `a` in `display: none`
+    </a>
+  </section>
+</canvas>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+for (let element of document.querySelectorAll("[data-focusable]")) {
+  test(function() {
+    assert_not_equals(document.activeElement, element);
+    element.focus();
+    if (JSON.parse(element.dataset.focusable)) {
+      assert_equals(document.activeElement, element);
+    } else {
+      assert_not_equals(document.activeElement, element);
+    }
+  }, element.textContent);
+}
+</script>

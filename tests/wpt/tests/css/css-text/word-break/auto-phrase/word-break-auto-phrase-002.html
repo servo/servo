@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-break: auto-phrase</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-002-ref.html">
+<meta name="assert" content="word-break: auto-phrase inserts virtual word boundaries at reasonable points, creating soft wrapping opportunities">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: min-content; /*not 0, to avoid falling into overflow fallback behavior */
+  word-break: normal;
+}
+#test {
+  word-break: auto-phrase;
+}
+#ref {
+  border-color: blue;
+}
+</style>
+
+<p>Test passes if the black box is identical to either the blue one.
+
+<div id=test lang=th>
+  กรุงเทพคือสวยงาม
+</div>
+<div id=ref lang=th>
+  กรุงเทพ<wbr>คือ<wbr>สวยงาม
+</div>
+
+<!--
+    In this particular example,
+    the expected results is one word phrases.
+    Therefore, even if auto-phrase for thai isn't specifically supported,
+    this ought to work.
+    But if it is supported,
+    gluing everything together would be mistaken:
+    this is auto-phrase,
+    not auto-sentence.
+-->
+

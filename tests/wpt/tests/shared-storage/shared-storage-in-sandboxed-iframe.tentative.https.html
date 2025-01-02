@@ -1,0 +1,86 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/browsing-topics/resources/header-util.sub.js></script>
+  <script>
+    function test_shared_storage_in_sandboxed_iframe(test, sandbox_flags, method, expect_success) {
+      let frame = document.createElement('iframe');
+      frame.sandbox = sandbox_flags;
+      frame.src = '/shared-storage/resources/verify-shared-storage.https.html' +
+                  `?method=${method}`;
+
+      window.addEventListener('message', test.step_func(function handler(evt) {
+        if (evt.source === frame.contentWindow) {
+          if (expect_success) {
+            assert_equals(evt.data.accessSharedStorageResult, 'success');
+          } else {
+            assert_equals(evt.data.accessSharedStorageResult, 'failure');
+          }
+
+          document.body.removeChild(frame);
+          window.removeEventListener('message', handler);
+          test.done();
+        }
+      }));
+
+      document.body.appendChild(frame);
+    }
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts allow-same-origin',
+        /*method=*/'set',
+        /*expect_success=*/true);
+    }, 'test sharedStorage.set() in sandboxed iframe with "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts',
+        /*method=*/'set',
+        /*expect_success=*/false);
+    }, 'test sharedStorage.set() in sandboxed iframe without "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts allow-same-origin',
+        /*method=*/'createWorklet',
+        /*expect_success=*/true);
+    }, 'test sharedStorage.createWorklet() in sandboxed iframe with "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts',
+        /*method=*/'createWorklet',
+        /*expect_success=*/false);
+    }, 'test sharedStorage.createWorklet() in sandboxed iframe without "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts allow-same-origin',
+        /*method=*/'createWorkletScriptOrigin',
+        /*expect_success=*/true);
+    }, 'test sharedStorage.createWorklet() with dataOrigin "script-origin" in sandboxed iframe with "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts',
+        /*method=*/'createWorkletScriptOrigin',
+        /*expect_success=*/true);
+    }, 'test sharedStorage.createWorklet() with dataOrigin "script-origin" in sandboxed iframe without "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts allow-same-origin',
+        /*method=*/'addModule',
+        /*expect_success=*/true);
+    }, 'test sharedStorage.worklet.addModule() in sandboxed iframe with "allow-same-origin"');
+
+    async_test(t => {
+      test_shared_storage_in_sandboxed_iframe(t,
+        /*sandbox_flags=*/'allow-scripts',
+        /*method=*/'addModule',
+        /*expect_success=*/false);
+    }, 'test sharedStorage.worklet.addModule() in sandboxed iframe without "allow-same-origin"');
+  </script>
+</body>

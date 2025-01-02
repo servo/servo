@@ -1,0 +1,48 @@
+<!--quirks-->
+<title>Syntax quirks in @supports/CSS.supports</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel=help href=https://drafts.csswg.org/css-conditional/#at-supports>
+<link rel=help href=https://drafts.csswg.org/css-conditional/#the-css-interface>
+<link rel=help href=https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk>
+<link rel=help href=https://quirks.spec.whatwg.org/#the-unitless-length-quirk>
+<style>
+ /* sanity check */
+ @supports (background-color: lime) { #a { background-color: lime } }
+ @supports (background-position: 1px 1px) { #a { background-position: 1px 1px } }
+ /* test */
+ @supports (background-color: 00ff00) { #b { background-color: 00ff00 } }
+ @supports (background-position: 1 1) { #b { background-position: 1 1 } }
+</style>
+<div id=a></div>
+<div id=b></div>
+<div id=c></div> <!-- c unstyled -->
+<script>
+var a = document.getElementById('a');
+var b = document.getElementById('b');
+var c = document.getElementById('c');
+
+test(function() {
+  assert_not_equals(getComputedStyle(a).backgroundColor, getComputedStyle(c).backgroundColor);
+}, 'Sanity check @supports color');
+
+test(function() {
+  assert_equals(getComputedStyle(b).backgroundColor, getComputedStyle(a).backgroundColor);
+}, '@supports quirky color');
+
+test(function() {
+  assert_false(CSS.supports('background-color', '00ff00'));
+}, 'CSS.supports() quirky color');
+
+test(function() {
+  assert_not_equals(getComputedStyle(a).backgroundPosition, getComputedStyle(c).backgroundPosition);
+}, 'Sanity check @supports length');
+
+test(function() {
+  assert_equals(getComputedStyle(b).backgroundPosition, getComputedStyle(a).backgroundPosition);
+}, '@supports quirky length');
+
+test(function() {
+  assert_false(CSS.supports('background-position', '1 1'));
+}, 'CSS.supports() quirky length');
+</script>

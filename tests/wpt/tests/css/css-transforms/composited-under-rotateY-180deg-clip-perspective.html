@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Test (Transforms): composited under rotateY(180deg) with overflow clip under perspective</title>
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2">
+<meta name="assert" content="This tests that a composited element with default
+  backface-visibility is visible under rotateY(180deg) with overflow clip under
+  perspective.">
+<link rel="match" href="composited-under-rotateY-180deg-clip-perspective-ref.html">
+<div style="perspective: 1px">
+  <div style="transform: rotateY(180deg); overflow: hidden; width: 100px">
+    <div style="width: 100px; height: 100px; background: green; will-change: transform"></div>
+  </div>
+  <div style="transform: rotateY(180deg); overflow: hidden; width: 100px;
+    height: 100px; background: red; backface-visibility: hidden"></div>
+  </div>
+</div>

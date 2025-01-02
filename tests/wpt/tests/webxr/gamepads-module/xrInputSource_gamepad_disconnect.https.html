@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "WebXR InputSource's gamepad gets disconnected when the input source is removed";
+
+let watcherDone = new Event("watcherdone");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
+  let eventPromise = eventWatcher.wait_for(["watcherdone"]);
+
+  let inputChangeEvents = 0;
+  let cached_input_source = null;
+  function onInputSourcesChange(event) {
+    t.step(() => {
+      inputChangeEvents++;
+
+      // The first change event should be adding our controller/gamepad.
+      if (inputChangeEvents === 1) {
+        // We should have one input source
+        assert_equals(session.inputSources.length, 1,
+          "should initially have an input source");
+        assertGamepadConnected();
+      } else if (inputChangeEvents === 2) {
+        // The second event should be disconnecting our gamepad, we should still
+        // have an input source.
+        assert_equals(session.inputSources.length, 1,
+          "removing the gamepad shouldn't remove the input source");
+        // However, disconnecting the gamepad from the input source should cause
+        // the input source to be re-created. Verify this.
+        assertInputSourceRecreated(event);
+        assertGamepadDisconnected();
+        cached_input_source = session.inputSources[0];
+      } else if (inputChangeEvents === 3) {
+        assert_equals(session.inputSources.length, 1,
+          "re-adding the gamepad shouldn't add an extra input source");
+        // The third event should be reconnecting our gamepad, we should still
+        // have an input source. However, it should have been re-created.
+        assertInputSourceRecreated(event);
+        assertGamepadConnected();
+      } else if (inputChangeEvents === 4) {
+        // The fourth event should be disconnecting our gamepad, we should no
+        // longer have an input source.
+        assert_equals(session.inputSources.length, 0,
+          "input source should have been disconnected");
+        assertGamepadDisconnected();
+      } else if (inputChangeEvents === 5) {
+        // The fifth event should be re-connecting our gamepad to prep for
+        // ending the session.
+        assert_equals(session.inputSources.length, 1,
+          "input source should have been re-connected");
+        assertGamepadConnected();
+        session.dispatchEvent(watcherDone);
+      }
+    });
+  }
+
+  function assertInputSourceRecreated(event) {
+    assert_equals(event.added.length, 1);
+    assert_equals(event.removed.length, 1);
+    assert_equals(session.inputSources[0], event.added[0]);
+    assert_equals(cached_input_source, event.removed[0]);
+  }
+
+  function assertGamepadConnected() {
+    cached_input_source = session.inputSources[0];
+    assert_not_equals(cached_input_source, null,
+      "Expect to get a cached_input_source, iteration: " + inputChangeEvents);
+    assert_not_equals(cached_input_source.gamepad, null,
+      "Expect to have a gamepad, iteration: " + inputChangeEvents);
+    assert_equals(cached_input_source.gamepad.index, -1,
+      "WebXR Gamepad.index must be -1, iteration: " + inputChangeEvents);
+    assert_equals(cached_input_source.gamepad.id, "",
+      "WebXR Gamepad.id must be empty string, iteration: " + inputChangeEvents);
+    assert_true(cached_input_source.gamepad.connected,
+      "Expect the gamepad to be connected, iteration: " + inputChangeEvents);
+  }
+
+  function assertGamepadDisconnected() {
+    assert_not_equals(cached_input_source, null,
+      "Expect to have a cached_input_source, iteration: " + inputChangeEvents);
+    assert_not_equals(cached_input_source.gamepad, null,
+      "Expect to have a gamepad on cached_input_source, iteration: " + inputChangeEvents);
+    assert_equals(cached_input_source.gamepad.index, -1,
+      "WebXR Gamepad.index must be -1, iteration: " + inputChangeEvents);
+    assert_equals(cached_input_source.gamepad.id, "",
+      "WebXR Gamepad.id must be empty string, iteration: " + inputChangeEvents);
+    assert_false(cached_input_source.gamepad.connected,
+      "Expect cached gamepad to be disconnected, iteration: " + inputChangeEvents);
+  }
+
+  session.addEventListener('inputsourceschange', onInputSourcesChange, false);
+
+  // A set of supported buttons which should cause the runtime to treat the
+  // controller as supporting a gamepad.
+  let gamepadButtons = [
+    {
+      buttonType: 'grip',
+      pressed: false,
+      touched: false,
+      pressedValue: 0
+    },
+    {
+      buttonType: 'touchpad',
+      pressed: false,
+      touched: false,
+      pressedValue: 0
+    }
+  ];
+
+  let input_source = fakeDeviceController.simulateInputSourceConnection({
+    handedness: "right",
+    targetRayMode: "tracked-pointer",
+    pointerOrigin: VALID_POINTER_TRANSFORM,
+    profiles: [],
+    supportedButtons: gamepadButtons
+  });
+
+  // Input events need one frame to propagate, so this does (in order and running
+  // a rAF after each step:
+  // 1. Disconnect the gamepad (so we can verify that the gamepad is disconnected)
+  // 2. Reconnect the gamepad (so we can set up to disconnect the controller)
+  // 3. Disconnect the controller (so we can verify that it's gamepad gets disconnected).
+  // 4. Adds the controller back (so we can test the end Session)
+  // 5. Waits for all of the input events to finish propagating, then ends the
+  // session, at which point the controller should be disconnected.
+  return new Promise((resolve) => {
+    requestSkipAnimationFrame(session, () => {
+      input_source.setSupportedButtons([]);
+      session.requestAnimationFrame(() => {
+        input_source.setSupportedButtons(gamepadButtons);
+        session.requestAnimationFrame(() => {
+          input_source.disconnect();
+          session.requestAnimationFrame(() => {
+            input_source.reconnect();
+            session.requestAnimationFrame(() => {
+              eventPromise.then(() => {
+                session.end().then(() => {
+                  assertGamepadDisconnected();
+                  resolve();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+</script>

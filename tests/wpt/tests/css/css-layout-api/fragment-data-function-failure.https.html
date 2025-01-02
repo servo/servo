@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutfragment-data">
+<link rel="match" href="green-square-ref.html">
+<meta name="assert" content="This test checks that passing something that can't be serialized to the parent triggers a fallback to block layout." />
+<style>
+.test {
+  background: red;
+  width: 100px;
+}
+
+.child {
+  height: 100px;
+}
+
+@supports (display: layout(fallback-fn)) {
+  .test {
+    display: layout(fallback-fn);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('fallback-fn', class {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
+    const childFragments = await children.map(child => child.layoutNextFragment());
+    return {autoBlockSize: 0, childFragments, data: {fn: function() {}}};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

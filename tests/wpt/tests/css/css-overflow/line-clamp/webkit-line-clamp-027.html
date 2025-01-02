@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp and fieldset</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-027-ref.html">
+<meta name="assert" content="-webkit-line-clamp should skip over fieldsets.">
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font: 16px / 32px monospace;
+  white-space: pre;
+  background-color: yellow;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+}
+</style>
+<div class="clamp"><div>Line 1
+Line 2<fieldset>Line 3
+Line 4<legend>Line 5
+Line 6</legend></fieldset>Line 7
+Line 8</div></div>
+<p>Following content.</p>

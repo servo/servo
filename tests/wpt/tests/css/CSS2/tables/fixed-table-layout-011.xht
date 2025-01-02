@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table with table-layout fixed, width auto (inline-level)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="A table with fixed table-layout and auto width may be sized according to the auto table layout algorithm." />
+        <style type="text/css">
+            table
+            {
+                table-layout: fixed;
+                width: auto;
+            }
+            col
+            {
+                width: 100px;
+            }
+            td
+            {
+                color: white;
+            }
+            #secondrow
+            {
+                border: 2px solid black;
+                color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below fully contains the text "FillerTextFillerText" or the text overflows the box.</p>
+        <table>
+            <col />
+            <tr>
+                <td>FillerText</td>
+            </tr>
+            <tr>
+                <td id="secondrow">FillerTextFillerText</td>
+            </tr>
+        </table>
+    </body>
+</html>

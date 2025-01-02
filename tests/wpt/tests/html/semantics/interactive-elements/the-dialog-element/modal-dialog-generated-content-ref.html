@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<style>
+#dialog {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    height: 100px;
+    width: 100px;
+    background: green;
+}
+
+#dialog-before {
+    position: absolute;
+    top: 0px;
+}
+
+#dialog-after {
+    position: absolute;
+    bottom: 0px;
+}
+
+#dialog-backdrop {
+    position: absolute;
+    top: 100px;
+    left: 300px;
+    height: 100px;
+    width: 100px;
+    background: green;
+}
+</style>
+<body>
+Test for a modal dialog with ::before, ::after, and ::backdrop. The test passes
+if there are two green boxes, one with the texts "::before" and "::after" in it.
+<div id="dialog">
+    <div id="dialog-before">::before</div>
+    <div id="dialog-after">::after</div>
+</div>
+<div id="dialog-backdrop"></div>
+<script>
+document.querySelector('dialog').showModal();
+</script>
+</body>

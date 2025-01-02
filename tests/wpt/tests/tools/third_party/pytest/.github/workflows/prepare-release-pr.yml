@@ -1,0 +1,52 @@
+name: prepare release pr
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to base the release from'
+        required: true
+        default: ''
+      major:
+        description: 'Major release? (yes/no)'
+        required: true
+        default: 'no'
+      prerelease:
+        description: 'Prerelease (ex: rc1). Leave empty if not a pre-release.'
+        required: false
+        default: ''
+
+# Set permissions at the job level.
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.8"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade setuptools tox
+
+    - name: Prepare release PR (minor/patch release)
+      if: github.event.inputs.major == 'no'
+      run: |
+        tox -e prepare-release-pr -- ${{ github.event.inputs.branch }} ${{ github.token }} --prerelease='${{ github.event.inputs.prerelease }}'
+
+    - name: Prepare release PR (major release)
+      if: github.event.inputs.major == 'yes'
+      run: |
+        tox -e prepare-release-pr -- ${{ github.event.inputs.branch }} ${{ github.token }} --major --prerelease='${{ github.event.inputs.prerelease }}'

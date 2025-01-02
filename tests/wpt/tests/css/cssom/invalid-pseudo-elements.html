@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: Test that rules with invalid pseudo elements are not found</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    ::part {}
+    ::slotted {}
+    ::highlight {}
+</style>
+<script>
+    test(() => {
+        assert_equals(document.styleSheets[0].cssRules[0]?.selectorText, undefined, "No associated selectorText");
+        assert_equals(document.styleSheets[0].cssRules[0], undefined, "No invalid pseudo element rule should be found");
+    });
+</script>

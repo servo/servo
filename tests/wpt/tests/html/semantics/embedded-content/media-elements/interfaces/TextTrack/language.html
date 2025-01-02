@@ -1,0 +1,29 @@
+<!doctype html>
+<title>TextTrack.language</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles', 'foo', 'foo');
+    window.track = document.createElement('track');
+    track.setAttribute('srclang', 'bar');
+    video.appendChild(track);
+    window.t2 = track.track;
+});
+test(function(){
+    assert_equals(t1.language, 'foo');
+    assert_equals(t2.language, 'bar');
+    track.srclang = 'baz';
+    assert_equals(t2.language, 'baz');
+    track.removeAttribute('srclang');
+    assert_equals(t2.language, '');
+});
+test(function(){
+    track.srclang = '\u0000a';
+    assert_equals(t2.language, '\u0000a', 'IDL attribute');
+    track.setAttribute('srclang', '\u0000b');
+    assert_equals(t2.language, '\u0000b', 'content attribute');
+}, document.title+', \\u0000');
+</script>

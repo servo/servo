@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Vertical Writing Mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-vertical-writing-mode-001-ref.html">
+<link rel="stylesheet" href="../../css-pseudo/support/highlights.css">
+<meta name="assert" value="::highlight overlay is painted correctly when the highlighted text is in a vertical writing mode">
+<meta name="fuzzy" content="0-255;0-20">
+<style>
+  #verticalRL {
+      writing-mode: vertical-rl;
+  }
+  #verticalLR {
+      writing-mode: vertical-lr;
+  }
+  #sidewaysRL {
+      writing-mode: sideways-rl;
+  }
+  #sidewaysLR {
+      writing-mode: sideways-lr;
+  }
+  ::highlight(example-highlight) {
+    background-color: yellow;
+    color: blue;
+  }
+</style>
+<body>
+<div id="verticalRL" class="highlight_reftest"><span>One </span><span>two </span><span>three…</span></div>
+<div id="verticalLR" class="highlight_reftest"><span>One </span><span>two </span><span>three…</span></div>
+<div id="sidewaysRL" class="highlight_reftest"><span>One </span><span>two </span><span>three…</span></div>
+<div id="sidewaysLR" class="highlight_reftest"><span>One </span><span>two </span><span>three…</span></div>
+<script>
+  let verticalRLRange = new Range();
+  verticalRLRange.setStart(verticalRL, 0);
+  verticalRLRange.setEnd(verticalRL, 2);
+  let verticalLRRange = new Range();
+  verticalLRRange.setStart(verticalLR, 0);
+  verticalLRRange.setEnd(verticalLR, 2);
+  let sidewaysRLRange = new Range();
+  sidewaysRLRange.setStart(sidewaysRL, 0);
+  sidewaysRLRange.setEnd(sidewaysRL, 2);
+  let sidewaysLRRange = new Range();
+  sidewaysLRRange.setStart(sidewaysLR, 0);
+  sidewaysLRRange.setEnd(sidewaysLR, 2);
+
+  CSS.highlights.set("example-highlight",
+    new Highlight(verticalRLRange, verticalLRRange, sidewaysLRRange, sidewaysRLRange));
+</script>

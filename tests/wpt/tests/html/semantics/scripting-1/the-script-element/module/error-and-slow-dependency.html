@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Module importing syntax error script and slow script should not crash UA</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="module">
+setup({allow_uncaught_exception: true});
+window.log = [];
+window.loaded = false;
+</script>
+<script type="module">
+import "./syntaxerror.js";
+import "./resources/delayed-modulescript.py";
+
+window.loaded = true;
+</script>
+<script type="module">
+test(() => {
+  assert_false(loaded);
+  }, "module graph with a syntax error should not evaulate but should not crash UA.");
+</script>

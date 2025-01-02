@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-orientation-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // page-orientation is not a property. test_invalid_value() tries to specify
+  // it on an element, and this should fail, even when using a valid
+  // value. page-orientation is only valid as a descriptor inside an @page rule.
+  test_invalid_value("page-orientation", "hotpink");
+  test_invalid_value("page-orientation", "upright");
+  test_invalid_value("page-orientation", "rotate-left");
+  test_invalid_value("page-orientation", "rotate-right");
+</script>

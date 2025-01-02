@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: line-height - line box height calculations</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" title="10.8 Line height calculations: the 'line-height' and 'vertical-align' properties" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting" title="9.4.2 Inline formatting contexts" />
+
+  <meta content="image" name="flags" />
+  <meta content="The line box height is given by the distance between the uppermost box top and the lowermost box bottom. The line box height is not necessarly given by the height of the tallest inline box contained in the line box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: orange; /* The line box will be painted orange */
+  color: black;
+  }
+
+  img#va-minus10 {vertical-align: -10px;}
+
+  img#va-baseline {vertical-align: baseline;}
+
+  img#va-plus10 {vertical-align: 10px;}
+
+  img#va-plus20 {vertical-align: 20px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the orange rectangle is just tall enough to contain the bottommost small filled teal square and the uppermost small filled teal square.</p>
+
+  <!--
+  In this test, the short vertical blue line represents the tallest
+  inline box present in the line box. And its presence contribute
+  to demonstrate that the line box height is not necessarly given
+  by the height of its tallest inline box.
+  -->
+
+  <div>
+     <img id="va-minus10" src="support/swatch-teal.png" width="20" height="20" alt="Image dowload support must be enabled" />
+     <img id="va-baseline" src="support/swatch-teal.png" width="20" height="20" alt="Image dowload support must be enabled" />
+     <img id="blue" src="support/swatch-blue.png" width="5" height="35" alt="Image download support must be enabled" />
+     <img id="va-plus10" src="support/swatch-teal.png" width="20" height="20" alt="Image dowload support must be enabled" />
+     <img id="va-plus20" src="support/swatch-teal.png" width="20" height="20" alt="Image dowload support must be enabled" />
+  </div>
+
+ </body>
+</html>

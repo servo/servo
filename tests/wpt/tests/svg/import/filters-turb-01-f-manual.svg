@@ -1,0 +1,102 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: filters-turb-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/filters.html#feTurbulenceElement">
+      <p>
+        Test which verifies the basic facilities of feTurbulence. Six rectangular areas showing the
+        effects of various parameter settings for feTurbulence. The sample image indicates the
+        parameter settings to produce the given image.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image, except for possible variations
+        in the labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: filters-turb-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <desc>Six rectangular areas showing the effects of various parameter settings for feTurbulence.</desc>
+    <g font-family="Verdana" text-anchor="middle" font-size="10">
+      <defs>
+        <filter id="Turb1" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2"/>
+        </filter>
+        <filter id="Turb2" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="turbulence" baseFrequency="0.1" numOctaves="2"/>
+        </filter>
+        <filter id="Turb3" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="8"/>
+        </filter>
+        <filter id="Turb4" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="4"/>
+        </filter>
+        <filter id="Turb5" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.4" numOctaves="4"/>
+        </filter>
+        <filter id="Turb6" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="1"/>
+        </filter>
+      </defs>
+      <rect x="25" y="25" width="100" height="75" filter="url(#Turb1)"/>
+      <text x="75" y="117">type=turbulence</text>
+      <text x="75" y="129">baseFrequency=0.05</text>
+      <text x="75" y="141">numOctaves=2</text>
+      <rect x="175" y="25" width="100" height="75" filter="url(#Turb2)"/>
+      <text x="225" y="117">type=turbulence</text>
+      <text x="225" y="129">baseFrequency=0.1</text>
+      <text x="225" y="141">numOctaves=2</text>
+      <rect x="325" y="25" width="100" height="75" filter="url(#Turb3)"/>
+      <text x="375" y="117">type=turbulence</text>
+      <text x="375" y="129">baseFrequency=0.05</text>
+      <text x="375" y="141">numOctaves=8</text>
+      <rect x="25" y="180" width="100" height="75" filter="url(#Turb4)"/>
+      <text x="75" y="272">type=fractalNoise</text>
+      <text x="75" y="284">baseFrequency=0.1</text>
+      <text x="75" y="296">numOctaves=4</text>
+      <rect x="175" y="180" width="100" height="75" filter="url(#Turb5)"/>
+      <text x="225" y="272">type=fractalNoise</text>
+      <text x="225" y="284">baseFrequency=0.4</text>
+      <text x="225" y="296">numOctaves=4</text>
+      <rect x="325" y="180" width="100" height="75" filter="url(#Turb6)"/>
+      <text x="375" y="272">type=fractalNoise</text>
+      <text x="375" y="284">baseFrequency=0.1</text>
+      <text x="375" y="296">numOctaves=1</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

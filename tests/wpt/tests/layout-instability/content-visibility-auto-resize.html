@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Layout Instability: resizing content-visibility:auto content</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+// These scripts need to be before the contents because we need to ensure no
+// layout shifts during page load.
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  assert_equals(watcher.score, 0);
+}, 'off-screen content-visibility:auto');
+</script>
+<style>
+  .auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 10px 3000px;
+    width: 100px;
+  }
+  .contained {
+    height: 100px;
+    background: blue;
+  }
+</style>
+<div class=auto><div class=contained></div></div>
+<div class=auto><div class=contained></div></div>

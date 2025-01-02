@@ -1,0 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Viewport Capture (https://w3c.github.io/mediacapture-viewport/)
+
+partial interface MediaDevices {
+  Promise<MediaStream> getViewportMedia(
+      optional DisplayMediaStreamOptions options = {});
+};

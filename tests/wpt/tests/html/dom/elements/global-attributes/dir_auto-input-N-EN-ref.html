@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HTML Test: input with dir=auto, all N+EN</title>
+    <link rel="author" title="Matitiahu Allouche" href="mailto:matitiahu.allouche@google.com" />
+    <link rel="author" title="Oren Roth" href="mailto:oren.roth@gmail.com" />
+    <link rel="author" title="Shai Berger" href="mailto:shai@platonix.com" />
+    <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dir-attribute" />
+    <meta name="assert" content="
+      When dir='auto', the direction of an input element is set according to
+      the first strong character of its value, or to LTR if there is no such
+      character.
+      In this test, there is no strongly directional character in the value,
+      thus the direction must be resolved as LTR." />
+    <style>
+      input, textarea {
+        font-size:1em;
+      }
+      body {
+        font-size:2em;
+      }
+      .test, .ref {
+        border: medium solid gray;
+        width: 400px;
+        margin: 20px;
+      }
+      .comments {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="instructions"><p>Test passes if the two boxes below look exactly the same.</p></div>
+    <div class="test">
+      <div dir="ltr">
+        <input type="text" dir="ltr" value="@123!" />
+      </div>
+      <div dir="rtl">
+        <input type="text" dir="ltr" value="@123!" />
+      </div>
+    </div>
+    <div class="ref">
+      <div dir="ltr">
+        <input type="text" dir="ltr" value="@123!" />
+      </div>
+      <div dir="rtl">
+        <input type="text" dir="ltr" value="@123!" />
+      </div>
+    </div>
+  </body>
+</html>

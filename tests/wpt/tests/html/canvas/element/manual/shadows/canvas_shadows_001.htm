@@ -1,0 +1,60 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>HTML5 Canvas Test: Shadows for linear gradients</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+        <link rel="help" href="http://www.w3.org/TR/2dcontext/#shadows" />
+        <meta name="assert" content="Shadows must be drawn for linear gradients." />
+        <script type="text/javascript">
+            async_test(function(t) {
+              window.addEventListener("load", t.step_func_done(function runTest() {
+                var canvas = document.getElementById("canvas1");
+                var ctx = canvas.getContext("2d");
+
+                // Draw a red rectangle.
+                ctx.fillStyle = "rgba(255, 0, 0, 1.0)";
+                ctx.fillRect(150, 0, 100, 50);
+
+                // Set shadow styles to draw a black shadow to overlap the red rectangle.
+                ctx.shadowOffsetX = 150;
+                ctx.shadowColor = "rgba(0, 0, 0, 1.0)";
+
+                // Draw a left to right, green-to-blue linear gradient.
+                var lingrad = ctx.createLinearGradient(0, 50, 100, 50);
+                lingrad.addColorStop(0, "rgba(0, 255, 0, 1.0)");
+                lingrad.addColorStop(1, "rgba(0, 0, 255, 1.0)");
+                ctx.fillStyle = lingrad;
+                ctx.fillRect(0, 0, 100, 50);
+
+                // Check the red is gone
+                var data = ctx.getImageData(150, 0, 100, 50);
+                for (var i = 0; i < data.data.length; i += 4) {
+                  var r = data.data[i];
+                  var g = data.data[i+1];
+                  var b = data.data[i+2];
+                  var a = data.data[i+3];
+                  assert_equals(r, 0, "r channel");
+                  assert_equals(g, 0, "g channel");
+                  assert_equals(b, 0, "b channel");
+                  assert_equals(a, 0xFF, "a channel");
+                }
+
+                for (var j = 0; j < data.data.length; j += 4) {
+                  var r2 = data.data[j];
+                  var g2 = data.data[j+1];
+                  var b2 = data.data[j+2];
+                  var a2 = data.data[j+3];
+                  assert_false(r2 == 0xFF && g2 == 0 && b2 == 0 && a2 == 0xFF, "no red");
+                }
+              }));
+            }, "linear gradient fillRect draws shadow (black rectange)");
+        </script>
+    </head>
+    <body>
+        <p>Description: Shadows must be drawn for linear gradients.</p>
+        <p>Test passes if there is one gradient filled rectangle and one black rectangle, and no red seen on the page.</p>
+        <canvas id="canvas1" width="300" height="150">Browser does not support HTML5 Canvas.</canvas>
+    </body>
+</html>

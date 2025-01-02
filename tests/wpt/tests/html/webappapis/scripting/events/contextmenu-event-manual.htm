@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>HTML contextmenu event is a MouseEvent</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>#contextmenutarget { width: 100px; height: 100px; background-color: red; }</style>
+  </head>
+  <body>
+    <div id='contextmenutarget'>Trigger context menu in this box.</div>
+    <div id="log"></div>
+    <script type="text/javascript">
+var t = async_test('contextmenu event generated from user action is MouseEvent');
+document.querySelector("#contextmenutarget").addEventListener('contextmenu', t.step_func(function (e) {
+    assert_equals(e.constructor, window.MouseEvent);
+    document.querySelector("#contextmenutarget").style.backgroundColor = "green";
+    t.done();
+}));
+    </script>
+  </body>
+</html>

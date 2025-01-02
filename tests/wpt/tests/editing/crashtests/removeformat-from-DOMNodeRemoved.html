@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  window.find("a");
+  document.addEventListener("DOMNodeRemoved", () => {
+    try {
+      document.getElementById("target").normalize();
+      document.execCommand("removeFormat");
+    } catch (e) {
+    }
+  });
+  document.adoptNode(document.querySelector("datalist"));
+});
+</script>
+</head>
+<body>
+<kbd>
+<datalist>
+</kbd>
+<figcaption contenteditable>
+<font id="target">
+a
+</font>
+</figcaption>
+</body>
+</html>

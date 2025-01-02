@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1225661">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=match href="accent-color-invalidation-currentcolor-ref.html">
+
+<div style="accent-color: currentColor">
+  The following checkbox should be red: <input type=checkbox checked>
+</div>
+
+<script>
+async function rAF() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+(async () => {
+  await rAF();
+  await rAF();
+  document.querySelector('input').style = 'color: red';
+  await rAF();
+  await rAF();
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html class="reftest-wait">
+<link rel="help" href="http://crbug.com/1487174">
+<style>
+* { counter-increment: c; }
+</style>
+<script>
+  function error_fn() {
+    test.style.setProperty("text-orientation", "upright");
+    document.documentElement.classList.remove("reftest-wait");
+  }
+</script>
+<li id="test"></li>
+<image onerror="error_fn()" srcset="error" ></image>
+</html>

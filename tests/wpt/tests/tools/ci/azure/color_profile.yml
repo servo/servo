@@ -1,0 +1,5 @@
+steps:
+- script: |
+    ./wpt macos-color-profile
+  displayName: 'Set display color profile'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))

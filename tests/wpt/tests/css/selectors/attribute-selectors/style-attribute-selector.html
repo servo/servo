@@ -1,0 +1,130 @@
+<!doctype html>
+<title>CSS Selectors Test: Tests the style attribute used in an attribute selector</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#attribute-selectors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container { font-size: 16px; color: black; }
+  .test[style] { color: green }
+  .test[style=""] { font-size: 100px }
+  .test[style*="text-decoration"] { background-color: lime }
+  .test[style] + #sibling { color: green; }
+  .test[style*="text-decoration"] + #sibling { background-color: lime; }
+</style>
+<div id="container">
+  <div id="t1" class="test" style></div>
+  <div id="t2" class="test" style=""></div>
+  <div id="t3" class="test" style="text-decoration:underline"></div>
+  <div id="t4" class="test"></div>
+  <div id="sibling"></div>
+</div>
+<script>
+  const no_match_bgcolor = "rgba(0, 0, 0, 0)";
+  const no_match_color = "rgb(0, 0, 0)";
+  const no_match_font_size = "16px";
+  const match_bgcolor = "rgb(0, 255, 0)";
+  const match_color = "rgb(0, 128, 0)";
+  const match_font_size = "100px";
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).backgroundColor, no_match_bgcolor);
+    assert_equals(getComputedStyle(t1).color, match_color);
+    assert_equals(getComputedStyle(t1).fontSize, match_font_size);
+  }, "Match style attribute with no value");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).backgroundColor, no_match_bgcolor);
+    assert_equals(getComputedStyle(t2).color, match_color);
+    assert_equals(getComputedStyle(t2).fontSize, match_font_size);
+  }, "Match style attribute with empty value");
+
+  test(() => {
+    assert_equals(getComputedStyle(t3).backgroundColor, match_bgcolor);
+    assert_equals(getComputedStyle(t3).color, match_color);
+    assert_equals(getComputedStyle(t3).fontSize, no_match_font_size);
+  }, "Match style attribute with background value");
+
+  test(() => {
+    assert_equals(getComputedStyle(t4).backgroundColor, no_match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, no_match_color);
+    assert_equals(getComputedStyle(t4).fontSize, no_match_font_size);
+    assert_equals(getComputedStyle(sibling).color, no_match_color);
+  }, "Initially no style attribute to match");
+
+  function reset_style(element) {
+    element.removeAttribute("style");
+    element.offsetTop;
+  }
+
+  function set_style(element) {
+    element.setAttribute("style", "text-decoration: underline");
+    element.offsetTop;
+  }
+
+  test(() => {
+    reset_style(t4);
+    t4.setAttribute("style", "text-decoration: underline");
+    assert_equals(getComputedStyle(t4).backgroundColor, match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, match_color);
+    assert_equals(getComputedStyle(t4).fontSize, no_match_font_size);
+    assert_equals(getComputedStyle(sibling).color, match_color);
+  }, "Dynamically change style with Element.setAttribute");
+
+  test(() => {
+    reset_style(t4);
+    t4.style = "text-decoration: underline";
+    assert_equals(getComputedStyle(t4).backgroundColor, match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, match_color);
+    assert_equals(getComputedStyle(t4).fontSize, no_match_font_size);
+    assert_equals(getComputedStyle(sibling).color, match_color);
+  }, "Dynamically change style with Element.style");
+
+  test(() => {
+    reset_style(t4);
+    t4.style.textDecoration = "underline";
+    assert_equals(getComputedStyle(t4).backgroundColor, match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, match_color);
+    assert_equals(getComputedStyle(t4).fontSize, no_match_font_size);
+    assert_equals(getComputedStyle(sibling).color, match_color);
+  }, "Dynamically change style with Element.style.property");
+
+  test(() => {
+    set_style(t4);
+    t4.removeAttribute("style");
+    assert_equals(getComputedStyle(t4).backgroundColor, no_match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, no_match_color);
+    assert_equals(getComputedStyle(t4).fontSize, no_match_font_size);
+    assert_equals(getComputedStyle(sibling).color, no_match_color);
+    assert_equals(getComputedStyle(sibling).backgroundColor, no_match_bgcolor);
+  }, "Dynamically remove style with Element.removeAttribute");
+
+  test(() => {
+    set_style(t4);
+    t4.style = "";
+    assert_equals(getComputedStyle(t4).backgroundColor, no_match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, match_color);
+    assert_equals(getComputedStyle(t4).fontSize, match_font_size);
+    assert_equals(getComputedStyle(sibling).color, match_color);
+    assert_equals(getComputedStyle(sibling).backgroundColor, no_match_bgcolor);
+  }, "Dynamically remove style with Element.style");
+
+  test(() => {
+    set_style(t4);
+    t4.style.textDecoration = "";
+    assert_equals(getComputedStyle(t4).backgroundColor, no_match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, match_color);
+    assert_equals(getComputedStyle(t4).fontSize, match_font_size);
+    assert_equals(getComputedStyle(sibling).color, match_color);
+    assert_equals(getComputedStyle(sibling).backgroundColor, no_match_bgcolor);
+  }, "Dynamically remove style with Element.style.property");
+
+  test(() => {
+    set_style(t4);
+    t4.style.removeProperty("text-decoration");
+    assert_equals(getComputedStyle(t4).backgroundColor, no_match_bgcolor);
+    assert_equals(getComputedStyle(t4).color, match_color);
+    assert_equals(getComputedStyle(t4).fontSize, match_font_size);
+    assert_equals(getComputedStyle(sibling).color, match_color);
+    assert_equals(getComputedStyle(sibling).backgroundColor, no_match_bgcolor);
+  }, "Dynamically remove style with Element.style.removeProperty");
+</script>

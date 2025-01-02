@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API IDL tests for Receiving User Agent</title>
+<link rel="author" title="Louay Bassbouss" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-receiving-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+
+<script>
+    'use strict';
+    (async () => {
+        const srcs = ['presentation-api', 'dom', 'html'];
+        const [idl, dom, html] = await Promise.all(
+            srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
+
+        const idl_array = new IdlArray();
+        idl_array.add_idls(idl, {
+            except: [
+                'PresentationRequest',
+                'PresentationAvailability',
+            ]
+        });
+        idl_array.add_dependency_idls(dom);
+        idl_array.add_dependency_idls(html);
+        idl_array.add_objects({
+            Presentation: ['navigator.presentation'],
+            PresentationReceiver: ['navigator.presentation.receiver']
+        });
+        add_completion_callback((tests, status) => {
+            const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+            const log = document.getElementById('log');
+            stash.send(JSON.stringify({ tests: tests, status: status, log: log.innerHTML }));
+        });
+        idl_array.test();
+    })();
+</script>

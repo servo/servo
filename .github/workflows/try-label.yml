@@ -1,0 +1,182 @@
+name: Try (Label)
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+jobs:
+  parse-comment:
+    name: Trigger Try
+    runs-on: ubuntu-latest
+    concurrency:
+      group: try-${{ github.event.number }}
+    outputs:
+      configuration: ${{ steps.configuration.outputs.config }}
+      try_string: ${{ steps.try_string.outputs.result }}
+    steps:
+      - name: Collect Labels
+        uses: actions/github-script@v7
+        id: try_string
+        with:
+          result-encoding: string
+          script: |
+            function makeComment(body) {
+                console.log(body);
+
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body
+                })
+            }
+
+            let try_string = "";
+
+            for (let label of context.payload.pull_request.labels) {
+              if (!label.name.startsWith("T-")) {
+                continue;
+              }
+
+              // Try to remove the label. If that fails, it's likely that another
+              // workflow has already processed it or a user has removed it.
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: label.name,
+                });
+              } catch (exception) {
+                console.log("Assuming '" + label.name + "' is already removed: " + exception);
+                continue;
+              }
+
+              console.log("Found label: " + label.name);
+              // Remove the "T-" prefix.
+              label = label.name.slice(2);
+              try_string += " " + label;
+            }
+
+            console.log(try_string);
+
+            // Exit early if the try string is empty (no try triggered).
+            if (!try_string.trim()) {
+              return "";
+            }
+
+            let username = context.payload.sender.login;
+            let result = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username
+            });
+            if (!result.data.user.permissions.push) {
+              makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
+              return "";
+            }
+
+            return try_string;
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            python/servo/try_parser.py
+            .github/actions/setup-python
+            .python-version
+          sparse-checkout-cone-mode: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Parse Labels
+        if: ${{ steps.try_string.outputs.result }}
+        id: configuration
+        run: |
+          {
+            echo 'config<<EOF'
+            python ./python/servo/try_parser.py ${{ steps.try_string.outputs.result }}
+            echo EOF
+           } >> $GITHUB_OUTPUT
+      - name: Comment Run Start
+        if: ${{ steps.try_string.outputs.result }}
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            let config = ${{ steps.configuration.outputs.config }};
+            function makeComment(body) {
+                console.log(body);
+
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body
+                })
+            }
+
+            const url = context.serverUrl +
+              "/" + context.repo.owner +
+              "/" + context.repo.repo +
+              "/actions/runs/" + context.runId;
+            const formattedURL = "[#" + context.runId + "](" + url + ")";
+            makeComment("🔨 Triggering try run (" + formattedURL + ") for "
+             + config.matrix.map(m => m.name).join(", "));
+
+  run-try:
+    if: ${{ needs.parse-comment.outputs.try_string }}
+    needs: ["parse-comment"]
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.parse-comment.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.parse-comment.outputs.configuration).matrix }}
+    # We need to use `dipatch-workflow.yml` because workflows do not support using: ${}.
+    uses: ./.github/workflows/dispatch-workflow.yml
+    secrets: inherit
+    with:
+      workflow: ${{ matrix.workflow }}
+      wpt-layout: ${{ matrix.wpt_layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
+      wpt-args: ${{ matrix.wpt_args }}
+      bencher: ${{ matrix.bencher }}
+
+  results:
+    name: Results
+    needs: ["parse-comment", "run-try"]
+    runs-on: ubuntu-latest
+    if: ${{ always() && needs.parse-comment.outputs.try_string }}
+    steps:
+      - name: Success
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+              const url = context.serverUrl +
+                "/" + context.repo.owner +
+                "/" + context.repo.repo +
+                "/actions/runs/" + context.runId;
+              const formattedURL = "[#" + context.runId + "](" + url + ")";
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: "✨ Try run (" + formattedURL + ") " + "succeeded.",
+              });
+      - name: Failure
+        if: ${{ contains(needs.*.result, 'failure') }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+              const url = context.serverUrl +
+                "/" + context.repo.owner +
+                "/" + context.repo.repo +
+                "/actions/runs/" + context.runId;
+              const formattedURL = "[#" + context.runId + "](" + url + ")";
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: "⚠️ Try run (" + formattedURL + ") " + "failed.",
+              });
+
+

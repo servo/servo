@@ -1,0 +1,5 @@
+spec: https://w3c.github.io/timing-entrytypes-registry/
+suggested_reviewers:
+  - plehegar
+  - igrigorik
+  - yoavweiss

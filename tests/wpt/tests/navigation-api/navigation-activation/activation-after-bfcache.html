@@ -1,0 +1,34 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="resources/is_uuid.js"></script>
+
+<script>
+// This test ensures that navigation.activation is properly updated when a page
+// is restored from bfcache.
+runBfcacheTest({
+  targetOrigin: originSameOrigin,
+  async funcAfterAssertion(pageA, pageB) {
+    const activationData = await pageA.execute_script(() => {
+      return { entryURL : navigation.activation.entry.url,
+               fromURL : navigation.activation.from.url,
+               navigationType : navigation.activation.navigationType }
+    });
+
+    // activation.entry should be the currently activated page, and
+    // activation.from should be the page before restored from bfcache.
+    assert_equals(activationData.entryURL, pageA.url);
+    assert_equals(activationData.fromURL, pageB.url);
+    assert_equals(activationData.navigationType, "traverse");
+
+    const entryAndCurrentMatch = await pageA.execute_script(() => navigation.activation.entry === navigation.currentEntry);
+    assert_true(entryAndCurrentMatch);
+
+    const fromAndEntriesArrayMatch = await pageA.execute_script(() => navigation.activation.from === navigation.entries()[navigation.currentEntry.index + 1]);
+    assert_true(fromAndEntriesArrayMatch);
+  }
+}, "navigation.activation must be updated when restored from bfcache");
+</script>

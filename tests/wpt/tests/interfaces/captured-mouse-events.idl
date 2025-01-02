@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Captured Mouse Events (https://screen-share.github.io/captured-mouse-events/)
+
+[Exposed=Window]
+interface CapturedMouseEvent : Event {
+  constructor(DOMString type, optional CapturedMouseEventInit eventInitDict = {});
+  readonly attribute long surfaceX;
+  readonly attribute long surfaceY;
+};
+
+dictionary CapturedMouseEventInit : EventInit {
+  long surfaceX = -1;
+  long surfaceY = -1;
+};
+
+partial interface CaptureController {
+  attribute EventHandler oncapturedmousechange;
+};

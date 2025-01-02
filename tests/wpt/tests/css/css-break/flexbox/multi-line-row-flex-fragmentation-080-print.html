@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- This test is adapted from https://bugzilla.mozilla.org/show_bug.cgi?id=1677339#c0 -->
+<html>
+  <meta charset="utf-8">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1743890">
+  <link rel="match" href="multi-line-row-flex-fragmentation-080-print-ref.html">
+
+  <style>
+  @page { size: 5in 3in; margin: 0.5in; }
+  body { margin: 0; }
+
+  .flexbox {
+    display: flex;
+    border: 0.25in solid black;
+    font-size: 0.25in;
+    flex-flow: row wrap;
+  }
+  .item {
+    width: 100%;
+  }
+  </style>
+
+  <!-- This div makes the flexbox not at the top of first page. -->
+  <div style="height: 1in; background: gray;"></div>
+
+  <div class="flexbox">
+    <div class="item">1<br>2<br>3<br>4</div>
+    <div class="item">5</div>
+  </div>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="background-image-alpha-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+}
+
+#canvas-opaque {
+  background-image: paint(opaque);
+}
+
+#canvas-nonopaque {
+  background-image: paint(nonOpaque);
+}
+
+#background {
+  background-color: yellow;
+  display: inline-block;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="background">
+  <div id="canvas-opaque" class="container"></div>
+  <div id="canvas-nonopaque" class="container"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerPaint('opaque', class {
+    static get contextOptions() { return {alpha: false}; }
+    paint(ctx, geom) {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(20, 20, 60, 60);
+    }
+});
+
+registerPaint('nonOpaque', class {
+    static get contextOptions() { return {alpha: true}; }
+    paint(ctx, geom) {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(20, 20, 60, 60);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

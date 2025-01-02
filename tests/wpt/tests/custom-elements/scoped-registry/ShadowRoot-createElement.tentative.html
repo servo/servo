@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>Tests ShadowRoot.createElement APIs work with scoped custom element registries</title>
+<meta name="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://wicg.github.io/webcomponents/proposals/Scoped-Custom-Element-Registries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+class TestAutonomous extends HTMLElement {};
+class TestCustomizedBuiltIn extends HTMLParagraphElement {};
+
+function attachShadowForTest(t, registry) {
+  const host = document.createElement('div');
+  const shadow = host.attachShadow({mode: 'open', registry});
+  document.body.appendChild(host);
+  t.add_cleanup(() => host.remove());
+  return shadow;
+}
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  registry.define('test-element', TestAutonomous);
+
+  const shadow = attachShadowForTest(t, registry);
+  assert_true(shadow.createElement('test-element') instanceof TestAutonomous);
+
+  // Verify that it doesn't pollute other tree scopes.
+  const shadow2 = attachShadowForTest(t);
+  assert_false(shadow2.createElement('test-element') instanceof TestAutonomous);
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  assert_false(shadow3.createElement('test-element') instanceof TestAutonomous);
+
+  assert_false(document.createElement('test-element') instanceof TestAutonomous);
+}, 'ShadowRoot.createElement() for autonomous custom element');
+
+test(t => {
+  const html = 'http://www.w3.org/1999/xhtml';
+
+  const registry = new CustomElementRegistry;
+  registry.define('test-element', TestAutonomous);
+
+  const shadow = attachShadowForTest(t, registry);
+  assert_true(shadow.createElementNS(html, 'test-element') instanceof TestAutonomous);
+
+  // Verify that it doesn't pollute other tree scopes.
+  const shadow2 = attachShadowForTest(t);
+  assert_false(shadow2.createElementNS(html, 'test-element') instanceof TestAutonomous);
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  assert_false(shadow3.createElementNS(html, 'test-element') instanceof TestAutonomous);
+
+  assert_false(document.createElementNS(html, 'test-element') instanceof TestAutonomous);
+}, 'ShadowRoot.createElementNS() for autonomous custom element');
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  registry.define('test-element', TestCustomizedBuiltIn, {extends: 'p'});
+
+  const shadow = attachShadowForTest(t, registry);
+  assert_true(shadow.createElement('p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+
+  // Verify that it doesn't pollute other tree scopes.
+  const shadow2 = attachShadowForTest(t);
+  assert_false(shadow2.createElement('p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  assert_false(shadow3.createElement('p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+
+  assert_false(document.createElement('p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+}, 'ShadowRoot.createElement() for customized built-in element');
+
+test(t => {
+  const html = 'http://www.w3.org/1999/xhtml';
+
+  const registry = new CustomElementRegistry;
+  registry.define('test-element', TestCustomizedBuiltIn, {extends: 'p'});
+
+  const shadow = attachShadowForTest(t, registry);
+  assert_true(shadow.createElementNS(html, 'p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+
+  // Verify that it doesn't pollute other tree scopes.
+  const shadow2 = attachShadowForTest(t);
+  assert_false(shadow2.createElementNS(html, 'p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+
+  const shadow3 = attachShadowForTest(t, new CustomElementRegistry);
+  assert_false(shadow3.createElementNS(html, 'p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+
+  assert_false(document.createElementNS(html, 'p', {is: 'test-element'}) instanceof TestCustomizedBuiltIn);
+}, 'ShadowRoot.createElementNS() for customized built-in element');
+
+</script>
+</body>
+

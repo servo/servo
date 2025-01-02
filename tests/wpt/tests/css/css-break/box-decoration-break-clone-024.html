@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<meta name="assert" content="Fieldset test with legend shorter than border">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; columns:4; gap:0; column-fill:auto; height:100px; background:red;">
+  <fieldset style="margin:0; padding:2px; border:5px solid green; box-decoration-break:clone; background:green;">
+    <legend>
+      <div style="width:5px; height:2px;"></div>
+    </legend>
+    <div style="height:344px;"></div>
+  </fieldset>
+</div>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+let testName = "Creating XRReferenceSpace origin offset off of `viewer` space works.";
+
+let fakeDeviceInitParams = {
+  supportsImmersive: true,
+  supportedModes: ["inline", "immersive-vr"],
+  viewerOrigin: VALID_POSE_TRANSFORM,
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES
+};
+
+let originOffsetPosition = new DOMPointReadOnly(0, 0, 1);
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve) => {
+
+    session.requestReferenceSpace('local').then( (localSpace) => {
+      session.requestReferenceSpace('viewer').then( (viewerSpace) => {
+
+        let offsetSpace = viewerSpace.getOffsetReferenceSpace(
+          new XRRigidTransform(originOffsetPosition));
+
+        function OnFrame(time, frame) {
+          let viewerPose = frame.getPose(viewerSpace, localSpace);
+          let offsetPose = frame.getPose(offsetSpace, localSpace);
+
+          let viewerPose2 = frame.getPose(localSpace ,viewerSpace);
+          let offsetPose2 = frame.getPose(localSpace, offsetSpace);
+
+          t.step(() => {
+            assert_point_significantly_not_equals(viewerPose.transform.position, offsetPose.transform.position);
+            assert_point_significantly_not_equals(viewerPose2.transform.position, offsetPose2.transform.position);
+          });
+
+          resolve();
+        }
+
+        // Can only request input poses in an xr frame.
+        session.requestAnimationFrame(OnFrame);
+      });
+    });
+  });
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

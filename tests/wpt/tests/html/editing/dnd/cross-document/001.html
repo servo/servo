@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - simple cross-document data drop</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragstart = function(e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text', 'dummy text');
+  };
+};
+</script>
+
+<div draggable="true"></div>
+<p><iframe src="001-1.html" height="300" width="500"></iframe></p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

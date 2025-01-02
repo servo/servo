@@ -1,0 +1,39 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: auto with content changes</title>
+<link rel="author" title="Cathie Chen" href="mailto:cathiechen@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="content-visibility auto element should be resized when content changes">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.auto {
+  content-visibility: auto;
+  width: fit-content;
+}
+.hidden { height: 0; }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="auto">
+  <div id ="target" class="hidden">
+    <div style="width: 100px; height: 100px; background-color: green;"></div>
+  </div>
+</div>
+
+<script>
+function changeContent() {
+  requestAnimationFrame(() => {
+    target.classList.toggle("hidden");
+    requestAnimationFrame(takeScreenshot);
+  });
+}
+function runTest() {
+  requestAnimationFrame(changeContent);
+}
+
+window.onload = () => { requestAnimationFrame(runTest); };
+</script>

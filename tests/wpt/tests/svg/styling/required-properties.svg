@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/styling.html#RequiredProperties"/>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/propidx.html"/>
+    <h:meta name="assert" content="All required properties are supported"/>
+    <!-- Note: This test does not verify that the properties are actually applied to SVG rendering. -->
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+  var properties = [
+    // Properties listed in https://svgwg.org/svg2-draft/propidx.html
+    "alignment-baseline",
+    "baseline-shift",
+    "clip",
+    "clip-path",
+    "clip-rule",
+    "color",
+    "color-interpolation",
+    "cursor",
+    "direction",
+    "display",
+    "dominant-baseline",
+    "fill",
+    "fill-opacity",
+    "fill-rule",
+    "filter",
+    "flood-color",
+    "flood-opacity",
+    "font",
+    "font-family",
+    "font-size",
+    "font-size-adjust",
+    "font-stretch",
+    "font-style",
+    "font-variant",
+    "font-weight",
+    "glyph-orientation-vertical",
+    "image-rendering",
+    "letter-spacing",
+    "lighting-color",
+    "line-height",
+    "marker",
+    "marker-end",
+    "marker-mid",
+    "marker-start",
+    "mask",
+    "opacity",
+    "overflow",
+    "paint-order",
+    "pointer-events",
+    "shape-rendering",
+    "stop-color",
+    "stop-opacity",
+    "stroke",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "stroke-opacity",
+    "stroke-width",
+    "text-anchor",
+    "text-decoration",
+    "text-rendering",
+    "unicode-bidi",
+    "vector-effect",
+    "visibility",
+    "word-spacing",
+    "white-space",
+    "writing-mode",
+
+    // Properties listed in https://svgwg.org/svg2-draft/styling.html#RequiredProperties
+    "display",
+    "overflow",
+    "visibility",
+    "cursor",
+    "text-overflow",
+    "clip",
+    "clip-path",
+    "clip-rule",
+    "mask",
+    "color",
+    "opacity",
+    "color-interpolation-filters",
+    "filter",
+    "flood-color",
+    "flood-opacity",
+    "isolation",
+    "lighting-color",
+    "transform",
+    "transform-box",
+    "transform-origin",
+    "letter-spacing",
+    "text-align",
+    "text-align-all",
+    "text-align-last",
+    "text-indent",
+    "word-spacing",
+    "white-space",
+    "text-space-collapse",
+    "vertical-align",
+    "dominant-baseline",
+    "alignment-baseline",
+    "baseline-shift",
+    "direction",
+    "text-orientation",
+    "writing-mode",
+    "font",
+    "font-family",
+    "font-feature-settings",
+    "font-kerning",
+    "font-size",
+    "font-size-adjust",
+    "font-stretch",
+    "font-style",
+    "font-variant",
+    "font-variant-position",
+    "font-variant-ligatures",
+    "font-variant-caps",
+    "font-variant-numeric",
+    "font-variant-east-asian",
+    "font-weight",
+    "text-decoration",
+    "text-decoration-line",
+    "text-decoration-style",
+    "text-decoration-color"
+  ];
+  properties.sort();
+
+  var target = document.getElementById('target');
+  var previous = null;
+  for (var property of properties) {
+    if (property === previous)
+      continue; // Avoid duplicate test names
+    previous = property;
+
+    test(function() {
+      assert_true(property in target.style);
+    }, 'Property "' + property + '" is supported');
+  }
+  ]]></script>
+</svg>

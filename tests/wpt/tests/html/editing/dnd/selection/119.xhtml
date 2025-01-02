@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>RTL text selection drag and drop from textarea to RTL text input</title>
+<style type="text/css">
+input[placeholder]
+  {width:300px;
+  height:100px;
+  margin-top:20px;}
+</style>
+</head>
+<body onload="var t = document.querySelector('textarea');t.select();t.setSelectionRange(0,11)">
+<p>Drag selected text to the input below. Selected text should be moved to the input once you drop it there. Text direction should be preserved during drag and drop.</p>
+<p><textarea>&#x202E;FAIL|SSAP&#x202C;</textarea></p>
+<p><input dir="rtl" placeholder="Drop selection here"/></p>
+</body>
+</html>

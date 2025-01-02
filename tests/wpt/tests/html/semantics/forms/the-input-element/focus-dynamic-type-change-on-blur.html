@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Input type switch on blur event should clean up properly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script type=module>
+import inputTypes from "./input-types.js";
+
+function tick() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+function test_from_to(fromType, toType, capture) {
+  if (fromType == toType) {
+    return;
+  }
+  promise_test(async function(t) {
+    const input = document.createElement("input");
+    input.type = fromType;
+    document.body.appendChild(input);
+    input.focus();
+    assert_equals(document.activeElement, input, `${fromType} input should be focused`);
+    function onFocus() {
+      t.assert_unreached("shouldn't be getting spurious focus events");
+    }
+    function onBlur() {
+      input.type = toType;
+    }
+    input.addEventListener("focus", onFocus);
+    input.addEventListener("blur", onBlur, capture);
+    await tick();
+
+    assert_equals(document.activeElement, input, `${fromType} input should still be focused after tick`);
+    assert_true(input.matches(":focus"), `${fromType} input should match :focus`);
+    assert_true(input.matches(":focus-visible"), `${fromType} input should match :focus-visible`);
+
+    input.blur();
+
+    assert_equals(document.activeElement, document.body, `${fromType} input should not remain focused after blur`);
+    assert_false(input.matches(":focus"), `${fromType} input should not match :focus`);
+    assert_false(input.matches(":focus-visible"), `${fromType} input should not match :focus-visible`);
+    assert_equals(input.type, toType, `${fromType} input should have changed to ${toType}`);
+    input.removeEventListener("focus", onFocus);
+    input.removeEventListener("blur", onBlur);
+  }, `${fromType} -> ${toType} ${capture}`);
+}
+
+for (let type of inputTypes) {
+  if (type == "hidden") {
+    continue; // hidden inputs are not focusable
+  }
+  for (let capture of [true, false]) {
+    test_from_to(type, "text", capture);
+    test_from_to("text", type, capture);
+  }
+}
+</script>
+</body>

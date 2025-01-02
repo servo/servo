@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>'visibility: hidden' test</title>
+    <style type="text/css">
+      body { color: black; background: white }
+    </style>
+  </head>
+  <body>
+    <p>This should be visible.</p>
+    <div>
+      <!-- Use the same markup so that this test is not affected by broken margin collapsing. -->
+      <p>&nbsp;</p>
+      <p>This should be visible.</p>
+    </div>
+  </body>
+</html>

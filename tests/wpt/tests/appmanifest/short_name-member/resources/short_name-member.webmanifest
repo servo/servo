@@ -1,0 +1,11 @@
+{
+    "short_name": "pass",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../short_name-member-manual.html",
+    "display": "fullscreen"
+}

@@ -1,0 +1,31 @@
+[run]
+include =
+  src/*
+  testing/*
+  */lib/python*/site-packages/_pytest/*
+  */lib/python*/site-packages/pytest.py
+  */pypy*/site-packages/_pytest/*
+  */pypy*/site-packages/pytest.py
+  *\Lib\site-packages\_pytest\*
+  *\Lib\site-packages\pytest.py
+parallel = 1
+branch = 1
+
+[paths]
+source = src/
+  */lib/python*/site-packages/
+  */pypy*/site-packages/
+  *\Lib\site-packages\
+
+[report]
+skip_covered = True
+show_missing = True
+exclude_lines =
+    \#\s*pragma: no cover
+    ^\s*raise NotImplementedError\b
+    ^\s*return NotImplemented\b
+    ^\s*assert False(,|$)
+    ^\s*assert_never\(
+
+    ^\s*if TYPE_CHECKING:
+    ^\s*@overload( |$)

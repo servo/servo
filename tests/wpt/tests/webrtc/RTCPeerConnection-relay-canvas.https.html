@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Relay canvas via PeerConnections</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+// This test checks that canvas capture works relayed between several peer connections.
+
+function GreenFrameWebGL(width, height) {
+  const canvas =
+      Object.assign(document.createElement('canvas'), {width, height});
+  const ctx = canvas.getContext('webgl');
+  assert_not_equals(ctx, null, "webgl is a prerequisite for this test");
+  requestAnimationFrame(function draw () {
+    ctx.clearColor(0.0, 1.0, 0.0, 1.0);
+    ctx.clear(ctx.COLOR_BUFFER_BIT);
+    requestAnimationFrame(draw);
+  });
+  return canvas.captureStream();
+}
+
+
+
+promise_test(async t => {
+
+  // Build a chain
+  // canvas -track-> pc1 -network-> pcRelayIn -track->
+  //       pcRelayOut -network-> pc2 -track-> video
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pcRelayIn = new RTCPeerConnection();
+  t.add_cleanup(() => pcRelayIn.close());
+
+  const pcRelayOut = new RTCPeerConnection();
+  t.add_cleanup(() => pcRelayOut.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // Attach canvas to pc1.
+  const stream = GreenFrameWebGL(640, 480);
+  const [track] = stream.getTracks();
+  pc1.addTrack(track);
+
+  const v = document.createElement('video');
+  v.autoplay = true;
+
+  // Setup pc1->pcRelayIn video stream.
+  const haveTrackEvent1 = new Promise(r => pcRelayIn.ontrack = r);
+  exchangeIceCandidates(pc1, pcRelayIn);
+  await pc1.setLocalDescription();
+  await pcRelayIn.setRemoteDescription(pc1.localDescription);
+  await pcRelayIn.setLocalDescription();
+  await pc1.setRemoteDescription(pcRelayIn.localDescription);
+
+  // Plug output of pcRelayIn to pcRelayOut.
+  pcRelayOut.addTrack((await haveTrackEvent1).track);
+
+  // Setup pcRelayOut->pc2 video stream.
+  const haveTrackEvent2 = new Promise(r => pc2.ontrack = r);
+  exchangeIceCandidates(pcRelayOut, pc2);
+  await pcRelayOut.setLocalDescription();
+  await pc2.setRemoteDescription(pcRelayOut.localDescription);
+  await pc2.setLocalDescription();
+  await pcRelayOut.setRemoteDescription(pc2.localDescription);
+
+  // Display pc2 received track in video element.
+  v.srcObject = new MediaStream([(await haveTrackEvent2).track]);
+  await new Promise(r => v.onloadedmetadata = r);
+
+  // Wait some time to ensure that frames got through.
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  // Uses Helper.js GetVideoSignal to query |v| pixel value at a certain position.
+  const pixelValue = getVideoSignal(v);
+
+  // Expected value computed based on GetVideoSignal code, which takes green pixel data
+  // with coefficient 0.72.
+  assert_approx_equals(pixelValue, 0.72*255, 3);
+  }, "Two PeerConnections relaying a canvas source");
+</script>

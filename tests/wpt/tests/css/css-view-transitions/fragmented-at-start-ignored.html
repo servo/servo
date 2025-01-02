@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: fragmented elements skipped</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="fragmented-at-start-ignored-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+#spacer {
+  width: 100px;
+  height: 950px;
+  background: lightgreen;
+}
+#container {
+  width: 500px;
+  columns: 2;
+  height: 500px;
+}
+#target {
+  width: 200px;
+  height: 200px;
+  background: green;
+  view-transition-name: target;
+}
+#unrelated {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  view-transition-name: unrelated;
+}
+
+::view-transition {
+  background: pink;
+}
+::view-transition-group(root) {
+  animation-duration: 500s;
+  visibility: hidden;
+}
+::view-transition-group(target) {
+  border: 1px solid black;
+}
+</style>
+<div id=container>
+  <div id=spacer></div>
+  <div id=target></div>
+</div>
+<div id=unrelated></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTransition() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+
+requestAnimationFrame(() => requestAnimationFrame(runTransition))
+</script>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#painting">
+<meta name="assert" content="Test margin boxes with z-index.">
+<link rel="match" href="paint-order-003-print-ref.html">
+<style>
+  @page {
+    size: 500px;
+    margin: 50px;
+    margin-top: 100px;
+    @top-left-corner {
+      content: "";
+      width: 100px;
+      height: 100px;
+      margin-right: -50px;
+      background: green;
+      z-index: -1;
+    }
+    @top-left {
+      content: "";
+      border-left: 50px solid red;
+      border-right: 50px solid red;
+      width: 100px;
+      height: 100px;
+      background: green;
+      z-index: -2;
+    }
+    @top-center {
+      content: "";
+      width: 100px;
+      height: 100px;
+      z-index: 1;
+      background: green;
+    }
+    @top-right {
+      content: "";
+      border-left: 50px solid red;
+      border-right: 50px solid red;
+      width: 100px;
+      height: 100px;
+      background: green;
+      z-index: -2;
+    }
+    @top-right-corner {
+      content: "";
+      width: 100px;
+      height: 100px;
+      margin-left: -50px;
+      background: green;
+      z-index: -1;
+    }
+
+    @bottom-left-corner {
+      content: "";
+      width: 100px;
+      height: 100px;
+      margin-top: -50px;
+      margin-right: -50px;
+      background: cyan;
+      z-index: -1;
+    }
+    @bottom-right-corner {
+      content: "";
+      width: 100px;
+      height: 100px;
+      margin-top: -50px;
+      margin-left: -50px;
+      background: yellow;
+    }
+  }
+  body {
+    margin: 0;
+    background: #ddd;
+  }
+</style>
+<p>The margin area above this page should be green. No red.</p>
+<p>The cyan square in the bottom left corner should be overlapped by the gray document background.</p>
+<p>The yellow square in the bottom right corner should be on top of the gray document background.</p>

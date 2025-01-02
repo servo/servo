@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>text-justify:inter-character and ligatures</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<style>
+@font-face {
+    font-family: 'mplus';
+    src: url('/fonts/mplus-1p-regular.woff');
+}
+div {
+    font-size: 2em;
+    font-family: mplus;
+    width: 12ch;
+    text-align: justify;
+    text-align-last: justify;
+    text-justify: inter-character;
+    font-variant-ligatures: none;
+    font-kerning: none;
+}
+span {
+    display: inline-block;
+    text-justify: auto;
+}
+.ref { color: blue;}
+.noref { color: orange; font-variant-ligatures: initial;}
+</style>
+<p>Test passes if the black text looks like the blue one, not the orange one.
+<div>office</div>
+<div class=ref>office</div>
+<div class=noref>o<span>ffi</span>ce</div>

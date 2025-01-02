@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background-attachment set to inherit</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background-attachment" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="image interact" />
+        <meta name="assert" content="Background-attachment set to inherit will use its parents background-attachment assignment." />
+        <style type="text/css">
+            #div1
+            {
+                background-attachment: fixed;
+                height: 200px;
+                width: 200px;
+                overflow: scroll;
+            }
+            div div
+            {
+                background-image: url("support/cat.png");
+                background-attachment: inherit;
+                height: 400px;
+                width: 400px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if when the box below is scrolled, the cat images do not move.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

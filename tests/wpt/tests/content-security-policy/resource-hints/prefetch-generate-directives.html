@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="timeout" content="long">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/common/utils.js'></script>
+<script src='/content-security-policy/support/testharness-helper.js'></script>
+<script>
+
+const directives = {
+  'script-src': true,
+  'img-src': true,
+  'connect-src': true,
+  'object-src': true,
+  'font-src': true,
+  'manifest-src': true,
+  'media-src': true,
+  'style-src': true,
+  'child-src': true,
+  'frame-src': true,
+  'worker-src': true,
+  'base-uri': false,
+};
+
+function prefetch_with_csp_in_a_popup(byDirective, t) {
+  // Allow inline scripts so that we can run the postMessage script...
+  if (byDirective["script-src"] === "*")
+    byDirective["script-src"] = "* 'unsafe-inline'";
+  else
+    byDirective["script-src"] = "'unsafe-inline'";
+
+  const url = new URL('/content-security-policy/support/prefetch-with-csp.html', location.href);
+  const csp = Object.entries(byDirective).map(([key, value]) => `${key} ${value}`).join(";");
+  url.searchParams.set("pipe", `header(Content-Security-Policy, ${csp})`);
+  const uid = token();
+  url.searchParams.set("uid", uid);
+  const bc = new BroadcastChannel(uid);
+  const popup = window.open(url.href);
+  t.add_cleanup(() => popup.close());
+  return new Promise(resolve => {
+    bc.addEventListener("message", ({data}) => {
+      resolve(data);
+    });
+  });
+}
+
+for (const directive in directives) {
+  promise_test(async t => {
+    const byDirective = Object.fromEntries(Object.keys(directives).map(d => [d, "'none'"]));
+    byDirective[directive] = "*";
+    byDirective["default-src"] = "'none'";
+    const prefetch_ok = await prefetch_with_csp_in_a_popup(byDirective, t);
+    assert_equals(prefetch_ok, directives[directive], directive);
+  }, `Test that ${directive} enabled with everything else disabled allows prefetching`);
+
+  promise_test(async t => {
+    const byDirective = {
+      "default-src": "'none'",
+      [directive]: "*",
+    };
+    const prefetch_ok = await prefetch_with_csp_in_a_popup(byDirective, t);
+    assert_equals(prefetch_ok, directives[directive], directive);
+  }, `Test that ${directive} enabled with default-src disabled allows prefetching`);
+}
+
+promise_test(async t => {
+    const byDirective = {
+      "default-src": "'none'",
+      "script-src-elem": "* 'unsafe-inline'",
+      "script-src": "'none'",
+    };
+    const prefetch_ok = await prefetch_with_csp_in_a_popup(byDirective, t);
+    assert_true(prefetch_ok);
+  }, `Test that permissive script-src-elem supersedes script-src`);
+
+promise_test(async t => {
+  const byDirective = {
+    "default-src": "'none'",
+    "script-src-elem": "'unsafe-inline'",
+    "script-src": "*",
+  };
+  const prefetch_ok = await prefetch_with_csp_in_a_popup(byDirective, t);
+  assert_true(prefetch_ok);
+}, `Test that permissive script-src supersedes script-src-elem`);
+
+</script>
+</head>
+<body>
+</body>
+</html>

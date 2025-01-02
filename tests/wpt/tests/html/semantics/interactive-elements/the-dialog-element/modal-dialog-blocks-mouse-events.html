@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.webkit.org/show_bug.cgi?id=110952">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<p>
+To test manually, move the mouse to the blue box, click, and then move the
+mouse outside. Then repeat for the red box. The test succeeds if both boxes
+turn green
+</p>
+
+<style>
+#inert-div {
+  height: 100px;
+  width: 100px;
+  background: blue;
+}
+
+dialog {
+  width: 100px;
+}
+
+dialog::backdrop {
+  display: none;
+}
+
+#dialog-div {
+  height: 100px;
+  width: 100px;
+  background: red;
+}
+</style>
+
+<div id="inert-div"></div>
+<dialog id="dialog">
+  <div id="dialog-div"></div>
+</dialog>
+
+<script>
+promise_test(async () => {
+  async function clickOn(element) {
+    const rect = element.getBoundingClientRect();
+    const actions = new test_driver.Actions()
+      .pointerMove(
+        Math.floor(rect.left + rect.width / 2),
+        Math.floor(rect.top + rect.height / 2))
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(0, 0);
+    await actions.send();
+  }
+
+  dialog.showModal();
+
+  inertDivHandledEvent = false;
+  inertDiv = document.getElementById('inert-div');
+  eventFiredOnInertNode = function(event) {
+    inertDivHandledEvent = true;
+    inertDiv.style.backgroundColor = 'red';
+  };
+
+  events =  ['mousedown', 'mouseup', 'click', 'mousemove', 'mouseover', 'mouseout'];
+  dialogDiv = document.getElementById('dialog-div');
+  handledEvents = {};
+  handledEvents.dialogDiv = {};
+  eventFiredOnDialog = function(event) {
+    handledEvents.dialogDiv[event.type] = true;
+    if (Object.keys(handledEvents.dialogDiv).length == events.length)
+      dialogDiv.style.backgroundColor = 'green';
+  };
+
+  handledEvents.document = {};
+  expectedEventCountForDocument = events.length - 1; // document won't get 'mouseout'
+  eventFiredOnDocument = function(event) {
+    handledEvents.document[event.type] = true;
+    if (Object.keys(handledEvents.document).length == document.expectedEventCount && !inertDivHandledEvent) {
+      inertDiv.style.backgroundColor = 'green';
+    }
+  };
+
+  for (let i = 0; i < events.length; ++i) {
+    inertDiv.addEventListener(events[i], eventFiredOnInertNode);
+    dialogDiv.addEventListener(events[i], eventFiredOnDialog);
+    document.addEventListener(events[i], eventFiredOnDocument);
+  }
+
+  await clickOn(inertDiv);
+  assert_false(inertDivHandledEvent, 'Clicking on inert box');
+  assert_equals(Object.keys(handledEvents.document).length, expectedEventCountForDocument, 'Clicking on inert box');
+
+  await clickOn(dialogDiv);
+  assert_false(inertDivHandledEvent, 'Clicking on non-inert box');
+  assert_equals(Object.keys(handledEvents.dialogDiv).length, events.length, 'Clicking on non-inert box');
+}, 'Ensure that mouse events are not dispatched to an inert node.');
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.addEventListener("focus", () => {
+    document.execCommand("insertText", false, "def");
+    editingHost.parentElement.setAttribute("hidden", "hidden");
+    setTimeout(() => document.documentElement.removeAttribute("class"), 0);
+  });
+  editingHost.focus();
+});
+</script>
+<div><div contenteditable>abc</div></div>
+</html>

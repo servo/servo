@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Captured Surface Control (https://w3c.github.io/mediacapture-surface-control/)
+
+partial interface CaptureController {
+  sequence<long> getSupportedZoomLevels();
+  long getZoomLevel();
+  Promise<undefined> setZoomLevel(long zoomLevel);
+  attribute EventHandler oncapturedzoomlevelchange;
+};
+
+partial interface CaptureController {
+  constructor();
+  Promise<undefined> forwardWheel(HTMLElement element);
+};

@@ -1,0 +1,3 @@
+<Files "woolly-64.svgz">
+	Header set Content-Encoding gzip
+</Files>

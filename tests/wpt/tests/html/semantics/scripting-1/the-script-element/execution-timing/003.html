@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html><head>
+  <title> scheduler: inline+external in markup </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+  <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+  <script>log('inline script #1')</script>
+  <script src="scripts/include-2.js"></script>
+
+  <script type="text/javascript">
+
+  var t = async_test()
+
+
+  function test() {
+    assert_array_equals(eventOrder, ['inline script #1', 'external script #2' ]);
+    t.done();
+  }
+  onload = t.step_func(test)
+  </script>
+
+</body></html>

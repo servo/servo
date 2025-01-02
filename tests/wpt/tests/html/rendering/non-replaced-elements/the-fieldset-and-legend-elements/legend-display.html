@@ -1,0 +1,40 @@
+<!doctype html>
+<title>rendered legend and CSS display</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+legend { width:initial; }
+</style>
+<fieldset><legend id="ref">x</legend></fieldset>
+<fieldset><legend id="test">x</legend></fieldset>
+<script>
+  const refElm = document.querySelector('#ref');
+  const refStyle = getComputedStyle(refElm);
+  const testElm = document.querySelector('#test');
+  const values = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
+                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow', 'flow-root','run-in','inline',
+                  'inline-block', 'inline-table', 'block ruby', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container',
+                  'grid', 'inline-grid', 'flex', 'inline-flex'];
+  const extraStyle = ['', 'overflow:hidden', 'columns:1', 'overflow:hidden;columns:1'];
+
+  for (const style of extraStyle) {
+    for (const val of values) {
+      test(() => {
+        testElm.style.removeProperty('display');
+        testElm.style = style;
+        testElm.style.display = val;
+        const computed = getComputedStyle(testElm);
+        // Note that computed value is different from the used value.
+        // E.g., if ruby is not supported, the following assertion will
+        // fail as the computed value of display will be block.
+        // If ruby is supported, computed.display will return "ruby",
+        // but the used value is supposed to be "block ruby".
+        // Also, 'flow' is serialized as 'block' for legacy reasons.
+        let expected = val == 'flow' ? 'block' : val;
+        assert_equals(computed.display, expected, `display: ${val} is not supported`);
+        assert_equals(computed.width, refStyle.width, 'width');
+        assert_equals(testElm.offsetLeft, refElm.offsetLeft, 'offsetLeft');
+      }, `rendered legend with display: ${val}` + (style == '' ? '' : "; " + style));
+    }
+  }
+</script>

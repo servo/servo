@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Backgrounds and Borders Test: border-image shorthand - with border-image-slice &lt;percentage&gt; and border-image-width &lt;percentage&gt;</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image" title="6.7. Border Image Shorthand: the 'border-image' property" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+  <meta name="flags" content="image" />
+  <meta name="assert" content="Percentage values for 'border-image-slice' are relative to the size of the image: the width of the image for the horizontal (left and right) offsets, the height for vertical (top and bottom) offsets. 'border-image-slice' specifies inward offsets from the top, right, bottom, and left edges (in that order) of the image. In this test, the image serving as 'border-image-source' is a 100px by 100px image which has 5px of green at the top, 10px of green on the right, 15px of green at the bottom and 20px of green at the left; the remaining center (which has a width of 70px and a height of 80px) is all red." />
+
+  <style type="text/css"><![CDATA[
+  div#test
+  {
+  border-color: red;
+  border-style: solid;
+  border-width: 15px 20px 35px 30px;
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5% 10% 15% 20% / 15% 20% 35% 30% / 0 repeat repeat;
+
+  /*
+  Equivalent to this shorthand form (see border-image-018 test):
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5 10 15 20 / 15% 20% 35% 30% / 0 repeat repeat;
+
+  or to this shorthand form (see border-image-019 test):
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5% 10% 15% 20% / 1 1 1 1 / 0 repeat repeat;
+
+  or to this shorthand form (see border-image-020 test):
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5 10 15 20 / 1 1 1 1 / 0 repeat repeat;
+  */
+
+  width: 50px;
+  }
+
+  img {vertical-align: top;}
+
+  div#overlapped-red
+  {
+  background-color: red;
+  bottom: 100px;
+  height: 100px;
+  position: relative;
+  width: 100px;
+  z-index: -1;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="test"><img src="support/50x50-green.png" alt="Image download support must be enabled" /></div>
+
+  <div id="overlapped-red"></div>
+
+ </body>
+</html>

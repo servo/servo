@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Redundant "mouseenter" shouldn't be fired without "mouseleave"s</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+"use strict";
+
+function stringifyEvents(eventArray) {
+  if (!eventArray.length) {
+    return "[]";
+  }
+  let result = "";
+  eventArray.forEach(event => {
+    if (result != "") {
+      result += ", ";
+    }
+    result += `${event.type}@${
+      event.target?.nodeType == Node.ELEMENT_NODE
+        ? `${event.target.localName}${
+            event.target.id ? `#${event.target.id}` : ""
+          }`
+        : event.target?.localName
+    }`;
+  });
+  return result;
+}
+
+function eventsAfterClick(eventArray) {
+  const indexAtClick = eventArray.findIndex(e => e.type == "click");
+  if (indexAtClick >= 0) {
+    return eventArray.slice(indexAtClick + 1);
+  }
+  return [];
+}
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const div1 = document.createElement("div");
+    div1.setAttribute("id", "grandparent");
+    div1.setAttribute("style", "width: 32px; height: 32px");
+    const div2 = document.createElement("div");
+    div2.setAttribute("id", "parent");
+    div2.setAttribute("style", "width: 32px; height: 32px");
+    const div3 = document.createElement("div");
+    div3.setAttribute("id", "child");
+    div3.setAttribute("style", "width: 32px; height: 32px");
+    div1.appendChild(div2);
+    div2.appendChild(div3);
+    document.body.appendChild(div1);
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("click", event => {
+      div3.remove();
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .pointerDown()
+      .pointerUp() // The clicked in the child, then it's removed from the DOM tree
+      .pointerMove(bodyRect.x + 10, bodyRect.y + 10, {}) // Then, move onto the <body>
+      .send();
+    // FYI: Comparing `mouseenter`s before `click` requires additional
+    // initialization, but it's out of scope of this bug.  Therefore, we
+    // compare only events after `click`.
+    const expectedEvents = [ // no events should be fired on the child due to disconnected
+      { type: "mouseover", target: div2 }, // mouseover should be fired because of the mutation
+      { type: "mouseout", target: div2}, // mouseout should be fired because of the mutation
+      { type: "mouseleave", target: div2},
+      { type: "mouseleave", target: div1},
+      { type: "mouseover", target: document.body},
+      { type: "mousemove", target: document.body},
+    ];
+    assert_equals(
+      stringifyEvents(eventsAfterClick(events)),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+  }, "After removing the last over element, redundant mouseenter events should not be fired on the ancestors");
+
+  promise_test(async () => {
+    const hostContainer = document.createElement("div");
+    hostContainer.setAttribute("id", "containerOfShadowHost");
+    hostContainer.setAttribute("style", "margin-top: 32px; height: 32px");
+    const host = document.createElement("div");
+    host.setAttribute("id", "shadowHost");
+    host.setAttribute("style", "width: 32px; height: 32px");
+    const root = host.attachShadow({mode: "open"});
+    const rootElementInShadow = document.createElement("div");
+    root.appendChild(rootElementInShadow);
+    rootElementInShadow.setAttribute("id", "divInShadow");
+    rootElementInShadow.setAttribute("style", "width: 32px; height: 32px");
+    hostContainer.appendChild(host);
+    document.body.appendChild(hostContainer);
+    const bodyRect = document.body.getBoundingClientRect();
+    const rootElementInShadowRect = rootElementInShadow.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, hostContainer, host, root, rootElementInShadow]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    rootElementInShadow.addEventListener("click", event => {
+      rootElementInShadow.remove();
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(rootElementInShadowRect.x + 10, rootElementInShadowRect.y + 10, {})
+      .pointerDown()
+      .pointerUp() // The clicked root element in the shadow is removed here.
+      .pointerMove(bodyRect.x + 10, bodyRect.y + 10, {}) // Then, move onto the <body>
+      .send();
+    // FYI: Comparing `mouseenter`s before `click` requires additional
+    // initialization, but it's out of scope of this bug.  Therefore, we
+    // compare only events after `click`.
+    const expectedEvents = [ // no events should be fired on rootElementInShadow due to disconnected
+      { type: "mouseover", target: host}, // mouseover should be fired because of the mutation
+      { type: "mouseout", target: host}, // mouseout should be fired because of the mutation
+      { type: "mouseleave", target: host},
+      { type: "mouseleave", target: hostContainer},
+      { type: "mouseover", target: document.body},
+      { type: "mousemove", target: document.body},
+    ];
+    assert_equals(
+      stringifyEvents(eventsAfterClick(events)),
+      stringifyEvents(expectedEvents),
+    );
+    hostContainer.remove();
+  }, "After removing the root element in the shadow under the cursor, mouseleave events should be targeted outside the shadow, but redundant mouseenter events should not be fired");
+}, {once: true});
+</script>
+</head>
+<body style="padding-top: 32px"></body>
+</html>

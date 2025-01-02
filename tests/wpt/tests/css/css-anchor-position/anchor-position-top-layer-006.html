@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Top-layer element cannot anchor to succeeding top-layer element</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#target-anchor-element">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="anchor-position-top-layer-ref.html">
+
+<style>
+#anchor {
+  position: absolute;
+  top: 300px;
+  left: 200px;
+  width: 100px;
+  height: 100px;
+  background: orange;
+  anchor-name: --a;
+}
+
+#target {
+  position: fixed;
+  top: anchor(bottom, 200px);
+  left: anchor(left, 300px);
+  width: 100px;
+  height: 100px;
+  background: lime;
+  position-anchor: --a;
+}
+
+body {
+  margin: 0;
+  height: 300vh;
+}
+
+dialog {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  outline: none;
+}
+
+dialog::backdrop {
+  background: transparent;
+}
+</style>
+
+<dialog id="anchor"></dialog>
+<dialog id="target"></dialog>
+
+<script>
+target.showModal();
+anchor.showModal();
+document.scrollingElement.scrollTop = 100;
+</script>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+<body>
+<script>
+  let message_from = (w, starts_with) => {
+    return new Promise(resolve => {
+      window.addEventListener('message', msg => {
+        if (msg.source == w) {
+          if (!starts_with || msg.data.startsWith(starts_with))
+            resolve(msg.data);
+        }
+      });
+    });
+  };
+
+  const img_url = window.origin + "/content-security-policy/support/fail.png";
+  const img_tag_string = `
+      <img src="${img_url}"
+           onload="top.postMessage('img loaded', '*');"
+           onerror="top.postMessage('img blocked', '*');"
+      >
+   `;
+
+  const html_test_payload = `
+        <!doctype html>
+        <div>${img_tag_string}</div>
+  `;
+  let blob_url = URL.createObjectURL(
+    new Blob([html_test_payload], { type: 'text/html' }));
+
+  let write_img_to_iframe = (iframe) => {
+    let div = iframe.contentDocument.createElement('div');
+    div.innerHTML = img_tag_string;
+    iframe.contentDocument.body.appendChild(div);
+  };
+
+
+  // Test location.reload() for "about:blank".
+  promise_test(async t => {
+    // Create an empty iframe.
+    window.iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+
+    // Add an img.
+    let message = message_from(iframe.contentWindow);
+    write_img_to_iframe(iframe);
+
+    // Check that the empty document inherits CSP from the initiator.
+    assert_equals(await message, "img blocked",
+                  "Image should be blocked by CSP inherited from the parent.");
+
+    // Now perform a reload.
+    let message_2 = message_from(iframe.contentWindow);
+    let loaded = new Promise(resolve => iframe.onload = resolve);
+    iframe.contentWindow.location.reload();
+    await loaded;
+
+    // Add an img.
+    write_img_to_iframe(iframe);
+
+    // Check that the empty document still has the right CSP after reload.
+    assert_equals(await message_2, "img blocked",
+                  "Image should be blocked by CSP after reload.");
+  }, "location.reload() of empty iframe.");
+
+
+  // Test location.reload() for a blob URL.
+  promise_test(async t => {
+    // Create an iframe.
+    window.iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+
+    // Navigate to the blob URL.
+    let message = message_from(iframe.contentWindow);
+    iframe.contentWindow.location = blob_url;
+
+    // Check that the blob URL inherits CSP from the initiator.
+    assert_equals(await message, "img blocked",
+                  "Image should be blocked by CSP inherited from navigation initiator.");
+
+    // Now perform a reload.
+    let message_2 = message_from(iframe.contentWindow);
+    let loaded = new Promise(resolve => iframe.onload = resolve);
+      iframe.contentWindow.location.reload();
+    await loaded;
+
+    // Check that the blob URL document still has the right CSP after reload.
+    assert_equals(await message_2, "img blocked",
+                  "Image should be blocked by CSP after reload.");
+  }, "location.reload() of blob URL iframe.");
+
+
+  // Test location.reload() for a srcdoc iframe.
+  promise_test(async t => {
+    // Create a srcdoc iframe.
+    window.iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+
+    let message = message_from(iframe.contentWindow);
+    iframe.srcdoc = `${html_test_payload}`;
+
+    // Check that the srcdoc iframe inherits from the parent.
+    assert_equals(await message, "img blocked",
+                  "Image should be blocked by CSP inherited from navigation initiator.");
+
+    // Now perform a reload.
+    let message_2 = message_from(iframe.contentWindow);
+    let loaded = new Promise(resolve => iframe.onload = resolve);
+      iframe.contentWindow.location.reload();
+    await loaded;
+
+    // Check that the srcdoc iframe still has the right CSP after reload.
+    assert_equals(await message_2, "img blocked",
+                  "Image should be blocked by CSP after reload.");
+  }, "location.reload() of srcdoc iframe.");
+</script>
+</body>

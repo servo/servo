@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Empty &lt;msqrt&gt; element</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#radicals-msqrt-mroot">
+    <meta name="assert" content="Empty msqrt should render as if it had a single empty mrow child.">
+    <link rel="match" href="empty-msqrt-ref.html">
+  </head>
+  <body>
+    <math><msqrt></msqrt></math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_msqrt");</script>
+  </body>
+</html>

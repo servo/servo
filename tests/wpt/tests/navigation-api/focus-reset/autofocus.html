@@ -1,0 +1,185 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button autofocus id="initialAutofocusTarget">Initial autofocus target</button>
+
+<script type="module">
+promise_setup(async () => {
+  // Get the overall autofocus processed flag to flip to true, so that
+  // we only test the navigation API-specific stuff.
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  assert_equals(document.activeElement, initialAutofocusTarget, "Non-navigation API autofocus was processed");
+  initialAutofocusTarget.remove();
+  assert_equals(document.activeElement, document.body);
+});
+
+promise_test(async t => {
+  const decoy = createAndAppend(t);
+  const autofocusTarget = createAndAppend(t, { autofocus: true });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  decoy.focus();
+  assert_equals(document.activeElement, decoy, "focus() worked");
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  const { committed, finished } = navigation.navigate("#1");
+
+  await committed;
+  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+
+  await finished;
+  assert_equals(document.activeElement, autofocusTarget, "Focus moves to the autofocused button after the transition");
+}, "An element with autofocus, present before navigation, gets focused");
+
+promise_test(async t => {
+  const autofocusTarget = createAndAppend(t, { autofocus: true });
+  const decoy = createAndAppend(t, { autofocus: true });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  decoy.focus();
+  assert_equals(document.activeElement, decoy, "focus() worked");
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  const { committed, finished } = navigation.navigate("#1");
+
+  await committed;
+  assert_equals(document.activeElement, decoy, "Focus stays on the initially-focused button during the transition");
+
+  await finished;
+  assert_equals(document.activeElement, autofocusTarget, "Focus moves to the first autofocused button after the transition");
+}, "Two elements with autofocus, present before navigation; the first gets focused");
+
+promise_test(async t => {
+  const decoy = createAndAppend(t);
+  const autofocusTarget = createAndAppend(t, { autofocus: true });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  decoy.focus();
+  assert_equals(document.activeElement, decoy, "focus() worked");
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  const { committed, finished } = navigation.navigate("#1");
+
+  await committed;
+  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+
+  autofocusTarget.disabled = true;
+
+  await finished;
+  assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");
+}, "An element with autofocus, present before navigation but disabled before finished, does not get focused");
+
+promise_test(async t => {
+  const decoy = createAndAppend(t);
+  const autofocusTarget = createAndAppend(t, { autofocus: true });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  decoy.focus();
+  assert_equals(document.activeElement, decoy, "focus() worked");
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  const { committed, finished } = navigation.navigate("#1");
+
+  await committed;
+  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+
+  autofocusTarget.autofocus = false;
+
+  await finished;
+  assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");
+}, "An element with autofocus, present before navigation but with its autofocus attribute removed before finished, does not get focused");
+
+promise_test(async t => {
+  const decoy = createAndAppend(t, { autofocus: true });
+  const autofocusTarget = createAndAppend(t, { autofocus: true });
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  decoy.focus();
+  assert_equals(document.activeElement, decoy, "focus() worked");
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  const { committed, finished } = navigation.navigate("#1");
+
+  await committed;
+  assert_equals(document.activeElement, decoy, "Focus stays on the initially-focused button during the transition");
+
+  decoy.disabled = true;
+  assert_equals(document.activeElement, document.body, "Disabling the initially-focused button temporarily resets focus to the body");
+
+  await finished;
+  assert_equals(document.activeElement, autofocusTarget, "Focus moves to the second autofocused button after the transition");
+}, "Two elements with autofocus, present before navigation, but the first gets disabled; the second gets focused");
+
+promise_test(async t => {
+  const decoy = createAndAppend(t);
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  decoy.focus();
+  assert_equals(document.activeElement, decoy, "focus() worked");
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  const { committed, finished } = navigation.navigate("#1");
+
+  await committed;
+  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+
+  const autofocusTarget = createAndAppend(t, { autofocus: true });
+
+  await finished;
+  assert_equals(document.activeElement, autofocusTarget, "Focus moves to the autofocused button after the transition");
+}, "An element with autofocus, introduced between committed and finished, gets focused");
+
+promise_test(async t => {
+  const decoy = createAndAppend(t);
+
+  assert_equals(document.activeElement, document.body, "Start on body");
+  decoy.focus();
+  assert_equals(document.activeElement, decoy, "focus() worked");
+
+  navigation.addEventListener("navigate", e => {
+    e.intercept();
+  }, { once: true });
+
+  const { committed, finished } = navigation.navigate("#1");
+
+  await committed;
+  assert_equals(document.activeElement, decoy, "Focus stays on the non-autofocused button during the transition");
+
+  await finished;
+  assert_equals(document.activeElement, document.body, "Focus gets reset after the transition");
+
+  const autofocusTarget = createAndAppend(t, { autofocus: true });
+
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  assert_equals(document.activeElement, document.body, "Focus stays reset two animation frames after the transition");
+}, "An element with autofocus, introduced after finished, does not get focused");
+
+function createAndAppend(t, props) {
+  const element = document.createElement("button");
+  Object.assign(element, props);
+
+  document.body.append(element);
+  t.add_cleanup(() => { element.remove(); });
+
+  return element;
+}
+</script>

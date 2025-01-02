@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Scrolling mechanism and right-to-left</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-11 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#viewport" />
+        <meta name="flags" content="interact scroll should" />
+        <meta name="assert" content="Scrolling mechanism should be available when canvas is larger than viewport even when page is set to right-to-left." />
+        <style type="text/css">
+            body
+            {
+                direction: rtl;
+            }
+            div
+            {
+                margin-top: 2000px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if this page can be scrolled to the words "Bottom of page".&lrm;</p>
+        <div>Bottom of page</div>
+    </body>
+</html>

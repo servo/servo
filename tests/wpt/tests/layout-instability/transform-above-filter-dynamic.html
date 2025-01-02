@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Layout Instability: addition of scale transform above filter</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<div id=target style="width: 581px">
+    <div id=moved style="filter: saturate(1.1); width: 300px; height:300px; background: lightblue">
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  target.style.transform = "scale(1.1)";
+  await waitForAnimationFrames(1);
+
+  assert_equals(watcher.score, 0);
+}, 'addition of scale transform above filter');
+
+</script>

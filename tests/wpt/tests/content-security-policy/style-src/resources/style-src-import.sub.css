@@ -1,0 +1,1 @@
+@import "http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/style-src/style-src.css";

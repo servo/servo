@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<title>&lt;html display:table&gt;</title>
+<link rel="author" href="mailto:atotic@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<meta name="assert" content="<html display:table> does not fill the viewport">
+<link rel="match" href="html-display-table-ref.html">
+<style>
+  html {
+    display: table;
+    border: 10px solid green;
+    border-spacing: 0;
+    padding: 0;
+    margin: auto;
+  }
+  body {
+    padding: 0;
+    margin: 0;
+  }
+</style>
+<div style="width:200px;height:300px;background:yellow;display:inline-block;"></div><div style="width:80px;height:300px;background:yellow;display:inline-block;"></div>

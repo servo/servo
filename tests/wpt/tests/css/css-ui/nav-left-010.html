@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Directional Focus Navigation - 'root' target frame for 'nav-left'</title>
+<link rel="author" title="Jorrit Vermeiren" href="mailto:jorritv@opera.com">
+<link rel="author" title="Daniel Glazman" href="mailto:d.glazman@partner.samsung.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#nav-dir">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that the 'root' frame value is respected for 'nav-left'.">
+<body>
+    <p>First, use directional navigation to navigate the focus to the "START" link below.</p>
+    <!-- In Opera 12.16, directional navigation may be done using Shift+<arrow key>.
+         In the SmartTV emulator, use the keypad in the GUI. -->
+    <p>Test passes if navigating left once moves the focus to the "FINISH" link.</p>
+
+    <p><a href="" id="finish">FINISH</a></p>
+
+    <iframe src="support/nav-left-010-frame.html"></iframe>
+
+    <p><a href="">ignore</a></p>
+</body>

@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:nth-last-child() pseudo-class</title>
+  <style type="text/css"><![CDATA[.green { background-color : lime ! important }
+ul > li:nth-last-child(odd) { background-color : red }
+ol > li:nth-last-child(even) { background-color : red }
+table.t1 tr:nth-last-child(-n+4) { background-color : red }
+table.t2 td:nth-last-child(3n+1) { background-color : red }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+ </head>
+ <body>
+<ul>
+  <li>First list item</li>
+  <li class="green">This second list item should have a green background</li>
+  <li>Third list item</li>
+  <li class="green">This fourth list item should have a green background</li>
+  <li>Fifth list item</li>
+  <li class="green">This sixth list item should have a green background</li>
+</ul>
+<ol>
+  <li class="green">This first list item should have a green background</li>
+  <li>Second list item</li>
+  <li class="green">This third list item should have a green background</li>
+  <li>Fourth list item</li>
+  <li class="green">This fifth list item should have a green background</li>
+  <li>Sixth list item</li>
+</ol>
+<div>
+<table border="1" class="t1">
+  <tr>
+<td>1.1</td>
+<td>1.2</td>
+     <td>1.3</td>
+</tr>
+  <tr>
+<td>2.1</td>
+<td>2.2</td>
+     <td>2.3</td>
+</tr>
+  <tr class="green">
+<td>Green row : 3.1</td>
+<td>3.2</td>
+     <td>3.3</td>
+</tr>
+  <tr class="green">
+<td>Green row : 4.1</td>
+<td>4.2</td>
+      <td>4.3</td>
+</tr>
+  <tr class="green">
+<td>Green row : 5.1</td>
+<td>5.2</td>
+      <td>5.3</td>
+</tr>
+  <tr class="green">
+<td>Green row : 6.1</td>
+<td>6.2</td>
+      <td>6.3</td>
+</tr>
+</table>
+<p></p>
+<table class="t2" border="1">
+  <tr>
+<td>1.1</td>
+<td class="green">green cell</td>
+<td>1.3</td>
+      <td>1.4</td>
+<td class="green">green cell</td>
+<td>1.6</td>
+      <td>1.7</td>
+<td class="green">green cell</td>
+</tr>
+  <tr>
+<td>2.1</td>
+<td class="green">green cell</td>
+<td>2.3</td>
+      <td>2.4</td>
+<td class="green">green cell</td>
+<td>2.6</td>
+      <td>2.7</td>
+<td class="green">green cell</td>
+</tr>
+  <tr>
+<td>3.1</td>
+<td class="green">green cell</td>
+<td>3.3</td>
+      <td>3.4</td>
+<td class="green">green cell</td>
+<td>3.6</td>
+      <td>3.7</td>
+<td class="green">green cell</td>
+</tr>
+</table>
+</div>
+</body>
+</html>

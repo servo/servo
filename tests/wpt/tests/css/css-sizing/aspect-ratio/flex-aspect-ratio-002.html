@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Row flexbox min-width</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex;">
+  <!-- No transferred size suggestion since the flex item is non-replaced.
+       Content size suggestion is 100px because min-intrinsic width is 100px.
+  -->
+  <div style="background: green; height: 100px; aspect-ratio: 1/2; flex-basis: 0;">
+    <div style="width: 100px;"></div>
+  </div>
+</div>

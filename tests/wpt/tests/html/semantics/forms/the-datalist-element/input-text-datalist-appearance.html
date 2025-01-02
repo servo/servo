@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=assert title="text inputs should show an indicator when they have a datalist.">
+<link rel=mismatch href="input-text-focused-ref.html">
+<link rel=assert title="Text inputs should have different appearance when focused if they have a datalist."
+
+<input list=mydatalist>
+<datalist id=mydatalist>
+  <option>option</option>
+</datalist>
+
+<script>
+document.querySelector('input').focus();
+</script>

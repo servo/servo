@@ -1,0 +1,11 @@
+<!doctype html>
+<link rel="help" href="https://crbug.com/1077524">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Grid item in 0-height grid flex-item doesn't get the flexbox's height." />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="background: green; display: flex; flex-direction: column; width: 100px; height: 100px;">
+  <div style="background: blue; display: grid; grid-template-rows: auto;">
+    <div style="background: red;"></div>
+  </div>
+</div>

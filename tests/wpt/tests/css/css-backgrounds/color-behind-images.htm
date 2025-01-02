@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background color is drawn behind images</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-color" />
+        <meta name="assert" content="Background color is drawn behind any number of background images." />
+        <style type="text/css">
+            div
+            {
+                width: 250px;
+                height: 250px;
+                background-image: url("support/blue_color.png"), url("support/orange_color.png"), url("support/white_color.png");
+                background-repeat: no-repeat;
+                background-position: 30px 30px, 60px 60px, 90px 90px;
+                background-color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if blue, orange and white boxes are visible on a larger black box.</p>
+        <div></div>
+    </body>
+</html>

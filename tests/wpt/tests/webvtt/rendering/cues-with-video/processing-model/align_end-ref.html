@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, align:end</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    font-size: 9px;
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: right;
+}
+.cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+}
+</style>
+<div class=video><span class=cue><span>This is a test</span></span></div>

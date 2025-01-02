@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Selectors (basic)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#pattern-matching" />
+  <link rel="match" href="selectors-001-ref.xht"/>
+  <style type="text/css">
+   body * { background: red; color: yellow; margin: 1em 0; font: inherit; display: block; }
+   p { background: green; color: white; }
+   .class { background: green; color: white; }
+   #id { background: green; color: white; }
+   div span { background: green; color: white; }
+   div > em { background: green; color: white; }
+   div + blockquote { background: green; color: white; }
+   [title=attribute] { background: green; color: white; }
+  </style>
+ </head>
+ <body>
+  <p>This text should be green. (element)</p>
+  <div class="class">This text should be green. (class)</div>
+  <div id="id">This text should be green. (id)</div>
+  <div><em>This text should be green. (child)</em></div>
+  <div><span>This text should be green. (descendant)</span></div>
+  <blockquote>This text should be green. (sibling)</blockquote>
+  <div title="attribute">This text should be green. (attribute)</div>
+ </body>
+</html>

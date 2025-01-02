@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Simple MediaSource playback &amp; seek test case.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+            mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+            {
+
+                mediaElement.play();
+                // Append all the segments
+                test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+                test.expectEvent(mediaElement, 'playing', 'Playing triggered');
+                sourceBuffer.appendBuffer(mediaData);
+
+                function confirmPlayThenEnd()
+                {
+                    test.waitForCurrentTimeChange(mediaElement, function ()
+                    {
+                        assert_greater_than(mediaElement.currentTime, 0.0, 'Playback has started after seek.');
+                        test.done();
+                    });
+                }
+
+                function finishSeekThenPlay()
+                {
+                    test.expectEvent(mediaElement, 'seeked', 'mediaElement finished seek');
+
+                    test.waitForExpectedEvents(confirmPlayThenEnd);
+                }
+
+                function delayedPlayHandler()
+                {
+                    assert_greater_than(mediaElement.currentTime, 0.0, 'Playback has started.');
+                    test.expectEvent(mediaElement, 'seeking', 'mediaElement');
+                    mediaElement.currentTime = 0.0;
+                    assert_true(mediaElement.seeking, 'mediaElement is seeking');
+
+                    test.waitForExpectedEvents(finishSeekThenPlay);
+                }
+
+                test.waitForExpectedEvents(function()
+                {
+                    test.waitForCurrentTimeChange(mediaElement, delayedPlayHandler);
+                });
+
+            }, 'Test playing then seeking back.');
+        </script>
+    </body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: language specific hyphenation—Pinyin-hyphen</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hyphens-property">
+<link rel="match" href="reference/hyphens-i18n-auto-004-ref.html">
+<link rel="match" href="reference/hyphens-i18n-auto-004-alt-ref.html">
+<link rel="match" href="reference/hyphens-i18n-auto-004-alt-2-ref.html">
+<link rel="match" href="reference/hyphens-i18n-auto-004-alt-3-ref.html">
+<meta name="assert" content="Language specific rules must be taken into account">
+<style>
+div {
+  font-size: 3em;
+  color: orange;
+}
+.test {
+  width: 8ch;
+  hyphens: auto;
+  color: blue;
+}
+</style>
+
+<p>Test passes if the blue text is identical to one of the orange texts (which may be identical to eachother, or may have a different hyphen).
+<div lang=zh-Latn-pinyin class=test>àizēng&#x2010;fēnmíng</div>
+<hr>
+<div lang=zh-Latn-pinyin>àizēng&#x2010;<br>&#x2010;fēnmíng</div>
+<hr>
+<div lang=zh-Latn-pinyin>àizēng-<br>&#x2010;fēnmíng</div>
+<hr>
+<div lang=zh-Latn-pinyin>àizēng&#x2010;<br>-fēnmíng</div>
+<hr>
+<div lang=zh-Latn-pinyin>àizēng-<br>-fēnmíng</div>

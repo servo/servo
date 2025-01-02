@@ -1,0 +1,17 @@
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1800543">
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  b.setCustomValidity("x")
+  a.reportValidity()
+  c.appendChild(a)
+  document.adoptNode(d)
+  document.documentElement.style.display = 'none'
+})
+</script>
+<form id="a">
+<textarea id="b">a</textarea>
+</form>
+<dl id="d">
+<canvas id="c"></canvas>
+</dl>
+<input form="a">

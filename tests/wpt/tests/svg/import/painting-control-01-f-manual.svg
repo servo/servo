@@ -1,0 +1,107 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="Microsoft" status="accepted"
+    version="$Revision: 1.4 $" testname="$RCSfile: painting-control-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#VisibilityControl">
+      <p>
+        Elements are rendered when the 'display' attribute is set to any valid value other than 'none'.
+      </p>
+      <p>
+        For each valid 'display' value (except none), the test creates a 'rect' element with that 'display' value assigned. Under that
+        element, a red 'rect' is placed at the exact same 'x', 'y' position with the same height and width. Test passes if the 'rect'
+        with 'display' covers the red 'rect'.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+  <p>
+  Run the test. No interaction required.
+  </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Test passes if 16 black rectangles are shown and there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-control-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <rect width="48px" height="48px" fill="red" />
+    <rect width="48px" height="48px" display="inline" />
+
+    <rect x="50px" width="48px" height="48px" fill="red" />
+    <rect x="50px" width="48px" height="48px" display="block" />
+
+    <rect x="100px" width="48px" height="48px" fill="red" />
+    <rect x="100px" width="48px" height="48px" display="list-item" />
+
+    <rect x="150px" width="48px" height="48px" fill="red" />
+    <rect x="150px" width="48px" height="48px" display="run-in" />
+
+    <rect y="50px" width="48px" height="48px" fill="red" />
+    <rect y="50px" width="48px" height="48px" display="compact" />
+
+    <rect x="50px" y="50px" width="48px" height="48px" fill="red" />
+    <rect x="50px" y="50px" width="48px" height="48px" display="marker" />
+
+    <rect x="100px" y="50px" width="48px" height="48px" fill="red" />
+    <rect x="100px" y="50px" width="48px" height="48px" display="table" />
+
+    <rect x="150px" y="50px" width="48px" height="48px" fill="red" />
+    <rect x="150px" y="50px" width="48px" height="48px" display="inline-table" />
+
+    <rect y="100px" width="48px" height="48px" fill="red" />
+    <rect y="100px" width="48px" height="48px" display="table-row-group" />
+
+    <rect x="50px" y="100px" width="48px" height="48px" fill="red" />
+    <rect x="50px" y="100px" width="48px" height="48px" display="table-header-group" />
+
+    <rect x="100px" y="100px" width="48px" height="48px" fill="red" />
+    <rect x="100px" y="100px" width="48px" height="48px" display="table-footer-group" />
+
+    <rect x="150px" y="100px" width="48px" height="48px" fill="red" />
+    <rect x="150px" y="100px" width="48px" height="48px" display="table-row" />
+
+    <rect y="150px" width="48px" height="48px" fill="red" />
+    <rect y="150px" width="48px" height="48px" display="table-column-group" />
+
+    <rect x="50px" y="150px" width="48px" height="48px" fill="red" />
+    <rect x="50px" y="150px" width="48px" height="48px" display="table-column" />
+
+    <rect x="100px" y="150px" width="48px" height="48px" fill="red" />
+    <rect x="100px" y="150px" width="48px" height="48px" display="table-cell" />
+
+    <rect x="150px" y="150px" width="48px" height="48px" fill="red" />
+    <rect x="150px" y="150px" width="48px" height="48px" display="table-caption" />
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

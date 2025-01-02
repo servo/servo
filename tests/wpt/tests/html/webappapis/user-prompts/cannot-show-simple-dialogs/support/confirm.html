@@ -1,0 +1,11 @@
+<script>
+  function handleEvent(e) {
+    var conf = window.confirm('Confirm Dialog');
+    if (conf == false) {
+      window.parent.postMessage('pass', '*');
+    } else {
+      window.parent.postMessage('fail', '*');
+    }
+  }
+  window.addEventListener('message', handleEvent);
+</script>

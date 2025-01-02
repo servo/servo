@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-rl, default Han orientation</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="By default, writing-mode:vertical-rl will display chinese characters upright."/>
+<style type="text/css">
+.test, .ref { font-size: 24px; float: left; margin-right: 30px; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+</head>
+<body>
+<p class="instructions" dir="ltr">Test passes if the text is vertical and the Chinese characters are oriented the same way as on the blue background.</p>
+<div class="test" lang="zh">国际化活动万维网联盟</div>
+<div class="ref"><img src="support/zh-orientation.png" alt="ref image"/></div>
+</body>
+</html>

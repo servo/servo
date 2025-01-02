@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.4-bodyETBTypeText.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of an Embedded Textual Body should include type key which includes the value of Text.",
+    "title": "Implements **Embedded Textual Body _type_ key** which includes a value of **Text** [model 3.2.4](https://www.w3.org/TR/annotation-model/#embedded-textual-body)",
+    "description": "True when Annotation includes one or more Embedded Textual Bodies (incl. as part of body Choice or Set), one or more of which includes a type key which includes a value of Text. (Section 3.2.4)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "anyOf":
+                        [
+                          { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeIncludesText" },
+                          { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeIncludesText" }
+                        ]
+                       },
+                       { "not":
+                         {
+                           "items":
+                            { "not":
+                               { "anyOf":
+                                [
+                                  { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeIncludesText" },
+                                  { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeIncludesText" }
+                                ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

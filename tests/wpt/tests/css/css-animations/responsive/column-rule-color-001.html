@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Animations: column-rule-color animations respond to style changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#crc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .paused {
+    animation-duration: 4s;
+    animation-timing-function: linear;
+    animation-delay: -2s;
+    animation-play-state: paused;
+  }
+  #container {
+    color: rgb(80, 0, 0);
+  }
+  #first {
+    animation-name: first-anim;
+    color: rgb(60, 0, 0);
+  }
+  #second {
+    animation-name: second-anim;
+  }
+  @keyframes first-anim {
+    from { column-rule-color: currentColor; }
+    to { column-rule-color: rgb(0, 60, 0); }
+  }
+  @keyframes second-anim {
+    from { column-rule-color: inherit; }
+    to { column-rule-color: rgb(0, 0, 80); }
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="first" class="paused"></div>
+  <div id="second" class="paused"></div>
+</div>
+<script>
+'use strict';
+var container = document.getElementById('container');
+
+test(() => {
+  const first = document.getElementById('first');
+  assert_equals(getComputedStyle(first).columnRuleColor, 'rgb(30, 30, 0)');
+  first.style.color = 'rgb(0, 0, 60)';
+  assert_equals(getComputedStyle(first).columnRuleColor, 'rgb(0, 30, 30)');
+}, 'column-rule-color responds to currentColor changes');
+
+test(() => {
+  const container = document.getElementById('container');
+  const second = document.getElementById('second');
+  assert_equals(getComputedStyle(second).columnRuleColor, 'rgb(40, 0, 40)');
+  container.style.columnRuleColor = 'rgb(0, 80, 0)';
+  assert_equals(getComputedStyle(second).columnRuleColor, 'rgb(0, 40, 40)');
+}, 'column-rule-color responds to inherited changes');
+</script>
+</body>
+</html>

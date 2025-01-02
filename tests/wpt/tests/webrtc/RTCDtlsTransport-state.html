@@ -1,0 +1,141 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCDtlsTransport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// The following helper functions are called from RTCPeerConnection-helper.js:
+//   exchangeIceCandidates
+//   exchangeOfferAnswer
+//   trackFactories.audio()
+
+/*
+    5.5.  RTCDtlsTransport Interface
+      interface RTCDtlsTransport : EventTarget {
+        readonly attribute RTCDtlsTransportState state;
+        sequence<ArrayBuffer> getRemoteCertificates();
+                 attribute EventHandler          onstatechange;
+                 attribute EventHandler          onerror;
+        ...
+      };
+
+      enum RTCDtlsTransportState {
+        "new",
+        "connecting",
+        "connected",
+        "closed",
+        "failed"
+      };
+
+*/
+function resolveWhen(t, dtlstransport, state) {
+  return new Promise((resolve, reject) => {
+    if (dtlstransport.state == state) { resolve(); }
+    dtlstransport.addEventListener('statechange', t.step_func(e => {
+      if (dtlstransport.state == state) {
+        resolve();
+      }
+    }));
+  });
+}
+
+
+async function setupConnections(t) {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTrack(trackFactories.audio());
+  const channels = exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  return [pc1, pc2];
+}
+
+promise_test(async t => {
+  const [pc1, pc2] = await setupConnections(t);
+  const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
+  const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
+  assert_true(dtlsTransport1 instanceof RTCDtlsTransport);
+  assert_true(dtlsTransport2 instanceof RTCDtlsTransport);
+  await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
+                     resolveWhen(t, dtlsTransport2, 'connected')]);
+}, 'DTLS transport goes to connected state');
+
+promise_test(async t => {
+  const [pc1, pc2] = await setupConnections(t);
+
+  const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
+  const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
+  await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
+                     resolveWhen(t, dtlsTransport2, 'connected')]);
+  let fired = false;
+  dtlsTransport1.onstatechange = t.step_func(() => fired = true);
+  dtlsTransport1.addEventListener('statechange', t.step_func(() => fired = true));
+  pc1.close();
+  assert_equals(dtlsTransport1.state, 'closed');
+  await new Promise(r => t.step_timeout(r, 10));
+  assert_false(fired, 'close() should not see a statechange event on close');
+}, 'close() causes the local transport to close immediately');
+
+promise_test(async t => {
+  const [pc1, pc2] = await setupConnections(t);
+  const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
+  const dtlsTransport2 = pc2.getTransceivers()[0].sender.transport;
+  await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
+                     resolveWhen(t, dtlsTransport2, 'connected')]);
+  pc1.close();
+  await resolveWhen(t, dtlsTransport2, 'closed');
+}, 'close() causes the other end\'s DTLS transport to close');
+
+promise_test(async t => {
+  const config = {bundlePolicy: "max-bundle"};
+  const pc1 = new RTCPeerConnection(config);
+  const pc2 = new RTCPeerConnection(config);
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  pc1.addTransceiver("video");
+  pc1.addTransceiver("audio");
+  await pc1.setLocalDescription(await pc1.createOffer());
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription(await pc2.createAnswer());
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const [videoTc, audioTc] = pc1.getTransceivers();
+  const [videoTp, audioTp] =
+      pc1.getTransceivers().map(tc => tc.sender.transport);
+
+  const [videoPc2Tp, audioPc2Tp] =
+      pc2.getTransceivers().map(tc => tc.sender.transport);
+
+  assert_equals(pc1.getTransceivers().length, 2, 'pc1 transceiver count');
+  assert_equals(pc2.getTransceivers().length, 2, 'pc2 transceiver count');
+  assert_equals(videoTc.sender.transport, videoTc.receiver.transport);
+  assert_equals(videoTc.sender.transport, audioTc.sender.transport);
+
+  await Promise.all([resolveWhen(t, videoTp, 'connected'),
+                     resolveWhen(t, videoPc2Tp, 'connected')]);
+
+  assert_equals(audioTc.sender, pc1.getSenders()[1]);
+
+  let stoppedTransceiver = pc1.getTransceivers()[0];
+  assert_equals(stoppedTransceiver, videoTc); // sanity
+  let onended = new Promise(resolve => {
+    stoppedTransceiver.receiver.track.onended = resolve;
+  });
+  stoppedTransceiver.stop();
+  await onended;
+
+  assert_equals(audioTc.sender, pc1.getSenders()[1]); // sanity
+  assert_equals(audioTc.sender.transport, audioTp); // sanity
+  assert_equals(audioTp.state, 'connected');
+}, 'stop bundled transceiver retains dtls transport state');
+
+</script>

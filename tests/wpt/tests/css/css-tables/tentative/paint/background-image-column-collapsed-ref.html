@@ -1,0 +1,30 @@
+<!doctype html>
+<style>
+  body {
+    --peek: LightGreen;
+  }
+  .bg {
+    background-color: var(--peek);
+    background-image: linear-gradient(90deg, orange 0px, orange 10px, gainsboro 3px, gainsboro 25%, rgba(160,160,160,0.5) 25%, rgba(160,160,160,0.5) 50%, silver 50%, silver 75%, darkgray 75%, darkgray 170px, blue 170px);
+    background-repeat: no-repeat;
+    background-size: 50px 200px;
+  }
+  main * {
+    box-sizing: border-box;
+  }
+  .td {
+    width: 50px;
+    height: 50px;
+    position:absolute;
+  }
+</style>
+
+<main>
+<div style="position: relative;border: 10px solid transparent; width:210px; height: 210px">
+  <div class="td bg" style="top:-5px;left:-5px;height:200px"></div>
+  <div class="td bg" style="top:-5px;left:45px;height:200px"></div>
+  <div class="td" style="background:var(--peek); height:100px; left:95px;top:45px"></div>
+  <div class="td bg" style="top:-5px;left:145px;height:200px;width:100px;background-size: 100px 200px"></div>
+</div>
+
+</main>

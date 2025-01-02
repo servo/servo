@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+"use strict";
+promise_test(async t => {
+  const sentinelIframe = await setupSentinelIframe(t);
+  const startingHistoryLength = history.length;
+
+  const code = `
+    window.onpageshow = () => {
+      history.pushState(null, null, "/common/blank.html?thereplacement");
+      parent.postMessage("done", "*");
+    };
+  `;
+
+  const startURL = "resources/code-injector.html?pipe=sub(none)&code=" + encodeURIComponent(code);
+  const afterReplacementURL = "/common/blank.html?thereplacement";
+  const iframe = insertIframe(t, startURL);
+  assert_equals(history.length, startingHistoryLength, "Inserting the under-test iframe must not change history.length");
+
+  assert_equals(await waitForMessage(), "done");
+  assert_equals(history.length, startingHistoryLength + 1, "history.length must change after waiting for the replacement");
+}, "history.pushState() during the pageshow event must NOT replace");
+</script>

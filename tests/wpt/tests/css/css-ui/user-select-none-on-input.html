@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test user-select: none on input/textarea does not affect editability</title>
+    <meta charset="utf-8">
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/css-ui/#valdef-user-select-none">
+    <style>
+    input, textarea {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    </style>
+</head>
+<body>
+    <input>
+    <textarea></textarea>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script>
+    async function testElement(element) {
+        const expectedText = "xyz";
+        element.focus();
+        await test_driver.send_keys(element, expectedText);
+        assert_equals(element.value, expectedText, "Text should be entered");
+        element.select();
+        assert_equals(element.value.substring(element.selectionStart, element.selectionEnd), expectedText, "Text should be programatically selectable");
+        await test_driver.send_keys(element, "\uE003");
+        assert_equals(element.value, "", "Text should be cleared");
+    }
+    promise_test(() => {
+        return testElement(document.querySelector("input"))
+    }, "Test <input> with user-select: none");
+    promise_test(() => {
+        return testElement(document.querySelector("textarea"))
+    }, "Test <textarea> with user-select: none");
+    </script>
+</body>
+</html>

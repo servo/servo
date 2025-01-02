@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Node.appendChild: inserting script and source from a fragment</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<video id="media"></video>
+<script>
+const happened = [];
+const media = document.getElementById("media");
+test(() => {
+  const source = document.createElement("source");
+  const script = document.createElement("script");
+  script.textContent = `
+    happened.push(media.networkState);
+  `;
+
+  const df = document.createDocumentFragment();
+  df.appendChild(script);
+  df.appendChild(source);
+
+  assert_array_equals(happened, []);
+  media.appendChild(df);
+  // This is because immediately during DOM insertion, before the
+  // post-insertion steps invoke script, `<source>` insertion invokes the
+  // resource selection algorithm [1] which does this assignment. This
+  // assignment takes place before earlier-inserted script elements run
+  // post-insertion.
+  //
+  // [1]: https://html.spec.whatwg.org/#concept-media-load-algorithm
+  assert_array_equals(happened, [HTMLMediaElement.NETWORK_NO_SOURCE]);
+}, "Empty <source> immediately sets media.networkState during DOM insertion, " +
+   "so that an earlier-running script can observe networkState");
+</script>

@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on select objects should cause them to be sized as if they have no contents.</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-select-elem-005-ref.html">
+  <style>
+  select {
+    contain: size;
+    color: transparent;
+    /* We make scrollbars transparent because some <option> elements can cause
+       overflow, which can cause scrollbars to be active in the test and
+       inactive in the reference.  But the test only cares about the sizing. */
+    scrollbar-color: transparent transparent;
+  }
+  .fsMedium {
+    /* custom styling for some select elements, which is allowed to influence
+       their size (in the same way that it influences the size of an empty
+       select element): */
+    font-size: 10px;
+  }
+  .fsSmall {
+    /* custom styling for some option elements (which would make their parent
+       select elem shorter, except for the fact that it's size-contained): */
+    font-size: 6px;
+  }
+  </style>
+</head>
+<body>
+  <!-- No contents: -->
+  <select multiple                 ></select>
+  <select multiple size="1"        ></select>
+  <select multiple class="fsMedium"></select>
+
+  <!-- Empty option: -->
+  <select multiple                 ><option></option></select>
+  <select multiple size="1"        ><option></option></select>
+  <select multiple class="fsMedium"><option></option></select>
+
+  <br><br>
+
+  <!-- Nonempty option: -->
+  <select multiple                 ><option>X</option></select>
+  <select multiple size="1"        ><option>X</option></select>
+  <select multiple class="fsMedium"><option>X</option></select>
+
+  <!-- Nonempty option with custom font-size: -->
+  <select multiple                 ><option class="fsSmall">X</option></select>
+  <select multiple size="1"        ><option class="fsSmall">X</option></select>
+  <select multiple class="fsMedium"><option class="fsSmall">X</option></select>
+</body>
+</html>

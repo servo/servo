@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Flex transferred minimum width</title>
+<link rel="author" title="dgrogan@chromium.org" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#transferred-size-suggestion" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html" />
+<meta name="assert" content="min-width: auto honors transferred size suggestion">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="width:100px; height: 50px; background: green;"></div>
+<div style="display: flex; width: 0px"> <!-- width:0 makes items shrink to min-width -->
+  <img src="support/300x150-green.png" style="height: 50px">
+</div>

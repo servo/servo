@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent using centimeters with a negative zero value, -0cm</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-indent" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+        <link rel="match" href="text-indent-004-ref.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Ensure that text-indent -0 cm adds 0cm in front of the text." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #test
+            {
+                text-indent: -0cm;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is one black box on this page (with no jagged edges).</p>
+        <div>X</div>
+        <div id="test">X</div>
+    </body>
+</html>

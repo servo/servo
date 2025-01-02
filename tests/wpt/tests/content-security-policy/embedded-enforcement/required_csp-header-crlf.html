@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Embedded Enforcement: Sec-Required-CSP header.</title>
+  <!--
+    This test is creating and navigating several iframes. This can exceed the
+    "short" timeout". See https://crbug.com/1091896
+  -->
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      // CRLF characters
+      { "name": "\\r\\n character after directive name",
+        "csp": "style-src\r\n'unsafe-inline'",
+        "expected": null },
+      { "name": "\\r\\n character in directive value",
+        "csp": "style-src 'unsafe-inline'\r\n'unsafe-eval'",
+        "expected": null },
+      { "name": "\\n character after directive name",
+        "csp": "style-src\n'unsafe-inline'",
+        "expected": null },
+      { "name": "\\n character in directive value",
+        "csp": "style-src 'unsafe-inline'\n'unsafe-eval'",
+        "expected": null },
+      { "name": "\\r character after directive name",
+        "csp": "style-src\r'unsafe-inline'",
+        "expected": null },
+      { "name": "\\r character in directive value",
+        "csp": "style-src 'unsafe-inline'\r'unsafe-eval'",
+        "expected": null },
+
+      // Attempt HTTP Header injection
+      { "name": "Attempt injecting after directive name using \\r\\n",
+        "csp": "style-src\r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive name using \\r",
+        "csp": "style-src\rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive name using \\n",
+        "csp": "style-src\nTest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after directive value using \\r\\n",
+        "csp": "style-src example.com\r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive value using \\r",
+        "csp": "style-src example.com\rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive value using \\n",
+        "csp": "style-src example.com\nTest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after semicolon using \\r\\n",
+        "csp": "style-src example.com;\r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after semicolon using \\r",
+        "csp": "style-src example.com;\rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after semicolon using \\n",
+        "csp": "style-src example.com;\nTest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after space between name and value using \\r\\n",
+        "csp": "style-src \r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after space between name and value using \\r",
+        "csp": "style-src \rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after space between name and value using \\n",
+        "csp": "style-src \nTest-Header-Injection: dummy",
+        "expected": null },
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
+        assert_required_csp(t, url, test.csp, [test.expected]);
+      }, "Test CRLF: " + test.name);
+    });
+  </script>
+</body>
+</html>

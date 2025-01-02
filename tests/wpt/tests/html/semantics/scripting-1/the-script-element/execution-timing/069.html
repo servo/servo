@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head>
+        <title>scheduler: external files added through DOM should not block further parsing while loading</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+        <script>
+                testlib.addScript('',{src:'scripts/find-body.js?pipe=trickle(d1)'},document.getElementsByTagName('head')[0], true );
+        </script>
+</head>
+<body>
+        <script>
+                testlib.addScript('', {src:'scripts/find-foo.js?pipe=trickle(d1)'}, document.getElementsByTagName('head')[0], true);
+        </script>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        <p><span id="foo"></span></p>
+
+        <script type="text/javascript">
+        var t = async_test()
+
+        function test() {
+                if(!(window.findFooLoaded && window.findBodyLoaded)) {
+                    return setTimeout(t.step_func(test), 200);
+                }
+                assert_any(assert_array_equals, eventOrder,
+                           [['document.body: <BODY>', 'found #foo element: YES'],
+                            ['found #foo element: YES', 'document.body: <BODY>']]);
+                t.done();
+        }
+        onload = t.step_func(test)
+        </script>
+
+</body></html>

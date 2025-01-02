@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta viewport="width=device-width, initial-scale=1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+  import {
+    attachIframe,
+    makeCleanup,
+    getOppositeOrientation,
+  } from "./resources/orientation-utils.js";
+
+  promise_test(async (t) => {
+    t.add_cleanup(makeCleanup());
+    await test_driver.bless("request fullscreen");
+    await document.documentElement.requestFullscreen();
+    let orientations = ["portrait", "landscape"];
+    if (screen.orientation.type.includes("portrait")) {
+      orientations = orientations.reverse();
+    }
+    const messageWatcher = new EventWatcher(t, window, "message");
+    const changeWatcher = new EventWatcher(t, screen.orientation, "change");
+    const iframe = await attachIframe({
+      src: "resources/iframe-listen-orientation-change.html",
+      sandbox: "allow-scripts allow-same-origin",
+    });
+    for (const orientation of orientations) {
+      const messagePromise = messageWatcher.wait_for("message");
+      const eventPromise = changeWatcher.wait_for("change");
+      await screen.orientation.lock(orientation);
+      const winner = await Promise.race([eventPromise, messagePromise]);
+      assert_true(winner instanceof Event, "change event must be fired first");
+      const message = await messagePromise;
+      assert_true(
+        message.data.startsWith(orientation),
+        "subframe receives orientation change event"
+      );
+    }
+    iframe.remove();
+  }, "Test subframes receive orientation change events");
+
+  promise_test(async (t) => {
+    t.add_cleanup(makeCleanup());
+    const iframe = await attachIframe();
+    let opposite = getOppositeOrientation();
+
+    // Fail fast in case the API is not supported
+    await test_driver.bless("request fullscreen", null, iframe.contentWindow);
+    await iframe.contentDocument.documentElement.requestFullscreen();
+    await iframe.contentWindow.screen.orientation.lock(opposite);
+    iframe.contentWindow.screen.orientation.unlock();
+    opposite = getOppositeOrientation();
+
+    const topEventPromise = new EventWatcher(
+      t,
+      screen.orientation,
+      "change"
+    ).wait_for("change");
+    const iframeEventPromise = new EventWatcher(
+      t,
+      iframe.contentWindow.screen.orientation,
+      "change"
+    ).wait_for("change");
+
+    // Lock from the iframe
+    await test_driver.bless("request fullscreen", null, iframe.contentWindow);
+    await iframe.contentDocument.documentElement.requestFullscreen();
+    const lockPromise = iframe.contentWindow.screen.orientation.lock(opposite);
+
+    const winningEvent = await Promise.race([
+      topEventPromise,
+      iframeEventPromise,
+    ]);
+    assert_true(
+      winningEvent instanceof window.Event,
+      "top-level change event must be fired first"
+    );
+
+    const iframeEvent = await iframeEventPromise;
+    assert_true(
+      iframeEvent instanceof iframe.contentWindow.Event,
+      "iframe event eventually fires"
+    );
+
+    await lockPromise;
+    iframe.remove();
+  }, "Check directly that events are fired in right order (from top to bottom)");
+</script>

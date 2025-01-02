@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<title>Document.body</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-body">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function createDocument() {
+  var doc = document.implementation.createHTMLDocument("");
+  doc.removeChild(doc.documentElement);
+  return doc;
+}
+test(function() {
+  var doc = createDocument();
+  assert_equals(doc.body, null);
+}, "Childless document");
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElement("html"));
+  assert_equals(doc.body, null);
+}, "Childless html element");
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var b =
+    html.appendChild(doc.createElement("body"));
+  html.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, b);
+}, "Body followed by frameset inside the html element");
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var f =
+    html.appendChild(doc.createElement("frameset"));
+  html.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, f);
+}, "Frameset followed by body inside the html element");
+test(function() {
+  var doc = createDocument();
+  var html =
+    doc.appendChild(doc.createElementNS("http://example.org/test", "html"));
+  html.appendChild(doc.createElement("body"));
+  html.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, null);
+}, "Body followed by frameset inside a non-HTML html element");
+test(function() {
+  var doc = createDocument();
+  var html =
+    doc.appendChild(doc.createElementNS("http://example.org/test", "html"));
+  html.appendChild(doc.createElement("frameset"));
+  html.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, null);
+}, "Frameset followed by body inside a non-HTML html element");
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  html.appendChild(
+    doc.createElementNS("http://example.org/test", "body"));
+  var b = html.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, b);
+}, "Non-HTML body followed by body inside the html element");
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  html.appendChild(
+    doc.createElementNS("http://example.org/test", "frameset"));
+  var b = html.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, b);
+}, "Non-HTML frameset followed by body inside the html element");
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var x = html.appendChild(doc.createElement("x"));
+  x.appendChild(doc.createElement("body"));
+  var body = html.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, body);
+}, "Body inside an x element followed by a body");
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var x = html.appendChild(doc.createElement("x"));
+  x.appendChild(doc.createElement("frameset"));
+  var frameset = html.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, frameset);
+}, "Frameset inside an x element followed by a frameset");
+
+// Root node is not a html element.
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, null);
+}, "Body as the root node");
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, null);
+}, "Frameset as the root node");
+test(function() {
+  var doc = createDocument();
+  var body = doc.appendChild(doc.createElement("body"));
+  body.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, null);
+}, "Body as the root node with a frameset child");
+test(function() {
+  var doc = createDocument();
+  var frameset = doc.appendChild(doc.createElement("frameset"));
+  frameset.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, null);
+}, "Frameset as the root node with a body child");
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElementNS("http://example.org/test", "body"));
+  assert_equals(doc.body, null);
+}, "Non-HTML body as the root node");
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElementNS("http://example.org/test", "frameset"));
+  assert_equals(doc.body, null);
+}, "Non-HTML frameset as the root node");
+
+test(function() {
+  assert_not_equals(document.body, null);
+  assert_true(document.body instanceof HTMLBodyElement, "should be HTMLBodyElement");
+  assert_equals(document.body.tagName, "BODY");
+}, "existing document's body");
+
+
+var originalBody = document.body;
+test(function() {
+  assert_throws_js(TypeError, function() {
+    document.body = "text"
+  })
+  assert_equals(document.body, originalBody);
+}, "Setting document.body to a string.")
+test(function() {
+  assert_throws_dom("HierarchyRequestError", function() {
+    document.body = document.createElement("div")
+  })
+  assert_equals(document.body, originalBody);
+}, "Setting document.body to a div element.")
+test(function() {
+  var doc = createDocument();
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.body = doc.createElement("body")
+  })
+  assert_equals(doc.body, null);
+}, "Setting document.body when there's no root element.")
+test(function() {
+  var doc = document.implementation.createHTMLDocument();
+
+  var new_body = doc.createElement("body");
+  assert_true(new_body instanceof HTMLBodyElement, "should be HTMLBodyElement");
+  assert_equals(new_body.tagName, "BODY");
+
+  doc.body = new_body;
+  assert_equals(doc.body, new_body);
+}, "Setting document.body to a new body element.");
+test(function() {
+  var doc = document.implementation.createHTMLDocument();
+
+  var new_frameset = doc.createElement("frameset");
+  assert_true(new_frameset instanceof HTMLFrameSetElement, "should be HTMLFrameSetElement");
+  assert_equals(new_frameset.tagName, "FRAMESET");
+
+  doc.body = new_frameset;
+  assert_equals(doc.body, new_frameset, "test6-3, append frameset to a new document");
+}, "Setting document.body to a new frameset element.");
+
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var f =
+    html.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, f);
+
+  var b = doc.createElement("body");
+  doc.body = b;
+
+  assert_equals(f.parentNode, null,
+                "Frameset should have been removed from the tree");
+  assert_equals(doc.body, b, "Body should be the new doc.body");
+}, "Setting document.body to a body will replace an existing frameset if there is one.");
+
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var b =
+    html.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, b);
+
+  var f = doc.createElement("frameset");
+  doc.body = f;
+
+  assert_equals(b.parentNode, null,
+                "Body should have been removed from the tree");
+  assert_equals(doc.body, f, "Frameset should be the new doc.body");
+}, "Setting document.body to a frameset will replace an existing body if there is one.");
+
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var b =
+    html.appendChild(doc.createElement("body"));
+  var f1 = html.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, b);
+
+  var f2 = doc.createElement("frameset");
+  doc.body = f2;
+
+  assert_equals(b.parentNode, null,
+                "Body should have been removed from the tree");
+  assert_equals(f1.parentNode, html,
+                "Frameset following body should still be in the tree.");
+  assert_equals(doc.body, f2, "New frameset should be the new doc.body");
+  assert_equals(f2.nextSibling, f1, "New frameset should have replaced the body");
+}, "Setting document.body to a frameset will replace the first existing body/frameset.");
+
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElement("test"));
+  var new_body = doc.createElement("body");
+  doc.body = new_body;
+  assert_equals(doc.documentElement.firstChild, new_body, "new_body should be inserted");
+  assert_equals(doc.body, null, "Getter should return null when the root is not html");
+}, "Setting document.body to a new body element when the root element is a test element.");
+</script>

@@ -1,0 +1,28 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:math="http://www.w3.org/1998/Math/MathML">
+
+<head>
+<style>
+
+/*
+  This testcase uses [class~="foo"] instead of .foo to work around bug 276267
+  (see bug 379178 comment 78)
+*/
+
+[class~="abs"] { position: absolute; }
+[class~="marg"] { margin: 1em; }
+[class="noheight"] {  height: 0; }
+
+</style>
+</head>
+
+<body>
+
+<math:mrow class="noheight">
+  <span class="abs">
+    <math:mroot class="abs marg" />
+    <span class="abs" />
+  </span>
+</math:mrow>
+
+</body>
+</html>

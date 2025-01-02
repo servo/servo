@@ -1,0 +1,163 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/storage-access-api/helpers.js"></script>
+<body>
+<script>
+window.addEventListener("message", async (e) => {
+  if (e.data != "blessed") {
+    return;
+  }
+  test_driver.set_test_context(window.top);
+  const type = (new URLSearchParams(window.location.search)).get("type");
+  const id = (new URLSearchParams(window.location.search)).get("id");
+  let message = "";
+  // Step 4 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
+  try {
+    await MaybeSetStorageAccess("*", "*", "blocked");
+    if (type == "cookies") {
+      await test_driver.set_permission({ name: 'storage-access' }, 'denied');
+      let didSeeError = false;
+      try {
+        await document.requestStorageAccess({cookies: true});
+      } catch (e) {
+        didSeeError = true;
+      }
+      if (!didSeeError) {
+        message = "First-party cookies should not be readable if storage access is denied.";
+      }
+      await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+      let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+      if (hasUnpartitionedCookieAccess) {
+        message = "First-party cookies should not be readable before handle is loaded.";
+      }
+    } else {
+      await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+    }
+    const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({all: true}));
+    if (type == "cookies") {
+      hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+      if (!hasUnpartitionedCookieAccess) {
+        message = "First-party cookies should be readable after handle is loaded.";
+      }
+    }
+    switch (type) {
+      case "none": {
+        break;
+      }
+      case "cookies": {
+        if (document.cookie.includes("test="+id)) {
+          message = "Cross-site first-party cookies should be empty";
+        }
+        break;
+      }
+      case "sessionStorage": {
+        if (!!handle.sessionStorage.getItem("test")) {
+          message = "Cross-site first-party Session Storage should be empty";
+        }
+        handle.sessionStorage.setItem("test2", id);
+        if (window.sessionStorage.getItem("test2") == id) {
+          message = "Handle bound partitioned instead of unpartitioned Session Storage";
+        }
+        handle.sessionStorage.clear();
+        window.sessionStorage.clear();
+        break;
+      }
+      case "localStorage": {
+        if (!!handle.localStorage.getItem("test")) {
+          message = "Cross-site first-party Local Storage should be empty";
+        }
+        handle.localStorage.setItem("test2", id);
+        if (window.localStorage.getItem("test2") == id) {
+          message = "Handle bound partitioned instead of unpartitioned Local Storage";
+        }
+        handle.localStorage.clear();
+        window.localStorage.clear();
+        break;
+      }
+      case "indexedDB": {
+        const dbs = await handle.indexedDB.databases();
+        if (dbs.length != 0) {
+          message = "Cross-site first-party IndexedDB should be empty";
+        }
+        break;
+      }
+      case "locks": {
+        const state = await handle.locks.query();
+        if (state.held.length != 0) {
+          message = "Cross-site first-party Web Locks should be empty";
+        }
+        break;
+      }
+      case "caches": {
+        const has = await handle.caches.has(id);
+        if (has) {
+          message = "Cross-site first-party Cache Storage should be empty";
+        }
+        break;
+      }
+      case "getDirectory": {
+        const root = await handle.getDirectory();
+        let has = await root.getFileHandle(id).then(() => true, () => false);;
+        if (has) {
+          message = "Cross-site first-party Origin Private File System should be empty";
+        }
+        break;
+      }
+      case "estimate": {
+        const estimate = await handle.estimate();
+        if (estimate.usage > 0) {
+          message = "Cross-site first-party estimate should be empty";
+        }
+        break;
+      }
+      case "blobStorage": {
+        const blob = await fetch(atob(id)).then(
+          (response) => response.text(),
+          () => "");
+        if (blob != "") {
+          message = "Cross-site first-party blob storage should be empty";
+        }
+        break;
+      }
+      case "BroadcastChannel": {
+        const channel = handle.BroadcastChannel(id);
+        channel.postMessage("Cross-origin handle access");
+        channel.close();
+        break;
+      }
+      case "SharedWorker": {
+        const shared_worker = handle.SharedWorker("/storage-access-api/resources/shared-worker-relay.js", id);
+        shared_worker.port.start();
+        shared_worker.port.postMessage("Cross-origin handle access");
+        break;
+      }
+      case "unpartitioned": {
+        const channel = handle.BroadcastChannel(id);
+        channel.postMessage("Cross-origin handle access");
+        channel.close();
+        break;
+      }
+      default: {
+        message = "Unexpected type " + type;
+        break;
+      }
+    }
+  } catch (_) {
+    message = "Unable to load handle in cross-site context for all";
+  }
+  await MaybeSetStorageAccess("*", "*", "allowed");
+  await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
+  if (message) {
+    window.top.postMessage({type: "result", message: message}, "*");
+    return;
+  }
+  // Step 5 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
+  let iframe = document.createElement("iframe");
+  iframe.src = "https://{{hosts[][]}}:{{ports[https][0]}}/storage-access-api/resources/storage-access-beyond-cookies-iframe-iframe.html?type=" + type + "&id=" + id;
+  document.body.appendChild(iframe);
+});
+window.open("https://{{hosts[alt][]}}:{{ports[https][0]}}/storage-access-api/resources/bless_cross_site_permissions.html");
+</script>
+</body>

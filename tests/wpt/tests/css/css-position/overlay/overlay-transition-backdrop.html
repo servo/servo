@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Position Test: overlay transition with ::backdrop</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#overlay">
+<link rel="match" href="green-ref.html">
+<link rel="author" href="mailto:jarhar@chromium.org">
+<style>
+  [popover] {
+    display: block;
+    visibility: hidden;
+    transition: overlay 60s step-end;
+    transition-behavior: allow-discrete;
+  }
+  [popover]::backdrop {
+    visibility: visible;
+    background-color: green;
+  }
+</style>
+<div popover id="foo"></div>
+<script>
+  foo.showPopover();
+  foo.hidePopover();
+</script>

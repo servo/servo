@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: HTML Media Capture (https://w3c.github.io/html-media-capture/)
+
+partial interface HTMLInputElement {
+    [CEReactions] attribute DOMString capture;
+};

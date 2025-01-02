@@ -1,0 +1,17 @@
+anyio[curio,trio]==4.3.0
+django==5.0.4
+pytest-asyncio==0.23.6
+# Temporarily not installed until pytest-bdd is fixed:
+# https://github.com/pytest-dev/pytest/pull/11785
+# pytest-bdd==7.0.1
+pytest-cov==5.0.0
+pytest-django==4.8.0
+pytest-flakes==4.0.5
+pytest-html==4.1.1
+pytest-mock==3.14.0
+pytest-rerunfailures==14.0
+pytest-sugar==1.0.0
+pytest-trio==0.7.0
+pytest-twisted==1.14.1
+twisted==24.3.0
+pytest-xvfb==3.0.0

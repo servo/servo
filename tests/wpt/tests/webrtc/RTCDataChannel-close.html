@@ -1,0 +1,214 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCDataChannel.prototype.close</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+for (const options of [{}, {negotiated: true, id: 0}]) {
+  const mode = `${options.negotiated? "negotiated " : ""}datachannel`;
+
+  promise_test(async t => {
+    const [channel1, channel2] = await createDataChannelPair(t, options);
+    const haveClosed = new Promise(r => channel2.onclose = r);
+    let closingSeen = false;
+    channel1.onclosing = t.unreached_func();
+    channel2.onclosing = () => {
+      assert_equals(channel2.readyState, 'closing');
+      closingSeen = true;
+    };
+    channel2.addEventListener('error', t.unreached_func());
+    channel1.close();
+    await haveClosed;
+    assert_equals(channel2.readyState, 'closed');
+    assert_true(closingSeen, 'Closing event was seen');
+  }, `Close ${mode} causes onclosing and onclose to be called`);
+
+  promise_test(async t => {
+    // This is the same test as above, but using addEventListener
+    // rather than the "onclose" attribute.
+    const [channel1, channel2] = await createDataChannelPair(t, options);
+    const haveClosed = new Promise(r => channel2.addEventListener('close', r));
+    let closingSeen = false;
+    channel1.addEventListener('closing', t.unreached_func());
+    channel2.addEventListener('closing', () => {
+      assert_equals(channel2.readyState, 'closing');
+      closingSeen = true;
+    });
+    channel2.addEventListener('error', t.unreached_func());
+    channel1.close();
+    await haveClosed;
+    assert_equals(channel2.readyState, 'closed');
+    assert_true(closingSeen, 'Closing event was seen');
+  }, `Close ${mode} causes closing and close event to be called`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const mainChannel1 = pc1.createDataChannel('not-counted', options);
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    if (!options.negotiated) {
+      await new Promise(r => pc2.ondatachannel = r);
+    }
+
+    for (let i = 1; i <= 10; i++) {
+      if ('id' in options) {
+        options.id = i;
+      }
+      const sender = pc1.createDataChannel(`dc ${i}`, options);
+      const senderOpen = new Promise(r => sender.onopen = r);
+      let receiver;
+      if (options.negotiated) {
+        receiver = pc2.createDataChannel(`dc ${i}`, options);
+      } else {
+        receiver = (await new Promise(r => pc2.ondatachannel = r)).channel;
+      }
+      receiver.onmessage = ({data}) => receiver.send(data);
+      await senderOpen;
+      sender.send(`ping ${i}`);
+      const {data} = await new Promise(r => sender.onmessage = r);
+      assert_equals(data, `ping ${i}`);
+      sender.close();
+      await new Promise(r => receiver.onclose = r);
+    }
+  }, `Repeated open/send/echo/close ${mode} works`);
+
+   promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const [channel1, channel2] = await createDataChannelPair(t, options, pc1);
+    const events = [];
+    let error = null;
+    channel2.addEventListener('error', t.step_func(event => {
+      events.push('error');
+      assert_true(event instanceof RTCErrorEvent);
+      error = event.error;
+    }));
+    const haveClosed = new Promise(r => channel2.addEventListener('close', () => {
+      events.push('close');
+      r();
+    }));
+    pc1.close();
+    await haveClosed;
+    // Error should fire before close.
+    assert_array_equals(events, ['error', 'close']);
+    assert_true(error instanceof RTCError);
+    assert_equals(error.name, 'OperationError');
+    assert_equals(error.errorDetail, 'sctp-failure');
+    // Expects the sctpErrorCode is either null or 12 (User-Initiated Abort) as it is
+    // optional in the SCTP specification.
+    assert_in_array(error.sctpCauseCode, [null, 12]);
+  }, `Close peerconnection causes close event and error to be called on ${mode}`);
+
+  promise_test(async t => {
+    let pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    let [channel1, channel2] = await createDataChannelPair(t, options, pc1);
+    // The expected sequence of events when closing a DC is that
+    // channel1 goes to closing, channel2 fires onclose, and when
+    // the close is confirmed, channel1 fires onclose.
+    // After that, no more events should fire.
+    channel1.onerror = t.unreached_func();
+    let close2Handler = new Promise(resolve => {
+      channel2.onclose = event => {
+        resolve();
+      };
+    });
+    let close1Handler = new Promise(resolve => {
+      channel1.onclose = event => {
+        resolve();
+      };
+    });
+    channel1.close();
+    await close2Handler;
+    await close1Handler;
+    channel1.onclose = t.unreached_func();
+    channel2.onclose = t.unreached_func();
+    channel2.onerror = t.unreached_func();
+    pc1.close();
+    await new Promise(resolve => t.step_timeout(resolve, 10));
+  }, `Close peerconnection after ${mode} close causes no events`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('not-counted', options);
+    const tokenDataChannel = new Promise(resolve => {
+      pc2.ondatachannel = resolve;
+    });
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    if (!options.negotiated) {
+      await tokenDataChannel;
+    }
+    let closeExpectedCount = 0;
+    let errorExpectedCount = 0;
+    let resolveCountIsZero;
+    let waitForCountIsZero = new Promise(resolve => {
+      resolveCountIsZero = resolve;
+    });
+    for (let i = 1; i <= 10; i++) {
+      if ('id' in options) {
+        options.id = i;
+      }
+      pc1.createDataChannel('', options);
+      if (options.negotiated) {
+        const channel = pc2.createDataChannel('', options);
+        channel.addEventListener('error', t.step_func(event => {
+          assert_true(event instanceof RTCErrorEvent, 'error event ' + event);
+          errorExpectedCount -= 1;
+        }));
+        channel.addEventListener('close', t.step_func(event => {
+          closeExpectedCount -= 1;
+          if (closeExpectedCount == 0) {
+            resolveCountIsZero();
+          }
+        }));
+      } else {
+        await new Promise(resolve => {
+          pc2.ondatachannel = ({channel}) => {
+            channel.addEventListener('error', t.step_func(event => {
+              assert_true(event instanceof RTCErrorEvent);
+              errorExpectedCount -= 1;
+            }));
+            channel.addEventListener('close', t.step_func(event => {
+              closeExpectedCount -= 1;
+              if (closeExpectedCount == 0) {
+                resolveCountIsZero();
+              }
+            }));
+            resolve();
+          }
+        });
+      }
+      ++closeExpectedCount;
+      ++errorExpectedCount;
+    }
+    assert_equals(closeExpectedCount, 10);
+    // We have to wait until SCTP is connected before we close, otherwise
+    // there will be no signal.
+    // The state is not available under Plan B, and unreliable on negotiated
+    // channels.
+    // TODO(bugs.webrtc.org/12259): Remove dependency on "negotiated"
+    if (pc1.sctp && !options.negotiated) {
+      waitForState(pc1.sctp, 'connected');
+    } else {
+      // Under plan B, we don't have a dtls transport to wait on, so just
+      // wait a bit.
+      await new Promise(resolve => t.step_timeout(resolve, 100));
+    }
+    pc1.close();
+    await waitForCountIsZero;
+    assert_equals(closeExpectedCount, 0);
+    assert_equals(errorExpectedCount, 0);
+  }, `Close peerconnection causes close event and error on many channels, ${mode}`);
+}
+</script>

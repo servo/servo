@@ -1,0 +1,18 @@
+name: Automerge Dependabot & WPT Updates
+on: pull_request
+
+permissions:
+  pull-requests: read
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' || github.actor == 'servo-wpt-sync' }}
+    steps:
+      - name: Approve the PR & enable auto-merge
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.SERVO_DEPENDABOT_TOKEN }}

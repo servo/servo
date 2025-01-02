@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<style>
+.c0 { visibility: collapse; }
+.c4 { content: "x"; }
+</style>
+
+<div class="c0"><img usemap="#map2"></div>
+
+<table>
+  <thead class="c4">x</thead>
+</table>
+
+<map name="map2">x</map>
+
+<script>
+const img = document.createElement('img');
+img.setAttribute('src', 'xyz.png');
+img.setAttribute('usemap', '#map2');
+const div = document.querySelector('div');
+document.documentElement.appendChild(div);
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const thead = document.querySelector('thead');
+    thead.appendChild(img);
+    div.className = '';
+    document.documentElement.className = '';
+  });
+});
+</script>
+</html>

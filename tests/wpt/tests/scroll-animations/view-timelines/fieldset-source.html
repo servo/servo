@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>View timeline with fieldset as source</title>
+<link rel="help" href="https://www.w3.org/TR/scroll-animations-1/#dom-viewtimeline-viewtimeline">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  @keyframes colorize {
+    from { background-color: #ccf; }
+    to { background-color: white; }
+  }
+
+  .input {
+    background-color: white;
+    view-timeline: --timeline;
+    animation: colorize;
+    animation-timeline: --timeline;
+    margin-top: 0px;
+    margin-bottom: 3px;
+    margin-left: 8px;
+    height: 20px;
+    width: 150px;
+  }
+
+  .input:last-child {
+    margin-bottom: 0px;
+  }
+
+  fieldset {
+    display: inline-block;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    height: 80px;
+  }
+
+  div {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+</style>
+<body>
+  <fieldset id="fieldset">
+    <legend id="legend">Reservation Details</legend>
+    <div>
+      <label for="name">Name: </label>
+      <input type="text" class="input" id="input1" value="Jane Doe" />
+    </div>
+    <div>
+      <label for="date">Date: </label>
+      <input type="date" class="input" id="input2" value="2024-01-16"/>
+    </div>
+    <div>
+      <label for="time">Time: </label>
+      <input type="time" class="input" id="input3" value="18:30"/>
+    </div>
+    <div>
+      <label for="name">Number of guests: </label>
+      <input type="number" class="input" id="input4" value="5" />
+    </div>
+    <div>
+      <label for="name">Contact info: </label>
+      <input type="text" class="input" id="input5" value="(555) 555-5555" />
+    </div>
+  </fieldset>
+</body>
+<script>
+  async function runTest() {
+    promise_test(async t => {
+      const anims = document.getAnimations();
+      assert_equals(anims.length, 5);
+      await Promise.all(anims.map(anim => anim.ready));
+
+      // The bottom of the legend aligns with the top of the fieldset's
+      // scrollable area.
+      const fieldset = document.getElementById('fieldset');
+      const legend = document.getElementById('legend');
+      const fieldsetContentTop =
+          legend.getBoundingClientRect().bottom;
+
+      // The bottom of the scroll container aligns with the bottom of the
+      // fieldset's content box.
+      const fieldsetContentBottom =
+          fieldset.getBoundingClientRect().bottom -
+          parseFloat(getComputedStyle(fieldset).borderBottom);
+
+      // Validate the start and end offsets for each view timeline.
+      anims.forEach(async (anim) => {
+        assert_equals(anim.timeline.source.id, 'fieldset');
+        assert_equals(anim.timeline.subject.tagName, 'INPUT');
+        const bounds = anim.effect.target.getBoundingClientRect();
+
+        const expectedStartOffset = bounds.top - fieldsetContentBottom;
+        const expectedEndOffset = bounds.bottom - fieldsetContentTop;
+        assert_approx_equals(
+            parseFloat(anim.timeline.startOffset),
+            expectedStartOffset, 0.1,
+            `Unexpected start offset for ${anim.effect.target.id}`);
+        assert_approx_equals(
+            parseFloat(anim.timeline.endOffset),
+            expectedEndOffset, 0.1,
+            `Unexpected end offset for ${anim.effect.target.id}`);
+      });
+    }, 'Fieldset is a valid source for a view timeline');
+  }
+
+  window.onload = runTest();
+</script>
+</html>

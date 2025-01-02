@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Test that a fenced frame successfully loaded.</title>
+
+<body>
+  <script>
+      // This file is meant to run in a <fencedframe>. It reports back to the
+      // outermost page to confirm that loading succeeded.
+      const [navigation_key, navigation_ack_key] = parseKeylist();
+      writeValueToServer(navigation_key, "pass");
+  </script>
+</body>

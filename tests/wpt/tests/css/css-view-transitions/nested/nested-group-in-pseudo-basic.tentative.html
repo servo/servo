@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Basic hierarchy of view-transition-group</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-ref.html">
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<script src="/common/reftest-wait.js"></script>
+<style>
+    body {
+        margin: 0;
+    }
+    main {
+        view-transition-name: main;
+    }
+
+    section {
+        view-transition-name: section;
+        view-transition-group: main;
+    }
+
+    ::view-transition,
+    ::view-transition-group(*),
+    section,
+    main {
+        background: red;
+        inset: 0;
+        position: absolute;
+    }
+
+    ::view-transition-group(main) {
+        background: green;
+        animation-play-state: paused;
+    }
+    ::view-transition-group(section) {
+        background: inherit;
+        transform: none !important;
+    }
+    ::view-transition-image-pair(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*)
+     {
+        display: none;
+    }
+</style>
+<body>
+    <main>
+        <section>
+            Hello
+        </section>
+    </main>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition();
+  transition.ready.then(() => takeScreenshot());
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</body>

@@ -1,0 +1,10 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_lose_context Khronos Ratified Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_lose_context/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_lose_context {
+      undefined loseContext();
+      undefined restoreContext();
+};

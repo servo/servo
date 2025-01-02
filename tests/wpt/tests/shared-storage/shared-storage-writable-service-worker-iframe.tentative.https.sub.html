@@ -1,0 +1,98 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script src=/service-workers/service-worker/resources/test-helpers.sub.js></script>
+  <script>
+    const SCOPE = '/shared-storage/resources/shared-storage-writ';
+    const INTERMEDIATE_FRAME_SUFFIX =
+      'able-fetch-request-fallback-to-network-iframe.https.html'
+    const SCRIPT = '/shared-storage/resources/'
+      + 'shared-storage-writable-fetch-request-fallback-to-network-worker.js';
+    const WORKER_FRAME = '/shared-storage/resources/'
+      + 'register-service-worker-iframe.https.html';
+    const SAME_ORIGIN = new URL("", location.href).origin;
+    const CROSS_ORIGIN = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+    promise_test(async t => {
+      await service_worker_unregister(t, SCOPE);
+      let reg = await navigator.serviceWorker.register(SCRIPT,
+                                                       { scope: SCOPE });
+      t.add_cleanup(_ => reg.unregister());
+      let worker = reg.installing;
+      await wait_for_state(t, worker, 'activated');
+      assert_not_equals(worker, null, 'worker is installing');
+
+      let {frame, nestedFrame, nestedFrameUrl} =
+        await loadNestedSharedStorageFrameInNewFrame({
+          key: 'a', value: 'b',
+          hasSharedStorageWritableAttribute: true,
+          isSameOrigin: true,
+        });
+      t.add_cleanup(function() {
+        frame.remove();
+      });
+      checkInterceptedUrls(worker, [
+        {
+           "url": SAME_ORIGIN + SCOPE + INTERMEDIATE_FRAME_SUFFIX,
+           "mode": "navigate",
+           "SSWHeader": "null"
+        },
+        {
+          "url": SAME_ORIGIN + "/resources/testharness.js",
+          "mode": "no-cors",
+          "SSWHeader": "null"
+        },
+        {
+          "url": SAME_ORIGIN + nestedFrameUrl,
+          "mode": "navigate",
+          "SSWHeader": "null"
+        },
+      ]);
+      await verifyKeyValueForOrigin('a', 'b', SAME_ORIGIN);
+      await deleteKeyForOrigin('a', SAME_ORIGIN);
+    }, 'test <iframe sharedstoragewritable src=[url]> via JS from service '
+       + 'worker for same origin iframe');
+
+    promise_test(async t => {
+      const workerFramePromise = new Promise((resolve, reject) => {
+        let workerFrame = document.createElement('iframe');
+        workerFrame.src = CROSS_ORIGIN + WORKER_FRAME;
+        workerFrame.id = 'worker_frame';
+        workerFrame.onload = function() {
+          resolve(workerFrame);
+        };
+        workerFrame.onerror = function() {
+          reject(new Error('Worker frame load failed'));
+        };
+        t.add_cleanup(function() {
+          workerFrame.remove();
+        });
+        document.body.appendChild(workerFrame);
+      });
+      let workerFrame = await workerFramePromise;
+
+      const messagePromise = new Promise((resolve, reject) => {
+        let channel = new MessageChannel();
+        channel.port1.onmessage = function(e) {
+          resolve(e.data);
+        };
+        let message = {
+            script: SCRIPT,
+            scope: SCOPE,
+            port: channel.port2,
+        };
+        document.getElementById('worker_frame').contentWindow
+          .postMessage(message, "*",
+                       [channel.port2]);
+      });
+      let {msg} = await messagePromise;
+      assert_equals(msg, 'test completed');
+    }, 'test <iframe sharedstoragewritable src=[url]> via JS from service '
+       + 'worker for cross origin iframe');
+  </script>
+</body>

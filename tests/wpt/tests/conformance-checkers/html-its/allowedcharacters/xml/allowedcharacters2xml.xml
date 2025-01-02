@@ -1,0 +1,9 @@
+<res xmlns:its="http://www.w3.org/2005/11/its">
+  <head>
+    <its:rules version="2.0">
+      <its:allowedCharactersRule selector="//record" allowedCharactersPointer="@set"/>
+    </its:rules>
+  </head>
+  <record id="a1" set="[ &#xFF01;–&#xFF5E;]">ＦＵＬＬ ＷＩＤＴＨ ＯＮＬＹ</record>
+</res>
+

@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS Color: Nested color-mix() with currentColor</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-5/#color-mix">
+<link rel="help" href="https://www.w3.org/TR/css-color-5/#resolving-color-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #parent {
+    color: red;
+    background-color: color-mix(in lch, color-mix(in lch, black, currentColor), black);
+  }
+  #child {
+    color: black;
+    background-color: inherit;
+  }
+</style>
+<div id="parent">
+  <div id="child"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).backgroundColor, "lch(0 0 none)");
+  }, "Nested color-mix function with inner currentColor should inherit unresolved");
+</script>

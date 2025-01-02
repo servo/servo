@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test CompositeOperationType enumeration animations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var defsElement = createSVGElement("defs");
+rootSVGElement.appendChild(defsElement);
+
+var off1 = createSVGElement("feOffset");
+off1.setAttribute("dx", "35");
+off1.setAttribute("dy", "25");
+off1.setAttribute("result", "off1");
+
+var flood1 = createSVGElement("feFlood");
+flood1.setAttribute("flood-color", "#408067");
+flood1.setAttribute("flood-opacity", ".8");
+flood1.setAttribute("result", "F1");
+
+var overComposite1 = createSVGElement("feComposite");
+overComposite1.setAttribute("in", "F1");
+overComposite1.setAttribute("in2", "off1");
+overComposite1.setAttribute("operator", "over");
+overComposite1.setAttribute("k1", ".5");
+overComposite1.setAttribute("k2", ".1");
+overComposite1.setAttribute("k3", ".5");
+overComposite1.setAttribute("k4", ".3");
+
+overComposite1.setAttribute("result", "C1");
+
+var off2 = createSVGElement("feOffset");
+off2.setAttribute("in", "SourceGraphic");
+off2.setAttribute("dx", "60");
+off2.setAttribute("dy", "50");
+off2.setAttribute("result", "off2");
+
+var flood2 = createSVGElement("feFlood");
+flood2.setAttribute("flood-color", "#408067");
+flood2.setAttribute("flood-opacity", ".6");
+flood2.setAttribute("result", "F2");
+
+var overComposite2 = createSVGElement("feComposite");
+overComposite2.setAttribute("in", "F2");
+overComposite2.setAttribute("in2", "off2");
+overComposite2.setAttribute("operator", "in");
+overComposite2.setAttribute("result", "C2");
+
+var off3 = createSVGElement("feOffset");
+off3.setAttribute("in", "SourceGraphic");
+off3.setAttribute("dx", "85");
+off3.setAttribute("dy", "75");
+off3.setAttribute("result", "off3");
+
+var flood3 = createSVGElement("feFlood");
+flood3.setAttribute("flood-color", "#408067");
+flood3.setAttribute("flood-opacity", ".4");
+flood3.setAttribute("result", "F3");
+
+var overComposite3 = createSVGElement("feComposite");
+overComposite3.setAttribute("in2", "off3");
+overComposite3.setAttribute("operator", "in");
+overComposite3.setAttribute("result", "C3");
+
+var merge = createSVGElement("feMerge");
+
+var mergeNode1 = createSVGElement("feMergeNode");
+mergeNode1.setAttribute("in", "C1");
+
+var mergeNode2 = createSVGElement("feMergeNode");
+mergeNode2.setAttribute("in", "C2");
+
+var mergeNode3 = createSVGElement("feMergeNode");
+mergeNode3.setAttribute("in", "C3");
+
+var mergeNode4 = createSVGElement("feMergeNode");
+mergeNode4.setAttribute("in", "SourceGraphic");
+
+merge.appendChild(mergeNode3);
+merge.appendChild(mergeNode2);
+merge.appendChild(mergeNode1);
+merge.appendChild(mergeNode4);
+
+var overFilter = createSVGElement("filter");
+overFilter.setAttribute("id", "overFilter");
+overFilter.setAttribute("filterUnits", "objectBoundingBox");
+overFilter.setAttribute("x", "0");
+overFilter.setAttribute("y", "0");
+overFilter.setAttribute("width", "3.5");
+overFilter.setAttribute("height", "4");
+overFilter.appendChild(off1);
+overFilter.appendChild(flood1);
+overFilter.appendChild(overComposite1);
+overFilter.appendChild(off2);
+overFilter.appendChild(flood2);
+overFilter.appendChild(overComposite2);
+overFilter.appendChild(off3);
+overFilter.appendChild(flood3);
+overFilter.appendChild(overComposite3);
+overFilter.appendChild(merge);
+
+defsElement.appendChild(overFilter);
+
+// Setup test document
+var rect = createSVGElement("rect");
+rect.setAttribute("id", "rect");
+rect.setAttribute("width", "100");
+rect.setAttribute("height", "100");
+rect.setAttribute("fill", "#408067");
+rect.setAttribute("filter", "url(#overFilter)");
+rect.setAttribute("onclick", "executeTest()");
+rootSVGElement.appendChild(rect);
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "operator");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "5s");
+animate.setAttribute("values", "in;out;atop;xor;arithmetic");
+overComposite1.appendChild(animate);
+
+// Setup animation test
+function sample1() {
+    assert_equals(overComposite1.operator.animVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
+    assert_equals(overComposite1.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
+}
+
+function sample2() {
+    assert_equals(overComposite1.operator.animVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_IN);
+    assert_equals(overComposite1.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
+}
+
+function sample3() {
+    assert_equals(overComposite1.operator.animVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OUT);
+    assert_equals(overComposite1.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
+}
+
+function sample4() {
+    assert_equals(overComposite1.operator.animVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ATOP);
+    assert_equals(overComposite1.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
+}
+
+function sample5() {
+    assert_equals(overComposite1.operator.animVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_XOR);
+    assert_equals(overComposite1.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
+}
+
+function sample6() {
+    assert_equals(overComposite1.operator.animVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ARITHMETIC);
+    assert_equals(overComposite1.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 0.001, sample2],
+        ["animation", 0.999, sample2],
+        ["animation", 1.001, sample3],
+        ["animation", 1.999, sample3],
+        ["animation", 2.001, sample4],
+        ["animation", 2.999, sample4],
+        ["animation", 3.001, sample5],
+        ["animation", 3.999, sample5],
+        ["animation", 4.001, sample6],
+        ["animation", 4.999, sample6],
+        ["animation", 5.001, sample1]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

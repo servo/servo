@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>CSS Test: translate webgl canvas in an animation via set current time.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org"/>
+<link rel="help" href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-translate"/>
+<link rel="match" href="canvas-webgl-translate-in-animation-ref.html"/>
+<meta name="assert" content="canvas is translated by half the total distance"/>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+@keyframes move {
+  to { transform: translate(300px); }
+}
+
+canvas {
+  will-change: transform;
+  animation: move;
+  animation-duration: 1s;
+  animation-timing-function: linear;
+  animation-play-state: paused;
+}
+</style>
+
+<canvas id="canvas" width="150" height="150"></canvas>
+
+<script>
+async function runTest() {
+  const gl = canvas.getContext("webgl");
+  if(gl != null) {
+    gl.clearColor(0.0, 1.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  requestAnimationFrame(() => {
+    document.getAnimations().forEach((animation) => {
+      animation.currentTime = 500;
+    });
+    takeScreenshot();
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

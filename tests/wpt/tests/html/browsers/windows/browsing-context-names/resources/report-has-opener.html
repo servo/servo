@@ -1,0 +1,8 @@
+<!doctype html>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+prefixedStorage.setItem('hasOpener', window.opener !== null);
+</script>

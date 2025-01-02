@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-grid">
+<meta name="assert" content="trimmed inline-start margins in grid should be reflected in computed style">
+</head>
+<style>
+grid {
+    display: grid;
+    width: min-content;
+    outline: 1px solid black;
+    grid-template-columns: repeat(2, auto);
+    margin-trim: inline-start;
+}
+item {
+    display: block;
+    width: 50px;
+    height: 50px;
+}
+.locked-position {
+    grid-row: 3;
+    grid-column: 1;
+    margin-inline-start: -30px;
+}
+item:nth-child(1) {
+    background-color: green;
+    margin-inline-start: 30px;
+}
+item:nth-child(2) {
+    background-color: blue;
+    margin-inline-start: 10px;
+}
+item:nth-child(3) {
+    background-color: orchid;
+    margin-inline-start: 10%;
+}
+item:nth-child(4) {
+    background-color: maroon;
+}
+item:nth-child(5) {
+    background-color: salmon;
+    width: auto;
+    grid-column: span 2;
+    margin-inline-start: 10px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('grid > item')">
+    <div id="target">
+    <grid>
+        <item data-expected-margin-left="0"></item>
+        <item data-expected-margin-left="10"></item>
+        <item data-expected-margin-left="0"></item>
+        <item class="locked-position" data-expected-margin-left="0"></item>
+        <item data-expected-margin-left="0"></item>
+    </grid>
+    </div>
+</body>
+</html>

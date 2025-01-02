@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Referrer-Policy header in outer SXG response</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+(() => {
+  const SAME_ORIGIN = get_host_info().HTTPS_ORIGIN;
+  const SAME_ORIGIN_SXG = 'sxg-referrer-same-origin.sxg';
+  const TEST_CASES = [
+    // Referrer-Policy header in outer SXG response.
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,no-referrer)',
+      referrerPolicy: undefined,
+      expectedReferrer: ''
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG +
+           '?pipe=header(Referrer-Policy,no-referrer-when-downgrade)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,same-origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,strict-origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG +
+           '?pipe=header(Referrer-Policy,strict-origin-when-cross-origin)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: SAME_ORIGIN_SXG + '?pipe=header(Referrer-Policy,unsafe-url)',
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.href
+    },
+  ];
+  runReferrerTests(TEST_CASES);
+})();
+</script>
+</body>

@@ -1,0 +1,212 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "annotations.json",
+  "title": "Definitions: Annotations.",
+  "description": "Schemas in #/definitions detect or validate keys/objects (direct children) uniquely used to describe Annotations (Section 3.1 and 3.3.5).",
+  "definitions": {
+
+    "contextValueFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid @context string",
+      "description": "True when the string has value http://www.w3.org/ns/anno.jsonld (Section 3.1)",
+      "type": "string",
+      "enum": [ "http://www.w3.org/ns/anno.jsonld" ]
+    },
+
+    "contextValueInArrayFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid @context string found in array",
+      "description": "True when the array contains a string item having value http://www.w3.org/ns/anno.jsonld (Section 3.1)",
+      "type": "array",
+      "not":
+      { "items":
+        { "not":
+          { "$ref": "#/definitions/contextValueFound" }
+        }
+      }
+    },
+
+    "annotationTypeValueRecognized": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid annotation type value string",
+      "description": "True when the string has value 'Annotation' (Section 3.1)",
+      "type": "string",
+      "enum": [ "Annotation" ]
+    },
+
+    "annotationTypeValueInArrayRecognized": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid annotation type array",
+      "description": "True when the array contains a string item having value 'Annotation' (Section 3.1)",
+      "type": "array",
+      "not":
+      { "items":
+        { "not":
+          { "$ref": "#/definitions/annotationTypeValueRecognized" }
+        }
+      }
+    },
+
+    "annotationTypeValueFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Implementation: Annotation type",
+      "description": "True when the Annotation has type key and 'Annotation' is a value of type (Section 3.1)",
+      "type": "object",
+      "required": [ "type" ],
+      "properties": {
+        "type": {
+          "oneOf": [
+          { "$ref": "annotations.json#/definitions/annotationTypeValueRecognized" },
+          { "$ref": "annotations.json#/definitions/annotationTypeValueInArrayRecognized" }
+          ]
+        }
+      }
+    },
+
+    "motivationList":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definitions: list of motivation and purposes",
+      "description": "List of motivations and purposes as defined in the model (Section 3.3.5).",
+      "type": "string",
+      "enum": ["assessing", "bookmarking", "classifying", "commenting", "describing", "editing", "highlighting", "identifying", "linking", "moderating", "questioning", "replying", "tagging" ]
+    },
+
+    "motivationRecognizedIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: motivation value",
+      "description": "True when the annotation has 0 or more motivation property values (Section 3.3.5)",
+      "type": "object",
+      "properties": {"motivation":
+        { "oneOf": [
+          { "$ref": "#/definitions/motivationList" },
+          { "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/definitions/motivationList" } }
+        ]
+        }
+      }
+    },
+
+    "motivationSingularIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: singular motivation value",
+      "description": "True when the annotation has 0 or exactly one motivation property value (Section 3.3.5)",
+      "type": "object",
+      "properties": {"motivation":
+        { "oneOf": [
+          { "$ref": "#/definitions/motivationList" },
+          { "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": { "$ref": "#/definitions/motivationList" } }
+        ]
+        }
+      }
+    },
+
+    "motivationPropertyFound":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: via motivation with qualifying annotation class",
+      "description": "Supports implementation check of via (if/when) used on Annotation (Sections 3.3.5)",
+      "oneOf": [
+      {"$ref": "#/definitions/annotationTypeValueFound"}
+      ],
+      "allOf": [
+      {"required": ["motivation"]},
+      {"$ref": "#/definitions/motivationRecognizedIfPresent"}
+      ]
+    },
+
+    "singleMotivationPropertyFound":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Collate: via motivation with qualifying annotation class",
+      "description": "Supports implementation check of via (if/when) used on Annotation (Sections 3.3.5)",
+      "oneOf": [
+      {"$ref": "#/definitions/annotationTypeValueFound"}
+      ],
+      "allOf": [
+      {"required": ["motivation"]},
+      {"$ref": "#/definitions/motivationSingularIfPresent"}
+      ]
+    },
+
+    "stylesheetValueDefinition":
+    {
+      "title": "Definition: stylesheet value",
+      "description": "True when Annotation has no stylesheet, references an external stylesheet, or has embedded stylesheet of type CssStylesheet (Section 4.4)",
+      "type": "object",
+      "properties":
+      {
+        "stylesheet":
+        {
+          "oneOf":
+            [
+            { "$ref": "id.json#/definitions/arraySingleStringUri"},
+            { "type": "object",
+              "properties":
+              {
+                "type": { "type": "string",
+                  "enum": [ "CssStylesheet" ]},
+                  "id": { "$ref": "id.json#/definitions/stringUri" },
+                  "value": { "type": "string" }
+              },
+              "not": { "required": [ "id", "value"] },
+              "oneOf": [
+              { "required": [ "id"] },
+              { "required": [ "value"] }
+              ]
+            }
+            ]
+        }
+      }
+    },
+
+    "stylesheetDetected":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation stylesheet",
+      "description": "True when the Annotation has a valid stylesheet property (Section 4.4)",
+      "allOf": [
+      {"required": ["stylesheet"]},
+      {"$ref": "#/definitions/stylesheetValueDefinition"}
+      ]
+    },
+
+    "bodyValueValidIfPresent":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: bodyValue",
+      "description": "True when the Annotation has no bodyValue key or has a bodyValue key with valid value (Section 3.2.5)",
+      "type": "object",
+      "properties":
+      {
+        "bodyValue":
+        {
+          "oneOf":
+            [
+            { "type": "string" },
+            { "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": { "type": "string" }
+            }
+            ]
+        }
+      }
+    },
+
+    "bodyValueFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": " Implementation: bodyValue",
+      "description": "True when the Annotation has a valid bodyValue (Section 3.2.5)",
+      "allOf":
+        [
+        { "$ref": "#/definitions/bodyValueValidIfPresent" },
+        { "required": [ "bodyValue" ] }
+        ]
+    }
+
+  }
+}

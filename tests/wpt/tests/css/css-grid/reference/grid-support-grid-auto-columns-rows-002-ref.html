@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Support for 'grid-auto-columns' and 'grid-auto-rows' properties accepting track listing as value</title>
+<link rel="author" title="Rachel Andrew" href="mailto:me@rachelandrew.co.uk" />
+<style>
+    #grid {
+        position: relative;
+    }
+
+    .absolute {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    #first-column-first-row {
+        width: 25px;
+        height: 40px;
+        background-color: purple;
+    }
+
+    #second-column-first-row {
+        width: 50px;
+        height: 40px;
+        left: 25px;
+        background-color: orange;
+    }
+
+    #first-column-second-row {
+        width: 25px;
+        height: 30px;
+        top: 40px;
+        background-color: green;
+    }
+
+    #second-column-second-row {
+        width: 50px;
+        height: 30px;
+        top: 40px;
+        left: 25px;
+        background-color: pink;
+    }
+
+    #first-and-second-column-third-row {
+        width: 75px;
+        height: 40px;
+        top: 70px;
+        background-color: silver;
+    }
+
+    #third-column-all-rows {
+        left: 75px;
+        height: 110px;
+        width: 25px;
+        background-color: blue;
+    }
+</style>
+
+<p>The test passes if it has the same visual effect as reference.</p>
+<div id="grid">
+    <div class="absolute" id="first-column-first-row"></div>
+    <div class="absolute" id="second-column-first-row"></div>
+    <div class="absolute" id="first-column-second-row"></div>
+    <div class="absolute" id="second-column-second-row"></div>
+    <div class="absolute" id="first-and-second-column-third-row"></div>
+    <div class="absolute" id="third-column-all-rows"></div>
+</div>

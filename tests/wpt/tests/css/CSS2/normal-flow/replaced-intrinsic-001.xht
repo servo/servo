@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Replaced inline elements (using &lt;object&gt;) and SVG intrinsic widths</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-11-02 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/replaced/intrinsic/svg/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" />
+  <link rel="match" href="replaced-intrinsic-001-ref.xht" />
+
+  <meta name="flags" content="svg"/>
+  <style type="text/css">
+   html { width: 150px; padding: 0; margin: 8px; }
+   body { padding: 0; margin: 0; }
+   p { padding: 0; margin: 0; }
+   object { width: auto; height: auto; } /* intrinsic size is 100%x100%, which is equivalent to width:100% height:auto (since height:auto on parent) */
+   .control { background: red; width: 150px; height: 150px; border: solid lime 2px; margin: -2px; position: absolute; z-index: -1; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square exactly fitting inside a bright green border and no red.</p>
+  <p class="control">FAIL (absolute positioning not supported) </p>
+  <p><object data="support/replaced-intrinsic-001.svg" type="image/svg+xml"> FAIL (SVG not supported) </object></p>
+ </body>
+</html>

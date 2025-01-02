@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>&lt;mo&gt; with a single character and children</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#dfn-algorithm-for-determining-the-properties-of-an-embellished-operator">
+    <meta name="assert" content="Verify that the default operator properties are used for an mo element whose text is a single character but which contains children.">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+    <link rel="match" href="mo-single-char-and-children-ref.html">
+    <style>
+      math { font: 25px/1 Ahem; }
+    </style>
+  </head>
+  <body>
+    <p>There should be 5/18em horizontal gaps around the middle rectangles:</p>
+    <p><math><mn>p</mn><mo><span>(</span></mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo>(<span></span></mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo><span></span>(</mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo id="dynamic-add">(</mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo id="dynamic-text-add">=</mo><mn>p</mn></math></p>
+
+    <p>There should be no horizontal gap around the middle rectangles:</p>
+
+    <p><math><mn>p</mn><mo stretchy="false">(</mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo id="dynamic-remove" stretchy="false"><span></span>(</mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo stretchy="false"><!-- COMMENT -->(</mo><mn>p</mn></math></p>
+
+    <p>There should be 4/18em horizontal gaps around the middle rectangles:</p>
+    <p><math><mn>p</mn><mo>&amp;<!-- COMMENT -->&amp;</mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo id="dynamic-text-add-2">&amp;</mo><mn>p</mn></math></p>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>
+      MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");
+
+      let mo = document.getElementById("dynamic-add");
+      mo.appendChild(document.createElement("span"));
+
+      mo = document.getElementById("dynamic-text-add");
+      mo.appendChild(document.createTextNode("="));
+
+      mo = document.getElementById("dynamic-text-add-2");
+      mo.appendChild(document.createTextNode("&"));
+
+      mo = document.getElementById("dynamic-remove");
+      mo.removeChild(mo.firstElementChild);
+
+      document.documentElement.classList.remove('reftest-wait');
+    </script>
+  </body>
+</html>

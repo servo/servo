@@ -1,0 +1,4 @@
+features:
+- name: font-optical-sizing
+  files:
+  - variable-opsz*

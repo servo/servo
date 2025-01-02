@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8" />
+    <title>MathML 'ElementCSSInlineStyle` Dynamic Tests</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript"/>
+    <link rel="match" href="css-inline-style-dynamic.tentative-ref.html"/>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <style>
+      #hidden  {
+        visibility: hidden;
+        background-color: green;
+      }
+      #red  {
+        background-color: red;
+      }
+    </style>
+    <meta
+      name="assert"
+      content="MathMLElements ElementCSSInlineStyle interface changes update rendering"
+    />
+    <script type="text/javascript">
+      function test()
+      {
+        MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");
+        document.body.offsetTop; // Update layout
+
+        var mspace = document.getElementById("hidden");
+        if (mspace.style)
+          mspace.style.visibility = "visible";
+
+        mspace = document.getElementById("red");
+        if (mspace.style)
+          mspace.style.backgroundColor = "green";
+
+        document.documentElement.className = "";
+      }
+    </script>
+  </head>
+  <body onload="test()">
+    <span>This tests that `ElementCSSInlineStyle` interface changes update rendering.</span>
+    <div>
+      <math><mspace width="50px" height="100px" id="hidden"/><mspace width="50px" height="100px" id="red"/></math>
+    </div>
+  </body>
+</html>

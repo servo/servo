@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>inherited link color when modifying parent</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="match" href="visited-inheritance-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors">
+<style>
+  div { color: red; }
+  a { color: inherit; }
+</style>
+<main>
+  <div id="parentdiv">
+    <a href="" id="link">Visited link should be green</a>
+  </div>
+  <script>
+  link.offsetTop;
+  parentdiv.style.color = 'green';
+  </script>
+</main>

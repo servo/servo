@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test auto lengths. Max content sizes are smaller than available size. With center/middle boxes. No corners.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-005-print-ref.html">
+<style>
+  @page {
+    margin: 6em;
+    width: 20em;
+    height: 15em;
+    font: 16px/1 Ahem;
+    white-space: pre-wrap;
+
+    /* In order to preserve centering of a center/middle box, pretend that the
+       space distributed to left/top and right/bottom combined will be twice the
+       size of the one that needs the most size (this is called the AC box).
+       Then resolve center/middle by giving it the rest. Then the boxes on the
+       sides receive equal shares of AC. */
+
+    /* Min/max width for top-left is 3em. For top-center it is 2em. For
+       top-right it is 2em. Available space is 20em. Left is larger than right.
+       Double it to 6em and call this the AC box. Unused space becomes 12em
+       (20em minus center max width and double left box max width). Unused space
+       will be distributed proportionally between AC and the center box, based
+       on max widths. AC gets 6/8, center gets 2/8. AC becomes
+       6em+12em*6/8 = 15em. Center becomes 2em+12em*2/8 = 5em. Left and right
+       each receive half of what's left after having resolved for center,
+       i.e. (20em-5em)/2 = 7.5em. */
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      margin-bottom: 4em;
+      content: "xxx";
+      background: hotpink;
+    }
+    @top-center {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 2em;
+      margin-bottom: 2em;
+      content: "xx";
+      background: cyan;
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 4em;
+      content: "xx";
+      background: yellow;
+    }
+
+    /* This is the same as for the top edge, except that available space is less.
+       It is 15em here. Unused space then becomes 7em (15em minus center max
+       height and double top box max height). AC becomes 6em+7em*6/8 = 11.25em.
+       Center becomes 2em+7em*2/8 = 3.75em. Top and bottom each become
+       11.25em / 2 = 5.625em. */
+    @right-top {
+      text-align: left;
+      vertical-align: top;
+      margin-right: 4em;
+      content: "x\ax\ax";
+      background: hotpink;
+    }
+    @right-middle {
+      text-align: left;
+      vertical-align: top;
+      margin-left: 2em;
+      margin-right: 2em;
+      content: "x\ax";
+      background: cyan;
+    }
+    @right-bottom {
+      text-align: left;
+      vertical-align: top;
+      margin-left: 4em;
+      content: "x\ax";
+      background: yellow;
+    }
+  }
+</style>

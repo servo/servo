@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=match href=background_origin_ref.html>
+<style>
+#foo1 {
+    background: url(400x400_green.png);
+    background-origin: padding-box;
+    background-repeat: no-repeat;
+    width: 400px;
+    height: 400px;
+    padding: 20px;
+    border: 20px dotted red;
+}
+#foo2 {
+    background: url(400x400_green.png);
+    background-origin: border-box;
+    background-repeat: no-repeat;
+    width: 400px;
+    height: 400px;
+    padding: 20px;
+    border: 20px dotted red;
+}
+#foo3 {
+    background: url(400x400_green.png);
+    background-origin: content-box;
+    background-repeat: no-repeat;
+    width: 400px;
+    height: 400px;
+    padding: 20px;
+    border: 20px dotted red;
+}
+</style>
+</head>
+<body>
+<div id=foo1></div>
+<div id=foo2></div>
+<div id=foo3></div>
+</body>
+</html>
+

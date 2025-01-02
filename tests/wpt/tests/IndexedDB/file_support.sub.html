@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset=utf8>
+<title>File support in IndexedDB</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/support-promises.js"></script>
+<form id="form">
+  <input id="file_input" name="file_input" type="file">
+</form>
+<script>
+
+function assert_file_metadata_equal(file1, file2) {
+  assert_true(file1 instanceof File);
+  assert_true(file2 instanceof File)
+  assert_equals(file1.lastModified, file2.lastModified);
+  assert_equals(file1.name, file2.name);
+  assert_equals(file1.size, file2.size);
+  assert_equals(file1.type, file2.type);
+}
+
+async function assert_file_contents_equals(file1, file2) {
+  const file1_text = await file1.text();
+  const file2_text = await file2.text();
+  assert_equals(file1_text, file2_text);
+}
+
+promise_test(async (testCase) => {
+  const input = document.getElementById("file_input");
+  await test_driver.send_keys(input, String.raw`{{fs_path(resources/file_to_save.txt)}}`);
+  assert_equals(input.files.length, 1);
+
+  const file = input.files[0];
+
+  const db = await createDatabase(testCase, db => {
+    db.createObjectStore('objectStore');
+  });
+
+  const txn = db.transaction(['objectStore'], 'readwrite');
+  txn.objectStore('objectStore').add(file, 'key1');
+  txn.objectStore('objectStore').add({file: file, other: 'data'}, 'key2');
+  await promiseForTransaction(testCase, txn);
+
+  const readTxn = db.transaction(['objectStore'], 'readonly');
+  const fileByItself = await promiseForRequest(
+      testCase, readTxn.objectStore('objectStore').get('key1'));
+  const fileInDict = await promiseForRequest(
+      testCase, readTxn.objectStore('objectStore').get('key2'));
+
+  assert_file_metadata_equal(fileByItself, file);
+  assert_file_metadata_equal(fileInDict.file, file);
+  assert_file_metadata_equal(fileInDict.file, fileByItself);
+
+  await assert_file_contents_equals(fileByItself, file);
+  await assert_file_contents_equals(fileInDict.file, file);
+
+  db.close();
+}, "Saves and loads back File objects from IndexedDB");
+
+</script>

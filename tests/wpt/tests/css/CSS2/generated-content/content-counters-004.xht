@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: content: counters(c, ".", square)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counter-styles"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  body, #test { counter-reset: c; }
+  p, #test span { counter-increment: c; }
+  #test span:before { content: counters(c, ".", square); }
+
+  </style>
+ </head>
+ <body>
+
+ <p>Test passes if below there are 6 groups of: filled in box, period, filled in box.</p>
+
+ <div id="test">
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+   <span></span>
+ </div>
+
+ </body>
+</html>

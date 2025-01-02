@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>content position with width/height</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<meta name="assert" content="Verify the block-start of the children for misc layout algorithms."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/mathml/support/fonts.js"></script>
+<style>
+  mn, .text {
+      font: 25px/1 Ahem;
+      color: black;
+  }
+  .test {
+      margin: .5em;
+  }
+  .reference, [data-name] {
+      border: 1px solid blue;
+      margin: 1em;
+  }
+</style>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
+
+  function getBaseLine(element) {
+      return element.parentNode.getElementsByClassName("baseline")[0].getBoundingClientRect().bottom;
+  }
+
+  function runTests() {
+      Array.from(document.getElementsByClassName("test")).forEach(div => {
+          const reference = div.getElementsByClassName("reference")[0];
+          Array.from(div.querySelectorAll("[data-name]")).forEach(element => {
+              test(() => {
+                  const referenceBox = reference.getBoundingClientRect();
+                  const elementBox = element.getBoundingClientRect();
+                  const epsilon = 1;
+                  assert_approx_equals(elementBox.width, referenceBox.width, epsilon, `width is preserved`);
+                  assert_greater_than(Math.abs(elementBox.height - referenceBox.height), epsilon, `height is modified`);
+                  assert_approx_equals(getBaseLine(element) - elementBox.top, getBaseLine(reference) - referenceBox.top, epsilon, `baseline is preserved`);
+                  for (let i = 0; i < element.children.length; i++) {
+                      const referenceChildBox = reference.children[i].getBoundingClientRect();
+                      const childBox = element.children[i].getBoundingClientRect();
+                      assert_approx_equals(childBox.top - elementBox.top, referenceChildBox.top - referenceBox.top, epsilon, `vertical position of child ${i}`);
+                  }
+              }, element.dataset.name);
+          });
+      });
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mrow class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mrow>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mrow data-name="mrow" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mrow>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mrow data-name="mrow (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mrow>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mpadded lspace=".5em" voffset="-1em" class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mpadded>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mpadded lspace=".5em" voffset="-1em" data-name="mpadded" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mpadded>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mpadded lspace=".5em" voffset="-1em" data-name="mpadded (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mpadded>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msqrt class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </msqrt>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msqrt data-name="msqrt" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </msqrt>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msqrt data-name="msqrt (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </msqrt>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mroot class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+      </mroot>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mroot data-name="mroot" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </mroot>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mroot data-name="mroot (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </mroot>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <munder class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+      </munder>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <munder data-name="munder" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </munder>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <munder data-name="munder (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </munder>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mover class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+      </mover>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mover data-name="mover" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </mover>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mover data-name="mover (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </mover>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <munderover class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </munderover>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <munderover data-name="munderover" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </munderover>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <munderover data-name="munderover (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </munderover>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msub class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+      </msub>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msub data-name="msub" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </msub>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msub data-name="msub (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </msub>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msup class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+      </msup>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msup data-name="msup" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </msup>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msup data-name="msup (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+      </msup>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msubsup class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </msubsup>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msubsup data-name="msubsup" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </msubsup>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <msubsup data-name="msubsup (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </msubsup>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mmultiscripts class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+        <mprescripts/>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mmultiscripts>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mmultiscripts data-name="mmultiscripts" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+        <mprescripts/>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mmultiscripts>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mmultiscripts data-name="mmultiscripts (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+        <mprescripts/>
+        <mn>X</mn>
+        <mn>X</mn>
+      </mmultiscripts>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mtext class="reference">
+        <span class="text">X</span class="text">
+        <span class="text">X</span class="text">
+        <span class="text">X</span class="text">
+      </mtext>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mtext data-name="mtext" style="height: 10em">
+        <span class="text">X</span class="text">
+        <span class="text">X</span class="text">
+        <span class="text">X</span class="text">
+      </mtext>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <mtext data-name="mtext (vertical overflow)" style="height: 1em">
+        <span class="text">X</span class="text">
+        <span class="text">X</span class="text">
+        <span class="text">X</span class="text">
+      </mtext>
+    </math>
+  </div>
+
+  <div class="test">
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <menclose class="reference">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </menclose>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <menclose data-name="legacy menclose" style="height: 10em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </menclose>
+    </math>
+    <math>
+      <mspace class="baseline" width="1em" height="1px" style="background: black"/>
+      <menclose data-name="legacy menclose (vertical overflow)" style="height: 1em">
+        <mn>X</mn>
+        <mn>X</mn>
+        <mn>X</mn>
+      </menclose>
+    </math>
+  </div>
+
+</body>
+</html>

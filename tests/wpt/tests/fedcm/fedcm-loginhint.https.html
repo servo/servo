@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API login hint tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_login_hint,
+        select_manifest,
+        mark_signed_in,
+        fedcm_get_dialog_type_promise,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+
+  let options = request_options_with_login_hint('manifest.py', 'nomatch');
+  const cred = navigator.credentials.get(options);
+  // We expect a mismatch dialog.
+  const type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, 'ConfirmIdpLogin');
+  window.test_driver.cancel_fedcm_dialog();
+  return promise_rejects_dom(t, "NetworkError", cred);
+}, "No login hint matches an account.");
+
+fedcm_test(async t => {
+  const options = request_options_with_login_hint('manifest.py', 'john_doe');
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, 'token');
+}, "Login hint matches an account.");
+
+fedcm_test(async t => {
+  let options = request_options_with_login_hint('manifest_with_two_accounts.json', 'john_doe');
+  await select_manifest(t, options);
+
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, 'account_id=john_doe');
+}, "Login hint matches an account from two accounts.");
+</script>

@@ -1,0 +1,94 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div class="div">
+  <input class="input1"></input><input class="input2"></input>
+</div>
+
+<input class="input3"></input>
+
+<script>
+
+  async_test(function(t) {
+    assert_equals(String(FocusEvent).indexOf("function FocusEvent("), 0);
+
+    var ev = new FocusEvent("focus");
+
+    assert_true(ev instanceof Event, "Should be Event");
+    assert_true(ev instanceof UIEvent, "Should be UIEvent");
+    assert_true(ev instanceof FocusEvent, "Should be FocusEvent");
+
+    var div = document.querySelector(".div");
+    var input1 = document.querySelector(".input1");
+    var input2 = document.querySelector(".input2");
+    var input3 = document.querySelector(".input3");
+
+    var phases = [
+
+      {
+        element: input1,
+        expected_events: [
+          {element: input1, event_name: "focus"},
+        ]
+      },
+
+      {
+        element: input2,
+        expected_events: [
+          {element: input1, event_name: "blur"},
+          {element: input2, event_name: "focus"},
+        ]
+      },
+
+      {
+        element: input3,
+        expected_events: [
+          {element: input2, event_name: "blur"},
+          {element: input3, event_name: "focus"},
+        ]
+      },
+
+      {
+        element: document.body,
+        expected_events: [
+          {element: input3, event_name: "blur"},
+        ]
+      }
+
+    ];
+
+    var idx = 0;
+
+    var received_events = [];
+
+    function on_event(element, event_name) {
+      received_events.push({element, event_name});
+      if (received_events.length == phases[idx].expected_events.length) {
+        for (var i = 0; i < received_events.length; i++) {
+          assert_equals(received_events[i].element, phases[idx].expected_events[i].element);
+          assert_equals(received_events[i].event_name, phases[idx].expected_events[i].event_name);
+        }
+        if (++idx < phases.length) {
+          received_events = [];
+          phases[idx].element.focus();
+        } else {
+          t.done();
+        }
+      }
+    }
+
+    for (var element of [div, input1, input2, input3]) {
+      for (var event_name of ["focus", "blur"]) {
+        element.addEventListener(event_name, (function(element) {
+          return function(event) {
+            on_event(element, event.type);
+          }
+        })(element));
+      };
+    }
+
+    phases[0].element.focus();
+
+  });
+
+</script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: in flow (height)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/020.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   table { border-spacing: 0; font-size: 50px; border: solid; background: red; }
+   td { padding: 0; width: 1em; }
+
+   div { background: lime; }
+
+   .a .container { height: 2.1em; }
+   .a .sized { height: 1.0em; margin: 0 0 1em 0; }
+   .a .after { height: 0.9em; }
+
+   .b .container { height: 2.0em; }
+   .b .sized { height: 1.0em; margin: 0 0 1em 0; }
+   .b .after { height: 1.0em; }
+
+   .c .container { height: 1.9em; }
+   .c .sized { height: 1.0em; margin: 0 0 1em 0; }
+   .c .after { height: 1.1em; }
+
+  </style>
+ </head>
+ <body>
+  <p>There should be no red on this page.</p>
+  <table>
+   <tr>
+    <td class="a">
+     <div class="container">
+      <div class="sized"></div>
+     </div>
+     <div class="after"></div>
+    </td>
+    <td class="b">
+     <div class="container">
+      <div class="sized"></div>
+     </div>
+     <div class="after"></div>
+    </td>
+    <td class="c">
+     <div class="container">
+      <div class="sized"></div>
+     </div>
+     <div class="after"></div>
+    </td>
+   </tr>
+  </table>
+  <p>See also: <a href="019.html">prerequisite</a>.</p>
+
+
+</body>
+</html>

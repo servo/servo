@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Web platform test for dedicated worker allowed by worker-src self</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../support/testharness-helper.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="child-src 'none'; script-src 'self'; default-src 'none'; ">
+<script src="../support/dedicated-worker-helper.js" blocked-worker id="foo" data-desc-fallback="Same-origin dedicated worker allowed by worker-src 'self'."></script>

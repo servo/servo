@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Registration of a new service worker in a prerendered page</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+// To make sure the service worker registered by the prerendered page starts up,
+// this test sends messages as the following sequence:
+// prerendered page => service worker => prerendered page => main page.
+promise_test(async t => {
+  const uid = token();
+
+  const PAGE_URL = `resources/register-service-worker.html?uid=${uid}`;
+
+  const bc = new PrerenderChannel('test-channel', uid);
+  t.add_cleanup(_ => bc.close());
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  window.open(PAGE_URL, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  const expected = [
+    {event: 'started waiting ServiceWorker.register',  prerendering: true},
+    {event: 'prerendering change',                     prerendering: false},
+    {event: 'service worker registered',               prerendering: false},
+    {event: 'finished waiting ServiceWorker.register', prerendering: false},
+  ];
+  assert_equals(result.length, expected.length);
+  for (let i = 0; i < result.length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event[${i}]`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+      `prerendering[${i}]`);
+  }
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+}, 'New service worker should be registered in a prerendered page');
+</script>

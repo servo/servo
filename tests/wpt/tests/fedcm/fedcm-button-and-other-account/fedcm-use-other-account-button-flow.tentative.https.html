@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Use Another Account API tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_dialog_type_promise,
+        manifest_origin,
+        open_and_wait_for_popup,
+        select_manifest} from '../support/fedcm-helper.sub.js';
+
+const url_path = '/fedcm/support/'
+const url_prefix = manifest_origin + url_path;
+
+async function set_accounts_cookie(value) {
+  await open_and_wait_for_popup(manifest_origin, url_path + 'set_accounts_cookie.py?' + value);
+}
+
+fedcm_test(async t => {
+  await set_accounts_cookie("1");
+
+  let test_options =
+    request_options_with_mediation_required("manifest_with_variable_accounts.json");
+  test_options.identity.mode = "active";
+  await select_manifest(t, test_options);
+
+  // Trigger FedCM and wait for the initial dialog.
+  let cred_promise = null;
+  await test_driver.bless('initiate FedCM request', async function() {
+    cred_promise = navigator.credentials.get(test_options);
+  });
+
+  let type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "AccountChooser");
+
+  // Tell the account endpoint to now return 2 accounts and click use other account.
+  await set_accounts_cookie("2");
+  await window.test_driver.click_fedcm_dialog_button("ConfirmIdpLoginContinue");
+
+  // Wait for the account chooser to appear again.
+  type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "AccountChooser");
+
+  // Select the first account, which is the most recently signed in account.
+  await window.test_driver.select_fedcm_account(0);
+  const cred = await cred_promise;
+  assert_equals(cred.token, "account_id=jane_doe");
+}, 'Test that the "Use Other Account" active works correctly.');
+
+
+fedcm_test(async t => {
+  await set_accounts_cookie("1");
+
+  let test_options =
+    request_options_with_mediation_required("manifest_with_variable_accounts.json");
+  test_options.identity.mode = "active";
+  await select_manifest(t, test_options);
+
+  // Trigger FedCM and wait for the initial dialog.
+  let cred_promise = null;
+  await test_driver.bless('initiate FedCM request', async function() {
+    cred_promise = navigator.credentials.get(test_options);
+  });
+
+  let type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "AccountChooser");
+
+  // Click use other account but without changing the account returned.
+  await window.test_driver.click_fedcm_dialog_button("ConfirmIdpLoginContinue");
+
+  // Wait for the account chooser to appear again.
+  type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "AccountChooser");
+
+  await window.test_driver.select_fedcm_account(0);
+  const cred = await cred_promise;
+  assert_equals(cred.token, "account_id=1234");
+}, 'Test that the "Use Other Account" active works correctly when accounts do not change.');
+
+</script>

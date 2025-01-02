@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>SVGImageElement.prototype.decode(), basic tests.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+// src tests
+// -------------------
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with PNG xlink:href decodes with undefined.");
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "/images/green.png");
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with PNG href decodes with undefined.");
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href',
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAA" +
+    "D91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4QUSEioKsyAgyw" +
+    "AAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAWSURBVA" +
+    "jXY9y3bx8DAwPL58+fGRgYACktBRltLfebAAAAAElFTkSuQmCC");
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with PNG data URL xlink:href decodes with undefined.");
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href',
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAA" +
+    "D91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4QUSEioKsyAgyw" +
+    "AAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAWSURBVA" +
+    "jXY9y3bx8DAwPL58+fGRgYACktBRltLfebAAAAAElFTkSuQmCC");
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with PNG data URL href decodes with undefined.");
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.svg");
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with SVG xlink:href decodes with undefined.");
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "/images/green.svg");
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with SVG href decodes with undefined.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/non/existent/path.png");
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Non-existent xlink:href fails decode.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "/non/existent/path.png");
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Non-existent href fails decode.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "data:image/png;base64,iVBO00PDR0BADBEEF00KGg");
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Corrupt image in xlink:href fails decode.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "data:image/png;base64,iVBO00PDR0BADBEEF00KGg");
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Corrupt image in href fails decode.");
+
+promise_test(function(t) {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Image without xlink:href or href fails decode.");
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  var first_promise = img.decode();
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    first_promise,
+    second_promise
+  ]);
+}, document.title + " Multiple decodes with a xlink:href succeed.");
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttribute('href', "/images/green.png");
+  var first_promise = img.decode();
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    first_promise,
+    second_promise
+  ]);
+}, document.title + " Multiple decodes with a href succeed.");
+
+</script>

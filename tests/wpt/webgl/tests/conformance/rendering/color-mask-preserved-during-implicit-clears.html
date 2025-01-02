@@ -1,0 +1,113 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ColorMask Must Be Preserved During Implicit Clears</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="canvases"></div>
+<div id="console"></div>
+<script>
+"use strict";
+const wtu = WebGLTestUtils;
+const sz = 128;
+let frames;
+let gl;
+let tests = [
+  { alpha: false, antialias: false, premultipliedAlpha: false },
+  { alpha: false, antialias: false, premultipliedAlpha: true  },
+  { alpha: false, antialias: true,  premultipliedAlpha: false },
+  { alpha: false, antialias: true,  premultipliedAlpha: true  },
+];
+let currentTest;
+let testIndex = 0;
+
+function initTest() {
+  description();
+  debug('ColorMask must be preserved during implicit clears of textures.');
+  debug('Regression test for <a href="http://crbug.com/911918">http://crbug.com/911918</a>');
+
+  requestAnimationFrame(nextTest);
+}
+
+function nextTest() {
+  if (testIndex >= tests.length) {
+    finishTest();
+    return;
+  }
+
+  frames = 20;
+  let canvases = document.getElementById('canvases');
+  let canvas = document.createElement('canvas');
+  canvas.width = sz;
+  canvas.height = sz;
+  canvases.appendChild(canvas);
+  currentTest = tests[testIndex];
+  ++testIndex;
+  gl = wtu.create3DContext(canvas, currentTest);
+  requestAnimationFrame(runTest);
+}
+
+function runTest() {
+  // Create a user-defined framebuffer which has an alpha channel.
+  let fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  // Set color mask to disable alpha writes. This is important; see below.
+  gl.colorMask(true, true, true, false);
+  let tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sz, sz, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  // Upload a sub-rectangle. In Chrome, this was lazily clearing level 0 of the
+  // texture using OpenGL, setting the driver's color mask to (true, true, true,
+  // true) in the process. Because the user's color mask was set to (true, true,
+  // true, false) above, incorrect caching code was failing to reset the
+  // driver's color mask later. On macOS, Chrome implements alpha:false WebGL
+  // contexts on top of RGBA textures whose alpha channel is cleared to 1.0 and
+  // where the color mask is set to (true, true, true, false) during all writes.
+  // This bug was allowing that texture's alpha channel to be destroyed.
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  // We have to issue one clear to this framebuffer to get the color mask
+  // latched into the internal caching code.
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Switch back to default framebuffer.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  // Set clear color to transparent green.
+  gl.clearColor(0, 1, 0, 0);
+  // Clear. Result should be opaque green. Was transparent green when
+  // bug was encountered.
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.checkCanvasRect(gl, 0, 0, sz, sz,
+                      [ 0, 255, 0, 255 ],
+                      "default framebuffer should be opaque green for " + JSON.stringify(currentTest));
+
+  gl.deleteFramebuffer(fb);
+  gl.deleteTexture(tex);
+
+  --frames;
+  if (frames == 0) {
+    requestAnimationFrame(nextTest);
+  } else {
+    requestAnimationFrame(runTest);
+  }
+}
+
+requestAnimationFrame(initTest);
+</script>
+</body>
+</html>

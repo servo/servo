@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cell that overflows a fixed-width table</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="assert" content="A cell that overflows the fixed table width uses its 'overflow' property to determine whether to clip the overflow content." />
+        <style type="text/css">
+            table
+            {
+                table-layout: fixed;
+                width: 100px;
+            }
+            td
+            {
+                border: 1px solid blue;
+                width: 100px;
+            }
+            #hidden
+            {
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <tr>
+                <td>FillerTextFillerTextFillerTextFiller</td>
+            </tr>
+        </table>
+        <p>Test passes if the text in the blue rectangle above this line spills outside of its right side border and the text in the blue rectangle below this line is contained within the rectangle's border (and appears to be cut off on its right side).</p>
+        <table>
+            <tr>
+                <td id="hidden">FillerTextFillerTextFillerTextFiller</td>
+            </tr>
+        </table>
+    </body>
+</html>

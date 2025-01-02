@@ -1,0 +1,109 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Chris Lilley" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: color-prop-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/color.html#ColorProperty">
+        <p>
+          Tests if the color datatype is supported. There are multiple syntaxes for
+        specifying the same color, such as #37F and #3377FF.
+For each of the six groups shown here,
+        each of the circles in the group uses one of the syntactical forms
+        </p>
+ <p>
+        The first row uses five forms - 3-digit hex, 6-digit hex, rbg() integer form, rgb() percentage form,
+        and the 'HTML' subset of the name ('X11') colors.
+      </p>
+      <p>
+        The second row uses only four forms - 3-digit hex, 6-digit hex, rbg() integer form, rgb() percentage form -
+        as there are no HTML or X11 names for those colors.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        For each of the six groups of circles shown here, all circles must
+        be identical in color, and the same color as in the reference image.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: color-prop-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- groups of five colors  -->
+    <g>
+      <circle cx="75" cy="40" r="20" fill="#f00"/>
+      <circle cx="115" cy="40" r="20" fill="#ff0000"/>
+      <circle cx="75" cy="80" r="20" fill="rgb(255,0,0)"/>
+      <circle cx="115" cy="80" r="20" fill="rgb(100%,0%,0%)"/>
+      <polygon points="95,40 115,60 95,80 75,60" fill="red"/>
+    </g>
+    <g>
+      <circle cx="200" cy="40" r="20" fill="#0f0"/>
+      <circle cx="240" cy="40" r="20" fill="#00ff00"/>
+      <circle cx="200" cy="80" r="20" fill="rgb(0,255,0)"/>
+      <circle cx="240" cy="80" r="20" fill="rgb(0%,100%,0%)"/>
+      <!-- 'lime' (full intensity green) NOT 'green' (half intensity green) -->
+      <polygon points="220,40 240,60 220,80 200,60" fill="lime"/>
+    </g>
+    <g>
+      <circle cx="325" cy="40" r="20" fill="#00f"/>
+      <circle cx="365" cy="40" r="20" fill="#0000ff"/>
+      <circle cx="325" cy="80" r="20" fill="rgb(0,0,255)"/>
+      <circle cx="365" cy="80" r="20" fill="rgb(0%,0%,100%)"/>
+      <polygon points="345,40 365,60 345,80 325,60" fill="blue"/>
+    </g>
+    <!-- no names for three digit colors except for 00 and ff -->
+    <!-- 11=17 22=34 33=51 44=68 55=85 66=102 77=119
+     88=136 99=153 aa=170 bb=187 cc=204 dd=221 ee=238 -->
+    <g>
+      <circle cx="75" cy="135" r="20" fill="#a01"/>
+      <circle cx="115" cy="135" r="20" fill="#aa0011"/>
+      <circle cx="75" cy="175" r="20" fill="rgb(170,0,17)"/>
+      <circle cx="115" cy="175" r="20" fill="rgb(66.667%,0%,6.667%)"/>
+    </g>
+    <g>
+      <circle cx="200" cy="135" r="20" fill="#3b3"/>
+      <circle cx="240" cy="135" r="20" fill="#33bb33"/>
+      <circle cx="200" cy="175" r="20" fill="rgb(51,187,51)"/>
+      <circle cx="240" cy="175" r="20" fill="rgb(20%,73.333%,20%)"/>
+    </g>
+    <g>
+      <circle cx="325" cy="135" r="20" fill="#57e"/>
+      <circle cx="365" cy="135" r="20" fill="#5577ee"/>
+      <circle cx="325" cy="175" r="20" fill="rgb(85,119,238)"/>
+      <circle cx="365" cy="175" r="20" fill="rgb(33.333%,46.666%,93.333%)"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

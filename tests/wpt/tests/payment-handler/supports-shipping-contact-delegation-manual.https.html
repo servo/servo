@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Tests for Delegation of shipping and contact collection to PH</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<p>If the payment sheet is shown, please authorize the mock payment.</p>
+<script>
+const methodName = window.location.origin + '/payment-handler/'
+    + 'supports-shipping-contact-delegation-manual-manifest.json';
+promise_test(async (t) => {
+  const request = new PaymentRequest([{supportedMethods: methodName}], {
+    total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+    shippingOptions: [{
+      id: 'freeShippingOption',
+      label: 'Free global shipping',
+      amount: {
+        currency: 'USD',
+        value: '0',
+      },
+      selected: true,
+    }],
+  }, {requestShipping: true});
+
+  const response = await test_driver.bless('showing a payment sheet', () =>
+    request.show()
+  );
+  const complete_promise = response.complete('success');
+
+  // Validate response
+  assert_equals('freeShippingOption', response.shippingOption);
+  assert_equals('Reston', response.shippingAddress.city);
+  assert_equals('US', response.shippingAddress.country);
+  assert_equals('20190', response.shippingAddress.postalCode);
+  assert_equals('VA', response.shippingAddress.region);
+
+  return complete_promise;
+}, 'Payment handler response should include shipping address and selected shipping option id.');
+
+promise_test(async (t) => {
+  const request = new PaymentRequest([{
+    supportedMethods: methodName
+  }], {
+    total: {
+      label: 'Total',
+      amount: {
+        currency: 'USD',
+        value: '0.01'
+      }
+    }
+  }, {
+    requestPayerName: true,
+    requestPayerEmail: true,
+    requestPayerPhone: true
+  });
+
+  const response = await test_driver.bless('showing a payment sheet', () =>
+    request.show()
+  );
+  const complete_promise = response.complete('success');
+
+  // Validate response.
+  assert_equals('John Smith', response.payerName);
+  assert_equals('smith@gmail.com', response.payerEmail);
+  assert_equals('+15555555555', response.payerPhone);
+
+  return complete_promise;
+}, 'Payment handler response should include payer\'s contact information.');
+</script>

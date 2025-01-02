@@ -1,0 +1,11 @@
+<!doctype html>
+<title>contenteditable doesn't cause inner empty blocks to grow.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1628770">
+<link rel="match" href="contenteditable-with-empty-block-ref.html">
+<div contenteditable>
+  Foo
+  <div></div>
+  Bar
+</div>

@@ -1,0 +1,25 @@
+<!doctype html>
+<meta http-equiv="content-security-policy" content="img-src 'self'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+  async_test(t => {
+    const i = document.createElement("img");
+
+    const target = "http://{{hosts[alt][]}}:{{ports[http][0]}}/content-security-policy/support/fail.png";
+    const url = window.origin + "/common/redirect.py?location=" + encodeURIComponent(target);
+
+    window.addEventListener('securitypolicyviolation', t.step_func_done((e) => {
+      assert_equals(e.blockedURI, url);
+    }));
+
+    i.onload = t.step_func(() => {
+      assert_unreached("Img should be blocked.");
+    });
+    i.src = url;
+
+    document.body.appendChild(i);
+  }, "The blocked URI in the security policy violation event should be the original URI before redirects.");
+</script>
+</html>

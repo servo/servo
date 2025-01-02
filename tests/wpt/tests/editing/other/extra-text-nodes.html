@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Editor should not create unnecessary text nodes</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable></div>
+<script>
+var div = document.querySelector("div");
+var walker = document.createTreeWalker(div, NodeFilter.SHOW_TEXT);
+function testInput(html, callback, desc) {
+  test(() => {
+    div.innerHTML = html;
+    div.focus();
+    callback();
+
+    walker.currentNode = walker.root;
+    var node;
+    while (node = walker.nextNode()) {
+      if (node.nextSibling) {
+        assert_not_equals(node.nextSibling.nodeType, Node.TEXT_NODE,
+                          'text node "' + node.nodeValue + '" is next to "' +
+                          node.nextSibling.nodeValue + '"');
+      }
+    }
+  }, desc);
+}
+
+[
+  ['<img src="#">foo<img src="#">',
+   () => {
+     getSelection().collapse(div, 1);
+     document.execCommand("inserttext", false, "x");
+   },
+   "Simple insertText"],
+  ['<p>editor</p>',
+   () => {
+     getSelection().collapse(div.firstChild.firstChild, 3);
+     document.execCommand("insertlinebreak", false, "");
+     document.execCommand("inserttext", false, "x");
+   },
+   "insertText after insertLineBreak"],
+].forEach(([a, b, c]) => testInput(a, b, c));
+</script>

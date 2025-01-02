@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Test: Check computing min-/max-content does not cause crash</title>
+<link rel="help" href="https://crbug.com/976859">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#sizing-values">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  width: fit-content;
+}
+#target {
+  display: block;
+  writing-mode: vertical-lr;
+  columns: 2;
+}
+.after #target {
+  float: left;
+}
+</style>
+<body>
+  <div id="target"></div>
+<script>
+test(() => {
+  const body = document.body;
+  body.offsetTop;
+  body.classList.add("after");
+});
+</script>
+</body>

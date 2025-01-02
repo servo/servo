@@ -1,0 +1,1017 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Update animations and send events (replacement)</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#update-animations-and-send-events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<style>
+@keyframes opacity-animation {
+  to { opacity: 1 }
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation when another covers the same properties');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animB.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after another animation finishes');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1, width: '100px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  const animB = div.animate(
+    { width: '200px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animB.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  const animC = div.animate(
+    { opacity: 0.5 },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animC.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+  assert_equals(animC.replaceState, 'active');
+}, 'Removes an animation after multiple other animations finish');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animB.finished;
+
+  assert_equals(animB.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  // Seek animA to just before it finishes since we want to test the behavior
+  // when the animation finishes by the ticking of the timeline, not by seeking
+  // (that is covered in a separate test).
+
+  animA.currentTime = 99.99 * MS_PER_SEC;
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after it finishes');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animB.finish();
+
+  // Replacement should not happen until the next time the "update animations
+  // and send events" procedure runs.
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after seeking another animation');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animB.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animA.finish();
+
+  // Replacement should not happen until the next time the "update animations
+  // and send events" procedure runs.
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after seeking it');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, 1);
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animB.effect.updateTiming({ fill: 'forwards' });
+
+  // Replacement should not happen until the next time the "update animations
+  // and send events" procedure runs.
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after updating the fill mode of another animation');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, 1);
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animA.effect.updateTiming({ fill: 'forwards' });
+
+  // Replacement should not happen until the next time the "update animations
+  // and send events" procedure runs.
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after updating its fill mode');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, 1);
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animB.effect = new KeyframeEffect(
+    div,
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating another animation's effect to one with different timing");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, 1);
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animB.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animA.effect = new KeyframeEffect(
+    div,
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after updating its effect to one with different timing');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+
+  await animA.finished;
+
+  // Set up a timeline that makes animB finished
+  animB.timeline = new DocumentTimeline({
+    originTime:
+      document.timeline.currentTime - 100 * MS_PER_SEC - animB.startTime,
+  });
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating another animation's timeline");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  await animB.finished;
+
+  // Set up a timeline that makes animA finished
+  animA.timeline = new DocumentTimeline({
+    originTime:
+      document.timeline.currentTime - 100 * MS_PER_SEC - animA.startTime,
+  });
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after updating its timeline');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { width: '100px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animB.effect.setKeyframes({ width: '100px', opacity: 1 });
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating another animation's effect's properties");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1, width: '100px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { width: '200px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animA.effect.setKeyframes({ width: '100px' });
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating its effect's properties");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { width: '100px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animB.effect = new KeyframeEffect(
+    div,
+    { width: '100px', opacity: 1 },
+    { duration: 1, fill: 'forwards' }
+  );
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating another animation's effect to one with different properties");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1, width: '100px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { width: '200px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animA.effect = new KeyframeEffect(
+    div,
+    { width: '100px' },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after updating its effect to one with different properties');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { marginLeft: '10px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { margin: '20px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation when another animation uses a shorthand');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { margin: '10px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    {
+      marginLeft: '10px',
+      marginTop: '20px',
+      marginRight: '30px',
+      marginBottom: '40px',
+    },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation that uses a shorthand');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { marginLeft: '10px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { marginInlineStart: '20px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation by another animation using logical properties');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { marginInlineStart: '10px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { marginLeft: '20px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation using logical properties');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { marginTop: '10px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animB = div.animate(
+    { marginInlineStart: '20px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  div.style.writingMode = 'vertical-rl';
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation by another animation using logical properties after updating the context');
+
+promise_test(async t => {
+  const divA = createDiv(t);
+  const divB = createDiv(t);
+
+  const animA = divA.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = divB.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animB.effect.target = divA;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating another animation's effect's target");
+
+promise_test(async t => {
+  const divA = createDiv(t);
+  const divB = createDiv(t);
+
+  const animA = divA.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = divB.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animA.effect.target = divB;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating its effect's target");
+
+promise_test(async t => {
+  const divA = createDiv(t);
+  const divB = createDiv(t);
+
+  const animA = divA.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = divB.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animB.effect = new KeyframeEffect(
+    divA,
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, "Removes an animation after updating another animation's effect to one with a different target");
+
+promise_test(async t => {
+  const divA = createDiv(t);
+  const divB = createDiv(t);
+
+  const animA = divA.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = divB.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  animA.effect = new KeyframeEffect(
+    divB,
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+
+  assert_equals(animA.replaceState, 'active');
+  assert_equals(animB.replaceState, 'active');
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Removes an animation after updating its effect to one with a different target');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.animation = 'opacity-animation 1ms forwards';
+  const cssAnimation = div.getAnimations()[0];
+
+  const scriptAnimation = div.animate(
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+  await scriptAnimation.finished;
+
+  assert_equals(cssAnimation.replaceState, 'active');
+  assert_equals(scriptAnimation.replaceState, 'active');
+}, 'Does NOT remove a CSS animation tied to markup');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.animation = 'opacity-animation 1ms forwards';
+  const cssAnimation = div.getAnimations()[0];
+
+  // Break tie to markup
+  div.style.animationName = 'none';
+  assert_equals(cssAnimation.playState, 'idle');
+
+  // Restart animation
+  cssAnimation.play();
+
+  const scriptAnimation = div.animate(
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+  await scriptAnimation.finished;
+
+  assert_equals(cssAnimation.replaceState, 'removed');
+  assert_equals(scriptAnimation.replaceState, 'active');
+}, 'Removes a CSS animation no longer tied to markup');
+
+promise_test(async t => {
+  // Setup transition
+  const div = createDiv(t);
+  div.style.opacity = '0';
+  div.style.transition = 'opacity 1ms';
+  getComputedStyle(div).opacity;
+  div.style.opacity = '1';
+  const cssTransition = div.getAnimations()[0];
+  cssTransition.effect.updateTiming({ fill: 'forwards' });
+
+  const scriptAnimation = div.animate(
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+  await scriptAnimation.finished;
+
+  assert_equals(cssTransition.replaceState, 'active');
+  assert_equals(scriptAnimation.replaceState, 'active');
+}, 'Does NOT remove a CSS transition tied to markup');
+
+promise_test(async t => {
+  // Setup transition
+  const div = createDiv(t);
+  div.style.opacity = '0';
+  div.style.transition = 'opacity 1ms';
+  getComputedStyle(div).opacity;
+  div.style.opacity = '1';
+  const cssTransition = div.getAnimations()[0];
+  cssTransition.effect.updateTiming({ fill: 'forwards' });
+
+  // Break tie to markup
+  div.style.transitionProperty = 'none';
+  assert_equals(cssTransition.playState, 'idle');
+
+  // Restart transition
+  cssTransition.play();
+
+  const scriptAnimation = div.animate(
+    { opacity: 1 },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+  await scriptAnimation.finished;
+
+  assert_equals(cssTransition.replaceState, 'removed');
+  assert_equals(scriptAnimation.replaceState, 'active');
+}, 'Removes a CSS transition no longer tied to markup');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const eventWatcher = new EventWatcher(t, animA, 'remove');
+
+  const event = await eventWatcher.wait_for('remove');
+
+  assert_times_equal(event.timelineTime, document.timeline.currentTime);
+  assert_times_equal(event.currentTime, 1);
+}, 'Dispatches an event when removing');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const eventWatcher = new EventWatcher(t, animA, 'remove');
+
+  await eventWatcher.wait_for('remove');
+
+  // Check we don't get another event
+  animA.addEventListener(
+    'remove',
+    t.step_func(() => {
+      assert_unreached('remove event should not be fired a second time');
+    })
+  );
+
+  // Restart animation
+  animA.play();
+
+  await waitForNextFrame();
+
+  // Finish animation
+  animA.finish();
+
+  await waitForNextFrame();
+}, 'Does NOT dispatch a remove event twice');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  animB.finish();
+  animB.currentTime = 0;
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'active');
+}, "Does NOT remove an animation after making a redundant change to another animation's current time");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animB.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  animA.finish();
+  animA.currentTime = 0;
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'active');
+}, 'Does NOT remove an animation after making a redundant change to its current time');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  // Set up a timeline that makes animB finished but then restore it
+  animB.timeline = new DocumentTimeline({
+    originTime:
+      document.timeline.currentTime - 100 * MS_PER_SEC - animB.startTime,
+  });
+  animB.timeline = document.timeline;
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'active');
+}, "Does NOT remove an animation after making a redundant change to another animation's timeline");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(
+    { opacity: 1 },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animB.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  // Set up a timeline that makes animA finished but then restore it
+  animA.timeline = new DocumentTimeline({
+    originTime:
+      document.timeline.currentTime - 100 * MS_PER_SEC - animA.startTime,
+  });
+  animA.timeline = document.timeline;
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'active');
+}, 'Does NOT remove an animation after making a redundant change to its timeline');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { marginLeft: '100px' },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  // Redundant change
+  animB.effect.setKeyframes({ marginLeft: '100px', opacity: 1 });
+  animB.effect.setKeyframes({ marginLeft: '100px' });
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'active');
+}, "Does NOT remove an animation after making a redundant change to another animation's effect's properties");
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animA = div.animate(
+    { marginLeft: '100px' },
+    {
+      duration: 1,
+      fill: 'forwards',
+    }
+  );
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'active');
+
+  // Redundant change
+  animA.effect.setKeyframes({ opacity: 1 });
+  animA.effect.setKeyframes({ marginLeft: '100px' });
+
+  await waitForNextFrame();
+
+  assert_equals(animA.replaceState, 'active');
+}, "Does NOT remove an animation after making a redundant change to its effect's properties");
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  animB.timeline = new DocumentTimeline();
+
+  await animA.finished;
+
+  // If, for example, we only update the timeline for animA before checking
+  // replacement state, then animB will not be finished and animA will not be
+  // replaced.
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Updates ALL timelines before checking for replacement');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  const events = [];
+  const logEvent = (targetName, eventType) => {
+    events.push(`${targetName}:${eventType}`);
+  };
+
+  animA.addEventListener('finish', () => logEvent('animA', 'finish'));
+  animA.addEventListener('remove', () => logEvent('animA', 'remove'));
+  animB.addEventListener('finish', () => logEvent('animB', 'finish'));
+  animB.addEventListener('remove', () => logEvent('animB', 'remove'));
+
+  await animA.finished;
+
+  // Allow all events to be dispatched
+
+  await waitForNextFrame();
+
+  assert_array_equals(events, [
+    'animA:finish',
+    'animB:finish',
+    'animA:remove',
+  ]);
+}, 'Dispatches remove events after finish events');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  const eventWatcher = new EventWatcher(t, animA, 'remove');
+
+  await animA.finished;
+
+  let rAFReceived = false;
+  requestAnimationFrame(() => (rAFReceived = true));
+
+  await eventWatcher.wait_for('remove');
+
+  assert_false(
+    rAFReceived,
+    'remove event should be fired before requestAnimationFrame'
+  );
+}, 'Fires remove event before requestAnimationFrame');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate(
+    { width: '100px' },
+    { duration: 1, fill: 'forwards' }
+  );
+  const animC = div.animate(
+    { opacity: 0.5, width: '200px' },
+    { duration: 1, fill: 'forwards' }
+  );
+
+  // In the event handler for animA (which should be fired before that of animB)
+  // we make a change to animC so that it no longer covers animB.
+  //
+  // If the remove event for animB is not already queued by this point, it will
+  // fail to fire.
+  animA.addEventListener('remove', () => {
+    animC.effect.setKeyframes({
+      opacity: 0.5,
+    });
+  });
+
+  const eventWatcher = new EventWatcher(t, animB, 'remove');
+  await eventWatcher.wait_for('remove');
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'removed');
+  assert_equals(animC.replaceState, 'active');
+}, 'Queues all remove events before running them');
+
+promise_test(async t => {
+  const outerIframe = document.createElement('iframe');
+  outerIframe.width = 10;
+  outerIframe.height = 10;
+  await insertFrameAndAwaitLoad(t, outerIframe, document);
+
+  const innerIframe = document.createElement('iframe');
+  innerIframe.width = 10;
+  innerIframe.height = 10;
+  await insertFrameAndAwaitLoad(t, innerIframe, outerIframe.contentDocument);
+
+  const div = createDiv(t, innerIframe.contentDocument);
+
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  // Sanity check: The timeline for these animations should be the default
+  // document timeline for div.
+  assert_equals(animA.timeline, innerIframe.contentDocument.timeline);
+  assert_equals(animB.timeline, innerIframe.contentDocument.timeline);
+
+  await animA.finished;
+
+  assert_equals(animA.replaceState, 'removed');
+  assert_equals(animB.replaceState, 'active');
+}, 'Performs removal in deeply nested iframes');
+
+</script>

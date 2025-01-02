@@ -1,0 +1,140 @@
+<svg version="1.1" baseProfile="full" onload="init();" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.6 $" testname="$RCSfile: paths-dom-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#DOMInterfaces">
+      <p>
+        Test the getTotalLength, getPointAtLength and getPathSegAtLength DOM methods.
+      </p>
+      <p>
+        The left green rect should have text around it. The text should start at 50 user units distance-along-the-path, which is the same as half the rect width.
+        The right green rect should also have text around it, but the text should start 50 units along the path relative to the provided pathLength. Since 50 is
+        half of the provided pathLength the text will start at the lower right-hand corner, and if the text is too long to fit it will be cut off when reaching
+        the upper left corner of the rect.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test has passed if:</p>
+      <ul>
+        <li>the value for getTotalLength is "300" for both rects</li>
+        <li>the value for getPointAtLength is "(60,80)" for the left rect, and "(300,80)" for the right rect</li>
+        <li>the value for getPathSegAtLength is "0" on the first line for both rects, and on the second line "m 60 80" for the left rect and "m 300 80" for the right rect</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-dom-01-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <script><![CDATA[
+      function init()
+      {
+      var box = document.getElementById("box");
+      var boxpl = document.getElementById("boxWithPathlength");
+
+      document.getElementById("tl1").firstChild.data = box.getTotalLength();
+      document.getElementById("tl2").firstChild.data = boxpl.getTotalLength();
+
+      var pt = box.getPointAtLength(0);
+      document.getElementById("tp1").firstChild.data = "(" + pt.x + ", " + pt.y + ")";
+      var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", pt.x);
+      circle.setAttribute("cy", pt.y);
+      circle.setAttribute("r", 3);
+      circle.setAttribute("fill", "blue");
+      document.getElementById("test-body-content").appendChild(circle);
+
+      pt = boxpl.getPointAtLength(0);
+      document.getElementById("tp2").firstChild.data = "(" + pt.x + ", " + pt.y + ")";
+      circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", pt.x);
+      circle.setAttribute("cy", pt.y);
+      circle.setAttribute("r", 3);
+      circle.setAttribute("fill", "cyan");
+      document.getElementById("test-body-content").appendChild(circle);
+
+      var segnum = box.getPathSegAtLength(0);
+      var seg = box.pathSegList.getItem(segnum);
+      document.getElementById("ts1").firstChild.data = segnum;
+      document.getElementById("tss1").firstChild.data = seg.pathSegTypeAsLetter + " " + seg.x + " " + seg.y;
+
+      segnum = boxpl.getPathSegAtLength(0);
+      seg = boxpl.pathSegList.getItem(segnum);
+      document.getElementById("ts2").firstChild.data = segnum;
+      document.getElementById("tss2").firstChild.data = seg.pathSegTypeAsLetter + " " + seg.x + " " + seg.y;
+      }
+    ]]></script>
+    <defs>
+      <path id="box" d="m 60 80 h 100 v 50 h -100 v -50" fill="green"/>
+      <path id="boxWithPathlength" d="m 300 80 h 100 v 50 h -100 v -50" fill="green" pathLength="100"/>
+    </defs>
+    <g font-size="14">
+      <text x="30" y="30">Using startOffset="50":</text>
+
+      <use xlink:href="#box"/>
+      <text>
+        <textPath xlink:href="#box" startOffset="50">
+          The text goes around the rect.
+        </textPath>
+      </text>
+
+      <text x="270" y="30">Using startOffset="50" and</text>
+      <text x="270" y="50">pathLength="100":</text>
+      <use xlink:href="#boxWithPathlength"/>
+      <text>
+        <textPath xlink:href="#boxWithPathlength" startOffset="50">
+          The text goes around the rect.
+        </textPath>
+      </text>
+
+      <g id="dom-results" transform="translate(0,-10)">
+        <text x="10" y="180">getTotalLength:</text>
+        <text x="60" y="200" id="tl1">-1</text>
+        <text x="300" y="200" id="tl2">-1</text>
+
+        <text x="10" y="220">getPointAtLength(0):</text>
+        <text x="60" y="240" id="tp1">-1</text>
+        <text x="300" y="240" id="tp2">-1</text>
+
+        <text x="10" y="260">getPathSegAtLength(0):</text>
+        <text x="60" y="280" id="ts1">
+          -1<tspan x="60" dy="20" id="tss1">n/a</tspan>
+        </text>
+        <text x="300" y="280" id="ts2">
+          -1<tspan x="300" dy="20" id="tss2">n/a</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

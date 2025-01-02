@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1252507">
+<link rel=help href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#target-element">
+<link rel=help href="https://github.com/whatwg/html/issues/10029">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=target>target</div>
+
+<script>
+test(() => {
+  const target = document.getElementById('target');
+  window.location.href = '#target';
+  assert_equals(document.querySelector(':target'), target,
+    ':target should match before reinsertion.');
+
+  target.remove();
+  document.body.appendChild(target);
+  assert_equals(document.querySelector(':target'), target,
+    ':target should match after reinsertion.');
+}, ':target should match the target element even after it is removed and reinserted.');
+</script>

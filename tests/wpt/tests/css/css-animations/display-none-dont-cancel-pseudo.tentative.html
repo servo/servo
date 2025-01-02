@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:graouts@apple.com">
+<link rel=help href="https://drafts.csswg.org/css-display-4/#display-animation">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/10111">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+@keyframes display-animation {
+  from { margin-left: 100px; display: block }
+  to   { margin-left: 200px; display: none }
+}
+
+.target::after {
+  content: "";
+  margin-left: 50px;
+}
+
+.target.animated::after {
+  animation: display-animation 1s forwards;
+}
+
+</style>
+<body>
+<script>
+
+promise_test(async t => {
+  const target = createDiv(t);
+  target.className = "target";
+
+  const cs = getComputedStyle(target, "::after");
+  const animations = () => target.getAnimations({ subtree: true });
+
+  assert_equals(animations().length, 0, "There are no running animations initially");
+  assert_equals(cs.marginLeft, "50px");
+  assert_equals(cs.display, "inline");
+
+  target.classList.add("animated");
+  const runningAnimations = animations();
+  assert_equals(runningAnimations.length, 1, "Setting the 'animated' class started an animation");
+  assert_equals(cs.marginLeft, "100px");
+  assert_equals(cs.display, "block");
+
+  runningAnimations[0].finish();
+
+  assert_equals(animations().length, 1, "The animation remains after completion");
+  assert_equals(cs.marginLeft, "200px");
+  assert_equals(cs.display, "none");
+}, 'A CSS Animation on a pseudo-element animating to "display: none" with "fill: forwards" remains active after animation completion.');
+
+</script>
+</body>

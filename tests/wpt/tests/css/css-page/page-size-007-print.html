@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#at-page-rule">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#using-named-pages">
+<link rel="match" href="page-size-007-print-ref.html">
+<style>
+  @page {
+    size: 200px 160px;
+    margin: 0;
+  }
+  @page smaller {
+    size: 160px 100px;
+  }
+  @page larger {
+    size: 640px 400px;
+  }
+  body {
+    margin: 0;
+  }
+  .container {
+    display: flow-root;
+  }
+  .smaller {
+    page: smaller;
+  }
+  .larger {
+    page: larger;
+  }
+  .float {
+    float: left;
+    width: 50px;
+    height: 80px;
+  }
+  .smaller .float {
+    width: 40px;
+    height: 50px;
+  }
+  .larger .float {
+    width: 160px;
+    height: 200px;
+  }
+</style>
+<!-- 9 floats should be take us from the start of the current page to the top of
+     the next page, with the last float placed there. -->
+<div class="container" style="background:yellow;">
+  <div style="height:0;">first</div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  second
+</div>
+<div class="container smaller" style="background:cyan;">
+  <div style="height:0;">third</div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  fourth
+</div>
+<div class="container larger" style="background:pink;">
+  <div style="height:0;">fifth</div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  sixth
+</div>

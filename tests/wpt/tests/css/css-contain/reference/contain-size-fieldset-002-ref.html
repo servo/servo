@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Reference file</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<style>
+#border {
+  border: 1px solid black;
+  width: min-content;
+}
+fieldset {
+  visibility: hidden;
+  height: 1px;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You should see a black border box below.</p>
+<div id="border">
+  <fieldset></fieldset>
+</div>

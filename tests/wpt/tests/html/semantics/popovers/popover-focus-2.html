@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover focus behaviors</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div id=fixup>
+  <button id=button1 tabindex="0">Button1</button>
+  <div popover id=popover0  tabindex="0" style="top:300px">
+  </div>
+  <div popover id=popover1 style="top:100px">
+    <button id=inside_popover1 tabindex="0">Inside1</button>
+    <button id=invoker2 popovertarget=popover2 tabindex="0">Nested Invoker 2</button>
+    <button id=inside_popover2 tabindex="0">Inside2</button>
+  </div>
+  <button id=button2 tabindex="0">Button2</button>
+  <div popover id=popover_no_invoker tabindex="0" style="top:300px"></div>
+  <button popovertarget=popover0 id=invoker0 tabindex="0">Invoker0</button>
+  <button popovertarget=popover1 id=invoker1 tabindex="0">Invoker1</button>
+  <button id=button3 tabindex="0">Button3</button>
+  <div popover id=popover2 style="top:200px">
+    <button id=inside_popover3 tabindex="0">Inside3</button>
+    <button id=invoker3 popovertarget=popover3 tabindex="0">Nested Invoker 3</button>
+  </div>
+  <div popover id=popover3 style="top:300px">
+    Non-focusable popover
+  </div>
+  <button id=button4 tabindex="0">Button4</button>
+</div>
+<style>
+  #fixup [popover] {
+    bottom:auto;
+  }
+</style>
+<script>
+async function verifyFocusOrder(order,description) {
+  order[0].focus();
+  for(let i=0;i<order.length;++i) {
+    const control = order[i];
+    assert_equals(document.activeElement,control,`${description}: Step ${i+1}`);
+    await sendTab();
+  }
+  for(let i=order.length-1;i>=0;--i) {
+    const control = order[i];
+    await sendShiftTab();
+    assert_equals(document.activeElement,control,`${description}: Step ${i+1} (backwards)`);
+  }
+}
+promise_test(async t => {
+  button1.focus();
+  assert_equals(document.activeElement,button1);
+  await sendTab();
+  assert_equals(document.activeElement,button2,'Hidden popover should be skipped');
+  await sendShiftTab();
+  assert_equals(document.activeElement,button1,'Hidden popover should be skipped backwards');
+  popover_no_invoker.showPopover();
+  await sendTab();
+  await sendTab();
+  assert_equals(document.activeElement,popover_no_invoker,"Focusable popover that is opened without an invoker should get focused");
+  await sendTab();
+  assert_equals(document.activeElement,invoker0);
+  await sendEnter(); // Activate the invoker0
+  assert_true(popover0.matches(':popover-open'), 'popover0 should be invoked by invoker0');
+  assert_equals(document.activeElement,invoker0,'Focus should not move when popover is shown');
+  await sendTab();
+  await sendEnter(); // Activate the invoker
+  assert_true(popover1.matches(':popover-open'), 'popover1 should be invoked by invoker1');
+  assert_equals(document.activeElement,invoker1,'Focus should not move when popover is shown');
+  await sendTab();
+  // Make invoker1 non-focusable.
+  invoker1.disabled = true;
+  assert_equals(document.activeElement,inside_popover1,'Focus should move from invoker into the open popover');
+  await sendTab();
+  assert_equals(document.activeElement,invoker2,'Focus should move within popover');
+  await sendShiftTab();
+  await sendShiftTab();
+  assert_equals(document.activeElement,invoker0,'Focus should not move back to invoker as it is non-focusable');
+  // Reset invoker1 to focusable.
+  invoker1.disabled = false;
+  await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover2, button3, button4],'set 1');
+  invoker2.focus();
+  await sendEnter(); // Activate the nested invoker
+  assert_true(popover2.matches(':popover-open'), 'popover2 should be invoked by nested invoker');
+  assert_equals(document.activeElement,invoker2,'Focus should stay on the invoker');
+  await sendTab();
+  assert_equals(document.activeElement,inside_popover3,'Focus should move into nested popover');
+  await sendTab();
+  assert_equals(document.activeElement,invoker3);
+  await sendEnter(); // Activate the (empty) nested invoker
+  assert_true(popover3.matches(':popover-open'), 'popover3 should be invoked by nested invoker');
+  assert_equals(document.activeElement,invoker3,'Focus should stay on the invoker');
+  await sendTab();
+  assert_equals(document.activeElement,inside_popover2,'Focus should skip popover without focusable content, going back to higher scope');
+  await sendShiftTab();
+  assert_equals(document.activeElement,invoker3,'Shift-tab from the higher scope should return to the lower scope');
+  await sendTab();
+  assert_equals(document.activeElement,inside_popover2);
+  await sendTab();
+  assert_equals(document.activeElement,button3,'Focus should exit popovers');
+  await sendTab();
+  assert_equals(document.activeElement,button4,'Focus should skip popovers');
+  button1.focus();
+  await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4],'set 2');
+}, "Popover focus navigation");
+</script>
+
+<button id=circular0 popovertarget=popover4 tabindex="0">Invoker</button>
+<div id=popover4 popover>
+  <button id=circular1 autofocus popovertarget=popover4 popovertargetaction=hide tabindex="0"></button>
+  <button id=circular2 popovertarget=popover4 popovertargetaction=show tabindex="0"></button>
+  <button id=circular3 popovertarget=popover4 tabindex="0"></button>
+</div>
+<button id=circular4 tabindex="0">after</button>
+<script>
+promise_test(async t => {
+  circular0.focus();
+  await sendEnter(); // Activate the invoker
+  await verifyFocusOrder([circular0, circular1, circular2, circular3, circular4],'circular reference');
+  popover4.hidePopover();
+}, "Circular reference tab navigation");
+</script>
+
+<div id=focus-return1>
+  <button popovertarget=focus-return1-p popovertargetaction=show tabindex="0">Show popover</button>
+  <div popover id=focus-return1-p>
+    <button popovertarget=focus-return1-p popovertargetaction=hide autofocus tabindex="0">Hide popover</button>
+  </div>
+</div>
+<script>
+promise_test(async t => {
+  const invoker = document.querySelector('#focus-return1>button');
+  const popover = document.querySelector('#focus-return1>[popover]');
+  const hideButton = popover.querySelector('[popovertargetaction=hide]');
+  invoker.focus(); // Make sure button is focused.
+  assert_equals(document.activeElement,invoker);
+  await sendEnter(); // Activate the invoker
+  assert_true(popover.matches(':popover-open'), 'popover should be invoked by invoker');
+  assert_equals(document.activeElement,hideButton,'Hide button should be focused due to autofocus attribute');
+  await sendEnter(); // Activate the hide invoker
+  assert_false(popover.matches(':popover-open'), 'popover should be hidden by invoker');
+  assert_equals(document.activeElement,invoker,'Focus should be returned to the invoker');
+}, "Popover focus returns when popover is hidden by invoker");
+</script>
+
+<div id=focus-return2>
+  <button popovertarget=focus-return2-p tabindex="0">Toggle popover</button>
+  <div popover id=focus-return2-p>Popover with <button tabindex="0">focusable element</button></div>
+  <span tabindex=0>Other focusable element</span>
+</div>
+<script>
+promise_test(async t => {
+  const invoker = document.querySelector('#focus-return2>button');
+  const popover = document.querySelector('#focus-return2>[popover]');
+  const otherElement = document.querySelector('#focus-return2>span');
+  invoker.focus(); // Make sure button is focused.
+  assert_equals(document.activeElement,invoker);
+  invoker.click(); // Activate the invoker
+  assert_true(popover.matches(':popover-open'), 'popover should be invoked by invoker');
+  assert_equals(document.activeElement,invoker,'invoker should still be focused');
+  await sendTab();
+  assert_equals(document.activeElement,popover.querySelector('button'),'next up is the popover');
+  await sendTab();
+  assert_equals(document.activeElement,otherElement,'next focus stop is outside the popover');
+  await sendEscape(); // Close the popover via ESC
+  assert_false(popover.matches(':popover-open'), 'popover should be hidden');
+  assert_equals(document.activeElement,otherElement,'focus does not move because it was not inside the popover');
+}, "Popover focus only returns to invoker when focus is within the popover");
+</script>

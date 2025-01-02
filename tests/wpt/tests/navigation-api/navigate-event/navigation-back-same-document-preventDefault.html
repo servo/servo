@@ -1,0 +1,29 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  await navigation.navigate("#").finished;
+  assert_equals(navigation.entries().length, start_length + 1);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
+
+  navigation.onnavigate = e => e.preventDefault();
+
+  navigation.onnavigateerror = t.step_func(e => {
+    assert_equals(e.constructor, ErrorEvent);
+    assert_equals(e.filename, location.href);
+    navigateerror_called = true;
+  });
+  await assertBothRejectDOM(t, navigation.back(), "AbortError");
+  assert_equals(navigation.currentEntry.index, start_index + 1);
+  assert_true(navigateerror_called);
+}, "navigation.back() same-document preventDefault");
+</script>

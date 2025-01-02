@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:target pseudo-class</title>
+  <style type="text/css"><![CDATA[p:target { background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" interact" />
+ </head>
+ <body>
+<p id="first">This paragraph should be unstyled.
+       The background of the following paragraph should become green when
+       you follow <a href="#second">this link</a>.</p>
+<p id="second">This paragraph should initially be unstyled.
+       It should become green when you select the link above. When you select
+       <a href="#third">this link</a>, it should return to being unstyled and the
+       background of the paragraph below should become green.</p>
+<p id="third">This paragraph should initially be unstyled.
+       It should become green when you select the link above. When you follow
+       <a href="#missing">this link</a>, the three paragraphs
+       should all return to being unstyled.</p>
+</body>
+</html>

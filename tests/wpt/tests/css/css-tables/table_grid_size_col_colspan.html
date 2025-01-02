@@ -1,0 +1,50 @@
+<!doctype html>
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#dimensioning-the-row-column-grid">
+<link rel="match" href="table_grid_size_col_colspan-ref.html">
+<meta name="assert" content="colspanned cell fits inside grid defined by COL" />
+<style>
+  table {
+    border-collapse: collapse;
+    table-layout:fixed;
+  }
+  td {
+    height:50px;
+    background: yellow;
+    border: 10px solid green;
+    padding:0;
+  }
+  col {
+    width:50px;
+  }
+</style>
+<!--
+  <p>Colspanned cell should not grow bigger than table grid.</p>
+  <p>Test sizes of colspanned cell when grid width is defined by COL elements</p>
+-->
+<table>
+  <col></col>
+  <col></col>
+  <col></col>
+  <td colspan=1></td>
+</table>
+<table>
+  <col></col>
+  <col></col>
+  <col></col>
+  <td colspan=2></td>
+</table>
+<table>
+  <col></col>
+  <col></col>
+  <col></col>
+  <td colspan=4></td>
+</table>
+<table>
+  <col></col>
+  <td colspan=1></td>
+</table>
+<table>
+  <col></col>
+  <td colspan=2></td>
+</table>
+

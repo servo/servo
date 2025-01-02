@@ -1,0 +1,56 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Content Security Policy Level 3 (https://w3c.github.io/webappsec-csp/)
+
+[Exposed=Window]
+interface CSPViolationReportBody : ReportBody {
+  [Default] object toJSON();
+  readonly attribute USVString documentURL;
+  readonly attribute USVString? referrer;
+  readonly attribute USVString? blockedURL;
+  readonly attribute DOMString effectiveDirective;
+  readonly attribute DOMString originalPolicy;
+  readonly attribute USVString? sourceFile;
+  readonly attribute DOMString? sample;
+  readonly attribute SecurityPolicyViolationEventDisposition disposition;
+  readonly attribute unsigned short statusCode;
+  readonly attribute unsigned long? lineNumber;
+  readonly attribute unsigned long? columnNumber;
+};
+
+enum SecurityPolicyViolationEventDisposition {
+  "enforce", "report"
+};
+
+[Exposed=(Window,Worker)]
+interface SecurityPolicyViolationEvent : Event {
+    constructor(DOMString type, optional SecurityPolicyViolationEventInit eventInitDict = {});
+    readonly    attribute USVString      documentURI;
+    readonly    attribute USVString      referrer;
+    readonly    attribute USVString      blockedURI;
+    readonly    attribute DOMString      effectiveDirective;
+    readonly    attribute DOMString      violatedDirective; // historical alias of effectiveDirective
+    readonly    attribute DOMString      originalPolicy;
+    readonly    attribute USVString      sourceFile;
+    readonly    attribute DOMString      sample;
+    readonly    attribute SecurityPolicyViolationEventDisposition      disposition;
+    readonly    attribute unsigned short statusCode;
+    readonly    attribute unsigned long  lineNumber;
+    readonly    attribute unsigned long  columnNumber;
+};
+
+dictionary SecurityPolicyViolationEventInit : EventInit {
+    USVString      documentURI = "";
+    USVString      referrer = "";
+    USVString      blockedURI = "";
+    DOMString      violatedDirective = "";
+    DOMString      effectiveDirective = "";
+    DOMString      originalPolicy = "";
+    USVString      sourceFile = "";
+    DOMString      sample = "";
+    SecurityPolicyViolationEventDisposition disposition = "enforce";
+    unsigned short statusCode = 0;
+    unsigned long  lineNumber = 0;
+    unsigned long  columnNumber = 0;
+};

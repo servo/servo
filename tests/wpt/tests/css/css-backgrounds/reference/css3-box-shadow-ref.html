@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Box-shadow Test: the test passes if adding one or more shadow to the box</title>
+  <link rel="author" title="Xie Bing" href="mailto:451887565@qq.com">
+  <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"> <!-- 2013-09-03 -->
+  <style type="text/css">
+    .wrapper{
+      position:relative;
+    }
+    .first{
+      width:300px;
+      height:100px;
+      background-color:#ff9900;
+      position:absolute;
+      z-index:500;
+    }
+    .second{
+      width:300px;
+      height:100px;
+      background-color:#000;
+      position:absolute;
+      top:10px;
+      left:10px;
+      z-index:100;
+    }
+  </style>
+</head>
+<body>
+  <p>The test passes if there is a black shadow behind the orange box.</p>
+  <div class="wrapper">
+    <div class="first"></div>
+    <div class="second"></div>
+  </div>
+</body>
+</html>

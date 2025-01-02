@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: :only-child style queries without transition shouldn't crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+::view-transition:only-child,
+::view-transition-group(*):only-child,
+::view-transition-image-pair(*):only-child,
+::view-transition-old(*):only-child,
+::view-transition-new(*):only-child {
+  background-color: blue;
+}
+</style>
+
+<script>
+promise_test(() => {
+  return new Promise(async (resolve, reject) => {
+    let elements = [
+      "::view-transition",
+      "::view-transition-group(foo)",
+      "::view-transition-image-pair(foo)",
+      "::view-transition-old(foo)",
+      "::view-transition-old(foo)"
+    ];
+
+    for (let i = 0; i < elements.length; i++) {
+      let style = window.getComputedStyle(document.documentElement, elements[i]);
+      if (style.backgroundColor == "rgb(0, 0, 255")
+        reject();
+    }
+    resolve();
+  });
+}, ":only-child style queries without transition shouldn't crash");
+</script>

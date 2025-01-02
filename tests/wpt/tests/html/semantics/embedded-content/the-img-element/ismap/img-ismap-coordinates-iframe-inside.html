@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>img ismap attribute coordinate origin</title>
+    <style>
+    #bg { background-color: lightgray; position: relative; }
+    #target { position: absolute; width: 96px; height: 96px; border: 2px dashed green; pointer-events: none; }
+    .in { top: 148px; left: 148px; }
+    img { margin: 50px; border: 50px solid white; padding: 50px; }
+    </style>
+  </head>
+  <body>
+    <div id="bg">
+      <div id="target" class="in"></div>
+      <a href="/common/blank.html">
+        <img src="/images/blue96x96.png" ismap>
+      </a>
+    </div>
+    <h1>Click inside the dashed rectangle</h1>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border style): 'dotted' vs. 'hidden' - border with highest priority border style should dominate</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="assert" content="The 'hidden' border is the dominant border when it is collapsed with a 'dotted' border." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px dotted lime;
+                height: 3em;
+                width: 3em;
+            }
+            #center
+            {
+                border: 5px hidden red;
+            }
+            #top
+            {
+                border-top: 5px dotted red;
+            }
+            #left
+            {
+                border-left: 5px dotted red;
+            }
+            #bottom
+            {
+                border-bottom: 5px dotted red;
+            }
+            #right
+            {
+                border-right: 5px dotted red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the center box in the table below has no border.</p>
+        <table>
+            <tr>
+                <td>dotted</td>
+                <td id="bottom">dotted</td>
+                <td>dotted</td>
+            </tr>
+            <tr>
+                <td id="right">dotted</td>
+                <td id="center">hidden</td>
+                <td id="left">dotted</td>
+            </tr>
+            <tr>
+                <td>dotted</td>
+                <td id="top">dotted</td>
+                <td>dotted</td>
+            </tr>
+        </table>
+    </body>
+</html>

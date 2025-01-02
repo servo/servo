@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="UTF-8">
+    <title>CSS Test: :dir() selector</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-dir-pseudo">
+    <meta name="assert" content="Test checks :dir() basic functions on runtime added elements.">
+    <link rel="match" href="dir-style-04-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-70; totalPixels=0-180">
+    <style>
+      :dir(ltr) { color: blue }
+      :dir(rtl) { color: lime }
+      div { text-align: left; }
+    </style>
+    <script>
+      function appendChildren(e)
+      {
+        // ensure it's a dynamic change
+        document.documentElement.getBoundingClientRect();
+
+        var x = document.createElement("span");
+        x.innerHTML = "This span should inherit dir from the parent. ";
+
+        var y = document.createElement("span");
+        y.innerHTML = "This span should inherit dir from the grandparent.";
+
+        var div = document.getElementById(e);
+
+        x.appendChild(y);
+        div.appendChild(x);
+
+        document.documentElement.removeAttribute("class");
+      }
+    </script>
+  </head>
+  <body onload="appendChildren('d1');appendChildren('d2');">
+    <div id="d1" dir="ltr">This element is ltr. </div>
+    <div id="d2" dir="rtl">This element is rtl. </div>
+  </body>
+</html>

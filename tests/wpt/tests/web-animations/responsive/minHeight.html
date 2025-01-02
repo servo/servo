@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{minHeight: '3em'}, {minHeight: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).minHeight, '80px');
+}, 'minHeight responsive to style changes');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{minHeight: '40px'}, {minHeight: 'calc(40px - 2em)'}], 10);
+    player.pause();
+
+    player.currentTime = 5;
+    element.style.fontSize = '40px';
+    assert_equals(getComputedStyle(element).minHeight, '20px');
+
+    player.currentTime = 7.5;
+    assert_equals(getComputedStyle(element).minHeight, '10px');
+}, 'minHeight clamped to 0px on keyframes');
+
+</script>

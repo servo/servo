@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/#inert-subtrees">
+<title>Basic test for inert and find</title>
+<body>
+<script>
+const t = async_test("Basic test for inert and find");
+
+function testFindable(findCount, textToFind, buildDoc, description) {
+  if (typeof findCount == "boolean")
+    findCount = findCount ? 1 : 0;
+  try {
+    const iframe = document.querySelector("iframe")
+    iframe.contentDocument.documentElement.innerHTML =
+      (typeof buildDoc == "string") ? buildDoc : "";
+
+    if (typeof buildDoc == "function")
+      buildDoc(iframe.contentDocument);
+
+    iframe.contentWindow.getSelection().removeAllRanges();
+    for (let i = findCount; i >= 0; --i) {
+      const expectFindable = i != 0;
+      assert_equals(
+        iframe.contentWindow.find(textToFind),
+        expectFindable,
+        "Should be " + (expectFindable ? "" : "not ") + "findable: " + description + ", text: " + textToFind + ", iter: " + (findCount - i + 1)
+      );
+    }
+  } catch (ex) {
+    assert_unreached(ex);
+  }
+}
+
+let runTests = t.step_func_done(function() {
+  testFindable(true, "me", `
+    Find me please
+  `, "basic functionality test");
+
+  testFindable(false, "me", `
+    <div inert>Do not find me please</div>
+  `, "Basic use case");
+});
+
+window.onload = function() {
+  let iframe = document.createElement("iframe");
+  iframe.onload = runTests;
+  iframe.srcdoc = "<!doctype html><html></html>";
+  document.body.appendChild(iframe);
+};
+</script>
+</body>

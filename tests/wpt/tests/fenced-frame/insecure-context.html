@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Insecure Context Test</title>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async t => {
+  const loaded_key = token();
+  attachFencedFrame(generateURL(
+    "resources/csp-fenced-frame-src-allowed-inner.html", [loaded_key]));
+
+  // There is no API to observe whether the document in the FencedFrame loaded
+  // or not. Instead, set up a timeout. If the document loads, "loaded" will be
+  // sent to the server. Otherwise "blocked" will be sent after 3 seconds.
+  step_timeout(() => {
+    writeValueToServer(loaded_key, "blocked");
+  }, 3000);
+
+  const message = await nextValueFromServer(loaded_key);
+
+  assert_equals(message, "blocked");
+}, 'FencedFrame is not available in an insecure context');
+
+promise_test(async t => {
+  assert_throws_js(TypeError, () => navigator.canLoadAdAuctionFencedFrame());
+}, 'navigator.canLoadAdAuctionFencedFrame is unavailable in insecure contexts');
+</script>
+
+</body>

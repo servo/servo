@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1744363">
+
+  <style>
+  @page { size: 5in 3in; margin: 0.5in; }
+  body {
+    margin: 0;
+  }
+  .flexbox {
+    display: block;
+    border: 0.25in solid black;
+  }
+  .text {
+    block-size: 0.25in;
+  }
+  </style>
+
+  <div class="text">Before Flexbox</div>
+  <div class="flexbox">
+    <div>
+      <div>1</div>
+      <div style="break-after: page">2</div>
+      <div>3</div>
+      <div>4</div>
+    </div>
+  </div>
+  <div class="text">After Flexbox</div>
+</html>

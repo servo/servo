@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Test 0303: @rel/@rev terms removed if @property exists</title>
+</head>
+<body>
+  <div vocab="http://schema.org/" resource="http://example.org/base">
+    <a property="uri" rel="license" href="http://example.orb/val1">Not This</a>
+    <a property="name" rel="homepage foaf:homepage" href="http://greggkellogg.net/">Gregg Kellogg</a>
+  </div>
+</body>
+</html>

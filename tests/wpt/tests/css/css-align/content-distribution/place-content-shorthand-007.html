@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Box Alignment: place-content shorthand with fallback</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-align/#propdef-place-content">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1430622">
+<link rel="match" href="place-content-shorthand-007-ref.html">
+<style>
+div {
+  display: grid;
+  grid: 200px / 200px;
+  width: 400px;
+  height: 400px;
+  background: blue;
+  place-content: end space-evenly;
+}
+span {
+  background: green;
+}
+</style>
+Should see a green square centered and at the bottom of the blue square.
+<div><span></span></div>

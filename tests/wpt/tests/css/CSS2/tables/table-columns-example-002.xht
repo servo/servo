@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table columns - Assigning a background to a column</title>
+        <link rel="author" title="W3C" href="http://www.w3c.org" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#columns" />
+        <meta name="assert" content="A specific column class can be selected for a blue background (example from section 17.3)." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            col
+            {
+                border-style: solid;
+            }
+            col.totals
+            {
+                background: blue;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 2em;
+                width: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle column of the three-by-three grid is blue.</p>
+        <table>
+            <col />
+            <col class="totals" />
+            <col />
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

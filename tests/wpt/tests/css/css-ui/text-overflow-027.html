@@ -1,0 +1,20 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow applies visually to bidi</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css-ui-3/#text-overflow">
+<link rel="help" href="http://www.w3.org/TR/css-ui-4/#text-overflow">
+<link rel="match" href="reference/text-overflow-027-ref.html">
+<meta name="assert" content="text-overflow is a visual operation that occurs after layout, and therfore ellides text from the visual end of the line, even in bidi situations">
+<style>
+div {
+  font-family: monospace;
+  width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+</style>
+
+<p>The test passes if the following text is visible below: 123456 FE…</p>
+<div>123456 <bdo dir=rtl>ABCDEF</bdo></div>

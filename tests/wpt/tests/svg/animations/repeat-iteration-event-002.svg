@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <title>Animation triggers on 'repeat(1)'</title>
+  <script xmlns="http://www.w3.org/1999/xhtml" src="/resources/testharness.js"/>
+  <script xmlns="http://www.w3.org/1999/xhtml" src="/resources/testharnessreport.js"/>
+  <rect width="0" height="100" fill="green">
+    <animate id="anim" attributeName="visibility" to="visible" begin="0s" dur="2s" repeatCount="4"/>
+    <set attributeName="width" to="100" begin="anim.repeat(1)"/>
+  </rect>
+  <script>
+  promise_test(t => {
+    document.documentElement.setCurrentTime(1.995);
+    let set = document.querySelector("set");
+    return new EventWatcher(t, set, 'beginEvent').wait_for('beginEvent').then(() => {
+      assert_equals(set.parentNode.getBBox().width, 100);
+    });
+  });
+  </script>
+</svg>

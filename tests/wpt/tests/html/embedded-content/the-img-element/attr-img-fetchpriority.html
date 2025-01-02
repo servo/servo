@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Fetch Priority - Image element</title>
+<meta name="author" title="Dominic Farolino" href="mailto:domfarolino@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img id=img1 src=/images/green.png fetchpriority=high>
+<img id=img2 src=/images/green.png fetchpriority=low>
+<img id=img3 src=/images/green.png fetchpriority=auto>
+<img id=img4 src=/images/green.png fetchpriority=xyz>
+<img id=img5 src=/images/green.png>
+
+<script>
+  test(() => {
+    assert_equals(img1.fetchPriority, "high", "high fetchPriority is a valid IDL value on the image element");
+    assert_equals(img2.fetchPriority, "low", "low fetchPriority is a valid IDL value on the image element");
+    assert_equals(img3.fetchPriority, "auto", "auto fetchPriority is a valid IDL value on the image element");
+    assert_equals(img4.fetchPriority, "auto", "invalid fetchPriority reflects as 'auto' IDL attribute on the image element");
+    assert_equals(img5.fetchPriority, "auto", "missing fetchPriority reflects as 'auto' IDL attribute on the image element");
+  }, "fetchpriority attribute on <img> elements should reflect valid IDL values");
+
+  test(() => {
+    const img = new Image();
+    assert_equals(img.fetchPriority, "auto");
+  }, "fetchPriority of new Image() is 'auto'");
+</script>

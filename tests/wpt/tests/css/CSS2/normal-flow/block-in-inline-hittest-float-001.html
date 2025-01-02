@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.float {
+  float: left;
+  width: 200px;
+  height: 200px;
+  background: orange;
+}
+</style>
+<body>
+  <a id="a" href="#">
+    <div>
+      <div id="target" class="float"></div>
+    </div>
+  </a>
+<script>
+test(() => {
+  const target_bounds = target.getBoundingClientRect();
+  const target_x = target_bounds.x + (target_bounds.width / 2);
+  const target_y = target_bounds.y + (target_bounds.height / 2);
+  const result = document.elementFromPoint(target_x, target_y);
+  assert_equals(result, target);
+});
+</script>
+</body>

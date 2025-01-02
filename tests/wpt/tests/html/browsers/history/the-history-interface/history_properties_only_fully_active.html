@@ -1,0 +1,23 @@
+<!doctype html>
+<title>history properties should throw SecurityError when not in a fully active Document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <iframe id="child"></iframe>
+</body>
+<script>
+  test(function(t) {
+    var ifr = document.getElementById("child");
+    var cached_history = ifr.contentWindow.history;
+    var cached_DOMException = ifr.contentWindow.DOMException;
+    ifr.remove();
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.length; });
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.scrollRestoration; });
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.state; });
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.go(0); });
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.back(); });
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.forward(); });
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.pushState(1, document.title, "?x=1"); });
+    assert_throws_dom("SecurityError", cached_DOMException, function() { cached_history.replaceState(2, document.title, "?x=2"); });
+  });
+</script>

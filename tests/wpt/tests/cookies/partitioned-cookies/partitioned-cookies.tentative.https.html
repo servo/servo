@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<meta name="help" href="https://github.com/WICG/CHIPS#chips-cookies-having-independent-partitioned-state">
+<title>Test partitioned cookies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+
+<body>
+<script>
+
+document.body.onload = async () => {
+  // First, the test sets a SameSite=None;Partitioned; cookie.
+  const attributes = "Secure;Path=/;SameSite=None;Partitioned";
+  const httpCookieName = "__Host-pchttp";
+  await credFetch(
+      `${self.origin}/cookies/resources/set.py?${httpCookieName}=foobar;${
+          attributes}`);
+
+  // Set another partitioned cookie using document.cookie.
+  const domCookieName = "__Host-pcdom";
+  document.cookie = `${domCookieName}=foobar;${attributes}`;
+
+  // Set another partitioned cookie using the CookieStore API, if supported.
+  if (window.cookieStore) {
+    const cookieStoreCookieName = "__Host-pccookiestore";
+    await cookieStore.set({
+      name: cookieStoreCookieName,
+      value: "foobar",
+      path: "/",
+      sameSite: "none",
+      partitioned: true,
+    });
+  }
+
+  const cookieNames = getCookieNames();
+
+  // Verify that the cookies are sent in requests from this top-level site.
+  testHttpPartitionedCookies({
+    origin: self.origin,
+    cookieNames,
+    expectsCookie: true,
+  });
+
+  // Verify that the cookies are exposed to the DOM on this top-level site.
+  testDomPartitionedCookies({
+    cookieNames,
+    expectsCookie: true,
+  });
+  testCookieStorePartitionedCookies({
+    cookieNames,
+    expectsCookie: true,
+  });
+
+  // Open a cross-site window which will make a request to this window's origin.
+  // If partitioned cookies are disabled, then the cookies set above will still
+  // be accessible.
+  // If partitioned cookies are enabled, then the cookies should not be
+  // accessible to their origin in a window with a different top-level site.
+  const crossSiteUrl = new URL(
+      `./resources/partitioned-cookies-cross-site-window.html?origin=${
+          encodeURIComponent(self.origin)}`,
+      get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
+  const popup = window.open(crossSiteUrl);
+  fetch_tests_from_window(popup);
+};
+
+</script>
+</body>

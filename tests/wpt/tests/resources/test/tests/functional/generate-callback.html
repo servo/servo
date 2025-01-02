@@ -1,0 +1,153 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Sample for using generate_tests to create a series of tests that share the same callback.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// generate_tests takes an array of arrays that define tests
+// but lets pass it an empty array and verify it does nothing.
+function null_callback() {
+  throw "null_callback should not be called.";
+}
+generate_tests(null_callback, []);
+
+// Generate 3 tests specifying the name and one parameter
+function validate_arguments(arg1) {
+  assert_equals(arg1, 1, "Ensure that we get our expected argument");
+}
+generate_tests(validate_arguments, [
+  ["first test", 1],
+  ["second test", 1],
+  ["third test", 1],
+]);
+
+// Generate a test passing in a properties object that is shared across tests.
+function validate_properties() {
+  assert_true(this.properties.sentinel, "Ensure that we got the right properties object.");
+}
+generate_tests(validate_properties, [["sentinel check 1"], ["sentinel check 2"]], {sentinel: true});
+
+// Generate a test passing in a properties object that is shared across tests.
+function validate_separate_properties() {
+  if (this.name === "sentinel check 1 unique properties") {
+    assert_true(this.properties.sentinel, "Ensure that we got the right properties object. Expect sentinel: true.");
+  }
+  else {
+    assert_false(this.properties.sentinel, "Ensure that we got the right properties object. Expect sentinel: false.");
+  }
+}
+generate_tests(validate_separate_properties, [["sentinel check 1 unique properties"], ["sentinel check 2 unique properties"]], [{sentinel: true}, {sentinel: false}]);
+
+// Finally generate a complicated set of tests from another data source
+var letters = ["a", "b", "c", "d", "e", "f"];
+var numbers = [0, 1, 2, 3, 4, 5];
+function validate_related_arguments(arg1, arg2) {
+  assert_equals(arg1.charCodeAt(0) - "a".charCodeAt(0), arg2, "Ensure that we can map letters to numbers.");
+}
+function format_as_test(letter, index, letters) {
+  return ["Test to map " + letter + " to " + numbers[index], letter, numbers[index]];
+}
+generate_tests(validate_related_arguments, letters.map(format_as_test));
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Test to map a to 0",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test to map b to 1",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test to map c to 2",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test to map d to 3",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test to map e to 4",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test to map f to 5",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "first test",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "second test",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "sentinel check 1",
+      "properties": {
+        "sentinel": true
+      },
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "sentinel check 1 unique properties",
+      "properties": {
+        "sentinel": true
+      },
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "sentinel check 2",
+      "properties": {
+        "sentinel": true
+      },
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "sentinel check 2 unique properties",
+      "properties": {
+        "sentinel": false
+      },
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "third test",
+      "properties": {},
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

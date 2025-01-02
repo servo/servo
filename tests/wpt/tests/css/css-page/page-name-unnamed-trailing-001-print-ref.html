@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Reference for styling a page with a non-empty name then a page with an empty name</title>
+  <link rel="author" title="Emily McDonough" href="mailto:emcdonough@mozilla.com"/>
+  <style>
+@page{
+    size: 200px 300px;
+}
+@page a{
+    margin: 0;
+}
+@page b{
+    /* Add a margin so that even if page-orientation doesn't work in the tests
+     * the pages are different. */
+    margin: 20px;
+    page-orientation: rotate-left;
+}
+body{
+    margin: 0;
+}
+.page{
+    break-after: page;
+    overflow: hidden;
+    width: 160px;
+    height: 260px;
+}
+.marker{
+    width: 90px;
+    height: 90px;
+    background-color: cyan;
+}
+  </style>
+</head>
+<body>
+  <div class="page" style="page: a">
+    <div>
+      <div class="marker">1</div>
+      <div style="position: absolute">x</div>
+      <canvas width="100" height="200"></canvas>
+    </div>
+  </div>
+  <div class="page" style="page: b">
+    <div class="marker">2</div>
+    <div style="position: absolute">y</div>
+    <canvas width="100" height="200"></canvas>
+  </div>
+  <div class="page" style="page: a">
+    <div>
+      <div class="marker">3</div>
+      <div style="position: absolute">z</div>
+      <canvas width="100" height="200"></canvas>
+    </div>
+  </div>
+</body>

@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'bottom' offset - offset from the bottom edge of the containing block (abs. pos.)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-17 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-bottom" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+		<link rel="match" href="bottom-offset-001-ref.xht" />
+
+        <meta name="assert" content="The 'bottom' property, for absolute positioning, specifies the offset of the element in relation to the containing block's bottom edge. The containing block of an absolutely positioned element is formed by the padding box of its nearest (closest) positioned non-inline ancestor element." />
+        <style type="text/css">
+            #div1
+            {
+                padding-bottom: 0.5in;
+                position: relative;
+            }
+            #div2
+            {
+                background: white;
+                height: 0.5in;
+                position: absolute;
+                bottom: 0.5in;
+                width: 0.5in;
+            }
+            #div3
+            {
+                background: blue;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue square with its bottom-left corner missing.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

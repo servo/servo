@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<body>
+<script>
+async function test() {
+  // Step 3 (client-hints/inner-delegation/accept_ch_delegation_to_self.sub.https.html)
+  let r = await fetch("https://{{host}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  if (r.status == 200) {
+    return "Site 2 fetching Site 1 did recieve sec-ch-device-memory";
+  }
+  r = await fetch("/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  if (r.status == 200) {
+    return "Site 2 fetching Site 2 did recieve sec-ch-device-memory";
+  }
+  r = await fetch("https://{{domains[www2]}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  if (r.status == 200) {
+    return "Site 2 fetching Site 3 did recieve sec-ch-device-memory";
+  }
+  // Step 4 (client-hints/inner-delegation/accept_ch_delegation_to_self.sub.https.html)
+  const site3Frame = document.createElement("iframe");
+  site3Frame.src = "https://{{domains[www2]}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/accept_ch_delegation_to_self_iframe_iframe.sub.https.html";
+  site3Frame.allow = "ch-device-memory self"
+  document.body.appendChild(site3Frame);
+  return ""
+}
+test().then((message) => {
+  if (message) {
+    window.top.postMessage(message, "*");
+  }
+});
+</script>
+</body>

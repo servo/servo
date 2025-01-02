@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: vertical-align: top</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2016-06-01 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/vertical-align/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" />
+  <link rel="match" href="vertical-align-121-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css">
+   div { color: navy; text-align: center; width: 6em; font: 30px/1 Ahem; }
+   span { font-size: 2em; }
+   .bottom { border-bottom: solid blue; }
+   .bottom span { vertical-align: bottom; }
+   .top span { vertical-align: top; }
+  </style>
+ </head>
+ <body>
+
+  <p>There should be a plus sign with a blue line traversing through its middle.</p>
+  <div class="bottom">x<span>X</span>x</div>
+  <div class="top">x<span>X</span>x</div>
+ </body>
+</html>

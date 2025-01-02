@@ -1,0 +1,51 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Image drag and drop</title>
+<style type="text/css">
+div[ondragenter]
+  {width:105px;
+  min-height:105px;
+  text-align:center;
+  margin-top:20px;
+  padding:10px;
+  border:solid thin navy;}
+p:first-child
+  {padding-left:12px;}
+</style>
+<script type="application/ecmascript">
+function addImage(event)
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+  document.querySelector('div').appendChild(c);}
+</script>
+</head>
+<body>
+<p><img src="../resources/circle.png" alt="PNG circle" ondragstart="event.dataTransfer.effectAllowed = 'copy'"/></p>
+<p>Drag circle above to the box below. It should be copied to the box once you drop it there.</p>
+<div
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+/>
+<script>
+async function test() {
+  await new Promise(loaded => window.addEventListener("load", loaded));
+  const img = document.querySelector('img');
+  const div = document.querySelector('div');
+  function onDropCallBack(event) {
+    addImage(event);
+    assert_equals(img.src, event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+    return true;
+  }
+
+  dragDropTest(img, div, onDropCallBack, 'Dragging the image to the bottom div should copy the image there"');
+}
+test();
+</script>
+</body>
+</html>

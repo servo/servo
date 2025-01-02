@@ -1,0 +1,22 @@
+<html>
+<head>
+<link rel="stylesheet" href="test_hammer_layout.css">
+<script>
+var divs = window.document.getElementsByTagName("div");
+var div = divs[0];
+
+var count = 1000000;
+var start = new Date();
+for (var i = 0; i < count; i++) {
+  div.setAttribute('id', 'styled');
+  //div.getBoundingClientRect();
+}
+var stop = new Date();
+window.alert((stop - start) / count * 1e6);
+window.close();
+</script>
+</head>
+<body>
+<div id="">This text is unstyled.</div>
+</body>
+</html>

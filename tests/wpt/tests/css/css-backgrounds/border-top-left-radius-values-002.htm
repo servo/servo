@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-top-left-radius' with one value.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-border-radius" />
+        <meta name="assert" content="'Border-top-left-radius' with an omitted second value has the vertical radius of the rounded corner equal to its horizontal radius." />
+        <style type="text/css">
+            #reference
+            {
+                height: 288px;
+                width: 384px;
+                border: 2px solid red;
+                border-top-left-radius: 50px 50px;
+            }
+            #test
+            {
+                margin-top: -292px;
+                height: 288px;
+                width: 384px;
+                border: 2px solid black;
+                border-top-left-radius: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the top-left corner of the box has a rounded corner and there is no red visible on the page.</p>
+        <div id ="reference"></div>
+        <div id="test"></div>
+    </body>
+</html>

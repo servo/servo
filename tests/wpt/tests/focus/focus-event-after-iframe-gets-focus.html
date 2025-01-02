@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test focus event after iframe gets focus</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+function waitForEvent(target, event, checkFn) {
+  return new Promise(resolve => {
+    target.addEventListener(event, e => {
+      if (checkFn && !checkFn(e)) {
+        return;
+      }
+      resolve();
+    }, { once: true });
+  });
+}
+
+function start(w) {
+  w.postMessage("start", "*");
+}
+
+function focusIframe(w) {
+  w.postMessage("focus", "*");
+}
+
+// This will send message to outer frame and also inner frame to ask them
+// send the log they collect back, the logs of outer and inner will be
+// concatenated.
+async function getLog(w) {
+  let log = "";
+  step_timeout(function() {
+    w.postMessage("getlog", "*");
+  }, 0);
+  await waitForEvent(window, "message", (e) => {
+    log = e.data;
+    return true;
+  });
+  return log;
+}
+
+async function runTest(t, url, expectResult) {
+  let w = window.open(url);
+  t.add_cleanup(() => { w.close(); });
+  await waitForEvent(window, "message", e => e.data === "ready");
+  start(w);
+  focusIframe(w);
+  assert_equals(await getLog(w), expectResult);
+}
+
+promise_test(async t => {
+  await runTest(t, "support/focus-event-after-same-site-iframe-gets-focus-outer.html",
+                "outerlog:windowblur,innerlog:willfocuswindow,windowfocus,didfocuswindow,");
+}, "Check focus event after same site iframe gets focus");
+
+promise_test(async t => {
+  await runTest(t, "support/focus-event-after-different-site-iframe-gets-focus-outer.sub.html",
+                "outerlog:windowblur,innerlog:willfocuswindow,windowfocus,didfocuswindow,");
+}, "Check focus event after different site iframe gets focus");
+
+promise_test(async t => {
+  await runTest(t, "support/focus-event-after-innermost-different-site-iframe-gets-focus-outer.sub.html",
+                "outerlog:windowblur,middlelog:innerlog:willfocuswindow,windowfocus,didfocuswindow,");
+}, "Check focus event after innermost different site iframe gets focus");
+
+</script>

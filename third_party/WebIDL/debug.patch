@@ -1,0 +1,10 @@
+--- WebIDL.py
++++ WebIDL.py
+@@ -8827,6 +8827,7 @@ class Parser(Tokenizer):
+                 module=self,
+                 outputdir=outputdir,
+                 errorlog=logger,
++                debug=False,
+                 write_tables=False,
+                 # Pickling the grammar is a speedup in
+                 # some cases (older Python?) but a

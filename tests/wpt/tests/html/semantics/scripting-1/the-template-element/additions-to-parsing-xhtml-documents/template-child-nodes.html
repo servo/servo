@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Templates: Child nodes of template element in XHTML documents</title>
+<meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<meta name="author" title="Aleksei Yu. Semenov" href="a.semenov@unipro.ru">
+<meta name="assert" content="Child nodes of template element in XHTML documents are always appended to the template content (instead of template itself)">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#parsing-xhtml-documents">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/html/resources/common.js'></script>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+
+
+test(function() {
+    var doc = newXHTMLDocument();
+
+    doc.body = doc.createElement('body');
+    doc.body.innerHTML = '<template id="tmpl1">'
+            + '<div id="div1">This is div inside template</div>'
+            + '<div id="div2">This is another div inside template</div>'
+            + '</template>';
+
+    var template = doc.querySelector('#tmpl1');
+
+    assert_equals(template.childNodes.length, 0,
+            'Wrong number of template child nodes');
+    assert_equals(template.content.childNodes.length, 2,
+            'Wrong number of template content child nodes');
+
+}, 'Child nodes of template element in XHTML documents must be appended to template content');
+
+
+
+test(function() {
+    var doc = newXHTMLDocument();
+    doc.body = doc.createElement('body');
+    doc.body.innerHTML = '<template id="tmpl1">'
+            + '<div id="div1">This is div inside template</div>'
+            + '<div id="div2">This is another div inside template</div>'
+            + '<template id="tmpl2">'
+            + '<div id="div3">This is div inside nested template</div>'
+            + '<div id="div4">This is another div inside nested template</div>'
+            + '</template>' + '</template>';
+
+    var template = doc.querySelector('#tmpl1');
+
+    assert_equals(template.childNodes.length, 0,
+            'Wrong number of template child nodes');
+    assert_equals(template.content.childNodes.length, 3,
+            'Wrong number of template content child nodes');
+
+    var nestedTemplate = template.content.querySelector('#tmpl2');
+
+    assert_equals(nestedTemplate.childNodes.length, 0,
+            'Wrong number of template child nodes');
+    assert_equals(nestedTemplate.content.childNodes.length, 2,
+            'Wrong number of nested template content child nodes');
+
+}, 'Child nodes of nested template element in XHTML documents must be appended to template content');
+
+
+
+testInIFrame('../resources/template-child-nodes-div.xhtml', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    var template = doc.querySelector('template');
+
+    assert_equals(template.childNodes.length, 0,
+            'Wrong number of template child nodes');
+    assert_equals(template.content.querySelectorAll('div').length, 2,
+            'Wrong number of template content child nodes');
+
+}, 'Child nodes of template element in XHTML documents must be appended to template content. '
+    + 'Test loading XHTML document from a file');
+
+
+testInIFrame('../resources/template-child-nodes-nested.xhtml', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    var template = doc.querySelector('template');
+
+    assert_equals(template.childNodes.length, 0,
+            'Wrong number of template child nodes');
+
+    var nestedTemplate = template.content.querySelector('template');
+
+    assert_equals(nestedTemplate.childNodes.length, 0,
+            'Wrong number of template child nodes');
+
+    assert_equals(nestedTemplate.content.querySelectorAll('div').length, 2,
+            'Wrong number of template content child nodes');
+
+}, 'Child nodes of nested template element in XHTML documents must be appended to template content. '
+    + 'Test loading XHTML document from a file');
+
+</script>
+</body>
+</html>

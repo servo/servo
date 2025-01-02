@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<title>MediaSource-in-Worker looped playback test case with worker termination at various places</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
+<body>
+<script>
+
+function terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_remaining) {
+  if (timeouts_remaining <= 0) {
+    // Terminating the worker may introduce errors in the video element we don't care about.
+    video.onerror = null;
+    worker.terminate();
+    test.step_timeout(() => { test.done(); }, 0);
+  } else {
+    test.step_timeout(() => {
+      terminateWorkerAfterMultipleSetTimeouts(video, test, worker, --timeouts_remaining);
+    }, 0);
+  }
+}
+
+function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to_await) {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+
+  const worker = new Worker("mediasource-worker-play-terminate-worker.js");
+  worker.onerror = test.unreached_func("worker error");
+
+  const video = document.createElement("video");
+  document.body.appendChild(video);
+  video.onerror = _ => {
+    assert_unreached(
+        `video element error: \"${video.error.message}\": ${video.error.code}`);
+  }
+
+  if (when_to_start_timeouts == "after first ended event") {
+    video.addEventListener("ended", test.step_func(() => {
+      terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_to_await);
+      video.currentTime = 0;
+      video.loop = true;
+    }), { once : true });
+  } else {
+    video.loop = true;
+  }
+
+  if (when_to_start_timeouts == "before setting srcObject") {
+    terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_to_await);
+  }
+
+  worker.onmessage = test.step_func(e => {
+    let subject = e.data.subject;
+    assert_true(subject != undefined, "message must have a subject field");
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached("Worker error: " + e.data.info);
+        break;
+      case messageSubject.HANDLE:
+        const handle = e.data.info;
+        video.srcObject = handle;
+        if (when_to_start_timeouts == "after setting srcObject") {
+          terminateWorkerAfterMultipleSetTimeouts(video, test, worker, timeouts_to_await);
+        }
+        video.play().catch(error => {
+          // Only rejections due to MEDIA_ERR_SRC_NOT_SUPPORTED are expected to possibly
+          // occur, except if we expect to reach at least 1 'ended' event.
+          assert_not_equals(when_to_start_timeouts, "after first ended event");
+          assert_true(video.error != null);
+          assert_equals(video.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
+          // Do not rethrow. Instead, wait for the step_timeouts to finish the test.
+        });
+        break;
+      default:
+        assert_unreached("Unexpected message subject: " + subject);
+    }
+  });
+}
+
+[ "before setting srcObject", "after setting srcObject", "after first ended event" ].forEach(when => {
+  for (let timeouts = 0; timeouts < 10; ++timeouts) {
+    async_test(test => { startWorkerAndTerminateWorker(test, when, timeouts); },
+        "Test worker MediaSource termination after at least " + timeouts +
+          " main thread setTimeouts, starting counting " + when);
+  }
+});
+
+</script>
+</body>
+</html>

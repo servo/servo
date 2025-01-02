@@ -1,0 +1,58 @@
+<!doctype html>
+<title> PageSwapEvent constructor</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-pageswapevent-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+    var e = new PageSwapEvent("something");
+    assert_true(e instanceof PageSwapEvent);
+    assert_equals(e.type, "something");
+    assert_equals(e.viewTransition, null);
+    assert_equals(e.activation, null);
+}, "Constructing pageswap event");
+
+test(function() {
+    var e = new PageSwapEvent("pageswap");
+    assert_true(e instanceof PageSwapEvent);
+    assert_equals(e.type, "pageswap");
+    assert_equals(e.viewTransition, null);
+    assert_equals(e.activation, null);
+}, "Constructing pageswap event with a custom name");
+
+test(function() {
+    var e = new PageSwapEvent("pageswap", {});
+    assert_true(e instanceof PageSwapEvent);
+    assert_equals(e.type, "pageswap");
+    assert_equals(e.viewTransition, null);
+    assert_equals(e.activation, null);
+}, "Constructing pageswap event with empty dictionary");
+
+test(function() {
+    var e = new PageSwapEvent("pageswap", {viewTransition: null});
+    assert_true(e instanceof PageSwapEvent);
+    assert_equals(e.type, "pageswap");
+    assert_equals(e.viewTransition, null);
+    assert_equals(e.activation, null);
+}, "Constructing pageswap event with a null viewTransition");
+promise_test(async t => {
+    const viewTransition = document.startViewTransition();
+    var e = new PageSwapEvent("pageswap", {viewTransition});
+    assert_true(e instanceof PageSwapEvent);
+    assert_equals(e.type, "pageswap");
+    assert_equals(e.viewTransition, viewTransition);
+    viewTransition.skipTransition();
+    await promise_rejects_dom(t, "AbortError", viewTransition.ready);
+}, "Constructing pageswap event with a viewTransition");
+promise_test(async t => {
+    const viewTransition = document.startViewTransition();
+    var e = new PageSwapEvent("pageswap", {viewTransition, activation: navigation.activation});
+    assert_true(e instanceof PageSwapEvent);
+    assert_equals(e.type, "pageswap");
+    assert_equals(e.viewTransition, viewTransition);
+    assert_equals(e.activation, navigation.activation);
+    viewTransition.skipTransition();
+    await promise_rejects_dom(t, "AbortError", viewTransition.ready);
+}, "Constructing pageswap event with a viewTransition and activation");
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+setup({allow_uncaught_exception : true});
+
+const t_parse = async_test("Import maps shouldn't be parsed as scripts");
+const t_evaluate = async_test("Import maps shouldn't be executed as scripts");
+const t_external = async_test(
+   "External import maps shouldn't be executed as scripts");
+
+const errorHandler = event => {
+  event.preventDefault();
+  t_parse.unreached_func("An import map is parsed as a classic script")();
+};
+
+window.addEventListener("error", errorHandler, {once: true});
+</script>
+
+<!-- This import map causes a parse error when parsed as a classic script. -->
+<script type="importmap">
+{
+  "imports": {
+  }
+}
+</script>
+
+<script>
+// Remove error handler, because the following import map can causes parse
+// error.
+window.removeEventListener("error", errorHandler);
+</script>
+
+<script type="importmap">
+t_evaluate.unreached_func("An import map is evaluated")();
+</script>
+
+<script type="importmap" src="data:text/javascript,t_external.unreached_func('An external import map is evaluated')();"></script>
+
+<script>
+t_parse.done();
+t_evaluate.done();
+t_external.done();
+</script>

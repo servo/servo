@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1227884">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="top: 100% doesn't resolves against the specified parent height (not the used height).">
+<p>Test passes if there is a filled green square.</p>
+<table style="border-spacing: 0; background: red; height: 10px;">
+  <tbody style="position: relative; top: 100%;">
+    <tr>
+      <td style="padding: 0;">
+        <div style="position: relative; top: -10px; width: 100px; height: 100px; background: green;"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>

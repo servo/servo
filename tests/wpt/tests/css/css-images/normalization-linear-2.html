@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Linear gradient stop normalization</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#linear-gradients">
+<meta name="assert" content="Rendering of linear-gradient with normalized color stops">
+<link rel="match" href="reference/100x100-blue.html">
+<style>
+  #gradient {
+    width: 100px;
+    height: 100px;
+    background-image: linear-gradient(blue 150%, red 150%);
+  }
+</style>
+<div id="gradient"></div>

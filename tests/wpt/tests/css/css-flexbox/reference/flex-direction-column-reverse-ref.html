@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Flexible Box Test: flex-direction proprety - column-reverse</title>
+    <link rel="author" title="haosdent" href="mailto:haosdent@gmail.com">
+    <style type="text/css">
+        /* Positioned container allows for the self-describing statement to still
+           be visible in the case of failure */
+        .container {
+            position: relative;
+            background: red;
+            margin: 1em 0;
+            border: 1px solid black;
+        }
+        span ~ span {
+            margin: 2em 1em 1em;
+        }
+        span {
+            display: block;
+            background: green;
+            color: white;
+            margin: 1em;
+            width: 8em;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passed if you see all the cells are arraged vertically and reversed.</p>
+    <div class="container">
+      <span>forth</span>
+      <span>third</span>
+      <span>second</span>
+      <span>first</span>
+    </div>
+</body>
+</html>

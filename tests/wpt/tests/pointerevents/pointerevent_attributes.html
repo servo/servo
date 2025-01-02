@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pointer Events properties tests</title>
+  <meta name="viewport" content="width=device-width">
+  <meta name="variant" content="?mouse">
+  <meta name="variant" content="?pen">
+  <meta name="variant" content="?mouse-right">
+  <meta name="variant" content="?pen-right">
+  <meta name="variant" content="?touch">
+  <meta name="variant" content="?mouse-nonstandard">
+  <meta name="variant" content="?pen-nonstandard">
+  <meta name="variant" content="?mouse-right-nonstandard">
+  <meta name="variant" content="?pen-right-nonstandard">
+  <meta name="variant" content="?touch-nonstandard">
+  <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+  <style>
+    html {
+      touch-action: none;
+    }
+
+    div {
+      padding: 0;
+    }
+
+    #square1 {
+      background-color: green;
+      border: 1px solid black;
+      height: 50px;
+      width: 50px;
+      margin-bottom: 3px;
+      display: inline-block;
+    }
+
+    #innerFrame {
+      position: relative;
+      margin-bottom: 3px;
+      margin-left: 0;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<!-- Additional helper script for common checks across event types -->
+<script type="text/javascript" src="pointerevent_support.js"></script>
+<script>
+let frameLoaded = undefined;
+const frameLoadedPromise = new Promise(resolve => {
+  frameLoaded = resolve;
+});
+</script>
+<body>
+  <div id="square1"></div>
+  <div>
+    <iframe onLoad = "frameLoaded()" id="innerFrame" srcdoc='
+      <style>
+        html {
+          touch-action: none;
+        }
+        #square2 {
+          background-color: green;
+          border: 1px solid black;
+          height: 50px;
+          width: 50px;
+          display: inline-block;
+        }
+      </style>
+      <body>
+        <div id="square2"></div>
+      </body>
+    '></iframe>
+  </div>
+  <!-- Used to detect a sentinel event. Once triggered, all other events must
+       have been processed. -->
+  <div>
+    <button id="done">done</button>
+  </div>
+</body>
+<script>
+  window.onload = runTests();
+
+  async function runTests() {
+
+    const queryStringFragments = location.search.substring(1).split('-');
+    const pointerType = queryStringFragments[0];
+    const button = queryStringFragments[1] === "right" ? "right" : undefined;
+    const standard = !(queryStringFragments[queryStringFragments.length - 1] === "nonstandard");
+
+    const eventList = [
+      'pointerover',
+      'pointerenter',
+      'pointerdown',
+      'pointerup',
+      'pointerout',
+      'pointerleave',
+      'pointermove'
+    ];
+
+    function injectScrubGesture(element) {
+      const doneButton = document.getElementById('done');
+      const actions = new test_driver.Actions();
+
+      let buttonArguments =
+        (button == 'right') ? { button: actions.ButtonType.RIGHT }
+                            : undefined;
+
+      // The following comments refer to the first event of each type since
+      // that is what is being validated in the test.
+      return actions
+        .addPointer('pointer1', pointerType)
+        // The pointermove, pointerover and pointerenter events will be
+        // triggered here with a hover pointer.
+        .pointerMove(0, -20, { origin: element })
+        // Pointerdown triggers pointerover, pointerenter with a non-hover
+        // pointer type.
+        .pointerDown(buttonArguments)
+        // This move triggers pointermove with a non-hover pointer-type.
+        .pointerMove(0, 20, { origin: element })
+        // The pointerout and pointerleave events are triggered here with a
+        // touch pointer.
+        .pointerUp(buttonArguments)
+        // An addition move outside of the target bounds is required to trigger
+        // pointerout & pointerleave events with a hover pointer.
+        .pointerMove(0, 0)
+        .send();
+    }
+
+    // Processing a click or tap on the done button is used to signal that all
+    // other events should have beem handled. This is used to catch unhandled
+    // events that would otherwise result in a timeout.
+    function clickOrTapDone() {
+      const doneButton = document.getElementById('done');
+      const pointerupPromise = getEvent('pointerup', doneButton);
+      const actionPromise = new test_driver.Actions()
+        .addPointer('pointer1', 'touch')
+        .pointerMove(0, 0, {origin: doneButton})
+        .pointerDown()
+        .pointerUp()
+        .send();
+      return actionPromise.then(pointerupPromise);
+    }
+
+    function verifyButtonAttributes(event) {
+      let downButton, upButton, downButtons, upButtons;
+      if (button == 'right') {
+         downButton = 2;
+         downButtons = 2;
+         upButton = 2;
+         upButtons = 0;
+      } else {
+        // defaults to left button click
+        downButton = 0;
+        downButtons = 1;
+        upButton = 0;
+        upButtons = 0;
+      }
+      const expectationsHover = {
+        // Pointer over, enter, and move are processed before the button press.
+        pointerover:  { button: -1, buttons: 0 },
+        pointerenter: { button:  -1, buttons: 0 },
+        pointermove:  { button:  -1, buttons: 0 },
+        // Button status changes on pointer down and up.
+        pointerdown:  { button:  downButton, buttons: downButtons },
+        pointerup:    { button:  upButton, buttons: upButtons },
+        // Pointer out and leave are processed after the button release.
+        pointerout:   { button:  -1, buttons: 0 },
+        pointerleave: { button:  -1, buttons: 0 }
+      };
+      const expectationsNoHover = {
+        // We don't see pointer events except during a touch gesture.
+        // Move is the only pointer event where the "button" click state is not
+        // changing. All other pointer events are associated with the start or
+        // end of a touch gesture.
+        pointerover:  { button:  0, buttons: 1 },
+        pointerenter: { button:  0, buttons: 1 },
+        pointerdown:  { button:  0, buttons: 1 },
+        pointermove:  { button: -1, buttons: 1 },
+        pointerup:    { button:  0, buttons: 0 },
+        pointerout:   { button:  0, buttons: 0 },
+        pointerleave: { button:  0, buttons: 0 }
+      };
+      const expectations =
+          (pointerType == 'touch') ? expectationsNoHover : expectationsHover;
+
+      assert_equals(event.button, expectations[event.type].button,
+                    `Button attribute on ${event.type}`);
+      assert_equals(event.buttons, expectations[event.type].buttons,
+                    `Buttons attribute on ${event.type}`);
+    }
+
+    function verifyPosition(event) {
+      const boundingRect = event.target.getBoundingClientRect();
+
+      // With a touch pointer type, the pointerout and pointerleave will trigger
+      // on pointerup while clientX and clientY are still within the target's
+      // bounds. With a hover pointer, these events will be triggered only after
+      // clientX or clientY are out of the target's bounds.
+      if (pointerType != 'touch' &&
+          (event.type == 'pointerout' || event.type == 'pointerleave')) {
+        assert_true(
+            boundingRect.left > event.clientX ||
+            boundingRect.right < event.clientX ||
+            boundingRect.top > event.clientY ||
+            boundingRect.bottom < event.clientY,
+            `clientX/clientY is outside the element bounds for ${event.type} event`);
+      } else {
+        assert_true(
+            boundingRect.left <= event.clientX &&
+            boundingRect.right >= event.clientX,
+            `clientX is within the expected range for ${event.type} event`);
+        assert_true(
+            boundingRect.top <= event.clientY &&
+            boundingRect.bottom >= event.clientY,
+            `clientY is within the expected range for ${event.type} event`);
+      }
+    }
+
+    function verifyEventAttributes(event, testNamePrefix) {
+       verifyButtonAttributes(event);
+       verifyPosition(event);
+       assert_true(event.isPrimary, 'isPrimary attribute is true');
+       check_PointerEvent(event, testNamePrefix, standard);
+    }
+
+    function pointerPromise(test, testNamePrefix, type, target) {
+      let rejectCallback = undefined;
+      promise = new Promise((resolve, reject) => {
+        // Store a reference to the promise rejection functions, which would
+        // otherwise not be visible outside the promise object. If the callback
+        // remains set when the deadline is reached, it means that the promise
+        // will not get resolved and should be rejected.
+        rejectCallback = reject;
+        const pointerEventListener = event => {
+          rejectCallback = undefined;
+          assert_equals(event.type, type, `type attribute for ${type} event`);
+          event.preventDefault();
+          resolve(event);
+        };
+        target.addEventListener(type, pointerEventListener, { once: true });
+        test.add_cleanup(() => {
+          // Just in case of an assert prior to the events being triggered.
+          document.removeEventListener(type, pointerEventListener,
+                                       { once: true });
+        });
+      }).then(result => { verifyEventAttributes(result, testNamePrefix); },
+              error => { assert_unreached(error); });
+      promise.deadlineReached = () => {
+        // If the event has not been received, the promise will not be
+        // fulfilled, leading to a timeout. Reject the promise if still pending.
+        if (rejectCallback) {
+          rejectCallback(`missing ${type} event`);
+        }
+      }
+      return promise;
+    }
+
+    async function runPointerEventsTest(test, testNamePrefix, target) {
+      assert_true(['mouse', 'pen', 'touch'].indexOf(pointerType) >= 0,
+                  `Unexpected pointer type (${pointerType})`);
+
+      const promises = [];
+      eventList.forEach(type => {
+        // Create a promise for each event type. If clicking on the done button
+        // is detected before an event's promise is resolved, then the promise
+        // will be rejected. Otherwise, the attributes for the event are
+        // verified.
+        promises.push(pointerPromise(test, testNamePrefix, type, target));
+      });
+
+      await injectScrubGesture(target);
+
+      // The injected gestures consist of a shrub on a button followed by a
+      // click on the done button. The promise is only resolved after the
+      // done click is detected. At this stage all other events must have been
+      // processed. Any unresolved promises in the list will be rejected to
+      //  avoid a test timeout. The rejection will trigger a test failure.
+      await clickOrTapDone().then(promises.map(p => p.deadlineReached()));
+
+      // Once all promises are resolved, all event attributes have been
+      // successfully verified.
+      return Promise.all(promises);
+    }
+
+    promise_test(t => {
+      const square1 = document.getElementById('square1');
+      return runPointerEventsTest(t, '', square1);
+    }, 'Test pointer events in the main document');
+
+    promise_test(async t => {
+      const innerFrame = document.getElementById('innerFrame');
+      await frameLoadedPromise;
+      const square2 = innerFrame.contentDocument.getElementById('square2');
+      return runPointerEventsTest(t, 'Inner Frame', square2);
+    }, 'Test pointer events in an iframe');
+  }
+</script>

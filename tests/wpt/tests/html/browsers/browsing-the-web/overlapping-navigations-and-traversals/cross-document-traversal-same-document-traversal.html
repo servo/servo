@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Same-document traversals during cross-document traversals</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  This case is not significantly different from
+  cross-document-traversal-cross-document-traversal.html.
+-->
+
+<body>
+<script type="module">
+import { createIframe, waitForLoad, waitForHashchange, delay, waitForPotentialNetworkLoads } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  // Extra delay()s are necessary because if we navigate "inside" the load
+  // handler (i.e. in a promise reaction for the load handler) then it will
+  // be a replace navigation.
+  iframe.contentWindow.location.search = "?1";
+  await waitForLoad(iframe);
+  await delay(t, 0);
+  iframe.contentWindow.location.hash = "#2";
+  await waitForHashchange(iframe.contentWindow);
+  iframe.contentWindow.location.search = "?3";
+  await waitForLoad(iframe);
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+  assert_equals(iframe.contentWindow.location.search, "?3", "must not go back synchronously 1 (search)");
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not go back synchronously 1 (hash)");
+
+  iframe.contentWindow.history.back();
+  assert_equals(iframe.contentWindow.location.search, "?3", "must not go back synchronously 2 (search)");
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not go back synchronously 2 (hash)");
+
+  await waitForLoad(iframe);
+  assert_equals(iframe.contentWindow.location.search, "?1", "first load event must be going back (search)");
+  assert_equals(iframe.contentWindow.location.hash, "", "first load event must be going back (hash)");
+
+  iframe.contentWindow.onhashchange = t.unreached_func("hashchange event");
+  iframe.onload = t.unreached_func("second load event");
+
+  await waitForPotentialNetworkLoads(t);
+  assert_equals(iframe.contentWindow.location.search, "?1", "must stay on ?1 (search)");
+  assert_equals(iframe.contentWindow.location.hash, "", "must stay on ?1 (hash)");
+}, "traversals in the same (back) direction: coalesced");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  // Extra delay()s are necessary because if we navigate "inside" the load
+  // handler (i.e. in a promise reaction for the load handler) then it will
+  // be a replace navigation.
+  iframe.contentWindow.location.search = "?1";
+  await waitForLoad(iframe);
+  await delay(t, 0);
+  iframe.contentWindow.location.search = "?2";
+  await waitForLoad(iframe);
+  await delay(t, 0);
+  iframe.contentWindow.location.hash = "#3";
+  await waitForHashchange(iframe.contentWindow);
+  iframe.contentWindow.history.back();
+  await waitForHashchange(iframe.contentWindow);
+  assert_equals(iframe.contentWindow.location.hash, "", "we made our way to ?2 for setup");
+  iframe.contentWindow.history.back();
+  await waitForLoad(iframe);
+  await delay(t, 0);
+  assert_equals(iframe.contentWindow.location.search, "?1", "we made our way to ?1 for setup");
+
+  iframe.contentWindow.history.forward();
+  assert_equals(iframe.contentWindow.location.search, "?1", "must not go forward synchronously 1 (search)");
+  assert_equals(iframe.contentWindow.location.hash, "", "must not go forward synchronously 1 (hash)");
+
+  iframe.contentWindow.history.forward();
+  assert_equals(iframe.contentWindow.location.search, "?1", "must not go forward synchronously 2 (search)");
+  assert_equals(iframe.contentWindow.location.hash, "", "must not go forward synchronously 2 (hash)");
+
+  await waitForLoad(iframe);
+  assert_equals(iframe.contentWindow.location.search, "?2", "first load event must be going forward (search)");
+  assert_equals(iframe.contentWindow.location.hash, "#3", "first load event must be going forward (hash)");
+
+  iframe.contentWindow.onhashchange = t.unreached_func("hashchange event");
+  iframe.onload = t.unreached_func("second load event");
+
+  await waitForPotentialNetworkLoads(t);
+  assert_equals(iframe.contentWindow.location.search, "?2", "must stay on ?2");
+  assert_equals(iframe.contentWindow.location.hash, "#3", "must stay on ?2");
+}, "traversals in the same (forward) direction: coalesced");
+</script>

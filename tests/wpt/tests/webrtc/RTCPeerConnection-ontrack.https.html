@@ -1,0 +1,258 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.ontrack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   getTrackFromUserMedia
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.2.8.  If description is set as a remote description, then run the following
+              steps for each media description in description:
+        3.  Set transceiver's mid value to the mid of the corresponding media
+            description. If the media description has no MID, and transceiver's
+            mid is unset, generate a random value as described in [JSEP] (section 5.9.).
+        4.  If the direction of the media description is sendrecv or sendonly, and
+            transceiver.receiver.track has not yet been fired in a track event,
+            process the remote track for the media description, given transceiver.
+
+    5.1.1. Processing Remote MediaStreamTracks
+      To process the remote track for an incoming media description [JSEP]
+      (section 5.9.) given RTCRtpTransceiver transceiver, the user agent MUST
+      run the following steps:
+
+      1.  Let connection be the RTCPeerConnection object associated with transceiver.
+      2.  Let streams be a list of MediaStream objects that the media description
+          indicates the MediaStreamTrack belongs to.
+      3.  Add track to all MediaStream objects in streams.
+      4.  Queue a task to fire an event named track with transceiver, track, and
+          streams at the connection object.
+
+    5.7.  RTCTrackEvent
+      [Constructor(DOMString type, RTCTrackEventInit eventInitDict)]
+      interface RTCTrackEvent : Event {
+        readonly attribute RTCRtpReceiver           receiver;
+        readonly attribute MediaStreamTrack         track;
+        [SameObject]
+        readonly attribute FrozenArray<MediaStream> streams;
+        readonly attribute RTCRtpTransceiver        transceiver;
+      };
+
+    [mediacapture-main]
+    4.2.  MediaStream
+      interface MediaStream : EventTarget {
+        readonly attribute DOMString    id;
+        sequence<MediaStreamTrack> getTracks();
+        ...
+      };
+
+    [mediacapture-main]
+    4.3.  MediaStreamTrack
+      interface MediaStreamTrack : EventTarget {
+        readonly attribute DOMString             kind;
+        readonly attribute DOMString             id;
+        ...
+      };
+   */
+
+  function validateTrackEvent(trackEvent) {
+    const { receiver, track, streams, transceiver } = trackEvent;
+
+    assert_true(track instanceof MediaStreamTrack,
+      'Expect track to be instance of MediaStreamTrack');
+
+    assert_true(Array.isArray(streams),
+      'Expect streams to be an array');
+
+    for(const mediaStream of streams) {
+      assert_true(mediaStream instanceof MediaStream,
+        'Expect elements in streams to be instance of MediaStream');
+
+      assert_true(mediaStream.getTracks().includes(track),
+        'Expect each mediaStream to have track as one of their tracks');
+    }
+
+    assert_true(receiver instanceof RTCRtpReceiver,
+      'Expect trackEvent.receiver to be defined and is instance of RTCRtpReceiver');
+
+    assert_equals(receiver.track, track,
+      'Expect trackEvent.receiver.track to be the same as trackEvent.track');
+
+    assert_true(transceiver instanceof RTCRtpTransceiver,
+      'Expect trackEvent.transceiver to be defined and is instance of RTCRtpTransceiver');
+
+    assert_equals(transceiver.receiver, receiver,
+      'Expect trackEvent.transceiver.receiver to be the same as trackEvent.receiver');
+  }
+
+  // tests that ontrack is called and parses the msid information from the SDP and creates
+  // the streams with matching identifiers.
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    // Fail the test if the ontrack event handler is not implemented
+    assert_idl_attribute(pc, 'ontrack', 'Expect pc to have ontrack event handler attribute');
+
+    const sdp = `v=0
+o=- 166855176514521964 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic:WMS *
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:someufrag
+a=ice-pwd:somelongpwdwithenoughrandomness
+a=fingerprint:sha-256 8C:71:B3:8D:A5:38:FD:8F:A4:2E:A2:65:6C:86:52:BC:E0:6E:94:F2:9F:7C:4D:B5:DF:AF:AA:6F:44:90:8D:F4
+a=setup:actpass
+a=rtcp-mux
+a=mid:mid1
+a=sendonly
+a=rtpmap:111 opus/48000/2
+a=msid:stream1 track1
+a=ssrc:1001 cname:some
+`;
+
+    const trackEventPromise = addEventListenerPromise(t, pc, 'track');
+    await pc.setRemoteDescription({ type: 'offer', sdp });
+    const trackEvent = await trackEventPromise;
+    const { streams, track, transceiver } = trackEvent;
+
+    assert_equals(streams.length, 1,
+      'the track belongs to one MediaStream');
+
+    const [stream] = streams;
+    assert_equals(stream.id, 'stream1',
+      'Expect stream.id to be the same as specified in the a=msid line');
+
+    assert_equals(track.kind, 'audio',
+      'Expect track.kind to be audio');
+
+    validateTrackEvent(trackEvent);
+
+    assert_equals(transceiver.direction, 'recvonly',
+      'Expect transceiver.direction to be reverse of sendonly (recvonly)');
+  }, 'setRemoteDescription should trigger ontrack event when the MSID of the stream is is parsed.');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    assert_idl_attribute(pc, 'ontrack', 'Expect pc to have ontrack event handler attribute');
+
+    const sdp = `v=0
+o=- 166855176514521964 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic:WMS *
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:someufrag
+a=ice-pwd:somelongpwdwithenoughrandomness
+a=fingerprint:sha-256 8C:71:B3:8D:A5:38:FD:8F:A4:2E:A2:65:6C:86:52:BC:E0:6E:94:F2:9F:7C:4D:B5:DF:AF:AA:6F:44:90:8D:F4
+a=setup:actpass
+a=rtcp-mux
+a=mid:mid1
+a=recvonly
+a=rtpmap:111 opus/48000/2
+a=msid:stream1 track1
+a=ssrc:1001 cname:some
+`;
+
+    pc.ontrack = t.unreached_func('ontrack event should not fire for track with recvonly direction');
+
+    await pc.setRemoteDescription({ type: 'offer', sdp });
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+  }, 'setRemoteDescription() with m= line of recvonly direction should not trigger track event');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    const [track, mediaStream] = await getTrackFromUserMedia('audio');
+    pc1.addTrack(track, mediaStream);
+    const trackEventPromise = addEventListenerPromise(t, pc2, 'track');
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    const trackEvent = await trackEventPromise;
+
+    assert_equals(trackEvent.track.kind, 'audio',
+      'Expect track.kind to be audio');
+
+    validateTrackEvent(trackEvent);
+  }, 'addTrack() should cause remote connection to fire ontrack when setRemoteDescription()');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver('video');
+
+    const trackEventPromise = addEventListenerPromise(t, pc2, 'track');
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    const trackEvent = await trackEventPromise;
+    const { track } = trackEvent;
+
+    assert_equals(track.kind, 'video',
+      'Expect track.kind to be video');
+
+    validateTrackEvent(trackEvent);
+  }, `addTransceiver('video') should cause remote connection to fire ontrack when setRemoteDescription()`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver('audio', { direction: 'inactive' });
+    pc2.ontrack = t.unreached_func('ontrack event should not fire for track with inactive direction');
+
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+  }, `addTransceiver() with inactive direction should not cause remote connection to fire ontrack when setRemoteDescription()`);
+
+  ["audio", "video"].forEach(type => promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const checkNoUnexpectedTrack = ({track}) => {
+      assert_equals(track.kind, type, `ontrack event should not fire for ${track.kind}`);
+    };
+
+    pc2.ontrack = t.step_func(checkNoUnexpectedTrack);
+    pc1.ontrack = t.step_func(checkNoUnexpectedTrack);
+
+    await pc1.setLocalDescription(await pc1.createOffer(
+      { offerToReceiveVideo: true, offerToReceiveAudio: true }));
+
+    pc2.addTrack(...await getTrackFromUserMedia(type));
+
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+  }, `Using offerToReceiveAudio and offerToReceiveVideo should only cause a ${type} track event to fire, if ${type} was the only type negotiated`));
+
+</script>

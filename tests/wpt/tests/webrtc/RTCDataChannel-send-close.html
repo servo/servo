@@ -1,0 +1,123 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCDataChannel.prototype.send</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+const largeString = " ".repeat(64 * 1024);
+const largeArrayBuffer = new TextEncoder("utf-8").encode(largeString);
+const largeBlob = new Blob([" ".repeat(64 * 1024)]);
+
+for (const options of [{}, {negotiated: true, id: 0}]) {
+  const mode = `${options.negotiated? "Negotiated d" : "D"}atachannel`;
+
+  promise_test(async t => {
+    let [channel1, channel2] = await createDataChannelPair(t, options);
+    let receivedSize = 0, sentSize = 0;
+
+    channel2.binaryType = 'arraybuffer';
+    channel2.onmessage = e => {
+      if (typeof e.data === 'string')
+        receivedSize += e.data.length;
+      else
+        receivedSize += e.data.byteLength;
+    }
+
+    let closePromiseResolve;
+    let closePromise = new Promise((resolve, reject) => {
+      closePromiseResolve = resolve;
+    });
+    channel2.onclose = e => {
+      closePromiseResolve();
+    }
+
+    try {
+      while(sentSize < 20 * 1024 * 1024) {
+        channel1.send(largeString);
+        sentSize += largeString.length;
+      }
+    } catch(error) {
+      assert_true(error instanceof DOMException);
+      assert_equals(error.name, 'OperationError');
+    }
+    channel1.close();
+
+    await closePromise;
+    assert_equals(receivedSize, sentSize, 'All the pending sent messages are received after calling close()');
+  }, `${mode} should be able to send and receive all string messages on close`);
+
+  promise_test(async t => {
+    let [channel1, channel2] = await createDataChannelPair(t, options);
+    let receivedSize = 0, sentSize = 0;
+
+    channel2.binaryType = 'arraybuffer';
+    channel2.onmessage = e => {
+      if (typeof e.data === 'string')
+        receivedSize += e.data.length;
+      else
+        receivedSize += e.data.byteLength;
+    }
+
+    let closePromiseResolve;
+    let closePromise = new Promise((resolve, reject) => {
+      closePromiseResolve = resolve;
+    });
+    channel2.onclose = e => {
+      closePromiseResolve();
+    }
+
+    try {
+      while(sentSize < 20 * 1024 * 1024) {
+        channel1.send(largeArrayBuffer);
+        sentSize += largeArrayBuffer.length;
+      }
+    } catch(error) {
+      assert_true(error instanceof DOMException);
+      assert_equals(error.name, 'OperationError');
+    }
+    channel1.close();
+
+    await closePromise;
+    assert_equals(receivedSize, sentSize, 'All the pending sent messages are received after calling close()');
+  }, `${mode} should be able to send and receive all arraybuffer messages on close`);
+
+  promise_test(async t => {
+    let [channel1, channel2] = await createDataChannelPair(t, options);
+    let receivedSize = 0, sentSize = 0;
+
+    channel2.binaryType = 'arraybuffer';
+    channel2.onmessage = e => {
+      if (typeof e.data === 'string')
+        receivedSize += e.data.length;
+      else
+        receivedSize += e.data.byteLength;
+    }
+
+    let closePromiseResolve;
+    let closePromise = new Promise((resolve, reject) => {
+      closePromiseResolve = resolve;
+    });
+    channel2.onclose = e => {
+      closePromiseResolve();
+    }
+
+    try {
+      while(sentSize < 20 * 1024 * 1024) {
+        channel1.send(largeBlob);
+        sentSize += largeBlob.size;
+      }
+    } catch(error) {
+      assert_true(error instanceof DOMException);
+      assert_equals(error.name, 'OperationError');
+    }
+    channel1.close();
+
+    await closePromise;
+    assert_equals(receivedSize, sentSize, 'All the pending sent messages are received after calling close()');
+  }, `${mode} should be able to send and receive all blob messages on close`);
+}
+</script>

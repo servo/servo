@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+</head>
+<body>
+
+<script>
+const loaded = new Promise(resolve => {
+  addEventListener('load', () => {
+    setTimeout(resolve, 100);
+  });
+});
+
+promise_test(async t => {
+  await loaded;
+
+  const div1 = document.createElement('div');
+  const div2 = document.createElement('div');
+
+  div1.setAttribute('style', 'transition: all .01s linear; ' +
+                             'padding-left: 1px');
+  div2.setAttribute('style', 'transition: all 50s linear; ' +
+                             'padding-left: 1px');
+  document.body.appendChild(div1);
+  document.body.appendChild(div2);
+
+  getComputedStyle(div1).paddingLeft;
+  getComputedStyle(div2).paddingLeft;
+  div1.style.paddingLeft = '10px';
+  div2.style.paddingLeft = '10px';
+
+  div1.ontransitionend = () => {
+    // Cancel `div2`'s transition
+    div2.remove();
+  };
+
+  const watcher = new EventWatcher(t, div2, [ 'transitioncancel' ]);
+
+  // Check that we receive `transitioncancel` very soon.
+  //
+  // This test was written to catch a specific bug where the event loop blocks
+  // waiting for new incoming messages despite still having pending animation-
+  // related events (a `transitioncancel` event in this case) that need to be
+  // processed on a next "rendering opportunity".
+  //
+  // We want to check that the `transitioncancel` event is delivered soon
+  // enough, but we can't rely on test timeout because the timeout timer would
+  // unblock the event loop, resulting in a terribly belate delivery of the
+  // `transitioncancel` event. No matter how short the timeout is, it would
+  // look like the event was delivered just in time.
+  //
+  // Therefore, we are going to check the time taken to receive the event. If
+  // the test times out, we will probably receive the event anyway, but the
+  // duration will be some large value like 9800.
+  const start = Date.now();
+  await watcher.wait_for('transitioncancel');
+
+  assert_less_than(Date.now() - start, 1000);
+}, 'transitioncancel is delivered promptly');
+
+</script>
+</body>
+</html>

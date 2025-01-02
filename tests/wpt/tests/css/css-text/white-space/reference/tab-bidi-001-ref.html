@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Reference: Tabs vs. Bidi</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<style>
+body > div {
+  border: solid blue;
+  margin: 1em;
+}
+div > div {
+  white-space: pre;
+  font: 20px/1 monospace;
+  text-align: left;
+}
+div > span { /* measure bounds */
+  border: orange;
+  border-style: none solid;
+}
+</style>
+
+<p>Test passes if all three rows of each box are identical.
+
+<div>
+  <div style="unicode-bidi: bidi-override; direction: ltr"><span>A	B	C	D	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: ltr"><span>A	B	C	D	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: ltr"><span>A	B	C	D	</span></div>
+</div>
+<div>
+  <div style="unicode-bidi: bidi-override; direction: ltr"><span>א	בּ	ג	ד	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: ltr"><span>א	בּ	ג	ד	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: ltr"><span>א	בּ	ג	ד	</span></div>
+</div>
+<div>
+  <div style="unicode-bidi: bidi-override; direction: rtl"><span>A	B	C	D	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: rtl"><span>A	B	C	D	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: rtl"><span>A	B	C	D	</span></div>
+</div>
+<div>
+  <div style="unicode-bidi: bidi-override; direction: rtl"><span>א	בּ	ג	ד	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: rtl"><span>א	בּ	ג	ד	</span></div>
+  <div style="unicode-bidi: bidi-override; direction: rtl"><span>א	בּ	ג	ד	</span></div>
+</div>

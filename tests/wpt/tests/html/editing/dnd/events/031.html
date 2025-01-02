@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Non-rendered body should still become current target element</title>
+    <style type="text/css">
+span { background: orange; display: inline-block; height: 200px; width: 200px; }
+iframe { border: none; }
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  document.getElementsByTagName('span')[0].ondragstart = function (e) {
+    e.dataTransfer.setData('text','dummy text');
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <p>Drag the orange square onto the blue square and release it. Fail if text does not appear in the blue square.</p>
+    <p><span draggable="true"></span> <iframe height="200" width="200" src="031-1.html"></iframe></p>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+
+  </body>
+</html>

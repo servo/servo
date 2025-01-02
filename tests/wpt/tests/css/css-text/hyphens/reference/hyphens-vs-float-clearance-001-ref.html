@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Text Reference: soft-hyphen and float clearance</title>
+<link rel="author" href="mailto:jkew@mozilla.com">
+<style>
+.outer {
+  font: 16px/1.4 monospace;
+  width: 6ch;
+  border: 1px solid gray;
+  float: left;
+  margin: 10px;
+  hyphens: none;
+}
+.float {
+  float: right;
+  width: 2ch;
+  background: lightblue;
+}
+.h1 {
+  height: 1em;
+}
+.h2 {
+  height: 2em;
+}
+.h3 {
+  height: 3em;
+}
+.h4 {
+  height: 4em;
+}
+</style>
+<body lang="en">
+<div class="outer"><div class="float h1"></div>hy&#x2010;<br>phen&#x2010;<br>ate!</div>
+<div class="outer"><div class="float h2"></div>hy&#x2010;<br>phen&#x2010;<br>ate!</div>
+<div class="outer"><div class="float h3"></div>hy&#x2010;<br>phen&#x2010;<br>ate!</div>
+<div class="outer"><div class="float h4"></div>hy&#x2010;<br>phen&#x2010;<br>ate!</div>

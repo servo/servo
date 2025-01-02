@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!--
+  target should be fully vertically in-viewport as 100px is way less than the
+  default iframe height.
+
+  right: 0 makes sure that we're occluded by 8px by the intermediate iframe.
+-->
+<div id="target" style="width: 100px; height: 100px; position: absolute; right: 0"></div>
+<script>
+const observer = new IntersectionObserver(records => {
+  if (records[0].isIntersecting) {
+    let { rootBounds, intersectionRect } = records[0];
+    window.top.postMessage({ rootBounds, intersectionRect }, "*");
+  }
+}, {});
+observer.observe(document.getElementById("target"));
+</script>

@@ -1,0 +1,6 @@
+[build-system]
+requires = ["setuptools>=34.4", "wheel", "setuptools_scm>=1.15"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+skip-string-normalization = true

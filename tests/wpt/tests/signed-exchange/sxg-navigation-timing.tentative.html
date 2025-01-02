@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Navigation timing of SignedHTTPExchange</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-navigation-timing.sxg';
+  const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
+  assert_false(message.is_fallback);
+
+  let timing = JSON.parse(message.timing);
+  let originalContent = await fetch('resources/sxg-navigation-timing.html').then(resp => resp.arrayBuffer());
+
+  assert_equals(timing.decodedBodySize, originalContent.byteLength);
+  assert_equals(timing.encodedBodySize, computeMiceLength(originalContent.byteLength, 100));
+  // TODO(https://crbug.com/928589): Test other fields too.
+}, 'Navigation timing of SignedHTTPExchange');
+
+// Returns content length after MI encode.
+function computeMiceLength(len, recordSize) {
+  const recordSizeLen = 8;
+  const sha256DigestLength = 32;
+  return recordSizeLen + len + Math.floor(len / recordSize) * sha256DigestLength;
+}
+
+</script>
+</body>

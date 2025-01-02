@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <link rel="stylesheet" href="../support/highlights.css">
+  <style>
+  div
+    {
+      background-color: Highlight;
+      color: HighlightText;
+      display: inline;
+      font-size: 300%;
+      text-decoration: HighlightText underline;
+    }
+  </style>
+
+  <!--
+  "
+  The element's own text decorations (both line decorations
+  and emphasis marks) are thus drawn in the pseudo-element's
+  own color when that is not currentColor, regardless of
+  their original color or fill specifications.
+  "
+  coming from
+  https://www.w3.org/TR/css-pseudo-4/#highlight-painting
+
+  Highlight
+      Background of item(s) selected in a control.
+  https://www.w3.org/TR/css-color-4/#valdef-system-color-highlight
+
+  HighlightText
+      Text of item(s) selected in a control.
+  https://www.w3.org/TR/css-color-4/#valdef-system-color-highlighttext
+
+  CSS4 Color Module
+  5.2 System Colors
+  https://www.w3.org/TR/css-color-4/#css-system-colors
+  -->
+
+  <body>
+
+  <p>Test passes if each glyph of "Selected Text" is underlined and if color and background color of "Selected Text" are the OS-default highlight colors. The underline color must also be the same as the highlight color of "Selected Text".
+
+  <div id="test" class="highlight_reftest">Selected Text</div>

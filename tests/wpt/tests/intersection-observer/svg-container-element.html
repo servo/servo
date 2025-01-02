@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>IntersectionObserver observing an SVG container element changing position</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/intersection-observer-test-utils.js"></script>
+<svg width="400" height="10000">
+  <!-- Ensure the svg bounds are unchanged with a white fill -->
+  <rect x="-5000" y="-5000" width="100000" height="100000" fill="white"/>
+  <svg id="target" x="0" y="100vh" width="100px" height="100px">
+    <rect x="0" y="0" width="100" height="100" fill="green"/>
+  </svg>
+</svg>
+<script>
+const viewportWidth = document.documentElement.clientWidth;
+const viewportHeight = document.documentElement.clientHeight;
+const kEpsilon = 1; // clientHeight and clientWidth are rounded if the viewport is fractional.
+setup(() => {
+  window.entries = [];
+  window.target = document.getElementById("target");
+  window.targetRect = target.getBoundingClientRect();
+});
+runTestCycle(function() {
+  assert_true(!!target, "target exists");
+  const observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications");
+  runTestCycle(step0, "First rAF.");
+});
+function step0() {
+  target.setAttribute('y', '0');
+  runTestCycle(step1, "Change inner svg element")
+  // The numbers in brackets are target client rect; intersection rect;
+  // and root bounds.
+  checkLastEntry(entries, 0, [
+    // the 8 pixels comes from the html body padding.
+    8, 8 + targetRect.width, viewportHeight+8, viewportHeight+8 + targetRect.height,
+    0, 0, 0, 0,
+    0, viewportWidth, 0, viewportHeight,
+    false,
+  ], kEpsilon);
+}
+function step1() {
+  checkLastEntry(entries, 1, [
+    8, 8 + targetRect.width, 8, 8 + targetRect.height,
+    8, 8 + targetRect.width, 8, 8 + targetRect.height,
+    0, viewportWidth, 0, viewportHeight,
+    true,
+  ], kEpsilon);
+}
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>
+  Single-line row flex fragmentation: baseline alignment.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    align-items: baseline;
+    width: 50px;
+    height: 200px;
+    line-height: 0;
+    position: relative;
+  }
+  #flex > div {
+    width: 25px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-fill: auto; column-gap: 0; background: red;">
+  <div id="flex">
+    <div style="position: absolute; height: 50px;"></div>
+    <div style="height: 150px;">
+      <span style="display: inline-block; height: 10px;"></span>
+    </div>
+    <div style="height: 200px;">
+      <span style="display: inline-block; height: 60px;"></span>
+    </div>
+  </div>
+</div>

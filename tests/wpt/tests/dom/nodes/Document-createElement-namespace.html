@@ -1,0 +1,117 @@
+<!doctype html>
+<title>document.createElement() namespace tests</title>
+<link rel=author title="Aryeh Gregor" href=ayg@aryeh.name>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+/**
+ * This tests the namespace of elements created by the Document interface's
+ * createElement() method.  See bug:
+ * https://www.w3.org/Bugs/Public/show_bug.cgi?id=19431
+ */
+
+/**
+ * Test that an element created using the Document object doc has the namespace
+ * that would be expected for the given contentType.
+ */
+function testDoc(doc, contentType) {
+  if (doc.contentType !== undefined) {
+    // Sanity check
+    assert_equals(doc.contentType, contentType,
+                  "Wrong MIME type returned from doc.contentType");
+  }
+
+  var expectedNamespace = contentType == "text/html" ||
+                          contentType == "application/xhtml+xml"
+                          ? "http://www.w3.org/1999/xhtml" : null;
+
+  assert_equals(doc.createElement("x").namespaceURI, expectedNamespace);
+}
+
+// First test various objects we create in JS
+test(function() {
+  testDoc(document, "text/html")
+}, "Created element's namespace in current document");
+test(function() {
+  testDoc(document.implementation.createHTMLDocument(""), "text/html");
+}, "Created element's namespace in created HTML document");
+test(function() {
+  testDoc(document.implementation.createDocument(null, "", null),
+          "application/xml");
+}, "Created element's namespace in created XML document");
+test(function() {
+  testDoc(document.implementation.createDocument("http://www.w3.org/1999/xhtml", "html", null),
+          "application/xhtml+xml");
+}, "Created element's namespace in created XHTML document");
+test(function() {
+  testDoc(document.implementation.createDocument("http://www.w3.org/2000/svg", "svg", null),
+          "image/svg+xml");
+}, "Created element's namespace in created SVG document");
+test(function() {
+  testDoc(document.implementation.createDocument("http://www.w3.org/1998/Math/MathML", "math", null),
+          "application/xml");
+}, "Created element's namespace in created MathML document");
+
+// Second also test document created by DOMParser
+test(function() {
+  testDoc(new DOMParser().parseFromString("", "text/html"), "text/html");
+}, "Created element's namespace in created HTML document by DOMParser ('text/html')");
+test(function() {
+  testDoc(new DOMParser().parseFromString("<root/>", "text/xml"), "text/xml");
+}, "Created element's namespace in created XML document by DOMParser ('text/xml')");
+test(function() {
+  testDoc(new DOMParser().parseFromString("<root/>", "application/xml"), "application/xml");
+}, "Created element's namespace in created XML document by DOMParser ('application/xml')");
+test(function() {
+  testDoc(new DOMParser().parseFromString("<html/>", "application/xhtml+xml"), "application/xhtml+xml");
+}, "Created element's namespace in created XHTML document by DOMParser ('application/xhtml+xml')");
+test(function() {
+  testDoc(new DOMParser().parseFromString("<math/>", "image/svg+xml"), "image/svg+xml");
+}, "Created element's namespace in created SVG document by DOMParser ('image/svg+xml')");
+
+// Now for various externally-loaded files.  Note: these lists must be kept
+// synced with the lists in generate.py in the subdirectory, and that script
+// must be run whenever the lists are updated.  (We could keep the lists in a
+// shared JSON file, but it seems like too much effort.)
+var testExtensions = {
+  html: "text/html",
+  xhtml: "application/xhtml+xml",
+  xml: "application/xml",
+  svg: "image/svg+xml",
+  // Was not able to get server MIME type working properly :(
+  //mml: "application/mathml+xml",
+};
+
+var tests = [
+  "empty",
+  "minimal_html",
+
+  "xhtml",
+  "svg",
+  "mathml",
+
+  "bare_xhtml",
+  "bare_svg",
+  "bare_mathml",
+
+  "xhtml_ns_removed",
+  "xhtml_ns_changed",
+];
+
+tests.forEach(function(testName) {
+  Object.keys(testExtensions).forEach(function(ext) {
+    async_test(function(t) {
+      var iframe = document.createElement("iframe");
+      iframe.src = "Document-createElement-namespace-tests/" +
+                  testName + "." + ext;
+      iframe.onload = t.step_func_done(function() {
+        testDoc(iframe.contentDocument, testExtensions[ext]);
+        document.body.removeChild(iframe);
+      });
+      document.body.appendChild(iframe);
+    }, "Created element's namespace in " + testName + "." + ext);
+  });
+});
+</script>

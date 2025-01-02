@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on fieldset elements shouldn't prevent them from being baseline-aligned regularly.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-fieldset-004-ref.html">
+  <style>
+  .contain {
+    contain: size;
+    border: none;
+    color: transparent;
+    visibility: hidden;
+  }
+  .innerContents {
+    height: 50px;
+    width: 50px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  </style>
+</head>
+<body>
+  <!--CSS Test: A size-contained fieldset element should perform baseline alignment regularly.-->
+  <div class="flexBaselineCheck">
+  outside before<fieldset class="contain">
+    <legend>legend</legend>
+    <div class="innerContents">inner</div>
+  </fieldset>outside after
+  </div>
+</body>
+</html>

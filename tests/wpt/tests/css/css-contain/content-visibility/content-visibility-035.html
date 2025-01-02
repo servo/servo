@@ -1,0 +1,59 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Display Locking: hidden shadow descendant</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility hidden element's subtree cannot be focused">
+<meta name="assert" content="content-visibility hidden element's subtree can access layout values">
+
+<body style="margin: 0">
+
+<div id="host">
+  <input id="slotted" type="button">
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+let container = document.createElement("div");
+container.innerHTML = "<slot></slot>";
+
+let shadowRoot = host.attachShadow({ mode: "open" });
+shadowRoot.innerHTML = "<style>.hidden { content-visibility: hidden; }</style>";
+shadowRoot.appendChild(container);
+
+async_test((t) => {
+  async function focusTest() {
+    t.step(() => assert_not_equals(document.activeElement, slotted));
+    t.step(() => assert_not_equals(shadowRoot.activeElement, slotted));
+
+    container.classList.add("hidden");
+    requestAnimationFrame(() => {
+      t.step(() => assert_not_equals(document.activeElement, slotted));
+      t.step(() => assert_not_equals(shadowRoot.activeElement, slotted));
+
+      slotted.focus();
+      t.step(() => assert_not_equals(document.activeElement, slotted));
+      t.step(() => assert_not_equals(shadowRoot.activeElement, slotted));
+
+      forceLayoutTest();
+    });
+  }
+
+  async function forceLayoutTest() {
+    t.step(() => assert_equals(slotted.offsetTop, 0));
+    // Add a 20px div above the slotted div.
+    container.innerHTML = "<div style='height: 20px;'></div><slot></slot>";
+    t.step(() => assert_equals(slotted.offsetTop, 20));
+    t.done();
+  }
+
+  window.onload = function() {
+    requestAnimationFrame(() => requestAnimationFrame(focusTest));
+  };
+}, "Testing focus and force layout on element with hidden flat-tree ancestor");
+
+</script>
+</html>

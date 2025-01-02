@@ -1,0 +1,54 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Backgrounds: local attachment content-box background scroll with padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#the-background-attachment">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#the-background-clip">
+<link rel="match" href="local-attachment-content-box-scroll-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid black;
+  padding: 20px;
+  background-color: blue;
+  background-attachment: local;
+  background-clip: content-box;
+  display: none;
+}
+.content {
+  width: 400px;
+  height: 400px;
+}
+</style>
+<div id="container1" class="container">
+  <div class="content"></div>
+</div>
+<div id="container2" class="container">
+  <div class="content"></div>
+</div>
+<div id="container3" class="container">
+  <div class="content"></div>
+</div>
+<div id="container4" class="container">
+  <div class="content"></div>
+</div>
+<script>
+container1.style.display = 'block';
+container2.style.display = 'block';
+container2.scrollTo(40, 40);
+container3.style.display = 'block';
+container3.scrollTo(260, 260);
+container4.style.display = 'block';
+container4.scrollTo(400, 400);
+waitForAtLeastOneFrame().then(() => {
+  container1.scrollTo(40, 40);
+  container2.scrollTo(0, 0);
+  container3.scrollTo(400, 400);
+  container4.scrollTo(260, 260);
+  takeScreenshot();
+});
+</script>

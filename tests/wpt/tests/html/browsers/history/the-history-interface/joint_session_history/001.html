@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Joint session history with single iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+setup({timeout:10000});
+var t = async_test("Session history length on initial load");
+var t1 = async_test("Session history length on adding new iframe");
+var t2 = async_test("Navigating second iframe");
+var t3 = async_test("Traversing history back (1)");
+var t4 = async_test("Navigating first iframe");
+var t5 = async_test("Traversing history back (2)");
+var t6 = async_test("Traversing history forward");
+var w = window.open("001-1.html");
+//add_completion_callback(function() {w.close()});
+</script>
+

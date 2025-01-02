@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4-bodyEmbeddedTextualNoSource.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "An Embedded Textual body cannot include a source key. source key is only valid with Specific Resources.",
+    "title": "If an **Embedded Textual Body** is a body, it does NOT have a **_source_ key** - [model 4](https://www.w3.org/TR/annotation-model/#specific-resources)",
+    "description": "True when no Embedded Textual bodies or when none of the Embedded Textual bodies include the source key. (Section 4)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "allOf": [
+                      { "not": { "$ref": "bodyTarget.json#/definitions/embeddedTextualBodyWithSource" } },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/embeddedTextualBodyWithSource" } } },
+                      { "not": { "$ref": "bodyTarget.json#/definitions/itemETBWithSource" }  },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/itemETBWithSource" } } }
+                     ]
+         }
+     }
+}

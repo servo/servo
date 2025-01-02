@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>tall legend</title>
+<link rel=match href=legend-tall-ref.html>
+<style>
+body, p { margin: 0; }
+fieldset { height: 30px; margin: 0; border: 20px solid green; padding: 0px; background: red; }
+legend { height: 160px; background: lime; padding: 0; }
+#behind {
+  position: absolute;
+  z-index: -1;
+  margin-top: calc((/* half legend height */ 160px / 2) - (/* half top border */ 20px / 2));
+  background: red;
+  height: 40px;
+  left: 0;
+  right: 0;
+}
+</style>
+<p>There should be no red.</p>
+<div id=behind></div>
+<fieldset><legend>X</legend>HELLO</fieldset>

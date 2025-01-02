@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<title>Tests position fallback with initially out-of-viewport anchor in columb-reverse flexbox</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-apply">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+.flex {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+#container {
+  transform: scale(1);
+  width: fit-content;
+  height: fit-content;
+  margin: 100px;
+}
+
+#scroller {
+  width: 400px;
+  height: 400px;
+  overflow: scroll;
+}
+
+#scroll-content {
+  min-width: 800px;
+  min-height: 800px;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 400px;
+  margin-inline-start: 400px;
+  background: orange;
+}
+
+#anchored {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: green;
+  position-anchor: --a;
+  position-try-fallbacks: --pf1, --pf2, --pf3;
+  bottom: anchor(top);
+  left: anchor(right);
+}
+
+@position-try --pf1 {
+  inset: auto;
+  top: anchor(bottom);
+  left: anchor(right);
+}
+@position-try --pf2 {
+  inset: auto;
+  bottom: anchor(top);
+  right: anchor(left);
+}
+@position-try --pf3 {
+  inset: auto;
+  top: anchor(bottom);
+  right: anchor(left);
+}
+</style>
+
+<!-- Use flex column-reverse to make everything bottom-up -->
+<div id="container" class="flex">
+  <div id="scroller" class="flex">
+    <div id="scroll-content" class="flex">
+      <div id="anchor" class="flex"></div>
+    </div>
+  </div>
+  <div id="anchored" class="flex"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'bottom');
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Should use the last fallback position initially');
+
+promise_test(async () => {
+  // Scroll up to have enough space above the anchor, but not enough right.
+  scroller.scrollTop = -250;
+  scroller.scrollLeft = 150;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Should use the third fallback position with enough space above');
+
+promise_test(async () => {
+  // Scroll right to have enough space right to the anchor, but not enough above.
+  scroller.scrollTop = -150;
+  scroller.scrollLeft = 250;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'bottom');
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Should use the second fallback position with enough space right');
+
+promise_test(async () => {
+  // Scroll up and right to have enough space on both axes.
+  scroller.scrollTop = -250;
+  scroller.scrollLeft = 250;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Should use the first fallback position with enough space above and right');
+</script>

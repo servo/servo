@@ -1,0 +1,134 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="issue"
+    version="$Revision: 1.7 $" testname="$RCSfile: animate-elem-53-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test animation of points and calcmode.
+      </p>
+      <!-- The test has no well defined pass criteria and its not clear also which of the several results produced by different implementations is correct. Think Opera 10.6 is correct; test needs to be discussed by wg. -->
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+
+      <p>
+        1. The green squares should animate together side by side. This applies
+        to the blue ones as well.
+        2. The time values indicate when the squares should reach the
+        corresponding reference square.
+        3. The total distance is 0+40+80+24.14=144.14
+        a. The "green animation" is 9 sec and linear so each interval
+        should get 3 sec.
+        b. The "blue animation" is 8 sec and paced so the intervals
+        should get 2.22, 4.44 and 1.34 sec each.
+      </p>
+      <p>
+        Here comes a more detailed description of the animation.
+
+        The left green square (LG) is animated by animating the points with
+        a value array, consisting of 4 lists of points. This is an animation
+        with calc-mode=linear so an equal amount of time should be spent on
+        all 4 intervals. The right green square (RG) is animated by a simple
+        linear motion followed by a scale to follow LG.
+        The last scale by 1.9428 correspond to a movement of the lover right
+        corner of the square by sqrt((30*0.9428)^2 + (30*0.9428)^2) which is
+        approximately 40 distance units. This is the same distance as the first
+        interval in the values array (and half the second interval).
+        The length (in terms of distance) is not really important for the
+        green squares but for the blue squares which are animated with
+        calc-mode=paced the length is used to calculate the time for each
+        interval.
+        Since the first and last interval are of the same length which
+        totals to the length of the middle interval, the interval should
+        be given time according to [27.75%(2.22sec);55.5%(4.44sec);16.75%(1.34sec)].
+
+        So the left blue square (LR) is animated just as the LG square but
+        with calc-mode=paced. The same applies to the right blue square (RR)
+        that has default calc-mode (paced for animateMotion) compablue to the
+        RG square that has calc-mode=linear.
+        The calc-mode for the scale of RR (and RG) is not important since
+        it's not a value list type of animation.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[Describe the pass criteria of the test here. The pass criteria is what
+        should be displayed when the test is run.]]
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-53-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <polygon id="p" points="0,0 30,0 30,30 0,30" fill="none" stroke="black"/>
+    </defs>
+    <g transform="translate(0,0)">
+      <use xlink:href="#p" x="10" y="10"/>
+      <text x="15" y="35" font-size="20">0s</text>
+      <use xlink:href="#p" x="10" y="50"/>
+      <text x="15" y="75" font-size="20">3s</text>
+      <use xlink:href="#p" x="10" y="130"/>
+      <text x="15" y="155" font-size="20">6s</text>
+      <rect x="10" y="130" width="58.28" height="58.28" fill="none" stroke="black"/>
+      <text x="45" y="185" font-size="20">9s</text>
+      <polygon id="LG" points="0,0 30,0 30,30 0,30" fill="none" stroke="green">
+        <animate attributeName="points" begin="0" dur="9" fill="freeze" values="10,10 40,10 40,40 10,40;                           10,50 40,50 40,80 10,80;                           10,130 40,130 40,160 10,160;                           10,130 68.28,130 68.28,188.28 10,188.28"/>
+      </polygon>
+      <g transform="translate(70,10)">
+        <polygon id="RG" points="0,0 30,0 30,30 0,30" fill="none" stroke="green">
+          <animateMotion values="0,0;0,40;0,120" begin="0" dur="6" calcMode="linear" fill="freeze"/>
+          <animateTransform attributeName="transform" type="scale" from="1" to="1.9428" begin="6" dur="3" fill="freeze"/>
+        </polygon>
+      </g>
+    </g>
+    <g transform="translate(120,0)">
+      <use xlink:href="#p" x="10" y="10"/>
+      <text x="15" y="35" font-size="20">0s</text>
+      <use xlink:href="#p" x="10" y="50"/>
+      <text x="15" y="75" font-size="20">2.22s</text>
+      <use xlink:href="#p" x="10" y="130"/>
+      <text x="15" y="155" font-size="20">6.66s</text>
+      <rect x="10" y="130" width="58.28" height="58.28" fill="none" stroke="black"/>
+      <text x="45" y="185" font-size="20">8s</text>
+      <polygon id="LR" points="10,10 40,10 40,40 10,40" fill="none" stroke="blue">
+        <animate attributeName="points" begin="0" dur="8" calcMode="paced" fill="freeze" values="10,10 40,10 40,40 10,40;                                         10,50 40,50 40,80 10,80;                                         10,130 40,130 40,160 10,160;                                         10,130 68.28,130 68.28,188.28 10,188.28"/>
+      </polygon>
+      <g transform="translate(70,10)">
+        <polygon id="RR" points="0,0 30,0 30,30 0,30" fill="none" stroke="blue">
+          <animateMotion values="0,0;0,40;0,120" begin="0" dur="6.66" fill="freeze"/>
+          <animateTransform attributeName="transform" type="scale" from="1" to="1.9428" begin="6.66" dur="1.34" fill="freeze"/>
+        </polygon>
+      </g>
+    </g>
+    <text x="5" y="225" font-size="26">Animation on: 'points' with 'calc-mode'.</text>
+    <text x="5" y="255" font-size="16">Coloblue and black squares should match at indicated time.</text>
+    <text x="5" y="275" font-size="16">Same coloblue squares (green and blue) should match at all times</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

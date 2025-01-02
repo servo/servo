@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Traversing the history, prompt in before unload, navigation allowed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  setup({timeout:3600000});
+  var t = async_test();
+  started = false;
+  pages = []
+  timer = null;
+  beforeunload_ran = false;
+  start_test_wait = t.step_func(
+    function() {
+      clearTimeout(timer);
+      timer = setTimeout(t.step_func(
+        function() {
+          try {
+            assert_true(beforeunload_ran, "beforeunload event handler ran");
+            assert_array_equals(pages, [2,1], "Pages opened during history navigation");
+            t.done();
+          } finally {
+            win.close();
+          }
+        }
+      ), 500);
+    }
+  );
+  t.step(function() {win = window.open("history_entry.html?urls=traverse_the_history_unload_prompt_2-1.html");
+});
+</script>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let options = request_options_with_mediation_required("manifest_check_disclosure_shown_false.json");
+  options.identity.providers[0].clientId = "0";
+  options.identity.providers[0].fields = ["non_default_field"];
+  options.identity.providers[0].nonce = "non_default_field";
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "token");
+  assert_equals(cred.isAutoSelected, false);
+}, "We should send disclosure_text_shown=false when custom fields are passed.");
+
+fedcm_test(async t => {
+  let options = request_options_with_mediation_required("manifest_check_disclosure_shown_false.json");
+  options.identity.providers[0].clientId = "0";
+  options.identity.providers[0].fields = [];
+  options.identity.providers[0].nonce = "";
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "token");
+  assert_equals(cred.isAutoSelected, false);
+}, "We should send disclosure_text_shown=false when an empty custom fields array is passed.");
+
+
+fedcm_test(async t => {
+  let options = request_options_with_mediation_required("manifest_check_disclosure_shown_true.json");
+  options.identity.providers[0].clientId = "0";
+  options.identity.providers[0].nonce = "name,email,picture";
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "token");
+  assert_equals(cred.isAutoSelected, false);
+}, "We should send disclosure_text_shown=true when no custom fields are passed.");
+
+fedcm_test(async t => {
+  let options = request_options_with_mediation_required("manifest_check_disclosure_shown_true.json");
+  options.identity.providers[0].clientId = "0";
+  options.identity.providers[0].fields = ["name", "email", "picture", "locale"];
+  options.identity.providers[0].nonce = "name,email,picture,locale";
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "token");
+  assert_equals(cred.isAutoSelected, false);
+}, "We should send disclosure_text_shown=true when custom fields are passed in addition to standard fields.");
+
+
+</script>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing only times certain types of trusted event.
+</title>
+<meta name="timeout" content="long">
+<button id='button' onmousedown='mainThreadBusy(60)'
+  onfocus='mainThreadBusy(60)'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<script src=resources/event-timing-test-utils.js></script>
+<script>
+  let trustedClickStart;
+  function trustedClickAndBlockMain(id) {
+    trustedClickStart = performance.now();
+    return clickAndBlockMain(id);
+  }
+
+  function untrustedClickAndBlockMain(id) {
+    const target = document.getElementById(id);
+    // Block mainthread in the callback, as dispatchEvent() is a sync call.
+    target.dispatchEvent(new MouseEvent('mousedown'));
+  }
+
+  function trustedFocusAndBlockMain(id) {
+    const target = document.getElementById(id);
+    trustedFocusStart = performance.now();
+    // Block mainthread in the callback,  as focus() is a sync call.
+    target.focus();
+  }
+
+  promise_test(function(t) {
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    let observedMouseDown = false;
+    const observerPromise = new Promise(resolve => {
+      new PerformanceObserver(t.step_func(entryList => {
+        const observerCallbackTime = performance.now();
+        const mouseDowns = entryList.getEntriesByName('mousedown');
+        // Ignore cases in which there is no mousedown.
+        if (mouseDowns.length === 0)
+          return;
+
+        assert_false(observedMouseDown, 'Got more than one callback with mousedown.');
+        assert_equals(mouseDowns.length, 1,
+            "Should only observe one mousedown entry. Instead, got these: " +
+            JSON.stringify(mouseDowns) + ".");
+        assert_equals(mouseDowns[0].name, 'mousedown',
+            "The observed entry should be a mousedown");
+        assert_less_than(mouseDowns[0].startTime, observerCallbackTime,
+            "The startTime should be before observerCallbackTime");
+        assert_greater_than(mouseDowns[0].startTime, trustedClickStart,
+            "The startTime should be after trustedClickStart");
+        observedMouseDown = true;
+        resolve();
+      })).observe({ entryTypes: ['event'] });
+    });
+    // Untrusted event of a type event timing cares about.
+    untrustedClickAndBlockMain('button');
+    // Trusted event of a type event timing doesn't cares about.
+    trustedFocusAndBlockMain('button');
+    // Trusted event of a type event timing cares about.
+    const clickPromise = trustedClickAndBlockMain('button').then(wait);
+    return Promise.all([observerPromise, clickPromise]);
+  }, "Event Timing only times certain types of trusted event.");
+</script>
+</html>

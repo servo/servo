@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="resources/dialog.css">
+<style>
+body { background: red; }
+
+.backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.backdrop,
+.pseudodialog {
+    background: green;
+}
+</style>
+<body>
+<div class="backdrop"></div>
+<div class="pseudodialog">PASS if no red shows</div>
+</body>
+</html>

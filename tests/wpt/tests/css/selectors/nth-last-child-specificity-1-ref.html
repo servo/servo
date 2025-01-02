@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<body>
+    <p>This test the specificity of :nth-last-child() with static specificity. The test passes if the text "target" is displayed white on green background. There should be 2 red rects on each side.</p>
+    <div>
+        <foo style="color: red; background-color: red;">Not target</foo>
+        <padding></padding>
+        <bar style="color: red; background-color: red;">Not target</bar>
+        <more-padding></more-padding>
+        <target  style="color: white; background-color: green;">Target</target>
+        <more-padding></more-padding>
+        <foo style="color: red; background-color: red;">Not target</foo>
+        <padding></padding>
+        <bar style="color: red; background-color: red;">Not target</bar>
+    </div>
+</body>
+</html>

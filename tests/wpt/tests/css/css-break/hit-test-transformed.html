@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<style>
+  body { margin: 0; }
+  *:hover { background: lime !important; }
+</style>
+<div id="multicol" style="columns:4; column-gap:0; column-fill:auto; width:400px; height:100px; background: yellow">
+  <div id="before" style="height: 50px; background: gray"></div>
+  <div id="transform" style="transform: translateY(20px)">
+    <div id="target1" style="height: 100px; background: green"></div>
+    <div id="target2" style="height: 200px; background: blue"></div>
+  </div>
+  <div id="after" style="height: 50px; background: gray"></div>
+</div>
+<div id="log" style="margin-top:100px;"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> { assert_equals(document.elementFromPoint(50, 40), before); }, "before");
+  test(()=> { assert_equals(document.elementFromPoint(50, 60), multicol); }, "between before and transform");
+  test(()=> { assert_equals(document.elementFromPoint(50, 80), target1); }, "target1");
+  test(()=> { assert_equals(document.elementFromPoint(50, 110), target1); }, "target1 overflow");
+  test(()=> { assert_equals(document.elementFromPoint(150, 10), multicol); }, "top gap in column 2");
+  test(()=> { assert_equals(document.elementFromPoint(150, 30), target1); }, "target1 in column 2 top");
+  test(()=> { assert_equals(document.elementFromPoint(150, 60), target1); }, "target1 in column 2 bottom");
+  test(()=> { assert_equals(document.elementFromPoint(150, 80), target2); }, "target2 in column 2");
+  test(()=> { assert_equals(document.elementFromPoint(150, 110), target2); }, "target2 in column 2 overflow");
+  test(()=> { assert_equals(document.elementFromPoint(250, 10), multicol); }, "top gap in column 3");
+  test(()=> { assert_equals(document.elementFromPoint(250, 30), target2); }, "target2 in column 3 top");
+  test(()=> { assert_equals(document.elementFromPoint(250, 110), target2); }, "target2 in column 3 bottom");
+  test(()=> { assert_equals(document.elementFromPoint(350, 10), multicol); }, "top gap in column 4");
+  test(()=> { assert_equals(document.elementFromPoint(350, 30), target2); }, "target2 in column 4 top");
+  test(()=> { assert_equals(document.elementFromPoint(350, 60), target2); }, "target2 in column 4 bottom");
+  test(()=> { assert_equals(document.elementFromPoint(350, 80), after); }, "after");
+  test(()=> { assert_equals(document.elementFromPoint(350, 110), document.documentElement); }, "below");
+</script>

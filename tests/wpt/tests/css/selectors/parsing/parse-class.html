@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: Class selectors</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#class-html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('*.pastoral',
+      ['*.pastoral', '.pastoral']);
+  test_valid_selector('.pastoral',
+      ['*.pastoral', '.pastoral']);
+  test_valid_selector('h1.pastoral');
+  test_valid_selector('p.pastoral.marine');
+</script>

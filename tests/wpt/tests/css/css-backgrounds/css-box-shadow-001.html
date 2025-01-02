@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS box-shadow Test</title>
+    <link rel="author" title="tmd" href="mailto:weisong4413@126.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-box-shadow">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-radius">
+    <link rel="match" href="reference/css-box-shadow-ref-001.html">
+    <meta name="fuzzy" content="maxDifference=0-56; totalPixels=0-250">
+    <style type="text/css">
+		.greenSquare-shadow{
+            position: absolute;
+			top:50px;
+			left:50px;
+            width: 100px;
+            height: 100px;
+			Border-bottom-right-radius: 50px 50px;
+			Border-top-left-radius: 50px 50px;
+			background-color:rgba(0, 255, 0, 1);
+			box-shadow: 110px 110px 0px 10px #000000;
+		}
+		.black-shadow{
+			position: absolute;
+			top: 150px;
+			left: 150px;
+			width: 120px;
+			height: 120px;
+			Border-bottom-right-radius: 60px 60px;
+			Border-top-left-radius: 60px 60px;
+			background-color:black;
+        }
+        .container {
+            position: absolute;
+        }
+         /* This div should only be visible if the test fails */
+        .redSquare {
+			position: absolute;
+			top: 150px;
+			left: 150px;
+			width: 120px;
+			height: 120px;
+			Border-bottom-right-radius: 60px 60px;
+			Border-top-left-radius: 60px 60px;
+			background-color:red;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you the green square's black shadow and it completely covers the red square.</p>
+    <div class="container">
+        <!-- This is the square that should not be visible if the test passes -->
+		<div id="red" class="redSquare"></div>
+        <!-- This is the square being tested with the shadow -->
+		<div id="green" class="greenSquare-shadow"></div>
+    </div>
+	<input type="button" value="Border radius?" onclick="fun_radius()">
+	<script>
+	var have_radius=true;
+	var red=document.getElementById("red");
+	var green=document.getElementById("green");
+	function fun_radius(){
+		if(have_radius){
+			red.style.borderBottomRightRadius="0px";
+			red.style.borderTopLeftRadius="0px";
+			green.style.borderBottomRightRadius="0px";
+			green.style.borderTopLeftRadius="0px";
+			have_radius=false;
+		}else{
+			red.style.borderBottomRightRadius="60px";
+			red.style.borderTopLeftRadius="60px";
+			green.style.borderBottomRightRadius="50px";
+			green.style.borderTopLeftRadius="50px";
+			have_radius=true;
+		}
+	}
+	</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Tests that base responds to font-affecting properties appearing via setKeyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target1 {
+    font-size: 10px;
+    height: 1em;
+  }
+</style>
+<div id=target1></div>
+<script>
+  test(function() {
+    getComputedStyle(target1).height;
+
+    let animation = target1.animate([
+      { height: '50px' },
+      { height: '100px' },
+    ], {
+      duration: 1000000,
+      delay: -500000,
+      easing: 'steps(2, end)'
+    });
+
+    assert_equals(getComputedStyle(target1).height, '75px');
+
+    animation.effect.setKeyframes([
+      { fontSize: '10px' },
+      { fontSize: '20px' },
+    ]);
+
+    assert_equals(getComputedStyle(target1).height, '15px');
+  }, 'Base is responsive to font-affecting appearing via setKeyframes');
+</script>

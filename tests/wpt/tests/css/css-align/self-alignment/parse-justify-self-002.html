@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Self-Alignment: justify-self - 'initial' value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#self-alignment" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-self" />
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#initial-values" />
+<meta name="assert" content="Check the 'initial' value in diferent scenarios."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+container = document.createElement("div");
+element = document.createElement("div");
+container.appendChild(element);
+document.body.appendChild(container);
+
+test(function() {
+    element = document.createElement("div");
+    document.body.appendChild(element);
+    checkValues(element, "justifySelf", "justify-self", "", "auto");
+}, "Test 'initial' value when nothing is specified");
+
+test(function() {
+    container.style.display = "";
+    checkInitialValues(element, "justifySelf", "justify-self", "center", "auto");
+}, "Test justify-self: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    checkInitialValues(element, "justifySelf", "justify-self", "safe start", "auto");
+}, "Test grid items justify-self: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    checkInitialValues(element, "justifySelf", "justify-self", "unsafe end", "auto");
+}, "Test flex items justify-self: 'initial'");
+
+test(function() {
+    container.style.display = "";
+    element.style.position = "absolute";
+    checkInitialValues(element, "justifySelf", "justify-self", "start", "auto");
+}, "Test absolute positioned elements justify-self: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    element.style.position = "absolute";
+    checkInitialValues(element, "justifySelf", "justify-self", "end", "auto");
+}, "Test absolute positioned grid items justify-self: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    element.style.position = "absolute";
+    checkInitialValues(element, "justifySelf", "justify-self", "end", "auto");
+}, "Test absolute positioned flex items justify-self: 'initial'");
+</script>

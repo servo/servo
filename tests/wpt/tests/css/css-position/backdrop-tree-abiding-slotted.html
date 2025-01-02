@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Position Test: ::backdrop is tree abiding, allowed after ::slotted</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#backdrop">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#tree-abiding">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div>
+  <template shadowrootmode="open">
+    <style>
+      ::slotted(dialog)::backdrop {
+        background-color: green;
+      }
+    </style>
+    <slot></slot>
+  </template>
+  <dialog id="target"></dialog>
+</div>
+<script>
+  const target = document.getElementById("target");
+  target.showModal();
+
+  test(() => {
+    assert_equals(getComputedStyle(target, "::backdrop").backgroundColor, "rgb(0, 128, 0)");
+  }, "::backdrop is tree-abiding and should be allowed after ::slotted()");
+</script>

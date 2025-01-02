@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Use https to ensure secureConnectionStart is nontrivial, if it is supported. -->
+<iframe src="https://{{host}}:{{ports[https][0]}}/navigation-timing/resources/performance-attribute-sender.html"></iframe>
+<body>
+<script>
+async_test(function(t) {
+  window.addEventListener('message', t.step_func_done(function(event) {
+    const connectStart = event.data[0];
+    const navigationStart = event.data[1];
+    const secureConnectionStart = event.data[2];
+    const connectEnd = event.data[3];
+    assert_greater_than_equal(connectStart, navigationStart,
+      'performance.timing.connectStart >= performance.timing.navigationStart');
+    // secureConnectionStart is an optional attribute.
+    if (secureConnectionStart == undefined) {
+      return;
+    }
+    assert_greater_than_equal(secureConnectionStart, connectStart,
+      'performance.timing.secureConnectionStart >= performance.timing.connectStart');
+    assert_greater_than_equal(connectEnd, secureConnectionStart,
+      'performance.timing.connectEnd >= performance.timing.secureConnectionStart');
+  }));
+}, 'Check that performance.timing has reasonable values for secureConnectionStart and other attributes');
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+WEBVTT
+Invalid <v> voice markup.
+
+1
+00:00:00.000 --> 00:00:30.500 align:start position:20%
+< v Speaker>Bear is Coming!!!!!</v>
+This is two annotations for an empty tag.
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+<v&Doe Hunter>I said Bear is coming!!!!</v>
+This does not parse as a voice tag.
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%
+I said <v-Speaker>Bear is coming now</v>!!!!
+This does not parse as a voice tag.

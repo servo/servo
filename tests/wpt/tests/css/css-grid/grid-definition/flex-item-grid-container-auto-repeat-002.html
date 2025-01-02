@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1936276">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This test verifies that the grid container's content size suggestion (min-content size) is 50px, which is contributed by only one repeat column.">
+
+<style>
+.flex {
+  display: flex;
+  width: 100px;
+  height: 100px;
+}
+.item-flex-none {
+  width: 50px;
+  flex: none;
+  background: green;
+}
+.item-grid-container {
+  display: grid;
+  width: 200px;
+  grid-template-columns: repeat(auto-fill, 50px);
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+<div class="flex">
+  <div class="item-flex-none"></div>
+  <div class="item-grid-container"></div>
+</div>

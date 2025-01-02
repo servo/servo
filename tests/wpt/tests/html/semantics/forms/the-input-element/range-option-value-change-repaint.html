@@ -1,0 +1,20 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>The range is repainted if the value of an option in the range's list changes</title>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1805105">
+<link rel=author href="mailto:zach@zrhoffman.net" title="Zach Hoffman">
+<link rel=match href=range-tick-marks-05-ref.html>
+<script src=/common/reftest-wait.js></script>
+<input type=range step=3 value=1 min=-5 max=5 list=tickmarks>
+<datalist id=tickmarks>
+  <option value=-2></option>
+  <option value=1 id=to-change></option>
+</datalist>
+<script>
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const toChange = document.querySelector("option#to-change");
+      toChange.value = 4;
+      takeScreenshot();
+    }));
+</script>

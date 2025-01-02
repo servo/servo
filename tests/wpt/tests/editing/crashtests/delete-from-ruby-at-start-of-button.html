@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*:last-child {
+  white-space: pre-wrap;
+}
+</style>
+<script>
+addEventListener("DOMContentLoaded", () => {
+  getSelection().collapse(document.querySelector("ruby"));
+  document.designMode = "on";
+  document.execCommand("delete");
+});
+</script>
+</head>
+<body>
+<label contenteditable="true"></label>
+<bdi style="white-space: nowrap">
+<button>
+<kbd>
+<ruby>
+</ruby>
+</kbd>
+</button>
+</bdi>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Anchors in OOF in multicol</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.relpos {
+  position: relative;
+}
+.abspos {
+  position: absolute;
+}
+.columns {
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 10px;
+  column-width: 100px;
+  width: 210px;
+  height: 100px;
+}
+.spacer {
+  height: 10px;
+  background: pink;
+}
+.anchor {
+  anchor-name: --a1;
+  margin-left: 10px;
+  width: 40px;
+  height: 60px;
+  background: orange;
+}
+.target {
+  position: absolute;
+  background: lime;
+  opacity: .5;
+  position-anchor: --a1;
+  left: anchor(left);
+  top: anchor(top);
+  width: anchor-size(width);
+  height: anchor-size(height);
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div class="spacer"></div>
+  <div class="columns">
+    <div class="relpos">
+      <div class="relpos">
+        <div class="abspos">
+          <div class="spacer"></div>
+          <div class="anchor"></div>
+        </div>
+      </div>
+      <div class="target"
+           data-offset-x=10 data-offset-y=10
+           data-expected-width=40 data-expected-height=60></div>
+    </div>
+  </div>
+</body>

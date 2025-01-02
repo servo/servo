@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_08_02_03</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#inertness-of-html-elements-in-a-shadow-tree">
+<meta name="assert" content="HTML Elements in shadow trees: form should not submit elements in shadow tree">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var A_08_02_03_T01 = async_test('A_08_02_03_T01');
+
+var checkIframeContent = A_08_02_03_T01.step_func(function () {
+    // remember value to check before cleaning the context (it'll destroy the iframe)
+    var valueToCheck = A_08_02_03_T01.iframe.contentWindow.document.URL;
+    cleanContext(A_08_02_03_T01.ctx);
+
+    assert_true(valueToCheck.indexOf('inp1=value1') > 0,
+        'html form should submit all of its fields');
+
+    // Form data crossing shadow boundary should not be submitted.
+    // https://github.com/w3c/webcomponents/issues/65
+    assert_equals(valueToCheck.indexOf('inp2=value2'), -1,
+        'html form should not submit fields in the shadow tree');
+
+    A_08_02_03_T01.done();
+});
+
+
+A_08_02_03_T01.step(function () {
+
+    A_08_02_03_T01.ctx = newContext();
+    var d = newRenderedHTMLDocument(A_08_02_03_T01.ctx);
+
+    //create iframe
+    var iframe = document.createElement('iframe');
+    A_08_02_03_T01.iframe = iframe;
+
+    iframe.src = '../../resources/blank.html';
+    iframe.setAttribute('name', 'targetIframe');
+
+    // create form
+    var form = d.createElement('form');
+    form.setAttribute('target', 'targetIframe');
+    form.setAttribute('method', 'GET');
+    form.setAttribute('action', '../../resources/blank.html');
+    d.body.appendChild(form);
+
+    // create shadow root
+    var root = d.createElement('div');
+    form.appendChild(root);
+    var s = root.attachShadow({mode: 'open'});
+
+    var input1 = d.createElement('input');
+    input1.setAttribute('type', 'text');
+    input1.setAttribute('name', 'inp1');
+    input1.setAttribute('value', 'value1');
+    form.appendChild(input1);
+
+    var input2 = d.createElement('input');
+    input2.setAttribute('type', 'text');
+    input2.setAttribute('name', 'inp2');
+    input2.setAttribute('value', 'value2');
+    s.appendChild(input2);
+
+    // Wait for the first 'load' event for blank.html.
+    iframe.onload = A_08_02_03_T01.step_func(() => {
+        // Wait for the second 'load' event for the submission.
+        iframe.onload = checkIframeContent;
+        form.submit();
+    });
+    d.body.appendChild(iframe);
+});
+</script>
+</body>
+</html>

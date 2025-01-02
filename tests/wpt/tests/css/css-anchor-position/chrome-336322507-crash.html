@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/336322507">
+<style>
+  #crash {
+    --grad: linear-gradient(black, white);
+    background: var(--grad);
+    position: absolute;
+    top: anchor(center);
+  }
+</style>
+<div id="crash"></div>
+<script>
+  document.body.offsetTop;
+  crash.remove();
+</script>

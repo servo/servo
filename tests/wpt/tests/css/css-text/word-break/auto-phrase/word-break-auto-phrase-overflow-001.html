@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-overflow-001-ref.html">
+<!--
+  This test assumes that all engines segment a Japanese text:
+    楽しいドライブ
+  to the following phrases:
+    楽しい / ドライブ
+
+  While assuming all engines segment this way looks fairly reasonable,
+  segmenting differently doesn't necessarily mean a failure because the
+  algorithm is UA dependent. Please add references if different.
+-->
+<style>
+@font-face {
+  font-family: mplus;
+  src: url(/fonts/mplus-1p-regular.woff);
+}
+.container > div {
+  font-family: mplus;
+  word-break: auto-phrase;
+  font-size: 10px;
+  border: 1px solid;
+}
+</style>
+<div class="container" lang="ja">
+  <!-- Both phrases can fit to 7em, but the whole sentence doesn't. -->
+  <div style="width: 7em">
+    楽しいドライブ。</div>
+  <!-- The 2nd phrase doesn't fit to `4em`, hence fallback to normal. -->
+  <div style="width: 4em">
+    楽しいドライブ。</div>
+  <!-- Only one character can fit to `1em`, but no break before the period. -->
+  <div style="width: 1em">
+    楽しいドライブ。</div>
+  <!-- Breaks even before the period if `overflow-wrap`. -->
+  <div style="width: 1em; overflow-wrap: anywhere">
+    楽しいドライブ。</div>
+</div>

@@ -1,0 +1,17 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: AAC WebCodecs Registration (https://w3c.github.io/webcodecs/aac_codec_registration.html)
+
+partial dictionary AudioEncoderConfig {
+  AacEncoderConfig aac;
+};
+
+dictionary AacEncoderConfig {
+  AacBitstreamFormat format = "aac";
+};
+
+enum AacBitstreamFormat {
+  "aac",
+  "adts",
+};

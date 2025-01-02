@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="match" href="page-box-004-print-ref.html">
+<!-- In a page context, vertical percentage margins and padding should be
+     resolved against the height of the containing block (unlike regular CSS
+     boxes, which always resolves such percentages against the inline-size of
+     the containing block. -->
+<style>
+  @page {
+    size: 500px;
+    margin: 5% 10% 15% 20%;
+    padding: 20% 15% 10% 5%;
+    border: 10px solid lightblue;
+  }
+  @page larger {
+    size: 500px 800px;
+  }
+  @page smaller {
+    size: 400px 300px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<!-- Create two pages for each of the three page types. -->
+<div style="height:200vh; background:yellow;">
+  On every page, the yellow rectangle should be centered within the page box
+  (the white area). (The lightblue rectangle should not be centered.)
+</div>
+<div style="page:larger; height:760px; background:yellow;"></div>
+<div style="page:smaller; height:260px; background:yellow;"></div>

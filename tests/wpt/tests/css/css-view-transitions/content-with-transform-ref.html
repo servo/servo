@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>View transitions: object-view-box (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.target {
+  contain: paint;
+  width: 100px;
+  height: 100px;
+  transform: scale(2.0, 3.0);
+}
+
+.embedded {
+  width: 100px;
+  height: 50px;
+}
+
+</style>
+<div id="target" class="target">
+  <div class="embedded" style="background: green;">Shared</div>
+  <div class="embedded" style="background: blue">Element</div>
+</div>
+</div>
+

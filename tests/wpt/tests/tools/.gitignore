@@ -1,0 +1,17 @@
+*#
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.cache/
+.hypothesis/
+*.py[co]
+*.sw[po]
+*~
+\#*
+runner/MANIFEST.json
+
+# WAVE
+!wave/www/lib
+!wave/export/lib
+!wave/export/css

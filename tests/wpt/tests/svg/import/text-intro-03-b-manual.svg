@@ -1,0 +1,84 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: text-intro-03-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#Introduction">
+        <p>
+          Test top-to-bottom internationalized text and the
+          following properties: 'writing-mode',
+          'glyph-orientation-vertical', 'glyph-orientation-horizontal'.
+        </p>
+        <p>
+          Various text strings in various languages appear. The main
+          purpose of the test is to verify that the correct characters
+          appear and that they appear in the correct order and orientation.
+          Ensure that the two lines of
+          vertical Japanese text have the proper orientation
+          (test of 'glyph-orientation-vertical' property).
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This test requires installation of a system font that supports
+        the various international characters used in this test case. A
+        suitable font should be used by the SVG renderer if none of the
+        specified font families are available (or if they are available but do
+        not have the required glyphs). To
+        minimize system dependencies, a future version of this test
+        might include all necessary glyphs as an SVG font.
+      </p>
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if first line of text has the english text "Text" and
+        "in Chinese" rotated 270 degrees and the Chinese text displayed top to
+        bottom. The second line of text has the english text "Japanese:" rotated
+        270 degrees and the Japanese text displayed top to bottom. The third
+        line of text has the letters in the english text "Japanese:" displayed
+        vertically and the Japanese text displayed top to bottom.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-intro-03-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="14" font-family="'Arial Unicode MS', 'LucidaSansUnicode','MS-Gothic'" writing-mode="tb">
+      <text x="70" y="10">Text "我能吞下玻璃而不伤身体。" in Chinese</text>
+      <text x="230" y="10" font-size="13">Japanese: 私はガラスを食べられます。それは私を傷つけません。</text>
+      <text x="370" y="13" glyph-orientation-vertical="0" font-size="10">Japanese: 私はガラスを食べられます。それは私を傷つけません。</text>
+      <text x="120" y="80" font-size="32">xt "我能吞</text>
+      <text x="280" y="80" font-size="36">se: 私は</text>
+      <text x="420" y="80" glyph-orientation-vertical="0" font-size="32">se: 私は</text>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

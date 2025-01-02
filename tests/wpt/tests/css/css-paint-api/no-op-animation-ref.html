@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body "lightyellow" contenteditable="true"="0">
+<div>=</div>
+
+<script>
+function edit() {
+  document.execCommand("selectAll");
+  document.execCommand("InsertHTML",false,"<pre></pre>");
+  document.execCommand("InsertHTML",false,"<div>i</div>");
+  document.execCommand("indent");
+  document.execCommand("selectAll");
+}
+edit();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://github.com/whatwg/html/pull/6466">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="height:2000px">spacer</div>
+
+<details id=details>
+  <div id=target>target</div>
+</details>
+
+<script>
+async_test(t => {
+  assert_false(details.hasAttribute('open'),
+    `The <details> should be closed at the start of the test.`);
+  assert_equals(window.pageYOffset, 0,
+    `The page should be scrolled to the top at the start of the test.`);
+
+  window.location.hash = '#target';
+
+  requestAnimationFrame(t.step_func_done(() => {
+    assert_true(details.hasAttribute('open'),
+      `<details> should be opened by navigating to an element inside it.`);
+    assert_not_equals(window.pageYOffset, 0,
+      `The page should be scrolled down to the <details> element.`);
+  }));
+});
+</script>

@@ -1,0 +1,36 @@
+name: "All Tests: Safari Technology Preview"
+
+# We never interact with the GitHub API, thus we can simply disable all
+# permissions the GitHub token would have.
+permissions: {}
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [epochs]
+    types:
+      - completed
+  push:
+    branches:
+      - epochs/three_hourly
+      - triggers/safari_preview
+
+jobs:
+  check-workflow-run:
+    name: "Check for appropriate epochs"
+    uses: ./.github/workflows/check-workflow-run.yml
+    with:
+      check-refs: '["refs/heads/epochs/three_hourly"]'
+    permissions:
+      actions: read
+
+  safari-technology-preview-results:
+    name: "All Tests: Safari Technology Preview"
+    needs: check-workflow-run
+    if: |
+      github.event_name != 'workflow_run' || fromJSON(needs.check-workflow-run.outputs.updated-refs)[0] != null
+    uses: ./.github/workflows/safari-wptrunner.yml
+    with:
+      artifact-name: "safari-technology-preview-results"
+      safari-technology-preview: true
+      safaridriver-diagnose: false

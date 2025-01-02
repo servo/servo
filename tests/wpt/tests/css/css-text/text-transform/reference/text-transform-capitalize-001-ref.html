@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: capitalize, Latin Basic and Latin-1</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Doulos SIL', 'Noto Serif', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">The text is arranged in pairs of three-letter 'words'. Test passes if the words in each pair match<br>
+If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span>Aaa Aaa</span> <span>Bbb Bbb</span> <span>Ccc Ccc</span> <span>Ddd Ddd</span> <span>Eee Eee</span> <span>Fff Fff</span> <span>Ggg Ggg</span> <span>Hhh Hhh</span> <span>Iii Iii</span> <span>Jjj Jjj</span> <span>Kkk Kkk</span> <span>Lll Lll</span> <span>Mmm Mmm</span> <span>Nnn Nnn</span> <span>Ooo Ooo</span> <span>Ppp Ppp</span> <span>Qqq Qqq</span> <span>Rrr Rrr</span> <span>Sss Sss</span> <span>Ttt Ttt</span> <span>Uuu Uuu</span> <span>Vvv Vvv</span> <span>Www Www</span> <span>Xxx Xxx</span> <span>Yyy Yyy</span> <span>Zzz Zzz</span> <span title="U+00B5">&#x039C;&#x00B5;&#x00B5; &#x039C;&#x00B5;&#x00B5;</span>  <span title="U+00E0">&#x00C0;&#x00E0;&#x00E0; &#x00C0;&#x00E0;&#x00E0;</span>  <span title="U+00E1">&#x00C1;&#x00E1;&#x00E1; &#x00C1;&#x00E1;&#x00E1;</span>  <span title="U+00E2">&#x00C2;&#x00E2;&#x00E2; &#x00C2;&#x00E2;&#x00E2;</span>  <span title="U+00E3">&#x00C3;&#x00E3;&#x00E3; &#x00C3;&#x00E3;&#x00E3;</span>  <span title="U+00E4">&#x00C4;&#x00E4;&#x00E4; &#x00C4;&#x00E4;&#x00E4;</span>  <span title="U+00E5">&#x00C5;&#x00E5;&#x00E5; &#x00C5;&#x00E5;&#x00E5;</span>  <span title="U+00E6">&#x00C6;&#x00E6;&#x00E6; &#x00C6;&#x00E6;&#x00E6;</span>  <span title="U+00E7">&#x00C7;&#x00E7;&#x00E7; &#x00C7;&#x00E7;&#x00E7;</span>  <span title="U+00E8">&#x00C8;&#x00E8;&#x00E8; &#x00C8;&#x00E8;&#x00E8;</span>  <span title="U+00E9">&#x00C9;&#x00E9;&#x00E9; &#x00C9;&#x00E9;&#x00E9;</span>  <span title="U+00EA">&#x00CA;&#x00EA;&#x00EA; &#x00CA;&#x00EA;&#x00EA;</span>  <span title="U+00EB">&#x00CB;&#x00EB;&#x00EB; &#x00CB;&#x00EB;&#x00EB;</span>  <span title="U+00EC">&#x00CC;&#x00EC;&#x00EC; &#x00CC;&#x00EC;&#x00EC;</span>  <span title="U+00ED">&#x00CD;&#x00ED;&#x00ED; &#x00CD;&#x00ED;&#x00ED;</span>  <span title="U+00EE">&#x00CE;&#x00EE;&#x00EE; &#x00CE;&#x00EE;&#x00EE;</span>  <span title="U+00EF">&#x00CF;&#x00EF;&#x00EF; &#x00CF;&#x00EF;&#x00EF;</span>  <span title="U+00F0">&#x00D0;&#x00F0;&#x00F0; &#x00D0;&#x00F0;&#x00F0;</span>  <span title="U+00F1">&#x00D1;&#x00F1;&#x00F1; &#x00D1;&#x00F1;&#x00F1;</span>  <span title="U+00F2">&#x00D2;&#x00F2;&#x00F2; &#x00D2;&#x00F2;&#x00F2;</span>  <span title="U+00F3">&#x00D3;&#x00F3;&#x00F3; &#x00D3;&#x00F3;&#x00F3;</span>  <span title="U+00F4">&#x00D4;&#x00F4;&#x00F4; &#x00D4;&#x00F4;&#x00F4;</span>  <span title="U+00F5">&#x00D5;&#x00F5;&#x00F5; &#x00D5;&#x00F5;&#x00F5;</span>  <span title="U+00F6">&#x00D6;&#x00F6;&#x00F6; &#x00D6;&#x00F6;&#x00F6;</span>  <span title="U+00F8">&#x00D8;&#x00F8;&#x00F8; &#x00D8;&#x00F8;&#x00F8;</span>  <span title="U+00F9">&#x00D9;&#x00F9;&#x00F9; &#x00D9;&#x00F9;&#x00F9;</span>  <span title="U+00FA">&#x00DA;&#x00FA;&#x00FA; &#x00DA;&#x00FA;&#x00FA;</span>  <span title="U+00FB">&#x00DB;&#x00FB;&#x00FB; &#x00DB;&#x00FB;&#x00FB;</span>  <span title="U+00FC">&#x00DC;&#x00FC;&#x00FC; &#x00DC;&#x00FC;&#x00FC;</span>  <span title="U+00FD">&#x00DD;&#x00FD;&#x00FD; &#x00DD;&#x00FD;&#x00FD;</span>  <span title="U+00FE">&#x00DE;&#x00FE;&#x00FE; &#x00DE;&#x00FE;&#x00FE;</span>  <span title="U+00FF">&#x0178;&#x00FF;&#x00FF; &#x0178;&#x00FF;&#x00FF;</span>  </div>
+</body>
+</html>

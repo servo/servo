@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Display: getComputedStyle().display</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
+<link rel="help" href="https://tabatkins.github.io/specs/css-masonry/#masonry-containers">
+<meta name="assert" content="position and float can change display computed value.">
+<meta name="assert" content="display computed value is otherwise as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+// https://tabatkins.github.io/specs/css-masonry/#masonry-containers
+test_computed_value("display", "masonry");
+test_computed_value("display", "inline-masonry");
+
+// https://www.w3.org/TR/CSS2/visuren.html#dis-pos-flo
+function test_display_affected(property, value) {
+  const target = document.getElementById('target');
+  test(() => {
+    target.style[property] = value;
+    target.style.display = 'inline-masonry';
+    assert_equals(getComputedStyle(target).display, 'masonry', 'inline-masonry -> masonry');
+
+    target.style[property] = '';
+    target.style.display = '';
+  }, property + ' ' + value + ' affects computed display');
+}
+
+test_display_affected("position", "absolute");
+test_display_affected("position", "fixed");
+test_display_affected("float", "left");
+test_display_affected("float", "right");
+</script>
+</body>
+</html>

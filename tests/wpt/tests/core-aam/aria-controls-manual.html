@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-controls</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_CONTROLLER_FOR",
+                  "is",
+                  "[list]"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXLinkedUIElements",
+                  "is",
+                  "[list]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_CONTROLLER_FOR",
+                  "is",
+                  "[list]"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControllerFor",
+                  "is",
+                  "[list]"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "list",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_CONTROLLED_BY",
+                  "is",
+                  "[test]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_CONTROLLED_BY",
+                  "is",
+                  "[test]"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-controls"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-controls.</p>
+    <div role='combobox' id='test' aria-controls='list'>
+    <div role='textbox'>content</div>
+  </div>
+  <div role='listbox' id='list'>
+    <div role='option'>content</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

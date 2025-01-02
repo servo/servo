@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<title>scroll-snap-type + scroll-padding propagates root to viewport</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type'>
+<link rel='help' href='https://drafts.csswg.org/css-scroll-snap-1/#scroll-padding'>
+<link rel='match' href='scroll-snap-root-001-ref.html'>
+<meta name='assert'
+      content="Test passes if scroll snap properties on root are applied to viewport.">
+
+<style type='text/css'>
+html, body { margin: 0; padding: 0; }
+
+:root {
+  scroll-snap-type: block mandatory;
+  scroll-padding: 25%;
+  overflow: hidden; /* hide scrollbars for reftest analysis */
+}
+
+#fail {
+  font: bold 2em;
+  background: red;
+  height: 120vh;
+  margin-bottom: 60vh;
+}
+
+#target {
+  margin-bottom: 120vh;
+  scroll-margin: 25vh;
+  scroll-snap-align: start;
+  border-top: solid blue;
+}
+</style>
+
+<div id="fail">FAIL</div>
+
+<div id="target">
+  <div>Test passes if the blue line above is centered in the viewport.</div>
+</div>
+
+<script>
+  document.getElementById('target').scrollIntoView();
+</script>

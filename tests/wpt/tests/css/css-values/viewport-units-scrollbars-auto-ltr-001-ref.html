@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: Viewport units and scrollbars</title>
+<meta charset="UTF-8">
+<link rel="author"  title="fantasai" href="http://fantasai.inkedblade.net/contact">
+
+
+<!-- This reference assumes that a <div> scrollbar looks identical to the root scrollbar. -->
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  width: 100%;
+  height: 100%;
+  background: white;
+  overflow: auto;
+}
+div {
+  width: 200%;
+  height: 200%;
+  border-right: solid blue 4px;
+  border-bottom: solid blue 4px;
+}
+</style>
+
+<div></div>

@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/elementsFromPoint.js"></script>
+<style>
+html {
+    overflow-y: scroll;
+    overflow-x: scroll;
+}
+html, body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    width: 100%;
+    height: 100%;
+}
+#simpleDiv {
+    width: 200px;
+    height: 200px;
+    background-color: rgba(0,255,0,0.5);
+}
+#beyondTopLeft {
+    position: absolute;
+    transform: translate3d(-100px, -100px, 10px);
+    left: 0;
+    top: 0;
+    width: 100px;
+    height: 100px;
+    background-color: rgba(0,0,0,0.1);
+}
+</style>
+<body>
+<div id="beyondTopLeft"></div>
+<div id="simpleDiv"></div>
+<script>
+test(function() {
+    assertElementsFromPoint('document', 300, 300, [document.documentElement]);
+}, "The root element is the last element returned for otherwise empty queries within the viewport");
+
+test(function() {
+    var simpleDiv = document.getElementById('simpleDiv');
+    var simpleRect = simpleDiv.getBoundingClientRect();
+    var simpleCoords = (simpleRect.right - 1) + ', ' + (simpleRect.bottom - 1);
+    assertElementsFromPoint('document', simpleRect.right - 1, simpleRect.bottom - 1,
+        [simpleDiv, document.body, document.documentElement]);
+}, "The root element is the last element returned for valid queries");
+
+test(function() {
+    assertElementsFromPoint('document', window.innerWidth + 1, window.innerHeight + 1, []);
+    assertElementsFromPoint('document', -1, -1, []);
+    assertElementsFromPoint('document', 1, -1, []);
+    assertElementsFromPoint('document', -1, 1, []);
+}, "An empty sequence is returned for queries outside the viewport");
+</script>
+</body>

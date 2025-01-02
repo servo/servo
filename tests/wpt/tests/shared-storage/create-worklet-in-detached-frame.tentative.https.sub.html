@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <iframe></iframe>
+  <script>
+    promise_test(async t => {
+      const iframe = document.querySelector('iframe');
+      const childSharedStorage = iframe.contentWindow.sharedStorage;
+      iframe.remove();
+
+      try {
+        await childSharedStorage.createWorklet("resources/simple-module.js");
+      } catch (e) {
+        assert_equals(e.name, 'InvalidAccessError');
+        return;
+      }
+      assert_unreached("did not reject");
+    }, 'createWorklet() when frame is detached');
+  </script>
+</body>

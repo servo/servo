@@ -1,0 +1,21 @@
+<!doctype HTML>
+<html class="reftest-wait">
+  <title>CSS Test: Test for re-paint after stacking context removal due to opacity transition</title>
+  <link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org" />
+  <link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+  <link rel="match" href="opacity-transition-change-parent-stacking-context-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <div style="position: relative;">
+    <div id=target style="transition:.00001s ease; opacity: 0; backface-visibility: hidden; width: 100px; height: 100px; background: green;"></div>
+  </div>
+  <script>
+    onload = function() {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        target.style.opacity = 1;
+        requestAnimationFrame(() => {
+          takeScreenshot();
+        });
+      }));
+    }
+  </script>
+</html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+  <title>Clear window.name when cross-origin</title>
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+<body>
+  <script>
+
+function anchorClick(n) {
+  const hyperlink = document.body.appendChild(document.createElement("a"))
+  hyperlink.rel = "noopener";
+  hyperlink.target = "_blank";
+  hyperlink.href = n;
+  hyperlink.click();
+}
+
+async function pollResultAndCheck(t, id, expected) {
+  const stashURL = new URL("resources/window-name-stash.py", location);
+  stashURL.searchParams.set('id', id);
+
+  let res = "NONE";
+  while (res == "NONE") {
+    await new Promise(resolve => { t.step_timeout(resolve, 100); });
+
+    const response = await fetch(stashURL);
+    res = await response.text();
+  }
+  if (res !== expected) {
+    assert_unreached('Stash result does not equal expected result.')
+  }
+}
+
+promise_test(async t => {
+  const id = token();
+
+  window.open(`resources/window-name.sub.html?report=${id}|close`, id);
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset when there is an opener around");
+
+promise_test(async t => {
+  const id = token();
+
+  window.open(`resources/window-name.sub.html?cross|same|report=${id}|close`, id);
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset when there is an opener around (cross-origin)");
+
+promise_test(async t => {
+  const id = token();
+
+  window.open(`resources/window-name.sub.html?report=${id}|close`, id, "noopener");
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset at the first navigation away from initial about:blank with noopener");
+
+promise_test(async t => {
+  const id = token();
+
+  window.open(`resources/window-name.sub.html?cross|same|report=${id}|close`, id, "noopener");
+  await pollResultAndCheck(t, id, "");
+}, "Window.name is reset at the first cross-origin navigation with noopener");
+
+promise_test(async t => {
+  const id = token();
+
+  let win = window.open(`resources/window-name.sub.html?report=${id}|close`, id);
+  win.opener = null;
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset at the first navigation away from initial about:blank with window.opener set to null");
+
+promise_test(async t => {
+  const id = token();
+
+  let win = window.open(`resources/window-name.sub.html?same|report=${id}|close`, id);
+  win.opener = null;
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset at the same-origin navigation with window.opener set to null");
+
+promise_test(async t => {
+  const id = token();
+
+  let win = window.open(`resources/window-name.sub.html?cross|same|report=${id}|close`, id);
+  win.opener = null;
+  await pollResultAndCheck(t, id, "");
+}, "Window.name is reset at the first first cross-origin navigation with window.opener set to null");
+
+promise_test(async t => {
+  const id = token();
+
+  anchorClick(`resources/window-name.sub.html?set=${id}|report=${id}|close`);
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is set by the window");
+
+promise_test(async t => {
+  const id = token();
+
+  anchorClick(`resources/window-name.sub.html?set=${id}|cross|same|report=${id}|close`);
+  await pollResultAndCheck(t, id, "");
+}, "Window.name is reset at the first cross-origin navigation");
+
+promise_test(async t => {
+  const id = token();
+
+  window.open(`resources/window-name.sub.html?open|navOpener=about:blank|reportOpener=${id}|closeOpener|close`, id, "noopener");
+  await pollResultAndCheck(t, id, id);
+}, "window.name is not reset after navigating to an about:blank page from a non-about:blank page");
+
+
+promise_test(async t => {
+  const id = token();
+  const domain = window.location.host;
+
+  anchorClick(`resources/window-name.sub.html?sub|set=${id}|setDomain=${domain}|sub|report=${id}|close`);
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset if the document.domain is set to the parent domain");
+
+
+  </script>
+</body>
+</html>

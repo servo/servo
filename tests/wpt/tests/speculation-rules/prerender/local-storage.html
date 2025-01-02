@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering can access localStorage</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const uid1 = token();
+  const uid2 = token();
+
+  // A promise to wait until a prerendered page writes data with the "prerender"
+  // key in the local storage.
+  const write_promise = new Promise((resolve, reject) => {
+    window.addEventListener("storage", event => {
+      if (event.key !== 'prerender') {
+        reject("wrong key");
+      } else {
+        resolve();
+      }
+    }, { once: true });
+  });
+
+  const rule_extras = {'target_hint': getTargetHint()};
+
+  window.localStorage.setItem('initial', uid1);
+  const {exec} = await create_prerendered_page(
+      t, undefined, undefined, rule_extras);
+  const result = await exec(uid2 => {
+    window.localStorage.setItem('prerender', uid2);
+    return window.localStorage.getItem('initial');
+  }, [uid2])
+
+  // Start prerendering a page that attempts to access localStorage API.
+  assert_equals(
+    result, uid1,
+      'prerendering page should be able to read from local storage');
+
+  await write_promise;
+  assert_equals(
+    window.localStorage.getItem('prerender'), uid2,
+      'prerendering page should be able to write to local storage');
+}, 'prerendering page should be able to access local storage');
+</script>

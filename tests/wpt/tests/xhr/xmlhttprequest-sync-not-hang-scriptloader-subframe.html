@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script>
+  function secondScriptRan() {
+    parent.postMessage("done", "*");
+  }
+
+  function createSecondScript() {
+      var script = document.createElement("script");
+      script.src = "data:application/javascript,secondScriptRan()";
+      document.head.appendChild(script);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "data:,", false);
+      xhr.send();
+  }
+</script>
+<script src="data:application/javascript,createSecondScript()" defer></script>

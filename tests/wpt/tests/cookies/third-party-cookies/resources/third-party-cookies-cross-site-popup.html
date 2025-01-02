@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>Cross-site popup</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/third-party-cookies/resources/test-helpers.js"></script>
+
+<body>
+  <button id="button" onclick="userInteractionCallback()">Click for user interaction</button>
+
+  <script>
+    const origin = window.origin;
+    const crossSiteOrigin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname;
+
+    function userInteractionCallback() {
+      // Third-party cookies are now allowed.
+      const verify3pAllowedUrl = new URL(
+        `./third-party-cookies-cross-site-popup-verify.html?desc=3P_fetch_with_heuristics&origin=${encodeURIComponent(origin)}`,
+        crossSiteOrigin);
+      const verify3pAllowedPopup = window.open(verify3pAllowedUrl);
+      fetch_tests_from_window(verify3pAllowedPopup);
+    };
+
+    test_driver.set_test_context(window.opener.opener);
+    test_driver.click(document.getElementById("button"));
+
+  </script>
+</body>

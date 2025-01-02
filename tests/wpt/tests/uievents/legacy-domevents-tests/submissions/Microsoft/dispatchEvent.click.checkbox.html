@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> MouseEvent: Default action and synthetic click event </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "click";
+            var TARGET;
+            var HELPER;
+
+            function TestEvent(evt)
+            {
+                if (HELPER == evt.target)
+                {
+                    HELPER.removeEventListener(EVENT, TestEvent, true);
+                    var e = document.createEvent("MouseEvent");
+                    e.initMouseEvent(EVENT,  /* type */
+                                     false,  /* bubbles */
+                                     true,   /* cancelable */
+                                     window, /* view */
+                                     1,      /* detail */
+                                     0,      /* screenX */
+                                     0,      /* screenY */
+                                     0,      /* clientX */
+                                     0,      /* clientY */
+                                     false,  /* ctrlKey */
+                                     false,  /* altKey */
+                                     false,  /* shiftKey */
+                                     false,  /* metaKey */
+                                     0,      /* button */
+                                     null    /* relatedTarget */ );
+
+                    TARGET.dispatchEvent(e);
+                }
+                else if (TARGET == evt.target)
+                {
+                    if ((true == TARGET.checked) && (false == evt.bubbles))
+                    {
+                        PassTest();
+                    }
+                    else
+                    {
+                        FailTest();
+                    }
+                }
+            }
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    HELPER = document.getElementById("helper");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                    HELPER.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: MouseEvent: Default action is performed when a synthetic click event is dispatched on a checkbox element
+        </h4>
+
+        <input type="checkbox" id="target">
+        <button id="helper">Click Here</button>
+
+        <p id="manualsteps">
+            Steps:
+            <ol>
+                <li> Click the button "Click Here"
+            </ol>
+        </p>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

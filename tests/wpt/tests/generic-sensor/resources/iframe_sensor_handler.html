@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>cross-origin iframe sensor tester</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
+<script>
+  let sensor = null;
+
+  test_driver.set_test_context(window.parent);
+
+  // This function is defined separately so that it is added only once
+  // regardless of how many times the 'start_sensor' command is received.
+  function sensorReadingEventHandler() {
+    window.parent.postMessage(
+      {
+        eventName: 'reading',
+        serializedSensor: serialize_sensor_data(sensor),
+      }, '*');
+  }
+
+  async function messageHandler(e) {
+    switch (e.data.command) {
+      case 'create_sensor':
+        if (!sensor) {
+          const { sensorName, permissionName } = e.data.sensorData;
+          // TODO(https://github.com/w3c/permissions/issues/419): This does not
+          // work as expected: due to the set_test_context() call above, this
+          // call goes through the top-level frame, which has a different
+          // origin in cross-origin tests, meaning that cross-origin tests only
+          // really work when permissions are granted by default. This can only
+          // be fixed by testdriver.js allowing set_permission() to specify a
+          // different origin.
+          await test_driver.set_permission({ name: permissionName }, 'granted');
+          sensor = new self[sensorName]();
+        }
+        return Promise.resolve();
+
+      case 'start_sensor':
+        return new Promise((resolve, reject) => {
+          // This event listener is different from the ones below, as it is
+          // supposed to be used together with IframeSensorReadingEventWatcher.
+          // It sends a message whenever there is an event, and window.parent
+          // decides whether it was expected or not. It is the only way to have
+          // something akin to EventWatcher in a cross-origin iframe.
+          sensor.addEventListener('reading', sensorReadingEventHandler);
+
+          sensor.addEventListener('activate', () => {
+            resolve();
+          }, { once: true });
+          sensor.addEventListener('error', e => {
+            reject(`${e.error.name}: ${e.error.message}`);
+          }, { once: true });
+          sensor.start();
+        });
+
+      case 'has_reading':
+        return Promise.resolve(sensor.hasReading);
+
+      case 'stop_sensor':
+        if (sensor) {
+          sensor.stop();
+        }
+        return Promise.resolve();
+
+      default:
+        return Promise.reject(`unknown command "${e.data.command}"`);
+    }
+  }
+
+  window.onmessage = async (e) => {
+    // The call to test_driver.set_context() above makes messages other than
+    // those we are specifically waiting for to be delivered too. Ignore those
+    // here.
+    if (!e.data.command) {
+      return;
+    }
+
+    try {
+      test_driver.message_test({
+        command: e.data.command,
+        result: await messageHandler(e),
+      });
+    } catch (error) {
+      test_driver.message_test({
+        command: e.data.command,
+        error,
+      });
+    }
+  }
+</script>

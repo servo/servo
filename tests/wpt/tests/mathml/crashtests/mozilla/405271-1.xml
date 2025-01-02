@@ -1,0 +1,36 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+<head>
+
+<style type="text/css">
+#q { width: 16px; height: 16px; }
+#a, #b { counter-increment: chicken; }
+</style>
+
+<style id="s" type="text/css">
+#a { content: 'x'; }
+</style>
+
+<script type="text/javascript">
+
+function boom()
+{
+  remove(document.getElementById("s"));
+  remove(document.getElementById("b"));
+}
+
+function remove(n)
+{
+  n.parentNode.removeChild(n);
+}
+
+</script>
+
+</head>
+
+<body onload="boom();">
+
+<m:mrow id="a"/><m:mo id="q"><m:malignmark><m:msubsup/><m:munderover/><m:munder id="b"/></m:malignmark></m:mo>
+
+</body>
+
+</html>

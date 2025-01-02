@@ -1,0 +1,10 @@
+<text>
+    <head>
+       <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0" xlink:href="domain4xmlrules.xml"/>
+        <meta name="DC.subject" content="sports law"/>
+    </head>
+    <body>
+	<p>Sports law is an umbrella term used to describe the legal issues at work in the world of both amateur and professional sports.</p>
+	<p>Sports law overlaps substantially with labor law, contract law, competition or antitrust law, and tort law.</p>
+    </body>
+</text>

@@ -1,0 +1,14 @@
+<!doctype html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-cross-item" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#attributes-for-embedded-content-and-images" />
+<link rel="issue" href="https://crbug.com/1175526" />
+<meta name="assert" content="width and height attributes on canvas don't map to css width/height, but do map to css aspect ratio, which is honored by flexbox, even when the item has contain: size. " />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+
+<p>Test passes if there is a filled green square.</p>
+
+<!-- align-items: flex-start so we don't have to think about stretching -->
+<div style="display: flex; align-items: flex-start;">
+  <canvas width=20 height=20 style="contain: size; background: green; width: 100px;">
+</div>

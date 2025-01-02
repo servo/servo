@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8" />
+<title>Raster transform 3D scales with different X and Y components changing dynamically</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="match" href="transform-3d-scales-different-x-y-dynamic-002-ref.html" />
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#funcdef-scale3d" />
+<meta name="assert" content="Checks that when the X and Y components of a 3D scale are changed dynamically, the result looks like when setting the value from the very beginning." />
+<style>
+body {
+  margin: 0;
+  overflow: clip;
+}
+.test:nth-of-type(even) {
+  color: white;
+}
+.test {
+  position: absolute;
+  width: 0;
+  transform-origin: 0 0;
+  border-right: 25px solid transparent;
+  border-top: calc(25px * var(--scale)) solid currentcolor;
+  transform: scale3d(1, var(--scale), 1);
+}
+.change > .test {
+  transform: scale3d(var(--scale), 1, 1);
+}
+</style>
+<body>
+<script>
+"use strict";
+for (let i = 1; i < 14; ++i) {
+  const test = document.createElement("div");
+  test.className = "test";
+  test.style.setProperty("--scale", i * 4);
+  test.style.setProperty("z-index", -i);
+  document.body.appendChild(test);
+}
+document.addEventListener("TestRendered", () => {
+  document.body.className = "change";
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</body>

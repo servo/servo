@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<html class=reftest-wait>
+<title>View transitions: object-view-box</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="content-with-transform-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-400">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+.target {
+  contain: paint;
+  width: 100px;
+  height: 100px;
+  transform: scale(2.0, 3.0);
+  view-transition-name: target;
+}
+
+.embedded {
+  width: 100px;
+  height: 50px;
+}
+
+.hidden {
+  contain: paint;
+  width: 10px;
+  height: 10px;
+  background: grey;
+  view-transition-name: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-old(target) {
+  animation: unset;
+  opacity: 1;
+}
+html::view-transition-new(target) { animation: unset; opacity: 0; }
+
+</style>
+
+<div id="target" class="target">
+  <div class="embedded" style="background: green;">Shared</div>
+  <div class="embedded" style="background: blue">Element</div>
+</div>
+<div id=hidden class=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    requestAnimationFrame(() =>  requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(runTest);
+</script>
+

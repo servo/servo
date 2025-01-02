@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: scroller element</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="scroller-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5; totalPixels=0-10">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#scroller {
+  overflow: scroll;
+  width: 100px;
+  height: 100px;
+  background: blue;
+  view-transition-name: target;
+}
+
+#child {
+  position: relative;
+  width: 1000px;
+  height: 1000px;
+  background: green;
+}
+
+html::view-transition-group(root) { animation-duration: 300s; }
+html::view-transition-old(target) {
+  animation: unset;
+  opacity: 1;
+}
+html::view-transition-new(target) {
+  animation: unset;
+  opacity: 0;
+}
+</style>
+
+<div id="scroller">
+  <div id="child"></div>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  scroller.scrollTop = 300;
+
+  let transition = document.startViewTransition();
+  transition.ready.then(() => requestAnimationFrame(takeScreenshot));
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

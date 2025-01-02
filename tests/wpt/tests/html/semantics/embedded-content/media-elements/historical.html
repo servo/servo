@@ -1,0 +1,56 @@
+<!doctype html>
+<title>Historical media element features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function t(property, tagName) {
+  var tagNames = tagName ? [tagName] : ['audio', 'video'];
+  tagNames.forEach(function(tagName) {
+    test(function() {
+      assert_false(property in document.createElement(tagName));
+    }, tagName + '.' + property + ' should not be supported');
+  });
+}
+
+t('bufferingRate'); // added in r678, removed in r2872.
+t('start'); // added in r692, removed in r2401.
+t('end'); // added in r692, removed in r2401.
+t('loopStart'); // added in r692, removed in r2401.
+t('loopEnd'); // added in r692, removed in r2401.
+t('loopCount'); // added in r692, replaced with playCount in r1105.
+t('currentLoop'); // added in r692, removed in r2401.
+t('addCuePoint'); // added in r721, replaced with addCueRange in r1106.
+t('removeCuePoint'); // added in r721, replaced with removeCueRanges in r1106.
+t('playCount'); // added in r1105, removed in r2401.
+t('addCueRange'); // added in r1106, removed in r5070.
+t('removeCueRanges'); // added in r1106, removed in r5070.
+t('pixelratio', 'source'); // added in r1629, removed in r2493.
+t('bufferedBytes'); // added in r1630, removed in r2405.
+t('totalBytes'); // added in r1630, removed in r2405.
+t('bufferingThrottled'); // added in r1632, removed in r2872.
+t('autobuffer'); // added in r2855, replaced with preload in r4811.
+t('startTime'); // added in r3035, replaced with initialTime in r5310.
+t('startOffsetTime'); // added in r5310, replaced with startDate in r7045.
+t('initialTime'); // added in r5310, removed in r7046.
+t('audio', 'video'); // added in r5636, replaced with muted in r5991.
+t('startDate'); // added in r7045, replaced with getStartDate() in r8113.
+t('mozSrcObject'); // never in the spec
+t('mozPreservesPitch'); // prefixed version should be removed.
+t('webkitPreservesPitch'); // prefixed version should be removed.
+
+// TextTrackCue constructor: added in r5723, removed in r7742.
+test(function() {
+  assert_throws_js(TypeError, function() {
+    new TextTrackCue(0, 0, '');
+  });
+}, 'TextTrackCue constructor should not be supported');
+
+// added in https://github.com/whatwg/html/commit/66c5b32240c202c74f475872e7ea2cd163777b4a
+// removed in https://github.com/whatwg/html/commit/634698e70ea4586d58c989fa7d2cbfcad20d33e6
+t('mediaGroup');
+t('controller');
+test(function() {
+  assert_false('MediaController' in window);
+}, 'MediaController constructor should not be supported');
+</script>

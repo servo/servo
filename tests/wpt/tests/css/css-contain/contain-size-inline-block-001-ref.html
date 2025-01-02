@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  .basic {
+    display: inline-block;
+    border: 1em solid green;
+  }
+  .height-ref {
+    height: 50px;
+  }
+  .width-ref {
+    width: 50px;
+  }
+  .innerContents {
+    color: transparent;
+    width: 0;
+    height: 0;
+  }
+  </style>
+</head>
+<body>
+  <div class="basic"><div class="innerContents">i</div></div>
+  <br>
+
+  outside before<div class="basic"><div class="innerContents">i</div></div>outside after
+  <br>
+
+  <div class="basic height-ref"><div class="innerContents">i</div></div>
+  <br>
+
+  <div class="basic height-ref"><div class="innerContents">i</div></div>
+  <br>
+
+  <div class="basic width-ref"><div class="innerContents">i</div></div>
+  <br>
+
+  <div class="basic width-ref"><div class="innerContents">i</div></div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Anchor queries in sticky positioning is invalid</title>
+<style>
+#scroll-container {
+  width: 200px;
+  height: 200px;
+  overflow-y: scroll;
+}
+
+#scroller {
+  height: 400px;
+}
+
+#sticky {
+  position: sticky;
+  height: 150px;
+  background: green;
+  top: 42px;
+}
+</style>
+<div id="scroll-container">
+  <div id="scroller">
+    <div id="sticky">
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById("scroll-container").scrollTop = 50;
+</script>

@@ -1,0 +1,54 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Note that we have set the site page bit limit to 6 and the overall page
+// bit limit to 12.
+
+promise_test(async () => {
+  const queryKey = "query";
+  const mockResultKey = "mockresult";
+  const urlCountKey = "urlcount";
+  const moduleNameKey = "module";
+  const expectSavedKey = "expectsaved";
+  const expectSuccessKey = "expectsuccess";
+
+  let url0 =  new URL(
+      "/shared-storage/" +
+      "resources/select-url-saved-query-inner.https.sub.html",
+      location.href);
+
+  // We don't expect success because the returned index (2) is out of range for
+  // a URL list of size 1. Hence the default index (0) will be returned.
+  url0.searchParams.append(queryKey, "query");
+  url0.searchParams.append(mockResultKey, "2");
+  url0.searchParams.append(moduleNameKey, "simple-module");
+  url0.searchParams.append(urlCountKey, "1");
+  url0.searchParams.append(expectSavedKey, "false");
+  url0.searchParams.append(expectSuccessKey, "false");
+  await attachIFrameWithEventListenerForSelectURLStatus(url0);
+
+  // Re-using the query on a URL list of larger size doesn't affect the
+  // returned result even though 2 would have been in-range for a URL list
+  // of size 4. This verifies that the default index (0) is stored
+  // and retrieved in this case.
+  let url1 = url0;
+  url1.searchParams.delete(urlCountKey);
+  url1.searchParams.append(urlCountKey, "4");
+  url1.searchParams.delete(expectSavedKey);
+  url1.searchParams.append(expectSavedKey, "true");
+  await attachIFrameWithEventListenerForSelectURLStatus(url1);
+
+}, 'for selectURL(), a saved query result index is verified before storing,'
+   + ' and the default is stored if the index is out of range.');
+</script>
+</body>

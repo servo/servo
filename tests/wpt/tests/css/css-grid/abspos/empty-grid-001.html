@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>CSS Grid: empty grid without explicit tracks.</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos"/>
+<link rel="issue" href="https://crrev.com/562167"/>
+<meta name="assert" content="Test ensures that the grids with no in-flow items are actually empty."/>
+
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet"/>
+<link href="/fonts/ahem.css" rel="stylesheet" type="text/css"/>
+<style>
+.gridWithAbsolutePositionedItem {
+  /* Ensures that the grid container is the containing block of the absolutely positioned grid children. */
+  position: relative;
+}
+
+.grid {
+  grid-auto-columns: 200px;
+  grid-auto-rows: 200px;
+}
+
+.item {
+  position: absolute;
+  font: 10px/1 Ahem;
+}
+
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+function addRemoveItem()
+{
+  var gridItem = document.createElement("div");
+  gridItem.style.width = "100px";
+  gridItem.style.height = "100px";
+  gridItem.style.backgroundColor = "red";
+  var gridElement = document.getElementById("dynamicGrid");
+  gridElement.appendChild(gridItem);
+  gridElement.removeChild(gridItem);
+}
+
+setup({ explicit_done: true });
+
+function doTest() {
+  addRemoveItem();
+  checkLayout(".grid");
+}
+</script>
+
+<body onload="document.fonts.ready.then(() => { doTest(); })">
+
+<div class="grid min-content" data-expected-width="0" data-expected-height="0"></div>
+
+<div class="grid min-content gridWithAbsolutePositionedItem" data-expected-width="0" data-expected-height="0">
+  <div class="item" data-expected-width="40" data-expected-height="10">XXXX</div>
+</div>
+
+<div id="dynamicGrid" class="grid min-content" data-expected-width="0" data-expected-height="0"></div>
+
+<div class="grid min-content" style="grid-template-rows: 100px;" data-expected-width="0" data-expected-height="100"></div>
+<div class="grid min-content" style="grid-template-rows: auto;" data-expected-width="0" data-expected-height="0"></div>
+<div class="grid min-content" style="grid-template-rows: 1fr;" data-expected-width="0" data-expected-height="0"></div>
+
+<div class="grid min-content" style="grid-template-columns: 100px;" data-expected-width="100" data-expected-height="0"></div>
+<div class="grid min-content" style="grid-template-columns: auto;" data-expected-width="0" data-expected-height="0"></div>
+<div class="grid min-content" style="grid-template-columns: 1fr;" data-expected-width="0" data-expected-height="0"></div>
+
+</body>

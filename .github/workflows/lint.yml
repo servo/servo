@@ -1,0 +1,50 @@
+name: Lint
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 2 # This is necessary for `test-tidy`.
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2 # This is necessary for `test-tidy`.
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Install taplo
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: taplo-cli
+          locked: true
+      - name: Install cargo-deny
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-deny
+          locked: true
+      - name: Bootstrap dependencies
+        run: |
+          sudo apt update
+          ./mach bootstrap
+      # TODO: Do GitHub anotaions
+      - name: Clippy
+        run: |
+          ./mach clippy --use-crown --locked -- -- --deny warnings
+      - name: Tidy
+        run: ./mach test-tidy --no-progress --all

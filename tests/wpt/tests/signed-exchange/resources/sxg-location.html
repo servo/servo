@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Content of SignedHTTPExchange</title>
+<script>
+window.addEventListener('message', (event) => {
+  event.data.port.postMessage({
+      location: document.location.href,
+      referrer: document.referrer,
+      is_fallback: false});
+}, false);
+</script>

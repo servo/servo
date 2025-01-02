@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-auto">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1930561">
+<link rel="match" href="align-items-static-position-ref.html">
+<meta name="assert" content="Ensures that absolutely positioned elements take (align|justify)-item into account only when being static-positioned.">
+<style>
+.flex {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.grid {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+
+.static-positioned-inline {
+  left: auto;
+  right: auto;
+}
+
+.static-positioned-block {
+  top: auto;
+  bottom: auto;
+}
+
+.positioned-inline {
+  left: 0;
+  right: 0;
+}
+
+.positioned-block {
+  top: 0;
+  bottom: 0;
+}
+</style>
+<div class="container"><div class="flex">
+  <div class="abs static-positioned-inline static-positioned-block"></div>
+</div></div
+><div class="container"><div class="flex">
+  <div class="abs static-positioned-inline positioned-block"></div>
+</div></div
+><br>
+<div class="container"><div class="grid">
+  <div class="abs static-positioned-inline static-positioned-block"></div>
+</div></div
+><div class="container"><div class="grid">
+  <div class="abs static-positioned-inline positioned-block"></div>
+</div></div
+><div class="container"><div class="grid">
+  <div class="abs positioned-inline static-positioned-block"></div>
+</div></div
+><div class="container"><div class="grid">
+  <div class="abs positioned-inline positioned-block"></div>
+</div></div
+><br>

@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <title>Test throwing an error inside requestAnimationFrame callback</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      setup({allow_uncaught_exception: true});
+      async_test(function(t) {
+        var throwDidNotInterrupt = false;
+        function step() {
+          window.requestAnimationFrame(t.step_func(function() {
+            assert_true(throwDidNotInterrupt, "rAF should not throw errors");
+            t.done();
+          }));
+          throw new Error();
+        }
+        window.requestAnimationFrame(step);
+        throwDidNotInterrupt = true;
+      });
+    </script>
+  </body>
+</html>

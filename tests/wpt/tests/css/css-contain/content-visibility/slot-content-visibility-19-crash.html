@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1266891">
+
+<details id=details open="true">hello world</details>
+
+<script>
+  document.execCommand("selectAll");
+  details.open = false;
+  document.execCommand(false);
+  document.body.attachShadow({mode: 'open'});
+</script>

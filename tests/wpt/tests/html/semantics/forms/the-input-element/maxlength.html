@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>input max length</title>
+    <link rel="author" title="Sam Gibson" href="mailto:sam@ifdown.net">
+    <link rel=help href="https://html.spec.whatwg.org/multipage/forms.html#the-maxlength-and-minlength-attributes">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <h1>Text input element</h1>
+
+    <div style="display: none">
+      <input id="none" />
+      <input id="negative" type="-5" />
+      <input id="non-numeric" type="not-a-number" />
+      <input id="assign-negative" />
+      <input id="assign-non-numeric" />
+    </div>
+
+    <div id="log"></div>
+
+    <script type="text/javascript">
+      test(
+        function() {
+          assert_equals(document.getElementById("none").maxLength, -1);
+        }, "Unset maxlength is -1");
+
+      test(
+        function() {
+          assert_equals(document.getElementById("negative").maxLength, -1);
+        }, "Negative maxlength is always -1");
+
+      test(
+        function() {
+          assert_equals(document.getElementById("non-numeric").maxLength, -1);
+        }, "Non-numeric maxlength is -1");
+
+      test(
+          function() {
+            assert_throws_dom("INDEX_SIZE_ERR", function() {
+              document.getElementById("assign-negative").maxLength = -5;
+            });
+          }, "Assigning negative integer throws IndexSizeError");
+
+      test(
+          function() {
+            document.getElementById("assign-non-numeric").maxLength = "not-a-number";
+            assert_equals(document.getElementById("assign-non-numeric").maxLength, 0);
+          }, "Assigning non-numeric to maxlength sets maxlength to 0");
+    </script>
+  </body>
+</html>
+

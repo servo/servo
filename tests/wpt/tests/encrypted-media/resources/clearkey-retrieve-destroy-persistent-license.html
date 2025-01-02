@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extensions: persistent-license, retrieve and destroy, ClearKey</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+
+    <!-- Message handler for Clear Key keysystem -->
+    <script src=/encrypted-media/util/clearkey-messagehandler.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <div id='video'>
+      <video id="videoelement" width="200px"></video>
+    </div>
+
+    <script>
+    // Wait for a message from the main window with details of our task
+    window.addEventListener( 'message', function( event ) {
+
+        var config = event.data.config,
+            configuration = {   initDataTypes: [ config.initDataType ],
+                                audioCapabilities: [ { contentType: config.audioType } ],
+                                videoCapabilities: [ { contentType: config.videoType } ],
+                                sessionTypes: [ 'persistent-license' ] },
+            assertions = [ ];
+
+            var _mediaKeys,
+                _mediaKeySession;
+
+            config.video = document.getElementById('videoelement');
+            config.messagehandler = (new MessageHandler( 'org.w3.clearkey')).messagehandler;
+
+        function onComplete() {
+            window.opener.postMessage({ testResult: assertions }, '*');
+        }
+
+        function onFailure(error) {
+            assertions.push( { actual: false, expected: true, message: error.toString() } );
+            onComplete();
+        }
+
+        function onMessage( messageevent )
+        {
+            assertions.push( { expected: true, actual: messageevent instanceof window.MediaKeyMessageEvent, message: "event is of correct class" } );
+            assertions.push( { expected: 'message', actual: messageevent.type, message: "event type is message" } );
+            assertions.push( { expected: 'license-release', actual: messageevent.messageType, message: "message type is license-release" } );
+
+            config.messagehandler( messageevent.messageType, messageevent.message )
+            .then( function( response ) {
+                messageevent.target.update( response ).catch(onFailure);
+            });
+        }
+
+        function onTimeupdate(event) {
+            if ( config.video.currentTime > ( config.duration || 1 ) ) {
+                config.video.pause();
+                config.video.removeAttribute('src');
+                config.video.load();
+                _mediaKeySession.remove();
+            }
+        }
+
+        function onClosed() {
+            // Try and reload and check this fails
+            var mediaKeySession = _mediaKeys.createSession( 'persistent-license' );
+            mediaKeySession.load( event.data.sessionId ).then( function( success ) {
+                assertions.push( { expected: false, actual: success, message: "Load of removed session should fail" } );
+                onComplete();
+            }).catch(onFailure);
+        }
+
+        navigator.requestMediaKeySystemAccess(config.keysystem, [ configuration ] )
+        .then(function(access) {
+            return access.createMediaKeys();
+        }).then(function(mediaKeys) {
+            _mediaKeys = mediaKeys;
+            return config.video.setMediaKeys(mediaKeys);
+        }).then(function() {
+            config.video.addEventListener('timeupdate', onTimeupdate, true);
+            _mediaKeySession = _mediaKeys.createSession( 'persistent-license' );
+            _mediaKeySession.addEventListener( 'message', onMessage );
+            _mediaKeySession.closed.then(onClosed);
+            return _mediaKeySession.load( event.data.sessionId );
+        }).then(function( success ) {
+            assertions.push( { actual: success, expected: true, message: "Expect load session to succeed" } );
+            if ( !success ) throw new DOMException();
+            return testmediasource(config);
+        }).then(function(source) {
+            config.video.src = URL.createObjectURL(source);
+            config.video.play();
+        })
+        .catch(onFailure);
+    } );
+
+    </script>
+  </body>
+</html>

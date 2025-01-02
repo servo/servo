@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Parser properly ignores a UTF-8 BOM character at the beginning of a file and all other cues are properly parsed</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/bom.vtt" default>
+    <script>
+        async_test(function(t) {
+            var track = document.querySelector("track");
+
+            track.onload = t.step_func_done(function() {
+                var expected = [
+                    {
+                        id : "1",
+                        startTime : 0,
+                        endTime : 30.5,
+                        text : "Bear is Coming!!!!!"
+                    },
+                    {
+                        id : "2",
+                        startTime : 31,
+                        endTime : 1200.5,
+                        text : "I said Bear is coming!!!!"
+                    }
+                ];
+
+                var cues = track.track.cues;
+                assert_equals(cues.length, 2);
+                assert_cues_equal(cues, expected);
+            });
+        });
+    </script>
+</video>

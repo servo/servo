@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Test the 'connect-src' directive on service workers -->
+<meta http-equiv="content-security-policy" content="connect-src 'self'">
+<script>
+  [ // Service workers do not inherit CSP.
+    "./support/connect-src-allow.sub.js",
+
+    // Service workers honor CSP received in their response headers.
+    "./support/connect-src-self.sub.js?id={{$id1:uuid()}}" +
+      "&test-name=connect-src 'self'" +
+      "&pipe=sub|header(Content-Security-Policy," +
+      "connect-src 'self' ; report-uri " +
+      "/reporting/resources/report.py?op=put%26reportID={{$id1}})",
+
+    // Also test that connect-src falls back to default-src.
+    "./support/connect-src-self.sub.js?id={{$id2:uuid()}}" +
+      "&test-name=default-src 'self'" +
+      "&pipe=sub|header(Content-Security-Policy," +
+      "default-src 'self' ; report-uri " +
+      "/reporting/resources/report.py?op=put%26reportID={{$id2}})"]
+  .forEach(url => {
+    promise_test(async t => {
+      let r = await navigator.serviceWorker.register(
+        url, {scope: "./support/blank.html"});
+      t.add_cleanup(_ => r.unregister());
+      let sw = r.active || r.installing || r.waiting;
+      await fetch_tests_from_worker(sw);
+    });
+  });
+</script>

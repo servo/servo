@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1462742">
+<link rel="match" href="../../css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<svg width=100 height=100>
+  <foreignObject id=target width=0 height=100>
+    <canvas id=inner style="background: green; position: absolute; width: 100px; height: 100px; left: 0; top: 0;"></canvas>
+  </foreignObject>
+</svg>
+<script>
+document.body.offsetTop;
+document.getElementById('inner').width = '100';
+document.getElementById('target').setAttribute('width', '100');
+</script>

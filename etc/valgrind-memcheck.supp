@@ -1,0 +1,31 @@
+{
+   <je_mallocx:cond>
+   Memcheck:Cond
+   fun:je_mallocx
+}
+{
+   <je_mallocx:value8>
+   Memcheck:Value8
+   fun:je_mallocx
+}
+{
+   <je_sdallocx:cond>
+   Memcheck:Cond
+   fun:je_sdallocx
+}
+{
+   <je_sdallocx:value8>
+   Memcheck:Value8
+   fun:je_sdallocx
+}
+{
+   <je_tcache_cleanup:cond>
+   Memcheck:Cond
+   fun:tcache_destroy.isra.7
+   fun:je_tcache_cleanup
+}
+{
+   <je_tcache_bin_flush_large:cond>
+   Memcheck:Cond
+   fun:je_tcache_bin_flush_large
+}

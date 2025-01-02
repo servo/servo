@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Test: Autohide ruby annotations which are identical to their bases</title>
+  <link rel="author" title="Xidorn Quan" href="mailto:quanxunzhen@gmail.com">
+  <link rel="help" href="http://www.w3.org/TR/css-ruby-1/#autohide">
+  <link rel="match" href="ruby-autohide-002-ref.html">
+  <script>
+    window.onload = function() {
+      // Force a reflow before changes.
+      document.body.clientWidth;
+      var elems = document.querySelectorAll('[data-content]');
+      for (var i = 0; i < elems.length; i++) {
+        elems[i].textContent = elems[i].dataset.content;
+      }
+    };
+  </script>
+</head>
+<body>
+  <p><ruby>
+    <rb>振</rb><rb>り</rb><rb>仮</rb><rb>名</rb>
+    <rt>ふ</rt><rt data-content="ri">り</rt><rt>が</rt><rt>な</rt>
+  </ruby></p>
+  <p><ruby>
+    <rb>振</rb><rb data-content="ri">り</rb><rb>仮</rb><rb>名</rb>
+    <rt>ふ</rt><rt>り</rt><rt>が</rt><rt>な</rt>
+  </ruby></p>
+  <p><ruby>
+    <rb>振</rb><rb>り</rb><rb>仮</rb><rb>名</rb>
+    <rt>ふ</rt><rt data-content="り">ri</rt><rt>が</rt><rt>な</rt>
+  </ruby></p>
+  <p><ruby>
+    <rb>振</rb><rb data-content="り">ri</rb><rb>仮</rb><rb>名</rb>
+    <rt>ふ</rt><rt>り</rt><rt>が</rt><rt>な</rt>
+  </ruby></p>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline delay</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<script src="/css/css-typed-om/resources/testhelper.js"></script>
+<style>
+  #container {
+    border:  10px solid lightgray;
+    overflow-x: scroll;
+    height:  200px;
+    width: 200px;
+  }
+  #content {
+    display:  flex;
+    flex-flow:  row nowrap;
+    justify-content:  flex-start;
+    width:  1800px;
+    margin: 0;
+  }
+  .spacer {
+    width:  800px;
+    display:  inline-block;
+  }
+  #target {
+    background-color:  green;
+    height:  100px;
+    width:  100px;
+    display:  inline-block;
+    font-size: 10px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="content">
+      <div class="spacer"></div>
+      <div id="target"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+</body>
+<script type="text/javascript">
+  function assert_timeline_offset(actual, expected, errorMessage) {
+    assert_equals(actual.rangeName, expected.rangeName, errorMessage);
+    assert_style_value_equals(actual.offset, expected.offset);
+  }
+
+  promise_test(async t => {
+    const timeline = new ViewTimeline({ subject: target, axis: 'inline' });
+    const anim = target.animate({ opacity: [0, 1 ] }, { timeline: timeline });
+    t.add_cleanup(() => {
+      anim.cancel();
+    });
+    await anim.ready;
+
+    container.scrollLeft = 750;
+    await waitForNextFrame();
+
+    // normal ==> cover 0% to cover 100%
+    // cover 0% @ 600px
+    // cover 100% @ 900px
+    // expected opacity = (750 - 600) / (900 - 600) = 0.5
+    assert_equals(anim.rangeStart, 'normal', 'Initial value for rangeStart');
+    assert_equals(anim.rangeEnd, 'normal', 'Initial value for rangeEnd');
+    assert_equals(getComputedStyle(target).opacity, '0.5',
+                  'Opacity with range set to [normal, normal]');
+
+    // contain 0% @ 700px
+    // cover 100% @ 900px
+    // expected opacity = (750 - 700) / (900 - 700) = 0.25
+    await runAndWaitForFrameUpdate(() => {
+      anim.rangeStart = "contain 0%";
+      anim.rangeEnd = "cover 100%";
+    });
+
+    assert_timeline_offset(
+        anim.rangeStart,
+        { rangeName: 'contain', offset: CSS.percent(0) },
+        'rangeStart set to contain 0%');
+    assert_timeline_offset(
+        anim.rangeEnd,
+        { rangeName: 'cover', offset: CSS.percent(100) },
+        'rangeEnd set to cover 100%');
+    assert_equals(getComputedStyle(target).opacity, '0.25',
+                  'opacity with range set to [contain 0%, cover 100%]');
+
+    // entry -20px @ 580px
+    // exit-crossing 10% @ 810px
+    // expected opacity = (750 - 580) / (810 - 580) = 0.739130
+    await runAndWaitForFrameUpdate(() => {
+      anim.rangeStart = { rangeName: 'entry', offset: CSS.px(-20), };
+      anim.rangeEnd = { rangeName: 'exit-crossing', offset: CSS.percent(10) };
+    });
+    assert_timeline_offset(
+        anim.rangeStart,
+        { rangeName: 'entry', offset: CSS.px(-20) },
+        'rangeStart set to entry -20px');
+    assert_timeline_offset(
+        anim.rangeEnd,
+        { rangeName: 'exit-crossing', offset: CSS.percent(10) },
+        'rangeEnd set to exit-crossing 10%');
+    assert_approx_equals(
+        parseFloat(getComputedStyle(target).opacity), 0.739130, 1e-6,
+        'opacity with range set to [entry -20px, exit-crossing 10%]');
+
+    // normal [start] @ 600px
+    // contain 100% @ 800px
+    // expected opacity = (750 - 600) / (800 - 600) = 0.75
+    await runAndWaitForFrameUpdate(() => {
+      anim.rangeStart = "normal";
+      anim.rangeEnd = "contain calc(60% + 40%)";
+    });
+    assert_equals(anim.rangeStart, 'normal','rangeStart set to normal');
+    assert_timeline_offset(
+        anim.rangeEnd,
+        { rangeName: 'contain', offset: CSS.percent(100) },
+        'rangeEnd set to contain 100%');
+    assert_equals(getComputedStyle(target).opacity, '0.75',
+                  'opacity with range set to [normal, contain 100%]');
+  }, 'Getting and setting the animation range');
+</script>
+</html>

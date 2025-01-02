@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1523168">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button popovertarget=mypopover>
+  <label>label</label>
+</button>
+<div id=mypopover popover=auto>popover</div>
+
+<script>
+promise_test(async() => {
+  const label = document.querySelector('label');
+  assert_false(mypopover.matches(':popover-open'),
+    'Popover should be closed at the start of the test.');
+  await test_driver.click(label);
+  assert_true(mypopover.matches(':popover-open'),
+    'The popover should be opened by clicking on the label.');
+}, 'Buttons with popovertarget should invoke targets even if there is a label in the button.');
+</script>

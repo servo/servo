@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html lang="ja">
+<meta charset="utf-8">
+<title>CSS Ruby Test: Text node insertion in 'display:ruby/block ruby'.</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-display/#propdef-display">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#inlinify">
+<link rel="match" href="block-ruby-003-ref.html">
+<style>
+html,body {
+  font:10px/1 monospace;
+}
+
+ruby { display: ruby; background: lightblue; }
+rbb { display: block ruby; background: lightblue; }
+grid { display: grid; }
+.mbp {
+  margin: 1px 3px 5px 7px;
+  padding: 3px 5px 7px 1px;
+  border-width: 3px 1px 7px 5px;
+  border-style: solid;
+}
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+}
+rtc {
+  display: ruby-text-container;
+  unicode-bidi: isolate;
+}
+</style>
+
+<ruby class=mbp><rt>る</rt></ruby>
+<grid>A<ruby class=mbp><rt>る</rt></ruby>B</grid>
+<grid>A<ruby class=mbp><rt>る</rt></ruby>B</grid>
+<grid>A<ruby><rt>る</rt></ruby><ruby><rbc></rbc></ruby>B</grid>
+<grid>A<ruby></ruby><ruby><rbc><rt>る</rt></rbc></ruby>B</grid>
+<ruby><rt><rbb>る</rbb></rt></ruby>
+<ruby><rbc><rbb>る</rbb></rbc></ruby>
+<ruby><rtc><rbb>る</rbb></rtc></ruby>
+<rbb class=mbp></rbb>
+<rbb class=mbp><rt>る</rt></rbb>
+<rbb class=mbp><rb>X</rb></rbb>
+
+<script>
+document.body.getClientRects();
+let s = "X";
+let ruby = Array.prototype.slice.call(document.querySelectorAll('ruby,rbb'));
+ruby.forEach(function(e){ e.insertBefore(document.createTextNode(s),e.firstChild); e.offsetHeight;});
+</script>
+</html>

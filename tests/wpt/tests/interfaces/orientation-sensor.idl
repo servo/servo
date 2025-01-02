@@ -1,0 +1,28 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Orientation Sensor (https://w3c.github.io/orientation-sensor/)
+
+typedef (Float32Array or Float64Array or DOMMatrix) RotationMatrixType;
+
+[SecureContext, Exposed=Window]
+interface OrientationSensor : Sensor {
+  readonly attribute FrozenArray<double>? quaternion;
+  undefined populateMatrix(RotationMatrixType targetMatrix);
+};
+
+enum OrientationSensorLocalCoordinateSystem { "device", "screen" };
+
+dictionary OrientationSensorOptions : SensorOptions {
+  OrientationSensorLocalCoordinateSystem referenceFrame = "device";
+};
+
+[SecureContext, Exposed=Window]
+interface AbsoluteOrientationSensor : OrientationSensor {
+  constructor(optional OrientationSensorOptions sensorOptions = {});
+};
+
+[SecureContext, Exposed=Window]
+interface RelativeOrientationSensor : OrientationSensor {
+  constructor(optional OrientationSensorOptions sensorOptions = {});
+};

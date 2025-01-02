@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: grid-template-rows fit-content() reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="stylesheet" href="/css/support/grid.css">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+  justify-content: start;
+  align-content: start;
+  height: 100px;
+  width: 40px;
+  position: relative;
+  padding-left: 10px;
+  margin-right: 5px;
+  grid-row-gap: 5px;
+  float: left;
+}
+
+.item {
+  font: 10px/1 Ahem;
+  background: cyan;
+  padding-left: 2px;
+}
+
+.spanningItem {
+  font: 10px/1 Ahem;
+  grid-row: 1 / -1;
+  grid-column: 2;
+  background: salmon;
+  padding-left: 2px;
+}
+
+.test {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+  background: purple;
+}
+.test:nth-child(2n) { background: orange; }
+
+.firstRow { grid-row: 1 / 2; }
+.secondRow { grid-row: 2 / 3; }
+.thirdRow { grid-row: 3 / 4; }
+
+div.grid > div { writing-mode: vertical-lr; }
+
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div class="grid" style="grid-template-rows: 30px;">
+  <div class="item">XXX</div>
+  <div class="test firstRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 30px 0px;">
+  <div class="item">XXX</div>
+  <div class="spanningItem">XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 40px;">
+  <div class="item">XXX XXX</div>
+  <div class="test firstRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 32.5px 32.5px;">
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 40px 25px;">
+  <div class="item">XXX XXX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 80px;">
+  <div class="item">XXX XXX XXX</div>
+  <div class="test firstRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 47.5px 47.5px;">
+  <div class="spanningItem">XXX XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 25px 70px;">
+  <div class="item secondRow">XXX XXX XXX</div>
+  <div class="spanningItem">XXX XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 20px 50px;">
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 40px 40px;">
+  <div class="item">XXXXX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 15px 80px;">
+  <div class="item secondRow">XXXXX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<br clear="all">
+<br clear="all">
+
+<div class="grid" style="grid-template-rows: 12.5px 82.5px;">
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 50px 45px;">
+  <div class="item">XXXXX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 0px 95px;">
+  <div class="item secondRow">XXXXX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 12.5px 40px;">
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 50px 40px;">
+  <div class="item">XXXXX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 0px 50px;">
+  <div class="item secondRow">XXXXX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: auto min-content max-content">
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: min-content auto max-content">
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: min-content max-content auto">
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 30px 0px 60px;">
+  <div class="item" style="grid-row: 1">XXX XX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 30px 0px 60px;">
+  <div class="item" style="grid-row: 1">XXX XX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 0px 90px 0px;">
+  <div class="item" style="grid-row: 2">XXX XX</div>
+  <div class="spanningItem">XXX XX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<br clear="all">
+<br clear="all">
+
+<div class="grid" style="grid-template-rows: 30px;">
+  <div class="item">XXX</div>
+  <div class="test firstRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 30px 0px;">
+  <div class="item">XXX</div>
+  <div class="spanningItem">XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 30px;">
+  <div class="item">XX XX</div>
+  <div class="test firstRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 30px 30px;">
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 30px 30px;">
+  <div class="item secondRow">X X X</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 90px;">
+  <div class="item">XXX XXX XXX</div>
+  <div class="test firstRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 47.5px 47.5px;">
+  <div class="spanningItem">XXX XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 15px 80px;">
+  <div class="item secondRow">XXX XXX XXX</div>
+  <div class="spanningItem">XXX XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<br clear="all">
+<br clear="all">
+
+<div class="grid" style="grid-template-rows: 70px;">
+  <div class="item">XXX XXX</div>
+  <div class="test firstRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 32.5px 32.5px;">
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 70px 0px;">
+  <div class="item">XXX XXX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 32.5px 32.5px;">
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 45px 20px;">
+  <div class="item secondRow">XX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 92.5px 12.5px;">
+  <div class="spanningItem" style="grid-column: 1;">XX XX XX XX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: 82.5px 12.5px;">
+  <div class="spanningItem" style="grid-column: 1;">XX XX XX XX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: max-content auto max-content;">
+  <div class="spanningItem" style="grid-column: 1;">XX XX XX XX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: min-content auto min-content;">
+  <div class="spanningItem" style="grid-column: 1;">XX XX XX XX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>
+
+<div class="grid" style="grid-template-rows: auto auto auto;">
+  <div class="spanningItem" style="grid-column: 1;">XX XX XX XX</div>
+  <div class="spanningItem">XXX XXX</div>
+  <div class="test firstRow"></div>
+  <div class="test secondRow"></div>
+  <div class="test thirdRow"></div>
+</div>

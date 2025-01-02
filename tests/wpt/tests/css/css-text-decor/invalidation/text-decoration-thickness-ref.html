@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="utf-8">
+    <title>text-decoration-thickness invalidation reference</title>
+    <style>
+        :link {
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+        }
+    </style>
+    <p>The link below should increase its underline thickness when hovered:</p>
+    <div style="font-size: 28px;">
+        <a href="#" id="link">Hover me</a>
+    </div>
+</html>

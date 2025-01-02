@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/common.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a serial device to be connected and disconnected.
+    </p>
+    <script>
+      manual_serial_test(async (t, port) => {
+        const watcher = new EventWatcher(t, navigator.serial, ['disconnect']);
+
+        await port.open({baudRate: 115200, bufferSize: 1024});
+
+        const disconnectPromise = watcher.wait_for(['disconnect'])
+        const reader = port.readable.getReader();
+
+        const disconnectMessage = document.createElement('div');
+        disconnectMessage.textContent = 'Disconnect the device now.';
+        document.body.appendChild(disconnectMessage);
+
+        try {
+          while (true) {
+            const {value, done} = await reader.read();
+            // Ignore |value| in case the device happens to produce data. It is
+            // not important for this test.
+            assert_false(done);
+          }
+        } catch (e) {
+          assert_equals(e.constructor, DOMException);
+          assert_equals(e.name, 'NetworkError');
+        }
+        reader.releaseLock();
+        assert_equals(port.readable, null);
+
+        let event = await disconnectPromise;
+        assert_equals(event.target, port);
+
+        disconnectMessage.remove();
+
+        await port.close();
+      }, 'Disconnect during read is detected.');
+
+      manual_serial_test(async (t, port) => {
+        const watcher = new EventWatcher(t, navigator.serial, ['disconnect']);
+
+        await port.open({baudRate: 115200, bufferSize: 1024});
+
+        const disconnectPromise = watcher.wait_for(['disconnect'])
+        const writer = port.writable.getWriter();
+
+        const disconnectMessage = document.createElement('div');
+        disconnectMessage.textContent = 'Disconnect the device now.';
+        document.body.appendChild(disconnectMessage);
+
+        const data = new Uint8Array(4096);
+        try {
+          while (true) {
+            await writer.write(data);
+          }
+        } catch (e) {
+          assert_equals(e.constructor, DOMException);
+          assert_equals(e.name, 'NetworkError');
+        }
+        writer.releaseLock();
+        assert_equals(port.writable, null);
+
+        let event = await disconnectPromise;
+        assert_equals(event.target, port);
+
+        disconnectMessage.remove();
+
+        await port.close();
+      }, 'Disconnect during write is detected.');
+    </script>
+  </body>
+</html>

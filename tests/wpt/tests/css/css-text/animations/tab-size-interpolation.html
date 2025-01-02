@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#tab-size-property">
+<meta name="test" content="tab-size supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  tab-size: 20;
+}
+.target {
+  font: 10px sans-serif;
+  tab-size: 5;
+}
+.expected {
+  color: green;
+}
+</style>
+
+<body>
+  <template id="target-template">T</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'tab-size',
+  from: neutralKeyframe,
+  to: 10,
+}, [
+  {at: -0.3, expect: '3.5'},
+  {at: 0, expect: '5'},
+  {at: 0.3, expect: '6.5'},
+  {at: 0.6, expect: '8'},
+  {at: 1, expect: '10'},
+  {at: 1.5, expect: '12.5'},
+]);
+
+test_interpolation({
+  property: 'tab-size',
+  from: 'initial',
+  to: 10,
+}, [
+  {at: -0.3, expect: '7.4'},
+  {at: 0, expect: '8'},
+  {at: 0.3, expect: '8.6'},
+  {at: 0.6, expect: '9.2'},
+  {at: 1, expect: '10'},
+  {at: 1.5, expect: '11'},
+]);
+
+test_interpolation({
+  property: 'tab-size',
+  from: 'inherit',
+  to: 10,
+}, [
+  {at: -0.3, expect: '23'},
+  {at: 0, expect: '20'},
+  {at: 0.3, expect: '17'},
+  {at: 0.6, expect: '14'},
+  {at: 1, expect: '10'},
+  {at: 1.5, expect: '5'},
+]);
+
+test_interpolation({
+  property: 'tab-size',
+  from: 'unset',
+  to: 10,
+}, [
+  {at: -0.3, expect: '23'},
+  {at: 0, expect: '20'},
+  {at: 0.3, expect: '17'},
+  {at: 0.6, expect: '14'},
+  {at: 1, expect: '10'},
+  {at: 1.5, expect: '5'},
+]);
+
+test_interpolation({
+  property: 'tab-size',
+  from: 0,
+  to: 10,
+}, [
+  {at: -0.3, expect: '0'},
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '3'},
+  {at: 0.6, expect: '6'},
+  {at: 1, expect: '10'},
+  {at: 1.5, expect: '15'},
+]);
+
+test_interpolation({
+  property: 'tab-size',
+  from: 4,
+  to: 10,
+}, [
+  {at: -0.3, expect: '2.2'},
+  {at: 0, expect: '4'},
+  {at: 0.3, expect: '5.8'},
+  {at: 0.6, expect: '7.6'},
+  {at: 1, expect: '10'},
+  {at: 1.5, expect: '13'},
+]);
+
+test_interpolation({
+  property: 'tab-size',
+  from: '1px',
+  to: '10px',
+}, [
+  {at: -0.3, expect: '0px'},
+  {at: 0, expect: '1px'},
+  {at: 0.3, expect: '3.7px'},
+  {at: 0.6, expect: '6.4px'},
+  {at: 1, expect: '10px'},
+  {at: 1.5, expect: '14.5px'},
+]);
+
+test_no_interpolation({
+  property: 'tab-size',
+  from: '1',
+  to: '10px',
+});
+
+</script>

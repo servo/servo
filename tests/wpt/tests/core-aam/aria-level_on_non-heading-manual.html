@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-level on non-heading</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "level:5"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXDisclosureLevel",
+                  "is",
+                  "4"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "level:5"
+               ],
+               [
+                  "property",
+                  "groupPosition",
+                  "contains",
+                  "groupLevel:5"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "AriaProperties.level",
+                  "is",
+                  "5"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-level on non-heading"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-level on non-heading.</p>
+    <div role='tree'>
+    <div role='treeitem' id='test' aria-level='5'>content</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_compressed_texture_etc1 Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_compressed_texture_etc1/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_compressed_texture_etc1 {
+    /* Compressed Texture Format */
+    const GLenum COMPRESSED_RGB_ETC1_WEBGL = 0x8D64;
+};

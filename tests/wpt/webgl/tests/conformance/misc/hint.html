@@ -1,0 +1,126 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+const wtu = WebGLTestUtils;
+description("Tests webgl.hint()");
+
+const gl = wtu.create3DContext();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup should succeed");
+
+// From https://kdashg.github.io/misc/gl/search-headers.html#str=_HINT
+const HINT_TARGETS = {
+    GL_GENERATE_MIPMAP_HINT: 0x8192,
+    GL_FRAGMENT_SHADER_DERIVATIVE_HINT: 0x8B8B,
+    GL_BINNING_CONTROL_HINT_QCOM: 0x8FB0,
+    GL_PROGRAM_BINARY_RETRIEVABLE_HINT: 0x8257,
+    GL_LINE_SMOOTH_HINT: 0x0C52,
+    GL_POLYGON_SMOOTH_HINT: 0x0C53,
+    EGL_PRODUCER_MAX_FRAME_HINT_NV: 0x3337,
+    EGL_CONSUMER_MAX_FRAME_HINT_NV: 0x3338,
+    EGL_YUV_COLOR_SPACE_HINT_EXT: 0x327B,
+    EGL_SAMPLE_RANGE_HINT_EXT: 0x327C,
+    EGL_YUV_CHROMA_HORIZONTAL_SITING_HINT_EXT: 0x327D,
+    EGL_YUV_CHROMA_VERTICAL_SITING_HINT_EXT: 0x327E,
+    EGL_LOCK_USAGE_HINT_KHR: 0x30C5,
+    GL_TEXTURE_COMPRESSION_HINT: 0x84EF,
+    GL_TEXTURE_STORAGE_HINT_APPLE: 0x85BC,
+    GL_TRANSFORM_HINT_APPLE: 0x85B1,
+    GL_VERTEX_ARRAY_STORAGE_HINT_APPLE: 0x851F,
+    GL_CLIP_VOLUME_CLIPPING_HINT_EXT: 0x80F0,
+    GL_PACK_CMYK_HINT_EXT: 0x800E,
+    GL_UNPACK_CMYK_HINT_EXT: 0x800F,
+    GL_MULTISAMPLE_FILTER_HINT_NV: 0x8534,
+    GL_PREFER_DOUBLEBUFFER_HINT_PGI: 0x1A1F8,
+    GL_CONSERVE_MEMORY_HINT_PGI: 0x1A1FD,
+    GL_RECLAIM_MEMORY_HINT_PGI: 0x1A1FE,
+    GL_NATIVE_GRAPHICS_BEGIN_HINT_PGI: 0x1A203,
+    GL_NATIVE_GRAPHICS_END_HINT_PGI: 0x1A204,
+    GL_ALWAYS_FAST_HINT_PGI: 0x1A20C,
+    GL_ALWAYS_SOFT_HINT_PGI: 0x1A20D,
+    GL_ALLOW_DRAW_OBJ_HINT_PGI: 0x1A20E,
+    GL_ALLOW_DRAW_WIN_HINT_PGI: 0x1A20F,
+    GL_ALLOW_DRAW_FRG_HINT_PGI: 0x1A210,
+    GL_ALLOW_DRAW_MEM_HINT_PGI: 0x1A211,
+    GL_STRICT_DEPTHFUNC_HINT_PGI: 0x1A216,
+    GL_STRICT_LIGHTING_HINT_PGI: 0x1A217,
+    GL_STRICT_SCISSOR_HINT_PGI: 0x1A218,
+    GL_FULL_STIPPLE_HINT_PGI: 0x1A219,
+    GL_CLIP_NEAR_HINT_PGI: 0x1A220,
+    GL_CLIP_FAR_HINT_PGI: 0x1A221,
+    GL_WIDE_LINE_HINT_PGI: 0x1A222,
+    GL_BACK_NORMALS_HINT_PGI: 0x1A223,
+    GL_VERTEX_DATA_HINT_PGI: 0x1A22A,
+    GL_VERTEX_CONSISTENT_HINT_PGI: 0x1A22B,
+    GL_MATERIAL_SIDE_HINT_PGI: 0x1A22C,
+    GL_MAX_VERTEX_HINT_PGI: 0x1A22D,
+    GL_GENERATE_MIPMAP_HINT_SGIS: 0x8192,
+    GL_CONVOLUTION_HINT_SGIX: 0x8316,
+    GL_SCALEBIAS_HINT_SGIX: 0x8322,
+    GL_TEXTURE_MULTI_BUFFER_HINT_SGIX: 0x812E,
+    GL_VERTEX_PRECLIP_HINT_SGIX: 0x83EF,
+    GL_PHONG_HINT_WIN: 0x80EB,
+};
+
+async function testValidTargets(validTargets) {
+    Object.entries(HINT_TARGETS).forEach(kv => {
+        const [k,v] = kv;
+        let targetError = gl.INVALID_ENUM;
+        if (validTargets[v]) {
+            targetError = 0;
+        }
+        debug("");
+        debug(k);
+        wtu.shouldGenerateGLError(gl, gl.INVALID_ENUM, `gl.hint(HINT_TARGETS.${k}, gl.DONT_CARE-1)`);
+        wtu.shouldGenerateGLError(gl, targetError, `gl.hint(HINT_TARGETS.${k}, gl.DONT_CARE)`);
+        wtu.shouldGenerateGLError(gl, targetError, `gl.hint(HINT_TARGETS.${k}, gl.FASTEST)`);
+        wtu.shouldGenerateGLError(gl, targetError, `gl.hint(HINT_TARGETS.${k}, gl.NICEST)`);
+        wtu.shouldGenerateGLError(gl, gl.INVALID_ENUM, `gl.hint(HINT_TARGETS.${k}, gl.NICEST+1)`);
+    });
+}
+
+(async () => {
+    const validTargets = {};
+    validTargets[HINT_TARGETS.GL_GENERATE_MIPMAP_HINT] = true;
+
+    if (gl.FRAGMENT_SHADER_DERIVATIVE_HINT) { // webgl2
+        validTargets[gl.FRAGMENT_SHADER_DERIVATIVE_HINT] = true;
+    }
+    testValidTargets(validTargets);
+
+    const ext = gl.getExtension("OES_standard_derivatives");
+    if (ext) {
+        debug("");
+        debug("");
+        debug("-----------------------------------------");
+        debug("Test with OES_standard_derivatives enabled");
+        debug("");
+        validTargets[ext.FRAGMENT_SHADER_DERIVATIVE_HINT_OES] = true;
+        testValidTargets(validTargets);
+    }
+
+    finishTest();
+})();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

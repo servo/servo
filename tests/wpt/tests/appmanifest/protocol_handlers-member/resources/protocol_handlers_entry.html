@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Protocol Handling Web Platform Test - Pass</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    setup({ single_test: true });
+    const urlParams = new URLSearchParams(window.location.search);
+    assert_equals(urlParams.get('value'), "web+testing://test-url/");
+    done();
+  </script>
+</head>
+<body>
+  <h1>Protocol Handling Page</h1>
+  <p>This test validates that the app was launched with the web+testing://test-url/ URL.</p>
+</body>
+</html>

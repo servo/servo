@@ -1,0 +1,75 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  font-family: "Noto Sans", sans-serif;
+  background-color: white;
+  color: #000;
+}
+
+.header {
+  display: flex;
+  margin: 50px 0 30px 0;
+}
+
+.header :first-child {
+  flex: 1;
+}
+
+.site-logo {
+  max-width: 300px;
+  margin-left: -15px;
+}
+
+.content {
+  width: 1000px;
+}
+
+#test-path,
+#token {
+  font-family: monospace;
+  font-size: 12pt;
+}
+
+.pass {
+  color: green;
+}
+
+.fail {
+  color: red;
+}
+
+.timeout {
+  color: rgb(224, 127, 0);
+}
+
+.not-run {
+  color: blue;
+}
+
+.api-result-timeoutfiles {
+  display: none; /* don't display for now */
+  flex-basis: 100%;
+}
+
+#header {
+  display: flex;
+  align-items: center;
+}
+
+#header > :first-child {
+  flex: 1;
+}
+
+#controls-wrapper {
+  display: flex;
+}
+
+.no-border-radius {
+  border-radius: 0;
+}
+
+#results-table .button {
+  margin: 0 2px;
+}

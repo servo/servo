@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> MouseEvent.ctrlKey for mouseenter Event </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "mouseenter";
+            var TARGET;
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if ((evt.type == EVENT) && (evt.ctrlKey == true))
+                {
+                    TARGET.style.border = "solid 1px green";
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: MouseEvent.ctrlKey returns true if 'Control' key is depressed, otherwise false.
+        </h4>
+
+        <pre>
+            <img id="target" src="./support/iepreview.png" width="256" height="256" style="border:solid 1px red" />
+
+            Steps:
+            1) Press and hold down the '{CTRL}' key
+            2) Move the mouse pointer into the image
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

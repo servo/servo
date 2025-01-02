@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Private Click Measurement (https://privacycg.github.io/private-click-measurement/)
+
+partial interface HTMLAnchorElement {
+    [CEReactions] attribute unsigned long attributionSourceId;
+};

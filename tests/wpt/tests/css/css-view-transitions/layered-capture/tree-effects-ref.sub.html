@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>Tree effects are captured as group style</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<style>
+    body {
+        margin: 0;
+        background: lightpink;
+    }
+
+    .target {
+        width: 100px;
+        height: 100px;
+        margin: 20px;
+        background: green;
+        will-change: {{GET[prop]}};
+    }
+
+    @keyframes anim {
+        from { {{GET[prop]}}: {{GET[old]}}; }
+        to { {{GET[prop]}}: {{GET[new]}}; }
+    }
+
+    .passthrough {
+        {{GET[prop]}}: {{GET[old]}};
+    }
+
+    .animate {
+        animation-name: anim;
+        animation-timing-function: steps(1, start);
+        animation-play-state: paused;
+        animation-duration: 100s;
+    }
+</style>
+<body>
+    <div class="override target"></div>
+    <div class="passthrough target"></div>
+    <div class="animate target"></div>
+</body>

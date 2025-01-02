@@ -1,0 +1,159 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- WARNING: The interaction of writing-mode and min-content sizing seems to be a bit hazy. It's not clear if this is a correct reference. -->
+<html>
+<meta charset="utf-8">
+<title>Reference: Masonry layout min-content sizing</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+
+  @import "support/masonry-intrinsic-sizing-visual.css";
+
+  grid {
+    display: inline-grid;
+    gap: 1px 2px;
+    grid-template-rows: repeat(4,auto);
+    grid-auto-flow: column;
+    border: 1px solid;
+    padding: 1px 0 2px 0;
+    vertical-align: top;
+    font-family: Ahem;
+    height: min-content;
+  }
+
+  item {
+    justify-self: start;
+    writing-mode: vertical-rl;
+    text-orientation: sideways;
+  }
+  .hidden {
+    visibility: hidden;
+    width: 0;
+  }
+
+  grid > item:nth-child(1) {
+    background-color: #89CFF0;
+  }
+
+  grid > item:nth-child(2) {
+    background-color: #FF6F61;
+  }
+
+  grid > item:nth-child(3) {
+    background-color: #FDF3E7;
+  }
+
+  grid > item:nth-child(4) {
+    background-color: #F4C542;
+  }
+
+  grid > item:nth-child(5) {
+    background-color: #333333;
+  }
+
+  grid > item:nth-child(6) {
+    background-color: #B2C8A5;
+  }
+</style>
+
+<body>
+
+<section>
+  <grid>
+    <item style="height:2ch">1</item>
+    <item style="grid-column: span 2">2 2</item>
+    <item style="grid-column: span 2">3 3</item>
+    <item>4</item>
+    <item style="grid-column: span 2">5 5</item>
+
+    <item class="hidden" style="grid-area: 4/2">0 0</item>
+  </grid>
+
+  <grid>
+    <item style="height: 3ch">1</item>
+    <item style="grid-column: span 2">2 2</item>
+    <item style="grid-column: span 2">3 3</item>
+    <item>4</item>
+    <item style="height: 2ch">5 5</item>
+
+    <item class="hidden" style="grid-area: 4/2">0 0</item>
+  </grid>
+
+  <grid>
+    <item>1</item>
+    <item style="grid-column: span 2">2 2</item>
+    <item style="grid-column: span 2">3 3</item>
+    <item style="grid-area: 1/2">4</item>
+    <item style="height:2ch; grid-area: 2/1/3/3">5 5</item>
+
+    <item class="hidden" style="grid-area: 1/2">0 0</item>
+    <item class="hidden" style="grid-area: 2/1">0 0</item>
+  </grid>
+
+  <grid>
+    <item>1</item>
+    <item style="grid-column: span 2">2 2</item>
+    <item>3 3</item>
+    <item>4</item>
+    <item style="height:4ch; grid-area: 2/1/4/auto">5 5</item>
+
+    <item class="hidden" style="grid-area: 2/1">0 0</item>
+    <item class="hidden" style="grid-area: 3/2">0 0</item>
+  </grid>
+
+  <grid>
+    <item style="grid-row: 4">1</item>
+    <item style="grid-column: span 2">2 2</item>
+    <item>3 3</item>
+    <item>4</item>
+    <item style="grid-area: 2/1/4/2">5 5</item>
+    <item style="height:5ch; grid-area: 1/2/4/3">6</item>
+
+    <item class="hidden" style="grid-area: 3/3">0</item>
+    <item class="hidden" style="grid-area: 2/1">0 0</item>
+    <item class="hidden" style="grid-area: 3/1">0 0</item>
+  </grid>
+
+  <grid>
+    <item style="grid-row: 4">1</item>
+    <item style="grid-column: span 2">2 2</item>
+    <item>3 3</item>
+    <item>4</item>
+    <item style="height:3ch; grid-area: 2/1/4/2">5</item>
+    <item style="height:5ch; grid-area: 1/2/4/3">6</item>
+
+    <item class="hidden" style="grid-area: 2/1">0 0</item>
+    <item class="hidden" style="grid-area: 3/1">0 0</item>
+  </grid>
+
+  <grid>
+    <item style="height: 3ch">1</item>
+    <item>2 2</item>
+    <item>3 3</item>
+    <item style="height: 3ch">4</item>
+    <item style="grid-column: 2; grid-row: span 4;">5 5</item>
+  </grid>
+
+  <grid>
+    <item style="height: 3ch">1</item>
+    <item>2 2</item>
+    <item>3 3</item>
+    <item style="height: 3ch">4</item>
+    <item style="grid-column: 2; grid-row: span 4; height: 6ch">5 5</item>
+
+  </grid>
+
+  <grid>
+    <item style="height: 3ch">1</item>
+    <item>2 2</item>
+    <item>3 3</item>
+    <item style="height: 3ch">4</item>
+    <item style="grid-column: 2; grid-row: span 3; height: 6ch">5 5</item>
+
+  </grid>
+</section>
+</body>

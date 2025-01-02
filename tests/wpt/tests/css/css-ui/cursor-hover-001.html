@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor and :hover</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="Checks that the correct cursor is used when :hover appears at the rightmost part of the selector.">
+<style>
+div {
+  cursor: url("support/cursors/fail.png"), help;
+  width: 100px;
+  height: 100px;
+  border: solid blue;
+}
+div:hover {
+  cursor: crosshair;
+}
+</style>
+<body>
+  <p>The test passes if, when moved inside the blue box, the cursor looks like a crosshair (e.g. short line segments resembling a "+" sign).</p>
+  <div></div>
+</body>

@@ -1,0 +1,28 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script>
+
+function foo()
+{
+  var mrow = document.getElementById("mrow")
+
+  mrow.parentNode.removeChild(mrow);
+}
+
+</script>
+</head>
+
+<body onload="setTimeout(foo, 100)">
+
+<div>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mrow id="mrow">
+    <mtd><img xmlns="http://www.w3.org/1999/xhtml" src="347355-1.gif" /></mtd>
+    <mtable>      <mtr>         <mtd><mi>t</mi></mtd>      </mtr>    </mtable>
+  </mrow>
+</math>
+</div>
+
+</body>
+
+</html>

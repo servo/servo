@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  background-color: green;
+  border: lime solid 1em;
+  color: yellow;
+  margin: 1em;
+  padding: 2em;
+  }
+
+  div
+  {
+  border: inherit;
+  padding: 3em;
+  text-align: justify;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div>Test is passed if this paragraph has two thick bright green borders surrounding it    and if the background of the whole page is green. The box formed by the outer bright green border should not become taller (or smaller) if the window height is increased or maximized (or decreased): its sides should be approximately equidistant from the edges of this text.</div>
+
+ </body>
+</html>

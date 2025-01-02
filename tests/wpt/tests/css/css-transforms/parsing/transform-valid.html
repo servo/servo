@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transform Module Level 2: parsing transform with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-property">
+<meta name="assert" content="transform supports the full grammar 'none | <transform-list>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("transform", "none");
+
+test_valid_value("transform", "matrix(1, 0, 0, 1, 0, 0)");
+test_valid_value("transform", "matrix(1, 2, 3, 4, 5, 6)");
+test_valid_value("transform", "matrix(-0.1, -0.2, -0.3, -0.4, -0.5, -0.6)");
+
+test_valid_value("transform", "translate(1px)");
+test_valid_value("transform", "translate(1px, 0%)");
+test_valid_value("transform", "translate(2%, -3%)");
+
+test_valid_value("transform", "translateX(-4px)");
+
+test_valid_value("transform", "translateY(5%)");
+
+test_valid_value("transform", "scale(2)");
+test_valid_value("transform", "scale(3, 4)");
+
+test_valid_value("transform", "scale(-2)");
+test_valid_value("transform", "scale(-5, -6)");
+
+test_valid_value("transform", "scale(250%)", "scale(2.5)");
+test_valid_value("transform", "scale(325%, 475%)", "scale(3.25, 4.75)");
+test_valid_value("transform", "scale(1, 200%)", "scale(1, 2)");
+
+test_valid_value("transform", "scale(-250%)", "scale(-2.5)");
+test_valid_value("transform", "scale(-500%, -620%)", "scale(-5, -6.2)");
+
+test_valid_value("transform", "scaleX(7)");
+test_valid_value("transform", "scaleX(720%)", "scaleX(7.2)");
+
+test_valid_value("transform", "scaleY(-8)");
+test_valid_value("transform", "scaleY(-85%)", "scaleY(-0.85)");
+
+test_valid_value("transform", "scaleZ(4)");
+test_valid_value("transform", "scaleZ(25%)", "scaleZ(0.25)");
+
+test_valid_value("transform", "scale3d(0.5, 2.5, 3)");
+test_valid_value("transform", "scale3d(50%, 250%, 300%)", "scale3d(0.5, 2.5, 3)");
+
+test_valid_value("transform", "scale3d(-0.5, 2.5, -3)");
+test_valid_value("transform", "scale3d(-50%, 250%, -300%)", "scale3d(-0.5, 2.5, -3)");
+test_valid_value("transform", "scale3d(1, 200%, 3)", "scale3d(1, 2, 3)");
+
+test_valid_value("transform", "rotate(0)", "rotate(0deg)");
+test_valid_value("transform", "rotate(90deg)");
+
+test_valid_value("transform", "skew(0)", "skew(0deg)");
+test_valid_value("transform", "skew(90deg)");
+test_valid_value("transform", "skew(0, -90deg)", "skew(0deg, -90deg)");
+test_valid_value("transform", "skew(90deg, 0)", ["skew(90deg)", "skew(90deg, 0deg)"]);
+
+test_valid_value("transform", "skewX(0)", "skewX(0deg)");
+test_valid_value("transform", "skewX(90deg)");
+
+test_valid_value("transform", "skewY(0)", "skewY(0deg)");
+test_valid_value("transform", "skewY(-90deg)");
+
+test_valid_value("transform", "perspective(10px)");
+test_valid_value("transform", "perspective(none)");
+
+test_valid_value("transform", "translate(1px, 2%) scale(3, 4) rotate(-90deg)");
+</script>
+</body>
+</html>

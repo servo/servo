@@ -1,0 +1,27 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/shared-storage/resources/util.sub.js></script>
+  <script>
+    promise_test(async t => {
+      const outerKey = token();
+      let url = generateURL(
+        '/shared-storage/resources/'
+          + 'shared-storage-writable-iframe-in-fenced-inner.https.sub.html',
+        [outerKey]);
+      url = appendExpectedKeyAndValue(url, 'a', 'b');
+
+      let fencedFrameConfig = await runSelectRawURL(url, true);
+      assert_true(validateSelectURLResult(fencedFrameConfig, true));
+
+      attachFencedFrame(fencedFrameConfig, 'opaque-ads');
+      const result = await nextValueFromServer(outerKey);
+      assert_equals(result, "writable_iframe_in_fenced_inner_loaded");
+    }, 'test <iframe sharedstoragewritable src=[url]></iframe> via JS inside'
+       + ' a fenced frame');
+  </script>
+</body>

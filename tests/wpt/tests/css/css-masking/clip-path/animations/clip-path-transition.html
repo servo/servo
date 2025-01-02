@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-transition-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    clip-path: circle(50% at 50% 50%);
+    background-color: green;
+    transition-property: clip-path;
+    transition-duration: 20s;
+    transition-timing-function: steps(2, jump-end);
+    transition-delay: -9.999s;
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container" id="target"></div>
+
+  <script>
+    function update() {
+      document.getElementById('target').style.clipPath = "circle(30% at 30% 30%)";
+      waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(update);
+    });
+  </script>
+</body>
+
+</html>

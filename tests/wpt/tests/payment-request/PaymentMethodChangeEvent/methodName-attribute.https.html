@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for PaymentMethodChangeEvent.methodName attribute</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#dom-paymentmethodchangeevent-src">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+test(() => {
+  const event = new PaymentMethodChangeEvent("test", {
+    methodName: "wpt-test",
+  });
+  assert_idl_attribute(event, "methodName");
+  const { methodName } = event;
+  assert_equals(methodName, "wpt-test");
+}, "Must have a methodName IDL attribute, which is initialized with to the methodName dictionary value");
+
+test(() => {
+  const event = new PaymentMethodChangeEvent("test");
+  assert_equals(event.methodName, "", "methodName attribute must initialize to empty string");
+
+  const event2 = new PaymentMethodChangeEvent("test", { methodDetails: {} });
+  assert_equals(event2.methodName, "", "methodName attribute must initialize to empty string");
+
+  const event3 = new PaymentMethodChangeEvent("test", {});
+  assert_equals(event3.methodName, "", "methodName attribute must initialize to empty string");
+}, "When no dictionary is passed, the methodName member defaults to the empty string");
+</script>

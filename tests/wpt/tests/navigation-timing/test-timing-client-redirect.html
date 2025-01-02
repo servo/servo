@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance.timing.redirect attributes on a client redirect navigation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-info-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+        <script>
+            setup({explicit_done: true});
+
+            test_namespace('navigation');
+            test_namespace('timing', true);
+
+            var redirect_frame;
+            function onload_test()
+            {
+                if (performanceNamespace === undefined)
+                {
+                    // avoid script errors
+                    done();
+                    return;
+                }
+
+                redirect_frame = document.getElementById("frameContext");
+                redirect_frame.onload = do_test;
+            }
+
+            function do_test()
+            {
+                redirect_frame.onload = "";
+                test_true(redirect_frame.contentWindow.performance.navigation.type == performanceNamespace.navigation.TYPE_NAVIGATE,
+                          'timing.navigation.type is TYPE_NAVIGATE');
+
+                test_equals(redirect_frame.contentWindow.performance.navigation.redirectCount, 0, 'navigation.redirectCount == 0 on an client redirected navigation');
+                test_equals(redirect_frame.contentWindow.performance.timing.redirectStart, 0, 'timing.redirectStart == 0 on an client redirected navigation');
+                test_equals(redirect_frame.contentWindow.performance.timing.redirectEnd, 0, 'timing.redirectEnd == 0 on an client redirected navigation');
+
+                done();
+            }
+        </script>
+
+    </head>
+    <body onload="onload_test();">
+        <h1>Description</h1>
+        <p>This test validates the values of the window.navigation.redirectCount and the
+           window.performance.timing.redirectStart/End times on a client side redirect.</p>
+
+        <div id="log"></div><br />
+        <iframe id="frameContext" src="resources/blank-page-meta-redirect.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

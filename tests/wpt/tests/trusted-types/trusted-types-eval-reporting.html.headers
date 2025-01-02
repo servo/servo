@@ -1,0 +1,4 @@
+Content-Security-Policy: script-src http: https: 'nonce-123' 'unsafe-eval'
+Content-Security-Policy: object-src 'none'
+Content-Security-Policy: require-trusted-types-for 'script'
+

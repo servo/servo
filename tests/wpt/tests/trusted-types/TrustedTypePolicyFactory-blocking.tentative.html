@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<meta http-equiv="Content-Security-Policy" content="trusted-types *">
+
+<body>
+<script>
+
+  test(t => {
+    event_listener = (e) => {
+      assert_equals(e.policyName, "default");
+      e.preventDefault(); // don't let this policy be created.
+    };
+    trustedTypes.addEventListener('beforecreatepolicy', event_listener, {once:true});
+    assert_throws_dom("NotAllowedError", () => trustedTypes.createPolicy("default", {}));
+  }, 'Block Trusted Type policy creation by event listener.');
+
+  test(t => {
+    let flag = false;
+    event_listener = (e) => {
+      assert_equals(e.policyName, "myPolicy");
+      flag = true;
+    };
+    trustedTypes.addEventListener('beforecreatepolicy', event_listener, {once:true});
+    trustedTypes.createPolicy("myPolicy", {});
+    assert_equals(flag, true);
+  }, 'Trusted Type policy creation.');
+
+  test(t => {
+    event_listener = (e) => {
+      if (e.policyName === "default")
+        e.preventDefault();
+    };
+    trustedTypes.addEventListener('beforecreatepolicy', event_listener, {once:true});
+    assert_throws_dom("NotAllowedError", () => trustedTypes.createPolicy("default", {}));
+    trustedTypes.createPolicy("newPolicy", {});
+  }, 'Block only default Trusted Type policy creation.');
+
+  test(t => {
+    event_listener = (e) => {
+      assert_unreached();
+    };
+    trustedTypes.createPolicy("test", {});
+    trustedTypes.addEventListener('beforecreatepolicy', event_listener, {once:true});
+  }, 'Policy creation called before addEventListener function will not reached the listener.');
+
+</script>

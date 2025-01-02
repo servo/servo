@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Right alignment with position:right</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-08 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/012.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos"/>
+  <link rel="match" href="abspos-009-ref.xht" />
+
+  <style type="text/css">
+   body { position: relative; }
+   .control { border-right: 10em solid red; height: 1em; }
+   .test { position: absolute; width: 10em; height: 1em;
+           right: 0; margin: auto;
+           background: green; color: white; }
+  </style>
+ </head>
+<body>
+  <p>Test passes if there is a green stripe on the right and <strong>no red</strong>.</p>
+  <div class="test"></div>
+  <div class="control"></div>
+
+</body>
+</html>

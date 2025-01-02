@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+  window.addEventListener("message", t.step_func_done(function(e) {
+      assert_equals(e.data, "PASS", "The message should say 'PASS' instead of 'FAIL'");
+    }));
+}, "The sandboxed iframe should post a message saying the test was in the state of 'PASS'.");
+</script>
+</head>
+<body>
+    <p>This tests that an iframe in sandbox with 'allow-top-navigation-by-user-activation'
+    cannot navigate its top level page, if it is not trigged by a user gesture.</p>
+    <iframe sandbox='allow-top-navigation-by-user-activation allow-scripts' src="support/iframe-that-performs-top-navigation-without-user-gesture-failed.html"></iframe>
+</body>
+</html>

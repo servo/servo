@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <title>Tests cancelWatchAvailability()</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    async_test(t => {
+      let v = document.createElement("video");
+      v.src = getVideoURI("/media/movie_5");
+
+      v.remote
+        .watchAvailability(() => {})
+        .then(
+          t.step_func(id => {
+            v.remote.cancelWatchAvailability(id).then(
+              t.step_func(() => {
+                v.remote.cancelWatchAvailability(id).then(
+                  t.unreached_func(),
+                  t.step_func_done(e => {
+                    assert_equals(e.name, "NotFoundError");
+                  })
+                );
+              }),
+              t.unreached_func()
+            );
+          }),
+          t.unreached_func()
+        );
+    }, "Test that calling cancelWatchAvailability() with an id does remove the callback, and calling cancelWatchAvailability with a removed id throws NotFoundError.");
+
+    async_test(t => {
+      let v = document.createElement("video");
+      v.src = getVideoURI("/media/movie_5");
+
+      Promise.all([
+        v.remote.watchAvailability(() => {}),
+        v.remote.watchAvailability(() => {}),
+      ]).then(
+        t.step_func(ids =>
+          v.remote.cancelWatchAvailability().then(
+            t.step_func(() =>
+              v.remote.cancelWatchAvailability(ids[0]).then(
+                t.unreached_func(),
+                t.step_func(e => {
+                  assert_equals(e.name, "NotFoundError");
+                  v.remote.cancelWatchAvailability(ids[1]).then(
+                    t.unreached_func(),
+                    t.step_func_done(e =>
+                      assert_equals(e.name, "NotFoundError")
+                    )
+                  );
+                })
+              )
+            ),
+            t.unreached_func()
+          )
+        ),
+        t.unreached_func()
+      );
+    }, "Test that calling cancelWatchAvailability() without an id removes all the callbacks, and calling cancelWatchAvailability() with a removed id throws NotFoundError.");
+  </script>
+</html>

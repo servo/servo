@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for PaymentRequest's onmerchantvalidation attribute</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#dom-paymentrequest-onmerchantvalidation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+const testMethod = Object.freeze({ supportedMethods: "not-a-real-method" });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  },
+});
+const defaultMethods = Object.freeze([testMethod, applePay]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+const validationURL = "https://example.com";
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  assert_idl_attribute(request, "onmerchantvalidation");
+}, "Must have a onmerchantvalidation IDL attribute");
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new Event("merchantvalidation");
+  let didHandle = false;
+  request.onmerchantvalidation = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onmerchantvalidation attribute is a generic handler for "merchantvalidation"`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new MerchantValidationEvent("merchantvalidation", { validationURL });
+  let didHandle = false;
+  request.onmerchantvalidation = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onmerchantvalidation attribute is a handler for MerchantValidationEvent`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new MerchantValidationEvent("merchantvalidation", { validationURL });
+  let didHandle = false;
+  let didListen = false;
+  request.onmerchantvalidation = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.addEventListener("merchantvalidation", evt => {
+    assert_equals(ev, evt, "must be same event");
+    didListen = true;
+  });
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "onmerchantvalidation must receive the event");
+  assert_true(didListen, "addEventListener must receive the event");
+}, `onmerchantvalidation attribute and listeners both work`);
+</script>

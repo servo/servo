@@ -1,0 +1,129 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Basic//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-basic.dtd" [
+  <!ENTITY Viewport1 "<rect x='.5' y='.5' width='49' height='29' fill='none' stroke='blue'/>">
+  <!ENTITY Viewport2 "<rect x='.5' y='.5' width='29' height='59' fill='none' stroke='blue'/>">
+]>
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="created"
+    version="$Revision: 1.2 $" testname="$RCSfile: coords-viewattr-04-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute">
+      <p>
+        This test verifies the implementation of the preserveAspectRatio attribute on &lt;image&gt;
+        referencing svg content.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly except for variations in the labeling text.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-viewattr-04-f.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="9" transform="translate(0, 30)">
+      <desc>Example PreserveAspectRatio - demonstrate available options</desc>
+      <text text-anchor="middle" x="240" font-size="16">Test options of preserveAspectRatio on an image element</text>
+      <text x="40" y="30" text-anchor="middle">SVG to fit</text>
+      <g transform="translate(20,40)">
+        <image xlink:href="../images/happysmiley.svg" width="40" height="40" preserveAspectRatio="none" />
+      </g>
+      <text x="35.5" y="110" text-anchor="middle">Viewport 1</text>
+      <g transform="translate(10,120)">&Viewport1;</g>
+      <text x="35.5" y="180" text-anchor="middle">Viewport 2</text>
+      <g transform="translate(20,190)">&Viewport2;</g>
+      <g id="meet-group-1" transform="translate(120, 50)">
+        <text x="0" y="-20">---------- meet --------------------</text>
+        <g>
+          <text y="-5">xMin*</text>&Viewport1;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMinYMin meet" width="50" height="30" />
+        </g>
+        <g transform="translate(70,0)">
+          <text y="-5">xMid*</text>&Viewport1;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMidYMid meet" width="50" height="30" />
+        </g>
+        <g transform="translate(0,50)">
+          <text y="-5">xMax*</text>&Viewport1;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMaxYMax meet" width="50" height="30" />
+        </g>
+      </g>
+      <g id="meet-group-2" transform="translate(300, 50)">
+        <text x="0" y="-20">---------- meet ------------------------</text>
+        <g>
+          <text y="-5">*YMin</text>&Viewport2;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMinYMin meet" width="30" height="60" />
+        </g>
+        <g transform="translate(50, 0)">
+          <text y="-5">*YMid</text>&Viewport2;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMidYMid meet" width="30" height="60" />
+        </g>
+        <g transform="translate(100, 0)">
+          <text y="-5">*YMax</text>&Viewport2;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMaxYMax meet" width="30" height="60" />
+        </g>
+      </g>
+      <g id="slice-group-1" transform="translate(120, 185)">
+        <text x="0" y="-20">---------- slice -------------------------</text>
+        <g>
+          <text y="-5">xMin*</text>&Viewport2;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMinYMin slice" width="30" height="60" />
+        </g>
+        <g transform="translate(50,0)">
+          <text y="-5">xMid*</text>&Viewport2;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMidYMid slice" width="30" height="60" />
+        </g>
+        <g transform="translate(100,0)">
+          <text y="-5">xMax*</text>&Viewport2;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMaxYMax slice" width="30" height="60" />
+        </g>
+      </g>
+      <g id="slide-group-2" transform="translate(300, 155) translate(0, 30)">
+        <text x="0" y="-20">---------- slice ---------------------</text>
+        <g>
+          <text y="-5">*YMin</text>&Viewport1;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMinYMin slice" width="50" height="30" />
+        </g>
+        <g transform="translate(70,0)">
+          <text y="-5">*YMid</text>&Viewport1;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMidYMid slice" width="50" height="30" />
+        </g>
+        <g transform="translate(0,50)">
+          <text y="-5">*YMax</text>&Viewport1;
+          <image xlink:href="../images/happysmiley.svg" preserveAspectRatio="xMaxYMax slice" width="50" height="30" />
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.2 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

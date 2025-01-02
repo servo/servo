@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="top-layer-containing-block-ref.html">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#new-stacking-layer">
+<style>
+::backdrop {
+    display: none;
+}
+</style>
+</head>
+<body>
+<p>
+This tests that a modal dialog's containing block is in the initial containing block and that it is unaffected by
+ancestor elements with overflow or opacity.
+<div style="position: absolute; top: 400px; opacity: 0.3">
+    <dialog id="opaqueDialog" style="position: absolute; top: 250px; left: 0px; background-color: magenta; outline: none">
+        This dialog should be unaffected by its ancestor with opacity.
+    </dialog>
+</div>
+<div style="position: absolute; overflow: hidden; width: 500px; height: 150px; top: 400px; left: 300px">
+    <dialog id="unclippedDialog" style="position: absolute; top: 200px; left: 0px; height: 100px; background-color: cyan">
+        This dialog should be unaffected by its ancestor with overflow. It should not be clipped.
+    </dialog>
+</div>
+<div style="position: absolute; top: 1000px; left: 1000px; width: 20px;">
+    <dialog id="bottomDialog" style="position: absolute; top: 100px; height: 250px; width: 90%; background-color: yellow">
+        This dialog should be onscreen with a width of 90% of the page. It is the child of an narrow element
+        positioned off screen, but the containing block of a top layer element is the initial containing block, so its
+        position and percent lengths are relative to that.
+    </dialog>
+</div>
+<script>
+document.getElementById('bottomDialog').showModal();
+document.getElementById('unclippedDialog').showModal();
+document.getElementById('opaqueDialog').showModal();
+</script>
+</body>
+</html>

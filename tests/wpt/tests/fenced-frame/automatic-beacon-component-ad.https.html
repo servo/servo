@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Test automatic beacons in ad components</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    register_beacon: true,
+    component_origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+    num_components: 1,
+    // These headers will also be given to the component ad.
+    headers: [["Allow-Fenced-Frame-Automatic-Beacons", "true"]]
+  });
+  const new_url = new URL("resources/close.html", location.href);
+  const beacon_event = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "this is the beacon data",
+    destination: ["buyer"],
+    crossOriginExposed: true,
+  }
+
+  await fencedframe.execute(async (new_url, beacon_event) => {
+    window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+
+    // Add an ad component that will perform the top-level navigation.
+    // The headers are the same as the ones given to `fencedframe`.
+    const ad_component = await attachComponentFencedFrameContext();
+    await ad_component.execute(async (new_url) => {
+      addEventListener("click", (event) => {
+        window.open(new_url);
+      });
+    }, [new_url]);
+  }, [new_url, beacon_event]);
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+  // The component frame should not use the data set in its parent.
+  // The referrer header should be set to the root ad frame's origin.
+  await verifyBeaconData(beacon_event.eventType, "<No data>");
+}, 'Automatic beacon in an ad component should send without data with a ' +
+   'header opt-in.');
+</script>
+</body>

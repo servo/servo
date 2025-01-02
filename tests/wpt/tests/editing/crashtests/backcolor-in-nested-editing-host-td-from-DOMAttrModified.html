@@ -1,0 +1,29 @@
+<html class="test-wait">
+<head>
+<script type="text/javascript">
+function boom()
+{
+  function x()
+  {
+    document.removeEventListener("DOMAttrModified", x);
+    document.execCommand("backcolor", false, "green");
+  }
+
+  document.getElementById("td").focus();
+
+  document.addEventListener("DOMAttrModified", x);
+  try {
+    document.execCommand("subscript", false, null);
+  } catch(e) {
+  }
+  document.removeEventListener("DOMAttrModified", x);
+  document.documentElement.removeAttribute("class");
+}
+</script>
+</head>
+
+<body contenteditable="true" onload="setTimeout(boom, 30);">
+<table><tbody contenteditable="false"><tr><td contenteditable="true" id="td"></td></tr></tbody></table>
+</body>
+
+</html>

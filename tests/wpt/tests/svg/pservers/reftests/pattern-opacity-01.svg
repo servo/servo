@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Pattern: fill-opacity</title>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/pservers.html#Patterns"/>
+    <html:link rel="match" href="reference/pattern-opacity-01-ref.svg"/>
+  </g>
+  <defs>
+    <pattern id="pattern" width='1' height='1' patternContentUnits="objectBoundingBox">>
+      <rect fill="lime" width="1" height="1"/>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill-opacity="0.5" fill="url(#pattern)"/>
+</svg>

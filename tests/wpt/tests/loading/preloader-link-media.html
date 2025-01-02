@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/dummy.js?pipe=trickle(d1)"></script>
+<link rel="stylesheet" media="print" href="resources/dummy.css?print">
+<link rel="stylesheet" href="resources/dummy.css?non-print">
+<script>
+  let t = async_test("Non-matching link media is not preloaded");
+  window.addEventListener("load", t.step_func_done(function() {
+    let entries = performance.getEntriesByType('resource');
+    let found_print = null;
+    let found_non_print = null;
+    for (let entry of entries) {
+      if (entry.name.includes("?print")) {
+        assert_equals(found_print, null);
+        found_print = entry.startTime;
+      }
+      if (entry.name.includes("?non-print")) {
+        assert_equals(found_non_print, null);
+        found_non_print = entry.startTime;
+      }
+    }
+    assert_not_equals(found_print, null, "Should've loaded print sheet");
+    assert_not_equals(found_non_print, null, "Should've loaded non-print sheet");
+    // We can assert_greater_than (rather than greater_than_equal) because if
+    // the non-print sheet has been preloaded but the print one hasn't, we have
+    // the trickle mechanism to try to guarantee that enough time has passed
+    // between one load and the next.
+    assert_greater_than(found_print, found_non_print, "Non-print sheet should've started loading before print sheet")
+  }));
+</script>
+

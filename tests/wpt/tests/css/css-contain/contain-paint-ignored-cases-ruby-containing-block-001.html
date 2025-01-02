@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang=en>
+  <head>
+    <meta charset=utf-8>
+    <title>CSS-contain test: paint containment on internal ruby elements.</title>
+    <link rel="author" title="Yusuf Sermet" href="mailto:ysermet@mozilla.com">
+    <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-paint">
+    <link rel="match" href="contain-paint-ignored-cases-ruby-containing-block-001-ref.html">
+    <meta name="assert" content="Paint containment should not apply to ruby base, ruby base container, ruby text, and ruby text container. This test confirms contain:paint does not act as a containing block for fixed positioned descendants.">
+    <style>
+      rb,
+      rbc,
+      rt,
+      rtc {
+        contain: paint;
+        background-color: yellow;
+        font-size: 2em;
+      }
+      rbc {
+        display: ruby-base-container;
+      }
+      .contained {
+        width: 50px;
+        height: 10px;
+        background-color: blue;
+        top: 0;
+        left: 0;
+        position: fixed;
+      }
+      .wrapper {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper"><ruby><rt>&emsp;<div class="contained"></div></rt></ruby></div>
+    <div class="wrapper"><ruby><rtc>&emsp;<div class="contained"></div></rtc></ruby></div>
+    <div class="wrapper"><ruby><rb>&emsp;<div class="contained"></div></rb></ruby></div>
+    <div class="wrapper"><ruby><rbc>&emsp;<div class="contained"></div></rbc></ruby></div>
+  </body>
+</html>

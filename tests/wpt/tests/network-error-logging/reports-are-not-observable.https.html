@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>
+    Test that NEL reports are not observable from JavaScript
+  </title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='./support/nel.sub.js'></script>
+</head>
+<body>
+  <script>
+    nel_test(async t => {
+      // Register an observer for NEL reports.
+      var observer = new ReportingObserver((reports, _) => {
+        assert_unreached("NEL reports should not be observable");
+      }, {"types": ["network-error"]});
+      observer.observe();
+      // Make a request to a resource whose response headers include a NEL
+      // policy.  If NEL reports are observable, this will queue a task that
+      // calls the observer function above (which we don't want).
+      await fetchResourceWithBasicPolicy();
+      // Wait for one second to give any observer callback task a chance to
+      // fire.
+      await new Promise(resolve => t.step_timeout(resolve, 1000 /* msec */));
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: layout containment on body prevents text-orientation propagation</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="layout containment on body prevents text-orientation propagation">
+  <link rel="match" href="reference/contain-body-t-o-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#contain-property">
+
+<style>
+html {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+body {
+    margin: 0;
+    border-top: 100px solid red;
+    border-bottom: 100px solid green;
+    width: 100vw;
+    height: 100vh;
+    text-orientation: upright;
+    contain: layout;
+}
+p {
+    margin: auto;
+    padding: 150px 0;
+    writing-mode: horizontal-tb;
+    direction: ltr;
+}
+</style>
+
+<p>Test passes if there is no red.

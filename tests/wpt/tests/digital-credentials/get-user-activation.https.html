@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Digital Credential API: get() consumes user activation.</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js" type="module"></script>
+<body></body>
+<script type="module">
+  import { makeGetOptions } from "./support/helper.js";
+
+  promise_test(async (t) => {
+    assert_false(
+      navigator.userActivation.isActive,
+      "User activation should not be active"
+    );
+    const options = makeGetOptions([]);
+    await promise_rejects_dom(
+      t,
+      "NotAllowedError",
+      navigator.credentials.get(options)
+    );
+  }, "navigator.credentials.get() calling the API without user activation should reject with NotAllowedError.");
+
+  promise_test(async (t) => {
+    await test_driver.bless();
+    assert_true(
+      navigator.userActivation.isActive,
+      "User activation should be active after test_driver.bless()."
+    );
+    const options = makeGetOptions([]);
+    await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
+    assert_false(
+      navigator.userActivation.isActive,
+      "User activation should be consumed after navigator.credentials.get()."
+    );
+  }, "navigator.credentials.get() consumes user activation.");
+</script>

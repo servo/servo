@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Same-origin prerendering cannot access some APIs</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+test_prerender_restricted(
+  () => navigator.clipboard.writeText(location.href),
+  "NotAllowedError", "prerendering pages should not be able to access the clipboard via the Async Clipboard API");
+
+test_prerender_restricted(async () => {
+  const canvas = document.createElement('canvas');
+  document.body.appendChild(canvas);
+  await canvas.requestPointerLock();
+}, "WrongDocumentError", "prerendering pages should not be able to access the pointer-lock API");
+
+test_prerender_restricted(async () => {
+  const div = document.createElement('div');
+  document.body.appendChild(div);
+  await div.requestFullscreen();
+}, "TypeError", "prerendering pages should not be able to access the FullScreen API");
+
+test_prerender_defer(() => new Promise(
+  resolve => navigator.geolocation.getCurrentPosition(p => resolve(p.toString()))),
+  "Geolocation API should be deferred");
+</script>

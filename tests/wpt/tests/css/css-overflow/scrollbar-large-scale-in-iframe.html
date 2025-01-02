@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/377948403">
+<link rel="match" href="scrollbar-large-scale-in-iframe-ref.html">
+<iframe style="position: absolute; top: 100px; left: 100px;
+               border: none; width: 100px; height: 100px"
+        srcdoc="
+  <select multiple style='transform: scale(500, 10)'>
+    <optgroup style='height: 1000px'></optgroup>
+  </select>">
+</iframe>
+<div style="position: absolute; top: 100px; left: 100px;
+            width: 100px; height: 100px; background: green"></div>

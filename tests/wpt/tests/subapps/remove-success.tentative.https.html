@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Sub Apps: Valid calls for remove()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/subapps-helpers.js"></script>
+<script>
+
+promise_test(async t => {
+
+const url = '/sub-app';
+let remove_call_params = [url];
+let mocked_response = [{ "manifestIdPath": url, "resultCode": Status.SUCCESS }];
+let expected_results = {[url]: "success"};
+
+await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);
+}, 'Remove API call works with one app.');
+
+promise_test(async t => {
+
+const url_1 = '/sub-app-1';
+const url_2 = '/sub-app-2';
+const url_3 = '/sub-app-3';
+
+let remove_call_params = [url_1, url_2, url_3];
+
+let mocked_response = [
+  { "manifestIdPath": url_1, "resultCode": Status.SUCCESS },
+  { "manifestIdPath": url_2, "resultCode": Status.SUCCESS },
+  { "manifestIdPath": url_3, "resultCode": Status.SUCCESS }
+];
+
+let expected_results = {
+  [url_1]: "success",
+  [url_2]: "success",
+  [url_3]: "success"
+};
+
+await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);
+}, 'Remove API call works with several apps.');
+
+</script>

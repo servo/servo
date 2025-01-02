@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<title>Manual drag and drop text</title>
+
+<div contenteditable id="editable">Please select a part of the text in this editable,
+    and then drag-and-drop the selected text to a different section of the textarea.
+
+    It is expected that the event data should be null.
+
+    If you see "insertFromDrop" events having null data, then the
+    test passes.
+
+    See https://www.w3.org/TR/input-events-1/#overview
+</div>
+<div id="out"></div>
+<script>
+    function getInputEventData(event) {
+        const out = document.getElementById('out');
+        const line = document.createElement('div');
+        line.textContent = 'inputType: ' + event.inputType + ' eventData: ' + event.data;
+        out.appendChild(line);
+    }
+    const editable = document.getElementById('editable');
+    editable.addEventListener('input', getInputEventData);
+</script>
+</html>

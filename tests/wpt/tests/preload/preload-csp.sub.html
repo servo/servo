@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; font-src 'none'; style-src 'none'; img-src 'none'; media-src 'none'; connect-src 'none'">
+<title>Makes sure that preload requests respect CSP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<link rel=preload href="http://{{host}}:{{ports[http][1]}}/preload/resources/stash-put.py?key={{uuid()}}" as=style>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=style>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=json>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=image>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=font crossorigin>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=video>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=audio>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=track>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}" as=foobarxmlthing>
+<link rel=preload href="/preload/resources/stash-put.py?key={{uuid()}}">
+<body>
+<script>
+promise_test(async (t) => {
+  verifyPreloadAndRTSupport();
+  const keys = [];
+  const links = document.querySelectorAll('link');
+  for (const link of links) {
+    if (link.rel === 'preload') {
+      const r = /\?key=([a-zA-Z0-9\-]+)$/;
+      keys.push(link.href.match(r)[1]);
+    }
+  }
+  await new Promise((resolve) => step_timeout(resolve, 3000));
+
+  for (const key of keys) {
+    assert_false(await hasArrivedAtServer(key));
+  }
+}, 'Preload requests are blocked by CSP.');
+</script>

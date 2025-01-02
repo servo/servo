@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta charset="UTF-8">
+<title>clip-path-interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+<meta name="assert" content="object-view-box supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<style>
+.target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+<body>
+<img src="support/exif-orientation-6-ru.jpg"></img>
+<script>
+test_interpolation({
+  property: 'object-view-box',
+  from: 'inset(0px)',
+  to: 'inset(20px)',
+}, [
+  {at: 0, expect: 'inset(0px)'},
+  {at: 0.5, expect: 'inset(10px)'},
+  {at: 1, expect: 'inset(20px)'},
+]);
+
+test_interpolation({
+  property: 'object-view-box',
+  from: 'inset(0%)',
+  to: 'inset(20%)',
+}, [
+  {at: 0, expect: 'inset(0%)'},
+  {at: 0.5, expect: 'inset(10%)'},
+  {at: 1, expect: 'inset(20%)'},
+]);
+
+test_interpolation({
+  property: 'object-view-box',
+  from: 'rect(0px 10px 20px 30px)',
+  to: 'rect(10px 20px 30px 40px)',
+}, [
+  {at: 0, expect: 'rect(0px 10px 20px 30px)'},
+  {at: 0.5, expect: 'rect(5px 15px 25px 35px)'},
+  {at: 1, expect: 'rect(10px 20px 30px 40px)'},
+]);
+
+test_interpolation({
+  property: 'object-view-box',
+  from: 'xywh(0px 10px 20px 30px)',
+  to: 'xywh(10px 20px 30px 40px)',
+}, [
+  {at: 0, expect: 'xywh(0px 10px 20px 30px)'},
+  {at: 0.5, expect: 'xywh(5px 15px 25px 35px)'},
+  {at: 1, expect: 'xywh(10px 20px 30px 40px)'},
+]);
+</script>
+</body>

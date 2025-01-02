@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>HTML Media Capture Test: capture_reflect</title>
+    <link rel='author' title='Intel' href='http://www.intel.com/'>
+    <link rel='help' href='https://w3c.github.io/html-media-capture/#the-capture-attribute'>
+    <meta name='flags' content='dom'>
+    <meta name='assert' content='Test checks that the capture IDL attribute must reflect the content attribute of the same name.'>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <pre style='display:none'>
+      partial interface HTMLInputElement {
+        attribute CaptureFacingMode capture;
+      };
+      enum CaptureFacingMode {
+        "user",
+        "environment"
+      };
+    </pre>
+
+    <div style='display:none'>
+      <input id='absent' type='file' accept='image/*'>
+      <input id='present-missing' type='file' accept='image/*' capture>
+      <input id='present-user' type='file' accept='image/*' capture='user'>
+      <input id='present-invalid' type='file' accept='image/*' capture='invalid'>
+      <input id='present-environment' type='file' accept='image/*' capture='environment'>
+    </div>
+
+    <div id='log'></div>
+
+    <script>
+      test(function() {
+        let inputs = document.querySelectorAll('input');
+        for (let i=0, obj; i<inputs.length, obj=inputs[i]; i++) {
+          assert_true('capture' in obj);
+          assert_equals(typeof obj.capture, 'string');
+        }
+      }, 'Element input should have own property capture');
+
+      test(function() {
+        assert_equals(document.querySelector('#absent').capture, "");
+      }, 'input.capture is "" when the capture attribute is absent');
+
+      test(function() {
+        assert_equals(document.querySelector('#present-missing').capture, "");
+      }, 'input.capture is "" when the capture attribute is missing value default');
+
+      test(function() {
+        assert_equals(document.querySelector('#present-user').capture, "user");
+      }, 'input.capture is "user" when the capture attribute is user');
+
+      test(function() {
+        assert_equals(document.querySelector('#present-invalid').capture, "");
+      }, 'input.capture is "" when the capture attribute is invalid value default');
+
+      test(function() {
+        assert_equals(document.querySelector('#present-environment').capture, "environment");
+      }, 'input.capture is "environment" when the capture attribute is environment');
+    </script>
+  </body>
+</html>

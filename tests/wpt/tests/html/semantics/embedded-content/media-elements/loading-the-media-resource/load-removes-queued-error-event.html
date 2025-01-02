@@ -1,0 +1,44 @@
+<!doctype html>
+<title>load() removes queued error event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+// The loadstart and error event firing tasks are queued in the synchronous
+// section of the resource selection algorithm, so no tasks can come between
+// them. Calling load() in the loadstart event handler removes the queued error
+// event task at very latest opportunity, failing any implementation that fires
+// the events in the same task.
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  var events = [];
+  v.onloadstart = v.onerror = t.step_func(function(e) {
+    events.push(e.type);
+    if (events.length == 1) {
+      v.load();
+    } else if (events.length == 3) {
+      assert_array_equals(events, ['loadstart', 'loadstart', 'error']);
+      t.done();
+    }
+  });
+  v.src = '';
+}, 'video error event');
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  var s = document.createElement('source');
+  var events = [];
+  v.onloadstart = s.onerror = t.step_func(function(e) {
+    events.push(e.type);
+    if (events.length == 1) {
+      v.load();
+    } else if (events.length == 3) {
+      assert_array_equals(events, ['loadstart', 'loadstart', 'error']);
+      t.done();
+    }
+  });
+  v.onerror = t.step_func(function() { assert_unreached(); });
+  v.appendChild(s);
+}, 'source error event');
+</script>

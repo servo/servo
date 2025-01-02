@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: Masonry layout fragmentation</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="masonry-fragmentation-001-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+wrapper {
+  display: block;
+  width: 600px;
+  height: 600px;
+  overflow: hidden;
+}
+.columns {
+  width: 330px;
+  columns: 6;
+  column-fill: auto;
+  column-gap: 1px;
+  background-color: rgba(80,80,80,.2);
+  margin-bottom: 10px;
+}
+.columns:nth-child(2n) {
+  background-color: rgba(10,100,10,.5);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 10px 15px 20px;
+  grid-template-rows: masonry;
+  border: 1px solid;
+  gap: 2px;
+}
+x {
+  background: cyan;
+  height: 5px;
+  break-inside: avoid;
+}
+x:nth-child(4n) {
+  background: blue;
+  height: 10px;
+  break-inside: auto;
+}
+x:nth-child(5n) {
+  background: pink;
+  height: 12px;
+  break-inside: avoid;
+}
+</style></head>
+<body>
+<wrapper style="display:none">
+<div style="display:none">
+<div class="columns">
+  <div class="grid">
+    <x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x>
+    <x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x>
+  </div>
+</div>
+</div>
+<script>
+let wrapper = document.querySelectorAll("wrapper")[0];
+let tmplt = document.querySelectorAll(".columns")[0];
+let heights = [ 78, 68, 58, 48, 38, 28, 18, 12, 11, 8 ];
+for (let h of heights) {
+  let e = tmplt.cloneNode(true);
+  e.style.height = h + "px";
+  wrapper.appendChild(e);
+}
+wrapper.style.display="";
+</script>
+</wrapper>
+</body>
+</html>

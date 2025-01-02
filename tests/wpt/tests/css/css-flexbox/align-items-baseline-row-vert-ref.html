@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<style>
+#target {
+  writing-mode: vertical-rl;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: 200px;
+  align-items: baseline;
+  inline-size: min-content;
+  block-size: 200px;
+  border: solid 3px;
+}
+#target > div {
+  margin: 5px 7px 9px 11px;
+}
+#target > :nth-child(1) {
+  background: lime;
+  font-size: 30px;
+  writing-mode: vertical-rl;
+}
+#target > :nth-child(2) {
+  background: hotpink;
+  font-size: 20px;
+  writing-mode: vertical-rl;
+}
+#target > :nth-child(3) {
+  background: cyan;
+  width: 40px;
+  height: 40px;
+}
+#target > :nth-child(4) {
+  background: lime;
+  font-size: 30px;
+  writing-mode: vertical-lr;
+}
+#target > :nth-child(5) {
+  background: hotpink;
+  font-size: 20px;
+  writing-mode: vertical-lr;
+}
+</style>
+<div id="target">
+  <div>line1<br>line2</div>
+  <div>line1<br>line2</div>
+  <div></div>
+  <div>line1<br>line2</div>
+  <div>line1<br>line2</div>
+</div>

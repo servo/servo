@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>"A WebSocket message has been received", with multiple globals in play</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/comms.html#feedback-from-the-protocol">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is the entry global -->
+
+<iframe src="support/incumbent.sub.html"></iframe>
+
+<script>
+"use strict";
+setup({ explicit_done: true });
+
+window.onload = function() {
+    async_test(function(t) {
+        frames[0].setupWebSocket("arraybuffer", t.step_func_done(function(relevantWindow, event) {
+            assert_equals(event.constructor, relevantWindow.MessageEvent);
+            assert_equals(event.data.constructor, relevantWindow.ArrayBuffer);
+        }));
+    }, "ArrayBuffer should be created in the relevant realm of the WebSocket");
+
+    async_test(function(t) {
+        frames[0].setupWebSocket("blob", t.step_func_done(function(relevantWindow, event) {
+            assert_equals(event.constructor, relevantWindow.MessageEvent);
+            assert_equals(event.data.constructor, relevantWindow.Blob);
+        }));
+    }, "Blob should be created in the relevant realm of the WebSocket");
+
+    done();
+};
+</script>

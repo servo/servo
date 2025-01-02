@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+  <head>
+    <title>
+      Oscillator Detune Limits
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+
+  <body>
+    <script>
+      const sampleRate = 44100;
+      const renderLengthSeconds = 0.125;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define(
+          {
+            label: 'detune limits',
+            description:
+                'Oscillator with detune and frequency at Nyquist or above'
+          },
+          (task, should) => {
+            let context = new OfflineAudioContext(
+                2, renderLengthSeconds * sampleRate, sampleRate);
+
+            let merger = new ChannelMergerNode(
+                context, {numberOfInputs: context.destination.channelCount});
+            merger.connect(context.destination);
+
+            // For test oscillator, set the oscillator frequency to -Nyquist and
+            // set detune to be a large number that would cause the detuned
+            // frequency to be way above Nyquist.
+            const oscFrequency = 1;
+            const detunedFrequency = sampleRate;
+            const detuneValue = Math.fround(1200 * Math.log2(detunedFrequency));
+
+            let testOsc = new OscillatorNode(
+                context, {frequency: oscFrequency, detune: detuneValue});
+            testOsc.connect(merger, 0, 1);
+
+            // For the reference oscillator, determine the computed oscillator
+            // frequency using the values above and set that as the oscillator
+            // frequency.
+            let computedFreq = oscFrequency * Math.pow(2, detuneValue / 1200);
+
+            let refOsc = new OscillatorNode(context, {frequency: computedFreq});
+            refOsc.connect(merger, 0, 0);
+
+            // Start 'em up and render
+            testOsc.start();
+            refOsc.start();
+
+            context.startRendering()
+                .then(renderedBuffer => {
+                  let expected = renderedBuffer.getChannelData(0);
+                  let actual = renderedBuffer.getChannelData(1);
+
+                  // Let user know about the smaple rate so following messages
+                  // make more sense.
+                  should(context.sampleRate, 'Context sample rate')
+                    .beEqualTo(context.sampleRate);
+
+                  // Since the frequency is at Nyquist, the reference oscillator
+                  // output should be zero.
+                  should(
+                      refOsc.frequency.value, 'Reference oscillator frequency')
+                      .beGreaterThanOrEqualTo(context.sampleRate / 2);
+                  should(
+                      expected, `Osc(freq: ${refOsc.frequency.value}) output`)
+                      .beConstantValueOf(0);
+                  // The output from each oscillator should be the same.
+                  should(
+                      actual,
+                      'Osc(freq: ' + oscFrequency + ', detune: ' + detuneValue +
+                          ') output')
+                      .beCloseToArray(expected, {absoluteThreshold: 0});
+
+                })
+                .then(() => task.done());
+          });
+
+      audit.define(
+          {
+            label: 'detune automation',
+            description:
+                'Oscillator output with detune automation should be zero ' +
+                'above Nyquist'
+          },
+          (task, should) => {
+            let context = new OfflineAudioContext(
+                1, renderLengthSeconds * sampleRate, sampleRate);
+
+            const baseFrequency = 1;
+            const rampEnd = renderLengthSeconds / 2;
+            const detuneEnd = 1e7;
+
+            let src = new OscillatorNode(context, {frequency: baseFrequency});
+            src.detune.linearRampToValueAtTime(detuneEnd, rampEnd);
+
+            src.connect(context.destination);
+
+            src.start();
+
+            context.startRendering()
+                .then(renderedBuffer => {
+                  let audio = renderedBuffer.getChannelData(0);
+
+                  // At some point, the computed oscillator frequency will go
+                  // above Nyquist.  Determine at what time this occurrs.  The
+                  // computed frequency is f * 2^(d/1200) where |f| is the
+                  // oscillator frequency and |d| is the detune value.  Thus,
+                  // find |d| such that Nyquist = f*2^(d/1200). That is, d =
+                  // 1200*log2(Nyquist/f)
+                  let criticalDetune =
+                      1200 * Math.log2(context.sampleRate / 2 / baseFrequency);
+
+                  // Now figure out at what point on the linear ramp does the
+                  // detune value reach this critical value.  For a linear ramp:
+                  //
+                  //   v(t) = V0+(V1-V0)*(t-T0)/(T1-T0)
+                  //
+                  // Thus,
+                  //
+                  //   t = ((T1-T0)*v(t) + T0*V1 - T1*V0)/(V1-V0)
+                  //
+                  // In this test, T0 = 0, V0 = 0, T1 = rampEnd, V1 =
+                  // detuneEnd, and v(t) = criticalDetune
+                  let criticalTime = (rampEnd * criticalDetune) / detuneEnd;
+                  let criticalFrame =
+                      Math.ceil(criticalTime * context.sampleRate);
+
+                  should(
+                      criticalFrame,
+                      `Frame where detuned oscillator reaches Nyquist`)
+                      .beEqualTo(criticalFrame);
+
+                  should(
+                      audio.slice(0, criticalFrame),
+                      `osc[0:${criticalFrame - 1}]`)
+                      .notBeConstantValueOf(0);
+
+                  should(audio.slice(criticalFrame), `osc[${criticalFrame}:]`)
+                      .beConstantValueOf(0);
+                })
+                .then(() => task.done());
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

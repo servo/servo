@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<link rel="help"
+  href="https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11044">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<meta name="assert"
+  content="demonstrate the behavior described in https://github.com/w3c/csswg-drafts/issues/11044#issuecomment-2422165458">
+
+<style>
+  .outer {
+    width: 100px;
+    height: 100px;
+    outline: solid;
+    position: relative;
+  }
+
+  .inner {
+    height: stretch;
+    margin: 10px;
+  }
+
+  p {
+    margin-top: 20px;
+    margin-bottom: 0px;
+  }
+</style>
+
+<p>This test asserts the behavior seemingly agreed upon through
+  https://github.com/w3c/csswg-drafts/issues/11044#issuecomment-2486935794. This
+  is unlikely to be the final specified behavior, hence the test is marked
+  tentative.</p>
+
+<p>Basic case: treat margins as 0.</p>
+<div class="outer">
+  <div class="inner" style="border: solid magenta;" data-expected-height="100"
+    data-offset-y="0">
+  </div>
+</div>
+
+<p>
+  When resolving stretch, don't treat margins as 0 if there is a sibling on that
+  side. (Hand-wavy: we don't collapse margins through siblings for the purpose
+  of resolving stretched heights.)</p>
+<p>
+  Then when actually doing margin collapsing, .inner's margins DON'T collapse
+  with .outer's because of the usual rule that margins don't collapse through
+  new formatting contexts.
+</p>
+<div class="outer">
+  <div style="overflow: hidden"></div>
+  <div class="inner" style="border: solid cyan;" data-expected-height="80"
+    data-offset-y="10">
+  </div>
+  <div style="overflow: hidden"></div>
+</div>
+
+<p>When resolving stretch, don't treat margins as 0 if there is a sibling on
+  that side. (Hand-wavy: we don't collapse margins through siblings for the
+  purpose of resolving stretched heights.)</p>
+<p>
+  Then when actually doing margin collapsing, .inner's margins DO collapse with
+  .outer's because they collapse through the empty siblings.
+</p>
+<div class="outer">
+  <div></div>
+  <div class="inner" style="border: solid blue;" data-expected-height="80"
+    data-offset-y="0">
+  </div>
+  <div></div>
+</div>
+
+<p>Only treat the BOTTOM margin as 0. Margins do collapse, so top edges touch.
+</p>
+<div class="outer">
+  <div></div>
+  <div class="inner" style="border: solid purple;" data-expected-height="90"
+    data-offset-y="0">
+  </div>
+</div>
+
+<p>Only treat the TOP margin as 0. Margins do collapse, so top edges touch.</p>
+<div class="outer">
+  <div class="inner" style="border: solid lime;" data-expected-height="90"
+    data-offset-y="0">
+  </div>
+  <div></div>
+</div>
+
+<p>Account for the margins when parent establishes a BFC.</p>
+<div class="outer" style="display: flow-root;">
+  <div class="inner" style="border: solid orange;" data-expected-height="80"
+    data-offset-y="10">
+  </div>
+  <div></div>
+</div>
+
+<script>checkLayout(".inner");</script>

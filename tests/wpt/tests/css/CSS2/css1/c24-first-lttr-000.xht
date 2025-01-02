@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: first-letter</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#the-first-letter-pseudo-element"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-04 -->
+
+  <style type="text/css"><![CDATA[
+   body { color: blue; }
+   p:first-letter {color: green;}
+   .two:first-letter {font-size: 200%;}
+   p.three:first-letter {font-size: 350%;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" title="5.12.2 The :first-letter pseudo-element"/>
+
+ </head>
+ <body>
+  <p>
+   The <strong>first letter</strong> of this paragraph, and only that
+   one, should be <strong>green</strong>. If this precise combination
+   does not occur, then the user agent has failed this test.
+  </p>
+  <p class="two">
+   The <strong>first letter</strong> of this paragraph, and only that
+   one, should be in a <strong>larger</strong> font size, as well as
+   <strong>green</strong>. If this precise combination does not occur,
+   then the user agent has failed this test.
+  </p>
+
+  <p class="three">
+   "The <strong>first two characters</strong> in this paragraph (a
+   double-quote mark and a capital 'T') should be in a <strong>much
+   larger</strong> font size than the rest of the paragraph, and
+   <strong>green</strong>. If this precise combination does not occur,
+   then the user agent has failed this test.
+  </p>
+ </body>
+</html>

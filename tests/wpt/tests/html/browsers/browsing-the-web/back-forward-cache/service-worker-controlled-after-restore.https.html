@@ -1,0 +1,54 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/helper.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+promise_test(async t => {
+  const pageA = new RemoteContext(token());
+  const pageB = new RemoteContext(token());
+
+  const urlA = location.origin + executorPath + pageA.context_id;
+  const urlB = originCrossSite + executorPath + pageB.context_id;
+
+  // Register a service worker.
+  const workerUrl =
+      'resources/service-worker.js?pipe=header(Service-Worker-Allowed,../)';
+  const registration =
+      await service_worker_unregister_and_register(t, workerUrl, './');
+  t.add_cleanup(_ => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+
+  window.open(urlA, '_blank', 'noopener');
+  await pageA.execute_script(waitForPageShow);
+
+  assert_true(
+    await pageA.execute_script(
+        () => (navigator.serviceWorker.controller !== null)),
+    'pageA should be controlled before navigation');
+
+  await navigateAndThenBack(pageA, pageB, urlB);
+  await assert_bfcached(pageA);
+
+  assert_true(
+    await pageA.execute_script(
+        () => (navigator.serviceWorker.controller !== null)),
+    'navigator.serviceWorker.controller should be non-null ' +
+    'after restored from BFCache');
+
+  const isControlled = await pageA.execute_script(
+      () => fetch('/is-controlled').then(r => r.text()));
+
+  assert_true(
+    await pageA.execute_script(
+        () => (navigator.serviceWorker.controller !== null)),
+    'navigator.serviceWorker.controller should be non-null ' +
+    'after restored from BFCache and after fetch');
+
+  assert_equals(isControlled, 'controlled',
+    'fetch should be intercepted after restored from BFCache');
+}, 'Pages should remain controlled after restored from BFCache');
+</script>

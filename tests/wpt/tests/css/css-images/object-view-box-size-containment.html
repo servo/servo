@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box on an element with size containment</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="object-view-box-size-containment-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<style>
+.default {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: fill;
+  contain: size;
+  width: 50px;
+  height: 100px;
+  clip-path: inset(1px 0px 0px 0px);
+}
+</style>
+<img class="default" src="support/exif-orientation-6-ru.jpg"></img>

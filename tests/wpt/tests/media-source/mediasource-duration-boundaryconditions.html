@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>MediaSource.duration boundary condition test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          function DurationBoundaryConditionTest(testDurationValue, expectedError, description)
+          {
+              return mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+              {
+                  // Append initialization segment.
+                  test.expectEvent(sourceBuffer, "updateend", "sourceBuffer");
+                  test.expectEvent(mediaElement, "loadedmetadata", "mediaElement");
+                  sourceBuffer.appendBuffer(MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init));
+                  test.waitForExpectedEvents(function()
+                  {
+                      if (expectedError) {
+                          assert_throws_js(expectedError,
+                              function() { mediaSource.duration = testDurationValue; },
+                              "mediaSource.duration assignment throws an exception for " + testDurationValue);
+                          test.done();
+                          return;
+                      }
+
+                      mediaSource.duration = testDurationValue;
+
+                      assert_equals(mediaSource.duration, testDurationValue, "mediaSource.duration");
+                      assert_equals(mediaElement.duration, testDurationValue, "mediaElement.duration");
+
+                      test.expectEvent(mediaElement, "durationchange", "mediaElement");
+                      test.waitForExpectedEvents(function()
+                      {
+                          assert_equals(mediaSource.duration, testDurationValue, "mediaSource.duration");
+                          assert_equals(mediaElement.duration, testDurationValue, "mediaElement.duration");
+                          test.done();
+                      });
+                  });
+
+              }, description);
+          }
+
+          DurationBoundaryConditionTest(Math.pow(2, 31) - 1, null, "Set duration to 2^31 - 1");
+          DurationBoundaryConditionTest(1, null, "Set duration to 1");
+          DurationBoundaryConditionTest(Number.MAX_VALUE, null, "Set duration to Number.MAX_VALUE");
+          DurationBoundaryConditionTest(Number.MIN_VALUE, null, "Set duration to Number.MIN_VALUE");
+          DurationBoundaryConditionTest(Number.MAX_VALUE - 1, null, "Set duration to Number.MAX_VALUE - 1");
+          DurationBoundaryConditionTest(Number.MIN_VALUE - 1, TypeError, "Set duration to Number.MIN_VALUE - 1");
+          DurationBoundaryConditionTest(Number.POSITIVE_INFINITY, null, "Set duration to Number.POSITIVE_INFINITY");
+          DurationBoundaryConditionTest(Number.NEGATIVE_INFINITY, TypeError, "Set duration to Number.NEGATIVE_INFINITY");
+          DurationBoundaryConditionTest(-1 * Number.MAX_VALUE, TypeError, "Set duration to lowest value.");
+          DurationBoundaryConditionTest(-101.9, TypeError, "Set duration to a negative double.");
+          DurationBoundaryConditionTest(101.9, null, "Set duration to a positive double.");
+          DurationBoundaryConditionTest(0, null, "Set duration to zero");
+          DurationBoundaryConditionTest(NaN, TypeError, "Set duration to NaN");
+        </script>
+    </body>
+</html>

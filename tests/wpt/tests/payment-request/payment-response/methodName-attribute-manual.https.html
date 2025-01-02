@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#dom-paymentresponse-methodname">
+<title>
+  PaymentResponse.prototype.methodName attribute
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helpers.js"></script>
+<h2>methodName attribute</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  Use any credit card and any values.
+</p>
+<ol>
+  <li>
+    <button onclick="runManualTest(this, {}, { methodName: 'basic-card' }).then(done)">
+      Expect the payment method identifier to be 'basic-card'.
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

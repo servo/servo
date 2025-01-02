@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Chromium bug: Crash when copying layer statement rule from memory cache</title>
+<link rel="help" href="https://www.w3.org/TR/css-cascade-5/#layer-empty">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1345181">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="stylesheet" href="data:text/css,@layer foo;@media(all){}">
+<link rel="stylesheet" href="data:text/css,@layer foo;@media(all){}">
+<body>
+  <p style="color: green">Test passes if it does not crash.</p>
+</body>

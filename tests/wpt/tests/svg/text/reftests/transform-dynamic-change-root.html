@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://crbug.com/1365243">
+<link rel="match" href="transform-dynamic-change-root-ref.html">
+<style>
+:root { scale: 1 5; }
+</style>
+
+<body>
+<svg><text y=30>Text</text></svg>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.styleSheets[0].removeRule(0);
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</body>
+</html>

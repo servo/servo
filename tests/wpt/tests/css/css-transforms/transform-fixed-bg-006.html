@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Fixed Background (transform of intermediate)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+    <link rel="author" title="Google" href="http://www.google.com/">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='"Fixed backgrounds on the root element are
+    affected by any transform specified for that element. For all other
+    elements that are effected by a transform (i.e. have a transform applied
+    to them, or to any of their ancestor elements), a value of fixed for the
+    background-attachment property is treated as if it had a value of scroll."
+    This tests that adding a rotation to a non-root element doesn&apos;t
+    change rendering of fixed backgrounds on its descendants relative to what
+    they would be if background-attachment: scroll.'>
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-fixed-bg-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-200">
+    <style>
+      body {
+        margin: 0;
+        transform: rotate(90deg);
+        transform-origin: 100px 100px;
+        overflow: hidden;
+      }
+      div {
+        background: url(support/transform-triangle-down.svg) fixed;
+        width: 100px;
+        height: 100px;
+        position: relative;
+        left: 50px;
+        top: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

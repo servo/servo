@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>View transitions: one element captured for two tags (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+div {
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+#first {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  transform: translate(100px);
+}
+#second {
+  background: green;
+  width: 100px;
+  height: 100px;
+  transform: translate(150px);
+}
+</style>
+<div id=first></div>
+<div id=second></div>
+

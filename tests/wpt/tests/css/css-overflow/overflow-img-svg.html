@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifies overflow applies to img elements rendering svg</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="overflow-img-svg-ref.html">
+<style>
+  .default {
+    width: 25px;
+    height: 50px;
+    object-fit: none;
+    object-position: 0% 0%;
+    overflow: visible;
+  }
+</style>
+<body>
+<img class=default src="../css-images/support/blue-green-red-yellow-50x100.svg"></img>
+</body>

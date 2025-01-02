@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Shadows on horizontal target text</title>
+<link rel="author" name="Stephen Chenney" href="mailto:schenney@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-painting">
+<link rel="match" href="target-text-shadow-horizontal-ref.html">
+<meta name="assert" value="::target-text with a shadow is painted, including originating element shadows">
+<style>
+    :root {
+        line-height: 1;
+    }
+    p {
+        font-size: 2em;
+        color: black;
+        text-shadow: 0.1em 0.1em 3px rgba(0,0,0,0.5);
+    }
+    p::target-text {
+        color: green;
+        text-shadow: 0.25em 0.25em 3px rgba(0,0,128,0.5);
+    }
+</style>
+<p>the target should have a shadow</p>
+<script>
+    window.location.hash = "#:~:text=target";
+</script>

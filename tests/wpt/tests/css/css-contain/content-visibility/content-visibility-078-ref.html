@@ -1,0 +1,29 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>CSS Content Visibility: positioned movement update moves hidden container (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+#target {
+  top: 50px;
+  left: 100px;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: blue;
+}
+#t2 {
+  top: 150px;
+  left: 100px;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+</style>
+
+<p>Test passes if the blue and orange boxes are vertically aligned with each other.
+<div id=target></div>
+<div id=t2></div>

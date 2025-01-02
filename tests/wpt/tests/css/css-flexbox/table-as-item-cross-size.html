@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Flexbox: Correct cross size of Table with 'align-self: stretch'</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-direction-property">
+<meta name="assert" content="This test ensures that flexbox computes a correct cross size of a <table> flex item with align-self: stretch.">
+<style>
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100px;
+    width: 50px;
+}
+.first {
+    flex: 1 1 auto;
+    background-color: blue;
+}
+.test {
+    flex: 0 0 auto;
+    background-color: green;
+    display: flex;
+}
+td {
+    padding: 23px;
+}
+</style>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.test')">
+<div id=log></div>
+<div class="container">
+    <div class="first">
+    </div>
+    <!-- This wrapper div is a row flexbox. It should get a height of 50px, matching the height
+     of the inner table. In particular, it should not be 0 on the basis that tables don't
+     have an intrinsic block-size. -->
+    <div class="test" data-expected-height=50>
+        <table>
+            <tr><td></td></tr>
+        </table>
+    </div>
+</div>
+</body>
+</html>

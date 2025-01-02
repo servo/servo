@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <title>View transitions: Transition in a hidden page</title>
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/page-visibility/resources/window_state_context.js"></script>
+  <style>
+    ::view-transition-group(*) {
+      animation-duration: 5s;
+    }
+  </style>
+  <script>
+    promise_test(async t => {
+      assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+      const wsc = window_state_context(t);
+      await wsc.minimize();
+      assert_true(document.hidden);
+      const transition = document.startViewTransition();
+      await promise_rejects_dom(t, "InvalidStateError", transition.ready);
+      await wsc.restore();
+    }, "A view transition should be immediately skipped if started when document is hidden");
+
+    promise_test(async t => {
+      assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+      const wsc = window_state_context(t);
+      const transition = document.startViewTransition(async () => {
+        await wsc.minimize();
+      });
+
+      let event_fired = false;
+
+      window.addEventListener("visibilitychange", () => {
+        if (document.hidden)
+          event_fired = true;
+      });
+
+      // Restoring so that the document has an opportunity to present the real
+      // frame and start the transition's animation.
+      await wsc.restore();
+
+      const [readyResult] = await Promise.allSettled([transition.ready]);
+      assert_true(event_fired, "visibilitychange event should fire before skipping the transition");
+      await transition.finished;
+      assert_equals(readyResult.status, "rejected");
+    }, "A view transition should be skipped when a document becomes hidden while processing update callback");
+
+    promise_test(async t => {
+      assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+      assert_false(document.hidden);
+      const wsc = window_state_context(t);
+      const transition = document.startViewTransition(() => { });
+      await transition.ready;
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await wsc.minimize();
+      const result = await new Promise(resolve => {
+        transition.finished.then(() => resolve("finished"));
+        t.step_timeout(() => resolve("timeout"), 1000);
+      });
+
+      assert_equals(result, "finished");
+    }, "A view transition should be skipped when a document becomes hidden while animating");
+</script>
+</body>
+</html>

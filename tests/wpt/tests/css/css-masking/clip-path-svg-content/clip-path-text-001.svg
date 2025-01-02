@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: clipPath with text</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="match" href="reference/clip-path-text-001-ref.svg" />
+	<html:link rel="stylesheet" href="/fonts/ahem.css"/>
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">A clipPath element can contain text. You should
+	see four adjacent 40x40 green squares and nothing else.</desc>
+</g>
+<clipPath id="clip1">
+	<text x="20" y="150" style="font: 40px/1 Ahem">XXXX</text>
+</clipPath>
+<rect height="200" width="200" fill="green" clip-path="url(#clip1)"/>
+</svg>

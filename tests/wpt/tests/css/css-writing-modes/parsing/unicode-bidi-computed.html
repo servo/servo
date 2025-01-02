@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: getComputedStyle().unicodeBidi</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#propdef-unicode-bidi">
+<meta name="assert" content="unicode-bidi computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("unicode-bidi", "normal");
+test_computed_value("unicode-bidi", "embed");
+test_computed_value("unicode-bidi", "isolate");
+test_computed_value("unicode-bidi", "bidi-override");
+test_computed_value("unicode-bidi", "isolate-override");
+test_computed_value("unicode-bidi", "plaintext");
+</script>
+</body>
+</html>

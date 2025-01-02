@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+ <html>
+  <head>
+   <meta charset=utf-8>
+<script type="application/its+xml">
+   <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+   <its:param name="langinfoparam">2</its:param>
+	<its:langRule selector="//h:p[@id=$langinfoparam]/h:q" langPointer="@lang"/>
+  </its:rules>
+</script>
+   <title>EXAMPLE</title>
+  </head>
+  <body>
+   <p id="1">The motto of Québec is:
+    <q>Je me souviens</q>
+  .</p>
+   <p id="2">La devise du Québec est :
+    <q lang="fr-CA">Je me souviens</q>
+  .</p>
+  </body>
+ </html>

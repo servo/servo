@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: ::scroll-button() valid tests</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('::scroll-button(up)');
+  test_valid_selector('::scroll-button(down)');
+  test_valid_selector('::scroll-button(left)');
+  test_valid_selector('::scroll-button(right)');
+  test_valid_selector('::scroll-button(block-start)');
+  test_valid_selector('::scroll-button(inline-start)');
+  test_valid_selector('::scroll-button(inline-end)');
+  test_valid_selector('::scroll-button(block-end)');
+
+  // :focus
+  test_valid_selector('::scroll-button(up):focus');
+  test_valid_selector('::scroll-button(down):focus');
+  test_valid_selector('::scroll-button(left):focus');
+  test_valid_selector('::scroll-button(right):focus');
+  test_valid_selector('::scroll-button(block-start):focus');
+  test_valid_selector('::scroll-button(inline-start):focus');
+  test_valid_selector('::scroll-button(inline-end):focus');
+  test_valid_selector('::scroll-button(block-end):focus');
+
+  // :disabled
+  test_valid_selector('::scroll-button(up):disabled');
+  test_valid_selector('::scroll-button(down):disabled');
+  test_valid_selector('::scroll-button(left):disabled');
+  test_valid_selector('::scroll-button(right):disabled');
+  test_valid_selector('::scroll-button(block-start):disabled');
+  test_valid_selector('::scroll-button(inline-start):disabled');
+  test_valid_selector('::scroll-button(inline-end):disabled');
+  test_valid_selector('::scroll-button(block-end):disabled');
+
+  // :enabled
+  test_valid_selector('::scroll-button(up):enabled');
+  test_valid_selector('::scroll-button(down):enabled');
+  test_valid_selector('::scroll-button(left):enabled');
+  test_valid_selector('::scroll-button(right):enabled');
+  test_valid_selector('::scroll-button(block-start):enabled');
+  test_valid_selector('::scroll-button(inline-start):enabled');
+  test_valid_selector('::scroll-button(inline-end):enabled');
+  test_valid_selector('::scroll-button(block-end):enabled');
+</script>

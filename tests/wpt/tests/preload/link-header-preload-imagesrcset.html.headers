@@ -1,0 +1,3 @@
+Link: <resources/square.png?from-header&1x>; rel=preload; as=image; imagesrcset="resources/square.png?from-header&2x 2x, resources/square.png?from-header&3x 3x"
+Link: <resources/square.png?from-header&base>; rel=preload; as=image; imagesrcset="resources/square.png?from-header&200 200w, resources/square.png?from-header&400 400w, resources/square.png?from-header&800 800w"; imagesizes=400px
+Link: <resources/square.png?from-header&base>; rel=preload; as=image; imagesrcset="resources/square.png?from-header&150 150w, resources/square.png?from-header&300 300w, resources/square.png?from-header&600 600w"; imagesizes="(min-width: 300px) 300px, 150px"

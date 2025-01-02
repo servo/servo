@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS margin: Margin collapsing and elements with min-height</title>
+<link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+<style type="text/css">
+  #container {width: 50px; border-top: 1px solid transparent;
+    background: green}
+  #parent {height: 50px; background-color: white; margin-top: 50px}
+  #following-sibling {height: 50px; background-color: green}
+</style>
+</head>
+  <body>
+    <p>There should be two solid green squares and no red on this page</p>
+
+    <div id="container" >
+      <div id="parent">
+      </div>
+      <div id="following-sibling"></div>
+    </div>
+  </body>
+</html>

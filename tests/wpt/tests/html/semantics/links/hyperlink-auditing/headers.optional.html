@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+
+<!-- Test is optional because hyperlink auditing is optional. -->
+
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+
+  const id = token();
+
+  const el = document.createElement("a");
+  el.ping = new URL(`resources/stash-headers.py?id=${id}`, location.href); // this will be a POST
+  el.href = "/common/blank.html?1";
+
+  i.contentDocument.body.append(el);
+  el.click();
+
+  let headers;
+  await pollForConditionFunc(t, async () => {
+    const res = await fetch(el.ping); // this will be a GET
+    const json = await res.json();
+
+    if (json !== "no headers yet") {
+      headers = json;
+      return true;
+    }
+    return false;
+  });
+
+  assert_equals(headers["content-type"], "text/ping", "content-type");
+  assert_equals(headers["ping-from"], i.src, "ping-from");
+  assert_equals(headers["ping-to"], el.href, "ping-to");
+});
+
+async function pollForConditionFunc(t, func, timeout = 3000, interval = 100) {
+  let remaining = Math.ceil(timeout / interval);
+
+  while (remaining > 0) {
+    --remaining;
+    await new Promise(resolve => t.step_timeout(resolve, interval));
+
+    if (await func()) {
+      return;
+    }
+  }
+
+  assert_true(false, "Condition never became true");
+}
+</script>

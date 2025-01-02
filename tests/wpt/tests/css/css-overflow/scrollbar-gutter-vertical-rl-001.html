@@ -1,0 +1,260 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: test scrollbar-gutter with vertical right to left content</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  .line {
+    display: flex;
+  }
+
+  .container {
+    writing-mode: vertical-rl;
+
+    height: 200px;
+    width: 200px;
+    margin: 10px;
+    padding: 0px;
+    border: none;
+    overflow-y: auto;
+    background: deepskyblue;
+  }
+
+  .content {
+    width: 100%;
+    height: 100%;
+    padding: 0px;
+    border: none;
+    background: lightsalmon;
+  }
+
+  /* scrollbar-gutter */
+  .sg_auto {
+    scrollbar-gutter: auto;
+  }
+
+  .sg_stable {
+    scrollbar-gutter: stable;
+  }
+
+  .sg_stable_mirror {
+    scrollbar-gutter: stable both-edges;
+  }
+
+  /* overflow */
+  .container.ov_auto {
+    overflow-x: auto;
+  }
+
+  .container.ov_scroll {
+    overflow-x: scroll;
+  }
+
+  .container.ov_visible {
+    overflow: visible;
+  }
+
+  .container.ov_hidden {
+    overflow-x: hidden;
+  }
+
+  .container.ov_clip {
+    overflow: clip;
+  }
+</style>
+<body>
+
+  <div class="line">
+    <div class="container ov_auto sg_auto" id="container_auto_auto">
+      <div class="content" id="content_auto_auto">auto/auto</div>
+    </div>
+
+    <div class="container ov_scroll sg_auto" id="container_scroll_auto">
+      <div class="content" id="content_scroll_auto">scroll/auto</div>
+    </div>
+
+    <div class="container ov_visible sg_auto" id="container_visible_auto">
+      <div class="content" id="content_visible_auto">visible/auto</div>
+    </div>
+
+    <div class="container ov_hidden sg_auto" id="container_hidden_auto">
+      <div class="content" id="content_hidden_auto">hidden/auto</div>
+    </div>
+
+    <div class="container ov_clip sg_auto" id="container_clip_auto">
+      <div class="content" id="content_clip_auto">clip/auto</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container ov_auto sg_stable" id="container_auto_stable">
+      <div class="content" id="content_auto_stable">auto/stable</div>
+    </div>
+
+    <div class="container ov_scroll sg_stable" id="container_scroll_stable">
+      <div class="content" id="content_scroll_stable">scroll/stable</div>
+    </div>
+
+    <div class="container ov_visible sg_stable" id="container_visible_stable">
+      <div class="content" id="content_visible_stable">visible/stable</div>
+    </div>
+
+    <div class="container ov_hidden sg_stable" id="container_hidden_stable">
+      <div class="content" id="content_hidden_stable">hidden/stable</div>
+    </div>
+
+    <div class="container ov_clip sg_stable" id="container_clip_stable">
+      <div class="content" id="content_clip_stable">clip/stable</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container ov_auto sg_stable_mirror" id="container_auto_stable_mirror">
+      <div class="content" id="content_auto_stable_mirror">auto/stable both-edges</div>
+    </div>
+
+    <div class="container ov_scroll sg_stable_mirror" id="container_scroll_stable_mirror">
+      <div class="content" id="content_scroll_stable_mirror">scroll/stable both-edges</div>
+    </div>
+
+    <div class="container ov_visible sg_stable_mirror" id="container_visible_stable_mirror">
+      <div class="content" id="content_visible_stable_mirror">visible/stable both-edges</div>
+    </div>
+
+    <div class="container ov_hidden sg_stable_mirror" id="container_hidden_stable_mirror">
+      <div class="content" id="content_hidden_stable_mirror">hidden/stable both-edges</div>
+    </div>
+
+    <div class="container ov_clip sg_stable_mirror" id="container_clip_stable_mirror">
+      <div class="content" id="content_clip_stable_mirror">clip/stable both-edges</div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+
+    setup({ explicit_done: true });
+
+    // scrollbar-gutter: auto
+
+    test(function () {
+      let container = document.getElementById('container_auto_auto');
+      let content = document.getElementById('content_auto_auto');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow auto, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_auto');
+      let content = document.getElementById('content_scroll_auto');
+      assert_greater_than(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow scroll, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_visible_auto');
+      let content = document.getElementById('content_visible_auto');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow visible, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_auto');
+      let content = document.getElementById('content_hidden_auto');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow hidden, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_clip_auto');
+      let content = document.getElementById('content_clip_auto');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow clip, scrollbar-gutter auto");
+
+    // scrollbar-gutter: stable
+
+    test(function () {
+      let container = document.getElementById('container_auto_stable');
+      let content = document.getElementById('content_auto_stable');
+      assert_greater_than(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow auto, scrollbar-gutter stable");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_stable');
+      let content = document.getElementById('content_scroll_stable');
+      assert_greater_than(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow scroll, scrollbar-gutter stable");
+
+    test(function () {
+      let container = document.getElementById('container_visible_stable');
+      let content = document.getElementById('content_visible_stable');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow visible, scrollbar-gutter stable");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_stable');
+      let content = document.getElementById('content_hidden_stable');
+      assert_greater_than(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow hidden, scrollbar-gutter stable");
+
+    test(function () {
+      let container = document.getElementById('container_clip_stable');
+      let content = document.getElementById('content_clip_stable');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow clip, scrollbar-gutter stable");
+
+    // scrollbar-gutter: stable both-edges
+
+    test(function () {
+      let container = document.getElementById('container_auto_stable_mirror');
+      let content = document.getElementById('content_auto_stable_mirror');
+      assert_greater_than(container.offsetHeight, content.offsetHeight, "content height");
+      assert_less_than(container.offsetTop, content.offsetTop, "content position");
+      let reference = document.getElementById('content_auto_stable');
+      assert_less_than(content.offsetHeight, reference.offsetHeight, "compare with \"stable\"");
+    }, "overflow auto, scrollbar-gutter stable both-edges");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_stable_mirror');
+      let content = document.getElementById('content_scroll_stable_mirror');
+      assert_greater_than(container.offsetHeight, content.offsetHeight, "content height");
+      assert_less_than(container.offsetTop, content.offsetTop, "content position");
+      let reference = document.getElementById('content_auto_stable');
+      assert_less_than(content.offsetHeight, reference.offsetHeight, "compare with \"stable\"");
+    }, "overflow scroll, scrollbar-gutter stable both-edges");
+
+    test(function () {
+      let container = document.getElementById('container_visible_stable_mirror');
+      let content = document.getElementById('content_visible_stable_mirror');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow visible, scrollbar-gutter stable both-edges");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_stable_mirror');
+      let content = document.getElementById('content_hidden_stable_mirror');
+      assert_greater_than(container.offsetHeight, content.offsetHeight, "content height");
+      assert_less_than(container.offsetTop, content.offsetTop, "content position");
+      let reference = document.getElementById('content_auto_stable');
+      assert_less_than(content.offsetHeight, reference.offsetHeight, "compare with \"stable\"");
+    }, "overflow hidden, scrollbar-gutter stable both-edges");
+
+    test(function () {
+      let container = document.getElementById('container_clip_stable_mirror');
+      let content = document.getElementById('content_clip_stable_mirror');
+      assert_equals(container.offsetHeight, content.offsetHeight, "content height");
+      assert_equals(container.offsetTop, content.offsetTop, "content position");
+    }, "overflow clip, scrollbar-gutter stable both-edges");
+
+    done();
+
+  </script>
+</body>

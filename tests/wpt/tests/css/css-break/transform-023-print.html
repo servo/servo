@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1371426">
+<link rel="match" href="transform-023-print-ref.html">
+<p>There should be a green square on the second page, and no red.</p>
+<div style="break-before:page; width:100px; height:100px; background:red;">
+  <div style="position:absolute; width:0; height:0; transform:translateX(49px);">
+    <div style="position:absolute; width:51px; height:100px; background:green;"></div>
+  </div>
+  <div style="position:absolute; width:50px; height:100px; background:green;"></div>
+</div>

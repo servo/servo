@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<meta name="variant" content="?include=BaseCase">
+<meta name="variant" content="?include=FollowRedirect">
+<meta name="variant" content="?include=RelativeUrlForSpeculationRulesSet">
+<meta name="variant" content="?include=RelativeUrlForCandidate">
+<meta name="variant" content="?include=UseNonUTF8EncodingForSpeculationRulesSet">
+<meta name="variant" content="?include=FailCORS">
+<meta name="variant" content="?include=FailToParseSpeculationRulesHeader">
+<meta name="variant" content="?include=InnerListInSpeculationRulesHeader">
+<meta name="variant" content="?include=EmptyRuleSet">
+<meta name="variant" content="?include=FailToParseRuleSet">
+<meta name="variant" content="?include=InvalidUrlForSpeculationRulesSet">
+<meta name="variant" content="?include=StatusCode199">
+<meta name="variant" content="?include=StatusCode404">
+<meta name="variant" content="?include=InvalidMimeType">
+<meta name="variant" content="?include=CSPExemption">
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  async function runSpeculationRulesFetchTest(t, options) {
+    options = {
+      // Whether a prefetch is expected to succeed.
+      shouldPrefetch: true,
+      // Status code to be returned in the response.
+      status: 200,
+      // Whether a redirect must be followed to reach the rule set.
+      redirect: false,
+      // Whether to use relative URLs for the candidates in the rule set.
+      useRelativeUrlForCandidate: false,
+      // Whether to use relative URL for the rule set in SpeculationRules header.
+      useRelativeUrlForSpeculationRulesSet: false,
+      // Whether to use UTF-8 encoding for the rule set.
+      useUtf8EncodingForSpeculationRulesSet: true,
+      // Whether to force the response to cause a CORS failure.
+      failCors: false,
+      // Whether to use a valid SpeculationRules header format.
+      useValidSpeculationRulesHeaderValue: true,
+      // Whether to use an inner list of URLS in SpeculationRules header.
+      useInnerListInSpeculationRulesHeaderValue: false,
+      // Whether to return an empty response.
+      useEmptySpeculationRulesSet: false,
+      // Wheter to return a rule set with valid JSON format
+      useValidJsonForSpeculationRulesSet: true,
+      // Wheter to use a valid URL for the rule set in SpeculationRules header.
+      useValidUrlForSpeculationRulesSet: true,
+      // Wheter to use the valid "application/speculationrules-json" MIME type for the rule set.
+      useValidMimeTypeForSpeculationRulesSet: true,
+      // Whether to use a strict CSP for the main page.
+      strictCSP: false,
+      ...options
+    };
+
+    let page = 2;
+    let uuid = token();
+    let executor_url = new URL(`executor.sub.html`, SR_PREFETCH_UTILS_URL).toString();
+    if (options.useRelativeUrlForCandidate) {
+      executor_url = `executor.sub.html`;
+    }
+    let speculation_rule_set_url = `ruleset.py?url=${executor_url}&uuid=${uuid}&page=${page}&status=${options.status}&valid_mime=${options.useValidMimeTypeForSpeculationRulesSet}&valid_json=${options.useValidJsonForSpeculationRulesSet}&empty_json=${options.useEmptySpeculationRulesSet}&fail_cors=${options.failCors}&valid_encoding=${options.useUtf8EncodingForSpeculationRulesSet}&redirect=${options.redirect}`;
+    if (!options.useRelativeUrlForSpeculationRulesSet) {
+      let base_url = new URL(SR_PREFETCH_UTILS_URL);
+      base_url.hostname = PREFETCH_PROXY_BYPASS_HOST;
+      speculation_rule_set_url = new URL(speculation_rule_set_url, base_url).toString();
+    }
+    if (!options.useValidUrlForSpeculationRulesSet) {
+      speculation_rule_set_url = "http://:80/";
+    }
+
+    let speculation_rules_header = `header(Speculation-Rules,"${speculation_rule_set_url}")`;
+    if (!options.useValidSpeculationRulesHeaderValue) {
+      speculation_rules_header = `header(Speculation-Rules, x y z)`;
+    }
+    else if (options.useInnerListInSpeculationRulesHeaderValue) {
+      speculation_rules_header =  `header(Speculation-Rules, \\("${speculation_rule_set_url}" "xyz.com/rule-set.json"\\))`;
+    }
+    if (options.strictCSP) {
+      speculation_rules_header = speculation_rules_header + `|header(Content-Security-Policy, script-src 'strict-dynamic' 'nonce-abc' 'unsafe-eval')`;
+    }
+
+    let agent = await spawnWindow(t, {pipe: speculation_rules_header}, uuid);
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    // Passing non-ascii character '÷' as part of the next URL to check if we always decode the speculation rules set using utf-8 or not. This character is encoded differently in utf-8 and windows-1250
+    let nextUrl = agent.getExecutorURL({ page, str: decodeURIComponent('%C3%B7')});
+    await agent.navigate(nextUrl);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    let test_case_desc = JSON.stringify(options);
+    if (options.shouldPrefetch)
+      assert_prefetched(await agent.getRequestHeaders(), `Prefetch should work for request ${test_case_desc}.`);
+    else
+      assert_not_prefetched(await agent.getRequestHeaders(), `Prefetch should not work for request ${test_case_desc}.`);
+  }
+
+  subsetTestByKey('BaseCase', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {});
+  }, "Base case.");
+
+  subsetTestByKey('FollowRedirect', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {redirect: true});
+  }, "It should follow redirects and fetch the speculation rules set.");
+
+  subsetTestByKey('RelativeUrlForSpeculationRulesSet', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useRelativeUrlForSpeculationRulesSet: true});
+  }, "It should fetch a speculation rules set using its relative URL.");
+
+  subsetTestByKey('RelativeUrlForCandidate', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useRelativeUrlForCandidate: true, shouldPrefetch: false});
+  }, "It should resolve the relative candidate URLs in the speculation rules set based on the speculation rules set's URL");
+
+  subsetTestByKey('UseNonUTF8EncodingForSpeculationRulesSet', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useUtf8EncodingForSpeculationRulesSet: false, shouldPrefetch: false});
+  }, "The speculation rules set should always be encoded using UTF-8.");
+
+  subsetTestByKey('FailCORS', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {failCors: true, shouldPrefetch: false});
+  }, "It should reject the speculation rules set if CORS fails.");
+
+  subsetTestByKey('FailToParseSpeculationRulesHeader', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useValidSpeculationRulesHeaderValue: false, shouldPrefetch: false});
+  }, "It should reject the speculation rules set if it fails to parse the SpeculationRules header.");
+
+  subsetTestByKey('InnerListInSpeculationRulesHeader', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useInnerListInSpeculationRulesHeaderValue: true, shouldPrefetch: false});
+  }, "It should reject the speculation rules passed as inner list in the SpeculationRules header.");
+
+  subsetTestByKey('EmptyRuleSet', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useEmptySpeculationRulesSet: true, shouldPrefetch: false});
+  }, "It should reject an empty speculation rules set.");
+
+  subsetTestByKey('FailToParseRuleSet', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useValidJsonForSpeculationRulesSet: false, shouldPrefetch: false});
+  }, "It should reject the speculation rules set if it cannot parse it.");
+
+  subsetTestByKey('InvalidUrlForSpeculationRulesSet', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useValidUrlForSpeculationRulesSet: false, shouldPrefetch: false});
+  }, "It should reject the speculation rules set with invalid URL.");
+
+  subsetTestByKey('StatusCode199', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {status: 199, shouldPrefetch: false});
+  }, "It should reject the speculation rules set with unsuccessful status code.");
+
+  subsetTestByKey('StatusCode404', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {status: 404, shouldPrefetch: false});
+  }, "It should reject the speculation rules set with unsuccessful status code.");
+
+  subsetTestByKey('InvalidMimeType', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {useValidMimeTypeForSpeculationRulesSet: false, shouldPrefetch: false});
+  }, "It should reject the speculation rules set with invalid MIME type.");
+
+  subsetTestByKey('CSPExemption', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {shouldPrefetch: true, strictCSP: true});
+  }, "It should accept the speculation rules when the main page has strict CSP.");
+
+</script>

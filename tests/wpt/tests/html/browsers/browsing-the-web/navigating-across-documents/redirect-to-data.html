@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Redirecting to data: URLs is disallowed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+promise_test(async (t) => {
+  window.onmessage = t.unreached_func("must not be messaged");
+  t.add_cleanup(() => { window.onmessage = null; });
+
+  const iframe = document.createElement("iframe");
+  iframe.src = `resources/redirect.py?location=data:text/html,FAIL<script>parent.postMessage('FAIL', '*')</${'script'}>`;
+  document.body.append(iframe);
+
+  await new Promise(r => iframe.onload = r);
+
+  // Must throw since error pages are opaque origin.
+  assert_throws_dom("SecurityError", () => {
+    iframe.contentWindow.document;
+  });
+
+  // Test passes if after 100 ms we haven't gotten the message.
+  await new Promise(r => t.step_timeout(r, 100));
+}, "Loading an iframe with src=redirecting URL");
+
+promise_test(async (t) => {
+  window.onmessage = t.unreached_func("must not be messaged");
+  t.add_cleanup(() => { window.onmessage = null; });
+
+  const iframe = document.createElement("iframe");
+  iframe.src = "/common/blank.html";
+  document.body.append(iframe);
+
+  await new Promise(r => iframe.onload = r);
+
+  iframe.contentWindow.location.href = `resources/redirect.py?location=data:text/html,FAIL<script>parent.postMessage('FAIL', '*')</${'script'}>`;
+  await new Promise(r => iframe.onload = r);
+
+  // Must throw since error pages are opaque origin.
+  assert_throws_dom("SecurityError", () => {
+    iframe.contentWindow.document;
+  });
+
+  // Test passes if after 100 ms we haven't gotten the message.
+  await new Promise(r => t.step_timeout(r, 100));
+}, "Navigating an iframe to a redirecting URL");
+
+promise_test(async (t) => {
+  window.onmessage = t.unreached_func("must not be messaged");
+  t.add_cleanup(() => { window.onmessage = null; });
+
+  const w = window.open(`resources/redirect.py?location=data:text/html,FAIL<script>parent.postMessage('FAIL', '*')</${'script'}>`);
+
+  // Test passes if after 100 ms we haven't gotten the message.
+  await new Promise(r => t.step_timeout(r, 100));
+}, "Loading a popup directly to the redirecting URL");
+
+promise_test(async (t) => {
+  const w = window.open(`resources/message-opener.html`);
+  await new Promise(r => window.onmessage = r);
+
+  window.onmessage = t.unreached_func("must not be messaged");
+  t.add_cleanup(() => { window.onmessage = null; });
+
+  w.location.href = `resources/redirect.py?location=data:text/html,FAIL<script>parent.postMessage('FAIL', '*')</${'script'}>`;
+
+  // Test passes if after 100 ms we haven't gotten the message.
+  await new Promise(r => t.step_timeout(r, 100));
+}, "Loading a popup that eventually goes to the redirecting URL");
+
+</script>

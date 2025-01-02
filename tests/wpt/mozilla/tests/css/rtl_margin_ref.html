@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>RTL margin test</title>
+    <style>
+      #b {
+        border: 1px solid red;
+        width: 100px;
+        height: 100px;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+      }
+      #c {
+        border: 1px solid blue;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 50px;
+        height: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="a">
+      <div id="b">
+        <div id="c">
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

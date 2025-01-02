@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  const entry = navigation.currentEntry;
+
+  const result = navigation.traverseTo(navigation.currentEntry.key);
+  await assertBothFulfill(t, result, entry);
+
+  assert_equals(navigation.entries().length, start_length);
+  assert_equals(navigation.currentEntry, entry);
+}, "traverseTo() with current key");
+</script>

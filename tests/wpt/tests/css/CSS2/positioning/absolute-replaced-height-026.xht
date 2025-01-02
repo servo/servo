@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned inline-block replaced element with its height set to a percentage of its containing block's height and 'top', 'bottom', 'margin-top' are not 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-01 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-height" />
+		<link rel="match" href="absolute-replaced-height-012-ref.xht" />
+
+        <meta name="assert" content="An absolutely positioned inline-block replaced element with its height set to a percentage is resolvable if and when its containing block height is explicitly specified and computable." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+                height: 2in;
+            }
+            div div
+            {
+                border: solid green;
+                height: 1in;
+                position: absolute;
+                top: 1in;
+                width: 300px;
+            }
+            iframe
+            {
+                border: solid red;
+                bottom: 1in;
+                margin-bottom: auto;
+                margin-top: 0.5in;
+                position: absolute;
+                top: 0.5in;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <iframe height="50%"></iframe>
+            <div></div>
+        </div>
+    </body>
+</html>

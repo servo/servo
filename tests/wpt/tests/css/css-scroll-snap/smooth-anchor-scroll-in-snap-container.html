@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Smooth anchor scroll in snap container works</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap/"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      div {
+        scroll-behavior: smooth;
+      }
+      .scroller {
+        height: 200px;
+        width: 200px;
+        overflow-x: scroll;
+        scroll-snap-type: x mandatory;
+        border: solid 1px black;
+        background-color: yellow;
+        position: relative;
+      }
+      .snaparea {
+        height: 50px;
+        width: 50px;
+        scroll-snap-align: start;
+        background-color: green;
+      }
+      #target {
+        height: 50px;
+        width: 50px;
+        background-color: green;
+      }
+      .space {
+        height: 200vh;
+        width: 200vw;
+      }
+    </style>
+    <div class="scroller" id="scroller">
+      <div class="snaparea"><a id="link" href="#target">target</a></div>
+      <div class="space"></div>
+      <div id="target"></div>
+    </div>
+    <script>
+      window.onload = () => {
+        promise_test(async (t) => {
+          await waitForCompositorCommit();
+          const scroller = document.getElementById("scroller");
+          const link = document.getElementById("link");
+
+          const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+          link.click();
+          await scrollend_promise;
+          assert_equals(scroller.scrollTop,
+            scroller.scrollHeight - scroller.clientHeight);
+        }, "smooth scroll to anchor link target in snap container works.");
+    }
+    </script>
+  </body>
+</html>

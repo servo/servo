@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>text-tspan-02-b-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: text-tspan-02-b-manual.svg</h1>
+<svg id="svg-root" width="100%" height="100%" 
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: text-tspan-02-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text font-size="35" fill="red" x="20" y="120" rotate="5,15,25,35,-10,-20,-30,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,70,60,50,40,30,20,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,55,-10,-10,-10,-10,-10,-10,-10,-10,-10,55,55,55,55,55,55,55,55,55">
+      Not all characters in the
+      <tspan x="20" y="180">text have a specified rotation</tspan>
+    </text>
+
+
+    <text font-size="35" fill="green" x="20" y="120" rotate="5,15,25,35,45,55" stroke="green" stroke-width="0.5">
+      Not
+
+      <tspan id="child1" rotate="-10,-20,-30,-40">
+        all characters
+
+        <tspan id="child2" rotate="70,60,50,40,30,20,10">
+          in
+
+          <tspan id="child3">
+            the
+          </tspan>
+        </tspan>
+
+        <tspan x="20" y="180" id="child4">
+          text
+        </tspan>
+
+        have a
+      </tspan>
+
+      <tspan id="child5" rotate="-10">
+        specified
+      </tspan>
+
+      rotation
+    </text>
+
+    <text id="rotation_values" font-size="8" xml:space="preserve">
+      <tspan x="30" y="135">
+5      15   25
+      </tspan>
+      <tspan x="80" y="130">
+-10  -20 -30
+      </tspan>
+      <tspan x="125" y="130">
+ -40  -40  -40  -40  -40   -40 -40 -40  -40  -40
+      </tspan>
+      <tspan x="295" y="145">
+70   60
+      </tspan>
+      <tspan x="340" y="140">
+40   30    20
+      </tspan>
+      <tspan x="15" y="190">
+-40 -40  -40  -40    -40  -40   -40   -40       -40
+      </tspan>
+      <tspan x="190" y="200">
+   -10   -10    -10   -10 -10   -10 -10    -10
+      </tspan>
+      <tspan x="275" y="190">
+-10
+      </tspan>
+      <tspan x="340" y="210">
+  55    55  55  55   55 55  55   55
+      </tspan>
+    </text>
+    
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+  <text id="revision" x="10" y="340" stroke="none" 
+    fill="black">$Revision: 1.11 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
+</body>
+</html>

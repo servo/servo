@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: @page page-break-inside invalid syntax</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="flags" content="paged invalid" />
+<meta name="assert" content="The syntax of the 'page-break-inside' property is auto | avoid."/>
+<style type="text/css">
+	* {
+		margin: 0;
+		padding: 0;
+		orphans: 1;
+		widows: 1;
+	}
+	html, body {
+		height:100%;
+		line-height: 1;
+		font-size: 20px;
+	}
+	div.spacers {
+		height: 50%;
+	}
+	div#backUp {margin-top: -2em;}
+	div#noBreak {
+		page-break-inside: false;
+		width: 0;
+	}
+
+</style>
+</head>
+<body>
+	<div class="spacers">The text below should span two pages.</div>
+	<div class="spacers" id="backUp"></div>
+	<div id="noBreak">a b c</div>
+</body>
+</html>

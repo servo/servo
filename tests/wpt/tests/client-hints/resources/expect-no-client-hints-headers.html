@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+
+// This test checks if browser attaches the viewport-width client hint in the
+// HTTP request headers.
+
+// resources/echo-client-hints-received.py sets the response headers depending on the set
+// of client hints it receives in the request headers.
+
+fetch("../resources/echo-client-hints-received.py").then(r => {
+  if(r.status == 200 &&
+     !r.headers.has("viewport-width-received") &&
+     !r.headers.has("viewport-width-received")) {
+    window.top.opener.postMessage('PASS', '*');
+  } else {
+    window.top.opener.postMessage('FAIL', '*');
+  }
+});
+
+</script>
+</body>
+</html>

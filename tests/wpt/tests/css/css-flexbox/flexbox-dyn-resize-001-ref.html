@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>
+    CSS Reftest Reference
+  </title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    .container {
+      width: 100px;
+      display: flex;
+      border: 1px solid purple;
+      margin-bottom: 15px;
+    }
+    .item {
+       margin: 2px;
+       background: lightblue;
+    }
+    .inline-box {
+      display: inline-block;
+      height: 10px;
+      width: 10px;
+      background: lightgray;
+      border: 1px solid black;
+     }
+    #change-width {
+      /* Using hardcoded CSS as reference for testcase's tweak: */
+      width: 300px;
+    }
+    #change-flex {
+      /* Using hardcoded CSS as reference for testcase's tweak: */
+      flex: 0 0 75px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="item" id="change-width">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+    <div class="item">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" id="change-flex">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+    <div class="item">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+  </div>
+</body>
+</html>

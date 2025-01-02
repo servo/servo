@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>NDEFReader.makeReadOnly respect page visibility changes</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/#visible-document">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(async t => {
+  const ndef = new NDEFReader();
+  const p1 = ndef.makeReadOnly();
+
+  return await new Promise((resolve, reject) => {
+    p1.then(() => {
+      assert_false(document.hidden);
+      resolve();
+    }).catch(e => {
+      reject();
+    });
+  });
+}, "Test NDEFReader.makeReadOnly operation should be suspended when document is not visible");
+
+</script>
+
+<p>Step1: switch the page to the background, then tap an NFC tag.</p>
+<p>Step2: switch back to the page, then tap the tag again.</p>

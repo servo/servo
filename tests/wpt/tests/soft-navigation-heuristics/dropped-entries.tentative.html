@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Detect simple soft navigation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <a id=link>Click me!</a>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+
+    testSoftNavigation({
+      addContent: async () => {
+        await addImageToMain('green-16x16.png');
+      },
+      link: link,
+      clicks: 52,
+      extraValidations: async (entries, options)=>{
+        if (!performance.softNavPaintMetricsSupported) {
+          return;
+        }
+        const [paint_entries, paint_options] = await new Promise(resolve => {
+          new PerformanceObserver((list, obs, options) =>
+            resolve([list.getEntries(), options])).observe(
+            {type: 'paint', buffered: true});
+          });
+        assert_equals(options['droppedEntriesCount'], 2);
+        assert_equals(paint_options['droppedEntriesCount'], 4);
+      },
+      test: "Test that a soft navigation entries get dropped when buffer limits"
+        + " get exceeded."});
+  </script>
+</body>
+</html>

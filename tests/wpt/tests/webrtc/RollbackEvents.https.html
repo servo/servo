@@ -1,0 +1,231 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+['audio', 'video'].forEach((kind) => {
+  // Make sure "ontrack" fires if a prevuously rolled back track is added back.
+  promise_test(async t => {
+    const constraints = {};
+    constraints[kind] = true;
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const [track] = stream.getTracks();
+    t.add_cleanup(() => track.stop());
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTrack(track, stream);
+    pc2.addTrack(track, stream);
+    const [pc1Transceiver] = pc1.getTransceivers();
+    const [pc2Transceiver] = pc2.getTransceivers();
+
+    let remoteStreamViaOnTrackPromise = getRemoteStreamViaOnTrackPromise(pc2);
+
+    // Apply remote offer, but don't complete the entire exchange.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    // The addTrack-transceiver gets associated, no need for a second
+    // transceiver.
+    assert_equals(pc2.getTransceivers().length, 1);
+    const remoteStream = await remoteStreamViaOnTrackPromise;
+    assert_equals(remoteStream.id, stream.id);
+
+    const onRemoveTrackPromise = new Promise(r => {
+      remoteStream.onremovetrack = () => { r(); };
+    });
+
+    // Cause track removal due to rollback.
+    await pc2.setRemoteDescription({type:'rollback'});
+    // The track was removed.
+    await onRemoveTrackPromise;
+
+    // Sanity check that ontrack still fires if we add it back again by applying
+    // the same remote offer.
+    remoteStreamViaOnTrackPromise = getRemoteStreamViaOnTrackPromise(pc2);
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const revivedRemoteStream = await remoteStreamViaOnTrackPromise;
+    // This test only expects IDs to be the same. The same stream object should
+    // also be used, but this should be covered by separate tests.
+    // TODO(https://crbug.com/1321738): Add MediaStream identity tests.
+    assert_equals(remoteStream.id, revivedRemoteStream.id);
+    // No cheating, the same transciever should be used as before.
+    assert_equals(pc2.getTransceivers().length, 1);
+  }, `[${kind}] Track with stream: removal due to disassociation in rollback and then add it back again`);
+
+  // This is the same test as above, but this time without any remote streams.
+  // This test could fail if [[FiredDirection]] was not reset in a rollback but
+  // the above version of the test might still pass due to the track being
+  // re-added to its stream.
+  promise_test(async t => {
+    const constraints = {};
+    constraints[kind] = true;
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const [track] = stream.getTracks();
+    t.add_cleanup(() => track.stop());
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTrack(track);
+    pc2.addTrack(track);
+    const [pc1Transceiver] = pc1.getTransceivers();
+    const [pc2Transceiver] = pc2.getTransceivers();
+
+    let remoteTrackPromise = getTrackViaOnTrackPromise(pc2);
+
+    // Apply remote offer, but don't complete the entire exchange.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    // The addTrack-transceiver gets associated, no need for a second
+    // transceiver.
+    assert_equals(pc2.getTransceivers().length, 1);
+    const remoteTrack = await remoteTrackPromise;
+    assert_not_equals(remoteTrack, null);
+
+    // Cause track removal due to rollback.
+    await pc2.setRemoteDescription({type:'rollback'});
+    // There's nothing equivalent to stream.onremovetrack when you don't have a
+    // stream, but the track should become muted (if it isn't already).
+    if (!remoteTrack.muted) {
+      await new Promise(r => remoteTrack.onmute = () => { r(); });
+    }
+    assert_equals(remoteTrack.muted, true);
+
+    // Sanity check that ontrack still fires if we add it back again by applying
+    // the same remote offer.
+    remoteTrackPromise = getTrackViaOnTrackPromise(pc2);
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const revivedRemoteTrack = await remoteTrackPromise;
+    // We can be sure the same track is used, because the same transceiver is
+    // used (and transciever.receiver.track has same lifetime as transceiver).
+    assert_equals(pc2.getTransceivers().length, 1);
+    assert_equals(remoteTrack, revivedRemoteTrack);
+  }, `[${kind}] Track without stream: removal due to disassociation in rollback and then add it back`);
+
+  // Make sure "ontrack" can fire in a rollback (undo making it inactive).
+  promise_test(async t => {
+    const constraints = {};
+    constraints[kind] = true;
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const [track] = stream.getTracks();
+    t.add_cleanup(() => track.stop());
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTrack(track, stream);
+    const [pc1Transceiver] = pc1.getTransceivers();
+
+    let remoteStreamViaOnTrackPromise = getRemoteStreamViaOnTrackPromise(pc2);
+
+    // Complete O/A exchange such that the transceiver gets associated.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const [pc2Transceiver] = pc2.getTransceivers();
+    assert_equals(pc2Transceiver.direction, 'recvonly');
+    assert_equals(pc2Transceiver.currentDirection, 'recvonly');
+
+    const remoteStream = await remoteStreamViaOnTrackPromise;
+    assert_equals(remoteStream.id, stream.id);
+    const onRemoveTrackPromise = new Promise(r => {
+      remoteStream.onremovetrack = () => { r(); };
+    });
+
+    // Cause track removal.
+    pc1Transceiver.direction = 'inactive';
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    // The track was removed.
+    await onRemoveTrackPromise;
+
+    // Rolling back the offer revives the track, causing ontrack to fire again.
+    remoteStreamViaOnTrackPromise = getRemoteStreamViaOnTrackPromise(pc2);
+    await pc2.setRemoteDescription({type:'rollback'});
+    const revivedRemoteStream = await remoteStreamViaOnTrackPromise;
+    // This test only expects IDs to be the same. The same stream object should
+    // also be used, but this should be covered by separate tests.
+    // TODO(https://crbug.com/1321738): Add MediaStream identity tests.
+    assert_equals(remoteStream.id, revivedRemoteStream.id);
+  }, `[${kind}] Track with stream: removal due to direction changing and then add back using rollback`);
+
+  // Same test as above but without remote streams.
+  promise_test(async t => {
+    const constraints = {};
+    constraints[kind] = true;
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const [track] = stream.getTracks();
+    t.add_cleanup(() => track.stop());
+
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTrack(track);
+    const [pc1Transceiver] = pc1.getTransceivers();
+
+    let remoteTrackPromise = getTrackViaOnTrackPromise(pc2);
+
+    // Complete O/A exchange such that the transceiver gets associated.
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const [pc2Transceiver] = pc2.getTransceivers();
+    assert_equals(pc2Transceiver.direction, 'recvonly');
+    assert_equals(pc2Transceiver.currentDirection, 'recvonly');
+
+    const remoteTrack = await remoteTrackPromise;
+
+    // Cause track removal.
+    pc1Transceiver.direction = 'inactive';
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    // There's nothing equivalent to stream.onremovetrack when you don't have a
+    // stream, but the track should become muted (if it isn't already).
+    if (!remoteTrack.muted) {
+      await new Promise(r => remoteTrack.onmute = () => { r(); });
+    }
+    assert_equals(remoteTrack.muted, true);
+
+    // Rolling back the offer revives the track, causing ontrack to fire again.
+    remoteTrackPromise = getTrackViaOnTrackPromise(pc2);
+    await pc2.setRemoteDescription({type:'rollback'});
+    const revivedRemoteTrack = await remoteTrackPromise;
+    // We can be sure the same track is used, because the same transceiver is
+    // used (and transciever.receiver.track has same lifetime as transceiver).
+    assert_equals(pc2.getTransceivers().length, 1);
+    assert_equals(remoteTrack, revivedRemoteTrack);
+  }, `[${kind}] Track without stream: removal due to direction changing and then add back using rollback`);
+});
+
+function getTrackViaOnTrackPromise(pc) {
+  return new Promise(r => {
+    pc.ontrack = e => {
+      pc.ontrack = null;
+      r(e.track);
+    };
+  });
+}
+
+function getRemoteStreamViaOnTrackPromise(pc) {
+  return new Promise(r => {
+    pc.ontrack = e => {
+      pc.ontrack = null;
+      r(e.streams[0]);
+    };
+  });
+}
+
+</script>

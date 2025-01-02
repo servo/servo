@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Writing Modes Test: tooltip should display in the writing mode of associated element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#block-flow">
+
+  <!--
+
+  Bug 1183691: Tooltips should display in the writing mode of the associated element
+  https://bugzilla.mozilla.org/show_bug.cgi?id=1183691
+
+  Issue 703011: Tooltip should be displayed according to the writing mode of associated element
+  https://bugs.chromium.org/p/chromium/issues/detail?id=703011
+
+  -->
+
+  <meta content="may interact" name="flags">
+
+  <style>
+  h3#vrl
+    {
+      float: right;
+      writing-mode: vertical-rl;
+    }
+
+  h3#vlr
+    {
+      float: left;
+      writing-mode: vertical-lr;
+    }
+  </style>
+
+  <h3 title="Test passes if tooltip is vertical and if tooltip text is rotated 90°" id="vrl">Hover pointing device over this text</h3>
+
+  <h3 title="Test passes if tooltip is vertical and if tooltip text is rotated 90°" id="vlr">Hover pointing device over this text</h3>

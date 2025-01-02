@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: text-decoration with block children</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+<link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/decoration/008.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+  <style type="text/css">
+   div { position: relative; }
+   .test { color: blue; text-decoration: underline; }
+   .block { display: block; }
+   .float { float: right; }
+   .pos { position: absolute; top: 5em; right: 0; }
+  </style>
+ </head>
+ <body>
+  <div>
+   <a href="data:,PASS" class="test"> This text should be underlined.
+    <span class="block"> This text should be underlined. </span>
+    <span class="float"> This text should NOT be underlined. </span>
+    <span class="pos"> This text should NOT be underlined. </span>
+   </a>
+  </div>
+ </body>
+</html>

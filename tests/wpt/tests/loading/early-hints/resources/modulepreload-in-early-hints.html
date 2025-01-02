@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+async function fetchModuleScript(url) {
+    return new Promise((resolve, reject) => {
+        const el = document.createElement("script");
+        el.src = url;
+        el.type = "module";
+        el.onload = resolve;
+        el.onerror = _ => reject(new Error("Failed to fetch resource: " + url));
+        document.body.appendChild(el);
+    });
+}
+
+const params = new URLSearchParams(window.location.search);
+const description = params.get("description");
+
+promise_test(async (t) => {
+    const resource_url = params.get("resource-url");
+    const should_preload = params.get("should-preload") === "true";
+    await fetchModuleScript(resource_url);
+    assert_equals(isPreloadedByEarlyHints(resource_url), should_preload);
+}, description);
+</script>
+</body>

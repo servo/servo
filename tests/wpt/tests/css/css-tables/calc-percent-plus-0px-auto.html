@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Simple calc expression in table layout</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/94">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3482">
+<link rel="match" href="calc-percent-plus-0px-ref.html">
+<meta name="assert" content="calc(% + 0px) should be handled as calc(%) in auto table layout.">
+<table border style="table-layout: auto">
+  <tr>
+    <td style="width: calc(50% + 0px)">x</td>
+    <td style="width: 100px">y</td>
+  </tr>
+</table>

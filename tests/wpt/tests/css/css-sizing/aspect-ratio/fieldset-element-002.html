@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Test that fieldset's block size honors automatic content-based minimum, but capped by its maximum block-size</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="match" href="fieldset-element-002-ref.html">
+
+<style>
+  fieldset {
+    inline-size: 200px;
+    aspect-ratio: 20 / 1;
+    max-block-size: 20px;
+    background: yellow;
+  }
+
+  legend {
+    background: black;
+    color: white;
+    padding: 3px 6px;
+  }
+</style>
+
+<form>
+  <fieldset>
+    <legend>Choose one item:</legend>
+
+    <input type="radio" id="item1" name="item">
+    <label for="item1">item 1</label><br/>
+
+    <input type="radio" id="item2" name="item">
+    <label for="item2">item 2</label><br/>
+
+    <input type="radio" id="item3" name="item">
+    <label for="item3">item 3</label>
+  </fieldset>
+</form>

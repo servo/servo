@@ -1,0 +1,14 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Negation pseudo-class can be an argument of itself</title>
+  <style type="text/css"><![CDATA[p { background-color : red }
+p:not(:not(p)) { background-color : green }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#negation-pseudo"/>
+  <link rel="match" href="css3-modsel-83-ref.xml"/>
+ </head>
+ <body>
+<p>This paragraph should have a green background</p>
+</body>
+</html>

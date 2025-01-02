@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1074593">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A grid flex-item should have a definite grid." />
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; width: 200px; height: 100px;">
+  <div style="display: grid; grid: 1fr 1fr / auto; flex: 1; writing-mode: vertical-lr;">
+    <div style="background: green;"></div>
+  </div>
+</div>

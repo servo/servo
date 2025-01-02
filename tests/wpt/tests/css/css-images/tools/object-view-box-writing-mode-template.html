@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box with vertical writing mode</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="object-view-box-writing-mode-__NAME__-ref.html">
+<script src="support/testHelper.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+html {
+  writing-mode: vertical-lr;
+}
+.view_box_subset {
+  object-view-box: inset(25px 0px 0px 0px);
+  object-fit: fill;
+  background-color: black;
+}
+</style>
+<__TAG__ class="view_box_subset"></__TAG__>
+</body>
+<script>
+  populateElements("__IMAGE_SOURCE__");
+</script>

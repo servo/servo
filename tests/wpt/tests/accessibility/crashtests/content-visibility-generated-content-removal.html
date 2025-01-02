@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html class="test-wait">
+<style>
+  div { content-visibility: auto; }
+  div::after { content: "Bar" }
+</style>
+<div>Foo</div>
+<div style="height:4000px"></div>
+<script>
+  // Ensure no crash when removing element with generated content after
+  // `content-visibility: auto` content goes out of view.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      // Let one layout run with the div content in view, then
+      // scroll it out of view.
+      document.scrollingElement.scrollTop = 3000;
+
+      // Run three frames to ensure a new layout happens with the
+      // 'auto' content hidden (i.e. layout structures are
+      // destroyed), then remove the div with a pseudo element which
+      // was previously problematic.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+              document.querySelector('div').remove();
+              document.documentElement.className = '';
+          })
+        })
+      })
+    })
+  });
+</script>

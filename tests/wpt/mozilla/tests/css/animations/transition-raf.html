@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#box {
+  width: 100px;
+  height: 200px;
+  background: red;
+  transition: width 1s linear;
+}
+
+#box.expose {
+  width: 200px;
+}
+</style>
+<div id="box"></div>
+<script>
+var box = document.getElementById('box');
+var test = new window.TestBinding();
+async_test(function(t) {
+  // Dummy RAF loop.
+  (function onFrame() {
+    var style = getComputedStyle(box).getPropertyValue('width');
+    if (style === '150px') {
+      t.done();
+    } else {
+      window.requestAnimationFrame(onFrame);
+    }
+  }());
+
+  window.addEventListener('load', function() {
+    assert_equals(getComputedStyle(box).getPropertyValue('width'), '100px');
+    box.className = "expose";
+    // Let the first restyle run at zero, then advance the clock.
+    setTimeout(function() { test.advanceClock(500) }, 0);
+  });
+}, "Transitions should work during RAF loop")
+</script>

@@ -1,0 +1,479 @@
+# This is the configuration file for Azure Pipelines, used to run tests on
+# macOS and Windows. Documentation to help understand this setup:
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/build/triggers
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/multiple-phases
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/index
+#
+# In addition to this configuration file, some setup in the Azure DevOps
+# project is required:
+#  - The "Build pull requests from forks of this repository" setting must be
+#    enabled: https://docs.microsoft.com/en-us/azure/devops/pipelines/repos/github#validate-contributions-from-forks
+
+trigger:
+# These are all the branches referenced in the jobs that follow.
+- epochs/daily
+- epochs/three_hourly
+- triggers/edge_stable
+- triggers/edge_dev
+- triggers/edge_canary
+- triggers/wktr_preview
+
+# Set safaridriver_diagnose to true to enable safaridriver diagnostics. The
+# logs won't appear in `./wpt run` output but will be uploaded as an artifact.
+variables:
+  safaridriver_diagnose: false
+
+jobs:
+# The affected tests jobs are unconditional for speed, as most PRs have one or
+# more affected tests: https://github.com/web-platform-tests/wpt/issues/13936.
+- job: affected_safari_preview
+  displayName: 'affected tests: Safari Technology Preview'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/affected_tests.yml
+    parameters:
+      artifactName: 'safari-preview-affected-tests'
+- template: tools/ci/azure/fyi_hook.yml
+  parameters:
+    dependsOn: affected_safari_preview
+    artifactName: safari-preview-affected-tests
+
+- job: affected_without_changes_safari_preview
+  displayName: 'affected tests without changes: Safari Technology Preview'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/affected_tests.yml
+    parameters:
+      checkoutCommit: 'HEAD^1'
+      affectedRange: 'HEAD@{1}'
+      artifactName: 'safari-preview-affected-tests-without-changes'
+- template: tools/ci/azure/fyi_hook.yml
+  parameters:
+    dependsOn: affected_without_changes_safari_preview
+    artifactName: safari-preview-affected-tests-without-changes
+
+# The decision jobs runs `./wpt test-jobs` to determine which jobs to run,
+# and all following jobs wait for it to finish and depend on its output.
+- job: decision
+  displayName: './wpt test-jobs'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: 'ubuntu-20.04'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/checkout.yml
+  - script: |
+      set -eux -o pipefail
+      git fetch --depth 50 --quiet origin master
+      ./wpt test-jobs | while read job; do
+        echo "$job"
+        echo "##vso[task.setvariable variable=$job;isOutput=true]true";
+      done
+    name: test_jobs
+    displayName: 'Run ./wpt test-jobs'
+
+- job: infrastructure_mac
+  displayName: 'infrastructure/ tests: macOS'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_infrastructure']
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_fonts.yml
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/color_profile.yml
+  - template: tools/ci/azure/install_safari.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: |
+      set -eux -o pipefail
+      export SYSTEM_VERSION_COMPAT=0
+      ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-mach - --log-mach-level info  --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_macos_safari.json --channel preview safari infrastructure/
+    condition: succeededOrFailed()
+    displayName: 'Run tests (Safari Technology Preview)'
+  - task: PublishBuildArtifacts@1
+    condition: succeededOrFailed()
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'infrastructure-results'
+  - template: tools/ci/azure/publish_logs.yml
+  - template: tools/ci/azure/sysdiagnose.yml
+
+- job: tools_unittest_mac_py38
+  displayName: 'tools/ unittests: macOS + Python 3.8'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.tools_unittest']
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.8'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/
+      toxenv: py38
+
+- job: tools_unittest_mac_py311
+  displayName: 'tools/ unittests: macOS + Python 3.12'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.tools_unittest']
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/
+      toxenv: py311
+
+- job: wptrunner_unittest_mac_py38
+  displayName: 'tools/wptrunner/ unittests: macOS + Python 3.8'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.8'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wptrunner/
+      toxenv: py38
+
+- job: wptrunner_unittest_mac_py311
+  displayName: 'tools/wptrunner/ unittests: macOS + Python 3.12'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wptrunner/
+      toxenv: py311
+
+- job: wpt_integration_mac_py38
+  displayName: 'tools/wpt/ tests: macOS + Python 3.8'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wpt_integration']
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  # full checkout required
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.8'
+  - template: tools/ci/azure/install_chrome.yml
+  - template: tools/ci/azure/install_firefox.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wpt/
+      toxenv: py38
+
+- job: wpt_integration_mac_py311
+  displayName: 'tools/wpt/ tests: macOS + Python 3.12'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wpt_integration']
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  # full checkout required
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/install_chrome.yml
+  - template: tools/ci/azure/install_firefox.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wpt/
+      toxenv: py311
+
+- job: tools_unittest_win_py38
+  displayName: 'tools/ unittests: Windows + Python 3.8'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.tools_unittest']
+  pool:
+    vmImage: 'windows-2019'
+  variables:
+    HYPOTHESIS_PROFILE: ci
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.8'
+      addToPath: false
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/
+      toxenv: py38
+
+- job: tools_unittest_win_py311
+  displayName: 'tools/ unittests: Windows + Python 3.12'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.tools_unittest']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+      addToPath: false
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/
+      toxenv: py311
+
+- job: wptrunner_unittest_win_py38
+  displayName: 'tools/wptrunner/ unittests: Windows + Python 3.8'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.8'
+      addToPath: false
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wptrunner/
+      toxenv: py38
+
+- job: wptrunner_unittest_win_py311
+  displayName: 'tools/wptrunner/ unittests: Windows + Python 3.12'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+      addToPath: false
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wptrunner/
+      toxenv: py311
+
+- job: wpt_integration_win_py38
+  displayName: 'tools/wpt/ tests: Windows + Python 3.8'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wpt_integration']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  # full checkout required
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.8'
+  # currently just using the outdated Chrome/Firefox on the VM rather than
+  # figuring out how to install Chrome Dev channel on Windows
+  # - template: tools/ci/azure/install_chrome.yml
+  # - template: tools/ci/azure/install_firefox.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wpt/
+      toxenv: py38
+
+- job: wpt_integration_win_py311
+  displayName: 'tools/wpt/ tests: Windows + Python 3.12'
+  dependsOn: decision
+  condition: dependencies.decision.outputs['test_jobs.wpt_integration']
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  # full checkout required
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  # currently just using the outdated Chrome/Firefox on the VM rather than
+  # figuring out how to install Chrome Dev channel on Windows
+  # - template: tools/ci/azure/install_chrome.yml
+  # - template: tools/ci/azure/install_firefox.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - template: tools/ci/azure/tox_pytest.yml
+    parameters:
+      directory: tools/wpt/
+      toxenv: py311
+
+- job: results_edge_stable
+  displayName: 'all tests: Edge Stable'
+  condition: |
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/daily'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_stable'),
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_stable']))
+  strategy:
+    parallel: 8 # chosen to make runtime ~2h
+  timeoutInMinutes: 180
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/system_info.yml
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/install_edge.yml
+    parameters:
+      channel: stable
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel stable edge
+    displayName: 'Run tests (Edge Stable)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'edge-stable-results'
+  - template: tools/ci/azure/publish_logs.yml
+  - template: tools/ci/azure/sysdiagnose.yml
+- template: tools/ci/azure/fyi_hook.yml
+  parameters:
+    dependsOn: results_edge_stable
+    artifactName: edge-stable-results
+
+- job: results_edge_dev
+  displayName: 'all tests: Edge Dev'
+  condition: |
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/three_hourly'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_dev'),
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_dev']))
+  strategy:
+    parallel: 8 # chosen to make runtime ~2h
+  timeoutInMinutes: 180
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/system_info.yml
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/install_edge.yml
+    parameters:
+      channel: dev
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel dev edge
+    displayName: 'Run tests (Edge Dev)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'edge-dev-results'
+  - template: tools/ci/azure/publish_logs.yml
+  - template: tools/ci/azure/sysdiagnose.yml
+- template: tools/ci/azure/fyi_hook.yml
+  parameters:
+    dependsOn: results_edge_dev
+    artifactName: edge-dev-results
+
+- job: results_edge_canary
+  displayName: 'all tests: Edge Canary'
+  condition: |
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/epochs/weekly'),
+       eq(variables['Build.SourceBranch'], 'refs/heads/triggers/edge_canary'),
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_edge_canary']))
+  strategy:
+    parallel: 8 # chosen to make runtime ~2h
+  timeoutInMinutes: 180
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/install_edge.yml
+    parameters:
+      channel: canary
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: python ./wpt run --yes --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --install-fonts --this-chunk $(System.JobPositionInPhase) --total-chunks $(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel canary edge
+    displayName: 'Run tests (Edge Canary)'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'edge-canary-results'
+  - template: tools/ci/azure/publish_logs.yml
+  - template: tools/ci/azure/sysdiagnose.yml
+- template: tools/ci/azure/fyi_hook.yml
+  parameters:
+    dependsOn: results_edge_canary
+    artifactName: edge-canary-results
+
+- job: results_wktr_preview
+  displayName: 'all tests: WebKitTestRunner'
+  condition: |
+    or(eq(variables['Build.SourceBranch'], 'refs/heads/triggers/wktr_preview'),
+       and(eq(variables['Build.Reason'], 'Manual'), variables['run_all_wktr_preview']))
+  strategy:
+    parallel: 8 # chosen to make runtime ~2h
+  timeoutInMinutes: 180
+  pool:
+    vmImage: 'macOS-14'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - template: tools/ci/azure/checkout.yml
+  - template: tools/ci/azure/install_certs.yml
+  - template: tools/ci/azure/color_profile.yml
+  - template: tools/ci/azure/update_hosts.yml
+  - template: tools/ci/azure/update_manifest.yml
+  - script: |
+      set -eux -o pipefail
+      export SYSTEM_VERSION_COMPAT=0
+      ./wpt run --no-manifest-update --no-restart-on-unexpected --no-fail-on-unexpected --this-chunk=$(System.JobPositionInPhase) --total-chunks=$(System.TotalJobsInPhase) --chunk-type hash --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_$(System.JobPositionInPhase).json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot_$(System.JobPositionInPhase).txt --log-mach - --log-mach-level info --channel experimental --install-browser --yes wktr
+    displayName: 'Run tests'
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish results'
+    inputs:
+      artifactName: 'wktr-preview-results'
+  - template: tools/ci/azure/publish_logs.yml
+  - template: tools/ci/azure/sysdiagnose.yml
+- template: tools/ci/azure/fyi_hook.yml
+  parameters:
+    dependsOn: results_wktr_preview
+    artifactName: wktr-preview-results

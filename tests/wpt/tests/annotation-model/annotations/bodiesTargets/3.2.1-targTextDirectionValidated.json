@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.1-targTextDirectionValidated.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "ERROR: A target or target/source has multiple textDirection key values for a target or source, or a single textDirection key with a value that is not one of ltr, rtl, auto.",
+    "title": "If present as a target or target/source property, the **_textDirection_ key** has a **single value** which is **one of 'ltr', 'rtl', 'auto'** - [model 3.2.1](https://www.w3.org/TR/annotation-model/#external-web-resources)",
+    "description": "True when no target-level or target/source-level (SR target) textDirection key present or when all textDirection keys have a single value that is one of ltr, rtl, auto (Section 3.2.1)",
+    "type": "object",
+    "properties":
+    {
+      "target":
+       {
+          "oneOf":
+          [
+            { "$ref": "id.json#/definitions/arraySingleStringUri" },
+            { "allOf":
+               [
+                  { "$ref": "bodyTarget.json#/definitions/textDirectionValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/sourceWithTextDirection" }
+               ]
+            },
+            {
+                "type": "array",
+                "minItems": 1,
+                "items":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "allOf":
+                           [
+                              { "$ref": "bodyTarget.json#/definitions/textDirectionValidIfPresent" },
+                              { "$ref": "specificResource.json#/definitions/sourceWithTextDirection" }
+                           ]
+                        }
+                    ]
+                }
+            }
+          ]
+       }
+   }
+}

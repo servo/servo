@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class='reftest-wait'>
+<title>Sticky elements should invalidate when top/left/bottom/right changes</title>
+<link rel="match" href="position-sticky-change-top-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<link rel="help" href="https://crbug.com/939632">
+<meta name="assert" content="This test checks that sticky elements are invalidated correctly when top/left/bottom/right change "/>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="../resources/ref-rectangle.js"></script>
+
+<!--
+  It is important for this test that the sticky element is viewport-bound, and
+  that multiple animation frames pass before changing the style.
+-->
+<style>
+.marker {
+  background: red;
+  position: absolute;
+  top: 200px;
+  height: 100px;
+  width: 100px;
+}
+
+.sticky {
+  /* Triggers promotion without creating stacking context. */
+  backface-visibility: hidden;
+  background: green;
+  position: sticky;
+  top: 0;
+  width: 100px;
+  height: 100px;
+}
+
+.spacer {
+  height: 200vh;
+}
+</style>
+<div class="marker"></div>
+
+<div class="sticky"></div>
+<div class="spacer"></div>
+
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.querySelector('.sticky').style.setProperty('top', '200px');
+    createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
+    takeScreenshot();
+  });
+});
+</script>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/C/#update-the-rendering">
+
+<body>
+<script>
+'use strict';
+
+async_test(t => {
+  t.events = [];
+
+  let w = window.open('/common/blank.html', 'name',
+      'width=100,height=100,menubar=no,toolbar=no,location=no');
+  t.add_cleanup(() => { w.close(); });
+  w.addEventListener('load', t.step_func(() => {
+    w.focus();
+    let element = w.document.createElement('input');
+    element.autofocus = true;
+    element.style.marginTop = '200px'; // Setting focus causes scrolling.
+    element.addEventListener('focus', t.step_func(() => {
+      t.events.push('autofocus');
+    }));
+
+    w.addEventListener('scroll', t.step_func(() => {
+      t.events.push('scroll');
+    }));
+
+    w.requestAnimationFrame(
+        () => w.requestAnimationFrame(t.step_func_done(() => {
+      t.events.push('animationFrame');
+      assert_array_equals(t.events, ['autofocus', 'scroll', 'animationFrame'], t.events);
+    })));
+
+    w.document.body.appendChild(element);
+  }));
+}, '"Flush autofocus candidates" should be happen before a scroll event and ' +
+    'animation frame callbacks');
+</script>
+</body>

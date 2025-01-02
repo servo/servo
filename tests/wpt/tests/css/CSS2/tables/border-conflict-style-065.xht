@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border style): 'none' vs. 'hidden' - border with highest priority border style should dominate</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="assert" content="A 'none' border collapsed with a 'hidden' border yields no border." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px none red;
+                height: 3em;
+                width: 3em;
+            }
+            #center
+            {
+                border: 5px hidden red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are no borders around the text below.</p>
+        <table>
+            <tr>
+                <td>none</td>
+                <td>none</td>
+                <td>none</td>
+            </tr>
+            <tr>
+                <td>none</td>
+                <td id="center">hidden</td>
+                <td>none</td>
+            </tr>
+            <tr>
+                <td>none</td>
+                <td>none</td>
+                <td>none</td>
+            </tr>
+        </table>
+    </body>
+</html>

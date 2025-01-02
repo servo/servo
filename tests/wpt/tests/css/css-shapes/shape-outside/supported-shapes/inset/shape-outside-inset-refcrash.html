@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="match" href="../../../../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://crbug.com/962135" />
+<meta name="assert" content="This test passes if the renderer does not crash."/>
+<p>Test passes if there is a filled green square.</p>
+<div style="width: 100px; height: 100px; display: flow-root; background: green;">
+  <div style="width: 20px; height: 20px; float: right;"></div>
+  <div style="width: 20px; height: 10px; display: inline-block;"></div>
+  <div style="width: 40px; height: 20px; overflow: hidden;"></div>
+  <div style="width: 20px; height: 10px; display: inline-block;"></div>
+  <div style="width: 50px; height: 50px; float: left; shape-outside: inset(20px 0 0 0);"></div>
+  <div id="target" style="height: 50px; margin: 10px 0;"></div>
+  <div style="width: 20px; height: 10px; display: inline-block;"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '10px';
+document.body.offsetTop;
+</script>

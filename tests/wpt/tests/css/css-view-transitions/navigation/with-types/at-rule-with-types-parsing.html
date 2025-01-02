@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>View transitions: parsing @view-transition rule with types</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function parse_types(declaration) {
+    const stylesheet = new CSSStyleSheet();
+    stylesheet.replaceSync(`@view-transition { types: ${declaration} }`);
+    return stylesheet.rules.length ? stylesheet.rules[0].types : null;
+  }
+
+  function types_parser_test(declaration, expected) {
+    test(() => {
+      const result = parse_types(declaration);
+      assert_array_equals(result, expected);
+    }, `types: ${declaration} shoud result in ${JSON.stringify(expected)}`);
+  }
+
+  types_parser_test("none", []);
+  types_parser_test("abc", ["abc"]);
+  types_parser_test("abc xyz", ["abc", "xyz"]);
+  types_parser_test("   abc \txyz ", ["abc", "xyz"]);
+  types_parser_test("abc none", []);
+  types_parser_test("abc -ua-something", []);
+  types_parser_test("abc -ok-something", ["abc", "-ok-something"]);
+  types_parser_test("abc abc", ["abc", "abc"]);
+  types_parser_test("abc ABC", ["abc", "ABC"]);
+  types_parser_test("123", []);
+  types_parser_test("*", []);
+  types_parser_test("*11 abc", []);
+</script>
+<script>

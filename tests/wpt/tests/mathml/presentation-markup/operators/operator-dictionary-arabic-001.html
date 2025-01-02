@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Spacing of Arabic operators</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-dictionary">
+    <meta name="assert" content="Verifies default spacing of the Arabic characters U+1EEF0 and U+1EEF1.">
+    <link rel="match" href="operator-dictionary-arabic-001-ref.html">
+    <link rel="stylesheet" href="./support/operator-dictionary-tests.css"/>
+    <style>
+      mo {
+        color: blue;
+      }
+    </style>
+  </head>
+  <body>
+
+    <p>There should be no horizontal gaps between the squares:</p>
+    <p><math><mn>_</mn><mo>&#x1EEF0;</mo><mn>_</mn></math></p>
+    <p><math><mn>_</mn><mo>&#x1EEF1;</mo><mn>_</mn></math></p>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>
+      MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");
+    </script>
+  </body>
+</html>

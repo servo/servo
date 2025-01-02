@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Stray closing brace in style attribute</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Arron Eicholz" href="mailto:Arron.Eicholz@microsoft.com"/>
+  <link rel="match" href="reference/ref-green-on-green.xht"/>
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#syntax"/>
+  <meta name="flags" content="invalid" />
+  <meta name="assert" content="A mismatched close brace in a style attribute is
+    treated as an invalid token: it causes that declaration to be dropped, but
+    does not invalidate the whole style rule and does not terminate the style
+    attribute's style data."/>
+  <style type="text/css"><![CDATA[
+    p { background: red; }
+  ]]></style>
+ </head>
+ <body>
+  <p style="color: green; color: red }; background: lime;">
+    This sentence must be green on a green background.</p>
+ </body>
+</html>

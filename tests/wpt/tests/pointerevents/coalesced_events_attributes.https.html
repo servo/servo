@@ -1,0 +1,162 @@
+<!doctype html>
+<title>Coalesced events count and properties</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<meta name="variant" content="?touch">
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="target"></div>
+<div id="done"></div>
+
+<script>
+  "use strict";
+  const pointer_type = location.search.substring(1);
+  const target = document.getElementById("target");
+
+  // https://w3c.github.io/pointerevents/#coalesced-events
+  function checkListAttributes(event) {
+    assert_equals(typeof event.getCoalescedEvents, "function",
+        event.type + ".getCoalescedEvents is a function");
+    assert_equals(typeof event.getCoalescedEvents(), "object",
+        event.type + ".getCoalescedEvents() returns an object");
+
+    let coalesced_events = event.getCoalescedEvents();
+
+    if (event.type == "pointermove") {
+      assert_greater_than_equal(coalesced_events.length, 1,
+          event.type + ".getCoalescedEvents() has at least 1 entry");
+
+      for (let i = 0; i < coalesced_events.length; i++) {
+        let coalesced_event = coalesced_events[i];
+
+        assert_equals(coalesced_event.isTrusted, true,
+          "coalesced_event.isTrusted is true");
+        assert_equals(coalesced_event.bubbles, false,
+          "coalesced_event.bubbles is false");
+        assert_equals(coalesced_event.cancelable, false,
+          "coalesced_event.cancelable is false");
+
+        assert_equals(coalesced_event.pointerId, event.pointerId,
+          "coalesced_event.pointerId matches the same in the container event");
+        assert_equals(coalesced_event.pointerType, event.pointerType,
+          "coalesced_event.pointerType matches the same in the container event");
+        assert_equals(coalesced_event.isPrimary, event.isPrimary,
+          "coalesced_event.isPrimary matches the same in the container event");
+        assert_equals(coalesced_event.target, event.target,
+          "coalesced_event.target matches the same in the container event");
+
+        assert_equals(coalesced_event.getCoalescedEvents().length, 0,
+                      "Coalesced events shouldn't have coalesced events themselves.");
+
+        if (i > 0) {
+          assert_greater_than_equal(coalesced_event.timeStamp,
+            coalesced_events[i - 1].timeStamp,
+            "coalesced_event.timeStamp must be ascending");
+        }
+      }
+    } else {
+      assert_equals(coalesced_events.length, 0,
+          event.type + ".getCoalescedEvents() has 0 entry");
+    }
+  }
+
+  promise_test(async () => {
+    const done = document.getElementById("done");
+
+    let pointerover_promise  = getEvent("pointerover",  target);
+    let pointerenter_promise = getEvent("pointerenter", target);
+    let pointerout_promise   = getEvent("pointerout",   target);
+    let pointerleave_promise = getEvent("pointerleave", target);
+
+    await clickInTarget(pointer_type, target);
+    await clickInTarget(pointer_type, done);
+
+    checkListAttributes(await pointerover_promise);
+    checkListAttributes(await pointerenter_promise);
+    checkListAttributes(await pointerout_promise);
+    checkListAttributes(await pointerleave_promise);
+  }, "Coalesced list in boundary events");
+
+  promise_test(async () => {
+    // We need "touch-action:none" to guarantee pointermove events.
+    target.classList.add("touchActionNone");
+
+    target.addEventListener("pointerdown",
+        e => target.setPointerCapture(e.pointerId),
+        {once: true});
+
+    target.addEventListener("pointermove",
+        e => target.releasePointerCapture(e.pointerId),
+        {once: true});
+
+    let gotpointercapture_promise  = getEvent("gotpointercapture",  target);
+    let lostpointercapture_promise = getEvent("lostpointercapture", target);
+
+    await new test_driver.Actions()
+        .addPointer("TestPointer", pointer_type)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(20, 20, {origin: target})
+        .pointerUp()
+        .send();
+
+    checkListAttributes(await gotpointercapture_promise);
+    checkListAttributes(await lostpointercapture_promise);
+
+    target.classList.remove("touchActionNone");
+  }, "Coalesced list in pointer-capture events");
+
+  promise_test(async () => {
+    // We need "touch-action:none" to guarantee pointermove events.
+    target.classList.add("touchActionNone");
+
+    let pointerdown_promise = getEvent("pointerdown", target);
+    let pointermove_promise = getEvent("pointermove", target);
+    let pointerup_promise   = getEvent("pointerup",   target);
+
+    await new test_driver.Actions()
+        .addPointer("TestPointer", pointer_type)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(20, 20, {origin: target})
+        .pointerUp()
+        .send();
+
+    checkListAttributes(await pointerdown_promise);
+    checkListAttributes(await pointermove_promise);
+    checkListAttributes(await pointerup_promise);
+
+    target.classList.remove("touchActionNone");
+  }, "Coalesced list in pointerdown/move/up events");
+
+  promise_test(async () => {
+    if (pointer_type !== "touch") {
+      assert_true(true, "Skipped for " + pointer_type);
+      return;
+    }
+
+    let pointercancel_promise  = getEvent("pointercancel", target);
+
+    await new test_driver.Actions()
+        .addPointer("TestPointer", pointer_type)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(20, 20, {origin: target})
+        .pointerUp()
+        .send();
+
+    checkListAttributes(await pointercancel_promise);
+  }, "Coalesced list in pointercancel event");
+</script>

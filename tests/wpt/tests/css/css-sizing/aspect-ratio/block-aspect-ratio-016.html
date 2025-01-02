@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: div inline size + min-width: auto</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="With min-width: auto and content smaller than the aspect ratio size, we should still size per aspect-ratio">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="background: green; height: 100px; aspect-ratio: 1/1;">
+  <div style="width: 50px"></div>
+</div>

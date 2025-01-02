@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: active-view-transition-type should only apply to the root element</title>
+<link rel="help" href="https://www.w3.org/TR/css-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="view-transition-types-one-green-square-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+
+body { background: lightpink; }
+
+#target {
+  view-transition-name: target;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+
+main:active-view-transition-type(type-name) #target {
+  background: red;
+}
+
+::view-transition-group(*) {
+  animation-play-state: paused;
+}
+</style>
+<main>
+  <div id="target"></div>
+</main>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  let transition = document.startViewTransition({
+    types: ["type-name"]
+  });
+  transition.ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

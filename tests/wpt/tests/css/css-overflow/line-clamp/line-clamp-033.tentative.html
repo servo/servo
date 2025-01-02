@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: Images after line-clamp</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Images after the clamp point should be hidden">
+<style>
+.clamp {
+  /* Image blocks don't contain lines, and the range between the end of the
+   * first <img class="block"> and the start of the second is an empty line,
+   * which doesn't count as far as line-clamp is concerned. Therefore, the text
+   * "Hidden clamp line" is on the third line. */
+  line-clamp: 3;
+  width: 150px;
+  line-height: 0;
+  color: transparent;
+}
+img {
+  height: 25px;
+  width: 100px;
+}
+.atomic {
+  display: inline-block;
+}
+.block {
+  display: block;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="clamp">
+  <img src="/css/support/swatch-green.png">
+  <img class="atomic" src="/css/support/swatch-green.png">
+  <img class="block" src="/css/support/swatch-green.png">
+  <span><img class="block" src="/css/support/swatch-green.png"></span>
+  Hidden clamp line
+  <!-- Clamp point here -->
+  <img src="/css/support/swatch-red.png">
+  <img class="atomic" src="/css/support/swatch-red.png">
+  <img class="block" src="/css/support/swatch-red.png">
+  <span><img class="block" src="/css/support/swatch-red.png"></span>
+</div>

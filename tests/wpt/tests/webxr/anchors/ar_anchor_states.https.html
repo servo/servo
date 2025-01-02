@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,
+};
+
+// Creates a test method that leverages anchors API.
+// |expectSucceeded| - true if the anchors creation request is expected to succeed, false otherwise
+// |endSession| - true if the test case should call session.end() prior to creating an anchor
+// |expectedError| - expected error name that should be returned in case expectSucceeded is false
+const testFunctionGenerator = function(expectSucceeded, endSession, expectedError) {
+
+  const testFunction = function(session, fakeDeviceController, t) {
+
+    const debug = xr_debug.bind(this, 'testAnchorStates');
+
+    fakeDeviceController.setAnchorCreationCallback((parameters, controller) => {
+      // All anchor creation requests that reach this stage should be marked as successful.
+      // If this test is expected to fail, the failure will happen earlier in the anchor
+      // creation process.
+      return Promise.resolve(true);
+    });
+
+    const watcherDone = new Event("watcherdone");
+    const eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
+    const eventPromise = eventWatcher.wait_for(["watcherdone"]);
+
+    session.requestReferenceSpace('local').then((localRefSpace) => {
+
+      const onFrame = function(time, frame) {
+        debug("rAF 1");
+
+        let setUpPromise = Promise.resolve();
+        if(endSession) {
+          debug("ending session");
+          setUpPromise = session.end();
+        }
+
+        setUpPromise.then(() => {
+          debug("creating anchor");
+          frame.createAnchor(new XRRigidTransform(), localRefSpace)
+            .then((anchor) => {
+              debug("anchor created");
+
+              t.step(() => {
+                assert_true(expectSucceeded,
+                  "`createAnchor` succeeded when it was expected to fail");
+              });
+
+              session.dispatchEvent(watcherDone);
+            }).catch((error) => {
+              debug("anchor creation failed");
+
+              t.step(() =>  {
+                assert_false(expectSucceeded,
+                  "`createAnchor` failed when it was expected to succeed, error: " + error);
+                assert_equals(error.name, expectedError,
+                  "`createAnchor` failed with unexpected error name");
+              });
+
+              session.dispatchEvent(watcherDone);
+            });
+
+          // Anchor result will only take effect with frame data - schedule
+          // a frame after we requested anchor creation, otherwise the test will time out.
+          session.requestAnimationFrame(() => {
+            debug("rAF 2");
+          });
+        }); // setUpPromise.then(() => { ... })
+      }; // onFrame() { ... }
+
+      debug("requesting animation frame");
+      session.requestAnimationFrame(onFrame);
+    }); // session.requestReferenceSpace(...)
+
+    return eventPromise;
+  };  // testFunction
+
+  return testFunction;
+};
+
+xr_session_promise_test("Anchor creation succeeds if the feature was requested",
+  testFunctionGenerator(/*expectSucceeded=*/true, /*endSession=*/false),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['anchors'] });
+
+xr_session_promise_test("Anchor creation fails if the feature was not requested",
+  testFunctionGenerator(/*expectSucceeded=*/false, /*endSession=*/false, "NotSupportedError"),
+  fakeDeviceInitParams,
+  'immersive-ar', {});
+
+xr_session_promise_test("Anchor creation fails if the feature was requested but the session already ended",
+  testFunctionGenerator(/*expectSucceeded=*/false, /*endSession=*/true, "InvalidStateError"),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['anchors'] });
+
+</script>

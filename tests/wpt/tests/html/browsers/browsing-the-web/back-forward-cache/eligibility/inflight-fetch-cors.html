@@ -1,0 +1,18 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/helper.sub.js"></script>
+<script src="../resources/inflight-fetch-helper.js"></script>
+<script>
+// Check whether the page is BFCached when there are in-flight network requests
+// at the time of navigation.
+
+// CORS and failing fetch.
+runTest(crossSiteUrl + '?delayBeforeHeader=2000&cors=yes', false, true,
+  'CORS succeeded when in BFCache');
+runTest(crossSiteUrl + '?delayBeforeHeader=2000', false, false,
+  'CORS failed when in BFCache');
+</script>

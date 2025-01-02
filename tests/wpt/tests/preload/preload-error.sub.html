@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<title>link rel=preload with various errors/non-errors</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/preload_helper.js"></script>
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' http://{{hosts[alt][]}}:{{ports[http][0]}} 'unsafe-inline'">
+<script>
+// For various error/non-error network responses,, this test checks
+// - load/error events fired on <link rel=preload>,
+// - load/error events on main requests (e.g. <img>), and
+// - preloads are reused for main requests
+//   (by verifyLoadedAndNoDoubleDownload()).
+//
+// While this test expects <link rel=preload> error events only for network errors
+// as specified in
+// https://html.spec.whatwg.org/multipage/links.html#link-type-preload:fetch-and-process-the-linked-resource
+// https://github.com/whatwg/html/pull/7799
+// the actual browsers' behavior is different, and the feasibility of changing
+// the behavior has not yet been investigated.
+// https://github.com/whatwg/html/issues/1142.
+
+setup({allow_uncaught_exception: true});
+
+function preload(t, as, url, shouldPreloadSucceed) {
+  return new Promise(resolve => {
+    const link = document.createElement('link');
+    link.setAttribute('rel', 'preload');
+    link.setAttribute('as', as);
+    link.setAttribute('crossorigin', 'anonymous');
+    link.setAttribute('href', url);
+    link.onload = t.step_func_done(() => {
+      resolve();
+      if (!shouldPreloadSucceed) {
+        assert_unreached('preload onload');
+      }
+    });
+    link.onerror = t.step_func_done(() => {
+      resolve();
+      if (shouldPreloadSucceed) {
+        assert_unreached('preload onerror');
+      }
+    });
+    document.head.appendChild(link);
+  });
+}
+
+function runTest(api, as, description, shouldPreloadSucceed, shouldMainLoadSucceed,
+                 urlWithoutLabel) {
+  description += ' (' + api + ')';
+
+  const url = new URL(urlWithoutLabel, location.href);
+  url.searchParams.set('label', api);
+
+  const tPreload = async_test(description + ': preload events');
+
+  promise_test(async t => {
+    let messageOnTimeout = 'timeout';
+    t.step_timeout(() => t.unreached_func(messageOnTimeout)(), 3000);
+
+    const preloadPromise = preload(tPreload, as, url, shouldPreloadSucceed);
+
+    // The main request is started just after preloading is started and thus
+    // HTTP response headers and errors are not observed yet.
+    let mainPromise;
+    if (api === 'image') {
+      mainPromise = new Promise(t.step_func((resolve, reject) => {
+          const img = document.createElement('img');
+          img.setAttribute('crossorigin', 'anonymous');
+          img.onload = resolve;
+          img.onerror = () => reject(new TypeError('img onerror'));
+          img.src = url;
+          document.head.appendChild(img);
+      }));
+    } else if (api === 'style') {
+      mainPromise = new Promise(t.step_func((resolve, reject) => {
+          const link = document.createElement('link');
+          link.setAttribute('rel', 'stylesheet');
+          link.setAttribute('crossorigin', 'anonymous');
+          link.onload = resolve;
+          link.onerror = () => reject(new TypeError('link rel=stylesheet onerror'));
+          link.href = url;
+          document.head.appendChild(link);
+      }));
+    } else if (api === 'script') {
+      mainPromise = new Promise(t.step_func((resolve, reject) => {
+          const script = document.createElement('script');
+          script.setAttribute('crossorigin', 'anonymous');
+          script.onload = resolve;
+          script.onerror = () => reject(new TypeError('script onerror'));
+          script.src = url;
+          document.head.appendChild(script);
+      }));
+    } else if (api === 'xhr') {
+      mainPromise = new Promise(t.step_func((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', url, true);
+          xhr.onload = resolve;
+          xhr.onerror = () => reject(new TypeError('XHR onerror'));
+          xhr.onabort = t.unreached_func('XHR onabort');
+          xhr.send();
+      }));
+    } else if (api === 'fetch') {
+      mainPromise = fetch(url)
+        .then(r => {
+          messageOnTimeout = 'fetch() completed but text() timeout';
+          return r.text();
+        });
+    } else {
+      throw new Error('Unexpected api: ' + api);
+    }
+
+    if (shouldMainLoadSucceed) {
+      await mainPromise;
+    } else {
+      await promise_rejects_js(t, TypeError, mainPromise);
+    }
+
+    // Wait also for <link rel=preload> events.
+    // This deflakes `verifyLoadedAndNoDoubleDownload` results.
+    await preloadPromise;
+
+    verifyLoadedAndNoDoubleDownload(url);
+  }, description + ': main');
+}
+
+const tests = {
+  'image': {
+    url: '/preload/resources/square.png',
+    as: 'image',
+    mainLoadWillFailIf404Returned: false
+  },
+  'style': {
+    url: '/preload/resources/dummy.css',
+    as: 'style',
+
+    // https://html.spec.whatwg.org/multipage/semantics.html#default-fetch-and-process-the-linked-resource
+    mainLoadWillFailIf404Returned: true
+  },
+  'script': {
+    url: '/preload/resources/dummy.js',
+    as: 'script',
+
+    // https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-classic-script
+    mainLoadWillFailIf404Returned: true
+  },
+  'xhr': {
+    url: '/preload/resources/dummy.xml',
+    as: 'fetch',
+    mainLoadWillFailIf404Returned: false
+  },
+  'fetch': {
+    url: '/preload/resources/dummy.xml',
+    as: 'fetch',
+    mainLoadWillFailIf404Returned: false
+  }
+};
+
+for (const api in tests) {
+  const url = tests[api].url;
+  const as = tests[api].as;
+
+  // Successful response.
+  runTest(api, as, 'success', true, true, url);
+
+  // Successful response: non-ok status is not considered as a network error,
+  // but can fire error events on main requests.
+  runTest(api, as, '404', true, !tests[api].mainLoadWillFailIf404Returned,
+      url + '?pipe=status(404)');
+
+  // Successful response: Successful CORS check.
+  runTest(api, as, 'CORS', true, true,
+      'http://{{hosts[alt][]}}:{{ports[http][0]}}' + url +
+      '?pipe=header(Access-Control-Allow-Origin,*)');
+
+  // A network error: Failed CORS check.
+  runTest(api, as, 'CORS-error', false, false,
+      'http://{{hosts[alt][]}}:{{ports[http][0]}}' + url);
+
+  // A network error: Failed CSP check on redirect.
+  runTest(api, as, 'CSP-error', false, false,
+      '/common/redirect.py?location=http://{{hosts[alt][]}}:{{ports[http][1]}}' +
+      url + '?pipe=header(Access-Control-Allow-Origin,*)');
+}
+
+// --------------------------------
+// Content error.
+
+// Successful response with corrupted image data.
+// Not a network error, but can fire error events for images:
+// https://html.spec.whatwg.org/multipage/images.html#update-the-image-data
+runTest('image', 'image', 'Decode-error', true, false,
+    '/preload/resources/dummy.css?pipe=header(Content-Type,image/png)');
+runTest('style', 'style', 'Decode-error', true, true,
+    '/preload/resources/dummy.xml?pipe=header(Content-Type,text/css)');
+runTest('script', 'script', 'Decode-error', true, true,
+    '/preload/resources/dummy.xml?pipe=header(Content-Type,text/javascript)');
+
+// --------------------------------
+// MIME Type error.
+// Some MIME type mismatches are not network errors.
+runTest('image', 'image', 'MIME-error', true, true,
+    '/preload/resources/square.png?pipe=header(Content-Type,text/notimage)');
+runTest('script', 'script', 'MIME-error', true, true,
+    '/preload/resources/dummy.css?pipe=header(Content-Type,text/notjavascript)');
+// But they fire error events for <link rel=stylesheet>s.
+// https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:process-the-linked-resource
+runTest('style', 'style', 'MIME-error', true, false,
+    '/preload/resources/dummy.js?pipe=header(Content-Type,not/css)');
+
+// Other MIME type mismatches are network errors, due to:
+// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-mime-type?
+runTest('script', 'script', 'MIME-blocked', false, false,
+    '/preload/resources/dummy.css?pipe=header(Content-Type,image/not-javascript)');
+// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?
+runTest('style', 'style', 'MIME-blocked-nosniff', false, false,
+    '/preload/resources/dummy.js?pipe=header(Content-Type,not/css)|header(X-Content-Type-Options,nosniff)');
+runTest('script', 'script', 'MIME-blocked-nosniff', false, false,
+    '/preload/resources/dummy.css?pipe=header(Content-Type,text/notjavascript)|header(X-Content-Type-Options,nosniff)');
+</script>

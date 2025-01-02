@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Property references to `-webkit-appearance`</title>
+  <link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+function create(initialValue) {
+  var style = document.createElement('input').style;
+
+  style.setProperty('appearance', initialValue);
+
+  return style;
+}
+
+test(function() {
+  var style = create('');
+
+  style.setProperty('-webkit-appearance', 'none');
+
+  assert_equals(style.appearance, 'none');
+}, 'setProperty - CSS property name');
+
+test(function() {
+  var style = create('');
+
+  style.setProperty('WebkitAppearance', 'none');
+
+  assert_equals(style.appearance, '');
+}, 'setProperty - camel-cased property name (ignored)');
+
+test(function() {
+  var style = create('');
+
+  style.setProperty('webkitAppearance', 'none');
+
+  assert_equals(style.appearance, '');
+}, 'setProperty - webkit-cased property name (ignored)');
+
+test(function() {
+  var style = create('none');
+
+  style.removeProperty('-webkit-appearance');
+
+  assert_equals(style.appearance, '');
+}, 'removeProperty - CSS property name');
+
+test(function() {
+  var style = create('none');
+
+  style.removeProperty('WebkitAppearance');
+
+  assert_equals(style.appearance, 'none');
+}, 'removeProperty - camel-cased property name (ignored)');
+
+test(function() {
+  var style = create('none');
+
+  style.removeProperty('webkitAppearance');
+
+  assert_equals(style.appearance, 'none');
+}, 'removeProperty - webkit-cased property name (ignored)');
+
+test(function() {
+  var style = create('');
+
+  style['-webkit-appearance'] = 'none';
+
+  assert_equals(style.appearance, 'none');
+}, 'property assignment - CSS property name');
+
+test(function() {
+  var style = create('');
+
+  style['WebkitAppearance'] = 'none';
+
+  assert_equals(style.appearance, 'none');
+}, 'property assignment - camel-cased property name');
+
+test(function() {
+  var style = create('');
+
+  style['webkitAppearance'] = 'none';
+
+  assert_equals(style.appearance, 'none');
+}, 'property assignment - webkit-cased property name');
+
+test(function() {
+  var style = create('none');
+
+  assert_equals(style.getPropertyValue('-webkit-appearance'), 'none');
+}, 'getPropertyValue - CSS property name');
+
+test(function() {
+  var style = create('none');
+
+  assert_equals(style.getPropertyValue('WebkitAppearance'), '');
+}, 'getPropertyValue - camel-cased property name (ignored)');
+
+test(function() {
+  var style = create('none');
+
+  assert_equals(style.getPropertyValue('webkitAppearance'), '');
+}, 'getPropertyValue - webkit-cased property name (ignored)');
+
+test(function() {
+  var style = create('none');
+
+  assert_equals(style['-webkit-appearance'], 'none');
+}, 'property access - CSS property name');
+
+test(function() {
+  var style = create('none');
+
+  assert_equals(style['WebkitAppearance'], 'none');
+}, 'property access - camel-cased property name');
+
+test(function() {
+  var style = create('none');
+
+  assert_equals(style['webkitAppearance'], 'none');
+}, 'property access - webkit-cased property name');
+</script>
+</body>

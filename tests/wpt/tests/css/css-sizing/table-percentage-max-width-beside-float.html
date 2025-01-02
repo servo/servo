@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/#available">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/#percentage-sizing">
+<p>There should be a green square below, and no red.</p>
+<div id="container" style="width:100px; background:red;">
+  <div style="float:right; width:50px; height:100px; background:green;"></div>
+  <div style="display:table; max-width:50%; height:100px; background:green;" data-expected-width="50">
+    <div style="float:left; width:20px; height:10px;"></div>
+    <div style="float:left; width:20px; height:10px;"></div>
+    <div style="float:left; width:20px; height:10px;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("#container");
+</script>

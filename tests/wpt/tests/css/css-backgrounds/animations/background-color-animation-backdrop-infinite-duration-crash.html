@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<style>
+  #target {
+    background:  blue;
+    border:  2px solid black;
+    height:  100px;
+    width:  100px;
+  }
+</style>
+<body>
+  <dialog id="target"></dialog>
+</body>
+<script>
+  window.onload = async () => {
+    const target = document.getElementById('target');
+    target.showModal();
+    const anim =
+        target.animate({ backgroundColor: ['green', 'blue'] },             {
+                         duration: Infinity,
+                         pseudoElement: '::backdrop'
+                       });
+    await anim.ready;
+    await waitForAnimationFrames(3);
+  };
+</script>
+</html>

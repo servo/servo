@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Chromium bug: getComputedStyle() crashes with logical inset properties</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1478578">
+
+<style>
+.target {
+  position: absolute;
+}
+</style>
+
+<div class="target" id="target1"></div>
+<script>getComputedStyle(target1).insetInlineStart</script>
+
+<div class="target" id="targetr2"></div>
+<script>getComputedStyle(target2).insetInlineEnd</script>
+
+<div class="target" id="target3"></div>
+<script>getComputedStyle(target3).insetBlockStart</script>
+
+<div class="target" id="target4"></div>
+<script>getComputedStyle(target4).insetBlockEnd</script>
+
+<div class="target" id="target5"></div>
+<script>getComputedStyle(target5).insetInline</script>
+
+<div class="target" id="target6"></div>
+<script>getComputedStyle(target6).insetBlock</script>
+
+<div class="target" id="target7"></div>
+<script>getComputedStyle(target7).inset</script>
+

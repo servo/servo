@@ -1,0 +1,118 @@
+<!DOCTYPE HTML>
+<meta charset=UTF-8>
+<title>Ordering of steps in "Update the Rendering" - child document requestAnimationFrame order</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla" href="https://mozilla.org/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=log></div>
+
+<!--
+
+This test tests the interaction of just two substeps of the "Update the
+rendering" steps in
+https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering
+
+These are:
+
+ 1. Let docs be the list of Document objects associated with the event
+    loop in question, sorted arbitrarily except that the following
+    conditions must be met:
+
+    - Any Document B that is nested through a Document A must be listed
+      after A in the list.
+
+    - If there are two documents A and B whose browsing contexts are
+      both nested browsing contexts and their browsing context
+      containers are both elements in the same Document C, then the
+      order of A and B in the list must match the relative tree order of
+      their respective browsing context containers in C.
+
+    In the steps below that iterate over docs, each Document must be
+    processed in the order it is found in the list.
+
+and later:
+
+10. For each fully active Document in docs, run the animation frame
+    callbacks for that Document, passing in now as the timestamp.
+
+
+It tests this by setting up a tree of three documents, two children and
+one parent, and testing for the relative order of the animation frame
+callbacks for each.
+
+-->
+
+<script>
+
+async_test(function (t) {
+  step_timeout(setup, 0);
+
+  let first_frame, second_frame;
+
+  let notification_sequence = [];
+
+  function setup() {
+    // Start by creating two iframes.  To test (a little bit) the rule
+    // about iteration being in document order, insert them in the reverse
+    // order of creation.
+    let body = document.body;
+    function make_iframe() {
+      let iframe = document.createElement("iframe");
+      iframe.setAttribute("srcdoc", "<body onload='parent.child_ready()'>");
+      iframe.setAttribute("width", "30");
+      iframe.setAttribute("height", "15");
+      return iframe;
+    }
+    second_frame = make_iframe();
+    body.prepend(second_frame);
+    first_frame = make_iframe();
+    body.prepend(first_frame);
+
+    let children_waiting = 2;
+    window.child_ready = function() {
+      if (--children_waiting == 0) {
+        // Call requestAnimationFrame in neither the order nor the reverse
+        // of the order in which we expect to be called (which is parent,
+        // first, second).
+        first_frame.contentWindow.requestAnimationFrame(first_child_raf);
+        second_frame.contentWindow.requestAnimationFrame(second_child_raf);
+        window.requestAnimationFrame(parent_raf);
+      }
+    };
+  }
+
+  let parent_raf = t.step_func(function() {
+    notification_sequence.push("parent_raf");
+
+    // Request another notification to help ensure we're getting expected behavior.
+    window.requestAnimationFrame(parent_raf);
+  });
+
+  let first_child_raf = t.step_func(function() {
+    notification_sequence.push("first_child_raf");
+
+    // Request another notification to help ensure we're getting expected behavior.
+    first_frame.contentWindow.requestAnimationFrame(first_child_raf);
+  });
+
+  let second_child_raf = t.step_func(function() {
+    notification_sequence.push("second_child_raf");
+
+    // Request another notification to help ensure we're getting expected behavior.
+    second_frame.contentWindow.requestAnimationFrame(second_child_raf);
+
+    step_timeout(finish, 0);
+  });
+
+  let finish = t.step_func(function() {
+    assert_array_equals(notification_sequence,
+                        ["parent_raf", "first_child_raf", "second_child_raf"],
+                        "expected order of notifications");
+    t.done();
+  });
+});
+
+</script>

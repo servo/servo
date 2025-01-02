@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+<title>Service Worker: Push Messaging Test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+</head>
+<body>
+<script>
+  promise_test(async () => {
+    const frame = attachFencedFrameContext();
+    try {
+      await frame.execute(async () => {
+        await navigator.serviceWorker.register(
+          'empty-worker.js', { scope: location.href });
+        const registration= await navigator.serviceWorker.ready;
+        return await registration.pushManager.subscribe({
+          userVisibleOnly: true
+        });
+      });
+      assert_unreached('subscribe() executed without error; want error');
+    } catch(e) {
+      assert_equals(e.message,
+        "Failed to execute 'subscribe' on 'PushManager': subscribe() is not " +
+        "allowed in fenced frames.");
+    }
+  }, 'subscribe() should fail inside a fenced frame');
+
+  promise_test(async () => {
+    const frame = attachFencedFrameContext();
+    const message = await frame.execute(async () => {
+      const getController = () => {
+        if (navigator.serviceWorker.controller) {
+          return navigator.serviceWorker.controller;
+        }
+        return new Promise(resolve => {
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            resolve(navigator.serviceWorker.controller);
+          });
+        });
+      };
+      await navigator.serviceWorker.register(
+        'serviceWorker-push-sw.js', { scope: location.href });
+      return new Promise(async resolve => {
+        const ctrl = await getController();
+        ctrl.postMessage('subscribe');
+        navigator.serviceWorker.onmessage = e => {
+          resolve(e.data);
+        }
+      });
+    });
+    assert_equals(message, "Failed to execute 'subscribe' on " +
+    "'PushManager': subscribe() is not allowed in fenced frames.");
+  }, 'subscribe() should fail from the service worker inside a fenced frame');
+</script>
+</body>
+</html>

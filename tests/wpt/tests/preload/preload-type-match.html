@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>Makes sure that only matching types are loaded</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script src="/common/media.js"></script>
+
+<script>
+const hrefs = {
+    png: '/common/square.png',
+    svg: '/images/pattern.svg',
+    ttf: '/fonts/Ahem.ttf',
+    script: 'resources/dummy.js',
+    css: 'resources/dummy.css',
+    track: '/media/foo.vtt',
+    json: '/common/dummy.json',
+}
+
+function test_type_with_destination(type, as, resourceType, expect) {
+    const timeoutMillis = 400;
+    promise_test(async t => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.href = hrefs[resourceType];
+        link.as = as;
+        if (type)
+            link.type = type;
+        const result = await new Promise(resolve => {
+            link.addEventListener('load', () => resolve('load'));
+            link.addEventListener('error', () => resolve('error'));
+            t.step_timeout(() => resolve('timeout'), timeoutMillis);
+            document.head.appendChild(link);
+        })
+
+        assert_equals(result, expect);
+    }, `Preload with {as=${as}; type=${type}} should ${expect} when retrieved resource is a ${resourceType}`);
+}
+
+test_type_with_destination('', 'image', 'png', 'load');
+test_type_with_destination('image/png', 'image', 'svg', 'load');
+test_type_with_destination('image/png', 'image', 'png', 'load');
+test_type_with_destination('image/unknown', 'image', 'png', 'timeout');
+test_type_with_destination('not-a-mime-type', 'image','png', 'timeout');
+
+test_type_with_destination('', 'font', 'ttf', 'load');
+test_type_with_destination('font/ttf', 'font', 'ttf', 'load');
+test_type_with_destination('font/otf', 'font', 'ttf', 'load');
+test_type_with_destination('font/not-a-font', 'font', 'ttf', 'timeout');
+test_type_with_destination('not-a-mime', 'font', 'ttf', 'timeout');
+
+test_type_with_destination('', 'script', 'script', 'load');
+for (const type of [
+    'application/ecmascript', 'application/javascript',  'application/x-ecmascript',
+    'application/x-javascript', 'text/ecmascript', 'text/javascript', 'text/javascript1.0',
+    'text/javascript1.1', 'text/javascript1.2', 'text/javascript1.3', 'text/javascript1.4',
+    'text/javascript1.5', 'text/jscript', 'text/livescript', 'text/x-ecmascript', 'text/x-javascript'
+]) {
+    test_type_with_destination(type, 'script', 'script', 'load');
+}
+test_type_with_destination('text/not-javascript', 'script', 'script', 'timeout');
+test_type_with_destination('not-a-mime', 'script', 'script', 'timeout');
+
+test_type_with_destination('text/css', 'style', 'css', 'load');
+test_type_with_destination('application/css', 'style', 'css', 'timeout');
+test_type_with_destination('text/plain', 'style', 'css', 'timeout');
+
+test_type_with_destination('text/vtt', 'track', 'track', 'load');
+test_type_with_destination('text/plain', 'track', 'track', 'timeout');
+test_type_with_destination('not-a-mime', 'track', 'track', 'timeout');
+
+test_type_with_destination('application/json', 'json', 'json', 'load');
+test_type_with_destination('text/json', 'json', 'json', 'load');
+test_type_with_destination('application/geo+json', 'json', 'json', 'load');
+test_type_with_destination('text/plain', 'json', 'json', 'timeout');
+test_type_with_destination('application/javascript', 'json', 'json', 'timeout');
+
+</script>

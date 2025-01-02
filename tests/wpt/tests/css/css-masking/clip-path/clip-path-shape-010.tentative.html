@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Masking: Test clip-path property and shape function with content-box</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+  <link rel="match" href="reference/clip-path-shape-control-points-ref.html">
+  <meta name="assert" content="Absolute segments in the shape() function can use control points relative to the start or end of the segment.">
+</head>
+<style>
+  body {
+    margin: 0;
+  }
+  #shape {
+    width: 240px;
+    height: 240px;
+    padding: 10px;
+    border: 10px solid red;
+    box-sizing: border-box;
+    background-color: green;
+    /* The size of the content-box is 200x200. */
+    clip-path: shape(from center left,
+                    curve to center right with 50% -50% from start / -50% -50% from end,
+                    curve to center left with 50% 50% from end / -50% 50% from start,
+                    close)
+               content-box;
+  }
+</style>
+<body>
+  <div id="shape"></div>
+</body>
+</html>

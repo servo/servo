@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>Pseudo-classes allowed after ::part()</title>
+<link rel="help" href="https://drafts.csswg.org/css-shadow-parts/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+
+<script>
+"use strict";
+
+// Test that non-structural pseudo-classes are allowed after ::part().
+test_valid_selector("::part(mypart):active");
+test_valid_selector("::part(mypart):active-view-transition");
+test_valid_selector("::part(mypart):active-view-transition-type(mytype)");
+test_valid_selector("::part(mypart):any-link");
+test_valid_selector("::part(mypart):autofill");
+test_valid_selector("::part(mypart):checked");
+test_valid_selector("::part(mypart):default");
+test_valid_selector("::part(mypart):defined");
+test_valid_selector("::part(mypart):dir(ltr)");
+test_valid_selector("::part(mypart):disabled");
+test_valid_selector("::part(mypart):enabled");
+test_valid_selector("::part(mypart):focus");
+test_valid_selector("::part(mypart):focus-visible");
+test_valid_selector("::part(mypart):focus-within");
+test_valid_selector("::part(mypart):fullscreen");
+test_valid_selector("::part(mypart):future");
+test_valid_selector("::part(mypart):hover");
+test_valid_selector("::part(mypart):indeterminate");
+test_valid_selector("::part(mypart):in-range");
+test_valid_selector("::part(mypart):invalid");
+test_valid_selector("::part(mypart):lang(en)");
+test_valid_selector("::part(mypart):link");
+test_valid_selector("::part(mypart):modal");
+test_valid_selector("::part(mypart):open");
+test_valid_selector("::part(mypart):optional");
+test_valid_selector("::part(mypart):out-of-range");
+test_valid_selector("::part(mypart):past");
+test_valid_selector("::part(mypart):paused");
+test_valid_selector("::part(mypart):picture-in-picture");
+test_valid_selector("::part(mypart):placeholder-shown");
+test_valid_selector("::part(mypart):playing");
+test_valid_selector("::part(mypart):popover-open");
+test_valid_selector("::part(mypart):read-only");
+test_valid_selector("::part(mypart):read-write");
+test_valid_selector("::part(mypart):required");
+test_valid_selector("::part(mypart):state(mystate)");
+test_valid_selector("::part(mypart):target");
+test_valid_selector("::part(mypart):user-invalid");
+test_valid_selector("::part(mypart):user-valid");
+test_valid_selector("::part(mypart):valid");
+test_valid_selector("::part(mypart):visited");
+test_valid_selector("::part(mypart):xr-overlay");
+
+// Test that the @page pseudo-classes are not supported after ::part().
+test_invalid_selector("::part(mypart):left");
+test_invalid_selector("::part(mypart):right");
+test_invalid_selector("::part(mypart):first");
+
+// Test that structural pseudo-classes are not allowed after ::part().
+test_invalid_selector("::part(mypart):empty");
+test_invalid_selector("::part(mypart):first-child");
+test_invalid_selector("::part(mypart):first-of-type");
+test_invalid_selector("::part(mypart):last-child");
+test_invalid_selector("::part(mypart):last-of-type");
+test_invalid_selector("::part(mypart):nth-child(1)");
+test_invalid_selector("::part(mypart):nth-last-child(1)");
+test_invalid_selector("::part(mypart):nth-last-of-type(1)");
+test_invalid_selector("::part(mypart):nth-of-type(1)");
+test_invalid_selector("::part(mypart):only-child");
+test_invalid_selector("::part(mypart):only-of-type");
+
+// Test that pseudo-classes that match based on tree information are not allowed after ::part.
+test_invalid_selector("::part(mypart):host");
+test_invalid_selector("::part(mypart):host-context(:hover)");
+test_invalid_selector("::part(mypart):has(p)");
+test_invalid_selector("::part(mypart):has(:hover)");
+test_invalid_selector("::part(mypart):scope");
+
+// Test that :not() applies appropriate constraints for being after ::part(),
+// but that :is() and :where() (which accept <forgiving-selector-list>) do
+// not.
+// Note that the serialization behavior of the last two is as-resolved in
+// https://github.com/w3c/csswg-drafts/issues/8356 but it doesn't appear to be
+// specified yet.
+test_valid_selector("::part(mypart):not(:hover)")
+test_valid_selector("::part(mypart):is(:hover)")
+test_valid_selector("::part(mypart):where(:hover)")
+test_invalid_selector("::part(mypart):not(:first-child)")
+test_valid_forgiving_selector("::part(mypart):is(:first-child)")
+test_valid_forgiving_selector("::part(mypart):where(:first-child)")
+
+</script>

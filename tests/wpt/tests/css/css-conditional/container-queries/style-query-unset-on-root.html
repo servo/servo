@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: query unset style for custom property on :root should always match</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  :root { container-name: --root; }
+  @container --root style(--foo: unset) {
+    #target { color: green; }
+  }
+</style>
+<div id="target"></div>
+<script>
+  setup(() => assert_implements_style_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Match style(--foo: unset) on :root element");
+</script>

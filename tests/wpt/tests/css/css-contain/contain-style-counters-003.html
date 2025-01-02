@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: style' for counters (span children of &lt;body&gt;)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-style">
+  <link rel="match" href="reference/contain-style-counters-003-ref.html">
+
+
+  <style>
+  body
+    {
+      counter-reset: counter-of-span 17;
+    }
+
+    /*
+    This creates a new counter identified as "counter-of-span"
+    and initially sets such counter to 17 (an entirely
+    arbitrary number)
+    */
+
+  body
+    {
+      contain: style;
+    }
+
+    /*
+    This will reset the counter to 0.
+    */
+
+  body span
+    {
+      counter-increment: counter-of-span 4;
+    }
+
+    /*
+    This increments the counter identified as "counter-of-span"
+    of the step value of 4 (an entirely arbitrary number) each
+    and every time there is a <span> descendant within the subtree
+    of body
+    */
+
+  div
+    {
+      font-size: 3em;
+    }
+
+  div::after
+    {
+      content: counter(counter-of-span);
+    }
+
+    /*
+    Now, the generated content after the span is set to the
+    current value of the counter identified as "counter-of-span"
+    */
+  </style>
+
+  <body>
+
+  <span></span> <span></span> <span></span> <span></span> <span></span>
+
+  <!-- 5 span above -->
+
+  <p>Test passes if there is the number 20.
+
+  <div></div>

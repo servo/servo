@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebOTP API (https://wicg.github.io/web-otp/)
+
+[Exposed=Window, SecureContext]
+interface OTPCredential : Credential {
+    readonly attribute DOMString code;
+};
+
+partial dictionary CredentialRequestOptions {
+    OTPCredentialRequestOptions otp;
+};
+
+dictionary OTPCredentialRequestOptions {
+  sequence<OTPCredentialTransportType> transport = [];
+};
+
+enum OTPCredentialTransportType {
+    "sms",
+};

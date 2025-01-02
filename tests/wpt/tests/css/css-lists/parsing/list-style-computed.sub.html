@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: getComputedStyle().listStyle</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style">
+<meta name="assert" content="list-style computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('list-style', 'outside none none', 'none');
+
+test_computed_value('list-style', 'inside none disc', 'inside');
+test_computed_value('list-style', 'outside url("https://{{host}}/") disc', 'url("https://{{host}}/")');
+test_computed_value('list-style', 'outside none square', 'square');
+
+test_computed_value('list-style', 'inside url("https://{{host}}/") square');
+</script>
+</body>
+</html>

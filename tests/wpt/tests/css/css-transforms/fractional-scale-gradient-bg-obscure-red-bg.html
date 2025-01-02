@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1330509">
+<link rel="match" href="fractional-scale-gradient-bg-obscure-red-bg-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-350">
+<style>
+  body {
+    background: red;
+    margin: 0;
+  }
+  .container {
+    width: 100vw;
+    height: 100vh;
+    background: white;
+  }
+  .transform {
+    transform-origin: 0 0;
+    will-change: transform;
+    background: linear-gradient(white, white);
+    width: 47px;
+    height: 47px;
+    position: absolute;
+  }
+</style>
+<div class="container">
+  Should be fully white, without any red.
+  <div class="transform" style="transform: scale(3.777)"></div>
+  <div class="transform" style="transform: scale(2.777)"></div>
+  <div class="transform" style="transform: scale(1.777)"></div>
+  <div class="transform" style="transform: scale(1.129)"></div>
+  <div class="transform" style="transform: scale(0.971)"></div>
+  <div class="transform" style="transform: scale(0.457)"></div>
+</div>

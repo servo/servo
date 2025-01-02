@@ -1,0 +1,20 @@
+.fake-popover {
+  position: fixed;
+  inset: 0;
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+  border: solid;
+  padding: 0.25em;
+  overflow: auto;
+  color: CanvasText;
+  background-color: Canvas;
+}
+.fake-popover[anchor] {
+  inset: auto;
+}
+.fake-popover-backdrop {
+  position: fixed;
+  inset:0;
+  pointer-events: none !important;
+}

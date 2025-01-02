@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Test parsing of the host-context() pseudo-classes</title>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectordef-host-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector(':host-context(.a)');
+  test_valid_selector(':host-context(div.a)');
+
+  test_invalid_selector(':host-context');
+  test_invalid_selector(':host-context()');
+  test_invalid_selector(':host-context(.a, .b)');
+  test_invalid_selector(':host-context(.a + .b)');
+  test_invalid_selector(':host-context(.a + .b, #c > #d)');
+</script>

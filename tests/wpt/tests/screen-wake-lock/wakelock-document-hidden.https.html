@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<title>Screen wake locks respect page visibility changes</title>
+<link rel="help" href="https://w3c.github.io/screen-wake-lock/#handling-document-loss-of-visibility">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const {minimize, restore} = window_state_context(t);
+  await minimize();
+
+  assert_true(document.hidden);
+  await promise_rejects_dom(t, "NotAllowedError", navigator.wakeLock.request('screen'),
+      "new screen locks are not allowed when the page is not visible");
+}, "navigator.wakeLock.request('screen') fails when the document is hidden");
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const { minimize, restore } = window_state_context(t);
+
+  const screenLock1 = await navigator.wakeLock.request('screen');
+  const screenLock2 = await navigator.wakeLock.request('screen');
+
+  assert_false(screenLock1.released, "The released attribute is initially false");
+  assert_false(screenLock2.released, "The released attribute is initially false");
+
+  const wait1 = new EventWatcher(t, screenLock1, 'release').wait_for('release');
+  const wait2 = new EventWatcher(t, screenLock2, 'release').wait_for('release');
+
+  await minimize();
+  assert_true(document.hidden);
+
+  await Promise.all([wait1, wait2]);
+
+  assert_true(screenLock1.released, "The released attribute is true after the lock is released");
+  assert_true(screenLock2.released, "The released attribute is true after the lock is released");
+}, "Screen wake locks are released when the document the page is hidden");
+</script>
+</body>
+</html>

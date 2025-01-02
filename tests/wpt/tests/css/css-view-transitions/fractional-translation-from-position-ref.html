@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: fractional translation from position (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body {
+  width: 100vw;
+  height: 100vh;
+  background: grey;
+  font: 12px/1 Ahem;
+}
+
+#target {
+  width: 100px;
+  height: 100px;
+  position: fixed;
+  top: 100.52px;
+  left: 100.37px;
+
+  view-transition-name: target;
+  contain: layout;
+  will-change: filter;
+}
+</style>
+
+<div id=target>
+  Here is some text which should not be blurry.
+</div>

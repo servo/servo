@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>georgian, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name="assert" content="list-style: georgian produces numbers after 9 items per the spec.">
+<style type='text/css'>
+ol li { list-style-type: georgian;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start='10'><div><bdi>ი. </bdi>ი</div></ol>
+<ol start='11'><div><bdi>ია. </bdi>ია</div></ol>
+<ol start='12'><div><bdi>იბ. </bdi>იბ</div></ol>
+<ol start='43'><div><bdi>მგ. </bdi>მგ</div></ol>
+<ol start='77'><div><bdi>ოზ. </bdi>ოზ</div></ol>
+<ol start='80'><div><bdi>პ. </bdi>პ</div></ol>
+<ol start='99'><div><bdi>ჟთ. </bdi>ჟთ</div></ol>
+<ol start='100'><div><bdi>რ. </bdi>რ</div></ol>
+<ol start='101'><div><bdi>რა. </bdi>რა</div></ol>
+<ol start='222'><div><bdi>სკბ. </bdi>სკბ</div></ol>
+<ol start='540'><div><bdi>ფმ. </bdi>ფმ</div></ol>
+<ol start='999'><div><bdi>შჟთ. </bdi>შჟთ</div></ol>
+<ol start='1000'><div><bdi>ჩ. </bdi>ჩ</div></ol>
+<ol start='1005'><div><bdi>ჩე. </bdi>ჩე</div></ol>
+<ol start='1060'><div><bdi>ჩჲ. </bdi>ჩჲ</div></ol>
+<ol start='1065'><div><bdi>ჩჲე. </bdi>ჩჲე</div></ol>
+<ol start='1800'><div><bdi>ჩყ. </bdi>ჩყ</div></ol>
+<ol start='1860'><div><bdi>ჩყჲ. </bdi>ჩყჲ</div></ol>
+<ol start='1865'><div><bdi>ჩყჲე. </bdi>ჩყჲე</div></ol>
+<ol start='5865'><div><bdi>ჭყჲე. </bdi>ჭყჲე</div></ol>
+<ol start='7005'><div><bdi>ჴე. </bdi>ჴე</div></ol>
+<ol start='7800'><div><bdi>ჴყ. </bdi>ჴყ</div></ol>
+<ol start='7865'><div><bdi>ჴყჲე. </bdi>ჴყჲე</div></ol>
+<ol start='9999'><div><bdi>ჰშჟთ. </bdi>ჰშჟთ</div></ol>
+<ol start='10000'><div><bdi>ჵ. </bdi>ჵ</div></ol>
+<ol start='10001'><div><bdi>ჵა. </bdi>ჵა</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

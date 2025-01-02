@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset=utf-8>
+  <title>Test baseline alignment of inline-grid with an INPUT type=text item</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align/">
+  <link rel="match" href="grid-item-input-type-text-ref.html">
+  <style>
+
+.grid {
+  display: inline-grid;
+  border: 5px solid;
+  padding: 1px 0 3px 0;
+  margin: 11px 0;
+}
+
+input { -webkit-appearance:none; inline-size:4ch; }
+
+.big {
+ font-size: 4em;
+}
+
+.small {
+  font-size: 0.2em;
+}
+
+.vlr { writing-mode: vertical-lr; }
+  </style>
+</head>
+<body>
+
+<div>
+  <span class="big">B</span>
+  <div class="grid"><input value="9"></div>
+  <span class="small">B</span>
+</div>
+
+<div>
+  <span>B</span>
+  <div class="grid"><input class="big" value="9"></div>
+  <span class="small">B</span>
+</div>
+
+<div class="vlr">
+<div>
+  <span class="big">B</span>
+  <div class="grid"><input value="9"></div>
+  <span class="small">B</span>
+</div>
+
+<div>
+  <span>B</span>
+  <div class="grid"><input class="big" value="9"></div>
+  <span class="small">B</span>
+</div>
+</div>
+
+</body>
+</html>

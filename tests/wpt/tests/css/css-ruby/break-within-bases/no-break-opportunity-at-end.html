@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#break-within">
+<link rel="match" href="no-break-opportunity-at-end-ref.html">
+<style>
+div {
+  width: 160px;
+  font-size: 20px;
+}
+</style>
+
+<body lang="ja">
+
+<!-- The ruby fits in the first line, but we can not break
+     the line at its end because of the following "。". -->
+<div>
+ここは<ruby>優先通行帯<rt>ゆうせんつうこうたい</ruby>。
+</div>
+</body>

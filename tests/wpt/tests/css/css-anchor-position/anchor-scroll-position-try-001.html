@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<title>Tests that position fallback responds to scrolling</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-apply">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+#cb {
+  width: 400px;
+  height: 400px;
+  margin: 100px;
+  transform: scale(1);
+  outline: 1px solid black;
+}
+
+#scroller {
+  width: 400px;
+  height: 400px;
+  overflow: scroll;
+}
+
+#anchor {
+  width: 100px;
+  height: 100px;
+  margin-left: 150px;
+  margin-right: 275px;
+  margin-top: 300px;
+  margin-bottom: 300px;
+  background: orange;
+  anchor-name: --a;
+}
+
+#anchored {
+  position: absolute;
+  background: green;
+  position-anchor: --a;
+  position-try-fallbacks: --f1, --f2;
+  width: 100px; height: 100px;
+  /* Above the anchor */
+  left: anchor(left);
+  bottom: anchor(top);
+}
+
+@position-try --f1 {
+  /* Left of the anchor */
+  right: anchor(left);
+  top: anchor(top);
+  bottom: auto;
+  left: auto;
+}
+
+@position-try --f2 {
+  /* Right of the anchor */
+  left: anchor(right);
+  top: anchor(top);
+  bottom: auto;
+}
+
+</style>
+
+<div id="cb">
+  <div id="scroller">
+    <div id="anchor"></div>
+  </div>
+  <div id="anchored"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+}, 'Should be above the anchor when at initial scroll position');
+
+promise_test(async () => {
+  scroller.scrollTop = 200;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+}, 'Scroll down until the top edge of #anchor touches container but not overflowing');
+
+promise_test(async () => {
+  scroller.scrollTop = 201;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Scroll further down, making the first fallback position overflow by 1px');
+
+promise_test(async () => {
+  scroller.scrollTop = 200;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+}, 'Scroll back up to reuse the first fallback position');
+
+promise_test(async () => {
+  scroller.scrollTop = 249;
+  scroller.scrollLeft = 51;
+  await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Scroll bottom-right to make the first three fallback positions overflow');
+</script>

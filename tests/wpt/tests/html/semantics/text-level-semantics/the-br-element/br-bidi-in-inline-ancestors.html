@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HTML Test: BR in inline ancestors</title>
+    <link rel="match" href="br-bidi-in-inline-ancestors-ref.html">
+    <link rel="author" title="Aharon Lanin" href="mailto:aharon@google.com"/>
+    <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-br-element"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-writing-modes/#unicode-bidi" />
+    <meta name="assert" content="
+      'A br element should separate paragraphs for the purposes of the Unicode bidirectional
+      algorithm.'
+      'If an inline element is broken around a bidi paragraph boundary (e.g. if split by a block or
+      forced paragraph break), then the bidi control codes corresponding to the end of the element
+      are added before the interruption and the codes corresponding to the start of the element are
+      added after it. (In other words, any embedding levels or overrides started by the element are
+      closed at the paragraph break and reopened on the other side of it.)'" />
+    <style>
+      body{
+        font-size:2em;
+      }
+      .test, .ref {
+        border: medium solid gray;
+        width: 400px;
+        margin: 20px;
+      }
+      .comments { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="instructions"><p>Test passes if the two boxes below look exactly the same.</p></div>
+    <div class="comments">
+      Key to entities used below:
+        &#x05D0; ... &#x05D8; - The first nine Hebrew letters (strongly RTL).
+        &#x200E; - The LRM (left-to-right mark) formatting character (invisible, stronly LTR).
+        &#x200F; - The RLM (right-to-left mark) formatting character (invisible, stronly RTL).
+        &#x202D; - The LRO (left-to-right override) formatting character.
+        &#x202C; - The PDF (pop directional formatting) formatting character; closes LRO.
+    </div>
+    <div class="test">
+      &#x05D1;&#x05D0;&#x200E;
+      <bdo dir="rtl">ih
+        <bdo dir="ltr">&#x05D2;&#x05D3;
+          <span dir="rtl">fg&#x200F;
+            <span dir="ltr">1. I like &#x05D4;.<br/>
+              2. &#x05D4; is great!</span>
+            &#x200F;cd</span>
+          &#x05D5;&#x05D6;</bdo>
+        ba</bdo>
+      &#x200E;&#x05D8;&#x05D7;
+    </div>
+    <div class="ref">
+      &#x202D;&#x05D0;&#x05D1; &#x05D2;&#x05D3; 1. I like &#x05D4;. fg hi&#x202C;
+      <br/>
+      &#x202D;ab cd 2. &#x05D4; is great! &#x05D5;&#x05D6; &#x05D7;&#x05D8;&#x202C;
+    </div>
+  </body>
+</html>

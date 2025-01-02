@@ -1,0 +1,49 @@
+<!doctype html>
+<title>CSS Shadow Parts - Pseudo class and exported parts</title>
+<link rel="help" href="https://drafts.csswg.org/css-shadow-parts" >
+<link rel="help" href="https://drafts.csswg.org/selectors/#matches">
+<link href="https://drafts.csswg.org/selectors/#matches" rel="help">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+/* NOTE: Even though it might be tempting to use :focus instead, because we
+   can more easily add that state programmatically, that'd defeat the point
+   of the test, since :focus / :focus-visible has default styles which
+   invalidate the element's style anyways */
+#host::part(a):hover {
+  background: blue;
+}
+</style>
+<div id="host"></div>
+<script>
+let host = document.querySelector('#host')
+host.attachShadow({mode: 'open'}).innerHTML = `<div part="b" exportparts="a"></div>`;
+
+let innerHost = host.shadowRoot.querySelector('div');
+innerHost.attachShadow({mode: 'open'}).innerHTML = `
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+      background: black;
+      color: white;
+    }
+  </style>
+  <div part="a">hover, the background should be blue</div>
+`;
+
+let part = innerHost.shadowRoot.querySelector("div");
+let t = async_test("Invalidation of nested part on hover");
+part.addEventListener("mouseover", t.step_func_done(function() {
+  assert_true(part.matches(":hover"), "Element should be hovered");
+  assert_equals(getComputedStyle(part).backgroundColor, "rgb(0, 0, 255)", "Hover style should apply");
+}));
+
+new test_driver.Actions()
+    .pointerMove(0, 0)
+    .pointerMove(50, 50)
+    .send();
+</script>

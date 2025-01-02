@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: line-height of images</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/line-height/006.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" />
+  <link rel="match" href="line-height-126-ref.xht" />
+
+  <meta content="image" name="flags" />
+
+  <style type="text/css">
+   div { background: red; line-height: 0; width: 10em; }
+   img { width: 10em; height: 1px; vertical-align: top; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a short thin green line and <strong>no red</strong>.</p>
+  <div><img src="support/1x1-green.png" alt="FAIL (images required)"/></div>
+ </body>
+</html>

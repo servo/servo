@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/compression-dictionary-util.js"></script>
+</head>
+<body>
+<script>
+
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+}, 'Simple dictionary registration and unregistration');
+
+compression_dictionary_promise_test(async (t) => {
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=test`)).text();
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  assert_equals((await checkHeaders())['dictionary-id'], '"test"');
+}, 'Dictionary registration with dictionary ID');
+
+compression_dictionary_promise_test(async (t) => {
+  // Registers a first dictionary.
+  const dictionary_path1 = `${kRegisterDictionaryPath}?id=id1`;
+  const dict1 = await (await fetch(dictionary_path1)).text();
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  // Check the `dictionary-id` header.
+  assert_equals((await checkHeaders())['dictionary-id'], '"id1"');
+
+  // Registers a second dictionary.
+  const kAlternativeDictionaryContent =
+      'This is an alternative test dictionary.';
+  const dictionary_path2 =
+      `${kRegisterDictionaryPath}?content=${kAlternativeDictionaryContent}&id=id2`;
+  const expected_dictionary_header =
+      await calculateDictionaryHash(kAlternativeDictionaryContent);
+  const dict2 = await (await fetch(dictionary_path2)).text();
+  assert_equals(dict2, kAlternativeDictionaryContent);
+  // Wait until `available-dictionary` header is available.
+  // Note: Passing `expected_header` to ignore the old dictionary.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(
+          t, {expected_header: expected_dictionary_header}),
+      expected_dictionary_header);
+  // Check the `dictionary-id` header.
+  assert_equals((await checkHeaders())['dictionary-id'], '"id2"');
+}, 'New dictionary registration overrides the existing one');
+
+</script>
+</body>

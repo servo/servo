@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <link rel="author" title="Daniel Glazman" href="mailto:d.glazman@partner.samsung.com" />
+    <title>:root test</title>
+    <style type="text/css">
+      html:root { background: green; }
+      html      { background: red; }
+      p:root    { background: red; }
+    </style>
+  </head>
+  <body>
+    The background of the page should be green and you should see not red at all.
+    <p>And the background of this sentence should be green too.</p>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: yellow;
+  height: 175px;
+  position: relative;
+  }
+
+  img {position: absolute;}
+
+  img#first-black
+  {
+  left: 0px;
+  top: 45px;
+  }
+
+  img#second-blue
+  {
+  left: 120px;
+  top: 90px;
+  }
+
+  img#third-black
+  {
+  left: 520px;
+  top: 45px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the blue stripe is vertically offset <strong>below the black stripes on both sides</strong>. The blue stripe must be clearly and entirely below the black stripes.</p>
+
+  <div><img id="first-black" src="../support/black15x15.png" width="160" height="40" alt="Image download support must be enabled" /><img id="second-blue" src="../support/blue15x15.png" width="440" height="40" alt="Image download support must be enabled" /><img id="third-black" src="../support/black15x15.png" width="160" height="40" alt="Image download support must be enabled" />
+  </div>
+
+ </body>
+</html>

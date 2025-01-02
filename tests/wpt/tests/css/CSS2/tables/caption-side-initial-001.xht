@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Initial value of 'caption-side'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-caption-side" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#caption-position" />
+        <meta name="assert" content="The initial value of 'caption-side' is 'top'." />
+        <style type="text/css">
+            table
+            {
+                background: blue;
+            }
+            td
+            {
+                background: blue;
+                height: 1in;
+                width: 2in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the word "ABOVE" is above the box.</p>
+        <table>
+            <caption>ABOVE</caption>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

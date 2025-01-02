@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Transform animation under large scale</title>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://crbug.com/1153428">
+<link rel="match" href="transform-animation-under-large-scale-ref.html">
+<style>
+@keyframes move {
+  0% {transform: translateX(-1px);}
+  100% {transform: translateX(0);}
+}
+</style>
+<div style="width: 2px; height: 2px; transform: scale(100); transform-origin: 0 0; overflow: hidden">
+  <div style="animation: move 1s infinite alternate">
+    <div style="width: 4px; height: 1px; background: blue"></div>
+    <div style="width: 4px; height: 1px; background: green"></div>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+[package]
+name = "task_info"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+build = "build.rs"
+
+[build-dependencies]
+cc = "1.0"

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mouse Events Order 2</title>
+    <meta name="specification" content="https://w3c.github.io/uievents/#events-mouseevent-event-order">
+    <style>
+        .box {
+            width: 16ex;
+            height: 16ex;
+            color: white;
+            font-weight: bold;
+            text-align: right;
+            padding: 1ex;
+            position: absolute;
+        }
+
+        .blue {
+            background: #99DDFF;
+        }
+
+        .green {
+            width: 10ex;
+            height: 10ex;
+            left: 3ex;
+            top: 3ex;
+            background: #44BB99;
+        }
+    </style>
+</head>
+
+<body>
+    <p><strong>Description:</strong> Tests the order of mouse events when a pointing device is moved into an element A,
+        and then into a nested element B and then back out again.</p>
+
+    <div id="box-1" class="box blue">A
+        <div id="box-2" class="box green">B</div>
+    </div>
+
+    <script>
+        function print(label, msg) {
+            console.log(`${label}: ${msg}`);
+        }
+
+        function handleMouseEvents(element, label) {
+            element.addEventListener("mouseup", _ => print(label, "mouseup"));
+            element.addEventListener("mousedown", _ => print(label, "mousedown"));
+            element.addEventListener("mouseenter", _ => print(label, "mouseenter"));
+            element.addEventListener("mouseleave", _ => print(label, "mouseleave"));
+            element.addEventListener("mousemove", _ => print(label, "mousemove"));
+            element.addEventListener("mouseout", _ => print(label, "mouseout"));
+            element.addEventListener("mouseover", _ => print(label, "mouseover"));
+        }
+
+        handleMouseEvents(document.getElementById("box-1"), "A");
+        handleMouseEvents(document.getElementById("box-2"), "B");
+    </script>
+</body>
+
+</html>

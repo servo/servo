@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Finishing an animation</title>
+<link rel="help"
+  href="https://drafts.csswg.org/web-animations/#finishing-an-animation-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/timing-override.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = 0;
+
+  assert_throws_dom('InvalidStateError', () => {
+    animation.finish();
+  });
+}, 'Finishing an animation with a zero playback rate throws');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null,
+                                { duration : 100 * MS_PER_SEC,
+                                  iterations : Infinity });
+
+  assert_throws_dom('InvalidStateError', () => {
+    animation.finish();
+  });
+}, 'Finishing an infinite animation throws');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.finish();
+
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC,
+    'After finishing, the currentTime should be set to the end of the'
+    + ' active duration');
+}, 'Finishing an animation seeks to the end time');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+   // 1s past effect end
+  animation.currentTime =
+    animation.effect.getComputedTiming().endTime + 1 * MS_PER_SEC;
+  animation.finish();
+
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC,
+    'After finishing, the currentTime should be set back to the end of the'
+    + ' active duration');
+}, 'Finishing an animation with a current time past the effect end jumps'
+   + ' back to the end');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 100 * MS_PER_SEC;
+  await animation.finished;
+
+  animation.playbackRate = -1;
+  animation.finish();
+
+  assert_equals(animation.currentTime, 0,
+                'After finishing a reversed animation the currentTime ' +
+                'should be set to zero');
+}, 'Finishing a reversed animation jumps to zero time');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 100 * MS_PER_SEC;
+  await animation.finished;
+
+  animation.playbackRate = -1;
+  animation.currentTime = -1000;
+  animation.finish();
+
+  assert_equals(animation.currentTime, 0,
+                'After finishing a reversed animation the currentTime ' +
+                'should be set back to zero');
+}, 'Finishing a reversed animation with a current time less than zero'
+   + ' makes it jump back to zero');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.pause();
+  await animation.ready;
+
+  animation.finish();
+
+  assert_equals(animation.playState, 'finished',
+                'The play state of a paused animation should become ' +
+                '"finished"');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime - 100 * MS_PER_SEC,
+                     'The start time of a paused animation should be set');
+}, 'Finishing a paused animation resolves the start time');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  // Update playbackRate so we can test that the calculated startTime
+  // respects it
+  animation.playbackRate = 2;
+  animation.pause();
+  // While animation is still pause-pending call finish()
+  animation.finish();
+
+  assert_false(animation.pending);
+  assert_equals(animation.playState, 'finished',
+                'The play state of a pause-pending animation should become ' +
+                '"finished"');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime - 100 * MS_PER_SEC / 2,
+                     'The start time of a pause-pending animation should ' +
+                     'be set');
+}, 'Finishing a pause-pending animation resolves the pending task'
+   + ' immediately and update the start time');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = -2;
+  animation.pause();
+  animation.finish();
+
+  assert_false(animation.pending);
+  assert_equals(animation.playState, 'finished',
+                'The play state of a pause-pending animation should become ' +
+                '"finished"');
+  assert_times_equal(animation.startTime, animation.timeline.currentTime,
+                     'The start time of a pause-pending animation should be ' +
+                     'set');
+}, 'Finishing a pause-pending animation with negative playback rate'
+   + ' resolves the pending task immediately');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = 0.5;
+  animation.finish();
+
+  assert_false(animation.pending);
+  assert_equals(animation.playState, 'finished',
+                'The play state of a play-pending animation should become ' +
+                '"finished"');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime - 100 * MS_PER_SEC / 0.5,
+                     'The start time of a play-pending animation should ' +
+                     'be set');
+}, 'Finishing an animation while play-pending resolves the pending'
+   + ' task immediately');
+
+// FIXME: Add a test for when we are play-pending without an active timeline.
+// - In that case even after calling finish() we should still be pending but
+//   the current time should be updated
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  animation.pause();
+  animation.play();
+  // We are now in the unusual situation of being play-pending whilst having
+  // a resolved start time. Check that finish() still triggers a transition
+  // to the finished state immediately.
+  animation.finish();
+
+  assert_equals(animation.playState, 'finished',
+                'After aborting a pause then finishing an animation its play ' +
+                'state should become "finished" immediately');
+}, 'Finishing an animation during an aborted pause makes it finished'
+   + ' immediately');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+  let resolvedFinished = false;
+  animation.finished.then(() => {
+    resolvedFinished = true;
+  });
+
+  await animation.ready;
+
+  animation.finish();
+  await Promise.resolve();
+
+  assert_true(resolvedFinished, 'finished promise should be resolved');
+}, 'Finishing an animation resolves the finished promise synchronously');
+
+promise_test(async t => {
+  const effect = new KeyframeEffect(null, null, 100 * MS_PER_SEC);
+  const animation = new Animation(effect, document.timeline);
+  let resolvedFinished = false;
+  animation.finished.then(() => {
+    resolvedFinished = true;
+  });
+
+  await animation.ready;
+
+  animation.finish();
+  await Promise.resolve();
+
+  assert_true(resolvedFinished, 'finished promise should be resolved');
+}, 'Finishing an animation without a target resolves the finished promise'
+   + ' synchronously');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  const promise = animation.ready;
+  let readyResolved = false;
+
+  animation.finish();
+  animation.ready.then(() => { readyResolved = true; });
+
+  const promiseResult = await animation.finished;
+
+  assert_equals(promiseResult, animation);
+  assert_equals(animation.ready, promise);
+  assert_true(readyResolved);
+}, 'A pending ready promise is resolved and not replaced when the animation'
+   + ' is finished');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  animation.updatePlaybackRate(2);
+  assert_true(animation.pending);
+
+  animation.finish();
+  assert_false(animation.pending);
+  assert_equals(animation.playbackRate, 2);
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
+}, 'A pending playback rate should be applied immediately when an animation'
+   + ' is finished');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  animation.updatePlaybackRate(0);
+
+  assert_throws_dom('InvalidStateError', () => {
+    animation.finish();
+  });
+}, 'An exception should be thrown if the effective playback rate is zero');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, {
+    duration: 100 * MS_PER_SEC,
+    iterations: Infinity
+  });
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.playbackRate = -1;
+  await animation.ready;
+
+  animation.updatePlaybackRate(1);
+
+  assert_throws_dom('InvalidStateError', () => {
+    animation.finish();
+  });
+}, 'An exception should be thrown when finishing if the effective playback rate'
+   + ' is positive and the target effect end is infinity');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, {
+    duration: 100 * MS_PER_SEC,
+    iterations: Infinity
+  });
+  await animation.ready;
+
+  animation.updatePlaybackRate(-1);
+
+  animation.finish();
+  // Should not have thrown
+}, 'An exception is NOT thrown when finishing if the effective playback rate'
+   + ' is negative and the target effect end is infinity');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  div.remove();
+
+  const eventWatcher = new EventWatcher(t, animation, 'finish');
+
+  await animation.ready;
+  animation.finish();
+
+  await eventWatcher.wait_for('finish');
+  assert_equals(animation.effect.target.parentNode, null,
+    'finish event should be fired for the animation on an orphaned element');
+}, 'Finishing an animation fires finish event on orphaned element');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  const originalFinishPromise = animation.finished;
+
+  animation.cancel();
+  assert_equals(animation.startTime, null);
+  assert_equals(animation.currentTime, null);
+
+  const resolvedFinishPromise = animation.finished;
+  assert_not_equals(originalFinishPromise, resolvedFinishPromise,
+               'Canceling an animation should create a new finished promise');
+
+  animation.finish();
+  assert_equals(animation.playState, 'finished',
+                'The play state of a canceled animation should become ' +
+                '"finished"');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime - 100 * MS_PER_SEC,
+                     'The start time of a finished animation should be set');
+  assert_times_equal(animation.currentTime, 100000,
+                     'Hold time should be set to end boundary of the animation');
+
+}, 'Finishing a canceled animation sets the current and start times');
+
+</script>
+</body>

@@ -1,0 +1,4 @@
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+Permissions-Policy: direct-sockets=(self)
+Origin-Agent-Cluster: ?0

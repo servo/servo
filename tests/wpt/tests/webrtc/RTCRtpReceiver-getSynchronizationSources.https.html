@@ -1,0 +1,113 @@
+<!doctype html>
+<meta charset=utf-8>
+<!-- This file contains two tests that wait for 10 seconds each. -->
+<meta name="timeout" content="long">
+<title>RTCRtpReceiver.prototype.getSynchronizationSources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+async function initiateSingleTrackCallAndReturnReceiver(t, kind) {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({[kind]:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  pc1.addTrack(track, stream);
+
+  exchangeIceCandidates(pc1, pc2);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+
+  // Some browsers might need an audio element attached to the DOM.
+  const element = document.createElement(kind);
+  element.autoplay = true;
+  element.srcObject = trackEvent.streams[0];
+  document.body.appendChild(element);
+  t.add_cleanup(() => { document.body.removeChild(element) });
+
+  return trackEvent.receiver;
+}
+
+for (const kind of ['audio', 'video']) {
+  promise_test(async t => {
+    const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
+    await listenForSSRCs(t, receiver);
+  }, '[' + kind + '] getSynchronizationSources() eventually returns a ' +
+     'non-empty list');
+
+  promise_test(async t => {
+    const startTime = performance.now();
+    const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
+    const [ssrc] = await listenForSSRCs(t, receiver);
+    assert_equals(typeof ssrc.timestamp, 'number');
+    assert_true(ssrc.timestamp >= startTime);
+  }, '[' + kind + '] RTCRtpSynchronizationSource.timestamp is a number');
+
+  promise_test(async t => {
+    const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
+    const [ssrc] = await listenForSSRCs(t, receiver);
+    assert_equals(typeof ssrc.rtpTimestamp, 'number');
+    assert_greater_than_equal(ssrc.rtpTimestamp, 0);
+    assert_less_than_equal(ssrc.rtpTimestamp, 0xffffffff);
+  }, '[' + kind + '] RTCRtpSynchronizationSource.rtpTimestamp is a number ' +
+     '[0, 2^32-1]');
+
+  promise_test(async t => {
+    const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
+    // Wait for packets to start flowing.
+    await listenForSSRCs(t, receiver);
+    // Wait for 10 seconds.
+    await new Promise(resolve => t.step_timeout(resolve, 10000));
+    let earliestTimestamp = undefined;
+    let latestTimestamp = undefined;
+    for (const ssrc of await listenForSSRCs(t, receiver)) {
+      if (earliestTimestamp == undefined || earliestTimestamp > ssrc.timestamp)
+        earliestTimestamp = ssrc.timestamp;
+      if (latestTimestamp == undefined || latestTimestamp < ssrc.timestamp)
+        latestTimestamp = ssrc.timestamp;
+    }
+    assert_true(latestTimestamp - earliestTimestamp <= 10000);
+  }, '[' + kind + '] getSynchronizationSources() does not contain SSRCs ' +
+     'older than 10 seconds');
+
+  promise_test(async t => {
+    const startTime = performance.timeOrigin + performance.now();
+    const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
+    const [ssrc] = await listenForSSRCs(t, receiver);
+    const endTime = performance.timeOrigin + performance.now();
+    assert_true(startTime <= ssrc.timestamp && ssrc.timestamp <= endTime);
+  }, '[' + kind + '] RTCRtpSynchronizationSource.timestamp is comparable to ' +
+     'performance.timeOrigin + performance.now()');
+
+  promise_test(async t => {
+    const receiver = await initiateSingleTrackCallAndReturnReceiver(t, kind);
+    const [ssrc] = await listenForSSRCs(t, receiver);
+    assert_equals(typeof ssrc.source, 'number');
+  }, '[' + kind + '] RTCRtpSynchronizationSource.source is a number');
+}
+
+promise_test(async t => {
+  const receiver = await initiateSingleTrackCallAndReturnReceiver(t, 'audio');
+  const [ssrc] = await listenForSSRCs(t, receiver);
+  assert_equals(typeof ssrc.audioLevel, 'number');
+  assert_greater_than_equal(ssrc.audioLevel, 0);
+  assert_less_than_equal(ssrc.audioLevel, 1);
+}, '[audio-only] RTCRtpSynchronizationSource.audioLevel is a number [0, 1]');
+
+// This test only passes if the implementation is sending the RFC 6464 extension
+// header and the "vad" extension attribute is not "off", otherwise
+// voiceActivityFlag is absent. TODO: Consider moving this test to an
+// optional-to-implement subfolder?
+promise_test(async t => {
+  const receiver = await initiateSingleTrackCallAndReturnReceiver(t, 'audio');
+  const [ssrc] = await listenForSSRCs(t, receiver);
+  assert_equals(typeof ssrc.voiceActivityFlag, 'boolean');
+}, '[audio-only] RTCRtpSynchronizationSource.voiceActivityFlag is a boolean');
+
+</script>

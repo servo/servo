@@ -1,0 +1,92 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='../support/base.css' />
+
+<link rel="author" title="Greg Whitworth" href="gwhit@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-column-measures" />
+<main>
+    <h1>Height Distribution</h1>
+    <h4>"Computing row measures"</h4>
+    <p>This is testing intermediate min-content height for span 2</p>
+
+    <hr/>
+    <table cellspacing="0" cellpadding="0">
+        <tbody style="height: auto">
+            <tr style="height: 10px">
+                <td id="one" style="height: 1px"></td>
+                <td rowspan="2" style="height: 51px"></td>
+            </tr>
+            <tr style="height: 20px">
+                <td style="height: 2px"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="0">
+        <tbody style="height: auto">
+            <tr style="height: 10px">
+                <td id="two" style="height: 1px"></td>
+                <td rowspan="2" style="height: 51px"></td>
+            </tr>
+            <tr style="height: auto">
+                <td style="height: auto"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="0">
+        <tbody style="height: 51px">
+            <tr style="height: 10px">
+                <td id="three" style="height: 1px"></td>
+                <td rowspan="2" style="height: 51px"></td>
+            </tr>
+            <tr style="height: 20px">
+                <td style="height: 2px"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table cellspacing="0" cellpadding="0">
+        <tbody style="height: 51px">
+            <tr style="height: 10px">
+                <td id="four" style="height: 1px"></td>
+            </tr>
+            <tr style="height: 20px">
+                <td style="height: 2px"></td>
+            </tr>
+        </tbody>
+    </table>
+
+</main>
+
+<style>
+    table { margin-bottom: 10px; width: 50px; }
+    td { outline: 1px solid red; outline-offset: -1px; }
+</style>
+<script>
+    var i = 1;
+    generate_tests(assert_equals, [
+        [
+            "Checking intermediate min-content height for span 2 (1)",
+            document.getElementById('one').offsetHeight,
+            17
+        ],
+        [
+            "Checking intermediate min-content height for span 2 (2)",
+            document.getElementById('two').offsetHeight,
+            51
+        ],
+        [
+            "Checking intermediate min-content height for span 2 (3)",
+            document.getElementById('three').offsetHeight,
+            17
+        ],
+        [
+            "Checking intermediate min-content height for span 2 (4)",
+            document.getElementById('four').offsetHeight,
+            17
+        ]
+    ]);
+</script>
+</html>

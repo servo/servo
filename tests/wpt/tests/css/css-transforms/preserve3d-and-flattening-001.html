@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CSS Test (Transforms): Flattening at the leafward edges of a preserve-3d scene</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1255544">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#3d-transform-rendering">
+<meta name="assert" content="The element is rendered at the correct position.">
+<link rel="match" href="preserve3d-and-flattening-001-ref.html">
+<meta name="fuzzy" content="maxDifference=0-127;totalPixels=0-101">
+
+<style>
+body {
+  margin: 0;
+}
+.scene-wrapper {
+  margin-top: 100px;
+  margin-left: 50px;
+  width: 200px;
+  height: 200px;
+  perspective: 1000px;
+  perspective-origin: 0px 0px;
+}
+.scene-root {
+  transform: rotateX(30deg);
+  transform-origin: 0px 0px;
+  transform-style:preserve-3d;
+  /* This is in place of a transition in the original. */
+  will-change: transform;
+}
+.descendent-of-flattener {
+  height: 50px;
+  will-change: transform;
+}
+.scene-3d-element {
+  background: blue;
+  transform: translateZ(100px);
+  width: 100px;
+  height: 100px;
+  transform-style:preserve-3d
+}
+</style>
+
+<div class="scene-wrapper">
+  <div class="scene-root">
+    <div class="scene-flattener">
+      <div class="descendent-of-flattener"></div>
+    </div>
+    <div class="scene-3d-element"></div>
+  </div>
+</div>

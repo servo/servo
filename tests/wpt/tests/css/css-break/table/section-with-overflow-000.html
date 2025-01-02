@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#parallel-flows">
+<style>
+  .halfsquare {
+    margin: -10px; /* Cover the border-spacing. */
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-gap:0; column-fill:auto; width:100px; height:200px;">
+  <div style="display:table; border-spacing:10px; background:red;">
+    <div style="display:table-cell; vertical-align:top;">
+      <div style="height:50px;">
+        <div class="halfsquare"></div>
+        <div style="height:120px;"></div>
+        <div class="halfsquare" style="position:relative; z-index:-1;"></div>
+      </div>
+    </div>
+  </div>
+</div>

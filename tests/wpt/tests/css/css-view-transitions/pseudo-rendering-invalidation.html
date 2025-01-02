@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: invalidating VT pseudo elements renders correctly</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="pseudo-rendering-invalidation-ref.html">
+<meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-300">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+:root {
+  view-transition-name: none;
+  background-color: red;
+}
+
+div {
+  position: absolute;
+  left: 0px;
+  top: 600px;
+  width: 100px;
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+
+  background: darkseagreen;
+}
+
+::view-transition-group(*) {
+  animation-duration: 50s;
+}
+
+::view-transition {
+  background-color: limegreen;
+}
+
+::view-transition-new(new) {
+  animation: none;
+  opacity: 1;
+}
+::view-transition-old(new) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(old) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-old(old) {
+  animation: none;
+  opacity: 1;
+}
+
+.invalidateRoot::view-transition {
+  /* Making view-transition `display: none` will abort the transition. Changing
+     it to position: static (at least in Chrome) will cause it to rebuild its
+     layout tree. */
+  position: static;
+}
+
+.invalidateGroup::view-transition-group(group) {
+  display: none;
+}
+
+.invalidateImagePair::view-transition-image-pair(imagepair) {
+  display: none;
+}
+
+.invalidateNew::view-transition-new(new) {
+  display: none;
+}
+
+.invalidateOld::view-transition-old(old) {
+  display: none;
+}
+
+</style>
+
+<div style="left: 0px; top: 100px; view-transition-name:group;">Group</div>
+<div style="left: 150px; top: 100px; view-transition-name:imagepair;">Image-Pair</div>
+<div style="left: 0px; top: 250px; view-transition-name:old;">Old</div>
+<div style="left: 150px; top: 250px; view-transition-name:new;">New</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function rAF() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+async function performInvalidations() {
+  await rAF();
+  await rAF();
+
+  const docClassList = document.documentElement.classList;
+  const classNames = [
+      'invalidateRoot',       // Invalidates ::view-transition
+      'invalidateGroup',      // Invalidates ::view-transition-group
+      'invalidateImagePair',  // Invalidates ::view-transition-image-pair
+      'invalidateOld',        // Invalidates ::view-transition-old
+      'invalidateNew'         // Invalidates ::view-transition-new
+  ];
+
+  for (let className of classNames) {
+    document.documentElement.classList.add(className);
+    await rAF();
+    document.documentElement.classList.remove(className);
+    await rAF();
+  }
+}
+
+// This test ensures each of the view-transition pseudos is able to be
+// individually recreated after becoming display: none.
+async function runTest() {
+  let transition = document.startViewTransition();
+  await transition.ready;
+  await performInvalidations();
+  takeScreenshot();
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

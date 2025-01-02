@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and scale -2 with only one parameter specified</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-scale">
+    <link rel="match" href="reference/svg-scale-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Scaling by a negative value should flip the element and if the second parameter of the scale function is not provided, it is takes a value equal to the first. The green rect in this test flipped rightward and downard into view and scaled up 2 to completely cover the red background.">
+    <style type="text/css">
+        svg {
+            width: 200px;
+            height: 200px;
+            background: red;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <svg>
+        <rect x="-100" y="-100" width="100" height="100" fill="green" transform="scale(-2)"/>
+    </svg>
+</body>
+</html>

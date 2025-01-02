@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Focus wraps and skips the orthogonal inner focusgroup.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<div id=root focusgroup=wrap>
+  <div focusgroup="extend block">
+    <span id=item1 tabindex=-1>item1</span>
+    <span id=item2 tabindex=-1>item2</span>
+  </div>
+  <span id=item3 tabindex=-1>item3</span>
+  <span id=item4 tabindex=0>item4</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item3 = document.getElementById("item3");
+    var item4 = document.getElementById("item4");
+
+    await focusAndKeyPress(item4, kArrowRight);
+    assert_equals(document.activeElement, item3);
+  }, "When the focus is set on the last item of a focusgroup that supports wrapping in the axis of the arrow key pressed and the first item is in an inner focusgroup that doesn't support wrapping in the same axis, the focus moves to the next item out of that inner focusgroup.");
+
+</script>

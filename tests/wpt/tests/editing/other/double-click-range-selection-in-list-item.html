@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  This test is for testing the range selection of list item on double
+  click.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  .inline-block {
+    display: inline-block;
+    width: 50px;
+    height: 20px;
+    background-color: lightblue;
+  }
+</style>
+<div>
+  <ul>
+    <li id="first">First</li>
+    <li>Second</li>
+  </ul>
+</div>
+<div>
+  This is some
+  <span id="atomicinline" class="inline-block">atomicinline</span> text.
+</div>
+<script>
+  function runTests() {
+    promise_test(async () => {
+      const first = document.getElementById("first");
+      first.focus();
+      let actions = new test_driver.Actions()
+        .pointerMove(0, 0, { origin: "viewport" })
+        .pointerDown()
+        .pointerUp()
+        .pointerDown()
+        .pointerUp();
+      await actions.send();
+      const selection = window.getSelection();
+      let selectedText = selection.toString();
+      assert_equals(
+        selectedText,
+        "First",
+        "Selected Text Should be equal to first list item"
+      );
+    }, "Double click on one list item should not select more than one list item");
+
+    promise_test(async () => {
+      const atomic_inline = document.getElementById("atomicinline");
+      atomic_inline.focus();
+      let actions = new test_driver.Actions()
+        .pointerMove(0, 0, { origin: atomic_inline })
+        .pointerDown()
+        .pointerUp()
+        .pointerDown()
+        .pointerUp();
+      await actions.send();
+      const selection = window.getSelection();
+      let selectedText = selection.toString();
+      assert_equals(
+        selectedText,
+        "atomicinline",
+        "Selected Text Should be equal to atomicinline"
+      );
+    }, "Double click on one text item should select only one text item");
+  }
+
+  window.addEventListener("load", runTests, { once: true });
+</script>

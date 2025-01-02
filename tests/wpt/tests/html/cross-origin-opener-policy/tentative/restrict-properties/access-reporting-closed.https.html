@@ -1,0 +1,19 @@
+<!doctype html>
+<title> Check openee.closed access is allowed for COOP: restrict-properties</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/test-access-property.js"></script>
+<script>
+
+testAccessProperty(
+  "closed",
+  w => w.closed,
+  expectReport = false,
+  use_restrict_properties = true
+);
+
+</script>

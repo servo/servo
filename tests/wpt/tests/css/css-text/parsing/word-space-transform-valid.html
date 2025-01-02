@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing word-space-transform with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<meta name="assert" content="word-space-transform supports the full grammar 'none | [ space | ideographic-space ] && auto-phrase?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("word-space-transform", "none");
+test_valid_value("word-space-transform", "space");
+test_valid_value("word-space-transform", "ideographic-space");
+test_valid_value("word-space-transform", "space auto-phrase");
+test_valid_value("word-space-transform", "ideographic-space auto-phrase");
+test_valid_value("word-space-transform", "auto-phrase space");
+test_valid_value("word-space-transform", "auto-phrase ideographic-space");
+</script>
+</body>
+</html>

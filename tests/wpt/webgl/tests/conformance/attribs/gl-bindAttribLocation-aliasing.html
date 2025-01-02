@@ -1,0 +1,44 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/gl-bindattriblocation-aliasing.js"></script>
+<title>bindAttribLocation with aliasing</title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="8" height="8" style="width: 8px; height: 8px;"></canvas>
+<script id="vertexShader" type="text/something-not-javascript">
+precision mediump float;
+attribute $(type_1) a_1;
+attribute $(type_2) a_2;
+void main() {
+    gl_Position = $(gl_Position_1) + $(gl_Position_2);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies combinations of valid, active attribute types cannot be bound to the same location with bindAttribLocation.");
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, {antialias: false});
+var glFragmentShader = wtu.loadShader(gl, wtu.simpleColorFragmentShader, gl.FRAGMENT_SHADER);
+
+runBindAttribLocationAliasingTest(wtu, gl, glFragmentShader, wtu.getScript('vertexShader'));
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

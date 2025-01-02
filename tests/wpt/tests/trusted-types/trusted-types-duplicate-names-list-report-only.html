@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// We assume the following header has been set:
+// Content-Security-Policy-Report-Only: trusted-types a b c
+// (CSP-Report-Only headers can't be set in <meta> tags.)
+
+test(t => {
+  trustedTypes.createPolicy("a", {});
+  trustedTypes.createPolicy("a", {});
+  trustedTypes.createPolicy("b", {});
+  trustedTypes.createPolicy("d", {});
+}, "TrustedTypePolicyFactory and policy list in CSP.");
+
+</script>
+</body>

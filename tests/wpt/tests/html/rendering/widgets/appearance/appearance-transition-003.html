@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>compute the kind of widget: transition origin without author origin style after the transition</title>
+<link rel="match" href="appearance-animation-002-ref.html">
+<style>
+  input {
+    transition: background-color 1e10s steps(2, start);
+  }
+
+  .bg200 {
+    background-color: rgb(255, 0, 0);
+  }
+</style>
+<input value="text" id=input class=bg200>
+<script>
+  document.documentElement.offsetTop;
+  input.classList.toggle('bg200');
+</script>
+<p>PASS if the input field does not have a red background</p>

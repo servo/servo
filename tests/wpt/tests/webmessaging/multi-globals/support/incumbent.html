@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Incumbent page used as a test helper</title>
+
+<h1>Incumbent</h1>
+
+<script>
+"use strict";
+
+window.createMessageChannel = () => {
+  return new parent.frames[1].MessageChannel();
+};
+</script>
