@@ -38,11 +38,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
-use crate::script_runtime::ScriptThreadEventCategory::WebSocketEvent;
-use crate::script_runtime::{CanGc, CommonScriptMsg};
+use crate::script_runtime::CanGc;
 use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSource;
+use crate::task_source::{TaskSource, TaskSourceName};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -72,7 +70,7 @@ mod close_code {
 
 fn close_the_websocket_connection(
     address: Trusted<WebSocket>,
-    task_source: &WebsocketTaskSource,
+    task_source: &TaskSource,
     canceller: &TaskCanceller,
     code: Option<u16>,
     reason: String,
@@ -88,7 +86,7 @@ fn close_the_websocket_connection(
 
 fn fail_the_websocket_connection(
     address: Trusted<WebSocket>,
-    task_source: &WebsocketTaskSource,
+    task_source: &TaskSource,
     canceller: &TaskCanceller,
 ) {
     let close_task = CloseTask {
@@ -168,19 +166,12 @@ impl WebSocket {
         if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
-            let task = Box::new(BufferedAmountTask { address });
-
-            let pipeline_id = self.global().pipeline_id();
-            self.global()
-                .script_chan()
-                // TODO: Use a dedicated `websocket-task-source` task source instead.
-                .send(CommonScriptMsg::Task(
-                    WebSocketEvent,
-                    task,
-                    Some(pipeline_id),
-                    WebsocketTaskSource::NAME,
-                ))
-                .unwrap();
+            // TODO(mrobinson): Should this task be cancellable?
+            let _ = self
+                .global()
+                .task_manager()
+                .websocket_task_source()
+                .queue_unconditionally(BufferedAmountTask { address });
         }
 
         Ok(true)
@@ -284,8 +275,8 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(request, channels));
 
-        let task_source = global.websocket_task_source();
-        let canceller = global.task_canceller(WebsocketTaskSource::NAME);
+        let task_source = global.task_manager().websocket_task_source();
+        let canceller = global.task_canceller(TaskSourceName::WebSocket);
         ROUTER.add_typed_route(
             dom_event_receiver.to_ipc_receiver(),
             Box::new(move |message| match message.unwrap() {
@@ -451,11 +442,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 // TODO: use a dedicated task source,
                 // https://html.spec.whatwg.org/multipage/#websocket-task-source
                 // When making the switch, also update the task_canceller call.
-                let task_source = self.global().websocket_task_source();
+                let task_source = self.global().task_manager().websocket_task_source();
                 fail_the_websocket_connection(
                     address,
                     &task_source,
-                    &self.global().task_canceller(WebsocketTaskSource::NAME),
+                    &self.global().task_canceller(TaskSourceName::WebSocket),
                 );
             },
             WebSocketRequestState::Open => {

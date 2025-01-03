@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{RefCell, RefMut};
+use std::cell::{OnceCell, RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -44,7 +44,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
@@ -60,14 +60,7 @@ use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::port_message::PortMessageQueue;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::timer::TimerTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_manager::TaskManager;
 use crate::timers::{IsInterval, TimerCallback};
 
 pub fn prepare_workerscope_init(
@@ -135,6 +128,9 @@ pub struct WorkerGlobalScope {
     /// Timers are handled in the service worker event loop.
     #[no_trace]
     timer_scheduler: RefCell<TimerScheduler>,
+
+    /// A [`TaskManager`] for this [`WorkerGlobalScope`].
+    task_manager: OnceCell<TaskManager>,
 }
 
 impl WorkerGlobalScope {
@@ -189,6 +185,7 @@ impl WorkerGlobalScope {
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
+            task_manager: Default::default(),
         }
     }
 
@@ -510,36 +507,9 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn port_message_queue(&self) -> PortMessageQueue {
-        PortMessageQueue(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn timer_task_source(&self) -> TimerTaskSource {
-        TimerTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
-        RemoteEventTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
-        WebsocketTaskSource(self.script_chan(), self.pipeline_id())
+    pub(crate) fn task_manager(&self) -> &TaskManager {
+        self.task_manager
+            .get_or_init(|| TaskManager::new(self.script_chan(), self.pipeline_id()))
     }
 
     pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {

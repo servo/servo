@@ -79,7 +79,6 @@ jobs:
             ${{ inputs.wpt-args }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
-          RUST_LOG: wgpu_core=off,naga=off
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v4
         if: ${{ always() }}

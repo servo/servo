@@ -153,6 +153,10 @@ skip = [
 
     # wgpu crates still depend on 1.1.0
     "rustc-hash",
+
+    # wgpu depends on thiserror 2, while rest is still on 1
+    "thiserror",
+    "thiserror-impl",
 ]
 
 # github.com organizations to allow git sources for

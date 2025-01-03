@@ -36,9 +36,41 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task_source::file_reading::FileReadingTask;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task::TaskOnce;
+use crate::task_source::TaskSourceName;
 
+#[allow(dead_code)]
+pub enum FileReadingTask {
+    ProcessRead(TrustedFileReader, GenerationId),
+    ProcessReadData(TrustedFileReader, GenerationId),
+    ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
+    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Vec<u8>),
+}
+
+impl TaskOnce for FileReadingTask {
+    fn run_once(self) {
+        self.handle_task(CanGc::note());
+    }
+}
+
+impl FileReadingTask {
+    pub fn handle_task(self, can_gc: CanGc) {
+        use self::FileReadingTask::*;
+
+        match self {
+            ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id, can_gc),
+            ProcessReadData(reader, gen_id) => {
+                FileReader::process_read_data(reader, gen_id, can_gc)
+            },
+            ProcessReadError(reader, gen_id, error) => {
+                FileReader::process_read_error(reader, gen_id, error, can_gc)
+            },
+            ProcessReadEOF(reader, gen_id, metadata, blob_contents) => {
+                FileReader::process_read_eof(reader, gen_id, metadata, blob_contents, can_gc)
+            },
+        }
+    }
+}
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum FileReaderFunction {
     Text,
@@ -472,7 +504,7 @@ impl FileReader {
         let filereader = Trusted::new(self);
         let global = self.global();
         let canceller = global.task_canceller(TaskSourceName::FileReading);
-        let task_source = global.file_reading_task_source();
+        let task_source = global.task_manager().file_reading_task_source();
 
         // Queue tasks as appropriate.
         let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);

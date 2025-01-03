@@ -27,6 +27,7 @@ pub enum ScriptHangAnnotation {
     InputEvent,
     HistoryEvent,
     NetworkEvent,
+    Rendering,
     Resize,
     ScriptEvent,
     SetScrollState,

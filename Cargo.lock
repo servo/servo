@@ -141,7 +141,7 @@ dependencies = [
  "ndk-context",
  "ndk-sys 0.6.0+11769913",
  "num_enum",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -224,7 +224,7 @@ dependencies = [
  "objc-foundation",
  "objc_id",
  "parking_lot",
- "thiserror",
+ "thiserror 1.0.69",
  "windows-sys 0.48.0",
  "x11rb",
 ]
@@ -665,7 +665,7 @@ dependencies = [
  "polling",
  "rustix",
  "slab",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2438,7 +2438,7 @@ dependencies = [
  "libc",
  "memchr",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2466,9 +2466,9 @@ dependencies = [
 
 [[package]]
 name = "glob"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
+checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
 name = "glow"
@@ -2538,7 +2538,7 @@ checksum = "c151a2a5ef800297b4e79efa4f4bec035c5f51d5ae587287c9b952bdf734cacd"
 dependencies = [
  "log",
  "presser",
- "thiserror",
+ "thiserror 1.0.69",
  "windows",
 ]
 
@@ -2590,7 +2590,7 @@ dependencies = [
  "paste",
  "pin-project-lite",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2834,7 +2834,7 @@ dependencies = [
  "gstreamer-video-sys",
  "libc",
  "once_cell",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -3745,7 +3745,7 @@ dependencies = [
  "combine",
  "jni-sys",
  "log",
- "thiserror",
+ "thiserror 1.0.69",
  "walkdir",
  "windows-sys 0.45.0",
 ]
@@ -4483,7 +4483,7 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 [[package]]
 name = "naga"
 version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
+source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -4496,7 +4496,7 @@ dependencies = [
  "rustc-hash 1.1.0",
  "spirv",
  "termcolor",
- "thiserror",
+ "thiserror 2.0.9",
  "unicode-xid",
 ]
 
@@ -4559,7 +4559,7 @@ dependencies = [
  "ndk-sys 0.6.0+11769913",
  "num_enum",
  "raw-window-handle",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -5763,7 +5763,7 @@ checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
 dependencies = [
  "getrandom",
  "libredox",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6201,9 +6201,9 @@ checksum = "3cb6eb87a131f756572d7fb904f6e7b68633f09cca868c5df1c4b8d1a694bbba"
 
 [[package]]
 name = "serde"
-version = "1.0.216"
+version = "1.0.217"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b9781016e935a97e8beecf0c933758c97a5520d32930e460142b4cd80c6338e"
+checksum = "02fc4265df13d6fa1d00ecff087228cc0a2b5f3c0e87e258d8b94a156e984c70"
 dependencies = [
  "serde_derive",
 ]
@@ -6219,9 +6219,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.216"
+version = "1.0.217"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46f859dbbf73865c6627ed570e78961cd3ac92407a2d117204c49232485da55e"
+checksum = "5a9bf7cf98d04a2b28aead066b7496853d4779c9cc183c440dbac457641e19a0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6279,7 +6279,7 @@ dependencies = [
  "foreign-types 0.3.2",
  "objc",
  "objc-foundation",
- "thiserror",
+ "thiserror 1.0.69",
  "time-point",
 ]
 
@@ -6768,7 +6768,7 @@ dependencies = [
  "log",
  "memmap2",
  "rustix",
- "thiserror",
+ "thiserror 1.0.69",
  "wayland-backend",
  "wayland-client",
  "wayland-csd-frame",
@@ -7028,7 +7028,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "surfman"
 version = "0.9.8"
-source = "git+https://github.com/servo/surfman?rev=c8d6b4b65aeab739ee7651602e29c8d58ceee123#c8d6b4b65aeab739ee7651602e29c8d58ceee123"
+source = "git+https://github.com/servo/surfman?rev=300789ddbda45c89e9165c31118bf1c4c07f89f6#300789ddbda45c89e9165c31118bf1c4c07f89f6"
 dependencies = [
  "bitflags 2.6.0",
  "cfg_aliases",
@@ -7074,9 +7074,9 @@ checksum = "e454d048db5527d000bfddb77bd072bbf3a1e2ae785f16d9bd116e07c2ab45eb"
 
 [[package]]
 name = "syn"
-version = "2.0.92"
+version = "2.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70ae51629bf965c5c098cc9e87908a3df5301051a9e087d6f9bef5c9771ed126"
+checksum = "987bc0be1cdea8b10216bd06e2ca407d40b9543468fafd3ddfb02f36e77f71f3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7189,7 +7189,16 @@ version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.69",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f072643fd0190df67a8bab670c20ef5d8737177d6ac6b2e9a236cb096206b2cc"
+dependencies = [
+ "thiserror-impl 2.0.9",
 ]
 
 [[package]]
@@ -7197,6 +7206,17 @@ name = "thiserror-impl"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b50fa271071aae2e6ee85f842e2e28ba8cd2c5fb67f11fcb1fd70b276f9e7d4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7571,9 +7591,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-perfetto"
-version = "0.1.3"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2be16ec38f047b3a21652de3f393f9d39858e86ee7def469820828489f53c00"
+checksum = "cf599f51530a7211f5aa92c84abdfc1137362d471f0473a4b1be8d625167fb0d"
 dependencies = [
  "anyhow",
  "bytes",
@@ -7645,7 +7665,7 @@ dependencies = [
  "rand",
  "rustls",
  "sha1",
- "thiserror",
+ "thiserror 1.0.69",
  "url",
  "utf-8",
 ]
@@ -8292,13 +8312,14 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#84c3022dc6e980119e2a04e1e248e74f825694b7"
+source = "git+https://github.com/servo/webxr#4fd38cf6dd29ac58bafd0be2ef5337827853dcdd"
 dependencies = [
  "crossbeam-channel",
  "euclid",
  "glow",
  "log",
  "openxr",
+ "raw-window-handle",
  "serde",
  "surfman",
  "webxr-api",
@@ -8309,7 +8330,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#84c3022dc6e980119e2a04e1e248e74f825694b7"
+source = "git+https://github.com/servo/webxr#4fd38cf6dd29ac58bafd0be2ef5337827853dcdd"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8326,7 +8347,7 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wgpu-core"
 version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
+source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -8342,7 +8363,7 @@ dependencies = [
  "rustc-hash 1.1.0",
  "serde",
  "smallvec",
- "thiserror",
+ "thiserror 2.0.9",
  "wgpu-hal",
  "wgpu-types",
 ]
@@ -8350,7 +8371,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
+source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -8382,7 +8403,7 @@ dependencies = [
  "raw-window-handle",
  "rustc-hash 1.1.0",
  "smallvec",
- "thiserror",
+ "thiserror 2.0.9",
  "wasm-bindgen",
  "web-sys",
  "wgpu-types",
@@ -8393,7 +8414,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
+source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",
@@ -8773,9 +8794,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.6.20"
+version = "0.6.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36c1fec1a2bb5866f07c25f68c26e565c4c200aebb96d7e55710c19d3e8ac49b"
+checksum = "e6f5bb5257f2407a5425c6e749bfd9692192a73e70a6060516ac04f889087d68"
 dependencies = [
  "memchr",
 ]

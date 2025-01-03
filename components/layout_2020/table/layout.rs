@@ -218,7 +218,7 @@ impl Zero for CellOrTrackMeasure {
 }
 
 impl<'a> TableLayout<'a> {
-    fn new(table: &'a Table) -> TableLayout {
+    fn new(table: &'a Table) -> TableLayout<'a> {
         Self {
             table,
             pbm: PaddingBorderMargin::zero(),

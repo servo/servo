@@ -293,7 +293,7 @@ fn parse_npt_seconds(s: &str) -> Result<f64, ()> {
 
 fn parse_hms(s: &str) -> Result<f64, ()> {
     let mut vec: VecDeque<&str> = s.split(':').collect();
-    vec.retain(|x| !x.eq(&""));
+    vec.retain(|x| !x.is_empty());
 
     let result = match vec.len() {
         1 => {

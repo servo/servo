@@ -1859,7 +1859,7 @@ impl<'container> PlacementState<'container> {
     fn new(
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
         containing_block: &'container ContainingBlock<'container>,
-    ) -> PlacementState {
+    ) -> PlacementState<'container> {
         let is_inline_block_context =
             containing_block.style.get_box().clone_display() == Display::InlineBlock;
         PlacementState {

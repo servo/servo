@@ -58,7 +58,6 @@ pub(super) struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    rendering_context: RenderingContext,
 }
 
 impl ServoWindowCallbacks {
@@ -66,13 +65,11 @@ impl ServoWindowCallbacks {
         host_callbacks: Box<dyn HostTrait>,
         coordinates: RefCell<Coordinates>,
         hidpi_factor: f32,
-        rendering_context: RenderingContext,
     ) -> Self {
         Self {
             host_callbacks,
             coordinates,
             hidpi_factor: Scale::new(hidpi_factor),
-            rendering_context,
         }
     }
 }
@@ -549,6 +546,8 @@ impl ServoGlue {
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
                     self.focused_webview_id = Some(webview_id);
+                    self.events
+                        .push(EmbedderEvent::ShowWebView(webview_id, true));
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
@@ -716,9 +715,5 @@ impl WindowMethods for ServoWindowCallbacks {
         debug!("WindowMethods::set_animation_state: {:?}", state);
         self.host_callbacks
             .on_animating_changed(state == AnimationState::Animating);
-    }
-
-    fn rendering_context(&self) -> RenderingContext {
-        self.rendering_context.clone()
     }
 }

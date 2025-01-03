@@ -195,7 +195,7 @@ pub fn Fetch(
     global.fetch(
         request_init,
         fetch_context,
-        global.networking_task_source(),
+        global.task_manager().networking_task_source(),
         None,
     );
 

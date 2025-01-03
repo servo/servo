@@ -930,7 +930,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(
     let mut slot = UndefinedValue();
     GetProxyPrivate(proxy.get(), &mut slot);
     rooted!(in(cx) let target = slot.to_object());
-    return JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc, is_none);
+    JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc, is_none)
 }
 
 #[allow(unsafe_code, non_snake_case)]

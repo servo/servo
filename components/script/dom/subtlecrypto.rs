@@ -54,7 +54,6 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::TaskSource;
 
 // String constants for algorithms/curves
@@ -142,13 +141,13 @@ impl SubtleCrypto {
         )
     }
 
-    fn task_source_with_canceller(&self) -> (DOMManipulationTaskSource, TaskCanceller) {
+    fn task_source_with_canceller(&self) -> (TaskSource, TaskCanceller) {
         if let Some(window) = self.global().downcast::<Window>() {
             window
                 .task_manager()
                 .dom_manipulation_task_source_with_canceller()
         } else if let Some(worker_global) = self.global().downcast::<WorkerGlobalScope>() {
-            let task_source = worker_global.dom_manipulation_task_source();
+            let task_source = worker_global.task_manager().dom_manipulation_task_source();
             let canceller = worker_global.task_canceller();
             (task_source, canceller)
         } else {

@@ -41,7 +41,6 @@ use crate::dom::urlsearchparams::URLSearchParams;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
-use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 /// The Dom object, or ReadableStream, that is the source of a body.
@@ -72,7 +71,7 @@ enum StopReading {
 #[derive(Clone)]
 struct TransmitBodyConnectHandler {
     stream: Trusted<ReadableStream>,
-    task_source: NetworkingTaskSource,
+    task_source: TaskSource,
     canceller: TaskCanceller,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
     control_sender: IpcSender<BodyChunkRequest>,
@@ -84,7 +83,7 @@ struct TransmitBodyConnectHandler {
 impl TransmitBodyConnectHandler {
     pub fn new(
         stream: Trusted<ReadableStream>,
-        task_source: NetworkingTaskSource,
+        task_source: TaskSource,
         canceller: TaskCanceller,
         control_sender: IpcSender<BodyChunkRequest>,
         in_memory: Option<Vec<u8>>,
@@ -379,7 +378,7 @@ impl ExtractedBody {
         let trusted_stream = Trusted::new(&*stream);
 
         let global = stream.global();
-        let task_source = global.networking_task_source();
+        let task_source = global.task_manager().networking_task_source();
         let canceller = global.task_canceller(TaskSourceName::Networking);
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.

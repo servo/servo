@@ -21,6 +21,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpuconvert::convert_load_op;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpucomputepassencoder::GPUComputePassEncoder;
@@ -156,15 +157,19 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         let depth_stencil_attachment = descriptor.depthStencilAttachment.as_ref().map(|ds| {
             wgpu_com::RenderPassDepthStencilAttachment {
                 depth: wgpu_com::PassChannel {
-                    load_op: ds.depthLoadOp.as_ref().map(Convert::convert),
+                    load_op: ds
+                        .depthLoadOp
+                        .as_ref()
+                        .map(|l| convert_load_op(l, ds.depthClearValue.map(|v| *v))),
                     store_op: ds.depthStoreOp.as_ref().map(Convert::convert),
-                    clear_value: ds.depthClearValue.map(|v| *v),
                     read_only: ds.depthReadOnly,
                 },
                 stencil: wgpu_com::PassChannel {
-                    load_op: ds.stencilLoadOp.as_ref().map(Convert::convert),
+                    load_op: ds
+                        .stencilLoadOp
+                        .as_ref()
+                        .map(|l| convert_load_op(l, Some(ds.stencilClearValue))),
                     store_op: ds.stencilStoreOp.as_ref().map(Convert::convert),
-                    clear_value: Some(ds.stencilClearValue),
                     read_only: ds.stencilReadOnly,
                 },
                 view: ds.view.id().0,
@@ -177,14 +182,16 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .map(|color| -> Fallible<_> {
                 Ok(Some(wgpu_com::RenderPassColorAttachment {
                     resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                    load_op: color.loadOp.convert(),
+                    load_op: convert_load_op(
+                        &color.loadOp,
+                        color
+                            .clearValue
+                            .as_ref()
+                            .map(|color| (color).try_convert())
+                            .transpose()?
+                            .unwrap_or_default(),
+                    ),
                     store_op: color.storeOp.convert(),
-                    clear_value: color
-                        .clearValue
-                        .as_ref()
-                        .map(|color| (color).try_convert())
-                        .transpose()?
-                        .unwrap_or_default(),
                     view: color.view.id().0,
                 }))
             })

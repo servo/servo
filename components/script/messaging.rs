@@ -235,7 +235,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
         self.0.send(msg).map_err(|_| ())
     }
 
-    fn as_boxed(&self) -> Box<dyn ScriptChan + Send> {
+    fn as_boxed(&self) -> Box<dyn ScriptChan> {
         Box::new(SendableMainThreadScriptChan((self.0).clone()))
     }
 }
@@ -251,7 +251,7 @@ impl ScriptChan for MainThreadScriptChan {
             .map_err(|_| ())
     }
 
-    fn as_boxed(&self) -> Box<dyn ScriptChan + Send> {
+    fn as_boxed(&self) -> Box<dyn ScriptChan> {
         Box::new(MainThreadScriptChan((self.0).clone()))
     }
 }

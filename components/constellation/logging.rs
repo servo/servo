@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! The constellation uses logging to perform crash reporting.
+//! The constellation receives all `warn!`, `error!` and `panic!` messages,
+//! and generates a crash report when it receives a panic.
+
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::thread;
@@ -14,20 +18,12 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 use parking_lot::ReentrantMutex;
 use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 
-/// The constellation uses logging to perform crash reporting.
-/// The constellation receives all `warn!`, `error!` and `panic!` messages,
-/// and generates a crash report when it receives a panic.
-
 /// A logger directed at the constellation from content processes
 /// #[derive(Clone)]
 pub struct FromScriptLogger {
     /// A channel to the constellation
     pub script_to_constellation_chan: Arc<ReentrantMutex<ScriptToConstellationChan>>,
 }
-
-/// The constellation uses logging to perform crash reporting.
-/// The constellation receives all `warn!`, `error!` and `panic!` messages,
-/// and generates a crash report when it receives a panic.
 
 /// A logger directed at the constellation from content processes
 impl FromScriptLogger {

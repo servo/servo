@@ -363,33 +363,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         composite_target: CompositeTarget,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
         version_string: String,
     ) -> Self {
-        let embedder_coordinates = window.get_coordinates();
-        let mut webviews = WebViewManager::default();
-        webviews
-            .add(
-                top_level_browsing_context_id,
-                WebView {
-                    pipeline_id: None,
-                    rect: embedder_coordinates.get_viewport().to_f32(),
-                },
-            )
-            .expect("Infallible with a new WebViewManager");
-        let msg = ConstellationMsg::WebViewOpened(top_level_browsing_context_id);
-        if let Err(e) = state.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({:?}).", e);
-        }
-        webviews
-            .show(top_level_browsing_context_id)
-            .expect("Infallible due to add");
-
         let compositor = IOCompositor {
             embedder_coordinates: window.get_coordinates(),
             window,
             port: state.receiver,
-            webviews,
+            webviews: WebViewManager::default(),
             pipeline_details: HashMap::new(),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
@@ -1360,7 +1340,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         if self.embedder_coordinates.viewport != old_coords.viewport {
             let mut transaction = Transaction::new();
-            transaction.set_document_view(self.embedder_coordinates.get_viewport());
+            let size = self.embedder_coordinates.get_viewport();
+            transaction.set_document_view(size);
+            if let Err(e) = self.rendering_context.resize(size.size().to_untyped()) {
+                warn!("Failed to resize surface: {e:?}");
+            }
             self.webrender_api
                 .send_transaction(self.webrender_document, transaction);
         }
@@ -1429,10 +1413,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn hit_test_at_point(&self, point: DevicePoint) -> Option<CompositorHitTestResult> {
-        return self
-            .hit_test_at_point_with_flags_and_pipeline(point, HitTestFlags::empty(), None)
+        self.hit_test_at_point_with_flags_and_pipeline(point, HitTestFlags::empty(), None)
             .first()
-            .cloned();
+            .cloned()
     }
 
     fn hit_test_at_point_with_flags_and_pipeline(

@@ -84,7 +84,6 @@ use crate::dom::window::Window;
 use crate::links::{get_element_target, LinkRelations};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -483,9 +482,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         );
 
         // Step 6
-        return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+        Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
             element_node.downcast::<Element>().unwrap(),
-        )));
+        )))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel

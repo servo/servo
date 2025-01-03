@@ -113,6 +113,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptParseXML => "Script Parse XML",
             ProfilerCategory::ScriptPlannedNavigation => "Script Planned Navigation",
             ProfilerCategory::ScriptPortMessage => "Script Port Message",
+            ProfilerCategory::ScriptRendering => "Script Rendering",
             ProfilerCategory::ScriptResize => "Script Resize",
             ProfilerCategory::ScriptEvent => "Script Event",
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",

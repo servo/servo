@@ -631,7 +631,7 @@ pub unsafe fn cross_origin_get_own_property_helper(
         holder.handle_mut().into(),
     );
 
-    return JS_GetOwnPropertyDescriptorById(*cx, holder.handle().into(), id, desc, is_none);
+    JS_GetOwnPropertyDescriptorById(*cx, holder.handle().into(), id, desc, is_none)
 }
 
 /// Implementation of [`CrossOriginPropertyFallback`].

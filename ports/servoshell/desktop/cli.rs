@@ -2,18 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
 use std::{env, panic, process};
 
 use getopts::Options;
-use log::{error, warn};
+use log::error;
 use servo::config::opts::{self, ArgumentParsingResult};
-use servo::config::set_pref;
 use servo::servo_config::pref;
 
 use crate::desktop::app::App;
 use crate::desktop::events_loop::EventsLoop;
-use crate::desktop::{headed_window, headless_window};
 use crate::panic_hook;
 
 pub fn main() {
@@ -106,29 +103,12 @@ pub fn main() {
     let event_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some())
         .expect("Failed to create events loop");
 
-    // Implements window methods, used by compositor.
-    // FIXME: We keep the window until application exits. Otherwise, it will cause
-    // simthay-clipboard thread segfault on Wayland.
-    let window = if opts::get().headless {
-        if pref!(media.glvideo.enabled) {
-            warn!("GL video rendering is not supported on headless windows.");
-            set_pref!(media.glvideo.enabled, false);
-        }
-        headless_window::Window::new(opts::get().initial_window_size, device_pixel_ratio_override)
-    } else {
-        Rc::new(headed_window::Window::new(
-            opts::get().initial_window_size,
-            event_loop.as_winit(),
-            do_not_use_native_titlebar,
-            device_pixel_ratio_override,
-        ))
-    };
-
     let mut app = App::new(
         &event_loop,
-        window.clone(),
         user_agent,
         url_opt.map(|s| s.to_string()),
+        do_not_use_native_titlebar,
+        device_pixel_ratio_override,
     );
 
     event_loop.run_app(&mut app);

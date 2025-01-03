@@ -28,12 +28,11 @@ use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
-use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 struct HapticEffectListener {
     canceller: TaskCanceller,
-    task_source: GamepadTaskSource,
+    task_source: TaskSource,
     context: Trusted<GamepadHapticActuator>,
 }
 
@@ -199,7 +198,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
             let trusted_promise = TrustedPromise::new(promise);
-            let _ = self.global().gamepad_task_source().queue(
+            let _ = self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
@@ -221,7 +220,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         let (effect_complete_sender, effect_complete_receiver) =
             ipc::channel().expect("ipc channel failure");
         let (task_source, canceller) = (
-            self.global().gamepad_task_source(),
+            self.global().task_manager().gamepad_task_source(),
             self.global().task_canceller(TaskSourceName::Gamepad),
         );
         let listener = HapticEffectListener {
@@ -272,7 +271,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
             let trusted_promise = TrustedPromise::new(promise);
-            let _ = self.global().gamepad_task_source().queue(
+            let _ = self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
@@ -290,7 +289,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         let (effect_stop_sender, effect_stop_receiver) =
             ipc::channel().expect("ipc channel failure");
         let (task_source, canceller) = (
-            self.global().gamepad_task_source(),
+            self.global().task_manager().gamepad_task_source(),
             self.global().task_canceller(TaskSourceName::Gamepad),
         );
         let listener = HapticEffectListener {
@@ -342,7 +341,7 @@ impl GamepadHapticActuator {
             let trusted_promise = TrustedPromise::new(promise);
             let sequence_id = self.sequence_id.get();
             let reset_sequence_id = self.reset_sequence_id.get();
-            let _ = self.global().gamepad_task_source().queue(
+            let _ = self.global().task_manager().gamepad_task_source().queue(
                 task!(complete_promise: move || {
                     if sequence_id != reset_sequence_id {
                         warn!("Mismatched sequence/reset sequence ids: {} != {}", sequence_id, reset_sequence_id);
@@ -364,7 +363,7 @@ impl GamepadHapticActuator {
         }
 
         let this = Trusted::new(self);
-        let _ = self.global().gamepad_task_source().queue(
+        let _ = self.global().task_manager().gamepad_task_source().queue(
             task!(stop_playing_effect: move || {
                 let actuator = this.root();
                 let Some(promise) = actuator.playing_effect_promise.borrow_mut().take() else {

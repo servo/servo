@@ -406,12 +406,10 @@ impl Convert<wgt::BlendComponent> for &GPUBlendComponent {
     }
 }
 
-impl Convert<wgpu_com::LoadOp> for &GPULoadOp {
-    fn convert(self) -> wgpu_com::LoadOp {
-        match self {
-            GPULoadOp::Load => wgpu_com::LoadOp::Load,
-            GPULoadOp::Clear => wgpu_com::LoadOp::Clear,
-        }
+pub(crate) fn convert_load_op<T>(load: &GPULoadOp, clear: T) -> wgpu_com::LoadOp<T> {
+    match load {
+        GPULoadOp::Load => wgpu_com::LoadOp::Load,
+        GPULoadOp::Clear => wgpu_com::LoadOp::Clear(clear),
     }
 }
 
