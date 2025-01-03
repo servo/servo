@@ -1565,11 +1565,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         event_count: 1,
                     }));
             },
-            TouchAction::DispatchEvent => {
-                self.send_touch_event(TouchEventType::Move, identifier, point);
-            },
+            TouchAction::DispatchEvent => {},
             _ => {},
         }
+        self.send_touch_event(TouchEventType::Move, identifier, point);
     }
 
     fn on_touch_up(&mut self, identifier: TouchId, point: DevicePoint) {
