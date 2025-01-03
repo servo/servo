@@ -222,6 +222,5 @@ codegen-units = 1
 #
 # Or for another Git dependency:
 #
-[patch."https://github.com/servo/webxr"]
-webxr = { git = "https://github.com/wusyong/webxr", branch = "rc" }
-webxr-api = { git = "https://github.com/wusyong/webxr", branch = "rc" }
+# [patch."https://github.com/servo/<repository>"]
+# <crate> = { path = "/path/to/local/checkout" }
