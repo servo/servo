@@ -23,8 +23,8 @@ use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
-    RequestMode, ResponseTainting, Window,
+    BodyChunkResponse, CredentialsMode, Destination, Initiator, Origin, RedirectMode, Referrer,
+    Request, RequestMode, ResponseTainting, Window,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -34,7 +34,7 @@ use net_traits::{
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
-use servo_url::ServoUrl;
+use servo_url::{Host, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use crate::fetch::cors_cache::CorsCache;
@@ -258,7 +258,10 @@ pub async fn main_fetch(
     // TODO: handle request abort.
 
     // Step 4.
-    // TODO: handle upgrade to a potentially secure URL.
+    // TODO: handle upgrade to a potentially secure URL on basis of navigation request.
+    if should_upgrade_mixed_content_request(request) {
+        let _ = request.current_url_mut().as_mut_url().set_scheme("https");
+    }
 
     // Step 5.
     if should_be_blocked_due_to_bad_port(&request.current_url()) {
@@ -851,4 +854,27 @@ fn is_bad_port(port: u16) -> bool {
     ];
 
     BAD_PORTS.binary_search(&port).is_ok()
+}
+
+fn should_upgrade_mixed_content_request(request: &Request) -> bool {
+    let url = request.url();
+
+    // Step 1.
+    //TODO: handle checking for environment setting
+    if url.is_potentially_trustworthy() ||
+        (match url.host() {
+            Some(Host::Ipv4(_)) | Some(Host::Ipv6(_)) => true,
+            _ => false,
+        }) ||
+        !matches!(
+            request.destination,
+            Destination::Audio | Destination::Image | Destination::Video
+        ) ||
+        (request.destination == Destination::Image && request.initiator == Initiator::ImageSet)
+    {
+        return false;
+    }
+
+    // Step 2.
+    url.scheme() == "http"
 }
