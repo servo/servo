@@ -5,7 +5,6 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
-#![allow(clippy::needless_lifetimes)]
 
 mod actions;
 mod capabilities;
@@ -313,7 +312,7 @@ impl<'de> Deserialize<'de> for WebDriverPrefValue {
     {
         struct Visitor;
 
-        impl<'de> ::serde::de::Visitor<'de> for Visitor {
+        impl ::serde::de::Visitor<'_> for Visitor {
             type Value = WebDriverPrefValue;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

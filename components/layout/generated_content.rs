@@ -133,7 +133,7 @@ impl<'a> ResolveGeneratedContent<'a> {
     }
 }
 
-impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
+impl InorderFlowTraversal for ResolveGeneratedContent<'_> {
     #[inline]
     fn process(&mut self, flow: &mut dyn Flow, level: u32) {
         let mut mutator = ResolveGeneratedContentFragmentMutator {
@@ -168,7 +168,7 @@ struct ResolveGeneratedContentFragmentMutator<'a, 'b: 'a> {
     incremented: bool,
 }
 
-impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
+impl ResolveGeneratedContentFragmentMutator<'_, '_> {
     fn mutate_fragment(&mut self, fragment: &mut Fragment) {
         // We only reset and/or increment counters once per flow. This avoids double-incrementing
         // counters on list items (once for the main fragment and once for the marker).

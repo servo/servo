@@ -18,7 +18,7 @@ pub struct ServoShadowRoot<'dom> {
     shadow_root: LayoutDom<'dom, ShadowRoot>,
 }
 
-impl<'dom> fmt::Debug for ServoShadowRoot<'dom> {
+impl fmt::Debug for ServoShadowRoot<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.as_node().fmt(f)
     }

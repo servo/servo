@@ -33,7 +33,7 @@ pub enum InRealm<'a> {
     Entered(&'a JSAutoRealm),
 }
 
-impl<'a> InRealm<'a> {
+impl InRealm<'_> {
     pub fn already(token: &AlreadyInRealm) -> InRealm {
         InRealm::Already(token)
     }

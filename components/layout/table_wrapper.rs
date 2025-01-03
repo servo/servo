@@ -669,7 +669,7 @@ impl AutoLayoutCandidateGuess {
     }
 }
 
-impl<'a> Add for &'a AutoLayoutCandidateGuess {
+impl Add for &AutoLayoutCandidateGuess {
     type Output = AutoLayoutCandidateGuess;
     #[inline]
     fn add(self, other: &AutoLayoutCandidateGuess) -> AutoLayoutCandidateGuess {

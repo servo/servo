@@ -78,7 +78,7 @@ pub struct EvalNodesetIter<'a> {
     size: usize,
 }
 
-impl<'a> Iterator for EvalNodesetIter<'a> {
+impl Iterator for EvalNodesetIter<'_> {
     type Item = EvaluationCtx;
 
     fn next(&mut self) -> Option<EvaluationCtx> {

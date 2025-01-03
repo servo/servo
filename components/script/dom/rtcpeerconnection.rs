@@ -837,7 +837,7 @@ impl Convert<RTCSessionDescriptionInit> for SessionDescription {
     }
 }
 
-impl<'a> Convert<SessionDescription> for &'a RTCSessionDescriptionInit {
+impl Convert<SessionDescription> for &RTCSessionDescriptionInit {
     fn convert(self) -> SessionDescription {
         let type_ = match self.type_ {
             RTCSdpType::Answer => SdpType::Answer,

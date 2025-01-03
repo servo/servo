@@ -315,7 +315,7 @@ impl Convert<LatencyCategory> for AudioContextLatencyCategory {
     }
 }
 
-impl<'a> Convert<RealTimeAudioContextOptions> for &'a AudioContextOptions {
+impl Convert<RealTimeAudioContextOptions> for &AudioContextOptions {
     fn convert(self) -> RealTimeAudioContextOptions {
         RealTimeAudioContextOptions {
             sample_rate: *self.sampleRate.unwrap_or(Finite::wrap(44100.)),

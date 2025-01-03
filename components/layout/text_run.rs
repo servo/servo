@@ -69,7 +69,7 @@ pub struct TextRunSlice<'a> {
     pub range: Range<ByteIndex>,
 }
 
-impl<'a> TextRunSlice<'a> {
+impl TextRunSlice<'_> {
     /// Returns the range that these glyphs encompass, relative to the start of the *text run*.
     #[inline]
     pub fn text_run_range(&self) -> Range<ByteIndex> {

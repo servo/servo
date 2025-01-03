@@ -373,7 +373,7 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     }
 }
 
-impl<'a> Convert<PannerNodeOptions> for &'a PannerOptions {
+impl Convert<PannerNodeOptions> for &PannerOptions {
     fn convert(self) -> PannerNodeOptions {
         PannerNodeOptions {
             panning_model: self.panningModel.convert(),

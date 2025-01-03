@@ -456,7 +456,7 @@ impl TreeWalker {
     }
 }
 
-impl<'a> Iterator for &'a TreeWalker {
+impl Iterator for &TreeWalker {
     type Item = DomRoot<Node>;
 
     fn next(&mut self) -> Option<DomRoot<Node>> {

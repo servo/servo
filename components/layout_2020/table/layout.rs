@@ -2922,7 +2922,7 @@ struct RowspanToDistribute<'a> {
     measure: &'a CellOrTrackMeasure,
 }
 
-impl<'a> RowspanToDistribute<'a> {
+impl RowspanToDistribute<'_> {
     fn range(&self) -> Range<usize> {
         self.coordinates.y..self.coordinates.y + self.cell.rowspan
     }

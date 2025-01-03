@@ -107,7 +107,7 @@ pub struct CommonTexImage2DValidatorResult {
     pub border: u32,
 }
 
-impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
+impl WebGLValidator for CommonTexImage2DValidator<'_> {
     type Error = TexImageValidationError;
     type ValidatedOutput = CommonTexImage2DValidatorResult;
     fn validate(self) -> Result<Self::ValidatedOutput, TexImageValidationError> {
@@ -299,7 +299,7 @@ pub struct TexImage2DValidatorResult {
 
 /// TexImage2d validator as per
 /// <https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml>
-impl<'a> WebGLValidator for TexImage2DValidator<'a> {
+impl WebGLValidator for TexImage2DValidator<'_> {
     type ValidatedOutput = TexImage2DValidatorResult;
     type Error = TexImageValidationError;
 
@@ -459,7 +459,7 @@ fn is_subimage_blockaligned(
         (height % block_height == 0 || yoffset + height == tex_info.height())
 }
 
-impl<'a> WebGLValidator for CommonCompressedTexImage2DValidator<'a> {
+impl WebGLValidator for CommonCompressedTexImage2DValidator<'_> {
     type Error = TexImageValidationError;
     type ValidatedOutput = CommonCompressedTexImage2DValidatorResult;
 
@@ -537,7 +537,7 @@ impl<'a> CompressedTexImage2DValidator<'a> {
     }
 }
 
-impl<'a> WebGLValidator for CompressedTexImage2DValidator<'a> {
+impl WebGLValidator for CompressedTexImage2DValidator<'_> {
     type Error = TexImageValidationError;
     type ValidatedOutput = CommonCompressedTexImage2DValidatorResult;
 
@@ -617,7 +617,7 @@ impl<'a> CompressedTexSubImage2DValidator<'a> {
     }
 }
 
-impl<'a> WebGLValidator for CompressedTexSubImage2DValidator<'a> {
+impl WebGLValidator for CompressedTexSubImage2DValidator<'_> {
     type Error = TexImageValidationError;
     type ValidatedOutput = CommonCompressedTexImage2DValidatorResult;
 
@@ -728,7 +728,7 @@ impl<'a> TexStorageValidator<'a> {
     }
 }
 
-impl<'a> WebGLValidator for TexStorageValidator<'a> {
+impl WebGLValidator for TexStorageValidator<'_> {
     type Error = TexImageValidationError;
     type ValidatedOutput = TexStorageValidatorResult;
 

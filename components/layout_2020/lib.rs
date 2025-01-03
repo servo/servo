@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![allow(clippy::needless_lifetimes)]
 
 mod cell;
 pub mod context;

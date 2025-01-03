@@ -1802,9 +1802,9 @@ where
     }
 }
 
-impl<'a, 'dom, ConcreteThreadSafeLayoutNode>
+impl<'dom, ConcreteThreadSafeLayoutNode>
     PostorderNodeMutTraversal<'dom, ConcreteThreadSafeLayoutNode>
-    for FlowConstructor<'a, ConcreteThreadSafeLayoutNode>
+    for FlowConstructor<'_, ConcreteThreadSafeLayoutNode>
 where
     ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>,
 {

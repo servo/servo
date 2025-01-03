@@ -216,7 +216,7 @@ impl<T: DomObject> ThisReflector for T {
     }
 }
 
-impl<'a> ThisReflector for HandleObject<'a> {
+impl ThisReflector for HandleObject<'_> {
     fn jsobject(&self) -> *mut JSObject {
         self.get()
     }

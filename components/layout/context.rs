@@ -54,7 +54,7 @@ pub struct LayoutContext<'a> {
     pub pending_images: Mutex<Vec<PendingImage>>,
 }
 
-impl<'a> Drop for LayoutContext<'a> {
+impl Drop for LayoutContext<'_> {
     fn drop(&mut self) {
         if !thread::panicking() {
             assert!(self.pending_images.lock().unwrap().is_empty());
@@ -62,7 +62,7 @@ impl<'a> Drop for LayoutContext<'a> {
     }
 }
 
-impl<'a> LayoutContext<'a> {
+impl LayoutContext<'_> {
     #[inline(always)]
     pub fn shared_context(&self) -> &SharedStyleContext {
         &self.style_context

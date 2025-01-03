@@ -73,7 +73,7 @@ trait ProcessDataURL {
     fn process_data_url(&self);
 }
 
-impl<'a> ProcessDataURL for &'a HTMLObjectElement {
+impl ProcessDataURL for &HTMLObjectElement {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&self) {

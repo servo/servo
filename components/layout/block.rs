@@ -529,7 +529,7 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 /// have the Root flow as their CB.
 pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext<'a>);
 
-impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
+impl PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'_> {
     #[inline]
     fn process(&self, flow: &mut dyn Flow) {
         if !flow.is_block_like() {

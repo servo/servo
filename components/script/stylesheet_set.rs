@@ -18,7 +18,7 @@ where
     Document(&'a mut DocumentStylesheetSet<S>),
 }
 
-impl<'a, S> StylesheetSetRef<'a, S>
+impl<S> StylesheetSetRef<'_, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {

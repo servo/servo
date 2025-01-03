@@ -30,7 +30,7 @@ impl<'a> RecalcStyle<'a> {
 }
 
 #[allow(unsafe_code)]
-impl<'a, 'dom, E> DomTraversal<E> for RecalcStyle<'a>
+impl<'dom, E> DomTraversal<E> for RecalcStyle<'_>
 where
     E: TElement,
     E::ConcreteNode: 'dom + LayoutNode<'dom>,

@@ -56,7 +56,7 @@ pub struct ServoLayoutElement<'dom> {
     element: LayoutDom<'dom, Element>,
 }
 
-impl<'dom> fmt::Debug for ServoLayoutElement<'dom> {
+impl fmt::Debug for ServoLayoutElement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}", self.element.local_name())?;
         if let Some(id) = self.id() {
@@ -800,7 +800,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
 ///
 /// Note that the element implementation is needed only for selector matching,
 /// not for inheritance (styles are inherited appropriately).
-impl<'dom> ::selectors::Element for ServoThreadSafeLayoutElement<'dom> {
+impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {

@@ -233,7 +233,7 @@ macro_rules! create_fun {
     };
 }
 
-impl<'a> GLExt for &'a Gl {
+impl GLExt for &Gl {
     create_fun!(
         try_get_integer,
         get_integer,

@@ -1317,7 +1317,7 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
     }
 }
 
-impl<'table> TableCellStyleInfo<'table> {
+impl TableCellStyleInfo<'_> {
     fn build_display_list(&self, mut state: &mut DisplayListBuildState) {
         use style::computed_values::visibility::T as Visibility;
 

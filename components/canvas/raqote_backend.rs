@@ -118,7 +118,7 @@ pub enum Pattern<'a> {
     Surface(SurfacePattern<'a>),
 }
 
-impl<'a> Pattern<'a> {
+impl Pattern<'_> {
     fn set_transform(&mut self, transform: Transform2D<f32>) {
         match self {
             Pattern::Surface(pattern) => pattern.set_transform(transform),

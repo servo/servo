@@ -59,7 +59,7 @@ pub struct ServoLayoutNode<'dom> {
 unsafe impl Send for ServoLayoutNode<'_> {}
 unsafe impl Sync for ServoLayoutNode<'_> {}
 
-impl<'dom> fmt::Debug for ServoLayoutNode<'dom> {
+impl fmt::Debug for ServoLayoutNode<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(el) = self.as_element() {
             el.fmt(f)
@@ -95,7 +95,7 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 }
 
-impl<'dom> style::dom::NodeInfo for ServoLayoutNode<'dom> {
+impl style::dom::NodeInfo for ServoLayoutNode<'_> {
     fn is_element(&self) -> bool {
         self.node.is_element_for_layout()
     }
@@ -262,7 +262,7 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     }
 }
 
-impl<'dom> style::dom::NodeInfo for ServoThreadSafeLayoutNode<'dom> {
+impl style::dom::NodeInfo for ServoThreadSafeLayoutNode<'_> {
     fn is_element(&self) -> bool {
         self.node.is_element()
     }

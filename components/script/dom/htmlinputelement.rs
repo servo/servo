@@ -195,7 +195,7 @@ impl InputType {
     }
 }
 
-impl<'a> From<&'a Atom> for InputType {
+impl From<&Atom> for InputType {
     fn from(value: &Atom) -> InputType {
         match value.to_ascii_lowercase() {
             atom!("button") => InputType::Button,
