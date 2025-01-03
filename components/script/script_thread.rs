@@ -1220,6 +1220,10 @@ impl ScriptThread {
                     let global = window.upcast::<GlobalScope>();
                     global.handle_gamepad_event(gamepad_event);
                 },
+
+                CompositorEvent::ClipboardEvent(clipboard_action) => {
+                    document.fire_clipboard_event(clipboard_action);
+                },
             }
         }
         ScriptThread::set_user_interacting(false);

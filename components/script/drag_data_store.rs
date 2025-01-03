@@ -31,6 +31,10 @@ impl PlainString {
     pub fn new(data: DOMString, type_: DOMString) -> Self {
         Self { data, type_ }
     }
+
+    pub fn data(&self) -> String {
+        self.data.to_string()
+    }
 }
 
 #[derive(Clone)]
@@ -99,7 +103,6 @@ pub enum Mode {
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-rw>
     ReadWrite,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-ro>
-    #[allow(dead_code)] // TODO this used by ClipboardEvent.
     ReadOnly,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-p>
     Protected,
@@ -115,6 +118,7 @@ pub struct DragDataStore {
     mode: Mode,
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-allowed-effects-state>
     allowed_effects_state: String,
+    pub clear_was_called: bool,
 }
 
 impl DragDataStore {
@@ -128,6 +132,7 @@ impl DragDataStore {
             bitmap: None,
             mode: Mode::Protected,
             allowed_effects_state: String::from("uninitialized"),
+            clear_was_called: false,
         }
     }
 
@@ -208,6 +213,7 @@ impl DragDataStore {
     }
 
     pub fn clear_data(&mut self, format: Option<DOMString>) -> bool {
+        self.clear_was_called = true;
         let mut was_modified = false;
 
         if let Some(format) = format {
@@ -255,6 +261,10 @@ impl DragDataStore {
         self.item_list.len()
     }
 
+    pub fn iter_item_list(&self) -> std::slice::Iter<'_, Kind> {
+        self.item_list.iter()
+    }
+
     pub fn get_item(&self, index: usize) -> Option<Kind> {
         self.item_list.get(index).cloned()
     }
@@ -265,6 +275,7 @@ impl DragDataStore {
 
     pub fn clear_list(&mut self) {
         self.item_list.clear();
+        self.clear_was_called = true;
     }
 }
 
