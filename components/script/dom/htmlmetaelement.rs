@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
-use script_traits::HistoryEntryReplacement;
+use script_traits::NavigationHistoryBehavior;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 
@@ -49,7 +49,7 @@ impl RefreshRedirectDue {
     pub fn invoke(self, can_gc: CanGc) {
         self.window.Location().navigate(
             self.url.clone(),
-            HistoryEntryReplacement::Enabled,
+            NavigationHistoryBehavior::Replace,
             NavigationType::DeclarativeRefresh,
             can_gc,
         );

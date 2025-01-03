@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-markers don't crash on resize</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<style>
+  .carousel {
+    overflow: auto;
+    width: 501px;
+    scroll-marker-group: after;
+
+    &::scroll-marker-group {
+      display: block;
+    }
+  }
+
+  .item {
+    width: 1000px;
+    height: 285px;
+
+    &::scroll-marker {
+      content: "x";
+    }
+  }
+</style>
+<div id="wheee" class="carousel">
+  <div class="item"></div>
+  </ul>
+  <script>
+    document.body.offsetTop;
+    wheee.scrollLeft = 100;
+    wheee.style.width = "500px";
+    document.documentElement.classList.remove("reftest-wait");
+  </script>
+
+</html>

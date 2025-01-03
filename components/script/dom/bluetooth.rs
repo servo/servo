@@ -244,7 +244,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
     receiver: &T,
 ) -> IpcSender<BluetoothResponseResult> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let task_source = receiver.global().networking_task_source();
+    let task_source = receiver.global().task_manager().networking_task_source();
     let context = Arc::new(Mutex::new(BluetoothContext {
         promise: Some(TrustedPromise::new(promise.clone())),
         receiver: Trusted::new(receiver),

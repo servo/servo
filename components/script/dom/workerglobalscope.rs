@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{OnceCell, RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -24,6 +25,7 @@ use net_traits::request::{
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
+use timers::TimerScheduler;
 use uuid::Uuid;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
@@ -42,7 +44,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
@@ -58,14 +60,7 @@ use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::port_message::PortMessageQueue;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::timer::TimerTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_manager::TaskManager;
 use crate::timers::{IsInterval, TimerCallback};
 
 pub fn prepare_workerscope_init(
@@ -80,7 +75,6 @@ pub fn prepare_workerscope_init(
         time_profiler_chan: global.time_profiler_chan().clone(),
         from_devtools_sender: devtools_sender,
         script_to_constellation_chan: global.script_to_constellation_chan().clone(),
-        scheduler_chan: global.scheduler_chan().clone(),
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
@@ -129,6 +123,14 @@ pub struct WorkerGlobalScope {
     #[no_trace]
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
+
+    /// A [`TimerScheduler`] used to schedule timers for this [`ServiceWorkerGlobalScope`].
+    /// Timers are handled in the service worker event loop.
+    #[no_trace]
+    timer_scheduler: RefCell<TimerScheduler>,
+
+    /// A [`TaskManager`] for this [`WorkerGlobalScope`].
+    task_manager: OnceCell<TaskManager>,
 }
 
 impl WorkerGlobalScope {
@@ -158,7 +160,6 @@ impl WorkerGlobalScope {
                 init.mem_profiler_chan,
                 init.time_profiler_chan,
                 init.script_to_constellation_chan,
-                init.scheduler_chan,
                 init.resource_threads,
                 MutableOrigin::new(init.origin),
                 init.creation_url,
@@ -183,6 +184,8 @@ impl WorkerGlobalScope {
             _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
+            timer_scheduler: RefCell::default(),
+            task_manager: Default::default(),
         }
     }
 
@@ -241,6 +244,11 @@ impl WorkerGlobalScope {
 
     pub fn policy_container(&self) -> Ref<PolicyContainer> {
         self.policy_container.borrow()
+    }
+
+    /// Get a mutable reference to the [`TimerScheduler`] for this [`ServiceWorkerGlobalScope`].
+    pub(crate) fn timer_scheduler(&self) -> RefMut<TimerScheduler> {
+        self.timer_scheduler.borrow_mut()
     }
 }
 
@@ -499,36 +507,9 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn port_message_queue(&self) -> PortMessageQueue {
-        PortMessageQueue(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn timer_task_source(&self) -> TimerTaskSource {
-        TimerTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
-        RemoteEventTaskSource(self.script_chan(), self.pipeline_id())
-    }
-
-    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
-        WebsocketTaskSource(self.script_chan(), self.pipeline_id())
+    pub(crate) fn task_manager(&self) -> &TaskManager {
+        self.task_manager
+            .get_or_init(|| TaskManager::new(self.script_chan(), self.pipeline_id()))
     }
 
     pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {

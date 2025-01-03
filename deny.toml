@@ -14,6 +14,8 @@ feature-depth = 1
 ignore = [
     # This is for the usage of time@0.1.45 in WebRender, which should be removed soon.
     "RUSTSEC-2020-0071",
+    # This is for glib < 0.20 which is pulled in by gstreamer
+    "RUSTSEC-2024-0429",
     # This has been yanked, but upgrading to the next version breaks some WPT tests.
     # It needs investigation.
     "url@2.5.3",
@@ -94,7 +96,6 @@ deny = [
 
 # List of crates to skip for the duplicate check:
 skip = [
-    "cfg_aliases",
     "bitflags",
     "cookie",
     "futures",
@@ -144,12 +145,18 @@ skip = [
     # tracing-subscriber -> matchers -> regex-automata 0.1.0 -> regex-syntax 0.6.29
     "regex-syntax",
 
+    # rust-content-security-policy uses newest base64.
+    "base64",
 
     # gilrs is on 0.10.0, but Servo is still on 0.9.4
     "core-foundation",
 
-    # some non-servo crates still use 0.14
-    "glow",
+    # wgpu crates still depend on 1.1.0
+    "rustc-hash",
+
+    # wgpu depends on thiserror 2, while rest is still on 1
+    "thiserror",
+    "thiserror-impl",
 ]
 
 # github.com organizations to allow git sources for

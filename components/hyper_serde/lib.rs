@@ -62,6 +62,7 @@
 
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
+#![allow(clippy::needless_lifetimes)]
 
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;

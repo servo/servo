@@ -18,7 +18,6 @@ use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::Arc;
-use std::time::Duration;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
@@ -64,9 +63,9 @@ use webrender_traits::{
 };
 
 pub use crate::script_msg::{
-    DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
-    JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
-    ScriptMsg, ServiceWorkerMsg, TraversalDirection,
+    DOMMessage, EventResult, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType,
+    LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
+    TraversalDirection,
 };
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
@@ -233,6 +232,21 @@ pub enum DiscardBrowsingContext {
     No,
 }
 
+/// <https://html.spec.whatwg.org/multipage/#navigation-supporting-concepts:navigationhistorybehavior>
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+pub enum NavigationHistoryBehavior {
+    /// The default value, which will be converted very early in the navigate algorithm into "push"
+    /// or "replace". Usually it becomes "push", but under certain circumstances it becomes
+    /// "replace" instead.
+    #[default]
+    Auto,
+    /// A regular navigation which adds a new session history entry, and will clear the forward
+    /// session history.
+    Push,
+    /// A navigation that will replace the active session history entry.
+    Replace,
+}
+
 /// Is a document fully active, active or inactive?
 /// A document is active if it is the current active document in its session history,
 /// it is fuly active if it is active and all of its ancestors are active,
@@ -316,7 +330,7 @@ pub enum ConstellationControlMsg {
         PipelineId,
         BrowsingContextId,
         LoadData,
-        HistoryEntryReplacement,
+        NavigationHistoryBehavior,
     ),
     /// Post a message to a given window.
     PostMessage {
@@ -583,38 +597,6 @@ impl From<&CompositorEvent> for CompositorEventVariant {
     }
 }
 
-/// Requests a TimerEvent-Message be sent after the given duration.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerEventRequest(
-    pub IpcSender<TimerEvent>,
-    pub TimerSource,
-    pub TimerEventId,
-    pub Duration,
-);
-
-/// The message used to send a request to the timer scheduler.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerSchedulerMsg(pub TimerEventRequest);
-
-/// Notifies the script thread to fire due timers.
-/// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
-/// must be `FromWorker` when dispatched to a `DedicatedGlobalWorkerScope`
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerEvent(pub TimerSource, pub TimerEventId);
-
-/// Describes the thread that requested the TimerEvent.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum TimerSource {
-    /// The event was requested from a window (ScriptThread).
-    FromWindow(PipelineId),
-    /// The event was requested from a worker (DedicatedGlobalWorkerScope).
-    FromWorker,
-}
-
-/// The id to be used for a `TimerEvent` is defined by the corresponding `TimerEventRequest`.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub struct TimerEventId(pub u32);
-
 /// Data needed to construct a script thread.
 ///
 /// NB: *DO NOT* add any Senders or Receivers here! pcwalton will have to rewrite your code if you
@@ -634,35 +616,33 @@ pub struct InitialScriptState {
     /// Loading into a Secure Context
     pub inherited_secure_context: Option<bool>,
     /// A channel with which messages can be sent to us (the script thread).
-    pub control_chan: IpcSender<ConstellationControlMsg>,
+    pub constellation_sender: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub control_port: IpcReceiver<ConstellationControlMsg>,
+    pub constellation_receiver: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub script_to_constellation_chan: ScriptToConstellationChan,
+    pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// A sender layout to communicate to the constellation.
-    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    pub layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothRequest>,
+    pub bluetooth_sender: IpcSender<BluetoothRequest>,
     /// The image cache for this script thread.
     pub image_cache: Arc<dyn ImageCache>,
     /// A channel to the time profiler thread.
-    pub time_profiler_chan: profile_traits::time::ProfilerChan,
+    pub time_profiler_sender: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
-    pub mem_profiler_chan: mem::ProfilerChan,
+    pub memory_profiler_sender: mem::ProfilerChan,
     /// A channel to the developer tools, if applicable.
-    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Information about the initial window size.
     pub window_size: WindowSizeData,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
-    pub content_process_shutdown_chan: Sender<()>,
+    pub content_process_shutdown_sender: Sender<()>,
     /// A channel to the WebGL thread used in this pipeline.
     pub webgl_chan: Option<WebGLPipeline>,
     /// The XR device registry
@@ -721,9 +701,9 @@ pub struct IFrameLoadInfo {
     pub is_private: bool,
     ///  Whether this iframe should be considered secure
     pub inherited_secure_context: Option<bool>,
-    /// Wether this load should replace the current entry (reload). If true, the current
+    /// Whether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
-    pub replace: HistoryEntryReplacement,
+    pub history_handling: NavigationHistoryBehavior,
 }
 
 /// Specifies the information required to load a URL in an iframe.
@@ -848,8 +828,6 @@ pub struct WorkerGlobalScopeInit {
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
     pub script_to_constellation_chan: ScriptToConstellationChan,
-    /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id

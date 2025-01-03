@@ -28,8 +28,8 @@ use webgpu::{wgc, WebGPU, WebGPUResponse};
 
 use crate::{
     AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
-    IFrameLoadInfoWithData, LoadData, MessagePortMsg, PortMessageTask, StructuredSerializedData,
-    WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+    IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
+    StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
 
 /// An iframe sizing operation.
@@ -46,8 +46,6 @@ pub struct IFrameSizeMsg {
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutMsg {
-    /// Inform the constellation of the size of the iframe's viewport.
-    IFrameSizes(Vec<IFrameSizeMsg>),
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
     PendingPaintMetric(PipelineId, Epoch),
@@ -57,7 +55,6 @@ impl fmt::Debug for LayoutMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::LayoutMsg::*;
         let variant = match *self {
-            IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",
         };
         write!(formatter, "LayoutMsg::{}", variant)
@@ -84,15 +81,6 @@ pub enum LogEntry {
     Error(String),
     /// warning, with a reason
     Warn(String),
-}
-
-/// <https://html.spec.whatwg.org/multipage/#replacement-enabled>
-#[derive(Debug, Deserialize, Serialize)]
-pub enum HistoryEntryReplacement {
-    /// Traverse the history with replacement enabled.
-    Enabled,
-    /// Traverse the history with replacement disabled.
-    Disabled,
 }
 
 /// Messages from the script to the constellation.
@@ -184,7 +172,7 @@ pub enum ScriptMsg {
     LoadComplete,
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
-    LoadUrl(LoadData, HistoryEntryReplacement),
+    LoadUrl(LoadData, NavigationHistoryBehavior),
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
@@ -202,7 +190,7 @@ pub enum ScriptMsg {
         data: StructuredSerializedData,
     },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
-    NavigatedToFragment(ServoUrl, HistoryEntryReplacement),
+    NavigatedToFragment(ServoUrl, NavigationHistoryBehavior),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
     /// Inform the constellation of a pushed history state.
@@ -260,6 +248,8 @@ pub enum ScriptMsg {
     GetWebGPUChan(IpcSender<Option<WebGPU>>),
     /// Notify the constellation of a pipeline's document's title.
     TitleChanged(PipelineId, String),
+    /// Notify the constellation that the size of some `<iframe>`s has changed.
+    IFrameSizes(Vec<IFrameSizeMsg>),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -320,6 +310,7 @@ impl fmt::Debug for ScriptMsg {
             #[cfg(feature = "webgpu")]
             GetWebGPUChan(..) => "GetWebGPUChan",
             TitleChanged(..) => "TitleChanged",
+            IFrameSizes(..) => "IFramSizes",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

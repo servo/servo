@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Direction of hue interpolation</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <meta name="assert" content="Tests that increasing/decreasing hue directions match shorter/longer as appropriate">
+    <link rel="match" href="gradient-hue-direction-ref.html">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        div {
+            width: 200px;
+            height: 50px;
+            margin: 10px;
+        }
+
+        div.a1 {
+            background-image: linear-gradient(to right in hsl increasing hue, red, orange);
+        }
+        div.a2 {
+            background-image: linear-gradient(to right in hsl shorter hue, red, orange);
+        }
+
+        div.b1 {
+            background-image: linear-gradient(to right in hsl decreasing hue, red, orange);
+        }
+        div.b2 {
+            background-image: linear-gradient(to right in hsl longer hue, red, orange);
+        }
+
+        div.c1 {
+            background-image: linear-gradient(to right in lch increasing hue, red, orange);
+        }
+        div.c2 {
+            background-image: linear-gradient(to right in lch shorter hue, red, orange);
+        }
+
+        div.d1 {
+            background-image: linear-gradient(to right in lch decreasing hue, red, orange);
+        }
+        div.d2 {
+            background-image: linear-gradient(to right in lch longer hue, red, orange);
+        }
+    </style>
+</head>
+
+<body>
+    <p>Each pair of gradients should match:</p>
+    <div class=a1></div>
+    <div class=a2></div>
+    <hr>
+    <div class=b1></div>
+    <div class=b2></div>
+    <hr>
+    <div class=c1></div>
+    <div class=c2></div>
+    <hr>
+    <div class=d1></div>
+    <div class=d2></div>
+</body>
+</html>

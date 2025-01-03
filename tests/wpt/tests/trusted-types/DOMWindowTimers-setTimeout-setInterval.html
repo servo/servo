@@ -1,54 +1,29 @@
 <!DOCTYPE html>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="support/helper.sub.js"></script>
-<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps">
+</head>
 <body>
-<script>
-  async_test(t => {
-    window.timeoutTrustedTest = t;
-    let policy = createScript_policy(window, 'timeout');
-    let script = policy.createScript("window.timeoutTrustedTest.done();");
-    setTimeout(script);
-  }, "window.setTimeout assigned via policy (successful Script transformation).");
+  <!-- "META: global=worker"
+      (https://web-platform-tests.org/writing-tests/testharness.html#tests-for-other-or-multiple-globals-any-js)
+      can't be used here because constructing the worker would require a trusted type.
+  -->
+  <script src="support/DOMWindowTimers-setTimeout-setInterval.js"></script>
+  <script>
+    let test_setup_policy = trustedTypes.createPolicy("p", {
+      createScriptURL: x => x
+    });
 
-  async_test(t => {
-    window.intervalTrustedTest = t;
-    let policy = createScript_policy(window, 'script');
-    let script = policy.createScript("window.intervalTrustedTest.done();");
-    setInterval(script);
-  }, "window.setInterval assigned via policy (successful Script transformation).");
+    fetch_tests_from_worker(new Worker(test_setup_policy.createScriptURL(
+      "support/DOMWindowTimers-setTimeout-setInterval-worker.js")));
 
-  trustedTypes.createPolicy("default", {createScript: (s, _, sink) => {
-    if (s === "timeoutStringTest") {
-      assert_equals(sink, 'Window setTimeout');
-    } else if (s === "intervalStringTest") {
-      assert_equals(sink, 'Window setInterval');
-    }
-    return "window." + s + ".done()";
-  }});
-
-  async_test(t => {
-    window.timeoutStringTest = t;
-    let script = "timeoutStringTest";
-    setTimeout(script);
-  }, "window.setTimeout assigned via default policy (successful Script transformation).");
-
-  async_test(t => {
-    window.intervalStringTest = t;
-    let script = "intervalStringTest";
-    setInterval(script);
-  }, "window.setInterval assigned via default policy (successful Script transformation).");
-
-  async_test(t => {
-    window.timeoutFunctionTest = t;
-    let script = () => window.timeoutFunctionTest.done();
-    setTimeout(script);
-  }, "window.setTimeout assigned with a function handler shouldn't go through default policy.");
-
-  async_test(t => {
-    window.intervalFunctionTest = t;
-    let script = () => window.intervalFunctionTest.done();
-    setInterval(script);
-  }, "window.setInterval assigned with a function handler shouldn't go through default policy.");
-</script>
+    fetch_tests_from_worker(new SharedWorker(test_setup_policy.createScriptURL(
+      "support/DOMWindowTimers-setTimeout-setInterval-worker.js")));
+  </script>
+</body>
+</html>

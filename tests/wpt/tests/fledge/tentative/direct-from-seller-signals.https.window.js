@@ -503,6 +503,17 @@ subsetTest(promise_test, async test => {
   assert_true(dfss);
 }, 'Test directFromSellerSignals feature detection.');
 
+// The version of directFromSellerSignals based on web bundles preceded the
+// header-based version -- the web bundle version has been deprecated and
+// removed.
+subsetTest(promise_test, async test => {
+  let dfss = false;
+  navigator.runAdAuction({
+      get directFromSellerSignals() { dfss = true; }
+  }).catch((e) => {});
+  assert_false(dfss);
+}, 'Negative test for deprecated and removed web-bundle directFromSellerSignals.');
+
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
   await fetchDirectFromSellerSignals({ 'Buyer-Origin': window.location.origin });

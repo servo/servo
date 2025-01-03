@@ -41,7 +41,6 @@ use crate::dom::urlsearchparams::URLSearchParams;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
-use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 /// The Dom object, or ReadableStream, that is the source of a body.
@@ -72,7 +71,7 @@ enum StopReading {
 #[derive(Clone)]
 struct TransmitBodyConnectHandler {
     stream: Trusted<ReadableStream>,
-    task_source: NetworkingTaskSource,
+    task_source: TaskSource,
     canceller: TaskCanceller,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
     control_sender: IpcSender<BodyChunkRequest>,
@@ -84,7 +83,7 @@ struct TransmitBodyConnectHandler {
 impl TransmitBodyConnectHandler {
     pub fn new(
         stream: Trusted<ReadableStream>,
-        task_source: NetworkingTaskSource,
+        task_source: TaskSource,
         canceller: TaskCanceller,
         control_sender: IpcSender<BodyChunkRequest>,
         in_memory: Option<Vec<u8>>,
@@ -187,7 +186,8 @@ impl TransmitBodyConnectHandler {
                     // TODO: Step 2, If body is null.
 
                     // Step 3, get a reader for stream.
-                    rooted_stream.start_reading().expect("Couldn't acquire a reader for the body stream.");
+                    rooted_stream.acquire_default_reader(CanGc::note())
+                        .expect("Couldn't acquire a reader for the body stream.");
 
                     // Note: this algorithm continues when the first chunk is requested by `net`.
                 }),
@@ -242,7 +242,7 @@ impl TransmitBodyConnectHandler {
                 let global = rooted_stream.global();
 
                 // Step 4, the result of reading a chunk from body’s stream with reader.
-                let promise = rooted_stream.read_a_chunk();
+                let promise = rooted_stream.read_a_chunk(CanGc::note());
 
                 // Step 5, the parallel steps waiting for and handling the result of the read promise,
                 // are a combination of the promise native handler here,
@@ -378,7 +378,7 @@ impl ExtractedBody {
         let trusted_stream = Trusted::new(&*stream);
 
         let global = stream.global();
-        let task_source = global.networking_task_source();
+        let task_source = global.task_manager().networking_task_source();
         let canceller = global.task_canceller(TaskSourceName::Networking);
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
@@ -610,6 +610,8 @@ impl Callback for ConsumeBodyPromiseRejectionHandler {
     }
 }
 
+impl js::gc::Rootable for ConsumeBodyPromiseHandler {}
+
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
 /// The promise handler used to consume the body,
@@ -692,7 +694,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             let global = stream.global();
 
             // Run the above step again.
-            let read_promise = stream.read_a_chunk();
+            let read_promise = stream.read_a_chunk(can_gc);
 
             let promise_handler = Box::new(ConsumeBodyPromiseHandler {
                 result_promise: self.result_promise.clone(),
@@ -746,7 +748,6 @@ pub fn consume_body<T: BodyMixin + DomObject>(
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
-#[allow(crown::unrooted_must_root)]
 fn consume_body_with_promise<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,
@@ -763,7 +764,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     };
 
     // Step 3.
-    if stream.start_reading().is_err() {
+    if stream.acquire_default_reader(can_gc).is_err() {
         return promise.reject_error(Error::Type(
             "The response's stream is disturbed or locked".to_string(),
         ));
@@ -774,16 +775,17 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
 
     // Step 1 of
     // https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream
-    let read_promise = stream.read_a_chunk();
+    let read_promise = stream.read_a_chunk(can_gc);
 
-    let promise_handler = Box::new(ConsumeBodyPromiseHandler {
+    let cx = GlobalScope::get_cx();
+    rooted!(in(*cx) let mut promise_handler = Some(ConsumeBodyPromiseHandler {
         result_promise: promise.clone(),
         stream: Some(Dom::from_ref(&stream)),
         body_type: DomRefCell::new(Some(body_type)),
         mime_type: DomRefCell::new(Some(object.get_mime_type(can_gc))),
         // Step 2.
         bytes: DomRefCell::new(Some(vec![])),
-    });
+    }));
 
     let rejection_handler = Box::new(ConsumeBodyPromiseRejectionHandler {
         result_promise: promise,
@@ -791,7 +793,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
 
     let handler = PromiseNativeHandler::new(
         &object.global(),
-        Some(promise_handler),
+        promise_handler.take().map(|h| Box::new(h) as Box<_>),
         Some(rejection_handler),
     );
     // We are already in a realm and a script.

@@ -13,7 +13,7 @@ from collections import defaultdict
 from typing import (Any, Callable, Dict, IO, Iterable, List, Optional, Sequence, Set, Text, Tuple,
                     Type, TypeVar)
 
-from urllib.parse import urlsplit, urljoin
+from urllib.parse import urlsplit, urljoin, parse_qs
 
 try:
     from xml.etree import cElementTree as ElementTree
@@ -523,20 +523,87 @@ def check_parsed(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]
     for element in source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src]"):
         src = element.attrib["src"]
 
-        def incorrect_path(script: Text, src: Text) -> bool:
-            return (script == src or
-                ("/%s" % script in src and src != "/resources/%s" % script))
+        def is_path_correct(script: Text, src: Text) -> bool:
+            """
+            If the `src` relevant to the `script`, check that the `src` is the
+            correct path for `script`.
+            :param script: the script name to check the `src` for.
+            :param src: the included path.
+            :return: if the `src` irrelevant to the `script`, or if the `src`
+                     path is the correct path.
+            """
+            if script == src:
+                # The src does not provide the full path.
+                return False
 
-        if incorrect_path("testharness.js", src):
+            if "/%s" % script not in src:
+                # The src is not relevant to the script.
+                return True
+
+            return ("%s" % src).startswith("/resources/%s" % script)
+
+        def is_query_string_correct(script: Text, src: Text,
+                allowed_query_string_params: Dict[str, List[str]]) -> bool:
+            """
+            Checks if the query string in a script tag's `src` is valid.
+
+            Specifically, it verifies that the query string parameters and their
+            values are among those allowed for the given script. It handles vendor
+            prefixes (parameters or values containing a colon) by allowing them
+            unconditionally.
+
+            :param script: the name of the script (e.g., "testharness.js"). Used
+                           to verify is the given `src` is related to the
+                           script.
+            :param src: the full `src` attribute value from the script tag.
+            :param allowed_query_string_params: A dictionary where keys are
+                                                allowed parameter names and
+                                                values are lists of allowed
+                                                values for each parameter.
+            :return: if the query string is empty or contains only allowed
+                     params.
+            """
+            if not ("%s" % src).startswith("/resources/%s?" % script):
+                # The src is not related to the script.
+                return True
+
+            try:
+                query_string = urlsplit(urljoin(source_file.url, src)).query
+                query_string_params = parse_qs(query_string,
+                                               keep_blank_values=True)
+            except ValueError:
+                # Parsing error means that the query string is incorrect.
+                return False
+
+            for param_name in query_string_params:
+                if param_name not in allowed_query_string_params:
+                    return False
+
+                for param_value in query_string_params[param_name]:
+                    if ':' in param_value:
+                        # Allow for vendor-specific values in query parameters.
+                        continue
+                    if param_value not in allowed_query_string_params[
+                            param_name]:
+                        return False
+            return True
+
+        if (not is_path_correct("testharness.js", src) or
+                not is_query_string_correct("testharness.js", src, {})):
             errors.append(rules.TestharnessPath.error(path))
 
-        if incorrect_path("testharnessreport.js", src):
+        if (not is_path_correct("testharnessreport.js", src) or
+                not is_query_string_correct("testharnessreport.js", src, {})):
             errors.append(rules.TestharnessReportPath.error(path))
 
-        if incorrect_path("testdriver.js", src):
+        if not is_path_correct("testdriver.js", src):
             errors.append(rules.TestdriverPath.error(path))
+        if not is_query_string_correct("testdriver.js", src,
+                                       {'feature': ['bidi']}):
+            errors.append(rules.TestdriverUnsupportedQueryParameter.error(path))
 
-        if incorrect_path("testdriver-vendor.js", src):
+        if (not is_path_correct("testdriver-vendor.js", src) or
+                not is_query_string_correct("testdriver-vendor.js", src, {})):
             errors.append(rules.TestdriverVendorPath.error(path))
 
         script_path = None

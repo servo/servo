@@ -89,7 +89,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > is a ratio of intersection area to bounding box area of an observed target.
     /// > Notifications for a target are generated when any of the thresholds are crossed
     /// > for that target. If no options.threshold was provided to the IntersectionObserver
-    /// > constructor, or the sequence is empty, the value of this attribute will be [0].
+    /// > constructor, or the sequence is empty, the value of this attribute will be `[0]`.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
     fn Thresholds(&self, _context: JSContext, _retval: MutableHandleValue) {}

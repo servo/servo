@@ -13,8 +13,8 @@ use net_traits::ReferrerPolicy;
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
-    HistoryEntryReplacement, IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData,
-    LoadOrigin, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason, WindowSizeData,
+    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
+    NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason, WindowSizeData,
 };
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -26,7 +26,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -38,9 +37,7 @@ use crate::dom::element::{
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, Node, NodeDamage, UnbindContext,
-};
+use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
@@ -117,17 +114,22 @@ impl HTMLIFrameElement {
     pub fn navigate_or_reload_child_browsing_context(
         &self,
         load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
-        self.start_new_pipeline(load_data, PipelineType::Navigation, replace, can_gc);
+        self.start_new_pipeline(
+            load_data,
+            PipelineType::Navigation,
+            history_handling,
+            can_gc,
+        );
     }
 
     fn start_new_pipeline(
         &self,
         mut load_data: LoadData,
         pipeline_type: PipelineType,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
         let sandboxed = if self.is_sandboxed() {
@@ -191,12 +193,12 @@ impl HTMLIFrameElement {
             new_pipeline_id,
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
-            replace,
+            history_handling,
         };
 
         let window_size = WindowSizeData {
             initial_viewport: window
-                .inner_window_dimensions_query(browsing_context_id, can_gc)
+                .get_iframe_size_if_known(browsing_context_id, can_gc)
                 .unwrap_or_default(),
             device_pixel_ratio: window.device_pixel_ratio(),
         };
@@ -269,7 +271,7 @@ impl HTMLIFrameElement {
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
             self.navigate_or_reload_child_browsing_context(
                 load_data,
-                HistoryEntryReplacement::Disabled,
+                NavigationHistoryBehavior::Push,
                 can_gc,
             );
             return;
@@ -361,12 +363,14 @@ impl HTMLIFrameElement {
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
-        let replace = if is_about_blank {
-            HistoryEntryReplacement::Enabled
+
+        let history_handling = if is_about_blank {
+            NavigationHistoryBehavior::Replace
         } else {
-            HistoryEntryReplacement::Disabled
+            NavigationHistoryBehavior::Push
         };
-        self.navigate_or_reload_child_browsing_context(load_data, replace, can_gc);
+
+        self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
     }
 
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
@@ -407,7 +411,7 @@ impl HTMLIFrameElement {
         self.start_new_pipeline(
             load_data,
             PipelineType::InitialAboutBlank,
-            HistoryEntryReplacement::Disabled,
+            NavigationHistoryBehavior::Push,
             can_gc,
         );
     }
@@ -734,28 +738,22 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn post_connection_steps(&self) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.post_connection_steps();
         }
 
-        let tree_connected = context.tree_connected;
-        let iframe = Trusted::new(self);
-        document_from_node(self).add_delayed_task(task!(IFrameDelayedInitialize: move || {
-            let this = iframe.root();
-            // https://html.spec.whatwg.org/multipage/#the-iframe-element
-            // "When an iframe element is inserted into a document that has
-            // a browsing context, the user agent must create a new
-            // browsing context, set the element's nested browsing context
-            // to the newly-created browsing context, and then process the
-            // iframe attributes for the "first time"."
-            if this.upcast::<Node>().is_connected_with_browsing_context() {
-                debug!("iframe bound to browsing context.");
-                debug_assert!(tree_connected, "is_connected_with_bc, but not tree_connected");
-                this.create_nested_browsing_context(CanGc::note());
-                this.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
-            }
-        }));
+        // https://html.spec.whatwg.org/multipage/#the-iframe-element
+        // "When an iframe element is inserted into a document that has
+        // a browsing context, the user agent must create a new
+        // browsing context, set the element's nested browsing context
+        // to the newly-created browsing context, and then process the
+        // iframe attributes for the "first time"."
+        if self.upcast::<Node>().is_connected_with_browsing_context() {
+            debug!("iframe bound to browsing context.");
+            self.create_nested_browsing_context(CanGc::note());
+            self.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
+        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -797,7 +795,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 );
                 let exited_window = exited_document.window();
                 exited_window.discard_browsing_context();
-                for exited_iframe in exited_document.iter_iframes() {
+                for exited_iframe in exited_document.iframes().iter() {
                     debug!("Discarding nested browsing context");
                     exited_iframe.destroy_nested_browsing_context();
                 }

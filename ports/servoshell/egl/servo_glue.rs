@@ -28,7 +28,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
-use servo::{gl, Servo, TopLevelBrowsingContextId};
+use servo::{Servo, TopLevelBrowsingContextId};
 
 use crate::egl::host_trait::HostTrait;
 
@@ -58,7 +58,6 @@ pub(super) struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    rendering_context: RenderingContext,
 }
 
 impl ServoWindowCallbacks {
@@ -66,13 +65,11 @@ impl ServoWindowCallbacks {
         host_callbacks: Box<dyn HostTrait>,
         coordinates: RefCell<Coordinates>,
         hidpi_factor: f32,
-        rendering_context: RenderingContext,
     ) -> Self {
         Self {
             host_callbacks,
             coordinates,
             hidpi_factor: Scale::new(hidpi_factor),
-            rendering_context,
         }
     }
 }
@@ -512,6 +509,10 @@ impl ServoGlue {
                         PromptDefinition::Input(message, default, sender) => {
                             sender.send(cb.prompt_input(message, default, trusted))
                         },
+                        PromptDefinition::Credentials(_) => {
+                            warn!("implement credentials prompt for OpenHarmony OS and Android");
+                            Ok(())
+                        },
                     };
                     if let Err(e) = res {
                         let reason = format!("Failed to send Prompt response: {}", e);
@@ -545,6 +546,8 @@ impl ServoGlue {
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
                     self.focused_webview_id = Some(webview_id);
+                    self.events
+                        .push(EmbedderEvent::ShowWebView(webview_id, true));
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
@@ -660,21 +663,17 @@ pub(super) struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
     #[cfg(feature = "webxr")]
     xr_discovery: Option<webxr::Discovery>,
-    #[allow(unused)]
-    gl: Rc<dyn gl::Gl>,
 }
 
 impl ServoEmbedderCallbacks {
     pub(super) fn new(
         waker: Box<dyn EventLoopWaker>,
         #[cfg(feature = "webxr")] xr_discovery: Option<webxr::Discovery>,
-        gl: Rc<dyn gl::Gl>,
     ) -> Self {
         Self {
             waker,
             #[cfg(feature = "webxr")]
             xr_discovery,
-            gl,
         }
     }
 }
@@ -716,9 +715,5 @@ impl WindowMethods for ServoWindowCallbacks {
         debug!("WindowMethods::set_animation_state: {:?}", state);
         self.host_callbacks
             .on_animating_changed(state == AnimationState::Animating);
-    }
-
-    fn rendering_context(&self) -> RenderingContext {
-        self.rendering_context.clone()
     }
 }

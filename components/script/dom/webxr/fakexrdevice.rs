@@ -35,7 +35,6 @@ use crate::dom::fakexrinputcontroller::{init_to_mock_buttons, FakeXRInputControl
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct FakeXRDevice {

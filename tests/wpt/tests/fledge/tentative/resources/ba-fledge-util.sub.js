@@ -360,4 +360,9 @@ BA.authorizeServerResponseHashes = async function(hashes) {
   await fetch(authorizeURL, {adAuctionHeaders: true});
 };
 
+BA.configureCoordinator = async function() {
+  // This is async in hope it can eventually use testdriver to configure this.
+  return 'https://{{hosts[][]}}';
+}
+
 })(BA);

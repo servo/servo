@@ -110,7 +110,7 @@ use canvas_traits::ConstellationCanvasMsg;
 use compositing_traits::{
     CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
 };
-use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
+use crossbeam_channel::{select, unbounded, Receiver, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
@@ -138,12 +138,12 @@ use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
     BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, GamepadEvent, HistoryEntryReplacement, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
-    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo, IFrameLoadInfoWithData,
+    IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin,
+    LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType, NavigationHistoryBehavior,
     PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
     ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, Theme, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason,
+    StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
@@ -172,10 +172,9 @@ use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
-use crate::timer_scheduler::TimerScheduler;
 use crate::webview::WebViewManager;
 
-type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
+type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
 
 #[derive(Debug)]
 /// The state used by MessagePortInfo to represent the various states the port can be in.
@@ -380,15 +379,6 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to send messages to the
     /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
-
-    /// A channel for a pipeline to schedule timer events.
-    scheduler_ipc_sender: IpcSender<TimerSchedulerMsg>,
-
-    /// The receiver to which the IPC requests from scheduler_chan will be forwarded.
-    scheduler_receiver: Receiver<Result<TimerSchedulerMsg, IpcError>>,
-
-    /// The logic and data behing scheduling timer events.
-    timer_scheduler: TimerScheduler,
 
     /// A single WebRender document the constellation operates on.
     webrender_document: DocumentId,
@@ -660,13 +650,6 @@ where
                         namespace_ipc_receiver,
                     );
 
-                let (scheduler_ipc_sender, scheduler_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let scheduler_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        scheduler_ipc_receiver,
-                    );
-
                 let (background_hang_monitor_ipc_sender, background_hang_monitor_ipc_receiver) =
                     ipc::channel().expect("ipc channel failure");
                 let background_hang_monitor_receiver =
@@ -762,9 +745,6 @@ where
                     window_size: initial_window_size,
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
-                    timer_scheduler: TimerScheduler::new(),
-                    scheduler_ipc_sender,
-                    scheduler_receiver,
                     document_states: HashMap::new(),
                     webrender_document: state.webrender_document,
                     #[cfg(feature = "webgpu")]
@@ -1015,7 +995,6 @@ where
                 .clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
             layout_factory: self.layout_factory.clone(),
-            scheduler_chan: self.scheduler_ipc_sender.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
             devtools_sender: self.devtools_sender.clone(),
             bluetooth_thread: self.bluetooth_ipc_sender.clone(),
@@ -1187,16 +1166,7 @@ where
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
-            Timer(TimerSchedulerMsg),
         }
-
-        // A timeout corresponding to the earliest scheduled timer event, if any.
-        let scheduler_timeout = self
-            .timer_scheduler
-            .check_timers()
-            .map(after)
-            .unwrap_or(never());
-
         // Get one incoming request.
         // This is one of the few places where the compositor is
         // allowed to panic. If one of the receiver.recv() calls
@@ -1236,14 +1206,6 @@ where
                 recv(self.swmanager_receiver) -> msg => {
                     msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
                 }
-                recv(self.scheduler_receiver) -> msg => {
-                    msg.expect("Unexpected schedule channel panic in constellation").map(Request::Timer)
-                }
-                recv(scheduler_timeout) -> _ => {
-                    // Note: by returning, we go back to the top,
-                    // where check_timers will be called.
-                    return;
-                },
             }
         };
 
@@ -1271,9 +1233,6 @@ where
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
-            },
-            Request::Timer(message) => {
-                self.timer_scheduler.handle_timer_request(message);
             },
         }
     }
@@ -1373,13 +1332,13 @@ where
                 };
 
                 match pending {
-                    Some((load_data, replace)) => {
+                    Some((load_data, history_handling)) => {
                         if allowed {
                             self.load_url(
                                 top_level_browsing_context_id,
                                 pipeline_id,
                                 load_data,
-                                replace,
+                                history_handling,
                             );
                         } else {
                             let pipeline_is_top_level_pipeline = self
@@ -1449,7 +1408,7 @@ where
                     top_level_browsing_context_id,
                     pipeline_id,
                     load_data,
-                    HistoryEntryReplacement::Disabled,
+                    NavigationHistoryBehavior::Push,
                 );
             },
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
@@ -1673,8 +1632,13 @@ where
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
             },
             // Ask the embedder for permission to load a new page.
-            FromScriptMsg::LoadUrl(load_data, replace) => {
-                self.schedule_navigation(source_top_ctx_id, source_pipeline_id, load_data, replace);
+            FromScriptMsg::LoadUrl(load_data, history_handling) => {
+                self.schedule_navigation(
+                    source_top_ctx_id,
+                    source_pipeline_id,
+                    load_data,
+                    history_handling,
+                );
             },
             FromScriptMsg::AbortLoadUrl => {
                 self.handle_abort_load_url_msg(source_pipeline_id);
@@ -1865,6 +1829,7 @@ where
                     pipeline.title = title;
                 }
             },
+            FromScriptMsg::IFrameSizes(iframe_sizes) => self.handle_iframe_size_msg(iframe_sizes),
         }
     }
 
@@ -2138,11 +2103,6 @@ where
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
         trace_layout_msg!(message, "{message:?}");
         match message {
-            // Layout sends new sizes for all subframes. This needs to be reflected by all
-            // frame trees in the navigation context containing the subframe.
-            FromLayoutMsg::IFrameSizes(iframe_sizes) => {
-                self.handle_iframe_size_msg(iframe_sizes);
-            },
             FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
                 self.handle_pending_paint_metric(pipeline_id, epoch);
             },
@@ -3277,7 +3237,7 @@ where
             top_level_browsing_context_id,
             new_pipeline_id,
             is_private,
-            mut replace,
+            mut history_handling,
             ..
         } = load_info.info;
 
@@ -3290,7 +3250,7 @@ where
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
         if let Some(old_pipeline) = old_pipeline {
             if !old_pipeline.completely_loaded {
-                replace = HistoryEntryReplacement::Enabled;
+                history_handling = NavigationHistoryBehavior::Replace;
             }
             debug!(
                 "{:?}: Old pipeline is {}completely loaded",
@@ -3336,11 +3296,10 @@ where
             },
         };
 
-        let replace = match replace {
-            HistoryEntryReplacement::Enabled => {
-                Some(NeedsToReload::No(browsing_context.pipeline_id))
-            },
-            HistoryEntryReplacement::Disabled => None,
+        let replace = if history_handling == NavigationHistoryBehavior::Replace {
+            Some(NeedsToReload::No(browsing_context.pipeline_id))
+        } else {
+            None
         };
 
         // https://github.com/rust-lang/rust/issues/59159
@@ -3596,7 +3555,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         source_id: PipelineId,
         load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
     ) {
         match self.pending_approval_navigations.entry(source_id) {
             Entry::Occupied(_) => {
@@ -3606,7 +3565,7 @@ where
                 );
             },
             Entry::Vacant(entry) => {
-                let _ = entry.insert((load_data.clone(), replace));
+                let _ = entry.insert((load_data.clone(), history_handling));
             },
         };
         // Allow the embedder to handle the url itself
@@ -3626,14 +3585,15 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         source_id: PipelineId,
         load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
     ) -> Option<PipelineId> {
         debug!(
             "{}: Loading ({}replacing): {}",
             source_id,
-            match replace {
-                HistoryEntryReplacement::Enabled => "",
-                HistoryEntryReplacement::Disabled => "not ",
+            match history_handling {
+                NavigationHistoryBehavior::Push => "",
+                NavigationHistoryBehavior::Replace => "not ",
+                NavigationHistoryBehavior::Auto => "unsure if ",
             },
             load_data.url,
         );
@@ -3680,7 +3640,7 @@ where
                     parent_pipeline_id,
                     browsing_context_id,
                     load_data,
-                    replace,
+                    history_handling,
                 );
                 let result = match self.pipelines.get(&parent_pipeline_id) {
                     Some(parent_pipeline) => parent_pipeline.event_loop.send(msg),
@@ -3716,9 +3676,10 @@ where
 
                 // Create the new pipeline
 
-                let replace = match replace {
-                    HistoryEntryReplacement::Enabled => Some(NeedsToReload::No(pipeline_id)),
-                    HistoryEntryReplacement::Disabled => None,
+                let replace = if history_handling == NavigationHistoryBehavior::Replace {
+                    Some(NeedsToReload::No(pipeline_id))
+                } else {
+                    None
                 };
 
                 let new_pipeline_id = PipelineId::new();
@@ -3830,7 +3791,7 @@ where
         &mut self,
         pipeline_id: PipelineId,
         new_url: ServoUrl,
-        replacement_enabled: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
     ) {
         let (top_level_browsing_context_id, old_url) = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
@@ -3842,18 +3803,20 @@ where
             },
         };
 
-        match replacement_enabled {
-            HistoryEntryReplacement::Disabled => {
+        match history_handling {
+            NavigationHistoryBehavior::Replace => {},
+            _ => {
                 let diff = SessionHistoryDiff::Hash {
                     pipeline_reloader: NeedsToReload::No(pipeline_id),
                     new_url,
                     old_url,
                 };
+
                 self.get_joint_session_history(top_level_browsing_context_id)
                     .push_diff(diff);
+
                 self.notify_history_changed(top_level_browsing_context_id);
             },
-            HistoryEntryReplacement::Enabled => {},
         }
     }
 
@@ -4666,7 +4629,7 @@ where
                     top_level_browsing_context_id,
                     load_data,
                     response_sender,
-                    HistoryEntryReplacement::Disabled,
+                    NavigationHistoryBehavior::Push,
                 );
             },
             WebDriverCommandMsg::Refresh(top_level_browsing_context_id, response_sender) => {
@@ -4685,7 +4648,7 @@ where
                     top_level_browsing_context_id,
                     load_data,
                     response_sender,
-                    HistoryEntryReplacement::Enabled,
+                    NavigationHistoryBehavior::Replace,
                 );
             },
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
@@ -4913,7 +4876,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         load_data: LoadData,
         response_sender: IpcSender<webdriver_msg::LoadStatus>,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4930,7 +4893,7 @@ where
             top_level_browsing_context_id,
             pipeline_id,
             load_data,
-            replace,
+            history_handling,
         ) {
             debug!(
                 "Setting up webdriver load notification for {:?}",

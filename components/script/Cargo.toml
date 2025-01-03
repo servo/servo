@@ -72,7 +72,7 @@ image = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
-js = { package = "mozjs", git = "https://github.com/servo/mozjs", features = ["streams", "crown"] }
+js = { package = "mozjs", git = "https://github.com/servo/mozjs", features = ["crown"] }
 jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
@@ -118,6 +118,7 @@ swapper = "0.1"
 tempfile = "3"
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
 time_03 = { workspace = true }
+timers = { path = "../timers" }
 tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
 unicode-segmentation = { workspace = true }

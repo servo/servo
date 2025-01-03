@@ -11,7 +11,7 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
-use script_layout_interface::{PendingImage, PendingImageState};
+use script_layout_interface::{IFrameSizes, PendingImage, PendingImageState};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
@@ -34,6 +34,9 @@ pub struct LayoutContext<'a> {
 
     /// A list of in-progress image loads to be shared with the script thread.
     pub pending_images: Mutex<Vec<PendingImage>>,
+
+    /// A collection of `<iframe>` sizes to send back to script.
+    pub iframe_sizes: Mutex<IFrameSizes>,
 
     pub webrender_image_cache:
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,

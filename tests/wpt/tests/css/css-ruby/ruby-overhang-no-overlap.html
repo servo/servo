@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://crbug.com/329776386">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+p {
+  font-size: 10px;
+}
+ruby {
+  font-size: 40px;
+}
+</style>
+
+<p>
+<ruby>安<rt>ān</rt></ruby>〓<ruby>装<rt>zhuāng</rt></ruby>〓<ruby>窗<rt>chuāng</rt></ruby>〓<ruby>户<rt>hù</rt></ruby>
+</p>
+
+<script>
+test(() => {
+  const rts = document.querySelectorAll('rt');
+  const bounds2 = rts[1].getBoundingClientRect();
+  const bounds3 = rts[2].getBoundingClientRect();
+  assert_less_than_equal(Math.round(bounds2.right), Math.round(bounds3.left));
+}, "Annotations should not be overlapped");
+</script>

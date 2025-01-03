@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: scroll tracking for ::scroll-markers whose orignatin elements cannot be scroll-aligned </title>
+  <link rel="match" href="targeted-column-scroll-marker-selection-003-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
+  <script src="/css/css-transitions/support/helper.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/common/reftest-wait.js"></script>
+</head>
+
+<body>
+  <style>
+    .wrapper {
+      display: grid;
+      justify-content: center;
+    }
+
+    .carousel {
+      width: 800px;
+      height: 200px;
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+      list-style-type: none;
+      scroll-behavior: smooth;
+      border: solid 2px grey;
+      padding-top: 10%;
+      text-align: center;
+      counter-set: markeridx -1;
+      columns: 2;
+
+      /* Children 13 (index 12) and 16 (index 15) also generate scroll-markers,
+        along with all the ::columns.
+      */
+      &::column::scroll-marker,
+      & >:nth-child(13)::scroll-marker,
+      & >:nth-child(16)::scroll-marker {
+        content: counter(markeridx);
+        counter-increment: markeridx;
+        align-content: center;
+        text-align: center;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        margin: 3px;
+        background-color: red;
+      }
+      &::column::scroll-marker:target-current {
+        background-color: green;
+      }
+      &>:nth-child(13)::scroll-marker:target-current,
+      &>:nth-child(16)::scroll-marker:target-current {
+        background-color: lightgreen;
+      }
+
+      &>.item {
+        scroll-snap-align: center;
+        height: 80%;
+        width: 158px;
+        border: 1px solid;
+        place-content: center;
+        display: inline-block;
+      }
+
+      scroll-marker-group: after;
+
+      &::scroll-marker-group {
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: solid 1px black;
+        border-radius: 30px;
+      }
+    }
+  </style>
+  <div class="wrapper" id="wrapper">
+    <div class="carousel" id="carousel">
+      <div class="item item0" tabindex=0>0</div>
+      <div class="item item1" tabindex=0>1</div>
+      <div class="item item2" tabindex=0>2</div>
+      <div class="item item3" tabindex=0>3</div>
+      <div class="item item4" tabindex=0>4</div>
+      <div class="item item5" tabindex=0>5</div>
+      <div class="item item6" tabindex=0>6</div>
+      <div class="item item7" tabindex=0>7</div>
+      <div class="item item8" tabindex=0>8</div>
+      <div class="item item9" tabindex=0>9</div>
+      <div class="item item10" tabindex=0>10</div>
+      <div class="item item11" tabindex=0>11</div>
+      <div class="item item12" tabindex=0>12</div>
+      <div class="item item13" tabindex=0>13</div>
+      <div class="item item14" tabindex=0>14</div>
+      <div class="item item15" tabindex=0>15</div>
+    </div>
+  </div>
+  <script>
+    const items = document.querySelectorAll(".item");
+    function runTest() {
+      const item14 = items[14];
+      item14.scrollIntoView();
+      carousel.onscrollend = () => {
+        takeScreenshot();
+      };
+    }
+    waitForCompositorReady().then(runTest);
+  </script>
+</body>
+
+</html>

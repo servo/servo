@@ -38,11 +38,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
-use crate::script_runtime::ScriptThreadEventCategory::WebSocketEvent;
-use crate::script_runtime::{CanGc, CommonScriptMsg};
+use crate::script_runtime::CanGc;
 use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_source::websocket::WebsocketTaskSource;
-use crate::task_source::TaskSource;
+use crate::task_source::{TaskSource, TaskSourceName};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -72,7 +70,7 @@ mod close_code {
 
 fn close_the_websocket_connection(
     address: Trusted<WebSocket>,
-    task_source: &WebsocketTaskSource,
+    task_source: &TaskSource,
     canceller: &TaskCanceller,
     code: Option<u16>,
     reason: String,
@@ -88,7 +86,7 @@ fn close_the_websocket_connection(
 
 fn fail_the_websocket_connection(
     address: Trusted<WebSocket>,
-    task_source: &WebsocketTaskSource,
+    task_source: &TaskSource,
     canceller: &TaskCanceller,
 ) {
     let close_task = CloseTask {
@@ -168,19 +166,12 @@ impl WebSocket {
         if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
-            let task = Box::new(BufferedAmountTask { address });
-
-            let pipeline_id = self.global().pipeline_id();
-            self.global()
-                .script_chan()
-                // TODO: Use a dedicated `websocket-task-source` task source instead.
-                .send(CommonScriptMsg::Task(
-                    WebSocketEvent,
-                    task,
-                    Some(pipeline_id),
-                    WebsocketTaskSource::NAME,
-                ))
-                .unwrap();
+            // TODO(mrobinson): Should this task be cancellable?
+            let _ = self
+                .global()
+                .task_manager()
+                .websocket_task_source()
+                .queue_unconditionally(BufferedAmountTask { address });
         }
 
         Ok(true)
@@ -200,21 +191,37 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         url: DOMString,
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
-        // Steps 1-2.
-        let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
+        // Step 1. Let baseURL be this's relevant settings object's API base URL.
+        // Step 2. Let urlRecord be the result of applying the URL parser to url with baseURL.
+        // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
+        let mut url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 
-        // Step 3.
+        // Step 4. If urlRecord’s scheme is "http", then set urlRecord’s scheme to "ws".
+        // Step 5. Otherwise, if urlRecord’s scheme is "https", set urlRecord’s scheme to "wss".
+        // Step 6. If urlRecord’s scheme is not "ws" or "wss", then throw a "SyntaxError" DOMException.
         match url_record.scheme() {
+            "http" => {
+                url_record
+                    .as_mut_url()
+                    .set_scheme("ws")
+                    .expect("Can't set scheme from http to ws");
+            },
+            "https" => {
+                url_record
+                    .as_mut_url()
+                    .set_scheme("wss")
+                    .expect("Can't set scheme from https to wss");
+            },
             "ws" | "wss" => {},
             _ => return Err(Error::Syntax),
         }
 
-        // Step 4.
+        // Step 7. If urlRecord’s fragment is non-null, then throw a "SyntaxError" DOMException.
         if url_record.fragment().is_some() {
             return Err(Error::Syntax);
         }
 
-        // Step 5.
+        // Step 8. If protocols is a string, set protocols to a sequence consisting of just that string.
         let protocols = protocols.map_or(vec![], |p| match p {
             StringOrStringSequence::String(string) => vec![string.into()],
             StringOrStringSequence::StringSequence(seq) => {
@@ -222,7 +229,9 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             },
         });
 
-        // Step 6.
+        // Step 9. If any of the values in protocols occur more than once or otherwise fail to match the requirements
+        // for elements that comprise the value of `Sec-WebSocket-Protocol` fields as defined by The WebSocket protocol,
+        // then throw a "SyntaxError" DOMException.
         for (i, protocol) in protocols.iter().enumerate() {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
@@ -250,10 +259,10 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
         ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
+        // Step 12. Establish a WebSocket connection given urlRecord, protocols, and client.
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
-        // Step 8.
         let request = RequestBuilder::new(url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
             .mode(RequestMode::WebSocket { protocols });
@@ -266,8 +275,8 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(request, channels));
 
-        let task_source = global.websocket_task_source();
-        let canceller = global.task_canceller(WebsocketTaskSource::NAME);
+        let task_source = global.task_manager().websocket_task_source();
+        let canceller = global.task_canceller(TaskSourceName::WebSocket);
         ROUTER.add_typed_route(
             dom_event_receiver.to_ipc_receiver(),
             Box::new(move |message| match message.unwrap() {
@@ -300,7 +309,6 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             }),
         );
 
-        // Step 7.
         Ok(ws)
     }
 
@@ -434,11 +442,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 // TODO: use a dedicated task source,
                 // https://html.spec.whatwg.org/multipage/#websocket-task-source
                 // When making the switch, also update the task_canceller call.
-                let task_source = self.global().websocket_task_source();
+                let task_source = self.global().task_manager().websocket_task_source();
                 fail_the_websocket_connection(
                     address,
                     &task_source,
-                    &self.global().task_canceller(WebsocketTaskSource::NAME),
+                    &self.global().task_canceller(TaskSourceName::WebSocket),
                 );
             },
             WebSocketRequestState::Open => {

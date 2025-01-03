@@ -55,7 +55,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, ChildrenMutation, CloneChildrenFlag, Node,
+    document_from_node, window_from_node, ChildrenMutation, CloneChildrenFlag, Node,
 };
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -67,7 +67,6 @@ use crate::script_module::{
 };
 use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::unminify::{unminify_js, ScriptSource};
 
@@ -104,7 +103,7 @@ impl ScriptSource for ScriptOrigin {
     script_kind: ExternalScriptKind,
     final_url: ServoUrl,
     url: ServoUrl,
-    task_source: DOMManipulationTaskSource,
+    task_source: TaskSource,
     canceller: TaskCanceller,
     script_text: String,
     fetch_options: ScriptFetchOptions,
@@ -478,7 +477,7 @@ impl FetchResponseListener for ClassicContext {
                 script_kind: self.kind,
                 final_url,
                 url: self.url.clone(),
-                task_source: global.dom_manipulation_task_source(),
+                task_source: global.task_manager().dom_manipulation_task_source(),
                 canceller: global.task_canceller(TaskSourceName::DOMManipulation),
                 script_text: source_string,
                 fetch_options: self.fetch_options.clone(),
@@ -1188,25 +1187,32 @@ impl VirtualMethods for HTMLScriptElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-26>
     fn children_changed(&self, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
-        if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-            self.prepare(CanGc::note());
+
+        if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
+            let script = Trusted::new(self);
+            // This method can be invoked while there are script/layout blockers present
+            // as DOM mutations have not yet settled. We use a delayed task to avoid
+            // running any scripts until the DOM tree is safe for interactions.
+            document_from_node(self).add_delayed_task(task!(ScriptPrepare: move || {
+                let this = script.root();
+                this.prepare(CanGc::note());
+            }));
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-20>
+    fn post_connection_steps(&self) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.post_connection_steps();
         }
 
-        if context.tree_connected && !self.parser_inserted.get() {
-            let script = Trusted::new(self);
-            document_from_node(self).add_delayed_task(task!(ScriptDelayedInitialize: move || {
-                script.root().prepare(CanGc::note());
-            }));
+        if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
+            self.prepare(CanGc::note());
         }
     }
 

@@ -158,6 +158,8 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     let path_to_self = env::current_exe().expect("Failed to get current executor.");
     let mut child_process = process::Command::new(path_to_self);
     setup_common(&mut child_process, token);
+
+    #[allow(clippy::zombie_processes)]
     let _ = child_process
         .spawn()
         .expect("Failed to start unsandboxed child process!");
@@ -180,7 +182,10 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 
-    impl CommandMethods for sandbox::Command {
+    // TODO: Move this impl out of the function. It is only currently here to avoid
+    // duplicating the feature flagging.
+    #[allow(non_local_definitions)]
+    impl CommandMethods for gaol::sandbox::Command {
         fn arg<T>(&mut self, arg: T)
         where
             T: AsRef<OsStr>,
@@ -216,6 +221,8 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
         let path_to_self = env::current_exe().expect("Failed to get current executor.");
         let mut child_process = process::Command::new(path_to_self);
         setup_common(&mut child_process, token);
+
+        #[allow(clippy::zombie_processes)]
         let _ = child_process
             .spawn()
             .expect("Failed to start unsandboxed child process!");

@@ -1769,7 +1769,7 @@ fn fetch_single_module_script(
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
-    let task_source = global.networking_task_source();
+    let task_source = global.task_manager().networking_task_source();
     let canceller = global.task_canceller(TaskSourceName::Networking);
 
     let network_listener = NetworkListener {

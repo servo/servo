@@ -22,21 +22,20 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
-use surfman::{Connection, Context, Device, SurfaceType};
+use surfman::{Context, Device, SurfaceType};
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
+use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
-use super::events_loop::WakerEvent;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::keyboard_event_from_winit;
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct Window {
     winit_window: winit::window::Window,
-    rendering_context: RenderingContext,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
@@ -58,8 +57,9 @@ pub struct Window {
 
 impl Window {
     pub fn new(
+        rendering_context: &RenderingContext,
         window_size: Size2D<u32, DeviceIndependentPixel>,
-        event_loop: &winit::event_loop::EventLoop<WakerEvent>,
+        event_loop: &ActiveEventLoop,
         no_native_titlebar: bool,
         device_pixel_ratio_override: Option<f32>,
     ) -> Window {
@@ -103,20 +103,13 @@ impl Window {
         let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() / screen_scale).to_u32();
 
         // Initialize surfman
-        let display_handle = winit_window
-            .display_handle()
-            .expect("could not get display handle from window");
-        let connection =
-            Connection::from_display_handle(display_handle).expect("Failed to create connection");
-        let adapter = connection
-            .create_adapter()
-            .expect("Failed to create adapter");
         let window_handle = winit_window
             .window_handle()
             .expect("could not get window handle from window");
 
         let inner_size = winit_window.inner_size();
-        let native_widget = connection
+        let native_widget = rendering_context
+            .connection()
             .create_native_widget_from_window_handle(
                 window_handle,
                 winit_size_to_euclid_size(inner_size).to_i32().to_untyped(),
@@ -124,13 +117,18 @@ impl Window {
             .expect("Failed to create native widget");
 
         let surface_type = SurfaceType::Widget { native_widget };
-        let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
-            .expect("Failed to create WR surfman");
+        let surface = rendering_context
+            .create_surface(surface_type)
+            .expect("Failed to create surface");
+        rendering_context
+            .bind_surface(surface)
+            .expect("Failed to bind surface");
+        // Make sure the gl context is made current.
+        rendering_context.make_gl_context_current().unwrap();
 
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
-            rendering_context,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D::zero()),
@@ -478,9 +476,6 @@ impl WindowPortsMethods for Window {
             },
             winit::event::WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
-                    self.rendering_context
-                        .resize(Size2D::new(new_size.width, new_size.height).to_i32())
-                        .expect("Failed to resize");
                     self.inner_size.set(new_size);
                     self.event_queue
                         .borrow_mut()
@@ -503,13 +498,13 @@ impl WindowPortsMethods for Window {
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Box<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo XR".to_string())
             .with_inner_size(size)
-            .with_visible(true);
+            .with_visible(false);
 
         let winit_window = event_loop
             .create_window(window_attr)
@@ -520,7 +515,7 @@ impl WindowPortsMethods for Window {
             xr_translation: Cell::new(Vector3D::zero()),
         });
         self.xr_window_poses.borrow_mut().push(pose.clone());
-        Box::new(XRWindow { winit_window, pose })
+        Rc::new(XRWindow { winit_window, pose })
     }
 
     fn winit_window(&self) -> Option<&winit::window::Window> {
@@ -565,10 +560,6 @@ impl WindowMethods for Window {
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
     }
-
-    fn rendering_context(&self) -> RenderingContext {
-        self.rendering_context.clone()
-    }
 }
 
 fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
@@ -611,6 +602,7 @@ impl webxr::glwindow::GlWindow for XRWindow {
         device: &mut Device,
         _context: &mut Context,
     ) -> webxr::glwindow::GlWindowRenderTarget {
+        self.winit_window.set_visible(true);
         let window_handle = self
             .winit_window
             .window_handle()
@@ -644,6 +636,10 @@ impl webxr::glwindow::GlWindow for XRWindow {
         } else {
             webxr::glwindow::GlWindowMode::Blit
         }
+    }
+
+    fn display_handle(&self) -> raw_window_handle::DisplayHandle {
+        self.winit_window.display_handle().unwrap()
     }
 }
 

@@ -189,7 +189,7 @@ fn matches_filters(device: &BluetoothDevice, filters: &BluetoothScanfilterSequen
         return false;
     }
 
-    return filters.iter().any(|f| matches_filter(device, f));
+    filters.iter().any(|f| matches_filter(device, f))
 }
 
 fn is_mock_adapter(adapter: &BluetoothAdapter) -> bool {

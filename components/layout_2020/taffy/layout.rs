@@ -22,7 +22,7 @@ use crate::formatting_contexts::{
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
-    SizeConstraint,
+    SizeConstraint, Sizes,
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -75,7 +75,10 @@ impl Iterator for ChildIter {
 }
 
 impl taffy::TraversePartialTree for TaffyContainerContext<'_> {
-    type ChildIter<'a> = ChildIter where Self: 'a;
+    type ChildIter<'a>
+        = ChildIter
+    where
+        Self: 'a;
 
     fn child_ids(&self, _node_id: taffy::NodeId) -> Self::ChildIter<'_> {
         ChildIter(0..self.source_child_nodes.len())
@@ -91,7 +94,10 @@ impl taffy::TraversePartialTree for TaffyContainerContext<'_> {
 }
 
 impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
-    type CoreContainerStyle<'a> = TaffyStyloStyle<&'a ComputedValues> where Self: 'a;
+    type CoreContainerStyle<'a>
+        = TaffyStyloStyle<&'a ComputedValues>
+    where
+        Self: 'a;
 
     fn get_core_container_style(&self, _node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
         TaffyStyloStyle(self.style)
@@ -155,18 +161,16 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                 style,
                                 independent_context
                                     .preferred_aspect_ratio(&pbm.padding_border_sums),
-                                LogicalVec2 {
-                                    inline: option_f32_to_size(content_box_known_dimensions.width),
-                                    block: option_f32_to_size(content_box_known_dimensions.height),
-                                },
-                                LogicalVec2 {
-                                    inline: Size::Numeric(Au::zero()),
-                                    block: Size::Numeric(Au::zero()),
-                                },
-                                LogicalVec2 {
-                                    inline: Size::Initial,
-                                    block: Size::Initial,
-                                },
+                                &Sizes::new(
+                                    option_f32_to_size(content_box_known_dimensions.height),
+                                    Size::Initial,
+                                    Size::Initial,
+                                ),
+                                &Sizes::new(
+                                    option_f32_to_size(content_box_known_dimensions.width),
+                                    Size::Initial,
+                                    Size::Initial,
+                                ),
                                 pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
                             )
                             .to_physical_size(self.style.writing_mode);
@@ -174,8 +178,11 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         // Create fragments if the RunMode if PerformLayout
                         // If the RunMode is ComputeSize then only the returned size will be used
                         if inputs.run_mode == RunMode::PerformLayout {
-                            child.child_fragments =
-                                replaced.make_fragments(style, content_box_size);
+                            child.child_fragments = replaced.make_fragments(
+                                self.layout_context,
+                                style,
+                                content_box_size,
+                            );
                         }
 
                         let computed_size = taffy::Size {
@@ -282,11 +289,13 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
 }
 
 impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
-    type GridContainerStyle<'a> = TaffyStyloStyle<&'a ComputedValues>
+    type GridContainerStyle<'a>
+        = TaffyStyloStyle<&'a ComputedValues>
     where
         Self: 'a;
 
-    type GridItemStyle<'a> = TaffyStyloStyle<AtomicRef<'a, ComputedValues>>
+    type GridItemStyle<'a>
+        = TaffyStyloStyle<AtomicRef<'a, ComputedValues>>
     where
         Self: 'a;
 

@@ -15,7 +15,7 @@ use style::Zero;
 use crate::context::LayoutContext;
 use crate::geom::Size;
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
-use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2, SizeConstraint};
+use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2};
 
 #[derive(PartialEq)]
 pub(crate) enum IntrinsicSizingMode {
@@ -109,18 +109,19 @@ impl From<Au> for ContentSizes {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn outer_inline(
     style: &ComputedValues,
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
+    is_table: bool,
+    establishes_containing_block: bool,
     get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
     get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
     let ContentBoxSizesAndPBM {
-        content_box_size,
-        content_min_box_size,
-        content_max_box_size,
+        content_box_sizes,
         pbm,
         mut depends_on_block_constraints,
     } = style.content_box_sizes_and_padding_border_margin(containing_block);
@@ -130,33 +131,40 @@ pub(crate) fn outer_inline(
         inline: pbm.padding_border_sums.inline + margin.inline_sum(),
     };
     let content_size = LazyCell::new(|| {
-        let available_block_size = containing_block
-            .size
-            .block
-            .non_auto()
-            .map(|v| Au::zero().max(v - pbm_sums.block));
-        let preferred_block_size = if content_box_size.block.is_initial() &&
-            auto_block_size_stretches_to_containing_block
-        {
-            depends_on_block_constraints = true;
-            available_block_size
-        } else {
-            content_box_size
+        let constraint_space = if establishes_containing_block {
+            let available_block_size = containing_block
+                .size
                 .block
-                .maybe_resolve_extrinsic(available_block_size)
+                .non_auto()
+                .map(|v| Au::zero().max(v - pbm_sums.block));
+            let automatic_size = if content_box_sizes.block.preferred.is_initial() &&
+                auto_block_size_stretches_to_containing_block
+            {
+                depends_on_block_constraints = true;
+                Size::Stretch
+            } else {
+                Size::FitContent
+            };
+            ConstraintSpace::new(
+                content_box_sizes.block.resolve_extrinsic(
+                    automatic_size,
+                    auto_minimum.block,
+                    available_block_size,
+                ),
+                style.writing_mode,
+                get_preferred_aspect_ratio(&pbm.padding_border_sums),
+            )
+        } else {
+            // This assumes that there is no preferred aspect ratio, or that there is no
+            // block size constraint to be transferred so the ratio is irrelevant.
+            // We only get into here for anonymous blocks, for which the assumption holds.
+            ConstraintSpace::new(
+                containing_block.size.block.into(),
+                containing_block.writing_mode,
+                None,
+            )
         };
-        let min_block_size = content_min_box_size
-            .block
-            .maybe_resolve_extrinsic(available_block_size)
-            .unwrap_or(auto_minimum.block);
-        let max_block_size = content_max_box_size
-            .block
-            .maybe_resolve_extrinsic(available_block_size);
-        get_content_size(&ConstraintSpace::new(
-            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
-            style.writing_mode,
-            get_preferred_aspect_ratio(&pbm.padding_border_sums),
-        ))
+        get_content_size(&constraint_space)
     });
     let resolve_non_initial = |inline_size| {
         Some(match inline_size {
@@ -180,14 +188,16 @@ pub(crate) fn outer_inline(
         })
     };
     let (preferred_min_content, preferred_max_content, preferred_depends_on_block_constraints) =
-        resolve_non_initial(content_box_size.inline)
+        resolve_non_initial(content_box_sizes.inline.preferred)
             .unwrap_or_else(|| resolve_non_initial(Size::FitContent).unwrap());
-    let (min_min_content, min_max_content, min_depends_on_block_constraints) = resolve_non_initial(
-        content_min_box_size.inline,
-    )
-    .unwrap_or((auto_minimum.inline, auto_minimum.inline, false));
+    let (mut min_min_content, mut min_max_content, mut min_depends_on_block_constraints) =
+        resolve_non_initial(content_box_sizes.inline.min).unwrap_or((
+            auto_minimum.inline,
+            auto_minimum.inline,
+            false,
+        ));
     let (max_min_content, max_max_content, max_depends_on_block_constraints) =
-        resolve_non_initial(content_max_box_size.inline)
+        resolve_non_initial(content_box_sizes.inline.max)
             .map(|(min_content, max_content, depends_on_block_constraints)| {
                 (
                     Some(min_content),
@@ -196,6 +206,15 @@ pub(crate) fn outer_inline(
                 )
             })
             .unwrap_or_default();
+
+    // Regardless of their sizing properties, tables are always forced to be at least
+    // as big as their min-content size, so floor the minimums.
+    if is_table {
+        min_min_content.max_assign(content_size.sizes.min_content);
+        min_max_content.max_assign(content_size.sizes.min_content);
+        min_depends_on_block_constraints |= content_size.depends_on_block_constraints;
+    }
+
     InlineContentSizesResult {
         sizes: ContentSizes {
             min_content: preferred_min_content

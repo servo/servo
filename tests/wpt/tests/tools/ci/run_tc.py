@@ -75,7 +75,6 @@ def get_parser():
     p = argparse.ArgumentParser()
     p.add_argument("--oom-killer",
                    action="store_true",
-                   default=False,
                    help="Run userspace OOM killer")
     p.add_argument("--hosts",
                    dest="hosts_file",
@@ -91,7 +90,6 @@ def get_parser():
                    default=[],
                    help="Browsers that will be used in the job")
     p.add_argument("--channel",
-                   default=None,
                    choices=["experimental", "canary", "dev", "nightly", "beta", "stable"],
                    help="Chrome browser channel")
     p.add_argument("--xvfb",

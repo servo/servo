@@ -481,7 +481,7 @@ impl WGPU {
                             wgpu_core::pipeline::ShaderModuleSource::Wgsl(Cow::Borrowed(&program));
                         let desc = ShaderModuleDescriptor {
                             label: label.map(|s| s.into()),
-                            shader_bound_checks: wgt::ShaderBoundChecks::default(),
+                            runtime_checks: wgt::ShaderRuntimeChecks::checked(),
                         };
                         let (_, error) = global.device_create_shader_module(
                             device_id,

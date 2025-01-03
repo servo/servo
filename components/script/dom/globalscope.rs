@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Index;
@@ -57,10 +57,10 @@ use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
     BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
-    PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId,
-    TimerSchedulerMsg, TimerSource,
+    PortMessageTask, ScriptMsg, ScriptToConstellationChan,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use timers::{BoxedTimerCallback, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu::{DeviceLostReason, WebGPUDevice};
@@ -73,6 +73,7 @@ use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
@@ -92,6 +93,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
@@ -114,9 +116,10 @@ use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
+use crate::dom::readablestream::ReadableStream;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
@@ -124,6 +127,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::messaging::MainThreadScriptChan;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
@@ -131,18 +135,10 @@ use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFe
 use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort, ThreadSafeJSContext,
 };
-use crate::script_thread::{MainThreadScriptChan, ScriptThread};
+use crate::script_thread::{with_script_thread, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::gamepad::GamepadTaskSource;
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::port_message::PortMessageQueue;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::timer::TimerTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
+use crate::task_manager::TaskManager;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
@@ -255,10 +251,6 @@ pub struct GlobalScope {
     #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
 
-    #[ignore_malloc_size_of = "channels are hard"]
-    #[no_trace]
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
-
     /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>
     in_error_reporting_mode: Cell<bool>,
 
@@ -269,10 +261,7 @@ pub struct GlobalScope {
 
     /// The mechanism by which time-outs and intervals are scheduled.
     /// <https://html.spec.whatwg.org/multipage/#timers>
-    timers: OneshotTimers,
-
-    /// Have timers been initialized?
-    init_timers: Cell<bool>,
+    timers: OnceCell<OneshotTimers>,
 
     /// The origin of the globalscope
     #[no_trace]
@@ -367,26 +356,41 @@ pub struct GlobalScope {
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
     unminified_js_dir: Option<String>,
+
+    /// The byte length queuing strategy size function that will be initialized once
+    /// `size` getter of `ByteLengthQueuingStrategy` is called.
+    ///
+    /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    byte_length_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+
+    /// The count queuing strategy size function that will be initialized once
+    /// `size` getter of `CountQueuingStrategy` is called.
+    ///
+    /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
 struct MessageListener {
     canceller: TaskCanceller,
-    task_source: PortMessageQueue,
+    task_source: TaskSource,
     context: Trusted<GlobalScope>,
 }
 
 /// A wrapper for broadcasts coming in over IPC, and the event-loop.
 struct BroadcastListener {
     canceller: TaskCanceller,
-    task_source: DOMManipulationTaskSource,
+    task_source: TaskSource,
     context: Trusted<GlobalScope>,
 }
 
 /// A wrapper between timer events coming in over IPC, and the event-loop.
-struct TimerListener {
+#[derive(Clone)]
+pub(crate) struct TimerListener {
     canceller: TaskCanceller,
-    task_source: TimerTaskSource,
+    task_source: TaskSource,
     context: Trusted<GlobalScope>,
 }
 
@@ -398,7 +402,7 @@ struct FileListener {
     /// - Some(Empty) => Some(Receiving) => None
     /// - Some(Empty) => None
     state: Option<FileListenerState>,
-    task_source: FileReadingTaskSource,
+    task_source: TaskSource,
     task_canceller: TaskCanceller,
 }
 
@@ -525,7 +529,7 @@ impl BroadcastListener {
 }
 
 impl TimerListener {
-    /// Handle a timer-event coming-in over IPC,
+    /// Handle a timer-event coming from the [`timers::TimerScheduler`]
     /// by queuing the appropriate task on the relevant event-loop.
     fn handle(&self, event: TimerEvent) {
         let context = self.context.clone();
@@ -549,6 +553,10 @@ impl TimerListener {
             }),
             &self.canceller,
         );
+    }
+
+    pub fn into_callback(self) -> BoxedTimerCallback {
+        Box::new(move |timer_event| self.handle(timer_event))
     }
 }
 
@@ -629,10 +637,10 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b, can_gc);
+            stream.enqueue_native(b);
         },
         Err(e) => {
             stream.error_native(e);
@@ -642,7 +650,7 @@ fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can
 
 /// Callback used to close streams as part of FileListener.
 fn stream_handle_eof(stream: &ReadableStream) {
-    stream.close_native();
+    stream.controller_close_native();
 }
 
 impl FileListener {
@@ -655,7 +663,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
                         });
 
                         let _ = self
@@ -679,7 +687,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(bytes_in));
                         });
 
                         let _ = self
@@ -745,7 +753,7 @@ impl FileListener {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(error_stream: move || {
                                     let stream = trusted_stream.root();
-                                    stream_handle_incoming(&stream, error, CanGc::note());
+                                    stream_handle_incoming(&stream, error);
                                 }),
                                 &self.task_canceller,
                             );
@@ -766,7 +774,6 @@ impl GlobalScope {
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
-        scheduler_chan: IpcSender<TimerSchedulerMsg>,
         resource_threads: ResourceThreads,
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
@@ -794,11 +801,9 @@ impl GlobalScope {
             mem_profiler_chan,
             time_profiler_chan,
             script_to_constellation_chan,
-            scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
             resource_threads,
-            timers: OneshotTimers::new(scheduler_chan),
-            init_timers: Default::default(),
+            timers: OnceCell::default(),
             origin,
             creation_url,
             permission_state_invocation_results: Default::default(),
@@ -820,6 +825,8 @@ impl GlobalScope {
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
             unminified_js_dir: unminify_js.then(|| unminified_path("unminified-js")),
+            byte_length_queuing_strategy_size_function: OnceCell::new(),
+            count_queuing_strategy_size_function: OnceCell::new(),
         }
     }
 
@@ -842,34 +849,21 @@ impl GlobalScope {
         false
     }
 
-    /// Setup the IPC-to-event-loop glue for timers to schedule themselves.
-    fn setup_timers(&self) {
-        if self.init_timers.get() {
-            return;
-        }
-        self.init_timers.set(true);
-
-        let (timer_ipc_chan, timer_ipc_port) = ipc::channel().unwrap();
-        self.timers.setup_scheduling(timer_ipc_chan);
-
-        // Setup route from IPC to task-queue for the timer-task-source.
-        let context = Trusted::new(self);
-        let (task_source, canceller) = (
-            self.timer_task_source(),
-            self.task_canceller(TaskSourceName::Timer),
-        );
-        let timer_listener = TimerListener {
-            context,
-            task_source,
-            canceller,
-        };
-        ROUTER.add_typed_route(
-            timer_ipc_port,
-            Box::new(move |message| {
-                let event = message.unwrap();
-                timer_listener.handle(event);
-            }),
-        );
+    fn timers(&self) -> &OneshotTimers {
+        self.timers.get_or_init(|| {
+            let (task_source, canceller) = (
+                self.task_manager().timer_task_source(),
+                self.task_canceller(TaskSourceName::Timer),
+            );
+            OneshotTimers::new(
+                self,
+                TimerListener {
+                    context: Trusted::new(self),
+                    task_source,
+                    canceller,
+                },
+            )
+        })
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
@@ -1100,7 +1094,7 @@ impl GlobalScope {
                 for task in message_buffer {
                     let port_id = *port_id;
                     let this = Trusted::new(self);
-                    let _ = self.port_message_queue().queue(
+                    let _ = self.task_manager().port_message_queue().queue(
                         task!(process_pending_port_messages: move || {
                             let target_global = this.root();
                             target_global.route_task_to_port(port_id, task, CanGc::note());
@@ -1154,7 +1148,7 @@ impl GlobalScope {
             if let Some(entangled_id) = entangled_port {
                 // Step 7
                 let this = Trusted::new(self);
-                let _ = self.port_message_queue().queue(
+                let _ = self.task_manager().port_message_queue().queue(
                     task!(post_message: move || {
                         let global = this.root();
                         // Note: we do this in a task, as this will ensure the global and constellation
@@ -1251,7 +1245,7 @@ impl GlobalScope {
                         // to fire the message event
                         let channel = Trusted::new(&*channel);
                         let global = Trusted::new(self);
-                        let _ = self.dom_manipulation_task_source().queue(
+                        let _ = self.task_manager().dom_manipulation_task_source().queue(
                             task!(process_pending_port_messages: move || {
                                 let destination = channel.root();
                                 let global = global.root();
@@ -1445,7 +1439,7 @@ impl GlobalScope {
                 ipc::channel().expect("ipc channel failure");
             let context = Trusted::new(self);
             let (task_source, canceller) = (
-                self.dom_manipulation_task_source(),
+                self.task_manager().dom_manipulation_task_source(),
                 self.task_canceller(TaskSourceName::DOMManipulation),
             );
             let listener = BroadcastListener {
@@ -1498,7 +1492,7 @@ impl GlobalScope {
                 ipc::channel().expect("ipc channel failure");
             let context = Trusted::new(self);
             let (task_source, canceller) = (
-                self.port_message_queue(),
+                self.task_manager().port_message_queue(),
                 self.task_canceller(TaskSourceName::PortMessage),
             );
             let listener = MessageListener {
@@ -1541,7 +1535,7 @@ impl GlobalScope {
                 // Queue a task to complete the transfer,
                 // unless the port is re-transferred in the current task.
                 let this = Trusted::new(self);
-                let _ = self.port_message_queue().queue(
+                let _ = self.task_manager().port_message_queue().queue(
                     task!(process_pending_port_messages: move || {
                         let target_global = this.root();
                         target_global.maybe_add_pending_ports();
@@ -2016,14 +2010,15 @@ impl GlobalScope {
 
         let stream = ReadableStream::new_with_external_underlying_source(
             self,
-            ExternalUnderlyingSource::Blob(size),
+            UnderlyingSourceType::Blob(size),
+            can_gc,
         );
 
         let recv = self.send_msg(file_id);
 
         let trusted_stream = Trusted::new(&*stream.clone());
         let task_canceller = self.task_canceller(TaskSourceName::FileReading);
-        let task_source = self.file_reading_task_source();
+        let task_source = self.task_manager().file_reading_task_source();
 
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
@@ -2048,7 +2043,7 @@ impl GlobalScope {
 
         let trusted_promise = TrustedPromise::new(promise);
         let task_canceller = self.task_canceller(TaskSourceName::FileReading);
-        let task_source = self.file_reading_task_source();
+        let task_source = self.task_manager().file_reading_task_source();
 
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Promise(
@@ -2250,7 +2245,10 @@ impl GlobalScope {
 
     #[allow(unsafe_code)]
     pub fn get_cx() -> SafeJSContext {
-        unsafe { SafeJSContext::from_ptr(Runtime::get()) }
+        let cx = Runtime::get()
+            .expect("Can't obtain context after runtime shutdown")
+            .as_ptr();
+        unsafe { SafeJSContext::from_ptr(cx) }
     }
 
     pub fn crypto(&self) -> DomRoot<Crypto> {
@@ -2357,10 +2355,6 @@ impl GlobalScope {
         self.script_to_constellation_chan().send(msg).unwrap();
     }
 
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
-        &self.scheduler_chan
-    }
-
     /// Get the `PipelineId` for this global scope.
     pub fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
@@ -2387,6 +2381,16 @@ impl GlobalScope {
             return worker.image_cache();
         }
         unreachable!();
+    }
+
+    /// Schedule a [`TimerEventRequest`] on this [`GlobalScope`]'s [`timers::TimerScheduler`].
+    /// Every Worker has its own scheduler, which handles events in the Worker event loop,
+    /// but `Window`s use a shared scheduler associated with their [`ScriptThread`].
+    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) {
+        match self.downcast::<WorkerGlobalScope>() {
+            Some(worker_global) => worker_global.timer_scheduler().schedule_timer(request),
+            _ => with_script_thread(|script_thread| script_thread.schedule_timer(request)),
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
@@ -2573,7 +2577,9 @@ impl GlobalScope {
     /// `ScriptChan` to send messages to the event loop of this global scope.
     pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         if let Some(window) = self.downcast::<Window>() {
-            return MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
+            return Box::new(
+                MainThreadScriptChan(window.main_thread_script_chan().clone()).clone(),
+            );
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.script_chan();
@@ -2581,72 +2587,13 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `TaskSource` to send messages to the gamepad task source of
-    /// this global scope.
-    /// <https://w3c.github.io/gamepad/#dfn-gamepad-task-source>
-    pub fn gamepad_task_source(&self) -> GamepadTaskSource {
+    /// The [`TaskManager`] used to schedule tasks for this [`GlobalScope`].
+    pub fn task_manager(&self) -> &TaskManager {
         if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().gamepad_task_source();
-        }
-        unreachable!();
-    }
-
-    /// `TaskSource` to send messages to the networking task source of
-    /// this global scope.
-    pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().networking_task_source();
+            return window.task_manager();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.networking_task_source();
-        }
-        unreachable!();
-    }
-
-    /// `TaskSource` to send messages to the port message queue of
-    /// this global scope.
-    pub fn port_message_queue(&self) -> PortMessageQueue {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().port_message_queue();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.port_message_queue();
-        }
-        unreachable!();
-    }
-
-    /// `TaskSource` to send messages to the timer queue of
-    /// this global scope.
-    pub fn timer_task_source(&self) -> TimerTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().timer_task_source();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.timer_task_source();
-        }
-        unreachable!();
-    }
-
-    /// `TaskSource` to send messages to the remote-event task source of
-    /// this global scope.
-    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().remote_event_task_source();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.remote_event_task_source();
-        }
-        unreachable!();
-    }
-
-    /// `TaskSource` to send messages to the websocket task source of
-    /// this global scope.
-    pub fn websocket_task_source(&self) -> WebsocketTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().websocket_task_source();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.websocket_task_source();
+            return worker.task_manager();
         }
         unreachable!();
     }
@@ -2769,13 +2716,12 @@ impl GlobalScope {
         callback: OneshotTimerCallback,
         duration: Duration,
     ) -> OneshotTimerHandle {
-        self.setup_timers();
-        self.timers
+        self.timers()
             .schedule_callback(callback, duration, self.timer_source())
     }
 
     pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        self.timers.unschedule_callback(handle);
+        self.timers().unschedule_callback(handle);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
@@ -2786,8 +2732,7 @@ impl GlobalScope {
         timeout: Duration,
         is_interval: IsInterval,
     ) -> i32 {
-        self.setup_timers();
-        self.timers.set_timeout_or_interval(
+        self.timers().set_timeout_or_interval(
             self,
             callback,
             arguments,
@@ -2798,7 +2743,7 @@ impl GlobalScope {
     }
 
     pub fn clear_timeout_or_interval(&self, handle: i32) {
-        self.timers.clear_timeout_or_interval(self, handle);
+        self.timers().clear_timeout_or_interval(self, handle);
     }
 
     pub fn queue_function_as_microtask(&self, callback: Rc<VoidFunction>) {
@@ -2830,7 +2775,8 @@ impl GlobalScope {
                     scripted_caller.line,
                     scripted_caller.col,
                 );
-                self.dom_manipulation_task_source()
+                self.task_manager()
+                    .dom_manipulation_task_source()
                     .queue(task, self)
                     .unwrap();
             }
@@ -2905,23 +2851,23 @@ impl GlobalScope {
     }
 
     pub fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
-        self.timers.fire_timer(handle, self, can_gc);
+        self.timers().fire_timer(handle, self, can_gc);
     }
 
     pub fn resume(&self) {
-        self.timers.resume();
+        self.timers().resume();
     }
 
     pub fn suspend(&self) {
-        self.timers.suspend();
+        self.timers().suspend();
     }
 
     pub fn slow_down_timers(&self) {
-        self.timers.slow_down();
+        self.timers().slow_down();
     }
 
     pub fn speed_up_timers(&self) {
-        self.timers.speed_up();
+        self.timers().speed_up();
     }
 
     fn timer_source(&self) -> TimerSource {
@@ -3012,28 +2958,6 @@ impl GlobalScope {
         unreachable!();
     }
 
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().dom_manipulation_task_source();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.dom_manipulation_task_source();
-        }
-        unreachable!();
-    }
-
-    /// Channel to send messages to the file reading task source of
-    /// this of this global scope.
-    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().file_reading_task_source();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.file_reading_task_source();
-        }
-        unreachable!();
-    }
-
     pub fn runtime_handle(&self) -> ParentRuntime {
         if self.is::<Window>() {
             ScriptThread::runtime_handle()
@@ -3049,14 +2973,13 @@ impl GlobalScope {
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
     #[allow(unsafe_code)]
     pub fn current() -> Option<DomRoot<Self>> {
+        let cx = Runtime::get()?;
         unsafe {
-            let cx = Runtime::get();
-            assert!(!cx.is_null());
-            let global = CurrentGlobalOrNull(cx);
+            let global = CurrentGlobalOrNull(cx.as_ptr());
             if global.is_null() {
                 None
             } else {
-                Some(global_scope_from_global(global, cx))
+                Some(global_scope_from_global(global, cx.as_ptr()))
             }
         }
     }
@@ -3081,18 +3004,6 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.Performance();
-        }
-        unreachable!();
-    }
-
-    /// Channel to send messages to the performance timeline task source
-    /// of this global scope.
-    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.task_manager().performance_timeline_task_source();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.performance_timeline_task_source();
         }
         unreachable!();
     }
@@ -3250,7 +3161,8 @@ impl GlobalScope {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
         let this = Trusted::new(self);
-        self.gamepad_task_source()
+        self.task_manager()
+            .gamepad_task_source()
             .queue_with_canceller(
                 task!(gamepad_connected: move || {
                     let global = this.root();
@@ -3280,7 +3192,8 @@ impl GlobalScope {
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     pub fn handle_gamepad_disconnect(&self, index: usize) {
         let this = Trusted::new(self);
-        self.gamepad_task_source()
+        self.task_manager()
+            .gamepad_task_source()
             .queue_with_canceller(
                 task!(gamepad_disconnected: move || {
                     let global = this.root();
@@ -3304,7 +3217,8 @@ impl GlobalScope {
         let this = Trusted::new(self);
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
-        self.gamepad_task_source()
+        self.task_manager()
+            .gamepad_task_source()
             .queue_with_canceller(
                 task!(update_gamepad_state: move || {
                     let global = this.root();
@@ -3416,7 +3330,7 @@ impl GlobalScope {
         &self,
         request_builder: RequestBuilder,
         context: Arc<Mutex<Listener>>,
-        task_source: NetworkingTaskSource,
+        task_source: TaskSource,
         cancellation_sender: Option<ipc::IpcReceiver<()>>,
     ) {
         let canceller = Some(self.task_canceller(TaskSourceName::Networking));
@@ -3446,6 +3360,36 @@ impl GlobalScope {
 
     pub fn unminified_js_dir(&self) -> Option<String> {
         self.unminified_js_dir.clone()
+    }
+
+    pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: Rc<Function>) {
+        if self
+            .byte_length_queuing_strategy_size_function
+            .set(function)
+            .is_err()
+        {
+            warn!("byte length queuing strategy size function is set twice.");
+        };
+    }
+
+    pub(crate) fn get_byte_length_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+        self.byte_length_queuing_strategy_size_function
+            .get()
+            .cloned()
+    }
+
+    pub(crate) fn set_count_queuing_strategy_size(&self, function: Rc<Function>) {
+        if self
+            .count_queuing_strategy_size_function
+            .set(function)
+            .is_err()
+        {
+            warn!("count queuing strategy size function is set twice.");
+        };
+    }
+
+    pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+        self.count_queuing_strategy_size_function.get().cloned()
     }
 }
 

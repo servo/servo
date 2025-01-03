@@ -15,7 +15,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 
 use app_units::Au;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::PipelineId;
 use base::Epoch;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
@@ -47,7 +47,7 @@ use layout::traversal::{
 };
 use layout::wrapper::ThreadSafeLayoutNodeHelpers;
 use layout::{layout_debug, layout_debug_scope, parallel, sequential};
-use log::{debug, error, trace, warn};
+use log::{debug, error, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -61,12 +61,12 @@ use profile_traits::{path, time_profile};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, Reflow,
-    ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
+    IFrameSizes, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
+    OffsetParentResponse, Reflow, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg,
-    PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress, WindowSizeData, WindowSizeType,
+    ConstellationControlMsg, DrawAPaintImageResult, PaintWorkletError, Painter, ScrollState,
+    UntrustedNodeAddress, WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -130,9 +130,6 @@ pub struct LayoutThread {
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
 
-    /// The channel on which messages can be sent to the constellation.
-    constellation_chan: IpcSender<ConstellationMsg>,
-
     /// The channel on which messages can be sent to the script thread.
     script_chan: IpcSender<ConstellationControlMsg>,
 
@@ -186,7 +183,7 @@ pub struct LayoutThread {
     paint_time_metrics: PaintTimeMetrics,
 
     /// The sizes of all iframes encountered during the last layout operation.
-    last_iframe_sizes: RefCell<FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
+    last_iframe_sizes: RefCell<IFrameSizes>,
 
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
@@ -204,7 +201,6 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.id,
             config.url,
             config.is_iframe,
-            config.constellation_chan,
             config.script_chan,
             config.image_cache,
             config.resource_threads,
@@ -304,16 +300,6 @@ impl Layout for LayoutThread {
     ) -> String {
         let node = unsafe { ServoLayoutNode::new(&node) };
         get_the_text_steps(node, &self.indexable_text.borrow())
-    }
-
-    fn query_inner_window_dimension(
-        &self,
-        browsing_context_id: BrowsingContextId,
-    ) -> Option<Size2D<f32, CSSPixel>> {
-        self.last_iframe_sizes
-            .borrow()
-            .get(&browsing_context_id)
-            .cloned()
     }
 
     fn query_nodes_from_point(
@@ -529,7 +515,6 @@ impl LayoutThread {
         id: PipelineId,
         url: ServoUrl,
         is_iframe: bool,
-        constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
@@ -571,7 +556,6 @@ impl LayoutThread {
             url,
             is_iframe,
             script_chan,
-            constellation_chan,
             time_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache,
@@ -755,48 +739,6 @@ impl LayoutThread {
         );
     }
 
-    /// Update the recorded iframe sizes of the contents of layout and when these sizes changes,
-    /// send a message to the constellation informing it of the new sizes.
-    fn update_iframe_sizes(
-        &self,
-        new_iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
-    ) {
-        let old_iframe_sizes =
-            std::mem::replace(&mut *self.last_iframe_sizes.borrow_mut(), new_iframe_sizes);
-
-        if self.last_iframe_sizes.borrow().is_empty() {
-            return;
-        }
-
-        let size_messages: Vec<_> = self
-            .last_iframe_sizes
-            .borrow()
-            .iter()
-            .filter_map(|(browsing_context_id, size)| {
-                match old_iframe_sizes.get(browsing_context_id) {
-                    Some(old_size) if old_size != size => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: *size,
-                        type_: WindowSizeType::Resize,
-                    }),
-                    None => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: *size,
-                        type_: WindowSizeType::Initial,
-                    }),
-                    _ => None,
-                }
-            })
-            .collect();
-
-        if !size_messages.is_empty() {
-            let msg = ConstellationMsg::IFrameSizes(size_messages);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Layout resize to constellation failed ({}).", e);
-            }
-        }
-    }
-
     /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
     /// reflow type need it, builds the display list.
     fn compute_abs_pos_and_build_display_list(
@@ -850,8 +792,8 @@ impl LayoutThread {
                     build_state.root_stacking_context.overflow = origin;
 
                     // We will not use build_state.iframe_sizes again, so it's safe to move it.
-                    let iframe_sizes = std::mem::take(&mut build_state.iframe_sizes);
-                    self.update_iframe_sizes(iframe_sizes);
+                    *self.last_iframe_sizes.borrow_mut() =
+                        std::mem::take(&mut build_state.iframe_sizes);
 
                     *self.indexable_text.borrow_mut() =
                         std::mem::take(&mut build_state.indexable_text);
@@ -1130,7 +1072,10 @@ impl LayoutThread {
         }
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock().unwrap());
-        Some(ReflowResult { pending_images })
+        Some(ReflowResult {
+            pending_images,
+            iframe_sizes: self.last_iframe_sizes.borrow().clone(),
+        })
     }
 
     fn update_scroll_node_state(&self, state: &ScrollState) {

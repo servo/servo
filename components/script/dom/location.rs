@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use script_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
@@ -69,7 +69,7 @@ impl Location {
     pub fn navigate(
         &self,
         url: ServoUrl,
-        replacement_flag: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         navigation_type: NavigationType,
         can_gc: CanGc,
     ) {
@@ -131,7 +131,7 @@ impl Location {
             None, // Top navigation doesn't inherit secure context
         );
         self.window
-            .load_url(replacement_flag, reload_triggered, load_data, can_gc);
+            .load_url(history_handling, reload_triggered, load_data, can_gc);
     }
 
     /// Get if this `Location`'s [relevant `Document`][1] is non-null.
@@ -233,7 +233,7 @@ impl Location {
                 // Step 6: Location-object navigate to copyURL.
                 self.navigate(
                     copy_url,
-                    HistoryEntryReplacement::Disabled,
+                    NavigationHistoryBehavior::Push,
                     NavigationType::Normal,
                     can_gc,
                 );
@@ -254,7 +254,7 @@ impl Location {
         let url = self.window.get_url();
         self.navigate(
             url,
-            HistoryEntryReplacement::Enabled,
+            NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByConstellation,
             can_gc,
         );
@@ -290,7 +290,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         let url = self.get_url_if_same_origin()?;
         self.navigate(
             url,
-            HistoryEntryReplacement::Enabled,
+            NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByScript,
             can_gc,
         );
@@ -312,7 +312,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             // the replacement flag set.
             self.navigate(
                 url,
-                HistoryEntryReplacement::Enabled,
+                NavigationHistoryBehavior::Replace,
                 NavigationType::Normal,
                 can_gc,
             );
@@ -424,7 +424,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             // Step 3: Location-object navigate to the resulting URL record.
             self.navigate(
                 url,
-                HistoryEntryReplacement::Disabled,
+                NavigationHistoryBehavior::Push,
                 NavigationType::Normal,
                 can_gc,
             );

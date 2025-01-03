@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::column style change triggers relayout</title>
+<link rel="help" href="https://www.w3.org/TR/css-multicol-2/#column-pseudo">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+#container {
+  scroll-snap-type: both mandatory;
+  overflow: hidden;
+  columns: 1;
+  gap: 0;
+  column-fill: auto;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.snapColumns::column {
+  scroll-snap-align: start;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container">
+  <div style="height:100px;"></div>
+  <div style="height:100px; background:green;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  container.className = "snapColumns";
+  container.scrollLeft = 51;
+</script>

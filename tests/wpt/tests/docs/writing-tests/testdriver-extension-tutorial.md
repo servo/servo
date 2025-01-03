@@ -90,8 +90,16 @@ We will leave this unimplemented and override it in another file. Lets do that n
 
 #### WebDriver BiDi
 
-For commands using WebDriver BiDi, add the methods to `window.test_driver.bidi`. Parameters are passed as a single object `params`.
-<!-- TODO: add an example link once a first bidi command (probably `test_driver.bidi.permissions.set_permission`) is implemented.-->
+For commands using WebDriver BiDi, add the methods to `test_driver.bidi`. Parameters are passed as a single object `params`. For example [`test_driver.bidi.permissions.set_permission`](https://github.com/web-platform-tests/wpt/blob/5ec8ba6d68f27d49a056cbf940e3bc9a8324c538/resources/testdriver.js#L183).
+
+Before calling `test_driver_internal` method, assert the `bidi` testdriver feature is enabled.
+```javascript
+set_permission: function (params) {
+    assertBidiIsEnabled();
+    return window.test_driver_internal.bidi.permissions.set_permission(
+        params);
+}
+```
 
 ### [tools/wptrunner/wptrunner/testdriver-extra.js](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/testdriver-extra.js)
 

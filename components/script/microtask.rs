@@ -18,6 +18,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::defaultteereadrequest::DefaultTeeReadRequestMicrotask;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlimageelement::ImageElementMicrotask;
 use crate::dom::htmlmediaelement::MediaElementMicrotask;
@@ -41,6 +42,7 @@ pub enum Microtask {
     User(UserMicrotask),
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
+    ReadableStreamTeeReadRequest(DefaultTeeReadRequestMicrotask),
     CustomElementReaction,
     NotifyMutationObservers,
 }
@@ -139,6 +141,9 @@ impl MicrotaskQueue {
                     },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();
+                    },
+                    Microtask::ReadableStreamTeeReadRequest(ref task) => {
+                        task.microtask_chunk_steps(can_gc)
                     },
                 }
             }

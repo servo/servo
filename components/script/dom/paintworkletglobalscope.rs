@@ -86,7 +86,7 @@ pub struct PaintWorkletGlobalScope {
 
 impl PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         runtime: &Runtime,
         pipeline_id: PipelineId,
         base_url: ServoUrl,

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Scroll marker group with out-of-flow children</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="help" href="https://github.com/flackr/carousel/issues/31">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #scroller {
+    overflow: hidden;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    contain: none;
+    /* It should be impossible to disable layout containment for scroll marker groups, so this declaration should have no effect. */
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+
+  #scroller>*::scroll-marker {
+    display: block;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 100px;
+    height: 100px;
+    content: "";
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroller">
+  <div></div>
+</div>

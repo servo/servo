@@ -164,6 +164,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             None,
             None,
             Default::default(),
+            false,
             can_gc,
         );
 

@@ -1,6 +1,4 @@
 {
-  "name": "webrtc-testing-tools",
-  "version": "1.0.0",
   "description": "Tools for WebRTC testing",
   "scripts": {
     "lint": "eslint -c .eslintrc.js ../*.html ../*.js"

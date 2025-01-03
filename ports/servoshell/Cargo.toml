@@ -23,8 +23,6 @@ bench = false
 # must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
 [build-dependencies]
 vergen-git2 = { version = "1.0.2", features = ["build"] }
-# Android and OpenHarmony
-gl_generator = "0.14"
 # MacOS only
 cc = "1.2"
 
@@ -83,7 +81,7 @@ libloading = "0.8"
 backtrace = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
-env_filter = "0.1.2"
+env_filter = "0.1.3"
 # force inprocess, until libc-rs 0.2.156 is released containing
 # https://github.com/rust-lang/libc/commit/9e248e212c5602cb4e98676e4c21ea0382663a12
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
@@ -109,6 +107,9 @@ arboard = { version = "3" }
 egui = { version = "0.30.0" }
 egui_glow = { version = "0.30.0", features = ["winit"] }
 egui-winit = { version = "0.30.0", default-features = false, features = ["clipboard", "wayland"] }
+egui = { version = "0.30.0" }
+egui_glow = { version = "0.30.0", features = ["winit"] }
+egui-winit = { version = "0.30.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
@@ -124,8 +125,7 @@ tinyfiledialogs = "3.0"
 eframe = "0.30.0"
 egui-file-dialog = "0.8.0"
 webxr = { workspace = true, features = ["ipc", "glwindow", "headless"] }
-winit = "0.30.5"
-rand = "0.8.4"
+winit = "0.30.7"
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]
 image = { workspace = true }

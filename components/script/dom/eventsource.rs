@@ -45,7 +45,7 @@ use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
 
 const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
@@ -113,7 +113,7 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        let _ = global.task_manager().remote_event_task_source().queue(
             task!(announce_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -146,7 +146,7 @@ impl EventSourceContext {
         let action_sender = self.action_sender.clone();
         let global = event_source.global();
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        let _ = global.task_manager().remote_event_task_source().queue(
             task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();
 
@@ -259,7 +259,7 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         let event = Trusted::new(&*event);
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        let _ = global.task_manager().remote_event_task_source().queue(
             task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -500,7 +500,7 @@ impl EventSource {
         let global = self.global();
         let event_source = Trusted::new(self);
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        let _ = global.task_manager().remote_event_task_source().queue(
             task!(fail_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -605,7 +605,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
-            task_source: global.networking_task_source(),
+            task_source: global.task_manager().networking_task_source(),
             canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
         ROUTER.add_typed_route(

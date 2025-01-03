@@ -123,6 +123,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         referrer: request.referrer.clone(),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
+        target_browsing_context_id: request.target_browsing_context_id,
         redirect_mode: request.redirect_mode,
         integrity_metadata: request.integrity_metadata.clone(),
         url_list: vec![],
@@ -195,7 +196,7 @@ pub fn Fetch(
     global.fetch(
         request_init,
         fetch_context,
-        global.networking_task_source(),
+        global.task_manager().networking_task_source(),
         None,
     );
 
@@ -279,7 +280,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
         let response = self.response_object.root();
-        response.stream_chunk(chunk, CanGc::note());
+        response.stream_chunk(chunk);
     }
 
     fn process_response_eof(

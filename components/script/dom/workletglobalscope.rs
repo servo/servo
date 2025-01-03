@@ -15,7 +15,7 @@ use js::rust::Runtime;
 use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
-use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan, TimerSchedulerMsg};
+use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan};
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
@@ -27,9 +27,9 @@ use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
+use crate::messaging::MainThreadScriptMsg;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::script_thread::MainThreadScriptMsg;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -49,7 +49,7 @@ pub struct WorkletGlobalScope {
 
 impl WorkletGlobalScope {
     /// Create a new heap-allocated `WorkletGlobalScope`.
-    pub fn new(
+    pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
         runtime: &Runtime,
         pipeline_id: PipelineId,
@@ -76,7 +76,7 @@ impl WorkletGlobalScope {
     }
 
     /// Create a new stack-allocated `WorkletGlobalScope`.
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         executor: WorkletExecutor,
@@ -93,7 +93,6 @@ impl WorkletGlobalScope {
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
                 script_to_constellation_chan,
-                init.scheduler_chan.clone(),
                 init.resource_threads.clone(),
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 None,
@@ -173,7 +172,7 @@ impl WorkletGlobalScope {
 
 /// Resources required by workletglobalscopes
 #[derive(Clone)]
-pub struct WorkletGlobalScopeInit {
+pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to the main script thread
     pub to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Channel to a resource thread
@@ -186,8 +185,6 @@ pub struct WorkletGlobalScopeInit {
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
     pub to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
-    /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The image cache
     pub image_cache: Arc<dyn ImageCache>,
     /// True if in headless mode

@@ -29,7 +29,6 @@ use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::CoreResourceThreadPool;
-use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
@@ -47,8 +46,8 @@ use uuid::Uuid;
 
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use crate::{
-    create_embedder_proxy, fetch, fetch_with_context, fetch_with_cors_cache, make_server,
-    make_ssl_server, new_fetch_context, DEFAULT_USER_AGENT,
+    create_embedder_proxy, create_http_state, fetch, fetch_with_context, fetch_with_cors_cache,
+    make_server, make_ssl_server, new_fetch_context, DEFAULT_USER_AGENT,
 };
 
 // TODO write a struct that impls Handler for storing test values
@@ -669,7 +668,7 @@ fn test_fetch_with_hsts() {
     let (server, url) = make_ssl_server(handler);
 
     let mut context = FetchContext {
-        state: Arc::new(HttpState::default()),
+        state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -724,7 +723,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
     url.as_mut_url().set_scheme("https").unwrap();
 
     let mut context = FetchContext {
-        state: Arc::new(HttpState::default()),
+        state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -781,7 +780,7 @@ fn test_fetch_self_signed() {
     url.as_mut_url().set_scheme("https").unwrap();
 
     let mut context = FetchContext {
-        state: Arc::new(HttpState::default()),
+        state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(

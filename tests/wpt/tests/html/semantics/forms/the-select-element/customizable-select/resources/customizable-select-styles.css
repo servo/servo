@@ -51,12 +51,12 @@
 
 .customizable-select-button {
   color: inherit;
-  background-color: color-mix(in lab, currentColor 10%, transparent);
+  background-color: transparent;
   appearance: none;
   padding-block: 0.25em;
   padding-inline: 0.5em;
   border: 1px solid currentColor;
-  border-radius: 0.25em;
+  border-radius: 0.5em;
   cursor: default;
   text-align: inherit;
   /* TODO(crbug.com/41483940): Make display match the UA stylesheet. */
@@ -69,6 +69,14 @@
    * https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
   min-inline-size: 24px;
   min-block-size: max(24px, 1lh);
+}
+
+.customizable-select-button.hover {
+  background-color: color-mix(in lab, currentColor 10%, transparent);
+}
+
+.customizable-select-button.active {
+  background-color: color-mix(in lab, currentColor 20%, transparent);
 }
 
 .customizable-select-button::after {

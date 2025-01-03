@@ -49,9 +49,10 @@ use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
 };
 use crate::fetch::load_whole_resource;
+use crate::messaging::MainThreadScriptMsg;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, CommonScriptMsg, Runtime, ScriptThreadEventCategory};
-use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
+use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
@@ -277,7 +278,7 @@ impl Drop for WorkletThreadPool {
 impl WorkletThreadPool {
     /// Create a new thread pool and spawn the threads.
     /// When the thread pool is dropped, the threads will be asked to quit.
-    pub fn spawn(global_init: WorkletGlobalScopeInit) -> WorkletThreadPool {
+    pub(crate) fn spawn(global_init: WorkletGlobalScopeInit) -> WorkletThreadPool {
         let primary_role = WorkletThreadRole::new(false, false);
         let hot_backup_role = WorkletThreadRole::new(true, false);
         let cold_backup_role = WorkletThreadRole::new(false, true);

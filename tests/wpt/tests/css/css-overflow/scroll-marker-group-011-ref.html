@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<style>
+  #scroller {
+    height: 100px;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 100px;
+    background: gray;
+  }
+
+  #scroller>div::scroll-marker {
+    display: block;
+    width: 25px;
+    height: 100%;
+    content: "";
+    background: yellow;
+  }
+</style>
+<p>There should be a yellow square inside a gray box below, and below that, a
+  fieldset with a legend.</p>
+<div style="height:200px; background:gray;">
+  <div style="width:100px; height:100px; background:yellow;"></div>
+</div>
+<fieldset id="scroller">
+  <legend>Legend</legend>
+  first
+</fieldset>

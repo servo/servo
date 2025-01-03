@@ -6,7 +6,7 @@
 
 use std::f32::INFINITY;
 use std::ops::Range;
-use std::panic::{self, PanicInfo};
+use std::panic::{self, PanicHookInfo};
 use std::sync::{Mutex, MutexGuard};
 use std::{thread, u32};
 
@@ -28,7 +28,7 @@ static PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
 struct PanicMsgSuppressor<'a> {
     #[allow(dead_code)]
     mutex_guard: MutexGuard<'a, ()>,
-    prev_hook: Option<Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>>,
+    prev_hook: Option<Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send>>,
 }
 
 impl<'a> PanicMsgSuppressor<'a> {

@@ -15,7 +15,7 @@ use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use script_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use servo_atoms::Atom;
 use servo_rand::random;
 use style::attr::AttrValue;
@@ -84,7 +84,6 @@ use crate::dom::window::Window;
 use crate::links::{get_element_target, LinkRelations};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -483,9 +482,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         );
 
         // Step 6
-        return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+        Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
             element_node.downcast::<Element>().unwrap(),
-        )));
+        )))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
@@ -1030,7 +1029,7 @@ impl HTMLFormElement {
             window
                 .root()
                 .load_url(
-                    HistoryEntryReplacement::Disabled,
+                    NavigationHistoryBehavior::Push,
                     false,
                     load_data,
                     CanGc::note(),

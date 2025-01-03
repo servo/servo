@@ -77,14 +77,15 @@ jobs:
             }
 
             return try_string;
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             python/servo/try_parser.py
+            .github/actions/setup-python
+            .python-version
           sparse-checkout-cone-mode: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Parse Labels
         if: ${{ steps.try_string.outputs.result }}
         id: configuration

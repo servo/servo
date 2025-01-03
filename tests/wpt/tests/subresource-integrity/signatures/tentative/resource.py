@@ -34,5 +34,10 @@ def main(request, response):
   response.headers.set(b'content-type',
                        request.GET.first(b'type', b'text/plain'))
 
+  # Reflect the `accept-signature` header from the request to the response.
+  acceptSigs = request.headers.get(b'accept-signature', b'')
+  response.headers.set(b'accept-signature', acceptSigs)
+  response.headers.set(b'access-control-expose-headers', b'accept-signature')
+
   response.status_code = 200
   response.content = request.GET.first(b'body', '')

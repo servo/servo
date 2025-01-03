@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>::column::scroll-marker on multicol fieldset</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-2/#column-pseudo">
+<link rel="help" href="https://html.spec.whatwg.org/#anonymous-fieldset-content-box">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #container {
+    overflow: hidden;
+    columns: 3;
+    column-fill: auto;
+    gap: 0;
+    height: 50px;
+    margin: 0;
+    border: 15px solid green;
+    padding: 0;
+    scroll-marker-group: before;
+    background: red;
+  }
+  #container::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    background: red;
+  }
+  #container::column::scroll-marker {
+    display: flex;
+    width: 20px;
+    height: 100%;
+    background: green;
+    content: "";
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <fieldset id="container">
+    <legend style="width:50px; height:15px; background:green;"></legend>
+    <div style="height:210px; background:green;"></div>
+  </fieldset>
+</div>

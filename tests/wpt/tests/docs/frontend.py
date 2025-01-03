@@ -60,8 +60,9 @@ def unlink_source_dirs(created):
 def get_parser():
     p = argparse.ArgumentParser()
     p.add_argument("--type", default="html", help="Output type (default: html)")
-    p.add_argument("--docker", action="store_true", help="Run inside the docs docker image")
-    p.add_argument("--serve", default=None, nargs="?", const=8000,
+    p.add_argument("--docker", action="store_true",
+                   help="Run inside the docs docker image")
+    p.add_argument("--serve", nargs="?", const=8000,
                    type=int, help="Run a server on the specified port (default: 8000)")
     return p
 

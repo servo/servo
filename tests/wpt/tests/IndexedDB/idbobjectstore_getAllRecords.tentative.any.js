@@ -4,6 +4,7 @@
 // META: script=resources/support.js
 // META: script=resources/support-get-all.js
 // META: script=resources/support-promises.js
+// META: timeout=long
 
 'use strict';
 
@@ -115,18 +116,22 @@ object_store_get_all_records_test(
     },
     'Direction, query and count');
 
-object_store_get_all_test((test, connection) => {
-  const transaction = connection.transaction('out-of-line', 'readonly');
-  const store = transaction.objectStore('out-of-line');
-  const request = store.getAllRecords();
-  transaction.commit();
-  transaction.oncomplete =
-      test.unreached_func('transaction completed before request succeeded');
-  request.onerror = test.unreached_func('getAllRecords request must  succeed');
-  request.onsuccess = test.step_func((event) => {
-    const actualResults = event.target.result;
-    const expectedResults = expectedObjectStoreRecords['out-of-line'];
-    assert_records_equals(actualResults, expectedResults);
-    test.done();
-  });
-}, 'Get all records with transaction.commit()');
+object_store_get_all_test_setup(
+    /*storeName=*/ 'out-of-line', (test, connection, expectedRecords) => {
+      const transaction = connection.transaction('out-of-line', 'readonly');
+      const store = transaction.objectStore('out-of-line');
+      const request = store.getAllRecords();
+      transaction.commit();
+
+      transaction.oncomplete =
+          test.unreached_func('transaction completed before request succeeded');
+
+      request.onerror =
+          test.unreached_func('getAllRecords request must  succeed');
+
+      request.onsuccess = test.step_func((event) => {
+        const actualResults = event.target.result;
+        assert_records_equals(actualResults, expectedRecords);
+        test.done();
+      });
+    }, 'Get all records with transaction.commit()');

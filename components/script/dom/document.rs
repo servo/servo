@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -15,7 +15,6 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::BrowsingContextId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
 use content_security_policy::{self as csp, CspList};
@@ -106,6 +105,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
+use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
@@ -184,13 +184,15 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::fetch::FetchCanceller;
+use crate::iframe_collection::IFrameCollection;
+use crate::messaging::MainThreadScriptMsg;
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
-use crate::script_thread::{with_script_thread, MainThreadScriptMsg, ScriptThread};
+use crate::script_thread::{with_script_thread, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
@@ -254,6 +256,9 @@ pub enum DeclarativeRefresh {
     },
     CreatedAfterLoad,
 }
+#[cfg(feature = "webgpu")]
+pub(crate) type WebGPUContextsMap =
+    Rc<RefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>>;
 
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
@@ -290,6 +295,8 @@ pub struct Document {
     scripts: MutNullableDom<HTMLCollection>,
     anchors: MutNullableDom<HTMLCollection>,
     applets: MutNullableDom<HTMLCollection>,
+    /// Information about the `<iframes>` in this [`Document`].
+    iframes: RefCell<IFrameCollection>,
     /// Lock use for style attributes and author-origin stylesheet objects in this document.
     /// Can be acquired once for accessing many objects.
     #[no_trace]
@@ -450,9 +457,10 @@ pub struct Document {
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
-    /// List of all WebGPU context IDs that need flushing.
+    /// List of all WebGPU contexts.
     #[cfg(feature = "webgpu")]
-    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
+    #[ignore_malloc_size_of = "Rc are hard"]
+    webgpu_contexts: WebGPUContextsMap,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -490,55 +498,8 @@ pub struct Document {
     visibility_state: Cell<DocumentVisibilityState>,
     /// <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>
     status_code: Option<u16>,
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct ImagesFilter;
-impl CollectionFilter for ImagesFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLImageElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct EmbedsFilter;
-impl CollectionFilter for EmbedsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLEmbedElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct LinksFilter;
-impl CollectionFilter for LinksFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        (elem.is::<HTMLAnchorElement>() || elem.is::<HTMLAreaElement>()) &&
-            elem.has_attribute(&local_name!("href"))
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct FormsFilter;
-impl CollectionFilter for FormsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLFormElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct ScriptsFilter;
-impl CollectionFilter for ScriptsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLScriptElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct AnchorsFilter;
-impl CollectionFilter for AnchorsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLAnchorElement>() && elem.has_attribute(&local_name!("href"))
-    }
+    /// <https://html.spec.whatwg.org/multipage/#is-initial-about:blank>
+    is_initial_about_blank: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -2295,9 +2256,12 @@ impl Document {
         }
         // Step 9
         if !recursive_flag {
-            for iframe in self.iter_iframes() {
+            // `prompt_to_unload` might cause futher modifications to the DOM so collecting here prevents
+            // a double borrow if the `IFrameCollection` needs to be validated again.
+            let iframes: Vec<_> = self.iframes().iter().collect();
+            for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
-                let document = document_from_node(&*iframe);
+                let document = document_from_node(&**iframe);
                 can_unload = document.prompt_to_unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
@@ -2364,9 +2328,12 @@ impl Document {
 
         // Step 13
         if !recursive_flag {
-            for iframe in self.iter_iframes() {
+            // `unload` might cause futher modifications to the DOM so collecting here prevents
+            // a double borrow if the `IFrameCollection` needs to be validated again.
+            let iframes: Vec<_> = self.iframes().iter().collect();
+            for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
-                let document = document_from_node(&*iframe);
+                let document = document_from_node(&**iframe);
                 document.unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
@@ -2721,7 +2688,7 @@ impl Document {
         self.loader.borrow_mut().inhibit_events();
 
         // Step 1.
-        for iframe in self.iter_iframes() {
+        for iframe in self.iframes().iter() {
             if let Some(document) = iframe.GetContentDocument() {
                 // TODO: abort the active documents of every child browsing context.
                 document.abort(can_gc);
@@ -2770,20 +2737,18 @@ impl Document {
         self.current_parser.get()
     }
 
-    /// Iterate over all iframes in the document.
-    pub fn iter_iframes(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> {
-        self.upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-            .filter_map(DomRoot::downcast::<HTMLIFrameElement>)
+    /// A reference to the [`IFrameCollection`] of this [`Document`], holding information about
+    /// `<iframe>`s found within it.
+    pub(crate) fn iframes(&self) -> Ref<IFrameCollection> {
+        self.iframes.borrow_mut().validate(self);
+        self.iframes.borrow()
     }
 
-    /// Find an iframe element in the document.
-    pub fn find_iframe(
-        &self,
-        browsing_context_id: BrowsingContextId,
-    ) -> Option<DomRoot<HTMLIFrameElement>> {
-        self.iter_iframes()
-            .find(|node| node.browsing_context_id() == Some(browsing_context_id))
+    /// A mutable reference to the [`IFrameCollection`] of this [`Document`], holding information about
+    /// `<iframe>`s found within it.
+    pub(crate) fn iframes_mut(&self) -> RefMut<IFrameCollection> {
+        self.iframes.borrow_mut().validate(self);
+        self.iframes.borrow_mut()
     }
 
     pub fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
@@ -2999,20 +2964,19 @@ impl Document {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn add_dirty_webgpu_canvas(&self, context: &GPUCanvasContext) {
-        self.dirty_webgpu_contexts
-            .borrow_mut()
-            .entry(context.context_id())
-            .or_insert_with(|| Dom::from_ref(context));
+    pub fn webgpu_contexts(&self) -> WebGPUContextsMap {
+        self.webgpu_contexts.clone()
     }
 
     #[allow(crown::unrooted_must_root)]
     #[cfg(feature = "webgpu")]
-    pub fn flush_dirty_webgpu_canvases(&self) {
-        self.dirty_webgpu_contexts
+    pub fn update_rendering_of_webgpu_canvases(&self) {
+        self.webgpu_contexts
             .borrow_mut()
-            .drain()
-            .for_each(|(_, context)| context.update_rendering_of_webgpu_canvas());
+            .iter()
+            .filter_map(|(_, context)| context.root())
+            .filter(|context| context.onscreen())
+            .for_each(|context| context.update_rendering_of_webgpu_canvas());
     }
 
     pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -3257,6 +3221,7 @@ impl Document {
         referrer: Option<String>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        is_initial_about_blank: bool,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3284,6 +3249,7 @@ impl Document {
             .unwrap_or(UTF_8);
 
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
+
         Document {
             node: Node::new_document_node(),
             document_or_shadow_root: DocumentOrShadowRoot::new(window),
@@ -3311,6 +3277,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            iframes: Default::default(),
             style_shared_lock: {
                 /// Per-process shared lock for author-origin stylesheets
                 ///
@@ -3386,7 +3353,7 @@ impl Document {
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             #[cfg(feature = "webgpu")]
-            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())
@@ -3403,6 +3370,7 @@ impl Document {
             fonts: Default::default(),
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
+            is_initial_about_blank: Cell::new(is_initial_about_blank),
         }
     }
 
@@ -3517,6 +3485,7 @@ impl Document {
         referrer: Option<String>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        is_initial_about_blank: bool,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3534,6 +3503,7 @@ impl Document {
             referrer,
             status_code,
             canceller,
+            is_initial_about_blank,
             can_gc,
         )
     }
@@ -3554,6 +3524,7 @@ impl Document {
         referrer: Option<String>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        is_initial_about_blank: bool,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3571,6 +3542,7 @@ impl Document {
                 referrer,
                 status_code,
                 canceller,
+                is_initial_about_blank,
             )),
             window,
             proto,
@@ -3694,6 +3666,7 @@ impl Document {
                     None,
                     None,
                     Default::default(),
+                    false,
                     can_gc,
                 );
                 new_doc
@@ -4215,6 +4188,11 @@ impl Document {
         self.upcast::<EventTarget>()
             .fire_bubbling_event(atom!("visibilitychange"), can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#is-initial-about:blank>
+    pub fn is_initial_about_blank(&self) -> bool {
+        self.is_initial_about_blank.get()
+    }
 }
 
 impl ProfilerMetadataFactory for Document {
@@ -4252,6 +4230,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None,
             None,
             Default::default(),
+            false,
             can_gc,
         ))
     }
@@ -4903,16 +4882,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-images
     fn Images(&self) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
-            let filter = Box::new(ImagesFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLImageElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-embeds
     fn Embeds(&self) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
-            let filter = Box::new(EmbedsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLEmbedElement>()
+            })
         })
     }
 
@@ -4924,32 +4905,37 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-links
     fn Links(&self) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
-            let filter = Box::new(LinksFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>()) &&
+                    element.has_attribute(&local_name!("href"))
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-forms
     fn Forms(&self) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
-            let filter = Box::new(FormsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLFormElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-scripts
     fn Scripts(&self) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
-            let filter = Box::new(ScriptsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLScriptElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-anchors
     fn Anchors(&self) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
-            let filter = Box::new(AnchorsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
+            })
         })
     }
 
@@ -5303,9 +5289,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
         // Step 4
-        // This check is same-origin not same-origin-domain.
-        // https://github.com/whatwg/html/issues/2282
-        // https://github.com/whatwg/html/pull/2288
         if !self.origin.same_origin(&entry_responsible_document.origin) {
             return Err(Error::Security);
         }
@@ -5363,23 +5346,36 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // WPT selection/Document-open.html wants us to not clear it
         // as of Feb 1 2020
 
-        // Step 12
+        // Step 12. If document is fully active, then:
         if self.is_fully_active() {
+            // Step 12.1. Let newURL be a copy of entryDocument's URL.
             let mut new_url = entry_responsible_document.url();
+
+            // Step 12.2. If entryDocument is not document, then set newURL's fragment to null.
             if entry_responsible_document != DomRoot::from_ref(self) {
                 new_url.set_fragment(None);
             }
+
+            // Step 12.3. Run the URL and history update steps with document and newURL.
             // TODO: https://github.com/servo/servo/issues/21939
             self.set_url(new_url);
         }
 
-        // Step 13
+        // Step 13. Set document's is initial about:blank to false.
+        self.is_initial_about_blank.set(false);
+
+        // Step 14. If document's iframe load in progress flag is set, then set document's mute
+        // iframe load flag.
         // TODO: https://github.com/servo/servo/issues/21938
 
-        // Step 14
+        // Step 15: Set document to no-quirks mode.
         self.set_quirks_mode(QuirksMode::NoQuirks);
 
-        // Step 15
+        // Step 16. Create a new HTML parser and associate it with document. This is a
+        // script-created parser (meaning that it can be closed by the document.open() and
+        // document.close() methods, and that the tokenizer will wait for an explicit call to
+        // document.close() before emitting an end-of-file token). The encoding confidence is
+        // irrelevant.
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
@@ -5389,13 +5385,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
         ServoParser::parse_html_script_input(self, self.url());
 
-        // Step 16
+        // Step 17. Set the insertion point to point at just before the end of the input stream
+        // (which at this point will be empty).
+        // Handled when creating the parser in step 16
+
+        // Step 18. Update the current document readiness of document to "loading".
         self.ready_state.set(DocumentReadyState::Loading);
 
-        // Step 17
-        // Handled when creating the parser in step 15
-
-        // Step 18
+        // Step 19. Return document.
         Ok(DomRoot::from_ref(self))
     }
 

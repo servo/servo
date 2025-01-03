@@ -60,8 +60,7 @@ use crate::script_runtime::{
     ThreadSafeJSContext,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::TaskSourceName;
+use crate::task_source::{TaskSource, TaskSourceName};
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -110,6 +109,7 @@ pub enum MixedMessage {
     Worker(DedicatedWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
     Control(DedicatedWorkerControlMsg),
+    Timer,
 }
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
@@ -191,7 +191,7 @@ pub struct DedicatedWorkerGlobalScope {
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
-    parent_sender: Box<dyn ScriptChan + Send>,
+    parent_sender: Box<dyn ScriptChan>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
@@ -232,6 +232,10 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
 
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::Devtools(msg)
+    }
+
+    fn from_timer_msg() -> MixedMessage {
+        MixedMessage::Timer
     }
 
     fn control_receiver(&self) -> &Receiver<DedicatedWorkerControlMsg> {
@@ -376,13 +380,14 @@ impl DedicatedWorkerGlobalScope {
                     .origin(origin);
 
                 let runtime = unsafe {
-                    let task_source = NetworkingTaskSource(
-                        Box::new(WorkerThreadWorkerChan {
+                    let task_source = TaskSource {
+                        sender: Box::new(WorkerThreadWorkerChan {
                             sender: own_sender.clone(),
                             worker: worker.clone(),
                         }),
                         pipeline_id,
-                    );
+                        name: TaskSourceName::Networking,
+                    };
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
 
@@ -413,7 +418,7 @@ impl DedicatedWorkerGlobalScope {
                     worker_url,
                     devtools_mpsc_port,
                     runtime,
-                    parent_sender.clone(),
+                    parent_sender.as_boxed(),
                     own_sender,
                     receiver,
                     closing,
@@ -564,6 +569,7 @@ impl DedicatedWorkerGlobalScope {
             MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
                 return false;
             },
+            MixedMessage::Timer => {},
         }
         true
     }

@@ -8,7 +8,7 @@ use style::properties::ComputedValues;
 
 use super::convert;
 
-/// A wrapper struct for anything that Deref's to a [`stylo::ComputedValues`], which
+/// A wrapper struct for anything that Deref's to a [`ComputedValues`], which
 /// implements Taffy's layout traits and can used with Taffy's layout algorithms.
 pub struct TaffyStyloStyle<T: Deref<Target = ComputedValues>>(pub T);
 

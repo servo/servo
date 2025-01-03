@@ -243,3 +243,19 @@ function no_transition_test(options, description) {
     assert_equals(getComputedStyle(target).getPropertyValue(customProperty), options.to, "Element has the expected final value");
   }, description);
 };
+
+function test_initial_value_valid(syntax, initialValue) {
+    // No actual assertions, this just shouldn't throw
+    test(() => {
+        var name = generate_name();
+        CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false});
+    }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is valid");
+}
+
+function test_initial_value_invalid(syntax, initialValue) {
+    test(() =>{
+        var name = generate_name();
+        assert_throws_dom("SyntaxError",
+            () => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false}));
+    }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is invalid");
+}

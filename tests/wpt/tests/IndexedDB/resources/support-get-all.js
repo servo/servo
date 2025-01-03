@@ -9,212 +9,312 @@ const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const vowels = 'aeiou'.split('');
 
-// Setup multiple object stores to test `getAllKeys()`, `getAll()` and
-// `getAllRecords()`.
-function object_store_get_all_test(func, name) {
-  indexeddb_test((test, connection, transaction) => {
-    // Record the keys and values added to each object store during test setup.
-    // Maps each object store's name to an array of records.  Tests can use
-    // these records to verify the actual results from a get all request.
-    self.expectedObjectStoreRecords = {
-      'generated': [],
-      'out-of-line': [],
-      'empty': [],
-      'large-values': [],
-    };
+// Setup the object store identified by `storeName` to test `getAllKeys()`,
+// `getAll()` and `getAllRecords()`.
+//  - `callback` is a function that runs after setup with the arguments: `test`,
+//    `connection`, and `expectedRecords`.
+//  - The `expectedRecords` callback argument records all of the keys and values
+//    added to the object store during setup.  It is an array of records where
+//    each element contains a `key`, `primaryKey` and `value`.  Tests can use
+//    `expectedRecords` to verify the actual results from a get all request.
+function object_store_get_all_test_setup(storeName, callback, testDescription) {
+  const expectedRecords = [];
 
-    // Create an object store with auto-generated, auto-incrementing, inline
-    // keys.
-    let store = connection.createObjectStore(
-        'generated', {autoIncrement: true, keyPath: 'id'});
-    alphabet.forEach(letter => {
-      store.put({ch: letter});
+  indexeddb_test(
+      (test, connection) => {
+        switch (storeName) {
+          case 'generated': {
+            // Create an object store with auto-generated, auto-incrementing,
+            // inline keys.
+            const store = connection.createObjectStore(
+                storeName, {autoIncrement: true, keyPath: 'id'});
+            alphabet.forEach(letter => {
+              store.put({ch: letter});
 
-      const generatedKey = alphabet.indexOf(letter) + 1;
-      expectedObjectStoreRecords['generated'].push(
-          {key: generatedKey, primaryKey: generatedKey, value: {ch: letter}});
-    });
+              const generatedKey = alphabet.indexOf(letter) + 1;
+              expectedRecords.push({
+                key: generatedKey,
+                primaryKey: generatedKey,
+                value: {ch: letter}
+              });
+            });
+            return;
+          }
+          case 'out-of-line': {
+            // Create an object store with out-of-line keys.
+            const store = connection.createObjectStore(storeName);
+            alphabet.forEach(letter => {
+              store.put(`value-${letter}`, letter);
 
-    // Create an object store with out-of-line keys.
-    store = connection.createObjectStore('out-of-line');
-    alphabet.forEach(letter => {
-      store.put(`value-${letter}`, letter);
+              expectedRecords.push(
+                  {key: letter, primaryKey: letter, value: `value-${letter}`});
+            });
+            return;
+          }
+          case 'empty': {
+            // Create an empty object store.
+            connection.createObjectStore(storeName);
+            return;
+          }
+          case 'large-values': {
+            // Create an object store with 3 large values. `largeValue()`
+            // generates the value using the key as the seed.  The keys start at
+            // 0 and then increment by 1.
+            const store = connection.createObjectStore(storeName);
+            for (let i = 0; i < 3; i++) {
+              const value = largeValue(/*size=*/ wrapThreshold, /*seed=*/ i);
+              store.put(value, i);
 
-      expectedObjectStoreRecords['out-of-line'].push(
-          {key: letter, primaryKey: letter, value: `value-${letter}`});
-    });
-
-    // Create an empty object store.
-    store = connection.createObjectStore('empty');
-
-    // Create an object store with 3 large values.
-    // `largeValue()` generates the value using the key as the seed.
-    // The keys start at 0 and then increment by 1.
-    store = connection.createObjectStore('large-values');
-    for (let i = 0; i < 3; i++) {
-      const value = largeValue(/*size=*/ wrapThreshold, /*seed=*/ i);
-      store.put(value, i);
-
-      expectedObjectStoreRecords['large-values'].push(
-          {key: i, primaryKey: i, value});
-    }
-  }, func, name);
+              expectedRecords.push({key: i, primaryKey: i, value});
+            }
+            return;
+          }
+        }
+      },
+      // Bind `expectedRecords` to the `indexeddb_test` callback function.
+      (test, connection) => {
+        callback(test, connection, expectedRecords);
+      },
+      testDescription);
 }
 
-// Test `getAllRecords()` on `storeName` with the given `options`.
+// Similar to `object_store_get_all_test_setup()` above, but also creates an
+// index named `test_idx` for each object store.
+function index_get_all_test_setup(storeName, callback, testDescription) {
+  const expectedRecords = [];
+
+  indexeddb_test(
+      function(test, connection) {
+        switch (storeName) {
+          case 'generated': {
+            // Create an object store with auto-incrementing, inline keys.
+            // Create an index on the uppercase letter property `upper`.
+            const store = connection.createObjectStore(
+                storeName, {autoIncrement: true, keyPath: 'id'});
+            store.createIndex('test_idx', 'upper');
+            alphabet.forEach(function(letter) {
+              const value = {ch: letter, upper: letter.toUpperCase()};
+              store.put(value);
+
+              const generatedKey = alphabet.indexOf(letter) + 1;
+              expectedRecords.push(
+                  {key: value.upper, primaryKey: generatedKey, value});
+            });
+            return;
+          }
+          case 'out-of-line': {
+            // Create an object store with out-of-line keys.  Create an index on
+            // the uppercase letter property `upper`.
+            const store = connection.createObjectStore(storeName);
+            store.createIndex('test_idx', 'upper');
+            alphabet.forEach(function(letter) {
+              const value = {ch: letter, upper: letter.toUpperCase()};
+              store.put(value, letter);
+
+              expectedRecords.push(
+                  {key: value.upper, primaryKey: letter, value});
+            });
+            return;
+          }
+          case 'out-of-line-not-unique': {
+            // Create an index on the `half` property, which is not unique, with
+            // two possible values: `first` and `second`.
+            const store = connection.createObjectStore(storeName);
+            store.createIndex('test_idx', 'half');
+            alphabet.forEach(function(letter) {
+              let half = 'first';
+              if (letter > 'm') {
+                half = 'second';
+              }
+
+              const value = {ch: letter, half};
+              store.put(value, letter);
+
+              expectedRecords.push({key: half, primaryKey: letter, value});
+            });
+            return
+          }
+          case 'out-of-line-multi': {
+            // Create a multi-entry index on `attribs`, which is an array of
+            // strings.
+            const store = connection.createObjectStore(storeName);
+            store.createIndex('test_idx', 'attribs', {multiEntry: true});
+            alphabet.forEach(function(letter) {
+              let attrs = [];
+              if (['a', 'e', 'i', 'o', 'u'].indexOf(letter) != -1) {
+                attrs.push('vowel');
+              } else {
+                attrs.push('consonant');
+              }
+              if (letter == 'a') {
+                attrs.push('first');
+              }
+              if (letter == 'z') {
+                attrs.push('last');
+              }
+              const value = {ch: letter, attribs: attrs};
+              store.put(value, letter);
+
+              for (let attr of attrs) {
+                expectedRecords.push({key: attr, primaryKey: letter, value});
+              }
+            });
+            return;
+          }
+          case 'empty': {
+            // Create an empty index.
+            const store = connection.createObjectStore(storeName);
+            store.createIndex('test_idx', 'upper');
+            return;
+          }
+          case 'large-values': {
+            // Create an object store and index with 3 large values and their
+            // seed.  Use the large value's seed as the index key.
+            const store = connection.createObjectStore('large-values');
+            store.createIndex('test_idx', 'seed');
+            for (let i = 0; i < 3; i++) {
+              const seed = i;
+              const randomValue = largeValue(/*size=*/ wrapThreshold, seed);
+              const recordValue = {seed, randomValue};
+              store.put(recordValue, i);
+
+              expectedRecords.push(
+                  {key: seed, primaryKey: i, value: recordValue});
+            }
+            return;
+          }
+          default: {
+            test.assert_unreached(`Unknown storeName: ${storeName}`);
+          }
+        }
+      },
+      // Bind `expectedRecords` to the `indexeddb_test` callback function.
+      (test, connection) => {
+        callback(test, connection, expectedRecords);
+      },
+      testDescription);
+}
+
+// Test `getAll()`, `getAllKeys()` or `getAllRecords()` on either `storeName` or
+// `optionalIndexName` with the given `options`.
+//  - `getAllFunctionName` is name of the function to test, which must be
+//     `getAll`, `getAllKeys` or `getAllRecords`.
 //  - `options` is an `IDBGetAllRecordsOptions ` dictionary that may contain a
-//    `query`, `direction` and `count`.
-function object_store_get_all_records_test(storeName, options, description) {
-  object_store_get_all_test((test, connection) => {
+//    `query`, `direction` and `count`.  Use `direction` to test
+//    `getAllRecords()` only.  `getAll()` and `getAllKeys()` do not support
+//    `direction`.
+function get_all_test(
+    getAllFunctionName, storeName, optionalIndexName, options,
+    testDescription) {
+  const testGetAllCallback = (test, connection, expectedRecords) => {
+    // Create a transaction and a get all request.
+    const transaction = connection.transaction(storeName, 'readonly');
+    let queryTarget = transaction.objectStore(storeName);
+    if (optionalIndexName) {
+      queryTarget = queryTarget.index(optionalIndexName);
+    }
     const request =
-        createGetAllRecordsRequest(test, connection, storeName, options);
-    request.onsuccess = test.step_func(event => {
-      // Build the expected results.
-      let expectedResults = expectedObjectStoreRecords[storeName];
-      expectedResults = applyGetAllRecordsOptions(expectedResults, options);
+        createGetAllRequest(getAllFunctionName, queryTarget, options);
+    request.onerror = test.unreached_func('The get all request must succeed');
 
+    // Verify the results after the get all request completes.
+    request.onsuccess = test.step_func(event => {
       const actualResults = event.target.result;
-      assert_records_equals(actualResults, expectedResults);
+      const expectedResults = calculateExpectedGetAllResults(
+          getAllFunctionName, expectedRecords, options);
+      verifyGetAllResults(getAllFunctionName, actualResults, expectedResults);
       test.done();
     });
-  }, description);
-}
+  };
 
-// Setup multiple object stores with indexes to test `getAllKeys()`, `getAll()`
-// and `getAllRecords()`.
-function index_get_all_test(func, name) {
-  indexeddb_test(function(test, connection, transaction) {
-    // Record the keys and values added to each object store's index during test
-    // setup. Maps each object store's name to the array of records in its
-    // index. Tests can use these records to verify the actual results from a
-    // get all request.
-    self.expectedIndexRecords = {
-      'generated': [],
-      'out-of-line': [],
-      'out-of-line-not-unique': [],
-      'out-of-line-multi': [],
-      'empty': [],
-      'large-values': [],
-    };
-
-    // Create an object store with auto-incrementing, inline keys.  Create an
-    // index on the uppercase letter property `upper`.
-    let store = connection.createObjectStore(
-        'generated', {autoIncrement: true, keyPath: 'id'});
-    let index = store.createIndex('test_idx', 'upper');
-    alphabet.forEach(function(letter) {
-      const value = {ch: letter, upper: letter.toUpperCase()};
-      store.put(value);
-
-      const generatedKey = alphabet.indexOf(letter) + 1;
-      expectedIndexRecords['generated'].push(
-          {key: value.upper, primaryKey: generatedKey, value});
-    });
-
-    // Create an object store with out-of-line keys.  Create an index on the
-    // uppercase letter property `upper`.
-    store = connection.createObjectStore('out-of-line', null);
-    index = store.createIndex('test_idx', 'upper');
-    alphabet.forEach(function(letter) {
-      const value = {ch: letter, upper: letter.toUpperCase()};
-      store.put(value, letter);
-
-      expectedIndexRecords['out-of-line'].push(
-          {key: value.upper, primaryKey: letter, value});
-    });
-
-    // Create an index on the `half` property, which is not unique, with two
-    // possible values: `first` and `second`.
-    store = connection.createObjectStore('out-of-line-not-unique', null);
-    index = store.createIndex('test_idx', 'half');
-    alphabet.forEach(function(letter) {
-      let half = 'first';
-      if (letter > 'm') {
-        half = 'second';
-      }
-
-      const value = {ch: letter, half};
-      store.put(value, letter);
-
-      expectedIndexRecords['out-of-line-not-unique'].push(
-          {key: half, primaryKey: letter, value});
-    });
-
-    // Create a multi-entry index on `attribs`, which is an array of strings.
-    store = connection.createObjectStore('out-of-line-multi', null);
-    index = store.createIndex('test_idx', 'attribs', {multiEntry: true});
-    alphabet.forEach(function(letter) {
-      let attrs = [];
-      if (['a', 'e', 'i', 'o', 'u'].indexOf(letter) != -1) {
-        attrs.push('vowel');
-      } else {
-        attrs.push('consonant');
-      }
-      if (letter == 'a') {
-        attrs.push('first');
-      }
-      if (letter == 'z') {
-        attrs.push('last');
-      }
-      const value = {ch: letter, attribs: attrs};
-      store.put(value, letter);
-
-      for (let attr of attrs) {
-        expectedIndexRecords['out-of-line-multi'].push(
-            {key: attr, primaryKey: letter, value});
-      }
-    });
-
-    // Create an empty index.
-    store = connection.createObjectStore('empty', null);
-    index = store.createIndex('test_idx', 'upper');
-
-    // Create an object store and index with 3 large values and their seed.  Use
-    // the large value's seed as the index key.
-    store = connection.createObjectStore('large-values');
-    index = store.createIndex('test_idx', 'seed');
-    for (let i = 0; i < 3; i++) {
-      const seed = i;
-      const randomValue = largeValue(/*size=*/ wrapThreshold, seed);
-      const recordValue = {seed, randomValue};
-      store.put(recordValue, i);
-
-      expectedIndexRecords['large-values'].push(
-          {key: seed, primaryKey: i, value: recordValue});
-    }
-  }, func, name);
-}
-
-function index_get_all_records_test(storeName, options, description) {
-  index_get_all_test((test, connection) => {
-    const request = createGetAllRecordsRequest(
-        test, connection, storeName, options, 'test_idx');
-    request.onsuccess = test.step_func(event => {
-      // Build the expected results.
-      let expectedResults = expectedIndexRecords[storeName];
-      expectedResults = applyGetAllRecordsOptions(expectedResults, options);
-
-      const actualResults = event.target.result;
-      assert_records_equals(actualResults, expectedResults);
-      test.done();
-    });
-  }, description);
-}
-
-// Create a `getAllRecords()` request for either `storeName` or
-// `optionalIndexName`.
-//  - `options` is an `IDBGetAllRecordsOptions ` dictionary that may contain a
-//    `query`, `direction` and `count`.
-function createGetAllRecordsRequest(
-    test, connection, storeName, options, optionalIndexName) {
-  const transaction = connection.transaction(storeName, 'readonly');
-  let queryTarget = transaction.objectStore(storeName);
   if (optionalIndexName) {
-    queryTarget = queryTarget.index(optionalIndexName);
+    index_get_all_test_setup(storeName, testGetAllCallback, testDescription);
+  } else {
+    object_store_get_all_test_setup(
+        storeName, testGetAllCallback, testDescription);
   }
-  const request = queryTarget.getAllRecords(options);
-  request.onerror = test.unreached_func('getAllRecords request must succeed');
-  return request;
+}
+
+function object_store_get_all_keys_test(storeName, options, testDescription) {
+  get_all_test(
+      'getAllKeys', storeName, /*indexName=*/ undefined, options,
+      testDescription);
+}
+
+function object_store_get_all_values_test(storeName, options, testDescription) {
+  get_all_test(
+      'getAll', storeName, /*indexName=*/ undefined, options, testDescription);
+}
+
+function object_store_get_all_records_test(
+    storeName, options, testDescription) {
+  get_all_test(
+      'getAllRecords', storeName, /*indexName=*/ undefined, options,
+      testDescription);
+}
+
+function index_get_all_keys_test(storeName, options, testDescription) {
+  get_all_test('getAllKeys', storeName, 'test_idx', options, testDescription);
+}
+
+function index_get_all_values_test(storeName, options, testDescription) {
+  get_all_test('getAll', storeName, 'test_idx', options, testDescription);
+}
+
+function index_get_all_records_test(storeName, options, testDescription) {
+  get_all_test(
+      'getAllRecords', storeName, 'test_idx', options, testDescription);
+}
+
+function createGetAllRequest(getAllFunctionName, queryTarget, options) {
+  switch (getAllFunctionName) {
+    case 'getAll':
+    case 'getAllKeys':
+      // `getAll()` and `getAllKeys()` use optional arguments.  Omit the
+      // optional arguments when undefined.
+      if (options && options.count) {
+        return queryTarget[getAllFunctionName](options.query, options.count);
+      }
+      if (options && options.query) {
+        return queryTarget[getAllFunctionName](options.query);
+      }
+      return queryTarget[getAllFunctionName]();
+    case 'getAllRecords':
+      return queryTarget.getAllRecords(options);
+  }
+  assert_unreached(`Unknown getAllFunctionName: "${getAllFunctionName}"`);
+}
+
+// Returns the expected results when `getAllFunctionName` is called with
+// `options` to query an object store or index containing `records`.
+function calculateExpectedGetAllResults(getAllFunctionName, records, options) {
+  const expectedRecords = filterWithGetAllRecordsOptions(records, options);
+  switch (getAllFunctionName) {
+    case 'getAll':
+      return expectedRecords.map(({value}) => {return value});
+    case 'getAllKeys':
+      return expectedRecords.map(({primaryKey}) => {return primaryKey});
+    case 'getAllRecords':
+      return expectedRecords;
+  }
+  assert_unreached(`Unknown getAllFunctionName: "${getAllFunctionName}"`);
+}
+
+// Asserts that the array of results from `getAllFunctionName` matches the
+// expected results.
+function verifyGetAllResults(getAllFunctionName, actual, expected) {
+  switch (getAllFunctionName) {
+    case 'getAll':
+      assert_idb_values_equals(actual, expected);
+      return;
+    case 'getAllKeys':
+      assert_array_equals(actual, expected);
+      return;
+    case 'getAllRecords':
+      assert_records_equals(actual, expected);
+      return;
+  }
+  assert_unreached(`Unknown getAllFunctionName: "${getAllFunctionName}"`);
 }
 
 // Returns the array of `records` that satisfy `options`.  Tests may use this to
@@ -223,7 +323,7 @@ function createGetAllRecordsRequest(
 //    `key`, `primaryKey`, and `value`.
 //  - `options` is an `IDBGetAllRecordsOptions ` dictionary that may contain a
 //    `query`, `direction` and `count`.
-function applyGetAllRecordsOptions(records, options) {
+function filterWithGetAllRecordsOptions(records, options) {
   if (!options) {
     return records;
   }
@@ -275,7 +375,7 @@ function assert_large_array_equals(actual, expected, description) {
   assert_equals(array_string, expected_string, description);
 }
 
-// Verifies each record from the results of `getAllRecords()`.
+// Verifies a record from the results of `getAllRecords()`.
 function assert_record_equals(actual_record, expected_record) {
   assert_class_string(
       actual_record, 'IDBRecord', 'The record must be an IDBRecord');
@@ -296,8 +396,12 @@ function assert_record_equals(actual_record, expected_record) {
       'The record must have the expected key');
 
   // Verify the value.
-  const actual_value = actual_record.value;
-  const expected_value = expected_record.value;
+  assert_idb_value_equals(actual_record.value, expected_record.value);
+}
+
+// Verifies two IDB values are equal.  The expected value may be a primitive, an
+// object, or an array.
+function assert_idb_value_equals(actual_value, expected_value) {
   if (isArrayOrArrayBufferView(expected_value)) {
     assert_large_array_equals(
         actual_value, expected_value,
@@ -329,6 +433,28 @@ function assert_record_equals(actual_record, expected_record) {
   }
 }
 
+// Verifies each record from the results of `getAllRecords()`.
+function assert_record_equals(actual_record, expected_record) {
+  assert_class_string(
+      actual_record, 'IDBRecord', 'The record must be an IDBRecord');
+  assert_idl_attribute(
+      actual_record, 'key', 'The record must have a key attribute');
+  assert_idl_attribute(
+      actual_record, 'primaryKey',
+      'The record must have a primaryKey attribute');
+  assert_idl_attribute(
+      actual_record, 'value', 'The record must have a value attribute');
+
+  // Verify the attributes: `key`, `primaryKey` and `value`.
+  assert_equals(
+      actual_record.primaryKey, expected_record.primaryKey,
+      'The record must have the expected primaryKey');
+  assert_equals(
+      actual_record.key, expected_record.key,
+      'The record must have the expected key');
+  assert_idb_value_equals(actual_record.value, expected_record.value);
+}
+
 // Verifies the results from `getAllRecords()`, which is an array of records:
 // [
 //   { 'key': key1, 'primaryKey': primary_key1, 'value': value1 },
@@ -345,5 +471,18 @@ function assert_records_equals(actual_records, expected_records) {
 
   for (let i = 0; i < actual_records.length; i++) {
     assert_record_equals(actual_records[i], expected_records[i]);
+  }
+}
+
+// Verifies the results from `getAll()`, which is an array of IndexedDB record
+// values.
+function assert_idb_values_equals(actual_values, expected_values) {
+  assert_true(Array.isArray(actual_values), 'The values must be an array');
+  assert_equals(
+      actual_values.length, expected_values.length,
+      'The values array must contain the expected number of values');
+
+  for (let i = 0; i < actual_values.length; i++) {
+    assert_idb_value_equals(actual_values[i], expected_values[i]);
   }
 }

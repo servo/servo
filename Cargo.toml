@@ -13,7 +13,7 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2021"
 publish = false
-rust-version = "1.82.0"
+rust-version = "1.83.0"
 
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
@@ -27,7 +27,7 @@ atomic_refcell = "0.1.13"
 background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
 backtrace = "0.3"
 base = { path = "components/shared/base" }
-base64 = "0.21.7"
+base64 = "0.22.1"
 bincode = "1"
 bitflags = "2.6"
 bluetooth_traits = { path = "components/shared/bluetooth" }
@@ -87,7 +87,7 @@ markup5ever = "0.14"
 memmap2 = "0.9.5"
 mime = "0.3.13"
 mime_guess = "2.0.5"
-mozangle = "0.5.2"
+mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
 nix = "0.29"
 num-traits = "0.2"
@@ -108,7 +108,7 @@ rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2024-12-04" }
-serde = "1.0.216"
+serde = "1.0.217"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
@@ -126,7 +126,7 @@ style_config = { git = "https://github.com/servo/stylo", branch = "2024-12-04" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-12-04" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2024-12-04", features = ["servo"] }
 style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", branch = "2024-12-04", features = ["servo"] }
-surfman = { git = "https://github.com/servo/surfman", rev = "c8d6b4b65aeab739ee7651602e29c8d58ceee123", features = ["chains"] }
+surfman = { git = "https://github.com/servo/surfman", rev = "300789ddbda45c89e9165c31118bf1c4c07f89f6", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.7", default-features = false, features = ["std", "serde", "grid"] }
@@ -138,11 +138,11 @@ to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-12-04" }
 tokio = "1"
 tokio-rustls = "0.24"
 tracing = "0.1.41"
-tracing-perfetto = "0.1.3"
+tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.19"
 tungstenite = "0.20"
 uluru = "3.0"
-unicode-bidi = "0.3.17"
+unicode-bidi = "0.3.18"
 unicode-properties = { version = "0.1.3", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
@@ -155,8 +155,8 @@ webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "8f82992b9fa0fd71c19a4f5c2d8e2512ef22c010" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "8f82992b9fa0fd71c19a4f5c2d8e2512ef22c010" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93" }
 windows-sys = "0.59"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.65" }
 xi-unicode = "0.3.0"

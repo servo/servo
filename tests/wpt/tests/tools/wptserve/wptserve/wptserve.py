@@ -13,13 +13,11 @@ def abs_path(path):
 def parse_args():
     parser = argparse.ArgumentParser(description="HTTP server designed for extreme flexibility "
                                      "required in testing situations.")
-    parser.add_argument("document_root", action="store", type=abs_path,
+    parser.add_argument("document_root", type=abs_path,
                         help="Root directory to serve files from")
-    parser.add_argument("--port", "-p", dest="port", action="store",
-                        type=int, default=8000,
+    parser.add_argument("--port", "-p", type=int, default=8000,
                         help="Port number to run server on")
-    parser.add_argument("--host", "-H", dest="host", action="store",
-                        type=str, default="127.0.0.1",
+    parser.add_argument("--host", "-H", type=str, default="127.0.0.1",
                         help="Host to run server on")
     return parser.parse_args()
 

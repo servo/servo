@@ -299,6 +299,7 @@ def run_test_iteration(test_status, test_loader, test_queue_builder,
                             test_loader.subsuites,
                             kwargs["run_by_dir"])
 
+        test_environment.reset()
         with ManagerGroup("web-platform-tests",
                           test_queue_builder,
                           test_implementations,

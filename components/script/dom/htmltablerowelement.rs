@@ -18,7 +18,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::htmltableelement::HTMLTableElement;
@@ -26,15 +26,6 @@ use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-
-#[derive(JSTraceable)]
-struct CellsFilter;
-impl CollectionFilter for CellsFilter {
-    fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is::<HTMLTableCellElement>()) &&
-            elem.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-    }
-}
 
 #[dom_struct]
 pub struct HTMLTableRowElement {
@@ -95,9 +86,14 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     // https://html.spec.whatwg.org/multipage/#dom-tr-cells
     fn Cells(&self) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
-            let window = window_from_node(self);
-            let filter = Box::new(CellsFilter);
-            HTMLCollection::create(&window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(
+                &window_from_node(self),
+                self.upcast(),
+                |element, root| {
+                    (element.is::<HTMLTableCellElement>()) &&
+                        element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                },
+            )
         })
     }
 

@@ -142,6 +142,14 @@ const validButUnsupportedConfigs = [
       numberOfChannels: 2,
     }
   },
+  {
+    comment: 'codec with spaces',
+    config: {
+      codec: '  mp3  ',
+      sampleRate: 48000,
+      numberOfChannels: 2,
+    }
+  },
 ];
 
 // Those configurations are supported, but attempting to configure an

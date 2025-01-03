@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::column::scroll-marker:target-current is supported and changes on scroll</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#active-scroll-marker">
+<link rel="match" href="column-scroll-marker-007-ref.html">
+<style>
+  #container {
+    overflow: hidden;
+    columns: 3;
+    column-fill: auto;
+    gap: 0;
+    orphans: 1;
+    widows: 1;
+    height: 100px;
+    border: 15px solid;
+    line-height: 20px;
+    scroll-marker-group: before;
+    background: yellow;
+  }
+  #container::scroll-marker-group {
+    display: flex;
+    justify-content: space-between;
+    height: 50px;
+    background: cyan;
+  }
+  #container::column::scroll-marker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    background: hotpink;
+    content: "*";
+  }
+  #container::column::scroll-marker:target-current {
+    background: green;
+  }
+</style>
+<div style="width:450px;">
+  <div id="container">
+    First column<br>
+    <br>
+    <br>
+    <br>
+    <br>
+    Second column<br>
+    <br>
+    <br>
+    <br>
+    <br>
+    Third column<br>
+    <br>
+    <br>
+    <br>
+    <br>
+    Fourth column<br>
+    <br>
+    <br>
+    <br>
+    <br>
+    Fifth column<br>
+  </div>
+</div>
+<script>
+  container.scrollLeft = 400;
+</script>

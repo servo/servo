@@ -56,7 +56,7 @@ fn main() {
 #[derive(Eq, Hash, PartialEq)]
 struct Bytes<'a>(&'a str);
 
-impl<'a> FmtConst for Bytes<'a> {
+impl FmtConst for Bytes<'_> {
     fn fmt_const(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         // https://github.com/rust-lang/rust/issues/55223
         // should technically be just `write!(formatter, "b\"{}\"", self.0)
@@ -65,7 +65,7 @@ impl<'a> FmtConst for Bytes<'a> {
     }
 }
 
-impl<'a> phf_shared::PhfHash for Bytes<'a> {
+impl phf_shared::PhfHash for Bytes<'_> {
     fn phf_hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
         self.0.as_bytes().phf_hash(hasher)
     }

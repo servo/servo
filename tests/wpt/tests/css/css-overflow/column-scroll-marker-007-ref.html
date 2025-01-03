@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Test Ref: ::column::scroll-marker:target-current is supported and changes on scroll</title>
+<style>
+  #container {
+    overflow: hidden;
+    columns: 3;
+    column-fill: auto;
+    gap: 0;
+    orphans: 1;
+    widows: 1;
+    height: 100px;
+    border: 15px solid;
+    line-height: 20px;
+    scroll-marker-group: before;
+    background: yellow;
+  }
+  #scroll-marker-group {
+    display: flex;
+    justify-content: space-between;
+    height: 50px;
+    background: cyan;
+  }
+  .scroll-marker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    background: hotpink;
+    content: "*";
+  }
+  #scroll-marker-active {
+    background: green;
+  }
+</style>
+<div style="width:450px;">
+  <div id="scroll-marker-group">
+    <div class="scroll-marker">*</div>
+    <div class="scroll-marker">*</div>
+    <div class="scroll-marker">*</div>
+    <div class="scroll-marker">*</div>
+    <div class="scroll-marker" id="scroll-marker-active">*</div>
+  </div>
+  <div id="container">
+    Third column<br>
+    <br>
+    <br>
+    <br>
+    <br>
+    Fourth column<br>
+    <br>
+    <br>
+    <br>
+    <br>
+    Fifth column<br>
+  </div>
+</div>

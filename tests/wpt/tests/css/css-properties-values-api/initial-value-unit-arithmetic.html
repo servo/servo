@@ -1,0 +1,10 @@
+<!DOCTYPE HTML>
+<title>CSS Properties and Values API: Unit arithmetic in initial value</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-css-registerproperty" />
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#supported-syntax-strings" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
+<script>
+    test_initial_value_valid("<length>", "calc(5px * 3px / 6px)");
+</script>

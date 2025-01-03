@@ -28,10 +28,18 @@ jobs:
           # using the token specified here.
           # See https://github.com/actions/checkout/issues/162.
           token: ${{ secrets.WPT_SYNC_TOKEN }}
+      - name: Setup Python
+        uses: ./servo/.github/actions/setup-python
+        with:
+          python-version-file-path: ./servo/.python-version
       - name: Install requirements
-        run: pip install -r servo/python/requirements.txt
+        run: |
+          uv venv
+          uv pip install -r servo/python/requirements.txt
       - name: Process pull request
-        run: servo/python/wpt/export.py
+        run: |
+         source .venv/bin/activate
+         servo/python/wpt/export.py
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}

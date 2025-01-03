@@ -25,20 +25,26 @@
 </style>
 <script>
 const params = new URLSearchParams(location.search);
-const is_new_page = params.has('new');
 
-if (!is_new_page) {
-  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
-      location.replace(location.href + '?new');
-  }));
-} else {
-  promise_test(() => {
-    return new Promise((resolve) => {
-        addEventListener('pagereveal', resolve);
-    }).then(event => {
-        assert_not_equals(event.viewTransition, null,
-            "ViewTransition must be triggered.");
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
     });
+
+    assert_not_equals(event.viewTransition, null, "ViewTransition must be triggered.");
   });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  onpagereveal = e => window.opener.did_reveal(e);
+  break;
 }
 </script>

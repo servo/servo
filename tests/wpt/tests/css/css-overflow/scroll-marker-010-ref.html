@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Reference File: ::scroll-marker with ::scroll-marker-group after</title>
+<link rel="author" href="mailto:sakhapov@chromium.org">
+<style>
+    #scroller {
+        width: 600px;
+        height: 300px;
+        overflow: scroll;
+    }
+
+    #scroller div {
+        width: 600px;
+        height: 300px;
+        margin-bottom: 20px;
+        background: green;
+    }
+
+    #scroll-marker-group {
+        border: 3px solid black;
+        height: 60px;
+        padding: 5px;
+    }
+
+    #scroll-marker-group>div {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        background-color: blue;
+        border-radius: 100%;
+    }
+
+    #scroll-marker-group>#first {
+        background-color: purple;
+    }
+</style>
+<div id="scroller">
+    <div></div>
+    <div></div>
+</div>
+<div id="scroll-marker-group">
+    <div id="first">1</div>
+    <div>2</div>
+</div>

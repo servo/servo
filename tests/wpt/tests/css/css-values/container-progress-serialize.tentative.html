@@ -36,13 +36,13 @@ function test_serialization(t,s,c) {
 }
 
 test_serialization(
-    'calc(container-progress(width from 0px to 1px) / 1000)',
-    'calc(container-progress(width from 0px to 1px) / 1000)',
+    'calc(container-progress(width, 0px, 1px) / 1000)',
+    'calc(0.001 * container-progress(width, 0px, 1px))',
     '0.228',
 );
 test_serialization(
-    'calc(0.1 * container-progress(height of my-container from 0px to 10em))',
-    'calc(0.1 * container-progress(height of my-container from 0px to 10em))',
+    'calc(0.1 * container-progress(height of my-container, 0px, 10em))',
+    'calc(0.1 * container-progress(height of my-container, 0px, 10em))',
     '0.228',
 );
 </script>

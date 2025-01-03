@@ -8,32 +8,32 @@
 <script>
 
 // Identity tests
-test_math_used('progress(1 from 0 to 1)', '1', {type:'number'});
+test_math_used('progress(1, 0, 1)', '1', {type:'number'});
 
 // Nestings
-test_math_used('progress(progress(1 from 0 to 1) from progress(0px from 0px to 1px) to progress(1deg from 0deg to 1deg))', '1', {type:'number'});
-test_math_used('progress(sign(-10px) * 10px from (10px - 10px) to 10px * progress(1deg from 0deg to 1deg))', '-1', {type:'number'});
+test_math_used('progress(progress(1, 0, 1), progress(0px, 0px, 1px), progress(1deg, 0deg, 1deg))', '1', {type:'number'});
+test_math_used('progress(sign(-10px) * 10px, (10px - 10px), 10px * progress(1deg, 0deg, 1deg))', '-1', {type:'number'});
 
 // General calculations
-test_math_used('calc(progress(100px from 0px to 50px) * 10px + 100px)', '120px');
-test_math_used('calc(progress(100 from 0 to sign(50px)))', '100', {type:'number'});
-test_math_used('calc(progress(abs(5%) from hypot(3%, 4%) to 10%))', '0', {type:'number', approx:0.001});
-test_math_used('progress(1000em from 10em to 110em)', '9.9', {type:'number', approx:0.1});
-test_math_used('scale(progress(1000em from 10rem to 110em))', 'scale(9.9)', {prop:'transform', type:'number', approx:0.1});
-test_math_used('scale(progress(0em from 0rem to 0em))', 'scale(0)', {prop:'transform', type:'number'});
-test_math_used('scale(progress(sign(1em - 1rem) * 1ex from 0rem to 0em))', 'scale(0)', {prop:'transform', type:'number'});
+test_math_used('calc(progress(100px, 0px, 50px) * 10px + 100px)', '120px');
+test_math_used('calc(progress(100, 0, sign(50px)))', '100', {type:'number'});
+test_math_used('calc(progress(abs(5%), hypot(3%, 4%), 10%))', '0', {type:'number', approx:0.001});
+test_math_used('progress(1000em, 10em, 110em)', '9.9', {type:'number', approx:0.1});
+test_math_used('scale(progress(1000em, 10rem, 110em))', 'scale(9.9)', {prop:'transform', type:'number', approx:0.1});
+test_math_used('scale(progress(0em, 0rem, 0em))', 'scale(0)', {prop:'transform', type:'number'});
+test_math_used('scale(progress(sign(1em - 1rem) * 1ex, 0rem, 0em))', 'scale(0)', {prop:'transform', type:'number'});
 
 // Type checking
-test_math_used('calc(progress(1 from 0 to 1) * 10px)', '10px');
-test_math_used('calc(progress(1 from 0 to 1) * 1s)', '1s', {type:'time'});
-test_math_used('calc(progress(1 from 0 to 1) * 1deg)', '1deg', {type:'angle', approx:0.001});
+test_math_used('calc(progress(1, 0, 1) * 10px)', '10px');
+test_math_used('calc(progress(1, 0, 1) * 1s)', '1s', {type:'time'});
+test_math_used('calc(progress(1, 0, 1) * 1deg)', '1deg', {type:'angle', approx:0.001});
 
 // Test different number accepting properties
-test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 10em from 2rem to 12em) / 2)', '0.4', {prop:'opacity', type:'number'});
-test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) * 10)', '18', {prop:'order', type:'number'});
-test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) * 30)', '54', {prop:'flex-grow', type:'number'});
-test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) / 4)', '0.45', {prop:'flex-grow', type:'number'});
-test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) * 4)', '7', {prop:'column-count', type:'number'});
-test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) * 2)', '3.6', {prop:'scale'});
-test_math_used('rotate3d(progress(21em from 1rem to 11em), progress(21em from 1rem to 11em), progress(21em from 1rem to 11em), calc(progress(11em from 1rem to 11em) * 2deg))', 'rotate3d(2, 2, 2, 2deg)', {prop:'transform'});
+test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 10em, 2rem, 12em) / 2)', '0.4', {prop:'opacity', type:'number'});
+test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 20em, 2rem, 12em) * 10)', '18', {prop:'order', type:'number'});
+test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 20em, 2rem, 12em) * 30)', '54', {prop:'flex-grow', type:'number'});
+test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 20em, 2rem, 12em) / 4)', '0.45', {prop:'flex-grow', type:'number'});
+test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 20em, 2rem, 12em) * 4)', '7', {prop:'column-count', type:'number'});
+test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 20em, 2rem, 12em) * 2)', '3.6', {prop:'scale'});
+test_math_used('rotate3d(progress(21em, 1rem, 11em), progress(21em, 1rem, 11em), progress(21em, 1rem, 11em), calc(progress(11em, 1rem, 11em) * 2deg))', 'rotate3d(2, 2, 2, 2deg)', {prop:'transform'});
 </script>

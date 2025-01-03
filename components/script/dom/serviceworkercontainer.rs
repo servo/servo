@@ -27,7 +27,6 @@ use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
@@ -143,7 +142,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         // Setup the callback for reject/resolve of the promise,
         // from steps running "in-parallel" from here in the serviceworker manager.
         let (task_source, task_canceller) = (
-            global.dom_manipulation_task_source(),
+            global.task_manager().dom_manipulation_task_source(),
             global.task_canceller(TaskSourceName::DOMManipulation),
         );
 
@@ -190,7 +189,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 /// <https://w3c.github.io/ServiceWorker/#register>
 struct RegisterJobResultHandler {
     trusted_promise: Option<TrustedPromise>,
-    task_source: DOMManipulationTaskSource,
+    task_source: TaskSource,
     task_canceller: TaskCanceller,
 }
 

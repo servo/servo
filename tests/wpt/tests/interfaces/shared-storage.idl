@@ -25,6 +25,8 @@ interface SharedStorageWorkletGlobalScope : WorkletGlobalScope {
   readonly attribute PrivateAggregation privateAggregation;
 
   Promise<sequence<StorageInterestGroup>> interestGroups();
+
+  readonly attribute SharedStorageWorkletNavigator navigator;
 };
 
 dictionary SharedStorageUrlWithMetadata {
@@ -106,3 +108,9 @@ HTMLImageElement includes HTMLSharedStorageWritableElementUtils;
 partial dictionary RequestInit {
   boolean sharedStorageWritable;
 };
+
+[
+  Exposed=SharedStorageWorklet
+] interface SharedStorageWorkletNavigator {};
+
+SharedStorageWorkletNavigator includes NavigatorLocks;

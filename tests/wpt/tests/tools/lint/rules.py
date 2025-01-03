@@ -274,6 +274,11 @@ class TestdriverPath(Rule):
     description = "testdriver.js script seen with incorrect path"
 
 
+class TestdriverUnsupportedQueryParameter(Rule):
+    name = "TESTDRIVER-UNSUPPORTED-QUERY-PARAMETER"
+    description = "testdriver.js script seen with unsupported query parameters"
+
+
 class TestdriverVendorPath(Rule):
     name = "TESTDRIVER-VENDOR-PATH"
     description = "testdriver-vendor.js script seen with incorrect path"

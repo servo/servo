@@ -1,5 +1,6 @@
 # mypy: allow-untyped-defs
 
+import collections
 import contextlib
 import errno
 import json
@@ -114,6 +115,7 @@ class TestEnvironment:
         mp_context = mpcontext.get_context()
         self._stack = contextlib.ExitStack()
         self.cache_manager = mp_context.Manager()
+        self.screenshot_caches = collections.defaultdict(self.cache_manager.dict)
         self.stash = serve.stash.StashServer(mp_context=mp_context)
         self.env_extras = env_extras
         self.env_extras_cms = None
@@ -164,6 +166,12 @@ class TestEnvironment:
 
         self._stack.__exit__(exc_type, exc_val, exc_tb)
         self.env_extras_cms = None
+
+    def reset(self):
+        """Reset state between retry attempts to isolate failures."""
+        for cache in self.screenshot_caches.values():
+            cache.clear()
+        # TODO: Clear the stash.
 
     @contextlib.contextmanager
     def ignore_interrupts(self):

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Masonry: parsing masonry-direction with invalid values</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <meta name="assert" content="masonry-direction supports only the grammar 'row | row-reverse | column | column-reverse'.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  </div>
+  <script>
+    test_invalid_value("masonry-direction", "auto");
+    test_invalid_value("masonry-direction", "column row-reverse");
+  </script>
+</body>
+</html>

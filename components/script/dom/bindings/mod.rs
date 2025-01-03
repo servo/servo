@@ -143,6 +143,7 @@ pub mod conversions;
 pub mod error;
 pub mod finalize;
 pub mod frozenarray;
+pub mod function;
 pub mod guard;
 pub mod import;
 pub mod inheritance;

@@ -16,7 +16,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::node::{window_from_node, Node};
@@ -61,19 +61,17 @@ impl HTMLTableSectionElement {
     }
 }
 
-#[derive(JSTraceable)]
-struct RowsFilter;
-impl CollectionFilter for RowsFilter {
-    fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>() &&
-            elem.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-    }
-}
-
 impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::create(&window_from_node(self), self.upcast(), Box::new(RowsFilter))
+        HTMLCollection::new_with_filter_fn(
+            &window_from_node(self),
+            self.upcast(),
+            |element, root| {
+                element.is::<HTMLTableRowElement>() &&
+                    element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+            },
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow

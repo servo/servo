@@ -5,6 +5,7 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
+#![allow(clippy::needless_lifetimes)]
 
 mod actions;
 mod capabilities;

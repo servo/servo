@@ -12,21 +12,6 @@
 <script>
 preInsertionValidateHierarchy("moveBefore");
 
-function testLeafNode(nodeName, createNodeFunction) {
-  test(function() {
-    var node = createNodeFunction();
-    assert_throws_js(TypeError, function() { node.moveBefore(null, null) })
-  }, "Calling moveBefore with a non-Node first argument on a leaf node " + nodeName + " must throw TypeError.")
-  test(function() {
-    var node = createNodeFunction();
-    assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { node.moveBefore(document.createTextNode("fail"), null) })
-    // Would be step 2.
-    assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { node.moveBefore(node, null) })
-    // Would be step 3.
-    assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { node.moveBefore(node, document.createTextNode("child")) })
-  }, "Calling moveBefore an a leaf node " + nodeName + " must throw HIERARCHY_REQUEST_ERR.")
-}
-
 test(function() {
   // WebIDL: first argument.
   assert_throws_js(TypeError, function() { document.body.moveBefore(null, null) })
@@ -40,10 +25,12 @@ test(function() {
   assert_throws_js(TypeError, function() { document.body.moveBefore(document.createTextNode("child"), {'a':'b'}) })
 }, "Calling moveBefore with second argument missing, or other than Node, null, or undefined, must throw TypeError.")
 
-testLeafNode("DocumentType", function () { return document.doctype; } )
-testLeafNode("Text", function () { return document.createTextNode("Foo") })
-testLeafNode("Comment", function () { return document.createComment("Foo") })
-testLeafNode("ProcessingInstruction", function () { return document.createProcessingInstruction("foo", "bar") })
+test(() => {
+  assert_false("moveBefore" in document.doctype, "moveBefore() not on DocumentType");
+  assert_false("moveBefore" in document.createTextNode("text"), "moveBefore() not on TextNode");
+  assert_false("moveBefore" in new Comment("comment"), "moveBefore() not on CommentNode");
+  assert_false("moveBefore" in document.createProcessingInstruction("foo", "bar"), "moveBefore() not on ProcessingInstruction");
+}, "moveBefore() method does not exist on non-ParentNode Nodes");
 
 // Pre-move validity, step 1:
 // "If either parent or node are not connected, then throw a
@@ -111,14 +98,6 @@ test(t => {
   iframe.contentDocument.moveBefore(comment, null);
   assert_equals(comment.parentNode, iframe.contentDocument);
 }, "moveBefore() CharacterData into a Document");
-test(t => {
-  const comment = document.body.appendChild(document.createComment("comment"));
-  const child = document.body.appendChild(document.createElement('p'));
-
-  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
-    comment.moveBefore(child, null);
-  });
-}, "moveBefore() into a CharacterData throws a HierarchyRequestError");
 
 // Pre-move validity, step 4:
 // "If node is a host-including inclusive ancestor of parent, then throw a
@@ -242,11 +221,22 @@ test(() => {
   a.append(b);
   a.append(c);
   assert_array_equals(a.childNodes, [b, c]);
-  assert_equals(a.moveBefore(b, b), b);
+  assert_equals(a.moveBefore(c, b), undefined, "moveBefore() returns undefined");
+  assert_array_equals(a.childNodes, [c, b]);
+}, "moveBefore() returns undefined");
+
+test(() => {
+  const a = document.body.appendChild(document.createElement("div"));
+  const b = document.createElement("div");
+  const c = document.createElement("div");
+  a.append(b);
+  a.append(c);
   assert_array_equals(a.childNodes, [b, c]);
-  assert_equals(a.moveBefore(c, c), c);
+  a.moveBefore(b, b);
   assert_array_equals(a.childNodes, [b, c]);
-}, "Inserting a node before itself should not move the node");
+  a.moveBefore(c, c);
+  assert_array_equals(a.childNodes, [b, c]);
+}, "Moving a node before itself should not move the node");
 
 test(() => {
   const disconnectedOrigin = document.createElement('div');

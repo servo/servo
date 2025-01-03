@@ -404,6 +404,8 @@ mod gen {
                     test: bool,
                     first_person_observer_view: bool,
                     glwindow: {
+                        /// Enable servo/webxr's glwindow port. This is enabled only if openxr is
+                        /// disabled.
                         #[serde(default)]
                         enabled: bool,
                         #[serde(rename = "dom.webxr.glwindow.left-right")]
@@ -421,6 +423,7 @@ mod gen {
                         enabled: bool,
                     },
                     openxr: {
+                        /// Enable servo/webxr's openxr port
                         enabled: bool,
                     },
                     sessionavailable: bool,

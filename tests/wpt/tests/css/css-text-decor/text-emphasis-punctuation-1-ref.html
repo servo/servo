@@ -2,11 +2,13 @@
 <meta charset="utf-8">
 <title>CSS text decoration test: emphasis marks and punctuation</title>
 
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <style>
+.ahem { font-family: Ahem; }
 span { text-emphasis: filled circle; }
 </style>
 
 <p>The punctuation should <b>not</b> have emphasis marks:</p>
-<p><span>Abc</span> (<span>def</span>) <span>gh</span>? <span>Ijk</span>.
+<p class="ahem"><span>Abc</span> (<span>def</span>) <span>gh</span>? <span>Ijk</span>.
 <span>Lm</span>, <span>n</span>-<span>op</span>!
 [<span>Qrst</span>…<span>uv</span>] <span>wx</span>/<span>yz</span>.</p>

@@ -216,6 +216,7 @@ impl ServoParser {
             None,
             None,
             Default::default(),
+            false,
             can_gc,
         );
 
@@ -1134,7 +1135,10 @@ impl TreeSink for Sink {
     }
 
     type Handle = Dom<Node>;
-    type ElemName<'a> = ExpandedName<'a> where Self: 'a;
+    type ElemName<'a>
+        = ExpandedName<'a>
+    where
+        Self: 'a;
 
     #[allow(crown::unrooted_must_root)]
     fn get_document(&self) -> Dom<Node> {

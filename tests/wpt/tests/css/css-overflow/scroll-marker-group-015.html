@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Scroll marker group with initial display type</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #scroller>*::scroll-marker {
+    float: left;
+    width: 50px;
+    height: 50px;
+    content: "";
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div id="scroller" style="overflow:hidden; scroll-marker-group:after;">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker-group is not created without scroll container</title>
+<link rel="author" href="mailto:sakhapov@chromium.org">
+<link rel="match" href="scroll-marker-group-006-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<style>
+  div {
+    scroll-marker-group: after;
+  }
+
+  div::scroll-marker-group {
+    background-color: red;
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<p>Test passes if there is <strong>no red rectangle</strong>.
+<div></div>

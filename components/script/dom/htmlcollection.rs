@@ -104,20 +104,46 @@ impl HTMLCollection {
         window: &Window,
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
-    ) -> DomRoot<HTMLCollection> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(HTMLCollection::new_inherited(root, filter)),
+            Box::new(Self::new_inherited(root, filter)),
             window,
             CanGc::note(),
         )
     }
 
-    pub fn create(
+    /// Create a new  [`HTMLCollection`] that just filters element using a static function.
+    pub(crate) fn new_with_filter_fn(
+        window: &Window,
+        root: &Node,
+        filter_function: fn(&Element, &Node) -> bool,
+    ) -> DomRoot<Self> {
+        #[derive(JSTraceable, MallocSizeOf)]
+        pub(crate) struct StaticFunctionFilter(
+            // The function *must* be static so that it never holds references to DOM objects, which
+            // would cause issues with garbage collection -- since it isn't traced.
+            #[no_trace]
+            #[ignore_malloc_size_of = "Static function pointer"]
+            fn(&Element, &Node) -> bool,
+        );
+        impl CollectionFilter for StaticFunctionFilter {
+            fn filter(&self, element: &Element, root: &Node) -> bool {
+                (self.0)(element, root)
+            }
+        }
+        Self::new(
+            window,
+            root,
+            Box::new(StaticFunctionFilter(filter_function)),
+        )
+    }
+
+    pub(crate) fn create(
         window: &Window,
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
-    ) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new(window, root, filter)
+    ) -> DomRoot<Self> {
+        Self::new(window, root, filter)
     }
 
     fn validate_cache(&self) {
@@ -275,14 +301,9 @@ impl HTMLCollection {
     }
 
     pub fn children(window: &Window, root: &Node) -> DomRoot<HTMLCollection> {
-        #[derive(JSTraceable, MallocSizeOf)]
-        struct ElementChildFilter;
-        impl CollectionFilter for ElementChildFilter {
-            fn filter(&self, elem: &Element, root: &Node) -> bool {
-                root.is_parent_of(elem.upcast())
-            }
-        }
-        HTMLCollection::create(window, root, Box::new(ElementChildFilter))
+        HTMLCollection::new_with_filter_fn(window, root, |element, root| {
+            root.is_parent_of(element.upcast())
+        })
     }
 
     pub fn elements_iter_after<'a>(

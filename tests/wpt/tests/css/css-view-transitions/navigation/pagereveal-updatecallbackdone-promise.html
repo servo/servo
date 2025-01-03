@@ -13,7 +13,6 @@
 </style>
 <script>
 const params = new URLSearchParams(location.search);
-const is_initial_page = !params.has('new');
 
 // Ensures microtasks in the current event loop are flushed before control flow
 // resumes.
@@ -21,25 +20,27 @@ function flushMicrotasks() {
   return new Promise(resolve => resolve());
 }
 
-// This test navigates to itself with a changed query parameter. The test
-// checks are performed on the navigated-to document.
-if (is_initial_page) {
-  onload = () => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      location.replace(location.href + '?new');
-    }));
-  };
-} else {
-  promise_test(async () => {
-    const ev = await new Promise(
-        resolve => addEventListener('pagereveal', e => resolve(e)));
-
-    let updateCallbackDoneResolved = false;
-    ev.viewTransition.updateCallbackDone.then(
-          () => {updateCallbackDoneResolved = true;});
-    await flushMicrotasks();
-    assert_true(updateCallbackDoneResolved,
-        "updateCallbackDone must be resolved immediately.");
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    await new Promise(resolve => {
+      window.did_finish_callback = resolve;
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
   });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  onpagereveal = e => {
+    e.viewTransition.updateCallbackDone.then(() => {
+      window.opener.did_finish_callback();
+    });
+  }
+  break;
 }
 </script>

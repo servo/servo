@@ -15,7 +15,7 @@ use js::jsapi::{
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
-use js::rust::{MutableHandleObject, Runtime};
+use js::rust::{HandleObject, MutableHandleObject, Runtime};
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
@@ -93,8 +93,9 @@ impl Drop for CallbackObject {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
-            let cx = Runtime::get();
-            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
+            if let Some(cx) = Runtime::get() {
+                RemoveRawValueRoot(cx.as_ptr(), self.permanent_js_root.get_unsafe());
+            }
         }
     }
 }
@@ -205,9 +206,29 @@ impl CallbackInterface {
     }
 }
 
+pub trait ThisReflector {
+    fn jsobject(&self) -> *mut JSObject;
+}
+
+impl<T: DomObject> ThisReflector for T {
+    fn jsobject(&self) -> *mut JSObject {
+        self.reflector().get_jsobject().get()
+    }
+}
+
+impl<'a> ThisReflector for HandleObject<'a> {
+    fn jsobject(&self) -> *mut JSObject {
+        self.get()
+    }
+}
+
 /// Wraps the reflector for `p` into the realm of `cx`.
-pub fn wrap_call_this_object<T: DomObject>(cx: JSContext, p: &T, mut rval: MutableHandleObject) {
-    rval.set(p.reflector().get_jsobject().get());
+pub fn wrap_call_this_object<T: ThisReflector>(
+    cx: JSContext,
+    p: &T,
+    mut rval: MutableHandleObject,
+) {
+    rval.set(p.jsobject());
     assert!(!rval.get().is_null());
 
     unsafe {

@@ -33,13 +33,13 @@ def get_browser_args(product, channel, artifact_path):
 
 def find_wptreport(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log-wptreport', action='store')
+    parser.add_argument('--log-wptreport')
     return parser.parse_known_args(args)[0].log_wptreport
 
 
 def find_wptscreenshot(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log-wptscreenshot', action='store')
+    parser.add_argument('--log-wptscreenshot')
     return parser.parse_known_args(args)[0].log_wptscreenshot
 
 
@@ -111,17 +111,14 @@ def main(product, channel, commit_range, artifact_path, wpt_args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=main.__doc__)
-    parser.add_argument("--commit-range", action="store",
+    parser.add_argument("--commit-range",
                         help="""Git commit range. If specified, this will be
                              supplied to the `wpt tests-affected` command to
                              determine the list of test to execute""")
-    parser.add_argument("--artifact-path", action="store",
-                        default="/home/test/artifacts/",
+    parser.add_argument("--artifact-path", default="/home/test/artifacts/",
                         help="Path to store output files")
-    parser.add_argument("product", action="store",
-                        help="Browser to run tests in")
-    parser.add_argument("channel", action="store",
-                        help="Channel of the browser")
+    parser.add_argument("product", help="Browser to run tests in")
+    parser.add_argument("channel", help="Channel of the browser")
     parser.add_argument("wpt_args", nargs="*",
                         help="Arguments to forward to `wpt run` command")
     main(**vars(parser.parse_args()))  # type: ignore

@@ -32,7 +32,10 @@ use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{GCReason, Heap, JSAutoRealm, JSObject, StackFormat, JSPROP_ENUMERATE, JS_GC};
+use js::glue::DumpJSStack;
+use js::jsapi::{
+    GCReason, Heap, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JS_GC,
+};
 use js::jsval::{NullValue, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{
@@ -56,8 +59,8 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
-    ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData, ScriptMsg,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme, TimerSchedulerMsg,
+    ConstellationControlMsg, DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme,
     WindowSizeData, WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
@@ -145,17 +148,17 @@ use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
+use crate::messaging::{
+    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, SendableMainThreadScriptChan,
+};
 use crate::microtask::MicrotaskQueue;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
-use crate::script_thread::{
-    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
-    SendableMainThreadScriptChan,
-};
+use crate::script_thread::ScriptThread;
 use crate::task_manager::TaskManager;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::jsval_to_webdriver;
@@ -453,7 +456,7 @@ impl Window {
         self.js_runtime.borrow()
     }
 
-    pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
+    pub(crate) fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
         &self.script_chan.0
     }
 
@@ -986,8 +989,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
     fn Length(&self) -> u32 {
-        let doc = self.Document();
-        doc.iter_iframes().count() as u32
+        self.Document().iframes().iter().count() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
@@ -1126,14 +1128,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     #[allow(unsafe_code)]
     fn Js_backtrace(&self) {
         unsafe {
-            capture_stack!(in(*self.get_cx()) let stack);
-            let js_stack = stack.and_then(|s| s.as_string(None, StackFormat::SpiderMonkey));
+            println!("Current JS stack:");
+            dump_js_stack(*self.get_cx());
             let rust_stack = Backtrace::new();
-            println!(
-                "Current JS stack:\n{}\nCurrent Rust stack:\n{:?}",
-                js_stack.unwrap_or_default(),
-                rust_stack
-            );
+            println!("Current Rust stack:\n{:?}", rust_stack);
         }
     }
 
@@ -1436,7 +1434,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // https://html.spec.whatwg.org/multipage/#document-tree-child-browsing-context-name-property-set
         let iframes: Vec<_> = document
-            .iter_iframes()
+            .iframes()
+            .iter()
             .filter(|iframe| {
                 if let Some(window) = iframe.GetContentWindow() {
                     return window.get_name() == name;
@@ -1886,8 +1885,6 @@ impl Window {
         // up-to-date contents.
         let for_display = reflow_goal.needs_display();
         if for_display {
-            #[cfg(feature = "webgpu")]
-            document.flush_dirty_webgpu_canvases();
             document.flush_dirty_webgl_canvases();
         }
 
@@ -1958,6 +1955,14 @@ impl Window {
             }
         }
 
+        let size_messages = self
+            .Document()
+            .iframes_mut()
+            .handle_new_iframe_sizes_after_layout(results.iframe_sizes, self.device_pixel_ratio());
+        if !size_messages.is_empty() {
+            self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
+        }
+
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
@@ -1980,23 +1985,22 @@ impl Window {
         let mut issued_reflow = false;
         let condition = self.Document().needs_reflow();
         let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
+        let for_display = reflow_goal.needs_display();
         if !updating_the_rendering || condition.is_some() {
             debug!("Reflowing document ({:?})", self.pipeline_id());
             issued_reflow = self.force_reflow(reflow_goal, condition);
 
-            // We shouldn't need a reflow immediately after a
-            // reflow, except if we're waiting for a deferred paint.
-            let condition = self.Document().needs_reflow();
-            assert!(
-                {
-                    condition.is_none() ||
-                        (!updating_the_rendering &&
-                            condition == Some(ReflowTriggerCondition::PaintPostponed)) ||
-                        self.layout_blocker.get().layout_blocked()
-                },
-                "condition was {:?}",
-                condition
-            );
+            // We shouldn't need a reflow immediately after a completed reflow, unless the reflow didn't
+            // display anything and it wasn't for display. Queries can cause this to happen.
+            if issued_reflow {
+                let condition = self.Document().needs_reflow();
+                let display_is_pending = condition == Some(ReflowTriggerCondition::PaintPostponed);
+                assert!(
+                    condition.is_none() || (display_is_pending && !for_display),
+                    "Needed reflow after reflow: {:?}",
+                    condition
+                );
+            }
         } else {
             debug!(
                 "Document ({:?}) doesn't need reflow - skipping it (goal {reflow_goal:?})",
@@ -2255,17 +2259,20 @@ impl Window {
         ))
     }
 
-    pub fn inner_window_dimensions_query(
+    /// If the given |browsing_context_id| refers to an `<iframe>` that is an element
+    /// in this [`Window`] and that `<iframe>` has been laid out, return its size.
+    /// Otherwise, return `None`.
+    pub(crate) fn get_iframe_size_if_known(
         &self,
-        browsing_context: BrowsingContextId,
+        browsing_context_id: BrowsingContextId,
         can_gc: CanGc,
     ) -> Option<Size2D<f32, CSSPixel>> {
-        if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery, can_gc) {
-            return None;
-        }
-        self.layout
-            .borrow()
-            .query_inner_window_dimension(browsing_context)
+        // Reflow might fail, but do a best effort to return the right size.
+        self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery, can_gc);
+        self.Document()
+            .iframes()
+            .get(browsing_context_id)
+            .and_then(|iframe| iframe.size)
     }
 
     #[allow(unsafe_code)]
@@ -2322,23 +2329,28 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
     pub fn load_url(
         &self,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         force_reload: bool,
         load_data: LoadData,
         can_gc: CanGc,
     ) {
         let doc = self.Document();
+
+        // Step 3. Let initiatorOriginSnapshot be sourceDocument's origin.
+        let initiator_origin_snapshot = &load_data.load_origin;
+
         // TODO: Important re security. See https://github.com/servo/servo/issues/23373
-        // Step 3: check that the source browsing-context is "allowed to navigate" this window.
+        // Step 5. check that the source browsing-context is "allowed to navigate" this window.
         if !force_reload &&
             load_data.url.as_url()[..Position::AfterQuery] ==
                 doc.url().as_url()[..Position::AfterQuery]
         {
             // Step 6
+            // TODO: Fragment handling appears to have moved to step 13
             if let Some(fragment) = load_data.url.fragment() {
                 self.send_to_constellation(ScriptMsg::NavigatedToFragment(
                     load_data.url.clone(),
-                    replace,
+                    history_handling,
                 ));
                 doc.check_and_scroll_fragment(fragment, can_gc);
                 let this = Trusted::new(self);
@@ -2391,13 +2403,38 @@ impl Window {
                 // then put it in the delaying load events mode.
                 window_proxy.start_delaying_load_events_mode();
             }
-            // TODO: step 11, navigationType.
-            // Step 12, 13
+
+            // Step 11. If historyHandling is "auto", then:
+            let resolved_history_handling = if history_handling == NavigationHistoryBehavior::Auto {
+                // Step 11.1. If url equals navigable's active document's URL, and
+                // initiatorOriginSnapshot is same origin with targetNavigable's active document's
+                // origin, then set historyHandling to "replace".
+                // Note: `targetNavigable` is not actually defined in the spec, "active document" is
+                // assumed to be the correct reference based on WPT results
+                if let LoadOrigin::Script(initiator_origin) = initiator_origin_snapshot {
+                    if load_data.url == doc.url() && initiator_origin.same_origin(doc.origin()) {
+                        NavigationHistoryBehavior::Replace
+                    } else {
+                        NavigationHistoryBehavior::Push
+                    }
+                } else {
+                    // Step 11.2. Otherwise, set historyHandling to "push".
+                    NavigationHistoryBehavior::Push
+                }
+            // Step 12. If the navigation must be a replace given url and navigable's active
+            // document, then set historyHandling to "replace".
+            } else if load_data.url.scheme() == "javascript" || doc.is_initial_about_blank() {
+                NavigationHistoryBehavior::Replace
+            } else {
+                NavigationHistoryBehavior::Push
+            };
+
+            // Step 13
             ScriptThread::navigate(
                 window_proxy.browsing_context_id(),
                 pipeline_id,
                 load_data,
-                replace,
+                resolved_history_handling,
             );
         };
     }
@@ -2675,7 +2712,7 @@ impl Window {
 impl Window {
     #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
         task_manager: TaskManager,
@@ -2689,7 +2726,6 @@ impl Window {
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         constellation_chan: ScriptToConstellationChan,
         control_chan: IpcSender<ConstellationControlMsg>,
-        scheduler_chan: IpcSender<TimerSchedulerMsg>,
         pipelineid: PipelineId,
         parent_info: Option<PipelineId>,
         window_size: WindowSizeData,
@@ -2731,7 +2767,6 @@ impl Window {
                 mem_profiler_chan,
                 time_profiler_chan,
                 constellation_chan,
-                scheduler_chan,
                 resource_threads,
                 origin,
                 Some(creator_url),
@@ -3023,4 +3058,11 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     elem.is_html_element()
+}
+
+#[allow(unsafe_code)]
+#[no_mangle]
+/// Helper for interactive debugging sessions in lldb/gdb.
+unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
+    DumpJSStack(cx, true, false, false);
 }
