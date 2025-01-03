@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <input type="file" id="file-input">
+    <script>
+        document.getElementById('file-input').addEventListener('change', () => {
+            console.log('File selected:', document.getElementById('file-input').files[0]);
+        });
+    </script>
+</body>
+</html>

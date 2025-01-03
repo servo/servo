@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs::File;
@@ -12,6 +13,8 @@ use std::vec::Drain;
 use std::{env, thread};
 
 use arboard::Clipboard;
+use eframe::egui;
+use egui_file_dialog::{DialogState, FileDialog};
 use euclid::{Point2D, Vector2D};
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{EventType, Gilrs};
@@ -20,7 +23,7 @@ use log::{debug, error, info, trace, warn};
 use servo::base::id::TopLevelBrowsingContextId as WebViewId;
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
-    CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
+    CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg,
     GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin,
     PromptResult,
 };
@@ -88,7 +91,15 @@ pub struct WebView {
     pub url: Option<ServoUrl>,
     pub focused: bool,
     pub load_status: LoadStatus,
+
+    file_dialog: RefCell<FileDialog>,
+    file_response_sender: RefCell<Option<IpcSender<Option<Vec<String>>>>>,
 }
+
+// struct FileSelectionDialog {
+//     file_dialog: FileDialog,
+//     file_response_sender: Option<IpcSender<Option<Vec<String>>>>,
+// }
 
 impl WebView {
     fn new(rect: DeviceRect, preload_data: WebViewPreloadData) -> Self {
@@ -98,6 +109,50 @@ impl WebView {
             url: preload_data.url,
             focused: false,
             load_status: LoadStatus::LoadComplete,
+
+            // file_selection_dialog: Option<FileSelectionDialog>,
+            file_response_sender: RefCell::default(),
+            file_dialog: RefCell::default(),
+        }
+    }
+
+    pub fn update(&self, ctx: &egui::Context) {
+        use rand::Rng;
+
+        println!("File: webview.rs - update() called, random number: {}", rand::thread_rng().gen::<u32>());
+
+        if self.file_response_sender.borrow().is_some() {
+            if let Some(path) = self.file_dialog.borrow_mut().update(ctx).picked() {
+                //TODO: could i send the above path back to minibrowser.rs and then print it in a
+                // ui.label(format!("Picked file: {:?}", path.display()))? there or like a
+                // ui.label(format!("Picked file: {:?}", self.picked_file)); but here then we will need
+                // to make a getter function for picked_file in WebView struct since things in WebView
+                // struct are private?
+                println!("WebView::update() file selected: {}",path.display());
+
+                if let Some(sender) = self.file_response_sender.borrow_mut().take() {
+                    //println!("File: webview.rs, update() Sending file selection response to servo");
+
+                    let result = if path.exists() {
+                        Some(vec![path.to_string_lossy().into()])
+                        // ok i see that this path is being sent to the sender, now how do i bring it to
+                        // minibrowser.rs to do a ui.label(format!("Picked file: {:?}", self.picked_file));?
+                        // and this picked_file for the ui to accept has to be in path buf?
+                    } else {
+                        None
+                    };
+
+                    if let Err(e) = sender.send(result) {
+                        warn!("Failed to send file selection response: {}", e);
+                    }
+                } else {
+                    println!("File: webview.rs - no file selected");
+                }
+            }
+            if self.file_dialog.borrow().state() == DialogState::Cancelled {
+                println!("File: webview.rs - file dialog cancelled");
+                self.file_response_sender.borrow_mut().take();
+            }
         }
     }
 }
@@ -914,19 +969,23 @@ where
                             .push(EmbedderEvent::SendError(None, reason));
                     };
                 },
-                EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
-                    let res = match (
-                        opts::get().headless,
-                        get_selected_files(patterns, multiple_files),
-                    ) {
-                        (true, _) | (false, None) => sender.send(None),
-                        (false, Some(files)) => sender.send(Some(files)),
-                    };
-                    if let Err(e) = res {
-                        let reason = format!("Failed to send SelectFiles response: {}", e);
-                        self.event_queue
-                            .push(EmbedderEvent::SendError(None, reason));
-                    };
+                EmbedderMsg::SelectFiles(_patterns, _multiple_files, sender) => {
+                    use rand::Rng;
+                    println!("File: webview.rs - SelectFiles {}", rand::thread_rng().gen::<u32>());
+                    if let Some(focused_webview_id) = self.focused_webview_id {
+                        let focused_webview = self.get_mut(focused_webview_id).unwrap();
+                        *focused_webview.file_response_sender.borrow_mut() = Some(sender);
+                        println!("File: webview.rs - invoking pick_file()");
+                        focused_webview.file_dialog.borrow_mut().pick_file();
+                        println!("File: webview.rs - pick_file() invoked");
+                        // focused_webview.load_status = LoadStatus::LoadStart;
+                        need_present = true;
+                        println!("File: webview.rs - need_present set to true");
+                        need_update = true;
+                        println!("File: webview.rs - need_update set to true");
+                    } else {
+                        println!("File: webview.rs - no focused webview id");
+                    }
                 },
                 EmbedderMsg::PromptPermission(prompt, sender) => {
                     let permission_state = prompt_user(prompt);
@@ -1058,39 +1117,6 @@ fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
         }
     }
     None
-}
-
-fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Option<Vec<String>> {
-    let picker_name = if multiple_files {
-        "Pick files"
-    } else {
-        "Pick a file"
-    };
-    thread::Builder::new()
-        .name("FilePicker".to_owned())
-        .spawn(move || {
-            let mut filters = vec![];
-            for p in patterns {
-                let s = "*.".to_string() + &p.0;
-                filters.push(tiny_dialog_escape(&s))
-            }
-            let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-            let filter_opt = if !filters.is_empty() {
-                Some((filter_ref, ""))
-            } else {
-                None
-            };
-
-            if multiple_files {
-                tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt)
-            } else {
-                let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
-                file.map(|x| vec![x])
-            }
-        })
-        .unwrap()
-        .join()
-        .expect("Thread spawning failed")
 }
 
 // This is a mitigation for #25498, not a verified solution.

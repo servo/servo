@@ -106,13 +106,13 @@ webxr = { workspace = true, optional = true }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 arboard = { version = "3" }
-egui = { version = "0.29.1" }
-egui_glow = { version = "0.29.1", features = ["winit"] }
-egui-winit = { version = "0.29.1", default-features = false, features = ["clipboard", "wayland"] }
+egui = { version = "0.30.0" }
+egui_glow = { version = "0.30.0", features = ["winit"] }
+egui-winit = { version = "0.30.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
-glow = "0.14.2"
+glow = "0.16.0"
 headers = { workspace = true }
 http = { workspace = true }
 net = { path = "../../components/net" }
@@ -121,8 +121,11 @@ raw-window-handle = "0.6"
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
+eframe = "0.30.0"
+egui-file-dialog = "0.8.0"
 webxr = { workspace = true, features = ["ipc", "glwindow", "headless"] }
 winit = "0.30.5"
+rand = "0.8.4"
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]
 image = { workspace = true }
