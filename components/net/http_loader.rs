@@ -2159,7 +2159,8 @@ async fn cors_preflight_fetch(
     // Step 6
     let mut fetch_params = FetchParams::new(preflight);
     let response =
-        http_network_or_cache_fetch(&mut fetch_params.request, false, false, &mut None, context).await;
+        http_network_or_cache_fetch(&mut fetch_params.request, false, false, &mut None, context)
+            .await;
     // Step 7
     if cors_check(request, &response).is_ok() && response.status.code().is_success() {
         // Substep 1
