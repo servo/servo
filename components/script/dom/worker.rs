@@ -220,12 +220,15 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         let (control_sender, control_receiver) = unbounded();
         let (context_sender, context_receiver) = unbounded();
 
+        let event_loop_sender = global
+            .event_loop_sender()
+            .expect("Tried to create a worker in a worker while not handling a message?");
         let join_handle = DedicatedWorkerGlobalScope::run_worker_scope(
             init,
             worker_url,
             devtools_receiver,
             worker_ref,
-            global.script_chan(),
+            event_loop_sender,
             sender,
             receiver,
             worker_load_origin,

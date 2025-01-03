@@ -170,16 +170,12 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             }));
 
         let this = Trusted::new(self);
-        let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let task_source = self.global().task_manager().dom_manipulation_task_source();
         Builder::new()
             .name("OfflineACResolver".to_owned())
             .spawn(move || {
                 let _ = receiver.recv();
-                let _ = task_source.queue_with_canceller(
+                let _ = task_source.queue(
                     task!(resolve: move || {
                         let this = this.root();
                         let processed_audio = processed_audio.lock().unwrap();
@@ -207,8 +203,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                                                                      EventCancelable::NotCancelable,
                                                                      &buffer, CanGc::note());
                         event.upcast::<Event>().fire(this.upcast(), CanGc::note());
-                    }),
-                    &canceller,
+                    })
                 );
             })
             .unwrap();

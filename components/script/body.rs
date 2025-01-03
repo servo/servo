@@ -40,8 +40,7 @@ use crate::dom::readablestream::{get_read_promise_bytes, get_read_promise_done, 
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task::TaskCanceller;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 
 /// The Dom object, or ReadableStream, that is the source of a body.
 /// <https://fetch.spec.whatwg.org/#concept-body-source>
@@ -72,7 +71,6 @@ enum StopReading {
 struct TransmitBodyConnectHandler {
     stream: Trusted<ReadableStream>,
     task_source: TaskSource,
-    canceller: TaskCanceller,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
     control_sender: IpcSender<BodyChunkRequest>,
     in_memory: Option<Vec<u8>>,
@@ -84,7 +82,6 @@ impl TransmitBodyConnectHandler {
     pub fn new(
         stream: Trusted<ReadableStream>,
         task_source: TaskSource,
-        canceller: TaskCanceller,
         control_sender: IpcSender<BodyChunkRequest>,
         in_memory: Option<Vec<u8>>,
         source: BodySource,
@@ -92,7 +89,6 @@ impl TransmitBodyConnectHandler {
         TransmitBodyConnectHandler {
             stream,
             task_source,
-            canceller,
             bytes_sender: None,
             control_sender,
             in_memory,
@@ -178,8 +174,9 @@ impl TransmitBodyConnectHandler {
         // If we're using an actual ReadableStream, acquire a reader for it.
         if self.source == BodySource::Null {
             let stream = self.stream.clone();
-            let _ = self.task_source.queue_with_canceller(
-                task!(start_reading_request_body_stream: move || {
+            let _ = self
+                .task_source
+                .queue(task!(start_reading_request_body_stream: move || {
                     // Step 1, Let body be request’s body.
                     let rooted_stream = stream.root();
 
@@ -190,9 +187,7 @@ impl TransmitBodyConnectHandler {
                         .expect("Couldn't acquire a reader for the body stream.");
 
                     // Note: this algorithm continues when the first chunk is requested by `net`.
-                }),
-                &self.canceller,
-            );
+                }));
         }
     }
 
@@ -236,7 +231,7 @@ impl TransmitBodyConnectHandler {
             return;
         }
 
-        let _ = self.task_source.queue_with_canceller(
+        let _ = self.task_source.queue(
             task!(setup_native_body_promise_handler: move || {
                 let rooted_stream = stream.root();
                 let global = rooted_stream.global();
@@ -265,8 +260,7 @@ impl TransmitBodyConnectHandler {
                 let realm = enter_realm(&*global);
                 let comp = InRealm::Entered(&realm);
                 promise.append_native_handler(&handler, comp, CanGc::note());
-            }),
-            &self.canceller,
+            })
         );
     }
 }
@@ -379,7 +373,6 @@ impl ExtractedBody {
 
         let global = stream.global();
         let task_source = global.task_manager().networking_task_source();
-        let canceller = global.task_canceller(TaskSourceName::Networking);
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
         let in_memory = stream.get_in_memory_bytes();
@@ -392,7 +385,6 @@ impl ExtractedBody {
         let mut body_handler = TransmitBodyConnectHandler::new(
             trusted_stream,
             task_source,
-            canceller,
             chunk_request_sender.clone(),
             in_memory,
             source,

@@ -81,12 +81,8 @@ impl VideoTrackList {
             return;
         }
 
-        let global = &self.global();
         let this = Trusted::new(self);
-        let (source, canceller) = global
-            .as_window()
-            .task_manager()
-            .media_element_task_source_with_canceller();
+        let task_source = self.global().task_manager().media_element_task_source();
 
         if let Some(current) = self.selected_index() {
             self.tracks.borrow()[current].set_selected(false);
@@ -97,13 +93,10 @@ impl VideoTrackList {
             media_element.set_video_track(idx, value);
         }
 
-        let _ = source.queue_with_canceller(
-            task!(media_track_change: move || {
-                let this = this.root();
-                this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
-            }),
-            &canceller,
-        );
+        let _ = task_source.queue(task!(media_track_change: move || {
+            let this = this.root();
+            this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
+        }));
     }
 
     pub fn add(&self, track: &VideoTrack) {
