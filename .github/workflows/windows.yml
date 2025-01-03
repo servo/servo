@@ -22,6 +22,10 @@ on:
         required: false
         type: boolean
         default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -41,6 +45,10 @@ on:
         required: false
         type: boolean
         default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
@@ -163,7 +171,7 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-windows
+          name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
@@ -171,7 +179,7 @@ jobs:
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: win
+          name: ${{ inputs.profile }}-binary-windows
           # These files are available
           # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
           # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.exe
@@ -186,3 +194,16 @@ jobs:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+  bencher:
+    needs: ["build"]
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: 'windows'
+      profile: ${{ inputs.profile }}
+      binary-path: ${{ inputs.profile }}-binary-windows/Servo.exe
+      file-size: true
+      stripped-file-size: ${{ inputs.profile == 'production' }}
+      speedometer: false
+      dromaeo: false
+    secrets: inherit

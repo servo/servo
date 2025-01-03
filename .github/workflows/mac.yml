@@ -25,6 +25,10 @@ on:
       github-release-id:
         required: false
         type: string
+      bencher:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -48,6 +52,11 @@ on:
         required: false
         default: false
         type: boolean
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
 
 env:
   RUST_BACKTRACE: 1
@@ -112,13 +121,13 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-macos
+          name: cargo-timings-macos-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: mac
+          name: ${{ inputs.profile }}-binary-mac
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Upload nightly
         if: ${{ inputs.upload }}
@@ -158,4 +167,18 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-layout: "layout-2013"
       wpt-args: ${{ inputs.wpt-args }}
+    secrets: inherit
+
+  bencher:
+    needs: ["build"]
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: 'macos'
+      profile: ${{ inputs.profile }}
+      binary-path: target/${{ inputs.profile }}/servo
+      file-size: true
+      stripped-file-size: ${{ inputs.profile == 'production' }}
+      speedometer: false
+      dromaeo: false
     secrets: inherit

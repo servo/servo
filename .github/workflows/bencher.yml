@@ -1,6 +1,35 @@
-name: Linux WPT Tests
+name: Bencher
 on:
   workflow_call:
+    inputs:
+      target:
+        required: false
+        default: "linux"
+        type: string
+      profile:
+        required: false
+        default: "release"
+        type: string
+      binary-path:
+        required: false
+        default: ""
+        type: string
+      file-size:
+        required: false
+        default: false
+        type: boolean
+      stripped-file-size:
+        required: false
+        default: false
+        type: boolean
+      speedometer:
+        required: false
+        default: false
+        type: boolean
+      dromaeo:
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   checks: write
@@ -13,7 +42,7 @@ env:
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
 
 jobs:
-  linux-bencher:
+  bencher:
     name: Bencher
     # keep this in sync with testbed
     runs-on: ubuntu-22.04
@@ -31,26 +60,51 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: release-binary-linux
-          path: release-binary-linux
-      - name: unPackage binary
-        run: tar -xzf release-binary-linux/target.tar.gz
+          name: ${{ inputs.profile }}-binary-${{ inputs.target }}
+          path: ${{ inputs.profile }}-binary-${{ inputs.target }}
+      # Linux and macOS uploads compressed binary, need to extract first
+      - name: unPackage binary (Linux or macOS)
+        if: ${{ inputs.target == 'linux' || inputs.target == 'macos' }}
+        run: tar -xzf ${{ inputs.profile }}-binary-${{ inputs.target }}/target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
+        if: ${{ inputs.speedometer == true || inputs.dromaeo == true }}
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
           python3 ./mach bootstrap --skip-lints
       - uses: bencherdev/bencher@main
       - name: File size
-        run: ./etc/ci/bencher.py filesize target/release/servo --bmf-output size.json
+        if: ${{ inputs.file-size == true }}
+        run: |
+            ./etc/ci/bencher.py filesize ${{ inputs.binary-path }} ${{ inputs.target }}-${{ inputs.profile }} --bmf-output size.json
+            echo "SERVO_FILE_SIZE_RESULT=size.json" >> "$GITHUB_ENV"
+      # We'll additionally strip and measure the size of the binary when using production profile
+      - name: Install LLVM
+        if: ${{ inputs.stripped-file-size == true }}
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "17"
+      - name: Install llvm-strip dependency
+        if: ${{ inputs.stripped-file-size == true }}
+        run: sudo apt install libncurses5
+      - name: File size (llvm stripped)
+        if: ${{ inputs.stripped-file-size == true }}
+        run: |
+            llvm-strip ${{ inputs.binary-path }}
+            ./etc/ci/bencher.py filesize ${{ inputs.binary-path }} ${{ inputs.target }}-${{ inputs.profile }}-stripped --bmf-output size-stripped.json
+            echo "SERVO_STRIPPED_FILE_SIZE_RESULT=size-stripped.json" >> "$GITHUB_ENV"
       - name: Speedometer
+        if: ${{ inputs.speedometer == true }}
         run: |
             python3 ./mach test-speedometer -r --bmf-output speedometer.json
+            echo "SERVO_SPEEDOMETER_RESULT=speedometer.json" >> "$GITHUB_ENV"
       - name: Dromaeo
+        if: ${{ inputs.dromaeo == true }}
         run: |
             python3 ./mach test-dromaeo -r dom --bmf-output dromaeo.json
+            echo "SERVO_DROMAEO_RESULT=dromaeo.json" >> "$GITHUB_ENV"
       # set options
       - name: Set bencher opts for PRs (label try run)
         if: github.event_name == 'pull_request_target'
@@ -80,7 +134,7 @@ jobs:
       - name: Send results
         continue-on-error: true
         run: |
-          ./etc/ci/bencher.py merge size.json speedometer.json dromaeo.json --bmf-output b.json
+          ./etc/ci/bencher.py merge ${{ env.SERVO_FILE_SIZE_RESULT }} ${{ env.SERVO_STRIPPED_FILE_SIZE_RESULT }} ${{ env.SERVO_SPEEDOMETER_RESULT }} ${{ env.SERVO_DROMAEO_RESULT }} --bmf-output b.json
           bencher run --adapter json --file b.json \
             --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed ubuntu-22.04 \
             $RUN_BENCHER_OPTIONS

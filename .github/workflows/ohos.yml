@@ -13,6 +13,11 @@ on:
       github-release-id:
         required: false
         type: string
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
   workflow_dispatch:
     inputs:
       profile:
@@ -21,6 +26,11 @@ on:
         type: choice
         description: "Cargo build profile"
         options: [ "release", "debug", "production"]
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
 
 env:
   RUST_BACKTRACE: 1
@@ -34,6 +44,8 @@ jobs:
     strategy:
       matrix:
         target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+    outputs:
+      signed: $${{ steps.signing-config.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
@@ -70,6 +82,7 @@ jobs:
           npm install "@ohos/hvigor@5" "@ohos/hvigor-ohos-plugin@5"
           echo "HVIGOR_PATH=$PWD" >> $GITHUB_ENV
       - name: "Setup HAP signing config"
+        id: signing-config
         env:
           SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
         if: ${{ inputs.upload || env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
@@ -78,6 +91,7 @@ jobs:
           echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
           unzip servo-ohos-material.zip
           echo "SERVO_OHOS_SIGNING_CONFIG=${PWD}/servo-ohos-material/signing-configs.json" >> $GITHUB_ENV
+          echo "signed=true" >> "$GITHUB_OUTPUT"
       - name: Build (arch ${{ matrix.target }} profile ${{ inputs.profile }})
         env:
           OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
@@ -88,7 +102,7 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-ohos-${{ matrix.target }}
+          name: cargo-timings-ohos-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload nightly
@@ -118,3 +132,35 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
+
+  bencher-signed:
+    needs: ["build"]
+    strategy:
+      matrix:
+        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' && needs.build.outputs.signed == true }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: ohos-${{ matrix.target }}
+      profile: ${{ inputs.profile }}
+      binary-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-signed.hap
+      file-size: true
+      speedometer: false
+      dromaeo: false
+    secrets: inherit
+  bencher-unsigned:
+    needs: ["build"]
+    strategy:
+      matrix:
+        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' && needs.build.outputs.signed != true }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: ohos-${{ matrix.target }}
+      profile: ${{ inputs.profile }}
+      binary-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-unsigned.hap
+      file-size: true
+      stripped-file-size: false
+      speedometer: false
+      dromaeo: false
+    secrets: inherit
