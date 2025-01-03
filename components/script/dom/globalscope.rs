@@ -60,7 +60,7 @@ use script_traits::{
     PortMessageTask, ScriptMsg, ScriptToConstellationChan,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use timers::{BoxedTimerCallback, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
+use timers::{TimerEventId, TimerEventRequest, TimerSource};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu::{DeviceLostReason, WebGPUDevice};
@@ -385,15 +385,6 @@ struct BroadcastListener {
     task_source: TaskSource,
     context: Trusted<GlobalScope>,
 }
-
-/// A wrapper between timer events coming in over IPC, and the event-loop.
-#[derive(Clone)]
-pub(crate) struct TimerListener {
-    canceller: TaskCanceller,
-    task_source: TaskSource,
-    context: Trusted<GlobalScope>,
-}
-
 type FileListenerCallback = Box<dyn Fn(Rc<Promise>, Fallible<Vec<u8>>) + Send>;
 
 /// A wrapper for the handling of file data received by the ipc router
@@ -525,38 +516,6 @@ impl BroadcastListener {
             }),
             &self.canceller,
         );
-    }
-}
-
-impl TimerListener {
-    /// Handle a timer-event coming from the [`timers::TimerScheduler`]
-    /// by queuing the appropriate task on the relevant event-loop.
-    fn handle(&self, event: TimerEvent) {
-        let context = self.context.clone();
-        // Step 18, queue a task,
-        // https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-        let _ = self.task_source.queue_with_canceller(
-            task!(timer_event: move || {
-                let global = context.root();
-                let TimerEvent(source, id) = event;
-                match source {
-                    TimerSource::FromWorker => {
-                        global.downcast::<WorkerGlobalScope>().expect("Window timer delivered to worker");
-                    },
-                    TimerSource::FromWindow(pipeline) => {
-                        assert_eq!(pipeline, global.pipeline_id());
-                        global.downcast::<Window>().expect("Worker timer delivered to window");
-                    },
-                };
-                // Step 7, substeps run in a task.
-                global.fire_timer(id, CanGc::note());
-            }),
-            &self.canceller,
-        );
-    }
-
-    pub fn into_callback(self) -> BoxedTimerCallback {
-        Box::new(move |timer_event| self.handle(timer_event))
     }
 }
 
@@ -850,20 +809,7 @@ impl GlobalScope {
     }
 
     fn timers(&self) -> &OneshotTimers {
-        self.timers.get_or_init(|| {
-            let (task_source, canceller) = (
-                self.task_manager().timer_task_source(),
-                self.task_canceller(TaskSourceName::Timer),
-            );
-            OneshotTimers::new(
-                self,
-                TimerListener {
-                    context: Trusted::new(self),
-                    task_source,
-                    canceller,
-                },
-            )
-        })
+        self.timers.get_or_init(|| OneshotTimers::new(self))
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
