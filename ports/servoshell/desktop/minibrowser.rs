@@ -383,7 +383,10 @@ impl Minibrowser {
                 for (_, webview) in webviews.webviews().into_iter() {
                     use rand::Rng;
 
-                    println!("File: minibrowser.rs - update() called, random number: {}", rand::thread_rng().gen::<u32>());
+                    println!(
+                        "File: minibrowser.rs - update() called, random number: {}",
+                        rand::thread_rng().gen::<u32>()
+                    );
                     webview.update(ctx);
                 }
             });

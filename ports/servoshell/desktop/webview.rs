@@ -119,7 +119,10 @@ impl WebView {
     pub fn update(&self, ctx: &egui::Context) {
         use rand::Rng;
 
-        println!("File: webview.rs - update() called, random number: {}", rand::thread_rng().gen::<u32>());
+        println!(
+            "File: webview.rs - update() called, random number: {}",
+            rand::thread_rng().gen::<u32>()
+        );
 
         if self.file_response_sender.borrow().is_some() {
             if let Some(path) = self.file_dialog.borrow_mut().update(ctx).picked() {
@@ -128,7 +131,7 @@ impl WebView {
                 // ui.label(format!("Picked file: {:?}", self.picked_file)); but here then we will need
                 // to make a getter function for picked_file in WebView struct since things in WebView
                 // struct are private?
-                println!("WebView::update() file selected: {}",path.display());
+                println!("WebView::update() file selected: {}", path.display());
 
                 if let Some(sender) = self.file_response_sender.borrow_mut().take() {
                     //println!("File: webview.rs, update() Sending file selection response to servo");
@@ -983,7 +986,10 @@ where
                 },
                 EmbedderMsg::SelectFiles(_patterns, _multiple_files, sender) => {
                     use rand::Rng;
-                    println!("File: webview.rs - SelectFiles {}", rand::thread_rng().gen::<u32>());
+                    println!(
+                        "File: webview.rs - SelectFiles {}",
+                        rand::thread_rng().gen::<u32>()
+                    );
                     if let Some(focused_webview_id) = self.focused_webview_id {
                         let focused_webview = self.get_mut(focused_webview_id).unwrap();
                         *focused_webview.file_response_sender.borrow_mut() = Some(sender);
