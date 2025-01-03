@@ -10,7 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::window_from_node;
+use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -28,10 +28,9 @@ impl DOMStringMap {
     }
 
     pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
-        let window = window_from_node(element);
         reflect_dom_object(
             Box::new(DOMStringMap::new_inherited(element)),
-            &*window,
+            &*element.owner_window(),
             CanGc::note(),
         )
     }

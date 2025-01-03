@@ -137,8 +137,8 @@ use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpe
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, ChildrenMutation, LayoutNodeHelpers, Node,
-    NodeDamage, NodeFlags, ShadowIncluding, UnbindContext,
+    BindContext, ChildrenMutation, LayoutNodeHelpers, Node, NodeDamage, NodeFlags, NodeTraits,
+    ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -1748,7 +1748,7 @@ impl Element {
         };
         let value = &**attr.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        document_from_node(self)
+        self.owner_document()
             .base_url()
             .join(value)
             .map(|parsed| USVString(parsed.into_string()))
@@ -1972,7 +1972,7 @@ impl Element {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
                 template.Content(can_gc).upcast::<Node>().owner_doc()
             } else {
-                document_from_node(self)
+                self.owner_document()
             }
         };
         let fragment = DocumentFragment::new(&context_document, can_gc);
@@ -2011,8 +2011,7 @@ impl Element {
         if !self.is_connected() {
             return false;
         }
-        let document = document_from_node(self);
-        document.get_allow_fullscreen()
+        self.owner_document().get_allow_fullscreen()
     }
 
     // https://html.spec.whatwg.org/multipage/#home-subtree
@@ -2088,8 +2087,7 @@ impl Element {
 
         // https://html.spec.whatwg.org/multipage/#focus-fixup-rule
         if !is_sequentially_focusable {
-            let document = document_from_node(self);
-            document.perform_focus_fixup_rule(self, can_gc);
+            self.owner_document().perform_focus_fixup_rule(self, can_gc);
         }
     }
 
@@ -2176,7 +2174,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> DomRoot<NamedNodeMap> {
         self.attr_list
-            .or_init(|| NamedNodeMap::new(&window_from_node(self), self))
+            .or_init(|| NamedNodeMap::new(&self.owner_window(), self))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattributes
@@ -2413,7 +2411,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     fn GetElementsByTagName(&self, localname: DOMString) -> DomRoot<HTMLCollection> {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         HTMLCollection::by_qualified_name(&window, self.upcast(), LocalName::from(&*localname))
     }
 
@@ -2423,19 +2421,19 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         maybe_ns: Option<DOMString>,
         localname: DOMString,
     ) -> DomRoot<HTMLCollection> {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> DomRoot<HTMLCollection> {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         HTMLCollection::by_class_name(&window, self.upcast(), classes)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
     fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
-        let win = window_from_node(self);
+        let win = self.owner_window();
         let raw_rects = self.upcast::<Node>().content_boxes(can_gc);
         let rects: Vec<DomRoot<DOMRect>> = raw_rects
             .iter()
@@ -2455,7 +2453,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
-        let win = window_from_node(self);
+        let win = self.owner_window();
         let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
         DOMRect::new(
             win.upcast(),
@@ -2749,7 +2747,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             self.local_name().clone(),
         );
 
-        let result = if document_from_node(self).is_html_document() {
+        let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
                 .html_serialize(ChildrenOnly(Some(qname)))
         } else {
@@ -2792,7 +2790,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
     fn GetOuterHTML(&self) -> Fallible<DOMString> {
-        let result = if document_from_node(self).is_html_document() {
+        let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>().html_serialize(IncludeNode)
         } else {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)
@@ -2803,7 +2801,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
     fn SetOuterHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        let context_document = document_from_node(self);
+        let context_document = self.owner_document();
         let context_node = self.upcast::<Node>();
         // Step 1.
         let context_parent = match context_node.GetParentNode() {
@@ -2859,7 +2857,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> DomRoot<HTMLCollection> {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         HTMLCollection::children(&window, self.upcast())
     }
 
@@ -2930,7 +2928,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         let url = doc.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
             &selectors,
@@ -2953,7 +2951,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         let url = doc.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
             &selectors,
@@ -2985,7 +2983,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-insertadjacenttext
     fn InsertAdjacentText(&self, where_: DOMString, data: DOMString, can_gc: CanGc) -> ErrorResult {
         // Step 1.
-        let text = Text::new(data, &document_from_node(self), can_gc);
+        let text = Text::new(data, &self.owner_document(), can_gc);
 
         // Step 2.
         let where_ = where_.parse::<AdjacentPosition>()?;
@@ -3055,7 +3053,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
     fn RequestFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         doc.enter_fullscreen(self, can_gc)
     }
 
@@ -3488,7 +3486,7 @@ impl VirtualMethods for Element {
                             attr.swap_value(&mut value);
                             block
                         } else {
-                            let win = window_from_node(self);
+                            let win = self.owner_window();
                             Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                                 &attr.value(),
                                 &UrlExtraData(doc.base_url().get_arc()),
@@ -3512,7 +3510,7 @@ impl VirtualMethods for Element {
                         None
                     }
                 });
-                let containing_shadow_root = self.upcast::<Node>().containing_shadow_root();
+                let containing_shadow_root = self.containing_shadow_root();
                 if node.is_connected() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
@@ -3614,7 +3612,7 @@ impl VirtualMethods for Element {
             f.bind_form_control_to_tree();
         }
 
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
 
         if let Some(ref shadow_root) = self.shadow_root() {
             shadow_root.bind_to_tree(context);
@@ -3627,14 +3625,14 @@ impl VirtualMethods for Element {
         self.update_sequentially_focusable_status(CanGc::note());
 
         if let Some(ref id) = *self.id_attribute.borrow() {
-            if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
+            if let Some(shadow_root) = self.containing_shadow_root() {
                 shadow_root.register_element_id(self, id.clone());
             } else {
                 doc.register_element_id(self, id.clone());
             }
         }
         if let Some(ref name) = self.name_attribute() {
-            if self.upcast::<Node>().containing_shadow_root().is_none() {
+            if self.containing_shadow_root().is_none() {
                 doc.register_element_name(self, name.clone());
             }
         }
@@ -3659,21 +3657,21 @@ impl VirtualMethods for Element {
 
         self.update_sequentially_focusable_status(CanGc::note());
 
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
 
         let fullscreen = doc.GetFullscreenElement();
         if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen(CanGc::note());
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
-            if let Some(ref shadow_root) = self.upcast::<Node>().containing_shadow_root() {
+            if let Some(ref shadow_root) = self.containing_shadow_root() {
                 shadow_root.unregister_element_id(self, value.clone());
             } else {
                 doc.unregister_element_id(self, value.clone());
             }
         }
         if let Some(ref value) = self.name_attribute() {
-            if self.upcast::<Node>().containing_shadow_root().is_none() {
+            if self.containing_shadow_root().is_none() {
                 doc.unregister_element_name(self, value.clone());
             }
         }
@@ -3711,7 +3709,7 @@ impl VirtualMethods for Element {
     fn adopting_steps(&self, old_doc: &Document) {
         self.super_type().unwrap().adopting_steps(old_doc);
 
-        if document_from_node(self).is_html_document() != old_doc.is_html_document() {
+        if self.owner_document().is_html_document() != old_doc.is_html_document() {
             self.tag_name.clear();
         }
     }
@@ -3737,8 +3735,7 @@ impl SelectorsElement for DomRoot<Element> {
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        self.upcast::<Node>()
-            .containing_shadow_root()
+        self.containing_shadow_root()
             .map(|shadow_root| shadow_root.Host())
     }
 
@@ -4004,7 +4001,7 @@ impl Element {
             rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
         }
 
-        self.ensure_rare_data().client_rect = Some(window_from_node(self).cache_layout_value(rect));
+        self.ensure_rare_data().client_rect = Some(self.owner_window().cache_layout_value(rect));
         rect
     }
 
@@ -4282,7 +4279,7 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#cannot-navigate
     pub fn cannot_navigate(&self) -> bool {
-        let document = document_from_node(self);
+        let document = self.owner_document();
 
         // Step 1.
         !document.is_fully_active() ||
@@ -4441,7 +4438,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     fn run_once(self) {
         let element = self.element.root();
         let promise = self.promise.root();
-        let document = document_from_node(&*element);
+        let document = element.owner_document();
 
         // Step 7.1
         if self.error || !element.fullscreen_element_ready_check() {
@@ -4485,7 +4482,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
     #[allow(crown::unrooted_must_root)]
     fn run_once(self) {
         let element = self.element.root();
-        let document = document_from_node(&*element);
+        let document = element.owner_document();
         // TODO Step 9.1-5
         // Step 9.6
         element.set_fullscreen_state(false);
@@ -4548,7 +4545,7 @@ pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
         .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
         .map(|attribute: DomRoot<Attr>| determine_policy_for_token(&attribute.Value()))
-        .unwrap_or(document_from_node(element).get_referrer_policy())
+        .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {

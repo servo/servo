@@ -65,7 +65,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{
     HTMLScriptElement, ScriptId, ScriptOrigin, ScriptType, SCRIPT_JS_MIMES,
 };
-use crate::dom::node::document_from_node;
+use crate::dom::node::NodeTraits;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -962,8 +962,7 @@ impl ModuleOwner {
             ModuleOwner::Window(script) => {
                 let global = self.global();
 
-                let document = document_from_node(&*script.root());
-
+                let document = script.root().owner_document();
                 let load = {
                     let module_tree = module_identity.get_module_tree(&global);
 
@@ -1745,7 +1744,7 @@ fn fetch_single_module_script(
 
     let document: Option<DomRoot<Document>> = match &owner {
         ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
-        ModuleOwner::Window(script) => Some(document_from_node(&*script.root())),
+        ModuleOwner::Window(script) => Some(script.root().owner_document()),
     };
 
     // Step 7-8.

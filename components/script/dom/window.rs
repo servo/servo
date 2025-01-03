@@ -133,7 +133,7 @@ use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::navigator::Navigator;
-use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, NodeDamage};
+use crate::dom::node::{from_untrusted_node_address, Node, NodeDamage, NodeTraits};
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
@@ -882,7 +882,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let container = window_proxy.frame_element()?;
 
         // Step 6.
-        let container_doc = document_from_node(container);
+        let container_doc = container.owner_document();
         let current_doc = GlobalScope::current()
             .expect("No current global object")
             .as_window()

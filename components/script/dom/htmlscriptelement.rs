@@ -54,9 +54,7 @@ use crate::dom::element::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{
-    document_from_node, window_from_node, ChildrenMutation, CloneChildrenFlag, Node,
-};
+use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
@@ -343,7 +341,7 @@ fn finish_fetching_a_classic_script(
     // Step 11, Asynchronously complete this algorithm with script,
     // which refers to step 26.6 "When the chosen algorithm asynchronously completes",
     // of https://html.spec.whatwg.org/multipage/#prepare-a-script
-    let document = document_from_node(elem);
+    let document = elem.owner_document();
 
     match script_kind {
         ExternalScriptKind::Asap => document.asap_script_loaded(elem, load),
@@ -537,7 +535,7 @@ impl ResourceTimingListener for ClassicContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        document_from_node(&*self.elem.root()).global()
+        self.elem.root().owner_document().global()
     }
 }
 
@@ -578,7 +576,7 @@ fn fetch_a_classic_script(
     character_encoding: &'static Encoding,
 ) {
     // Step 1, 2.
-    let doc = document_from_node(script);
+    let doc = script.owner_document();
     let request = script_fetch_request(
         url.clone(),
         cors_setting,
@@ -652,7 +650,7 @@ impl HTMLScriptElement {
         self.already_started.set(true);
 
         // Step 12.
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         if self.parser_inserted.get() && *self.parser_document != *doc {
             return;
         }
@@ -916,7 +914,7 @@ impl HTMLScriptElement {
     /// <https://html.spec.whatwg.org/multipage/#execute-the-script-block>
     pub fn execute(&self, result: ScriptResult) {
         // Step 1.
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         if self.parser_inserted.get() && *doc != *self.parser_document {
             return;
         }
@@ -940,7 +938,7 @@ impl HTMLScriptElement {
         // Step 3.
         let neutralized_doc = if script.external || script.type_ == ScriptType::Module {
             debug!("loading external script, url = {}", script.url);
-            let doc = document_from_node(self);
+            let doc = self.owner_document();
             doc.incr_ignore_destructive_writes_counter();
             Some(doc)
         } else {
@@ -948,7 +946,7 @@ impl HTMLScriptElement {
         };
 
         // Step 4.
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let old_script = document.GetCurrentScript();
 
         match script.type_ {
@@ -982,13 +980,13 @@ impl HTMLScriptElement {
     pub fn run_a_classic_script(&self, script: &ScriptOrigin, can_gc: CanGc) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
-        let document = document_from_node(self);
+        let document = self.owner_document();
         if !document.is_fully_active() || !document.is_scripting_enabled() {
             return;
         }
 
         // Steps 4-10
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let line_number = if script.external {
             1
         } else {
@@ -1012,13 +1010,13 @@ impl HTMLScriptElement {
     pub fn run_a_module_script(&self, script: &ScriptOrigin, _rethrow_errors: bool, can_gc: CanGc) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
-        let document = document_from_node(self);
+        let document = self.owner_document();
         if !document.is_fully_active() || !document.is_scripting_enabled() {
             return;
         }
 
         // Step 4
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let global = window.upcast::<GlobalScope>();
         let _aes = AutoEntryScript::new(global);
 
@@ -1063,7 +1061,7 @@ impl HTMLScriptElement {
     }
 
     pub fn queue_error_event(&self) {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         window
             .task_manager()
             .dom_manipulation_task_source()
@@ -1165,7 +1163,7 @@ impl HTMLScriptElement {
         cancelable: EventCancelable,
         can_gc: CanGc,
     ) -> EventStatus {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
         event.fire(self.upcast(), can_gc)
     }
@@ -1198,10 +1196,11 @@ impl VirtualMethods for HTMLScriptElement {
             // This method can be invoked while there are script/layout blockers present
             // as DOM mutations have not yet settled. We use a delayed task to avoid
             // running any scripts until the DOM tree is safe for interactions.
-            document_from_node(self).add_delayed_task(task!(ScriptPrepare: move || {
-                let this = script.root();
-                this.prepare(CanGc::note());
-            }));
+            self.owner_document()
+                .add_delayed_task(task!(ScriptPrepare: move || {
+                    let this = script.root();
+                    this.prepare(CanGc::note());
+                }));
         }
     }
 

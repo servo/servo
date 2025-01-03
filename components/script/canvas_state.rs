@@ -53,7 +53,7 @@ use crate::dom::element::{cors_setting_for_element, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{window_from_node, Node, NodeDamage};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
@@ -1086,7 +1086,7 @@ impl CanvasState {
             None => return, // offscreen canvas doesn't have a placeholder canvas
         };
         let node = canvas.upcast::<Node>();
-        let window = window_from_node(canvas);
+        let window = canvas.owner_window();
         let resolved_font_style =
             match window.resolved_font_style_query(node, value.to_string(), can_gc) {
                 Some(value) => value,

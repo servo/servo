@@ -128,7 +128,7 @@ macro_rules! make_form_action_getter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            let doc = $crate::dom::node::document_from_node(self);
+            let doc = $crate::dom::node::NodeTraits::owner_document(self);
             let attr = element.get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
             let value = attr.as_ref().map(|attr| attr.value());
             let value = match value {
@@ -410,7 +410,7 @@ macro_rules! define_event_handler(
 macro_rules! define_window_owned_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().$getter()
             } else {
@@ -419,7 +419,7 @@ macro_rules! define_window_owned_event_handler(
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().$setter(listener)
             }

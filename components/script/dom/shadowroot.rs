@@ -25,7 +25,7 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
 use crate::dom::node::{
-    document_from_node, BindContext, Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext,
+    BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -314,7 +314,7 @@ impl VirtualMethods for ShadowRoot {
         }
 
         if context.tree_connected {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             document.register_shadow_root(self);
         }
 
@@ -332,7 +332,7 @@ impl VirtualMethods for ShadowRoot {
         }
 
         if context.tree_connected {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             document.unregister_shadow_root(self);
         }
     }

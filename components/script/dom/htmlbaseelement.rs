@@ -15,7 +15,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -60,7 +60,7 @@ impl HTMLBaseElement {
                 "The frozen base url is only defined for base elements \
                  that have a base url.",
             );
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let base = document.fallback_base_url();
         let parsed = base.join(&href.value());
         parsed.unwrap_or(base)
@@ -74,7 +74,7 @@ impl HTMLBaseElement {
         }
 
         if self.upcast::<Element>().has_attribute(&local_name!("href")) {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             document.refresh_base_element();
         }
     }
@@ -84,7 +84,7 @@ impl HTMLBaseElementMethods<crate::DomTypeHolder> for HTMLBaseElement {
     // https://html.spec.whatwg.org/multipage/#dom-base-href
     fn Href(&self) -> DOMString {
         // Step 1.
-        let document = document_from_node(self);
+        let document = self.owner_document();
 
         // Step 2.
         let attr = self
@@ -120,7 +120,7 @@ impl VirtualMethods for HTMLBaseElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         if *attr.local_name() == local_name!("href") {
-            document_from_node(self).refresh_base_element();
+            self.owner_document().refresh_base_element();
         }
     }
 

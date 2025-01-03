@@ -15,12 +15,12 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::htmlscriptelement::SourceCode;
-use crate::dom::node::document_from_node;
+use crate::dom::node::NodeTraits;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
 
 pub fn load_script(head: &HTMLHeadElement) {
-    let doc = document_from_node(head);
+    let doc = head.owner_document();
     let path_str = match doc.window().get_userscripts_path() {
         Some(p) => p,
         None => return,

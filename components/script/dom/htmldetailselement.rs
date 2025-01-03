@@ -17,7 +17,7 @@ use crate::dom::document::Document;
 use crate::dom::element::AttributeMutation;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{window_from_node, Node, NodeDamage};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -82,7 +82,7 @@ impl VirtualMethods for HTMLDetailsElement {
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
 
-            let window = window_from_node(self);
+            let window = self.owner_window();
             let this = Trusted::new(self);
             // FIXME(nox): Why are errors silenced here?
             let _ = window.task_manager().dom_manipulation_task_source().queue(

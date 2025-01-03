@@ -43,7 +43,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
@@ -895,7 +895,7 @@ fn run_upgrade_constructor(
     element: &Element,
     can_gc: CanGc,
 ) -> ErrorResult {
-    let window = window_from_node(element);
+    let window = element.owner_window();
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(*cx) let mut element_val = UndefinedValue());
@@ -954,7 +954,7 @@ fn run_upgrade_constructor(
 /// <https://html.spec.whatwg.org/multipage/#concept-try-upgrade>
 pub fn try_upgrade_element(element: &Element) {
     // Step 1
-    let document = document_from_node(element);
+    let document = element.owner_document();
     let namespace = element.namespace();
     let local_name = element.local_name();
     let is = element.get_is();

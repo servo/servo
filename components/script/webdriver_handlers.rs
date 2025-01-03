@@ -58,7 +58,7 @@ use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
@@ -414,8 +414,8 @@ pub fn handle_get_browsing_context_id(
 
 // https://w3c.github.io/webdriver/#dfn-center-point
 fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<Point2D<i64>> {
-    window_from_node(element.upcast::<Node>())
-        .Document()
+    element
+        .owner_document()
         .GetBody()
         .map(DomRoot::upcast::<Element>)
         .and_then(|body| {
@@ -1088,7 +1088,7 @@ pub fn handle_get_css(
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
-                let window = window_from_node(&*node);
+                let window = node.owner_window();
                 let element = node.downcast::<Element>().unwrap();
                 String::from(
                     window

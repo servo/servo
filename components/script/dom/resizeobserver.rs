@@ -21,7 +21,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::resizeobserverentry::ResizeObserverEntry;
 use crate::dom::resizeobserversize::{ResizeObserverSize, ResizeObserverSizeImpl};
 use crate::dom::window::Window;
@@ -111,7 +111,7 @@ impl ResizeObserver {
             let width = box_size.width().to_f64_px();
             let height = box_size.height().to_f64_px();
             let size_impl = ResizeObserverSizeImpl::new(width, height);
-            let window = window_from_node(&**target);
+            let window = target.owner_window();
             let observer_size = ResizeObserverSize::new(&window, size_impl, can_gc);
 
             // Note: content rect is built from content box size.

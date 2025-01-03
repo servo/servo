@@ -52,7 +52,7 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::node::document_from_node;
+use crate::dom::node::NodeTraits;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -501,7 +501,7 @@ impl EventTarget {
         // Step 3.1
         let element = self.downcast::<Element>();
         let document = match element {
-            Some(element) => document_from_node(element),
+            Some(element) => element.owner_document(),
             None => self.downcast::<Window>().unwrap().Document(),
         };
 

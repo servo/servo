@@ -46,9 +46,7 @@ use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, Node, ShadowIncluding, UnbindContext,
-};
+use crate::dom::node::{BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -117,7 +115,7 @@ impl HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
     fn get_inner_outer_text(&self, can_gc: CanGc) -> DOMString {
         let node = self.upcast::<Node>();
-        let window = window_from_node(node);
+        let window = node.owner_window();
         let element = self.as_element();
 
         // Step 1.
@@ -139,7 +137,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
-            let global = window_from_node(self);
+            let global = self.owner_window();
             CSSStyleDeclaration::new(
                 &global,
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
@@ -190,7 +188,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onerror
     fn GetOnerror(&self, can_gc: CanGc) -> Option<Rc<OnErrorEventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnerror()
             } else {
@@ -205,7 +203,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onerror
     fn SetOnerror(&self, listener: Option<Rc<OnErrorEventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnerror(listener)
             }
@@ -219,7 +217,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnload()
             } else {
@@ -234,7 +232,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnload(listener)
             }
@@ -247,7 +245,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onblur
     fn GetOnblur(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnblur()
             } else {
@@ -262,7 +260,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onblur
     fn SetOnblur(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnblur(listener)
             }
@@ -275,7 +273,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onfocus
     fn GetOnfocus(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnfocus()
             } else {
@@ -290,7 +288,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onfocus
     fn SetOnfocus(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnfocus(listener)
             }
@@ -303,7 +301,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onresize
     fn GetOnresize(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnresize()
             } else {
@@ -318,7 +316,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onresize
     fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnresize(listener)
             }
@@ -331,7 +329,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onscroll
     fn GetOnscroll(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnscroll()
             } else {
@@ -346,7 +344,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onscroll
     fn SetOnscroll(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnscroll(listener)
             }
@@ -412,7 +410,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn Focus(&self, can_gc: CanGc) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
-        let document = document_from_node(self);
+        let document = self.owner_document();
         document.request_focus(Some(self.upcast()), FocusType::Element, can_gc);
     }
 
@@ -423,7 +421,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        let document = document_from_node(self);
+        let document = self.owner_document();
         document.request_focus(None, FocusType::Element, can_gc);
     }
 
@@ -434,7 +432,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (element, _) = window.offset_parent_query(node, can_gc);
 
         element
@@ -447,7 +445,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.origin.y.to_nearest_px()
@@ -460,7 +458,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.origin.x.to_nearest_px()
@@ -469,7 +467,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth
     fn OffsetWidth(&self, can_gc: CanGc) -> i32 {
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.size.width.to_nearest_px()
@@ -478,7 +476,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight
     fn OffsetHeight(&self, can_gc: CanGc) -> i32 {
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.size.height.to_nearest_px()
@@ -512,7 +510,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         };
 
         let node = self.upcast::<Node>();
-        let document = document_from_node(self);
+        let document = self.owner_document();
 
         // Step 2: Let next be this's next sibling.
         let next = node.GetNextSibling();
@@ -600,7 +598,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Note: the element can pass this check without yet being a custom
         // element, as long as there is a registered definition
         // that could upgrade it to one later.
-        let registry = document_from_node(self).window().CustomElements();
+        let registry = self.owner_document().window().CustomElements();
         let definition = registry.lookup_definition(self.as_element().local_name(), None);
 
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
@@ -943,7 +941,7 @@ impl HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
     fn rendered_text_fragment(&self, input: DOMString, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let fragment = DocumentFragment::new(&document, can_gc);
 
         // Step 2: Let position be a position variable for input, initially pointing at the start
@@ -1036,7 +1034,7 @@ impl VirtualMethods for HTMLElement {
                 let evtarget = self.upcast::<EventTarget>();
                 let source_line = 1; //TODO(#9604) get current JS execution line
                 evtarget.set_event_handler_uncompiled(
-                    window_from_node(self).get_url(),
+                    self.owner_window().get_url(),
                     source_line,
                     &name[2..],
                     // FIXME(ajeffrey): Convert directly from AttrValue to DOMString

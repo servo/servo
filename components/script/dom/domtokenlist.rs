@@ -14,7 +14,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
-use crate::dom::node::window_from_node;
+use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -46,14 +46,13 @@ impl DOMTokenList {
         local_name: &LocalName,
         supported_tokens: Option<Vec<Atom>>,
     ) -> DomRoot<DOMTokenList> {
-        let window = window_from_node(element);
         reflect_dom_object(
             Box::new(DOMTokenList::new_inherited(
                 element,
                 local_name.clone(),
                 supported_tokens,
             )),
-            &*window,
+            &*element.owner_window(),
             CanGc::note(),
         )
     }

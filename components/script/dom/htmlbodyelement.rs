@@ -20,7 +20,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, BindContext, Node};
+use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -86,10 +86,8 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     fn SetBackground(&self, input: DOMString, can_gc: CanGc) {
-        let value = AttrValue::from_resolved_url(
-            &document_from_node(self).base_url().get_arc(),
-            input.into(),
-        );
+        let value =
+            AttrValue::from_resolved_url(&self.owner_document().base_url().get_arc(), input.into());
         self.upcast::<Element>()
             .set_attribute(&local_name!("background"), value, can_gc);
     }
@@ -152,7 +150,7 @@ impl VirtualMethods for HTMLBodyElement {
             return;
         }
 
-        let window = window_from_node(self);
+        let window = self.owner_window();
         window.prevent_layout_until_load_event();
         if window.is_top_level() {
             window.send_to_embedder(EmbedderMsg::HeadParsed);
@@ -165,7 +163,7 @@ impl VirtualMethods for HTMLBodyElement {
                 AttrValue::from_legacy_color(value.into())
             },
             local_name!("background") => AttrValue::from_resolved_url(
-                &document_from_node(self).base_url().get_arc(),
+                &self.owner_document().base_url().get_arc(),
                 value.into(),
             ),
             _ => self
@@ -178,7 +176,7 @@ impl VirtualMethods for HTMLBodyElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         let do_super_mutate = match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
-                let window = window_from_node(self);
+                let window = self.owner_window();
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
                 match name {

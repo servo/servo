@@ -11,14 +11,13 @@ use style::stylesheets::{CssRuleTypes, Stylesheet as StyleStyleSheet};
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
-use crate::dom::node::{stylesheets_owner_from_node, Node};
+use crate::dom::node::NodeTraits;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -86,7 +85,9 @@ impl CSSStyleSheet {
 
     pub fn set_disabled(&self, disabled: bool) {
         if self.style_stylesheet.set_disabled(disabled) && self.get_owner().is_some() {
-            stylesheets_owner_from_node(self.get_owner().unwrap().upcast::<Node>())
+            self.get_owner()
+                .unwrap()
+                .stylesheet_list_owner()
                 .invalidate_stylesheets();
         }
     }

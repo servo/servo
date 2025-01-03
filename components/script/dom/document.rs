@@ -152,8 +152,7 @@ use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
-    self, document_from_node, window_from_node, CloneChildrenFlag, Node, NodeDamage, NodeFlags,
-    ShadowIncluding,
+    self, CloneChildrenFlag, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
 };
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
@@ -2261,7 +2260,7 @@ impl Document {
             let iframes: Vec<_> = self.iframes().iter().collect();
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
-                let document = document_from_node(&**iframe);
+                let document = iframe.owner_document();
                 can_unload = document.prompt_to_unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
@@ -2333,7 +2332,7 @@ impl Document {
             let iframes: Vec<_> = self.iframes().iter().collect();
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
-                let document = document_from_node(&**iframe);
+                let document = iframe.owner_document();
                 document.unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
@@ -2501,7 +2500,7 @@ impl Document {
                             // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
                             document.window.upcast::<GlobalScope>().schedule_callback(
                                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
-                                    window: window_from_node(&*document),
+                                    window: DomRoot::from_ref(document.window()),
                                     url: url.clone(),
                                 }),
                                 Duration::from_secs(*time),
@@ -5314,7 +5313,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // TODO: prompt to unload.
         // TODO: set unload_event_start and unload_event_end
 
-        window_from_node(self).set_navigation_start();
+        self.window().set_navigation_start();
 
         // Step 8
         // TODO: https://github.com/servo/servo/issues/21937

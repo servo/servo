@@ -37,7 +37,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, ReadyState};
-use crate::dom::node::{document_from_node, window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
@@ -125,7 +125,7 @@ impl HTMLVideoElement {
         let sent_resize = if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             None
         } else {
-            let window = window_from_node(self);
+            let window = self.owner_window();
             let task_source = window.task_manager().media_element_task_source();
             task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
             Some((width, height))
@@ -168,7 +168,7 @@ impl HTMLVideoElement {
         }
 
         // Step 3.
-        let poster_url = match document_from_node(self).url().join(poster_url) {
+        let poster_url = match self.owner_document().url().join(poster_url) {
             Ok(url) => url,
             Err(_) => return,
         };
@@ -176,7 +176,7 @@ impl HTMLVideoElement {
         // Step 4.
         // We use the image cache for poster frames so we save as much
         // network activity as possible.
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let image_cache = window.image_cache();
         let sender = generate_cache_listener_for_element(self);
         let cache_result = image_cache.track_image(
@@ -211,7 +211,7 @@ impl HTMLVideoElement {
         can_gc: CanGc,
     ) {
         // Continuation of step 4.
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let request = RequestBuilder::new(poster_url.clone(), document.global().get_referrer())
             .destination(Destination::Image)
             .credentials_mode(CredentialsMode::Include)
@@ -228,7 +228,7 @@ impl HTMLVideoElement {
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);
         *blocker.borrow_mut() = Some(LoadBlocker::new(
-            &document_from_node(self),
+            &self.owner_document(),
             LoadType::Image(poster_url.clone()),
         ));
 
@@ -236,7 +236,8 @@ impl HTMLVideoElement {
 
         // TODO: If this is supposed to to be a "fetch" as defined in the specification
         // this should probably be integrated into the Document's list of cancellable fetches.
-        document_from_node(self).fetch_background(request, context, Some(cancel_receiver));
+        self.owner_document()
+            .fetch_background(request, context, Some(cancel_receiver));
     }
 }
 
@@ -418,7 +419,7 @@ impl ResourceTimingListener for PosterFrameFetchContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        document_from_node(&*self.elem.root()).global()
+        self.elem.root().owner_document().global()
     }
 }
 
@@ -430,7 +431,7 @@ impl PreInvoke for PosterFrameFetchContext {
 
 impl PosterFrameFetchContext {
     fn new(elem: &HTMLVideoElement, url: ServoUrl, id: PendingImageId) -> PosterFrameFetchContext {
-        let window = window_from_node(elem);
+        let window = elem.owner_window();
         PosterFrameFetchContext {
             image_cache: window.image_cache(),
             elem: Trusted::new(elem),

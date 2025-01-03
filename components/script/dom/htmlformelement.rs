@@ -73,8 +73,7 @@ use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, Node, NodeFlags, UnbindContext,
-    VecPreOrderInsertionHelper,
+    BindContext, Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper,
 };
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
@@ -421,7 +420,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             let filter = Box::new(ElementsFilter {
                 form: DomRoot::from_ref(self),
             });
-            let window = window_from_node(self);
+            let window = self.owner_window();
             HTMLFormControlsCollection::new(&window, self, filter)
         }))
     }
@@ -439,7 +438,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
     fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
-        let window = window_from_node(self);
+        let window = self.owner_window();
 
         let name = Atom::from(name);
 
@@ -687,7 +686,7 @@ impl HTMLFormElement {
         }
 
         // Step 1, 3
-        document_from_node(self).encoding()
+        self.owner_document().encoding()
     }
 
     // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
@@ -735,7 +734,7 @@ impl HTMLFormElement {
             return;
         }
         // Step 3
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         let base = doc.base_url();
         // TODO: Handle browsing contexts (Step 4, 5)
         // Step 6
@@ -1220,7 +1219,7 @@ impl HTMLFormElement {
         // Step 3-6
         let ret = self.get_unclean_dataset(submitter, encoding);
 
-        let window = window_from_node(self);
+        let window = self.owner_window();
 
         // Step 6
         let form_data = FormData::new(Some(ret), &window.global(), can_gc);
@@ -1543,7 +1542,7 @@ pub trait FormControl: DomObject {
 
         let new_owner = if self.is_listed() && has_form_id && elem.is_connected() {
             // Step 3
-            let doc = document_from_node(node);
+            let doc = node.owner_document();
             let form_id = elem.get_string_attribute(&local_name!("form"));
             doc.GetElementById(form_id)
                 .and_then(DomRoot::downcast::<HTMLFormElement>)
@@ -1596,8 +1595,8 @@ pub trait FormControl: DomObject {
         let node = elem.upcast::<Node>();
 
         if self.is_listed() && !form_id.is_empty() && node.is_connected() {
-            let doc = document_from_node(node);
-            doc.register_form_id_listener(form_id, self);
+            node.owner_document()
+                .register_form_id_listener(form_id, self);
         }
     }
 
@@ -1606,8 +1605,8 @@ pub trait FormControl: DomObject {
         let form_id = elem.get_string_attribute(&local_name!("form"));
 
         if self.is_listed() && !form_id.is_empty() {
-            let doc = document_from_node(elem.upcast::<Node>());
-            doc.unregister_form_id_listener(form_id, self);
+            elem.owner_document()
+                .unregister_form_id_listener(form_id, self);
         }
     }
 

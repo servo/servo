@@ -30,7 +30,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::event::Event;
-use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
+use crate::dom::node::{from_untrusted_node_address, Node, NodeDamage, NodeTraits};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -516,7 +516,7 @@ impl Animations {
                     DOMString::from(pseudo_element.to_css_string())
                 });
             let elapsed_time = Finite::new(event.elapsed_time as f32).unwrap();
-            let window = window_from_node(&*node);
+            let window = node.owner_window();
 
             if event.event_type.is_transition_event() {
                 let event_init = TransitionEventInit {

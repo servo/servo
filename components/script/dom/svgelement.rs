@@ -13,7 +13,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -70,7 +70,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
-            let global = window_from_node(self);
+            let global = self.owner_window();
             CSSStyleDeclaration::new(
                 &global,
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),

@@ -34,8 +34,7 @@ use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{
-    window_from_node, BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage,
-    UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
@@ -651,7 +650,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
-                let window = window_from_node(self);
+                let window = self.owner_window();
                 window
                     .task_manager()
                     .user_interaction_task_source()
@@ -714,7 +713,7 @@ impl Validatable for HTMLTextAreaElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {

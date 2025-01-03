@@ -21,7 +21,7 @@ use crate::dom::element::Element;
 use crate::dom::file::File;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -88,7 +88,7 @@ impl ElementInternals {
     }
 
     pub fn new(element: &HTMLElement) -> DomRoot<ElementInternals> {
-        let global = window_from_node(element);
+        let global = element.owner_window();
         reflect_dom_object(
             Box::new(ElementInternals::new_inherited(element)),
             &*global,
@@ -348,7 +348,7 @@ impl Validatable for ElementInternals {
         debug_assert!(self.is_target_form_associated());
         self.validity_state.or_init(|| {
             ValidityState::new(
-                &window_from_node(self.target_element.upcast::<Node>()),
+                &self.target_element.owner_window(),
                 self.target_element.upcast(),
             )
         })

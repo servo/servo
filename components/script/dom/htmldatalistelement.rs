@@ -13,7 +13,7 @@ use crate::dom::document::Document;
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -54,7 +54,7 @@ impl HTMLDataListElement {
 impl HTMLDataListElementMethods<crate::DomTypeHolder> for HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
     fn Options(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(&window_from_node(self), self.upcast(), |element, _| {
+        HTMLCollection::new_with_filter_fn(&self.owner_window(), self.upcast(), |element, _| {
             element.is::<HTMLOptionElement>()
         })
     }

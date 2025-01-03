@@ -34,7 +34,7 @@ use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFo
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -279,7 +279,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-select-options
     fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
-            let window = window_from_node(self);
+            let window = self.owner_window();
             HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter))
         })
     }
@@ -510,7 +510,7 @@ impl Validatable for HTMLSelectElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {

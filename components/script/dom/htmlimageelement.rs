@@ -82,10 +82,7 @@ use crate::dom::htmlmapelement::HTMLMapElement;
 use crate::dom::htmlpictureelement::HTMLPictureElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, Node, NodeDamage, ShadowIncluding,
-    UnbindContext,
-};
+use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::values::UNSIGNED_LONG_MAX;
@@ -357,7 +354,7 @@ pub(crate) fn image_fetch_request(
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl, can_gc: CanGc) {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let image_cache = window.image_cache();
         let sender = generate_cache_listener_for_element(self);
         let cache_result = image_cache.track_image(
@@ -393,8 +390,8 @@ impl HTMLImageElement {
     }
 
     fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
-        let document = document_from_node(self);
-        let window = window_from_node(self);
+        let document = self.owner_document();
+        let window = self.owner_window();
 
         let context = ImageContext {
             image_cache: window.image_cache(),
@@ -691,7 +688,7 @@ impl HTMLImageElement {
         source_size_list: &mut SourceSizeList,
         _width: Option<Length>,
     ) -> Au {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let quirks_mode = document.quirks_mode();
         let result = source_size_list.evaluate(document.window().layout().device(), quirks_mode);
         result
@@ -699,7 +696,7 @@ impl HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
     fn matches_environment(&self, media_query: String) -> bool {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let quirks_mode = document.quirks_mode();
         let document_url_data = UrlExtraData(document.url().get_arc());
         // FIXME(emilio): This should do the same that we do for other media
@@ -792,7 +789,8 @@ impl HTMLImageElement {
 
         // Step 5
         let mut best_candidate = max;
-        let device_pixel_ratio = document_from_node(self)
+        let device_pixel_ratio = self
+            .owner_document()
             .window()
             .window_size()
             .device_pixel_ratio
@@ -821,7 +819,7 @@ impl HTMLImageElement {
         request.source_url = Some(src.clone());
         request.image = None;
         request.metadata = None;
-        let document = document_from_node(self);
+        let document = self.owner_document();
         LoadBlocker::terminate(&request.blocker, can_gc);
         *request.blocker.borrow_mut() =
             Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
@@ -882,7 +880,7 @@ impl HTMLImageElement {
 
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data_sync_steps(&self, can_gc: CanGc) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let window = document.window();
         let task_source = window.task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
@@ -949,7 +947,7 @@ impl HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     pub fn update_the_image_data(&self, can_gc: CanGc) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let window = document.window();
         let elem = self.upcast::<Element>();
         let src = elem.get_url_attribute(&local_name!("src"));
@@ -1072,7 +1070,7 @@ impl HTMLImageElement {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
-            let window = window_from_node(elem);
+            let window = elem.owner_window();
             let (task_source, canceller) = window
                 .task_manager()
                 .networking_task_source_with_canceller();
@@ -1106,7 +1104,7 @@ impl HTMLImageElement {
         }
 
         let elem = self.upcast::<Element>();
-        let document = document_from_node(elem);
+        let document = elem.owner_document();
         let has_pending_request = matches!(self.image_request.get(), ImageRequestPhase::Pending);
 
         // Step 2
@@ -1152,7 +1150,7 @@ impl HTMLImageElement {
             can_gc,
         );
 
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let image_cache = window.image_cache();
 
         // Step 14
@@ -1203,7 +1201,7 @@ impl HTMLImageElement {
 
     // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
         if !document.is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
@@ -1233,7 +1231,7 @@ impl HTMLImageElement {
     }
 
     fn reject_image_decode_promises(&self) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         for promise in self.image_decode_promises.borrow().iter() {
             promise.reject_native(&DOMException::new(
                 &document.global(),
@@ -1251,7 +1249,7 @@ impl HTMLImageElement {
         selected_pixel_density: f64,
     ) {
         let this = Trusted::new(self);
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let src = src.0;
         let _ = window.task_manager().dom_manipulation_task_source().queue(
             task!(image_load_event: move || {
@@ -1369,7 +1367,8 @@ impl HTMLImageElement {
             return None;
         }
 
-        let useMapElements = document_from_node(self)
+        let useMapElements = self
+            .owner_document()
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLMapElement>)
@@ -1847,7 +1846,7 @@ impl VirtualMethods for HTMLImageElement {
         if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
-        let document = document_from_node(self);
+        let document = self.owner_document();
         if context.tree_connected {
             document.register_responsive_image(self);
         }
@@ -1863,7 +1862,7 @@ impl VirtualMethods for HTMLImageElement {
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
-        let document = document_from_node(self);
+        let document = self.owner_document();
         document.unregister_responsive_image(self);
 
         // The element is removed from a picture parent element

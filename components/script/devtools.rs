@@ -37,7 +37,7 @@ use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::SourceCode;
-use crate::dom::node::{stylesheets_owner_from_node, window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
@@ -152,7 +152,7 @@ pub fn handle_get_children(
             let inline: Vec<_> = parent
                 .children()
                 .map(|child| {
-                    let window = window_from_node(&*child);
+                    let window = child.owner_window();
                     let Some(elem) = child.downcast::<Element>() else {
                         return false;
                     };
@@ -231,7 +231,7 @@ pub fn handle_get_stylesheet_style(
 
         let document = documents.find_document(pipeline)?;
         let _realm = enter_realm(document.window());
-        let owner = stylesheets_owner_from_node(&*node);
+        let owner = node.stylesheet_list_owner();
 
         let stylesheet = owner.stylesheet_at(stylesheet)?;
         let list = stylesheet.GetCssRules().ok()?;
@@ -275,7 +275,7 @@ pub fn handle_get_selectors(
 
         let document = documents.find_document(pipeline)?;
         let _realm = enter_realm(document.window());
-        let owner = stylesheets_owner_from_node(&*node);
+        let owner = node.stylesheet_list_owner();
 
         let rules = (0..owner.stylesheet_count())
             .filter_map(|i| {
@@ -312,7 +312,7 @@ pub fn handle_get_computed_style(
         Some(found_node) => found_node,
     };
 
-    let window = window_from_node(&*node);
+    let window = node.owner_window();
     let elem = node
         .downcast::<Element>()
         .expect("This should be an element");
@@ -353,7 +353,7 @@ pub fn handle_get_layout(
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
-    let window = window_from_node(&*node);
+    let window = node.owner_window();
     let elem = node
         .downcast::<Element>()
         .expect("should be getting layout of element");

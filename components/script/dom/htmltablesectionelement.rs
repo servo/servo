@@ -19,7 +19,7 @@ use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -64,14 +64,10 @@ impl HTMLTableSectionElement {
 impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(
-            &window_from_node(self),
-            self.upcast(),
-            |element, root| {
-                element.is::<HTMLTableRowElement>() &&
-                    element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-            },
-        )
+        HTMLCollection::new_with_filter_fn(&self.owner_window(), self.upcast(), |element, root| {
+            element.is::<HTMLTableRowElement>() &&
+                element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow

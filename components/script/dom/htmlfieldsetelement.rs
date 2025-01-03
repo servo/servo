@@ -21,7 +21,7 @@ use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmllegendelement::HTMLLegendElement;
-use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -88,7 +88,7 @@ impl HTMLFieldSetElement {
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
     fn Elements(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(&window_from_node(self), self.upcast(), |element, _| {
+        HTMLCollection::new_with_filter_fn(&self.owner_window(), self.upcast(), |element, _| {
             element
                 .downcast::<HTMLElement>()
                 .is_some_and(HTMLElement::is_listed_element)
@@ -271,7 +271,7 @@ impl Validatable for HTMLFieldSetElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {

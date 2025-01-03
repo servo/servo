@@ -413,7 +413,7 @@ impl Node {
         // Spec says the choice of which global to create
         // the mouse event on is not well-defined,
         // and refers to heycam/webidl#135
-        let win = window_from_node(self);
+        let win = self.owner_window();
 
         let mouse_event = MouseEvent::new(
             &win, // ambiguous in spec
@@ -813,7 +813,7 @@ impl Node {
     /// Returns the rendered bounding content box if the element is rendered,
     /// and none otherwise.
     pub fn bounding_content_box(&self, can_gc: CanGc) -> Option<Rect<Au>> {
-        window_from_node(self).content_box_query(self, can_gc)
+        self.owner_window().content_box_query(self, can_gc)
     }
 
     pub fn bounding_content_box_or_zero(&self, can_gc: CanGc) -> Rect<Au> {
@@ -821,11 +821,11 @@ impl Node {
     }
 
     pub fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
-        window_from_node(self).content_boxes_query(self, can_gc)
+        self.owner_window().content_boxes_query(self, can_gc)
     }
 
     pub fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
-        window_from_node(self).client_rect_query(self, can_gc)
+        self.owner_window().client_rect_query(self, can_gc)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
@@ -1044,7 +1044,7 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     #[allow(unsafe_code)]
     pub fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let iter = self.query_selector_iter(selectors)?;
         Ok(NodeList::new_simple_list(&window, iter))
     }
@@ -1296,7 +1296,10 @@ impl Node {
     }
 
     pub fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
-        if !window_from_node(self).layout_reflow(QueryMsg::StyleQuery, can_gc) {
+        if !self
+            .owner_window()
+            .layout_reflow(QueryMsg::StyleQuery, can_gc)
+        {
             return None;
         }
         self.style_data
@@ -2018,8 +2021,7 @@ impl Node {
         };
 
         // Step 4.
-        let document = document_from_node(parent);
-        Node::adopt(node, &document);
+        Node::adopt(node, &parent.owner_document());
 
         // Step 5.
         Node::insert(
@@ -2216,7 +2218,7 @@ impl Node {
         if string.len() == 0 {
             Node::replace_all(None, parent);
         } else {
-            let text = Text::new(string, &document_from_node(parent), can_gc);
+            let text = Text::new(string, &parent.owner_document(), can_gc);
             Node::replace_all(Some(text.upcast::<Node>()), parent);
         };
     }
@@ -2574,7 +2576,7 @@ impl Node {
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
     pub fn fragment_serialization_algorithm(&self, require_well_formed: bool) -> DOMString {
         // Step 1. Let context document be node's node document.
-        let context_document = document_from_node(self);
+        let context_document = self.owner_document();
 
         // Step 2. If context document is an HTML document, return the result of HTML fragment serialization algorithm
         // with node, false, and « ».
@@ -2894,7 +2896,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         let previous_sibling = child.GetPreviousSibling();
 
         // Step 10.
-        let document = document_from_node(self);
+        let document = self.owner_document();
         Node::adopt(node, &document);
 
         let removed_child = if node != child {
@@ -3310,30 +3312,44 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 }
 
-pub fn document_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Document> {
-    derived.upcast().owner_doc()
+pub(crate) trait NodeTraits {
+    /// Get the [`Document`] that owns this node. Note that this may differ from the
+    /// [`Document`] that the node was created in if it was adopted by a different
+    /// [`Document`] (the owner).
+    fn owner_document(&self) -> DomRoot<Document>;
+    /// Get the [`Window`] of the [`Document`] that owns this node. Note that this may
+    /// differ from the [`Document`] that the node was created in if it was adopted by a
+    /// different [`Document`] (the owner).
+    fn owner_window(&self) -> DomRoot<Window>;
+    /// If this [`Node`] is contained in a [`ShadowRoot`] return it, otherwise `None`.
+    fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>>;
+    /// Get the stylesheet owner for this node: either the [`Document`] or the [`ShadowRoot`]
+    /// of the node.
+    #[allow(crown::unrooted_must_root)]
+    fn stylesheet_list_owner(&self) -> StyleSheetListOwner;
 }
 
-pub fn containing_shadow_root<T: DerivedFrom<Node> + DomObject>(
-    derived: &T,
-) -> Option<DomRoot<ShadowRoot>> {
-    derived.upcast().containing_shadow_root()
-}
-
-#[allow(crown::unrooted_must_root)]
-pub fn stylesheets_owner_from_node<T: DerivedFrom<Node> + DomObject>(
-    derived: &T,
-) -> StyleSheetListOwner {
-    if let Some(shadow_root) = containing_shadow_root(derived) {
-        StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root))
-    } else {
-        StyleSheetListOwner::Document(Dom::from_ref(&*document_from_node(derived)))
+impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
+    fn owner_document(&self) -> DomRoot<Document> {
+        self.upcast().owner_doc()
     }
-}
 
-pub fn window_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> DomRoot<Window> {
-    let document = document_from_node(derived);
-    DomRoot::from_ref(document.window())
+    fn owner_window(&self) -> DomRoot<Window> {
+        DomRoot::from_ref(self.owner_document().window())
+    }
+
+    fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+        Node::containing_shadow_root(self.upcast())
+    }
+
+    #[allow(crown::unrooted_must_root)]
+    fn stylesheet_list_owner(&self) -> StyleSheetListOwner {
+        self.containing_shadow_root()
+            .map(|shadow_root| StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root)))
+            .unwrap_or_else(|| {
+                StyleSheetListOwner::Document(Dom::from_ref(&*self.owner_document()))
+            })
+    }
 }
 
 impl VirtualMethods for Node {

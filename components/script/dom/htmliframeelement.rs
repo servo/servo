@@ -37,7 +37,7 @@ use crate::dom::element::{
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
+use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
@@ -105,7 +105,7 @@ impl HTMLIFrameElement {
                 if url.is_empty() {
                     None
                 } else {
-                    document_from_node(self).base_url().join(&url).ok()
+                    self.owner_document().base_url().join(&url).ok()
                 }
             })
             .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
@@ -148,7 +148,7 @@ impl HTMLIFrameElement {
             Some(id) => id,
         };
 
-        let document = document_from_node(self);
+        let document = self.owner_document();
 
         {
             let load_blocker = &self.load_blocker;
@@ -180,7 +180,7 @@ impl HTMLIFrameElement {
             },
         };
 
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let old_pipeline_id = self.pipeline_id();
         let new_pipeline_id = PipelineId::new();
         self.pending_pipeline_id.set(Some(new_pipeline_id));
@@ -256,8 +256,8 @@ impl HTMLIFrameElement {
             .has_attribute(&local_name!("srcdoc"))
         {
             let url = ServoUrl::parse("about:srcdoc").unwrap();
-            let document = document_from_node(self);
-            let window = window_from_node(self);
+            let document = self.owner_document();
+            let window = self.owner_window();
             let pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
             let mut load_data = LoadData::new(
                 LoadOrigin::Script(document.origin().immutable().clone()),
@@ -277,7 +277,7 @@ impl HTMLIFrameElement {
             return;
         }
 
-        let window = window_from_node(self);
+        let window = self.owner_window();
 
         // https://html.spec.whatwg.org/multipage/#attr-iframe-name
         // Note: the spec says to set the name 'when the nested browsing context is created'.
@@ -307,7 +307,7 @@ impl HTMLIFrameElement {
 
         // Step 2.4: Let referrerPolicy be the current state of element's referrerpolicy content
         // attribute.
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let referrer_policy_token = self.ReferrerPolicy();
 
         // Note: despite not being explicitly stated in the spec steps, this falls back to
@@ -390,8 +390,8 @@ impl HTMLIFrameElement {
         //    compatible #4965](https://github.com/whatwg/html/issues/4965)
         //
         let url = ServoUrl::parse("about:blank").unwrap();
-        let document = document_from_node(self);
-        let window = window_from_node(self);
+        let document = self.owner_document();
+        let window = self.owner_window();
         let pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
@@ -763,7 +763,7 @@ impl VirtualMethods for HTMLIFrameElement {
         LoadBlocker::terminate(blocker, CanGc::note());
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
 

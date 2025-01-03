@@ -23,7 +23,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::htmltableelement::HTMLTableElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -87,7 +87,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     fn Cells(&self) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
             HTMLCollection::new_with_filter_fn(
-                &window_from_node(self),
+                &self.owner_window(),
                 self.upcast(),
                 |element, root| {
                     (element.is::<HTMLTableCellElement>()) &&
