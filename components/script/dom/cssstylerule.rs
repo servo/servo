@@ -20,7 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::node::{stylesheets_owner_from_node, Node};
+use crate::dom::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -120,7 +120,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
             let stylerule = self.stylerule.write_with(&mut guard);
             mem::swap(&mut stylerule.selectors, &mut s);
             if let Some(owner) = self.cssrule.parent_stylesheet().get_owner() {
-                stylesheets_owner_from_node(owner.upcast::<Node>()).invalidate_stylesheets();
+                owner.stylesheet_list_owner().invalidate_stylesheets();
             }
         }
     }

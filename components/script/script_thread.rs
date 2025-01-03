@@ -130,7 +130,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::servoparser::{ParserContext, ServoParser};
@@ -3062,7 +3062,7 @@ impl ScriptThread {
                 .find_iframe(parent_id, browsing_context_id)
         });
         let parent_browsing_context = match (parent_info, iframe.as_ref()) {
-            (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
+            (_, Some(iframe)) => Some(iframe.owner_window().window_proxy()),
             (Some(parent_id), _) => self.remote_window_proxy(
                 window.upcast(),
                 top_level_browsing_context_id,

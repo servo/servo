@@ -18,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::element::Element;
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -282,7 +282,8 @@ impl HTMLCollection {
         }
         impl CollectionFilter for ClassNameFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                let case_sensitivity = document_from_node(elem)
+                let case_sensitivity = elem
+                    .owner_document()
                     .quirks_mode()
                     .classes_and_ids_case_sensitivity();
 

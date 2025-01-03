@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationReco
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::script_runtime::CanGc;
 
@@ -46,7 +46,7 @@ impl MutationRecord {
             None,
             None,
         ));
-        reflect_dom_object(record, &*window_from_node(target), CanGc::note())
+        reflect_dom_object(record, &*target.owner_window(), CanGc::note())
     }
 
     pub fn character_data_mutated(
@@ -65,7 +65,7 @@ impl MutationRecord {
                 None,
                 None,
             )),
-            &*window_from_node(target),
+            &*target.owner_window(),
             CanGc::note(),
         )
     }
@@ -77,7 +77,7 @@ impl MutationRecord {
         next_sibling: Option<&Node>,
         prev_sibling: Option<&Node>,
     ) -> DomRoot<MutationRecord> {
-        let window = window_from_node(target);
+        let window = target.owner_window();
         let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
         let removed_nodes =
             removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
@@ -154,18 +154,14 @@ impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
     fn AddedNodes(&self) -> DomRoot<NodeList> {
-        self.added_nodes.or_init(|| {
-            let window = window_from_node(&*self.target);
-            NodeList::empty(&window)
-        })
+        self.added_nodes
+            .or_init(|| NodeList::empty(&self.target.owner_window()))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
     fn RemovedNodes(&self) -> DomRoot<NodeList> {
-        self.removed_nodes.or_init(|| {
-            let window = window_from_node(&*self.target);
-            NodeList::empty(&window)
-        })
+        self.removed_nodes
+            .or_init(|| NodeList::empty(&self.target.owner_window()))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling

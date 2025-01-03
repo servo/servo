@@ -26,7 +26,7 @@ use crate::dom::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
-use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -333,7 +333,7 @@ impl Validatable for HTMLButtonElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {

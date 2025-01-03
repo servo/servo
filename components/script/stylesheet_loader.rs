@@ -37,7 +37,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
-use crate::dom::node::{containing_shadow_root, document_from_node, window_from_node};
+use crate::dom::node::NodeTraits;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
@@ -179,7 +179,7 @@ impl FetchResponseListener for StylesheetContext {
             let protocol_encoding_label = metadata.charset.as_deref();
             let final_url = metadata.final_url;
 
-            let win = window_from_node(&*elem);
+            let win = elem.owner_window();
 
             let loader = StylesheetLoader::for_element(&elem);
             match self.source {
@@ -288,7 +288,7 @@ impl ResourceTimingListener for StylesheetContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        document_from_node(&*self.elem.root()).global()
+        self.elem.root().owner_document().global()
     }
 }
 
@@ -310,8 +310,11 @@ impl StylesheetLoader<'_> {
         cors_setting: Option<CorsSettings>,
         integrity_metadata: String,
     ) {
-        let document = document_from_node(self.elem);
-        let shadow_root = containing_shadow_root(self.elem).map(|sr| Trusted::new(&*sr));
+        let document = self.elem.owner_document();
+        let shadow_root = self
+            .elem
+            .containing_shadow_root()
+            .map(|sr| Trusted::new(&*sr));
         let gen = self
             .elem
             .downcast::<HTMLLinkElement>()

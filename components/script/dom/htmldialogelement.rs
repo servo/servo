@@ -15,7 +15,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -102,7 +102,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     fn Close(&self, return_value: Option<DOMString>) {
         let element = self.upcast::<Element>();
         let target = self.upcast::<EventTarget>();
-        let win = window_from_node(self);
+        let win = self.owner_window();
 
         // Step 1 & 2
         if element

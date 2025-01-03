@@ -19,7 +19,7 @@ use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::node::document_from_node;
+use crate::dom::node::NodeTraits;
 use crate::dom::types::{Element, GlobalScope};
 use crate::script_runtime::CanGc;
 
@@ -322,7 +322,7 @@ pub fn get_element_target(subject: &Element) -> Option<DOMString> {
         return Some(subject.get_string_attribute(&local_name!("target")));
     }
 
-    let doc = document_from_node(subject).base_element();
+    let doc = subject.owner_document().base_element();
     match doc {
         Some(doc) => {
             let element = doc.upcast::<Element>();
@@ -348,7 +348,7 @@ pub fn follow_hyperlink(
     }
     // Step 2, done in Step 7.
 
-    let document = document_from_node(subject);
+    let document = subject.owner_document();
     let window = document.window();
 
     // Step 3: source browsing context.

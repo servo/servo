@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 
-use super::node::document_from_node;
+use super::node::NodeTraits;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
@@ -106,7 +106,7 @@ impl UIEvent {
         if let Some(target_) = target_ {
             let element = target_.downcast::<Element>();
             let document = match element {
-                Some(element) => document_from_node(element),
+                Some(element) => element.owner_document(),
                 None => target_.downcast::<Window>().unwrap().Document(),
             };
             self.view.set(Some(document.window()));

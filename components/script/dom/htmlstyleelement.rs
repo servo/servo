@@ -24,10 +24,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{
-    document_from_node, stylesheets_owner_from_node, window_from_node, BindContext,
-    ChildrenMutation, Node, UnbindContext,
-};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -91,8 +88,8 @@ impl HTMLStyleElement {
         let element = self.upcast::<Element>();
         assert!(node.is_connected());
 
-        let window = window_from_node(node);
-        let doc = document_from_node(self);
+        let window = node.owner_window();
+        let doc = self.owner_document();
 
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let mq_str = match mq_attribute {
@@ -136,7 +133,7 @@ impl HTMLStyleElement {
 
         // No subresource loads were triggered, queue load event
         if self.pending_loads.get() == 0 {
-            let window = window_from_node(self);
+            let window = self.owner_window();
             window
                 .task_manager()
                 .dom_manipulation_task_source()
@@ -149,7 +146,7 @@ impl HTMLStyleElement {
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
     #[allow(crown::unrooted_must_root)]
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        let stylesheets_owner = stylesheets_owner_from_node(self);
+        let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
             stylesheets_owner.remove_stylesheet(self.upcast(), s)
         }
@@ -166,7 +163,7 @@ impl HTMLStyleElement {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
-                    &window_from_node(self),
+                    &self.owner_window(),
                     self.upcast::<Element>(),
                     "text/css".into(),
                     None, // todo handle location
@@ -235,7 +232,8 @@ impl VirtualMethods for HTMLStyleElement {
         if context.tree_connected {
             if let Some(s) = self.stylesheet.borrow_mut().take() {
                 self.clean_stylesheet_ownership();
-                stylesheets_owner_from_node(self).remove_stylesheet(self.upcast(), &s)
+                self.stylesheet_list_owner()
+                    .remove_stylesheet(self.upcast(), &s)
             }
         }
     }

@@ -14,7 +14,7 @@ use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::node::{document_from_node, BindContext, Node, ShadowIncluding};
+use crate::dom::node::{BindContext, Node, NodeTraits, ShadowIncluding};
 use crate::dom::userscripts::load_script;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -56,7 +56,7 @@ impl HTMLHeadElement {
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
     pub fn set_document_referrer(&self) {
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
 
         if doc.GetHead().as_deref() != Some(self) {
             return;
@@ -87,7 +87,7 @@ impl HTMLHeadElement {
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
     pub fn set_content_security_policy(&self) {
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
 
         if doc.GetHead().as_deref() != Some(self) {
             return;

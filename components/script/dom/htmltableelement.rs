@@ -26,7 +26,7 @@ use crate::dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use crate::dom::htmltablecolelement::HTMLTableColElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{document_from_node, window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -149,13 +149,8 @@ impl HTMLTableElement {
             return section;
         }
 
-        let section = HTMLTableSectionElement::new(
-            atom.clone(),
-            None,
-            &document_from_node(self),
-            None,
-            can_gc,
-        );
+        let section =
+            HTMLTableSectionElement::new(atom.clone(), None, &self.owner_document(), None, can_gc);
         match *atom {
             local_name!("thead") => self.SetTHead(Some(&section)),
             local_name!("tfoot") => self.SetTFoot(Some(&section)),
@@ -192,7 +187,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-rows
     fn Rows(&self) -> DomRoot<HTMLCollection> {
         let filter = self.get_rows();
-        HTMLCollection::new(&window_from_node(self), self.upcast(), Box::new(filter))
+        HTMLCollection::new(&self.owner_window(), self.upcast(), Box::new(filter))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
@@ -225,7 +220,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                 let caption = HTMLTableCaptionElement::new(
                     local_name!("caption"),
                     None,
-                    &document_from_node(self),
+                    &self.owner_document(),
                     None,
                     can_gc,
                 );
@@ -302,7 +297,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     fn TBodies(&self) -> DomRoot<HTMLCollection> {
         self.tbodies.or_init(|| {
             HTMLCollection::new_with_filter_fn(
-                &window_from_node(self),
+                &self.owner_window(),
                 self.upcast(),
                 |element, root| {
                     element.is::<HTMLTableSectionElement>() &&
@@ -318,7 +313,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         let tbody = HTMLTableSectionElement::new(
             local_name!("tbody"),
             None,
-            &document_from_node(self),
+            &self.owner_document(),
             None,
             can_gc,
         );
@@ -346,7 +341,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         let new_row = HTMLTableRowElement::new(
             local_name!("tr"),
             None,
-            &document_from_node(self),
+            &self.owner_document(),
             None,
             can_gc,
         );

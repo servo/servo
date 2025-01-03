@@ -10,7 +10,7 @@ use net_traits::image_cache::{ImageResponse, PendingImageResponse};
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::script_runtime::CanGc;
 
 pub trait ImageCacheListener {
@@ -26,7 +26,7 @@ pub fn generate_cache_listener_for_element<
     let trusted_node = Trusted::new(elem);
     let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
-    let window = window_from_node(elem);
+    let window = elem.owner_window();
     let (task_source, canceller) = window
         .task_manager()
         .networking_task_source_with_canceller();

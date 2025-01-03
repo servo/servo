@@ -66,8 +66,7 @@ use crate::dom::htmlformelement::{
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, CloneChildrenFlag, Node, NodeDamage,
-    ShadowIncluding, UnbindContext,
+    BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
@@ -1271,7 +1270,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
             ValueMode::Filename => {
                 if value.is_empty() {
-                    let window = window_from_node(self);
+                    let window = self.owner_window();
                     let fl = FileList::new(&window, vec![]);
                     self.filelist.set(Some(&fl));
                 } else {
@@ -1842,7 +1841,7 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
     // Select files by invoking UI or by passed in argument
     fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>, can_gc: CanGc) {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let origin = get_blob_origin(&window.get_url());
         let resource_threads = window.upcast::<GlobalScope>().resource_threads();
 
@@ -2064,7 +2063,7 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
     fn implicit_submission(&self, can_gc: CanGc) {
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
         let form = match owner {
@@ -2319,7 +2318,7 @@ impl VirtualMethods for HTMLInputElement {
                         }
 
                         if new_type == InputType::File {
-                            let window = window_from_node(self);
+                            let window = self.owner_window();
                             let filelist = FileList::new(&window, vec![]);
                             self.filelist.set(Some(&filelist));
                         }
@@ -2532,7 +2531,7 @@ impl VirtualMethods for HTMLInputElement {
                     // the space key. There's no nice way to catch this so let's use this for
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
-                        let window = window_from_node(self);
+                        let window = self.owner_window();
                         let index = window.text_index_query(
                             self.upcast::<Node>(),
                             point_in_target,
@@ -2577,7 +2576,7 @@ impl VirtualMethods for HTMLInputElement {
             self.input_type().is_textual_or_password()
         {
             if event.IsTrusted() {
-                let window = window_from_node(self);
+                let window = self.owner_window();
                 window
                     .task_manager()
                     .user_interaction_task_source()
@@ -2656,7 +2655,7 @@ impl Validatable for HTMLInputElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -2833,7 +2832,7 @@ impl Activatable for HTMLInputElement {
                 // Step 1: If the element does not have a form owner, then return.
                 if let Some(form_owner) = self.form_owner() {
                     // Step 2: If the element's node document is not fully active, then return.
-                    let document = document_from_node(self);
+                    let document = self.owner_document();
 
                     if !document.is_fully_active() {
                         return;
@@ -2852,7 +2851,7 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // Step 1: If the element does not have a form owner, then return.
                 if let Some(form_owner) = self.form_owner() {
-                    let document = document_from_node(self);
+                    let document = self.owner_document();
 
                     // Step 2: If the element's node document is not fully active, then return.
                     if !document.is_fully_active() {

@@ -17,7 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::Node;
 use crate::dom::range::Range;
 use crate::script_runtime::CanGc;
 
@@ -88,7 +88,7 @@ impl Selection {
             return;
         }
         let this = Trusted::new(self);
-        let window = window_from_node(&*self.document);
+        let window = self.document.window();
         window
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117

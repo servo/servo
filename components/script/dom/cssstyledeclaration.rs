@@ -28,7 +28,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
-use crate::dom::node::{document_from_node, stylesheets_owner_from_node, window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -67,7 +67,7 @@ impl CSSStyleOwner {
         let mut changed = true;
         match *self {
             CSSStyleOwner::Element(ref el) => {
-                let document = document_from_node(&**el);
+                let document = el.owner_document();
                 let shared_lock = document.style_shared_lock();
                 let mut attr = el.style_attribute().borrow_mut().take();
                 let result = if attr.is_some() {
@@ -122,8 +122,7 @@ impl CSSStyleOwner {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
                     if let Some(owner) = rule.parent_stylesheet().get_owner() {
-                        stylesheets_owner_from_node(owner.upcast::<Node>())
-                            .invalidate_stylesheets();
+                        owner.stylesheet_list_owner().invalidate_stylesheets();
                     }
                 }
                 result
@@ -138,7 +137,7 @@ impl CSSStyleOwner {
         match *self {
             CSSStyleOwner::Element(ref el) => match *el.style_attribute().borrow() {
                 Some(ref pdb) => {
-                    let document = document_from_node(&**el);
+                    let document = el.owner_document();
                     let guard = document.style_shared_lock().read();
                     f(pdb.read_with(&guard))
                 },
@@ -156,14 +155,14 @@ impl CSSStyleOwner {
 
     fn window(&self) -> DomRoot<Window> {
         match *self {
-            CSSStyleOwner::Element(ref el) => window_from_node(&**el),
+            CSSStyleOwner::Element(ref el) => el.owner_window(),
             CSSStyleOwner::CSSRule(ref rule, _) => DomRoot::from_ref(rule.global().as_window()),
         }
     }
 
     fn base_url(&self) -> ServoUrl {
         match *self {
-            CSSStyleOwner::Element(ref el) => window_from_node(&**el).Document().base_url(),
+            CSSStyleOwner::Element(ref el) => el.owner_document().base_url(),
             CSSStyleOwner::CSSRule(ref rule, _) => ServoUrl::from(
                 rule.parent_stylesheet()
                     .style_stylesheet()
@@ -259,7 +258,8 @@ impl CSSStyleDeclaration {
                     return DOMString::new();
                 }
                 let addr = node.to_trusted_node_address();
-                window_from_node(node).resolved_style_query(addr, self.pseudo, property, can_gc)
+                node.owner_window()
+                    .resolved_style_query(addr, self.pseudo, property, can_gc)
             },
         }
     }

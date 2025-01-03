@@ -30,7 +30,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{document_from_node, BindContext, Node};
+use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{follow_hyperlink, LinkRelations};
@@ -95,7 +95,7 @@ impl HTMLAnchorElement {
 
         // Step 3. Let url be the result of encoding-parsing a URL given this element's
         // href content attribute's value, relative to this element's node document.
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let url = document.encoding_parse_a_url(&attribute.value());
 
         // Step 4. If url is not failure, then set this element's url to url.

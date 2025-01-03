@@ -47,10 +47,7 @@ use crate::dom::element::{
     ElementCreator,
 };
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{
-    document_from_node, stylesheets_owner_from_node, window_from_node, BindContext, Node,
-    UnbindContext,
-};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -160,7 +157,7 @@ impl HTMLLinkElement {
     // HTMLStyleElement::set_stylesheet.
     #[allow(crown::unrooted_must_root)]
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        let stylesheets_owner = stylesheets_owner_from_node(self);
+        let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
             stylesheets_owner.remove_stylesheet(self.upcast(), s)
         }
@@ -177,7 +174,7 @@ impl HTMLLinkElement {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
-                    &window_from_node(self),
+                    &self.owner_window(),
                     self.upcast::<Element>(),
                     "text/css".into(),
                     None, // todo handle location
@@ -298,7 +295,8 @@ impl VirtualMethods for HTMLLinkElement {
 
         if let Some(s) = self.stylesheet.borrow_mut().take() {
             self.clean_stylesheet_ownership();
-            stylesheets_owner_from_node(self).remove_stylesheet(self.upcast(), &s);
+            self.stylesheet_list_owner()
+                .remove_stylesheet(self.upcast(), &s);
         }
     }
 }
@@ -391,7 +389,7 @@ impl HTMLLinkElement {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
     fn handle_stylesheet_url(&self, href: &str) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         if document.browsing_context().is_none() {
             return;
         }
@@ -463,7 +461,7 @@ impl HTMLLinkElement {
     }
 
     fn handle_favicon_url(&self, href: &str, _sizes: &Option<String>) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         match document.base_url().join(href) {
             Ok(url) => {
                 let window = document.window();

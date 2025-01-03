@@ -48,7 +48,7 @@ use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -197,7 +197,7 @@ impl HTMLCanvasElement {
                 _ => None,
             };
         }
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let size = self.get_size();
         let context = CanvasRenderingContext2D::new(window.upcast::<GlobalScope>(), self, size);
         *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
@@ -216,7 +216,7 @@ impl HTMLCanvasElement {
                 _ => None,
             };
         }
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
         let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
@@ -248,7 +248,7 @@ impl HTMLCanvasElement {
                 _ => None,
             };
         }
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
         let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
@@ -279,7 +279,7 @@ impl HTMLCanvasElement {
             .recv()
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
-                let window = window_from_node(self);
+                let window = self.owner_window();
                 let context = GPUCanvasContext::new(window.upcast::<GlobalScope>(), self, channel);
                 *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
                 context

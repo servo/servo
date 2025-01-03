@@ -16,7 +16,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::{window_from_node, Node, NodeDamage};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::textinput::{SelectionDirection, SelectionState, TextInput, UTF8Bytes};
 
 pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
@@ -300,7 +300,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Step 6
         if textinput.selection_state() != original_selection_state {
-            let window = window_from_node(self.element);
+            let window = self.element.owner_window();
             window
                 .task_manager()
                 .user_interaction_task_source()

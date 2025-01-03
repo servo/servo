@@ -57,7 +57,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::htmlcanvaselement::{utils as canvas_utils, LayoutCanvasRenderingContextHelpers};
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::promise::Promise;
 use crate::dom::vertexarrayobject::VertexAttribData;
 use crate::dom::webgl_extensions::WebGLExtensions;
@@ -551,8 +551,7 @@ impl WebGLRenderingContext {
         match self.canvas {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
                 canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                let document = document_from_node(&**canvas);
-                document.add_dirty_webgl_canvas(self);
+                canvas.owner_document().add_dirty_webgl_canvas(self);
             },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
         }
@@ -665,7 +664,7 @@ impl WebGLRenderingContext {
             TexImageSource::HTMLImageElement(image) => {
                 let document = match self.canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                        document_from_node(&**canvas)
+                        canvas.owner_document()
                     },
                     HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(ref _canvas) => {
                         // TODO: Support retrieving image pixels here for OffscreenCanvas
@@ -683,7 +682,7 @@ impl WebGLRenderingContext {
 
                 let window = match self.canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                        window_from_node(&**canvas)
+                        canvas.owner_window()
                     },
                     // This is marked as unreachable as we should have returned already
                     HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => unreachable!(),

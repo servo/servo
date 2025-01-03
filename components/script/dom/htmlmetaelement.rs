@@ -27,7 +27,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::location::NavigationType;
-use crate::dom::node::{document_from_node, window_from_node, BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -146,7 +146,7 @@ impl HTMLMetaElement {
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
     fn shared_declarative_refresh_steps(&self, content: DOMString) {
         // 1
-        let document = document_from_node(self);
+        let document = self.owner_document();
         if document.will_declaratively_refresh() {
             return;
         }
@@ -206,7 +206,7 @@ impl HTMLMetaElement {
         // 12-13
         if document.completely_loaded() {
             // TODO: handle active sandboxing flag
-            let window = window_from_node(self);
+            let window = self.owner_window();
             window.upcast::<GlobalScope>().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: window.clone(),

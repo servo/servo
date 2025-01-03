@@ -38,7 +38,7 @@ use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::document::WebGPUContextsMap;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
-use crate::dom::node::{document_from_node, Node, NodeDamage};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::script_runtime::CanGc;
 
 impl HTMLCanvasElementOrOffscreenCanvas {
@@ -141,7 +141,7 @@ impl GPUCanvasContext {
     }
 
     pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
-        let document = document_from_node(canvas);
+        let document = canvas.owner_document();
         let this = reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(
                 global,

@@ -24,7 +24,7 @@ use crate::dom::element::Element;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -57,7 +57,7 @@ impl HTMLOptionsCollection {
 
     fn add_new_elements(&self, count: u32, can_gc: CanGc) -> ErrorResult {
         let root = self.upcast().root_node();
-        let document = document_from_node(&*root);
+        let document = root.owner_document();
 
         for _ in 0..count {
             let element =

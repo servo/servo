@@ -14,7 +14,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, CloneChildrenFlag, Node};
+use crate::dom::node::{CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -64,7 +64,7 @@ impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
     fn Content(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
-            let doc = document_from_node(self);
+            let doc = self.owner_document();
             doc.appropriate_template_contents_owner_document(can_gc)
                 .CreateDocumentFragment(can_gc)
         })
@@ -80,8 +80,9 @@ impl VirtualMethods for HTMLTemplateElement {
     fn adopting_steps(&self, old_doc: &Document) {
         self.super_type().unwrap().adopting_steps(old_doc);
         // Step 1.
-        let doc =
-            document_from_node(self).appropriate_template_contents_owner_document(CanGc::note());
+        let doc = self
+            .owner_document()
+            .appropriate_template_contents_owner_document(CanGc::note());
         // Step 2.
         Node::adopt(self.Content(CanGc::note()).upcast(), &doc);
     }
