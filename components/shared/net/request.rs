@@ -5,7 +5,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use base::id::PipelineId;
+use base::id::{PipelineId, TopLevelBrowsingContextId};
 use content_security_policy::{self as csp};
 use http::header::{HeaderName, AUTHORIZATION};
 use http::{HeaderMap, Method};
@@ -267,6 +267,7 @@ pub struct RequestBuilder {
     pub referrer: Referrer,
     pub referrer_policy: ReferrerPolicy,
     pub pipeline_id: Option<PipelineId>,
+    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
     // to keep track of redirects
@@ -301,6 +302,7 @@ impl RequestBuilder {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
+            target_browsing_context_id: None,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
             url_list: vec![],
@@ -382,6 +384,14 @@ impl RequestBuilder {
         self
     }
 
+    pub fn target_browsing_context_id(
+        mut self,
+        target_browsing_context_id: Option<TopLevelBrowsingContextId>,
+    ) -> RequestBuilder {
+        self.target_browsing_context_id = target_browsing_context_id;
+        self
+    }
+
     pub fn redirect_mode(mut self, redirect_mode: RedirectMode) -> RequestBuilder {
         self.redirect_mode = redirect_mode;
         self
@@ -452,6 +462,7 @@ impl RequestBuilder {
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.policy_container = self.policy_container;
+        request.target_browsing_context_id = self.target_browsing_context_id;
         request
     }
 }
@@ -479,7 +490,7 @@ pub struct Request {
     pub body: Option<RequestBody>,
     // TODO: client object
     pub window: Window,
-    // TODO: target browsing context
+    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
@@ -555,6 +566,7 @@ impl Request {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id,
+            target_browsing_context_id: None,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
