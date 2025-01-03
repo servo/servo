@@ -14,8 +14,6 @@ feature-depth = 1
 ignore = [
     # This is for the usage of time@0.1.45 in WebRender, which should be removed soon.
     "RUSTSEC-2020-0071",
-    # This is for glib < 0.20 which is pulled in by gstreamer
-    "RUSTSEC-2024-0429",
     # This has been yanked, but upgrading to the next version breaks some WPT tests.
     # It needs investigation.
     "url@2.5.3",
