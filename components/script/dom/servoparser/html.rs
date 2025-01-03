@@ -212,7 +212,7 @@ impl Iterator for SerializationIterator {
     }
 }
 
-impl<'a> Serialize for &'a Node {
+impl Serialize for &Node {
     fn serialize<S: Serializer>(
         &self,
         serializer: &mut S,

@@ -356,7 +356,7 @@ impl From<String> for DOMString {
     }
 }
 
-impl<'a> From<&'a str> for DOMString {
+impl From<&str> for DOMString {
     fn from(contents: &str) -> DOMString {
         DOMString::from(String::from(contents))
     }

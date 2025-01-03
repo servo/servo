@@ -681,7 +681,7 @@ pub trait LayoutElementHelpers<'dom> {
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
 }
 
-impl<'dom> LayoutDom<'dom, Element> {
+impl LayoutDom<'_, Element> {
     pub(super) fn focus_state(self) -> bool {
         self.unsafe_get().state.get().contains(ElementState::FOCUS)
     }
@@ -4361,7 +4361,7 @@ pub enum AttributeMutation<'a> {
     Removed,
 }
 
-impl<'a> AttributeMutation<'a> {
+impl AttributeMutation<'_> {
     pub fn is_removal(&self) -> bool {
         match *self {
             AttributeMutation::Removed => true,

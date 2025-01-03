@@ -260,7 +260,7 @@ impl<'a> ThreadLocalStackRoots<'a> {
     }
 }
 
-impl<'a> Drop for ThreadLocalStackRoots<'a> {
+impl Drop for ThreadLocalStackRoots<'_> {
     fn drop(&mut self) {
         STACK_ROOTS.with(|r| r.set(None));
     }
@@ -698,7 +698,7 @@ impl<T: DomObject> PartialEq for MutNullableDom<T> {
     }
 }
 
-impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
+impl<T: DomObject> PartialEq<Option<&T>> for MutNullableDom<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe { *self.ptr.get() == other.map(Dom::from_ref) }
     }

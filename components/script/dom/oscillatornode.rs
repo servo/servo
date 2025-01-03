@@ -157,7 +157,7 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
     }
 }
 
-impl<'a> Convert<ServoMediaOscillatorOptions> for &'a OscillatorOptions {
+impl Convert<ServoMediaOscillatorOptions> for &OscillatorOptions {
     fn convert(self) -> ServoMediaOscillatorOptions {
         ServoMediaOscillatorOptions {
             oscillator_type: self.type_.convert(),

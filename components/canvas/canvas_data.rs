@@ -136,7 +136,7 @@ struct PathBuilderRef<'a> {
     transform: Transform2D<f32>,
 }
 
-impl<'a> PathBuilderRef<'a> {
+impl PathBuilderRef<'_> {
     fn line_to(&mut self, pt: &Point2D<f32>) {
         let pt = self.transform.transform_point(*pt);
         self.builder.line_to(pt);
@@ -238,7 +238,7 @@ struct UnshapedTextRun<'a> {
     string: &'a str,
 }
 
-impl<'a> UnshapedTextRun<'a> {
+impl UnshapedTextRun<'_> {
     fn script_and_font_compatible(&self, script: Script, other_font: &Option<FontRef>) -> bool {
         if self.script != script {
             return false;
@@ -1417,7 +1417,7 @@ impl<'a> CanvasData<'a> {
     }
 }
 
-impl<'a> Drop for CanvasData<'a> {
+impl Drop for CanvasData<'_> {
     fn drop(&mut self) {
         let mut updates = vec![];
         if let Some(image_key) = self.old_image_key.take() {

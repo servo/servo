@@ -187,7 +187,7 @@ impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
     }
 }
 
-impl<'a> Convert<BiquadFilterNodeOptions> for &'a BiquadFilterOptions {
+impl Convert<BiquadFilterNodeOptions> for &BiquadFilterOptions {
     fn convert(self) -> BiquadFilterNodeOptions {
         BiquadFilterNodeOptions {
             gain: *self.gain,

@@ -749,7 +749,7 @@ struct AbsoluteAxisSolver<'a> {
     flip_anchor: bool,
 }
 
-impl<'a> AbsoluteAxisSolver<'a> {
+impl AbsoluteAxisSolver<'_> {
     /// Returns the amount that we need to subtract from the containing block size in order to
     /// obtain the inset-modified containing block that we will use for sizing purposes.
     /// (Note that for alignment purposes, we may re-resolve auto insets to a different value.)

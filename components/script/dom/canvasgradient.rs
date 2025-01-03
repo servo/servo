@@ -75,7 +75,7 @@ pub trait ToFillOrStrokeStyle {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle;
 }
 
-impl<'a> ToFillOrStrokeStyle for &'a CanvasGradient {
+impl ToFillOrStrokeStyle for &CanvasGradient {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         let gradient_stops = self.stops.borrow().clone();
         match self.style {

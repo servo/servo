@@ -310,7 +310,7 @@ pub(crate) struct WebXRBridgeContexts<'a> {
     pub(crate) bound_context_id: &'a mut Option<WebGLContextId>,
 }
 
-impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
+impl WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'_> {
     fn context(&mut self, device: &Device, context_id: WebXRContextId) -> Option<&mut Context> {
         let data = WebGLThread::make_current_if_needed_mut(
             device,

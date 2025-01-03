@@ -189,7 +189,7 @@ impl DisplayList {
     }
 }
 
-impl<'a> DisplayListBuilder<'a> {
+impl DisplayListBuilder<'_> {
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
         &mut self.display_list.wr
     }

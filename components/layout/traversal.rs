@@ -43,7 +43,7 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 }
 
 #[allow(unsafe_code)]
-impl<'a, 'dom, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
+impl<'dom, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'_>
 where
     E: TElement,
     E::ConcreteNode: LayoutNode<'dom>,
@@ -252,7 +252,7 @@ pub struct BubbleISizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
+impl PostorderFlowTraversal for BubbleISizes<'_> {
     #[inline]
     fn process(&self, flow: &mut dyn Flow) {
         flow.bubble_inline_sizes();
@@ -275,7 +275,7 @@ pub struct AssignISizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
+impl PreorderFlowTraversal for AssignISizes<'_> {
     #[inline]
     fn process(&self, flow: &mut dyn Flow) {
         flow.assign_inline_sizes(self.layout_context);
@@ -297,7 +297,7 @@ pub struct AssignBSizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
+impl PostorderFlowTraversal for AssignBSizes<'_> {
     #[inline]
     fn process(&self, flow: &mut dyn Flow) {
         // Can't do anything with anything that floats might flow through until we reach their
@@ -326,7 +326,7 @@ pub struct ComputeStackingRelativePositions<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
+impl PreorderFlowTraversal for ComputeStackingRelativePositions<'_> {
     #[inline]
     fn should_process_subtree(&self, flow: &mut dyn Flow) -> bool {
         flow.base()
@@ -347,7 +347,7 @@ pub struct BuildDisplayList<'a> {
     pub state: DisplayListBuildState<'a>,
 }
 
-impl<'a> BuildDisplayList<'a> {
+impl BuildDisplayList<'_> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut dyn Flow) {
         if flow.has_non_invertible_transform_or_zero_scale() {

@@ -105,7 +105,7 @@ pub struct DocumentsIter<'a> {
     iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }
 
-impl<'a> Iterator for DocumentsIter<'a> {
+impl Iterator for DocumentsIter<'_> {
     type Item = (PipelineId, DomRoot<Document>);
 
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {

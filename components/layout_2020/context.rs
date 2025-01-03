@@ -42,7 +42,7 @@ pub struct LayoutContext<'a> {
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
 }
 
-impl<'a> Drop for LayoutContext<'a> {
+impl Drop for LayoutContext<'_> {
     fn drop(&mut self) {
         if !std::thread::panicking() {
             assert!(self.pending_images.lock().is_empty());
@@ -50,7 +50,7 @@ impl<'a> Drop for LayoutContext<'a> {
     }
 }
 
-impl<'a> LayoutContext<'a> {
+impl LayoutContext<'_> {
     #[inline(always)]
     pub fn shared_context(&self) -> &SharedStyleContext {
         &self.style_context

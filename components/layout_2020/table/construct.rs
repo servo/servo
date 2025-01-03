@@ -39,7 +39,7 @@ pub(super) struct ResolvedSlotAndLocation<'a> {
     pub coords: TableSlotCoordinates,
 }
 
-impl<'a> ResolvedSlotAndLocation<'a> {
+impl ResolvedSlotAndLocation<'_> {
     fn covers_cell_at(&self, coords: TableSlotCoordinates) -> bool {
         let covered_in_x =
             coords.x >= self.coords.x && coords.x < self.coords.x + self.cell.colspan;
@@ -59,7 +59,7 @@ pub(crate) enum AnonymousTableContent<'dom, Node> {
     },
 }
 
-impl<'dom, Node> AnonymousTableContent<'dom, Node> {
+impl<Node> AnonymousTableContent<'_, Node> {
     fn is_whitespace_only(&self) -> bool {
         match self {
             Self::Element { .. } => false,
@@ -725,8 +725,7 @@ where
     }
 }
 
-impl<'style, 'dom, Node: 'dom> TraversalHandler<'dom, Node>
-    for TableBuilderTraversal<'style, 'dom, Node>
+impl<'dom, Node: 'dom> TraversalHandler<'dom, Node> for TableBuilderTraversal<'_, 'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
@@ -987,8 +986,7 @@ where
     }
 }
 
-impl<'style, 'builder, 'dom, 'a, Node: 'dom> TraversalHandler<'dom, Node>
-    for TableRowBuilder<'style, 'builder, 'dom, 'a, Node>
+impl<'dom, Node: 'dom> TraversalHandler<'dom, Node> for TableRowBuilder<'_, '_, 'dom, '_, Node>
 where
     Node: NodeExt<'dom>,
 {

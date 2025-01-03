@@ -302,7 +302,7 @@ impl<'a> StylesheetLoader<'a> {
     }
 }
 
-impl<'a> StylesheetLoader<'a> {
+impl StylesheetLoader<'_> {
     pub fn load(
         &self,
         source: StylesheetContextSource,
@@ -373,7 +373,7 @@ pub(crate) fn stylesheet_fetch_request(
         .integrity_metadata(integrity_metadata)
 }
 
-impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
+impl StyleStylesheetLoader for StylesheetLoader<'_> {
     /// Request a stylesheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_stylesheet(

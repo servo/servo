@@ -152,7 +152,7 @@ pub(super) struct LineItemLayout<'layout_data, 'layout> {
     pub justification_adjustment: Au,
 }
 
-impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
+impl LineItemLayout<'_, '_> {
     pub(super) fn layout_line_items(
         layout: &mut InlineFormattingContextLayout,
         line_items: Vec<LineItem>,

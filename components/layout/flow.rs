@@ -1231,7 +1231,7 @@ impl BaseFlow {
     }
 }
 
-impl<'a> ImmutableFlowUtils for &'a dyn Flow {
+impl ImmutableFlowUtils for &dyn Flow {
     /// Returns true if this flow is a block flow or subclass thereof.
     fn is_block_like(self) -> bool {
         self.class().is_block_like()
@@ -1332,7 +1332,7 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
     }
 }
 
-impl<'a> MutableFlowUtils for &'a mut dyn Flow {
+impl MutableFlowUtils for &mut dyn Flow {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &crate::ServoArc<ComputedValues>) {

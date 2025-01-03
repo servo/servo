@@ -649,7 +649,7 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     baselines: Baselines,
 }
 
-impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
+impl InlineFormattingContextLayout<'_> {
     fn current_inline_container_state(&self) -> &InlineContainerState {
         match self.inline_box_state_stack.last() {
             Some(inline_box_state) => &inline_box_state.base,

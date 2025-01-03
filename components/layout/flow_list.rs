@@ -192,7 +192,7 @@ pub struct FlowListRandomAccessMut<'a> {
     cache: Vec<FlowRef>,
 }
 
-impl<'a> FlowListRandomAccessMut<'a> {
+impl FlowListRandomAccessMut<'_> {
     pub fn get(&mut self, index: usize) -> &mut dyn Flow {
         while index >= self.cache.len() {
             match self.iterator.next() {

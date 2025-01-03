@@ -176,7 +176,7 @@ struct FlexLineItem<'a> {
     used_main_size: Au,
 }
 
-impl<'a> FlexLineItem<'a> {
+impl FlexLineItem<'_> {
     fn get_or_synthesize_baseline_with_cross_size(&self, cross_size: Au) -> Au {
         self.layout_result
             .baseline_relative_to_margin_box

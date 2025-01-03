@@ -1383,7 +1383,7 @@ pub enum FormSubmitterElement<'a> {
     // (including custom elements) that can be passed as submitter.
 }
 
-impl<'a> FormSubmitterElement<'a> {
+impl FormSubmitterElement<'_> {
     fn action(&self) -> DOMString {
         match *self {
             FormSubmitterElement::Form(form) => form.Action(),

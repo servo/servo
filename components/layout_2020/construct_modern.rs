@@ -71,7 +71,7 @@ pub(crate) struct ModernItem<'dom> {
     pub formatting_context: IndependentFormattingContext,
 }
 
-impl<'a, 'dom, Node: 'dom> TraversalHandler<'dom, Node> for ModernContainerBuilder<'a, 'dom, Node>
+impl<'dom, Node: 'dom> TraversalHandler<'dom, Node> for ModernContainerBuilder<'_, 'dom, Node>
 where
     Node: NodeExt<'dom>,
 {

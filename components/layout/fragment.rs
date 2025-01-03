@@ -3353,7 +3353,7 @@ impl<'a> Iterator for InlineStyleIterator<'a> {
     }
 }
 
-impl<'a> InlineStyleIterator<'a> {
+impl InlineStyleIterator<'_> {
     fn new(fragment: &Fragment) -> InlineStyleIterator {
         InlineStyleIterator {
             fragment,

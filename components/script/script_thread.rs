@@ -463,7 +463,7 @@ impl<'a> ScriptMemoryFailsafe<'a> {
     }
 }
 
-impl<'a> Drop for ScriptMemoryFailsafe<'a> {
+impl Drop for ScriptMemoryFailsafe<'_> {
     #[allow(crown::unrooted_must_root)]
     fn drop(&mut self) {
         if let Some(owner) = self.owner {

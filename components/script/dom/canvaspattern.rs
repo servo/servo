@@ -70,7 +70,7 @@ impl CanvasPattern {
     }
 }
 
-impl<'a> ToFillOrStrokeStyle for &'a CanvasPattern {
+impl ToFillOrStrokeStyle for &CanvasPattern {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         FillOrStrokeStyle::Surface(SurfaceStyle::new(
             self.surface_data.clone(),

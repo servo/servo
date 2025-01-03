@@ -83,7 +83,7 @@ impl<'a> AutoWorkerReset<'a> {
     }
 }
 
-impl<'a> Drop for AutoWorkerReset<'a> {
+impl Drop for AutoWorkerReset<'_> {
     fn drop(&mut self) {
         self.workerscope
             .worker
