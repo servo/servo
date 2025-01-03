@@ -12,6 +12,10 @@ https://html.spec.whatwg.org/multipage/#quotes
 > The quotes are derived from the delimiter blocks,
 > with fallback handled as specified in the CLDR documentation.
 
+> TODO(xiaochengh): To support `quotes: auto` correctly, the UA style sheet
+> should not set the `quotes` property directly, but an internal property, and
+> refer to this internal property value when `quotes` computes to `auto`.
+
 */
 
 @namespace url(http://www.w3.org/1999/xhtml);

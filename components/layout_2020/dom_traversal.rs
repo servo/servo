@@ -5,6 +5,7 @@
 use std::borrow::Cow;
 
 use html5ever::{local_name, LocalName};
+use itertools::Itertools;
 use log::warn;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
@@ -14,6 +15,7 @@ use style::dom::{TElement, TShadowRoot};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::generics::counters::{Content, ContentItem};
+use style::values::specified::Quotes;
 
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
@@ -448,10 +450,29 @@ where
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
+                    ContentItem::OpenQuote |
+                    ContentItem::CloseQuote => {
+                        // TODO(xiaochengh): calculate quote depth
+                        let depth = 0;
+                        let quote_pair = match &pseudo_element_style.get_list().quotes {
+                            Quotes::QuoteList(quote_list) => quote_list.0.get(depth),
+                            // TODO(xiaochengh): handle `quotes: auto` correctly
+                            Quotes::Auto => None,
+                        };
+                        if quote_pair.is_some() {
+                            vec.push(PseudoElementContentItem::Text(
+                                if let ContentItem::OpenQuote = item {
+                                    quote_pair.unwrap().opening.to_string()
+                                } else {
+                                    quote_pair.unwrap().closing.to_string()
+                                }
+                            ));
+                        }
+                    }
                     ContentItem::Counter(_, _) |
                     ContentItem::Counters(_, _, _) |
-                    ContentItem::OpenQuote |
-                    ContentItem::CloseQuote |
+                    // ContentItem::OpenQuote |
+                    // ContentItem::CloseQuote |
                     ContentItem::NoOpenQuote |
                     ContentItem::NoCloseQuote => {
                         // TODO: Add support for counters and quotes.

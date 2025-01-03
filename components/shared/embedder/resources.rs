@@ -85,6 +85,10 @@ pub enum Resource {
     /// A CSS file to style the user agent stylesheet.
     /// It can be empty but then there's simply no user agent stylesheet.
     UserAgentCSS,
+    /// A CSS file containing localized quotes characters according to ICU CLDR.
+    /// This is part of the user agent stylesheet, but in a separate file to ease maintenance.
+    /// It can be empty but then quotes will not be displayed.
+    QuotesCSS,
     /// A CSS file to style the Servo browser.
     /// It can be empty but several features might not work as expected.
     ServoCSS,
@@ -128,6 +132,7 @@ impl Resource {
             Resource::BadCertHTML => "badcert.html",
             Resource::NetErrorHTML => "neterror.html",
             Resource::UserAgentCSS => "user-agent.css",
+            Resource::QuotesCSS => "quotes.css",
             Resource::ServoCSS => "servo.css",
             Resource::PresentationalHintsCSS => "presentational-hints.css",
             Resource::QuirksModeCSS => "quirks-mode.css",
@@ -177,6 +182,7 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
                 Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
                 Resource::UserAgentCSS => &include_bytes!("../../../resources/user-agent.css")[..],
+                Resource::QuotesCSS => &include_bytes!("../../../resources/quotes.css")[..],
                 Resource::ServoCSS => &include_bytes!("../../../resources/servo.css")[..],
                 Resource::PresentationalHintsCSS => {
                     &include_bytes!("../../../resources/presentational-hints.css")[..]
