@@ -133,6 +133,7 @@ impl FileManager {
         origin: FileOrigin,
         response: &mut Response,
         range: RangeRequestBounds,
+        is_range_requested: bool,
     ) -> Result<(), BlobURLStoreError> {
         self.fetch_blob_buf(
             done_sender,
@@ -141,6 +142,7 @@ impl FileManager {
             file_token,
             &origin,
             range,
+            is_range_requested,
             response,
         )
     }
@@ -286,6 +288,7 @@ impl FileManager {
         file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
         range: RangeRequestBounds,
+        is_range_requested: bool,
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.store.get_impl(id, file_token, origin_in)?;
@@ -297,14 +300,21 @@ impl FileManager {
 
                 let range = range.to_abs_blob_range(buf.size as usize);
                 let len = range.len() as u64;
-                let content_range =
-                    ContentRange::bytes(range.start as u64..range.end as u64, buf.size).unwrap();
+                let content_range = if is_range_requested {
+                    Some(
+                        ContentRange::bytes(range.start as u64..range.end as u64, buf.size)
+                            .unwrap(),
+                    )
+                } else {
+                    None
+                };
+
                 set_headers(
                     &mut response.headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
                     /* filename */ None,
-                    Some(content_range),
+                    content_range,
                 );
 
                 let mut bytes = vec![];
@@ -341,7 +351,7 @@ impl FileManager {
                     .file_name()
                     .and_then(|osstr| osstr.to_str())
                     .map(|s| s.to_string());
-    
+
                 set_headers(
                     &mut response.headers,
                     metadata.size,
@@ -374,6 +384,7 @@ impl FileManager {
                     RangeRequestBounds::Final(
                         RelativePos::full_range().slice_inner(&inner_rel_pos),
                     ),
+                    is_range_requested,
                     response,
                 )
             },
