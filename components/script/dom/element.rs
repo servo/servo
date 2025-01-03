@@ -3665,7 +3665,11 @@ impl VirtualMethods for Element {
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
             if let Some(ref shadow_root) = self.containing_shadow_root() {
-                shadow_root.unregister_element_id(self, value.clone());
+                // Only unregister the element id if the node was disconnected from it's shadow root
+                // (as opposed to the whole shadow tree being disconnected as a whole)
+                if !self.upcast::<Node>().is_in_shadow_tree() {
+                    shadow_root.unregister_element_id(self, value.clone());
+                }
             } else {
                 doc.unregister_element_id(self, value.clone());
             }

@@ -316,17 +316,28 @@ impl Node {
 
     /// Clean up flags and unbind from tree.
     pub fn complete_remove_subtree(root: &Node, context: &UnbindContext) {
-        for node in root.traverse_preorder(ShadowIncluding::Yes) {
-            // Out-of-document elements never have the descendants flag set.
-            node.set_flag(
-                NodeFlags::IS_IN_DOC |
-                    NodeFlags::IS_CONNECTED |
-                    NodeFlags::HAS_DIRTY_DESCENDANTS |
-                    NodeFlags::HAS_SNAPSHOT |
-                    NodeFlags::HANDLED_SNAPSHOT,
-                false,
-            );
+        // Flags that reset when a node is disconnected
+        const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_DOC
+            .union(NodeFlags::IS_CONNECTED)
+            .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
+            .union(NodeFlags::HAS_SNAPSHOT)
+            .union(NodeFlags::HANDLED_SNAPSHOT);
+
+        for node in root.traverse_preorder(ShadowIncluding::No) {
+            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
+
+            // If the element has a shadow root attached to it then we traverse that as well,
+            // but without touching the IS_IN_SHADOW_TREE flags of the children
+            if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
+                for node in shadow_root
+                    .upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::Yes)
+                {
+                    node.set_flag(RESET_FLAGS, false);
+                }
+            }
         }
+
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
             node.clean_up_style_and_layout_data();
 
@@ -606,6 +617,11 @@ impl Node {
 
     pub fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
+    }
+
+    /// Return true iff the node's root is a Document or a ShadowRoot
+    pub fn is_connected_to_tree(&self) -> bool {
+        self.is_connected() || self.is_in_shadow_tree()
     }
 
     /// Returns the type ID of this node.
@@ -3559,6 +3575,8 @@ pub struct UnbindContext<'a> {
     /// The next sibling of the inclusive ancestor that was removed.
     pub next_sibling: Option<&'a Node>,
     /// Whether the tree is connected.
+    ///
+    /// A tree is connected iff it's root is a Document or a ShadowRoot.
     pub tree_connected: bool,
     /// Whether the tree is in doc.
     pub tree_in_doc: bool,
@@ -3577,7 +3595,7 @@ impl<'a> UnbindContext<'a> {
             parent,
             prev_sibling,
             next_sibling,
-            tree_connected: parent.is_connected(),
+            tree_connected: parent.is_connected_to_tree(),
             tree_in_doc: parent.is_in_doc(),
         }
     }
