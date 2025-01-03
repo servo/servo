@@ -92,7 +92,7 @@ pub struct WebView {
     pub focused: bool,
     pub load_status: LoadStatus,
 
-    file_dialog: RefCell<FileDialog>,
+    file_dialog: RefCell<Option<FileDialog>>,
     file_response_sender: RefCell<Option<IpcSender<Option<Vec<String>>>>>,
 }
 
@@ -125,12 +125,16 @@ impl WebView {
         );
 
         if self.file_response_sender.borrow().is_some() {
-            if let Some(path) = self.file_dialog.borrow_mut().update(ctx).picked() {
-                //TODO: could i send the above path back to minibrowser.rs and then print it in a
-                // ui.label(format!("Picked file: {:?}", path.display()))? there or like a
-                // ui.label(format!("Picked file: {:?}", self.picked_file)); but here then we will need
-                // to make a getter function for picked_file in WebView struct since things in WebView
-                // struct are private?
+            if self.file_dialog.borrow().is_none(){
+                let mut file_dialog = FileDialog::new();
+                println!("File: webview.rs - invoking pick_file()");
+                file_dialog.pick_file();
+                println!("File: webview.rs - pick_file() invoked");
+                *self.file_dialog.borrow_mut() = Some(file_dialog);
+            }
+            let state = self.file_dialog.borrow_mut().as_mut().map_or(DialogState::Cancelled, |file_dialog| file_dialog.update(ctx).state());
+
+            if let DialogState::Selected(ref path) = state {
                 println!("WebView::update() file selected: {}", path.display());
 
                 if let Some(sender) = self.file_response_sender.borrow_mut().take() {
@@ -138,13 +142,11 @@ impl WebView {
 
                     let result = if path.exists() {
                         Some(vec![path.to_string_lossy().into()])
-                        // ok i see that this path is being sent to the sender, now how do i bring it to
-                        // minibrowser.rs to do a ui.label(format!("Picked file: {:?}", self.picked_file));?
-                        // and this picked_file for the ui to accept has to be in path buf?
                     } else {
                         None
                     };
 
+                    self.file_dialog.borrow_mut().take();
                     if let Err(e) = sender.send(result) {
                         warn!("Failed to send file selection response: {}", e);
                     }
@@ -152,7 +154,8 @@ impl WebView {
                     println!("File: webview.rs - no file selected");
                 }
             }
-            if self.file_dialog.borrow().state() == DialogState::Cancelled {
+            if state == DialogState::Cancelled {
+                self.file_dialog.borrow_mut().take();
                 println!("File: webview.rs - file dialog cancelled");
                 self.file_response_sender.borrow_mut().take();
             }
@@ -993,12 +996,6 @@ where
                     if let Some(focused_webview_id) = self.focused_webview_id {
                         let focused_webview = self.get_mut(focused_webview_id).unwrap();
                         *focused_webview.file_response_sender.borrow_mut() = Some(sender);
-                        println!("File: webview.rs - invoking pick_file()");
-                        focused_webview.file_dialog.borrow_mut().pick_file();
-                        println!("File: webview.rs - pick_file() invoked");
-                        // focused_webview.load_status = LoadStatus::LoadStart;
-                        need_present = true;
-                        println!("File: webview.rs - need_present set to true");
                         need_update = true;
                         println!("File: webview.rs - need_update set to true");
                     } else {
