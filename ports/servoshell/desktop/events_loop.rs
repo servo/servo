@@ -4,7 +4,6 @@
 
 //! An event loop implementation that works in headless mode.
 
-use std::cell::Cell;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
@@ -12,7 +11,7 @@ use log::warn;
 use servo::config::{pref, set_pref};
 use servo::embedder_traits::EventLoopWaker;
 use winit::error::EventLoopError;
-use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
+use winit::event_loop::EventLoop as WinitEventLoop;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -163,49 +162,4 @@ impl EventLoopWaker for HeadlessEventLoopWaker {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(HeadlessEventLoopWaker(self.0.clone()))
     }
-}
-
-thread_local! {
-    static CURRENT_EVENT_LOOP: Cell<Option<*const ActiveEventLoop>> = const { Cell::new(None) };
-}
-
-pub struct EventLoopGuard;
-
-impl EventLoopGuard {
-    pub fn new(event_loop: &ActiveEventLoop) -> Self {
-        CURRENT_EVENT_LOOP.with(|cell| {
-            assert!(
-                cell.get().is_none(),
-                "Attempted to set a new event loop while one is already set"
-            );
-            cell.set(Some(event_loop as *const ActiveEventLoop));
-        });
-        Self
-    }
-}
-
-impl Drop for EventLoopGuard {
-    fn drop(&mut self) {
-        CURRENT_EVENT_LOOP.with(|cell| cell.set(None));
-    }
-}
-
-// Helper function to safely use the current event loop
-#[allow(unsafe_code)]
-pub fn with_current_event_loop<F, R>(f: F) -> Option<R>
-where
-    F: FnOnce(&ActiveEventLoop) -> R,
-{
-    CURRENT_EVENT_LOOP.with(|cell| {
-        cell.get().map(|ptr| {
-            // SAFETY:
-            // 1. The pointer is guaranteed to be valid when it's Some, as the EventLoopGuard that created it
-            //    lives at least as long as the reference, and clears it when it's dropped. Only run_forever creates
-            //    a new EventLoopGuard, and does not leak it.
-            // 2. Since the pointer was created from a borrow which lives at least as long as this pointer there are
-            //    no mutable references to the ActiveEventLoop.
-            let event_loop = unsafe { &*ptr };
-            f(event_loop)
-        })
-    })
 }

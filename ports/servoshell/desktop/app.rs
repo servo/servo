@@ -30,12 +30,11 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
-use super::events_loop::{EventLoopGuard, EventsLoop, WakerEvent};
+use super::events_loop::{EventsLoop, WakerEvent};
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
-use crate::desktop::events_loop::with_current_event_loop;
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
@@ -172,7 +171,7 @@ impl App {
         self.event_queue.push(EmbedderEvent::Idle);
         let (_, window) = self.windows.iter().next().unwrap();
 
-        let openxr_discovery = if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
+        let xr_discovery = if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
             #[cfg(target_os = "windows")]
             let openxr = {
                 let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
@@ -182,27 +181,12 @@ impl App {
             let openxr = None;
 
             openxr
+        } else if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
+            let window = window.new_glwindow(event_loop.unwrap());
+            Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(window)))
         } else {
             None
         };
-
-        let glwindow_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
-            let window = window.clone();
-            let factory = Box::new(move || {
-                with_current_event_loop(|w| Ok(window.new_glwindow(w)))
-                    .expect("An event loop should always be active in headed mode")
-            });
-            Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
-                rendering_context.connection(),
-                rendering_context.adapter(),
-                rendering_context.context_attributes(),
-                factory,
-            )))
-        } else {
-            None
-        };
-
-        let xr_discovery = openxr_discovery.or(glwindow_discovery);
 
         let window = window.clone();
         // Implements embedder methods, used by libservo and constellation.
@@ -423,7 +407,6 @@ impl App {
 
 impl ApplicationHandler<WakerEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let _guard = EventLoopGuard::new(event_loop);
         self.init(Some(event_loop));
     }
 

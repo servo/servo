@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use log::{debug, info, trace};
-use raw_window_handle::HasWindowHandle;
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
 };
@@ -498,13 +498,13 @@ impl WindowPortsMethods for Window {
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Box<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo XR".to_string())
             .with_inner_size(size)
-            .with_visible(true);
+            .with_visible(false);
 
         let winit_window = event_loop
             .create_window(window_attr)
@@ -515,7 +515,7 @@ impl WindowPortsMethods for Window {
             xr_translation: Cell::new(Vector3D::zero()),
         });
         self.xr_window_poses.borrow_mut().push(pose.clone());
-        Box::new(XRWindow { winit_window, pose })
+        Rc::new(XRWindow { winit_window, pose })
     }
 
     fn winit_window(&self) -> Option<&winit::window::Window> {
@@ -602,6 +602,7 @@ impl webxr::glwindow::GlWindow for XRWindow {
         device: &mut Device,
         _context: &mut Context,
     ) -> webxr::glwindow::GlWindowRenderTarget {
+        self.winit_window.set_visible(true);
         let window_handle = self
             .winit_window
             .window_handle()
@@ -635,6 +636,10 @@ impl webxr::glwindow::GlWindow for XRWindow {
         } else {
             webxr::glwindow::GlWindowMode::Blit
         }
+    }
+
+    fn display_handle(&self) -> raw_window_handle::DisplayHandle {
+        self.winit_window.display_handle().unwrap()
     }
 }
 
