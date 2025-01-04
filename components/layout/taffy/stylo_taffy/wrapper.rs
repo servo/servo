@@ -122,10 +122,10 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
     fn border(&self) -> taffy::Rect<taffy::LengthPercentage> {
         let border_styles = self.0.get_border();
         taffy::Rect {
-            left: taffy::LengthPercentage::Length(border_styles.border_left_width.to_f32_px()),
-            right: taffy::LengthPercentage::Length(border_styles.border_right_width.to_f32_px()),
-            top: taffy::LengthPercentage::Length(border_styles.border_top_width.to_f32_px()),
-            bottom: taffy::LengthPercentage::Length(border_styles.border_bottom_width.to_f32_px()),
+            left: taffy::LengthPercentage::length(border_styles.border_left_width.to_f32_px()),
+            right: taffy::LengthPercentage::length(border_styles.border_right_width.to_f32_px()),
+            top: taffy::LengthPercentage::length(border_styles.border_top_width.to_f32_px()),
+            bottom: taffy::LengthPercentage::length(border_styles.border_bottom_width.to_f32_px()),
         }
     }
 }
