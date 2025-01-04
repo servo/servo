@@ -14,23 +14,27 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use servo_config::pref;
-use timers::{TimerEventId, TimerEventRequest, TimerSource};
+use timers::{BoxedTimerCallback, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 
 use crate::dom::bindings::callback::ExceptionHandling::Report;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::FakeRequestAnimationFrameCallback;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
-use crate::dom::globalscope::{GlobalScope, TimerListener};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::testbinding::TestBindingCallback;
+use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct OneshotTimerHandle(i32);
@@ -38,9 +42,6 @@ pub struct OneshotTimerHandle(i32);
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 pub struct OneshotTimers {
     global_scope: DomRoot<GlobalScope>,
-    #[ignore_malloc_size_of = "Missing malloc_size_of for task types"]
-    #[no_trace]
-    timer_listener: TimerListener,
     js_timers: JsTimers,
     next_timer_handle: Cell<OneshotTimerHandle>,
     timers: DomRefCell<Vec<OneshotTimer>>,
@@ -118,10 +119,9 @@ impl PartialEq for OneshotTimer {
 }
 
 impl OneshotTimers {
-    pub fn new(global_scope: &GlobalScope, timer_listener: TimerListener) -> OneshotTimers {
+    pub fn new(global_scope: &GlobalScope) -> OneshotTimers {
         OneshotTimers {
             global_scope: DomRoot::from_ref(global_scope),
-            timer_listener,
             js_timers: JsTimers::default(),
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
             timers: DomRefCell::new(Vec::new()),
@@ -283,9 +283,15 @@ impl OneshotTimers {
             return;
         };
 
+        let callback = TimerListener {
+            context: Trusted::new(&*self.global_scope),
+            task_source: self.global_scope.task_manager().timer_task_source(),
+        }
+        .into_callback();
+
         let expected_event_id = self.invalidate_expected_event_id();
         let event_request = TimerEventRequest {
-            callback: self.timer_listener.clone().into_callback(),
+            callback,
             source: timer.source,
             id: expected_event_id,
             duration: timer.scheduled_for - Instant::now(),
@@ -572,5 +578,42 @@ impl JsTimerTask {
         args.iter()
             .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
             .collect()
+    }
+}
+
+/// A wrapper between timer events coming in over IPC, and the event-loop.
+#[derive(Clone)]
+struct TimerListener {
+    task_source: TaskSource,
+    context: Trusted<GlobalScope>,
+}
+
+impl TimerListener {
+    /// Handle a timer-event coming from the [`timers::TimerScheduler`]
+    /// by queuing the appropriate task on the relevant event-loop.
+    fn handle(&self, event: TimerEvent) {
+        let context = self.context.clone();
+        // Step 18, queue a task,
+        // https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+        let _ = self.task_source.queue(task!(timer_event: move || {
+                let global = context.root();
+                let TimerEvent(source, id) = event;
+                match source {
+                    TimerSource::FromWorker => {
+                        global.downcast::<WorkerGlobalScope>().expect("Window timer delivered to worker");
+                    },
+                    TimerSource::FromWindow(pipeline) => {
+                        assert_eq!(pipeline, global.pipeline_id());
+                        global.downcast::<Window>().expect("Worker timer delivered to window");
+                    },
+                };
+                // Step 7, substeps run in a task.
+                global.fire_timer(id, CanGc::note());
+            })
+        );
+    }
+
+    fn into_callback(self) -> BoxedTimerCallback {
+        Box::new(move |timer_event| self.handle(timer_event))
     }
 }
