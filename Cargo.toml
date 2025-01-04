@@ -105,7 +105,7 @@ rand_isaac = "0.3"
 rayon = "1"
 regex = "1.11"
 ring = "0.17.8"
-rustls = { version = "0.23" }
+rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12", "ring"] }
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.0"
 script_layout_interface = { path = "components/shared/script_layout" }
