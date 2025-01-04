@@ -194,7 +194,7 @@ impl VirtualMethods for HTMLStyleElement {
         // "The element is not on the stack of open elements of an HTML parser or XML parser,
         // and one of its child nodes is modified by a script."
         // TODO: Handle Text child contents being mutated.
-        if self.upcast::<Node>().is_in_doc() && !self.in_stack_of_open_elements.get() {
+        if self.upcast::<Node>().is_in_a_document_tree() && !self.in_stack_of_open_elements.get() {
             self.parse_own_css();
         }
     }
@@ -218,7 +218,7 @@ impl VirtualMethods for HTMLStyleElement {
         // Handles the case when:
         // "The element is popped off the stack of open elements of an HTML parser or XML parser."
         self.in_stack_of_open_elements.set(false);
-        if self.upcast::<Node>().is_in_doc() {
+        if self.upcast::<Node>().is_in_a_document_tree() {
             self.parse_own_css();
         }
     }

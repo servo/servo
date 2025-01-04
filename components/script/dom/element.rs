@@ -544,7 +544,7 @@ impl Element {
 
         let bind_context = BindContext {
             tree_connected: self.upcast::<Node>().is_connected(),
-            tree_in_doc: self.upcast::<Node>().is_in_doc(),
+            tree_is_in_a_document_tree: self.upcast::<Node>().is_in_a_document_tree(),
         };
         shadow_root.bind_to_tree(&bind_context);
 
@@ -1355,7 +1355,7 @@ impl Element {
     }
 
     pub fn root_element(&self) -> DomRoot<Element> {
-        if self.node.is_in_doc() {
+        if self.node.is_in_a_document_tree() {
             self.upcast::<Node>()
                 .owner_doc()
                 .GetDocumentElement()
@@ -3512,7 +3512,7 @@ impl VirtualMethods for Element {
                 });
 
                 let containing_shadow_root = self.containing_shadow_root();
-                if node.is_connected_to_tree() {
+                if node.is_connected() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
                         AttributeMutation::Set(old_value) => {

@@ -303,7 +303,7 @@ impl DocumentOrShadowRoot {
         root: DomRoot<Node>,
     ) {
         debug!("Adding named element {:p}: {:p} id={}", self, element, id);
-        assert!(element.upcast::<Node>().is_connected_to_tree());
+        assert!(element.upcast::<Node>().is_in_a_document_tree() || element.upcast::<Node>().is_in_a_shadow_tree());
         assert!(!id.is_empty());
         let mut id_map = id_map.borrow_mut();
         let elements = id_map.entry(id.clone()).or_default();
