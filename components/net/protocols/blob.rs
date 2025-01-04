@@ -74,6 +74,7 @@ impl ProtocolHandler for BlobProtocolHander {
             origin,
             &mut response,
             range,
+            is_range_request,
         ) {
             let _ = done_sender.send(Data::Done);
             let err = match err {
