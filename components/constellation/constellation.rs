@@ -4272,7 +4272,7 @@ where
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+        tracing::instrument(skip_all, fields(servo_profiling = true))
     )]
     fn handle_clipboard_msg(&mut self, event: ClipboardEventType) {
         // TODO for now match what is done in handle_key_msg
@@ -4280,38 +4280,34 @@ where
             .webviews
             .focused_webview()
             .map(|(_, webview)| webview.focused_browsing_context_id);
-        match focused_browsing_context_id {
-            Some(browsing_context_id) => {
-                let event = CompositorEvent::ClipboardEvent(event);
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(ctx) => ctx.pipeline_id,
-                    None => {
-                        return warn!(
-                            "{}: Got clipboard event for nonexistent browsing context",
-                            browsing_context_id,
-                        );
-                    },
-                };
-                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
-                let result = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.send(msg),
-                    None => {
-                        return debug!("{}: Got clipboard event after closure", pipeline_id);
-                    },
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(pipeline_id, e);
-                }
-            },
-            None => {
-                // TODO
-            },
+
+        if let Some(browsing_context_id) = focused_browsing_context_id {
+            let event = CompositorEvent::ClipboardEvent(event);
+            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                Some(ctx) => ctx.pipeline_id,
+                None => {
+                    return warn!(
+                        "{}: Got clipboard event for nonexistent browsing context",
+                        browsing_context_id,
+                    );
+                },
+            };
+            let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+            let result = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline.event_loop.send(msg),
+                None => {
+                    return debug!("{}: Got clipboard event after closure", pipeline_id);
+                },
+            };
+            if let Err(e) = result {
+                self.handle_send_error(pipeline_id, e);
+            }
         }
     }
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_reload_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
