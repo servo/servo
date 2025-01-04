@@ -107,6 +107,7 @@ arboard = { version = "3" }
 egui = { version = "0.30.0" }
 egui_glow = { version = "0.30.0", features = ["winit"] }
 egui-winit = { version = "0.30.0", default-features = false, features = ["clipboard", "wayland"] }
+rand = "0.8"
 euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
@@ -119,6 +120,8 @@ raw-window-handle = "0.6"
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
+eframe = "0.30.0"
+egui-file-dialog = "0.8.0"
 webxr = { workspace = true, features = ["ipc", "glwindow", "headless"] }
 winit = "0.30.7"
 

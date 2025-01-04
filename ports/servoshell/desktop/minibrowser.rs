@@ -351,7 +351,6 @@ impl Minibrowser {
                     );
                 });
             };
-
             let mut embedder_events = vec![];
 
             // A simple Tab header strip
@@ -378,6 +377,18 @@ impl Minibrowser {
                         }
                     },
                 );
+            });
+
+            egui::CentralPanel::default().show(ctx, |_| {
+                for (_, webview) in webviews.webviews().into_iter() {
+                    use rand::Rng;
+
+                    println!(
+                        "File: minibrowser.rs - update() called, random number: {}",
+                        rand::thread_rng().gen::<u32>()
+                    );
+                    webview.update(ctx);
+                }
             });
 
             // The toolbar height is where the Context’s available rect starts.
