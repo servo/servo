@@ -290,7 +290,7 @@ impl Node {
         self.children_count.set(self.children_count.get() + 1);
 
         let parent_is_in_a_document_tree = self.is_in_a_document_tree();
-        let parent_in_shadow_tree = self.is_in_shadow_tree();
+        let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
@@ -309,6 +309,7 @@ impl Node {
             vtable_for(&node).bind_to_tree(&BindContext {
                 tree_connected: parent_is_connected,
                 tree_is_in_a_document_tree: parent_is_in_a_document_tree,
+                tree_is_in_a_shadow_tree: parent_in_shadow_tree,
             });
         }
     }
@@ -607,7 +608,7 @@ impl Node {
         self.flags.get().contains(NodeFlags::IS_IN_A_DOCUMENT_TREE)
     }
 
-    pub fn is_in_shadow_tree(&self) -> bool {
+    pub fn is_in_a_shadow_tree(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
     }
 
@@ -3568,6 +3569,16 @@ pub struct BindContext {
     ///
     /// <https://dom.spec.whatwg.org/#in-a-document-tree>
     pub tree_is_in_a_document_tree: bool,
+
+    /// Whether the tree's root is a shadow root
+    pub tree_is_in_a_shadow_tree: bool,
+}
+
+impl BindContext {
+    /// Return true iff the tree is inside either a document- or a shadow tree.
+    pub fn is_in_tree(&self) -> bool {
+        self.tree_is_in_a_document_tree || self.tree_is_in_a_shadow_tree
+    }
 }
 
 /// The context of the unbinding from a tree of a node when one of its

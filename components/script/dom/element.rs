@@ -545,6 +545,7 @@ impl Element {
         let bind_context = BindContext {
             tree_connected: self.upcast::<Node>().is_connected(),
             tree_is_in_a_document_tree: self.upcast::<Node>().is_in_a_document_tree(),
+            tree_is_in_a_shadow_tree: self.upcast::<Node>().is_in_a_shadow_tree(),
         };
         shadow_root.bind_to_tree(&bind_context);
 
@@ -3619,7 +3620,7 @@ impl VirtualMethods for Element {
             shadow_root.bind_to_tree(context);
         }
 
-        if !context.tree_connected {
+        if !context.is_in_tree() {
             return;
         }
 
@@ -3668,7 +3669,7 @@ impl VirtualMethods for Element {
             if let Some(ref shadow_root) = self.containing_shadow_root() {
                 // Only unregister the element id if the node was disconnected from it's shadow root
                 // (as opposed to the whole shadow tree being disconnected as a whole)
-                if !self.upcast::<Node>().is_in_shadow_tree() {
+                if !self.upcast::<Node>().is_in_a_shadow_tree() {
                     shadow_root.unregister_element_id(self, value.clone());
                 }
             } else {
