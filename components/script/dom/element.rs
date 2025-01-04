@@ -3510,8 +3510,9 @@ impl VirtualMethods for Element {
                         None
                     }
                 });
+
                 let containing_shadow_root = self.containing_shadow_root();
-                if node.is_connected() {
+                if node.is_connected_to_tree() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
                         AttributeMutation::Set(old_value) => {
