@@ -30,7 +30,7 @@ def main():
     from Configuration import Configuration
     from CodegenRust import CGBindingRoot
 
-    parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")), use_builtin_readable_stream=False)
+    parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
     webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
