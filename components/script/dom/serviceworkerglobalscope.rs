@@ -412,7 +412,7 @@ impl ServiceWorkerGlobalScope {
                             }
                         },
                         reporter_name,
-                        scope.script_chan(),
+                        global.event_loop_sender(),
                         CommonScriptMsg::CollectReports,
                     );
 
@@ -485,7 +485,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
-    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
+    pub(crate) fn event_loop_sender(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(ServiceWorkerChan {
             sender: self.own_sender.clone(),
         })

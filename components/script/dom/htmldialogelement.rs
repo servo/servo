@@ -122,6 +122,6 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         // Step 5
         win.task_manager()
             .dom_manipulation_task_source()
-            .queue_simple_event(target, atom!("close"), &win);
+            .queue_simple_event(target, atom!("close"));
     }
 }

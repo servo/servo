@@ -147,13 +147,10 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         };
 
         let global = self.global();
-        let window = global.as_window();
         let this = Trusted::new(self);
         let mut trusted = Some(TrustedPromise::new(p.clone()));
 
-        let (task_source, canceller) = window
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let task_source = global.task_manager().dom_manipulation_task_source();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
@@ -166,15 +163,12 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 let message =
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
-                let _ = task_source.queue_with_canceller(
-                    task!(request_session: move || {
-                        this.root().device_obtained(message, trusted);
-                    }),
-                    &canceller,
-                );
+                let _ = task_source.queue(task!(request_session: move || {
+                    this.root().device_obtained(message, trusted);
+                }));
             }),
         );
-        if let Some(mut r) = window.webxr_registry() {
+        if let Some(mut r) = global.as_window().webxr_registry() {
             r.simulate_device_connection(init, sender);
         }
 
@@ -206,10 +200,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             devices.clear();
 
             let mut trusted = Some(TrustedPromise::new(p.clone()));
-            let (task_source, canceller) = global
-                .as_window()
-                .task_manager()
-                .dom_manipulation_task_source_with_canceller();
+            let task_source = global.task_manager().dom_manipulation_task_source();
 
             ROUTER.add_typed_route(
                 receiver.to_ipc_receiver(),
@@ -219,8 +210,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                         let trusted = trusted
                             .take()
                             .expect("DisconnectAllDevices disconnected more devices than expected");
-                        let _ =
-                            task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
+                        let _ = task_source.queue(trusted.resolve_task(()));
                     }
                 }),
             );

@@ -892,24 +892,21 @@ impl HTMLImageElement {
                 self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
                 // Step 9.
                 // FIXME(nox): Why are errors silenced here?
-                let _ = task_source.queue(
-                    task!(image_null_source_error: move || {
-                        let this = this.root();
-                        {
-                            let mut current_request =
-                                this.current_request.borrow_mut();
-                            current_request.source_url = None;
-                            current_request.parsed_url = None;
-                        }
-                        let elem = this.upcast::<Element>();
-                        let src_present = elem.has_attribute(&local_name!("src"));
+                let _ = task_source.queue(task!(image_null_source_error: move || {
+                    let this = this.root();
+                    {
+                        let mut current_request =
+                            this.current_request.borrow_mut();
+                        current_request.source_url = None;
+                        current_request.parsed_url = None;
+                    }
+                    let elem = this.upcast::<Element>();
+                    let src_present = elem.has_attribute(&local_name!("src"));
 
-                        if src_present || Self::uses_srcset_or_picture(elem) {
-                            this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
-                        }
-                    }),
-                    window.upcast(),
-                );
+                    if src_present || Self::uses_srcset_or_picture(elem) {
+                        this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
+                    }
+                }));
                 return;
             },
         };
@@ -928,19 +925,16 @@ impl HTMLImageElement {
                 // Step 12.1-12.5.
                 let src = src.0;
                 // FIXME(nox): Why are errors silenced here?
-                let _ = task_source.queue(
-                    task!(image_selected_source_error: move || {
-                        let this = this.root();
-                        {
-                            let mut current_request =
-                                this.current_request.borrow_mut();
-                            current_request.source_url = Some(USVString(src))
-                        }
-                        this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
+                let _ = task_source.queue(task!(image_selected_source_error: move || {
+                    let this = this.root();
+                    {
+                        let mut current_request =
+                            this.current_request.borrow_mut();
+                        current_request.source_url = Some(USVString(src))
+                    }
+                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
-                    }),
-                    window.upcast(),
-                );
+                }));
             },
         }
     }
@@ -1021,6 +1015,7 @@ impl HTMLImageElement {
                     current_request.current_pixel_density = pixel_density;
                     let this = Trusted::new(self);
                     let src = src.0;
+
                     let _ = window.task_manager().dom_manipulation_task_source().queue(
                         task!(image_load_event: move || {
                             let this = this.root();
@@ -1033,7 +1028,6 @@ impl HTMLImageElement {
                             // TODO: restart animation, if set.
                             this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
                         }),
-                        window.upcast(),
                     );
                     return;
                 }
@@ -1069,11 +1063,7 @@ impl HTMLImageElement {
         ) -> IpcSender<PendingImageResponse> {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
-
-            let window = elem.owner_window();
-            let (task_source, canceller) = window
-                .task_manager()
-                .networking_task_source_with_canceller();
+            let task_source = elem.owner_window().task_manager().networking_task_source();
             let generation = elem.generation.get();
 
             ROUTER.add_typed_route(
@@ -1085,7 +1075,7 @@ impl HTMLImageElement {
                     let element = trusted_node.clone();
                     let image: PendingImageResponse = message.unwrap();
                     let selected_source_clone = selected_source.clone();
-                    let _ = task_source.queue_with_canceller(
+                    let _ = task_source.queue(
                         task!(process_image_response_for_environment_change: move || {
                             let element = element.root();
                             // Ignore any image response for a previous request that has been discarded.
@@ -1094,8 +1084,7 @@ impl HTMLImageElement {
                                     USVString::from(selected_source_clone), generation,
                                     selected_pixel_density, CanGc::note());
                             }
-                        }),
-                        &canceller,
+                        })
                     );
                 }),
             );
@@ -1283,8 +1272,7 @@ impl HTMLImageElement {
 
                 // Step 15.7
                 this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
-            }),
-            window.upcast(),
+            })
         );
     }
 

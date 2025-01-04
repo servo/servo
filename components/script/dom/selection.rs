@@ -88,8 +88,8 @@ impl Selection {
             return;
         }
         let this = Trusted::new(self);
-        let window = self.document.window();
-        window
+        self.document
+            .window()
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117
             .queue(
@@ -97,8 +97,7 @@ impl Selection {
                     let this = this.root();
                     this.task_queued.set(false);
                     this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::note());
-                }),
-                window.upcast(),
+                })
             )
             .expect("Couldn't queue selectionchange task!");
         self.task_queued.set(true);

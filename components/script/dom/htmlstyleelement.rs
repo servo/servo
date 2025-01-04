@@ -133,11 +133,10 @@ impl HTMLStyleElement {
 
         // No subresource loads were triggered, queue load event
         if self.pending_loads.get() == 0 {
-            let window = self.owner_window();
-            window
+            self.owner_window()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue_simple_event(self.upcast(), atom!("load"), &window);
+                .queue_simple_event(self.upcast(), atom!("load"));
         }
 
         self.set_stylesheet(sheet);

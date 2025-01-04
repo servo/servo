@@ -63,38 +63,30 @@ impl TextTrackList {
             self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
 
             let this = Trusted::new(self);
-            let (source, canceller) = &self
-                .global()
-                .as_window()
-                .task_manager()
-                .media_element_task_source_with_canceller();
+            let task_source = self.global().task_manager().media_element_task_source();
 
-            let idx = match self.find(track) {
-                Some(t) => t,
-                None => return,
+            let Some(idx) = self.find(track) else {
+                return;
             };
 
-            let _ = source.queue_with_canceller(
-                task!(track_event_queue: move || {
-                    let this = this.root();
+            let _ = task_source.queue(task!(track_event_queue: move || {
+                let this = this.root();
 
-                    if let Some(track) = this.item(idx) {
-                        let event = TrackEvent::new(
-                            &this.global(),
-                            atom!("addtrack"),
-                            false,
-                            false,
-                            &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
-                                DomRoot::from_ref(&track)
-                            )),
-                            CanGc::note()
-                        );
+                if let Some(track) = this.item(idx) {
+                    let event = TrackEvent::new(
+                        &this.global(),
+                        atom!("addtrack"),
+                        false,
+                        false,
+                        &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
+                            DomRoot::from_ref(&track)
+                        )),
+                        CanGc::note()
+                    );
 
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
-                    }
-                }),
-                canceller,
-            );
+                    event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
+                }
+            }));
             track.add_track_list(self);
         }
     }

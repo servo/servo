@@ -92,7 +92,6 @@ impl VirtualMethods for HTMLDetailsElement {
                         this.upcast::<EventTarget>().fire_event(atom!("toggle"), CanGc::note());
                     }
                 }),
-                window.upcast(),
             );
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage)
         }

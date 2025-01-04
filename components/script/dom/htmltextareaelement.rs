@@ -650,8 +650,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
-                let window = self.owner_window();
-                window
+                self.owner_window()
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -659,7 +658,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
-                        &window,
                     );
             }
         } else if event.type_() == atom!("compositionstart") ||

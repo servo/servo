@@ -45,7 +45,6 @@ use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
 
 const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
@@ -121,7 +120,6 @@ impl EventSourceContext {
                     event_source.upcast::<EventTarget>().fire_event(atom!("open"), CanGc::note());
                 }
             }),
-            &global,
         );
     }
 
@@ -177,7 +175,6 @@ impl EventSourceContext {
                 // FIXME(nox): Why are errors silenced here?
                 let _ = event_source.global().schedule_callback(callback, duration);
             }),
-            &global,
         );
     }
 
@@ -266,7 +263,6 @@ impl EventSourceContext {
                     event.root().upcast::<Event>().fire(event_source.upcast(), CanGc::note());
                 }
             }),
-            &global,
         );
     }
 
@@ -508,7 +504,6 @@ impl EventSource {
                     event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
                 }
             }),
-            &global,
         );
     }
 
@@ -606,7 +601,6 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.task_manager().networking_task_source(),
-            canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
         ROUTER.add_typed_route(
             action_receiver,

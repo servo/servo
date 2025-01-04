@@ -59,7 +59,6 @@ impl WebGLSync {
     ) -> Option<u32> {
         match self.client_wait_status.get() {
             Some(constants::TIMEOUT_EXPIRED) | Some(constants::WAIT_FAILED) | None => {
-                let global = self.global();
                 let this = Trusted::new(self);
                 let context = Trusted::new(context);
                 let task = task!(request_client_wait_status: move || {
@@ -74,11 +73,10 @@ impl WebGLSync {
                     ));
                     this.client_wait_status.set(Some(receiver.recv().unwrap()));
                 });
-                global
-                    .as_window()
+                self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, global.upcast())
+                    .queue(task)
                     .unwrap();
             },
             _ => {},
@@ -101,7 +99,6 @@ impl WebGLSync {
     pub fn get_sync_status(&self, pname: u32, context: &WebGLRenderingContext) -> Option<u32> {
         match self.sync_status.get() {
             Some(constants::UNSIGNALED) | None => {
-                let global = self.global();
                 let this = Trusted::new(self);
                 let context = Trusted::new(context);
                 let task = task!(request_sync_status: move || {
@@ -111,11 +108,10 @@ impl WebGLSync {
                     context.send_command(WebGLCommand::GetSyncParameter(this.sync_id, pname, sender));
                     this.sync_status.set(Some(receiver.recv().unwrap()));
                 });
-                global
-                    .as_window()
+                self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, global.upcast())
+                    .queue(task)
                     .unwrap();
             },
             _ => {},

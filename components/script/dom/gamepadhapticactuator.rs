@@ -27,11 +27,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task::TaskCanceller;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 
 struct HapticEffectListener {
-    canceller: TaskCanceller,
     task_source: TaskSource,
     context: Trusted<GamepadHapticActuator>,
 }
@@ -39,24 +37,22 @@ struct HapticEffectListener {
 impl HapticEffectListener {
     fn handle_stopped(&self, stopped_successfully: bool) {
         let context = self.context.clone();
-        let _ = self.task_source.queue_with_canceller(
-            task!(handle_haptic_effect_stopped: move || {
+        let _ = self
+            .task_source
+            .queue(task!(handle_haptic_effect_stopped: move || {
                 let actuator = context.root();
                 actuator.handle_haptic_effect_stopped(stopped_successfully);
-            }),
-            &self.canceller,
-        );
+            }));
     }
 
     fn handle_completed(&self, completed_successfully: bool) {
         let context = self.context.clone();
-        let _ = self.task_source.queue_with_canceller(
-            task!(handle_haptic_effect_completed: move || {
+        let _ = self
+            .task_source
+            .queue(task!(handle_haptic_effect_completed: move || {
                 let actuator = context.root();
                 actuator.handle_haptic_effect_completed(completed_successfully);
-            }),
-            &self.canceller,
-        );
+            }));
     }
 }
 
@@ -204,7 +200,6 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                     let message = DOMString::from("preempted");
                     promise.resolve_native(&message);
                 }),
-                &self.global(),
             );
         }
 
@@ -219,13 +214,8 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         let context = Trusted::new(self);
         let (effect_complete_sender, effect_complete_receiver) =
             ipc::channel().expect("ipc channel failure");
-        let (task_source, canceller) = (
-            self.global().task_manager().gamepad_task_source(),
-            self.global().task_canceller(TaskSourceName::Gamepad),
-        );
         let listener = HapticEffectListener {
-            canceller,
-            task_source,
+            task_source: self.global().task_manager().gamepad_task_source(),
             context,
         };
 
@@ -277,7 +267,6 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                     let message = DOMString::from("preempted");
                     promise.resolve_native(&message);
                 }),
-                &self.global(),
             );
         }
 
@@ -288,13 +277,8 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         let context = Trusted::new(self);
         let (effect_stop_sender, effect_stop_receiver) =
             ipc::channel().expect("ipc channel failure");
-        let (task_source, canceller) = (
-            self.global().task_manager().gamepad_task_source(),
-            self.global().task_canceller(TaskSourceName::Gamepad),
-        );
         let listener = HapticEffectListener {
-            canceller,
-            task_source,
+            task_source: self.global().task_manager().gamepad_task_source(),
             context,
         };
 
@@ -350,8 +334,7 @@ impl GamepadHapticActuator {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("complete");
                     promise.resolve_native(&message);
-                }),
-                &self.global(),
+                })
             );
         }
     }
@@ -372,7 +355,6 @@ impl GamepadHapticActuator {
                 let message = DOMString::from("preempted");
                 promise.resolve_native(&message);
             }),
-            &self.global(),
         );
 
         let (send, _rcv) = ipc::channel().expect("ipc channel failure");

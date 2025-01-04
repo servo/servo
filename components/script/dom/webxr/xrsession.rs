@@ -201,22 +201,16 @@ impl XRSession {
     fn setup_raf_loop(&self, frame_receiver: IpcReceiver<Frame>) {
         let this = Trusted::new(self);
         let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let task_source = global.task_manager().dom_manipulation_task_source();
         ROUTER.add_typed_route(
             frame_receiver,
             Box::new(move |message| {
                 let frame: Frame = message.unwrap();
                 let time = CrossProcessInstant::now();
                 let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(xr_raf_callback: move || {
-                        this.root().raf_callback(frame, time);
-                    }),
-                    &canceller,
-                );
+                let _ = task_source.queue(task!(xr_raf_callback: move || {
+                    this.root().raf_callback(frame, time);
+                }));
             }),
         );
 
@@ -230,22 +224,16 @@ impl XRSession {
     fn attach_event_handler(&self) {
         let this = Trusted::new(self);
         let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let task_source = global.task_manager().dom_manipulation_task_source();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
             receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(xr_event_callback: move || {
-                        this.root().event_callback(message.unwrap(), CanGc::note());
-                    }),
-                    &canceller,
-                );
+                let _ = task_source.queue(task!(xr_event_callback: move || {
+                    this.root().event_callback(message.unwrap(), CanGc::note());
+                }));
             }),
         );
 
@@ -266,21 +254,14 @@ impl XRSession {
             return;
         }
 
-        let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         // Queue a task so that it runs after resolve()'s microtasks complete
         // so that content has a chance to attach a listener for inputsourceschange
-        let _ = task_source.queue_with_canceller(
-            task!(session_initial_inputs: move || {
-                let this = this.root();
-                this.input_sources.add_input_sources(&this, &initial_inputs, CanGc::note());
-            }),
-            &canceller,
-        );
+        let _ = task_source.queue(task!(session_initial_inputs: move || {
+            let this = this.root();
+            this.input_sources.add_input_sources(&this, &initial_inputs, CanGc::note());
+        }));
     }
 
     fn event_callback(&self, event: XREvent, can_gc: CanGc) {
@@ -1055,26 +1036,20 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
         let this = Trusted::new(self);
         let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let task_source = global.task_manager().dom_manipulation_task_source();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
             receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(update_session_framerate: move || {
-                        let session = this.root();
-                        session.apply_nominal_framerate(message.unwrap(), CanGc::note());
-                        if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
-                            promise.resolve_native(&());
-                        };
-                    }),
-                    &canceller,
-                );
+                let _ = task_source.queue(task!(update_session_framerate: move || {
+                    let session = this.root();
+                    session.apply_nominal_framerate(message.unwrap(), CanGc::note());
+                    if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
+                        promise.resolve_native(&());
+                    };
+                }));
             }),
         );
 

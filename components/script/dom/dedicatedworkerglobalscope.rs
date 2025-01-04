@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::mem::replace;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
@@ -76,9 +75,10 @@ impl<'a> AutoWorkerReset<'a> {
         workerscope: &'a DedicatedWorkerGlobalScope,
         worker: TrustedWorkerAddress,
     ) -> AutoWorkerReset<'a> {
+        let old_worker = workerscope.replace_worker(Some(worker));
         AutoWorkerReset {
             workerscope,
-            old_worker: replace(&mut *workerscope.worker.borrow_mut(), Some(worker)),
+            old_worker,
         }
     }
 }
@@ -86,9 +86,7 @@ impl<'a> AutoWorkerReset<'a> {
 impl Drop for AutoWorkerReset<'_> {
     fn drop(&mut self) {
         self.workerscope
-            .worker
-            .borrow_mut()
-            .clone_from(&self.old_worker)
+            .replace_worker(std::mem::take(&mut self.old_worker));
     }
 }
 
@@ -387,6 +385,7 @@ impl DedicatedWorkerGlobalScope {
                         }),
                         pipeline_id,
                         name: TaskSourceName::Networking,
+                        canceller: Default::default(),
                     };
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
@@ -501,15 +500,38 @@ impl DedicatedWorkerGlobalScope {
             .expect("Thread spawning failed")
     }
 
+    /// The non-None value of the `worker` field can contain a rooted [`TrustedWorkerAddress`]
+    /// version of the main thread's worker object. This is set while handling messages and then
+    /// unset otherwise, ensuring that the main thread object can be garbage collected. See
+    /// [`AutoWorkerReset`].
+    fn replace_worker(
+        &self,
+        new_worker: Option<TrustedWorkerAddress>,
+    ) -> Option<TrustedWorkerAddress> {
+        let old_worker = std::mem::replace(&mut *self.worker.borrow_mut(), new_worker);
+
+        // The `TaskManager` maintains a handle to this `DedicatedWorkerGlobalScope`'s
+        // event_loop_sender, which might in turn have a `TrustedWorkerAddress` rooting of the main
+        // thread's worker, which prevents garbage collection. Resetting it here ensures that
+        // garbage collection of the main thread object can happen again (assuming the new `worker`
+        // is `None`).
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .set_sender(self.event_loop_sender());
+
+        old_worker
+    }
+
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
-    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(WorkerThreadWorkerChan {
+    pub(crate) fn event_loop_sender(&self) -> Option<Box<dyn ScriptChan + Send>> {
+        let worker = self.worker.borrow().clone()?;
+        Some(Box::new(WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
-            worker: self.worker.borrow().as_ref().unwrap().clone(),
-        })
+            worker,
+        }))
     }
 
     pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {

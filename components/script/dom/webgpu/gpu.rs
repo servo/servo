@@ -25,7 +25,6 @@ use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSourceName;
 
 #[dom_struct]
 #[allow(clippy::upper_case_acronyms)]
@@ -73,9 +72,6 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
         .global()
         .task_manager()
         .dom_manipulation_task_source();
-    let canceller = receiver
-        .global()
-        .task_canceller(TaskSourceName::DOMManipulation);
     let mut trusted: Option<TrustedPromise> = Some(TrustedPromise::new(promise.clone()));
     let trusted_receiver = Trusted::new(receiver);
     ROUTER.add_typed_route(
@@ -92,12 +88,9 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
                 trusted,
                 receiver: trusted_receiver.clone(),
             };
-            let result = task_source.queue_with_canceller(
-                task!(process_webgpu_task: move|| {
-                    context.response(message.unwrap(), CanGc::note());
-                }),
-                &canceller,
-            );
+            let result = task_source.queue(task!(process_webgpu_task: move|| {
+                context.response(message.unwrap(), CanGc::note());
+            }));
             if let Err(err) = result {
                 error!("Failed to queue GPU listener-task: {:?}", err);
             }

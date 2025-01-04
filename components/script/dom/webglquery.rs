@@ -171,12 +171,10 @@ impl WebGLQuery {
                 this.update_results(&context);
             });
 
-            let global = self.global();
-            global
-                .as_window()
+            self.global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task, global.upcast())
+                .queue(task)
                 .unwrap();
         }
 

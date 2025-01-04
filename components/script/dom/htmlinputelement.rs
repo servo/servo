@@ -2576,8 +2576,7 @@ impl VirtualMethods for HTMLInputElement {
             self.input_type().is_textual_or_password()
         {
             if event.IsTrusted() {
-                let window = self.owner_window();
-                window
+                self.owner_window()
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -2585,7 +2584,6 @@ impl VirtualMethods for HTMLInputElement {
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
-                        &window,
                     );
             }
         } else if (event.type_() == atom!("compositionstart") ||

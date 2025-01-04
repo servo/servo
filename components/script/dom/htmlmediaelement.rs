@@ -523,11 +523,10 @@ impl HTMLMediaElement {
     fn time_marches_on(&self) {
         // Step 6.
         if Instant::now() > self.next_timeupdate_event.get() {
-            let window = self.owner_window();
-            window
+            self.owner_window()
                 .task_manager()
                 .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+                .queue_simple_event(self.upcast(), atom!("timeupdate"));
             self.next_timeupdate_event
                 .set(Instant::now() + Duration::from_millis(350));
         }
@@ -547,11 +546,13 @@ impl HTMLMediaElement {
             self.take_pending_play_promises(Err(Error::Abort));
 
             // Step 2.3.
-            let window = self.owner_window();
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
-            let _ = window.task_manager().media_element_task_source().queue(
-                task!(internal_pause_steps: move || {
+            let _ = self
+                .owner_window()
+                .task_manager()
+                .media_element_task_source()
+                .queue(task!(internal_pause_steps: move || {
                     let this = this.root();
                     if generation_id != this.generation_id.get() {
                         return;
@@ -574,9 +575,7 @@ impl HTMLMediaElement {
                         // Done after running this closure in
                         // `fulfill_in_flight_play_promises`.
                     });
-                }),
-                window.upcast(),
-            );
+                }));
 
             // Step 2.4.
             // FIXME(nox): Set the official playback position to the current
@@ -594,12 +593,14 @@ impl HTMLMediaElement {
         self.take_pending_play_promises(Ok(()));
 
         // Step 2.
-        let window = self.owner_window();
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
         // FIXME(nox): Why are errors silenced here?
-        let _ = window.task_manager().media_element_task_source().queue(
-            task!(notify_about_playing: move || {
+        let _ = self
+            .owner_window()
+            .task_manager()
+            .media_element_task_source()
+            .queue(task!(notify_about_playing: move || {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
                     return;
@@ -615,9 +616,7 @@ impl HTMLMediaElement {
                     // `fulfill_in_flight_play_promises`.
                 });
 
-            }),
-            window.upcast(),
-        );
+            }));
     }
 
     // https://html.spec.whatwg.org/multipage/#ready-states
@@ -633,13 +632,15 @@ impl HTMLMediaElement {
             return;
         }
 
-        let window = self.owner_window();
-        let task_source = window.task_manager().media_element_task_source();
+        let task_source = self
+            .owner_window()
+            .task_manager()
+            .media_element_task_source();
 
         // Step 1.
         match (old_ready_state, ready_state) {
             (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
-                task_source.queue_simple_event(self.upcast(), atom!("loadedmetadata"), &window);
+                task_source.queue_simple_event(self.upcast(), atom!("loadedmetadata"));
                 // No other steps are applicable in this case.
                 return;
             },
@@ -648,14 +649,11 @@ impl HTMLMediaElement {
                     self.fired_loadeddata_event.set(true);
                     let this = Trusted::new(self);
                     // FIXME(nox): Why are errors silenced here?
-                    let _ = task_source.queue(
-                        task!(media_reached_current_data: move || {
-                            let this = this.root();
-                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
-                            this.delay_load_event(false, CanGc::note());
-                        }),
-                        window.upcast(),
-                    );
+                    let _ = task_source.queue(task!(media_reached_current_data: move || {
+                        let this = this.root();
+                        this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
+                        this.delay_load_event(false, CanGc::note());
+                    }));
                 }
 
                 // Steps for the transition from HaveMetadata to HaveCurrentData
@@ -676,7 +674,7 @@ impl HTMLMediaElement {
         if old_ready_state <= ReadyState::HaveCurrentData &&
             ready_state >= ReadyState::HaveFutureData
         {
-            task_source.queue_simple_event(self.upcast(), atom!("canplay"), &window);
+            task_source.queue_simple_event(self.upcast(), atom!("canplay"));
 
             if !self.Paused() {
                 self.notify_about_playing();
@@ -697,7 +695,7 @@ impl HTMLMediaElement {
                     self.time_marches_on();
                 }
                 // Step 3
-                task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
+                task_source.queue_simple_event(self.upcast(), atom!("play"));
                 // Step 4
                 self.notify_about_playing();
                 // Step 5
@@ -706,7 +704,7 @@ impl HTMLMediaElement {
 
             // FIXME(nox): According to the spec, this should come *before* the
             // "play" event.
-            task_source.queue_simple_event(self.upcast(), atom!("canplaythrough"), &window);
+            task_source.queue_simple_event(self.upcast(), atom!("canplaythrough"));
         }
     }
 
@@ -787,11 +785,10 @@ impl HTMLMediaElement {
         self.network_state.set(NetworkState::Loading);
 
         // Step 8.
-        let window = self.owner_window();
-        window
+        self.owner_window()
             .task_manager()
             .media_element_task_source()
-            .queue_simple_event(self.upcast(), atom!("loadstart"), &window);
+            .queue_simple_event(self.upcast(), atom!("loadstart"));
 
         // Step 9.
         match mode {
@@ -941,19 +938,16 @@ impl HTMLMediaElement {
                     window
                         .task_manager()
                         .media_element_task_source()
-                        .queue_simple_event(self.upcast(), atom!("suspend"), &window);
+                        .queue_simple_event(self.upcast(), atom!("suspend"));
 
                     // Step 4.remote.1.3.
                     let this = Trusted::new(self);
                     window
                         .task_manager()
                         .media_element_task_source()
-                        .queue(
-                            task!(set_media_delay_load_event_flag_to_false: move || {
-                                this.root().delay_load_event(false, CanGc::note());
-                            }),
-                            window.upcast(),
-                        )
+                        .queue(task!(set_media_delay_load_event_flag_to_false: move || {
+                            this.root().delay_load_event(false, CanGc::note());
+                        }))
                         .unwrap();
 
                     // Steps 4.remote.1.4.
@@ -1007,13 +1001,15 @@ impl HTMLMediaElement {
     ///
     /// [steps]: https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
     fn queue_dedicated_media_source_failure_steps(&self) {
-        let window = self.owner_window();
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
         self.take_pending_play_promises(Err(Error::NotSupported));
         // FIXME(nox): Why are errors silenced here?
-        let _ = window.task_manager().media_element_task_source().queue(
-            task!(dedicated_media_source_failure_steps: move || {
+        let _ = self
+            .owner_window()
+            .task_manager()
+            .media_element_task_source()
+            .queue(task!(dedicated_media_source_failure_steps: move || {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
                     return;
@@ -1052,15 +1048,14 @@ impl HTMLMediaElement {
 
                 // Step 7.
                 this.delay_load_event(false, CanGc::note());
-            }),
-            window.upcast(),
-        );
+            }));
     }
 
     fn queue_ratechange_event(&self) {
-        let window = self.owner_window();
-        let task_source = window.task_manager().media_element_task_source();
-        task_source.queue_simple_event(self.upcast(), atom!("ratechange"), &window);
+        self.owner_window()
+            .task_manager()
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("ratechange"));
     }
 
     fn in_error_state(&self) -> bool {
@@ -1110,19 +1105,21 @@ impl HTMLMediaElement {
             self.fulfill_in_flight_play_promises(|| ());
         }
 
-        let window = self.owner_window();
-        let task_source = window.task_manager().media_element_task_source();
+        let task_source = self
+            .owner_window()
+            .task_manager()
+            .media_element_task_source();
 
         // Step 5.
         let network_state = self.network_state.get();
         if network_state == NetworkState::Loading || network_state == NetworkState::Idle {
-            task_source.queue_simple_event(self.upcast(), atom!("abort"), &window);
+            task_source.queue_simple_event(self.upcast(), atom!("abort"));
         }
 
         // Step 6.
         if network_state != NetworkState::Empty {
             // Step 6.1.
-            task_source.queue_simple_event(self.upcast(), atom!("emptied"), &window);
+            task_source.queue_simple_event(self.upcast(), atom!("emptied"));
 
             // Step 6.2.
             if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut() {
@@ -1160,7 +1157,7 @@ impl HTMLMediaElement {
             let queue_timeupdate_event = self.playback_position.get() != 0.;
             self.playback_position.set(0.);
             if queue_timeupdate_event {
-                task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+                task_source.queue_simple_event(self.upcast(), atom!("timeupdate"));
             }
 
             // Step 6.9.
@@ -1291,9 +1288,10 @@ impl HTMLMediaElement {
         // servo-media with gstreamer does not support inaccurate seeking for now.
 
         // Step 10.
-        let window = self.owner_window();
-        let task_source = window.task_manager().media_element_task_source();
-        task_source.queue_simple_event(self.upcast(), atom!("seeking"), &window);
+        self.owner_window()
+            .task_manager()
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("seeking"));
 
         // Step 11.
         if let Some(ref player) = *self.player.borrow() {
@@ -1316,12 +1314,14 @@ impl HTMLMediaElement {
         self.time_marches_on();
 
         // Step 16.
-        let window = self.owner_window();
-        let task_source = window.task_manager().media_element_task_source();
-        task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+        let task_source = self
+            .owner_window()
+            .task_manager()
+            .media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("timeupdate"));
 
         // Step 17.
-        task_source.queue_simple_event(self.upcast(), atom!("seeked"), &window);
+        task_source.queue_simple_event(self.upcast(), atom!("seeked"));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
@@ -1339,9 +1339,10 @@ impl HTMLMediaElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         if pref!(media.testing.enabled) {
-            let window = self.owner_window();
-            let task_source = window.task_manager().media_element_task_source();
-            task_source.queue_simple_event(self.upcast(), atom!("postershown"), &window);
+            self.owner_window()
+                .task_manager()
+                .media_element_task_source()
+                .queue_simple_event(self.upcast(), atom!("postershown"));
         }
     }
 
@@ -1385,21 +1386,16 @@ impl HTMLMediaElement {
         *self.player.borrow_mut() = Some(player);
 
         let trusted_node = Trusted::new(self);
-        let (task_source, canceller) = window
-            .task_manager()
-            .media_element_task_source_with_canceller();
+        let task_source = window.task_manager().media_element_task_source();
         ROUTER.add_typed_route(
             action_receiver,
             Box::new(move |message| {
                 let event = message.unwrap();
                 trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
-                if let Err(err) = task_source.queue_with_canceller(
-                    task!(handle_player_event: move || {
-                        this.root().handle_player_event(&event, CanGc::note());
-                    }),
-                    &canceller,
-                ) {
+                if let Err(err) = task_source.queue(task!(handle_player_event: move || {
+                    this.root().handle_player_event(&event, CanGc::note());
+                })) {
                     warn!("Could not queue player event handler task {:?}", err);
                 }
             }),
@@ -1428,42 +1424,37 @@ impl HTMLMediaElement {
 
         if let Some(image_receiver) = image_receiver {
             let trusted_node = Trusted::new(self);
-            let (task_source, canceller) = window
-                .task_manager()
-                .media_element_task_source_with_canceller();
+            let task_source = window.task_manager().media_element_task_source();
             ROUTER.add_typed_route(
                 image_receiver.to_ipc_receiver(),
                 Box::new(move |message| {
                     let msg = message.unwrap();
                     let this = trusted_node.clone();
-                    if let Err(err) = task_source.queue_with_canceller(
-                        task!(handle_glplayer_message: move || {
-                            trace!("GLPlayer message {:?}", msg);
-                            let video_renderer = this.root().video_renderer.clone();
+                    if let Err(err) = task_source.queue(task!(handle_glplayer_message: move || {
+                        trace!("GLPlayer message {:?}", msg);
+                        let video_renderer = this.root().video_renderer.clone();
 
-                            match msg {
-                                GLPlayerMsgForward::Lock(sender) => {
-                                    if let Some(holder) = video_renderer
-                                        .lock()
-                                        .unwrap()
-                                        .current_frame_holder
-                                        .as_mut() {
-                                            holder.lock();
-                                            sender.send(holder.get()).unwrap();
-                                        };
-                                },
-                                GLPlayerMsgForward::Unlock() => {
-                                    if let Some(holder) = video_renderer
-                                        .lock()
-                                        .unwrap()
-                                        .current_frame_holder
-                                        .as_mut() { holder.unlock() }
-                                },
-                                _ => (),
-                            }
-                        }),
-                        &canceller,
-                    ) {
+                        match msg {
+                            GLPlayerMsgForward::Lock(sender) => {
+                                if let Some(holder) = video_renderer
+                                    .lock()
+                                    .unwrap()
+                                    .current_frame_holder
+                                    .as_mut() {
+                                        holder.lock();
+                                        sender.send(holder.get()).unwrap();
+                                    };
+                            },
+                            GLPlayerMsgForward::Unlock() => {
+                                if let Some(holder) = video_renderer
+                                    .lock()
+                                    .unwrap()
+                                    .current_frame_holder
+                                    .as_mut() { holder.unlock() }
+                            },
+                            _ => (),
+                        }
+                    })) {
                         warn!("Could not queue GL player message handler task {:?}", err);
                     }
                 }),
@@ -1513,10 +1504,9 @@ impl HTMLMediaElement {
                                 // the HTMLMediaElementMethods::Ended method
 
                                 // Step 3.
-                                let window = self.owner_window();
                                 let this = Trusted::new(self);
 
-                                let _ = window.task_manager().media_element_task_source().queue(
+                                let _ = self.owner_window().task_manager().media_element_task_source().queue(
                                     task!(reaches_the_end_steps: move || {
                                         let this = this.root();
                                         // Step 3.1.
@@ -1537,8 +1527,7 @@ impl HTMLMediaElement {
 
                                         // Step 3.3.
                                         this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::note());
-                                    }),
-                                    window.upcast(),
+                                    })
                                 );
 
                                 // https://html.spec.whatwg.org/multipage/#dom-media-have_current_data
@@ -1548,12 +1537,10 @@ impl HTMLMediaElement {
 
                         PlaybackDirection::Backwards => {
                             if self.playback_position.get() <= self.earliest_possible_position() {
-                                let window = self.owner_window();
-
-                                window
+                                self.owner_window()
                                     .task_manager()
                                     .media_element_task_source()
-                                    .queue_simple_event(self.upcast(), atom!("ended"), &window);
+                                    .queue_simple_event(self.upcast(), atom!("ended"));
                             }
                         },
                     }
@@ -1737,9 +1724,10 @@ impl HTMLMediaElement {
                     self.duration.set(f64::INFINITY);
                 }
                 if previous_duration != self.duration.get() {
-                    let window = self.owner_window();
-                    let task_source = window.task_manager().media_element_task_source();
-                    task_source.queue_simple_event(self.upcast(), atom!("durationchange"), &window);
+                    self.owner_window()
+                        .task_manager()
+                        .media_element_task_source()
+                        .queue_simple_event(self.upcast(), atom!("durationchange"));
                 }
 
                 // Step 5.
@@ -2130,11 +2118,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         }
 
         self.muted.set(value);
-        let window = self.owner_window();
-        window
+        self.owner_window()
             .task_manager()
             .media_element_task_source()
-            .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
+            .queue_simple_event(self.upcast(), atom!("volumechange"));
         if !self.is_allowed_to_play() {
             self.internal_pause_steps();
         }
@@ -2229,9 +2216,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         let state = self.ready_state.get();
 
-        let window = self.owner_window();
-        // FIXME(nox): Why are errors silenced here?
-        let task_source = window.task_manager().media_element_task_source();
+        let task_source = self
+            .owner_window()
+            .task_manager()
+            .media_element_task_source();
         if self.Paused() {
             // Step 6.1.
             self.paused.set(false);
@@ -2243,14 +2231,14 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             }
 
             // Step 6.3.
-            task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
+            task_source.queue_simple_event(self.upcast(), atom!("play"));
 
             // Step 6.4.
             match state {
                 ReadyState::HaveNothing |
                 ReadyState::HaveMetadata |
                 ReadyState::HaveCurrentData => {
-                    task_source.queue_simple_event(self.upcast(), atom!("waiting"), &window);
+                    task_source.queue_simple_event(self.upcast(), atom!("waiting"));
                 },
                 ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
                     self.notify_about_playing();
@@ -2262,19 +2250,16 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
             task_source
-                .queue(
-                    task!(resolve_pending_play_promises: move || {
-                        let this = this.root();
-                        if generation_id != this.generation_id.get() {
-                            return;
-                        }
+                .queue(task!(resolve_pending_play_promises: move || {
+                    let this = this.root();
+                    if generation_id != this.generation_id.get() {
+                        return;
+                    }
 
-                        this.fulfill_in_flight_play_promises(|| {
-                            this.play_media();
-                        });
-                    }),
-                    window.upcast(),
-                )
+                    this.fulfill_in_flight_play_promises(|| {
+                        this.play_media();
+                    });
+                }))
                 .unwrap();
         }
 
@@ -2478,11 +2463,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         if *value != self.volume.get() {
             self.volume.set(*value);
 
-            let window = self.owner_window();
-            window
+            self.owner_window()
                 .task_manager()
                 .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("volumechange"), &window);
+                .queue_simple_event(self.upcast(), atom!("volumechange"));
             if !self.is_allowed_to_play() {
                 self.internal_pause_steps();
             }
@@ -2809,11 +2793,10 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
         // => "If mode is remote" step 2
         if Instant::now() > self.next_progress_event {
-            let window = elem.owner_window();
-            window
+            elem.owner_window()
                 .task_manager()
                 .media_element_task_source()
-                .queue_simple_event(elem.upcast(), atom!("progress"), &window);
+                .queue_simple_event(elem.upcast(), atom!("progress"));
             self.next_progress_event = Instant::now() + Duration::from_millis(350);
         }
     }
