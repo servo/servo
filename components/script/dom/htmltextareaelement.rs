@@ -460,7 +460,7 @@ impl HTMLTextAreaElement {
 
     /// TODO mirrored in htmlinputelement.rs
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
-    fn handle_clipboard_action(&self, event: &ClipboardEvent) -> bool {
+    fn handle_clipboard_action(&self, event: &ClipboardEvent, can_gc: CanGc) -> bool {
         // TODO true if invoked by a script
         let script_triggered = false;
         // TODO true if invoked from user interface or from a scripting thread which is allowed to show a popup.
@@ -481,14 +481,14 @@ impl HTMLTextAreaElement {
                     self.textinput.borrow_mut().copy_contents();
                     // Step 3.2
                     self.owner_document()
-                        .fire_clipboard_event(ClipboardEventType::Change);
+                        .fire_clipboard_event(ClipboardEventType::Change, can_gc);
                 },
                 "cut" => {
                     // Step 3.1
                     let result = self.textinput.borrow_mut().cut_contents();
                     // Step 3.1.3
                     self.owner_document()
-                        .fire_clipboard_event(ClipboardEventType::Change);
+                        .fire_clipboard_event(ClipboardEventType::Change, CanGc::note());
                     // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
                     // Step 3.2
                     return result;
@@ -526,7 +526,7 @@ impl HTMLTextAreaElement {
                     }
                     // Step 4.2
                     self.owner_document()
-                        .fire_clipboard_event(ClipboardEventType::Change);
+                        .fire_clipboard_event(ClipboardEventType::Change, CanGc::note());
                 },
                 "paste" => return false,
                 _ => (),
@@ -757,7 +757,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
 
         if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
-            self.handle_clipboard_action(clipboard_event);
+            self.handle_clipboard_action(clipboard_event, CanGc::note());
         }
 
         self.validity_state()

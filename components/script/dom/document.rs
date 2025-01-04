@@ -1448,7 +1448,7 @@ impl Document {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
-    pub fn fire_clipboard_event(&self, event: ClipboardEventType) {
+    pub fn fire_clipboard_event(&self, event: ClipboardEventType, can_gc: CanGc) {
         // Step 1 Let clear_was_called be false
         // Step 2 Let types_to_clear an empty list
         let mut drag_data_store = DragDataStore::new();
@@ -1500,8 +1500,11 @@ impl Document {
         }
 
         // Step 3
-        let clipboard_event_data =
-            DataTransfer::new(&self.window, Rc::new(RefCell::new(Some(drag_data_store))));
+        let clipboard_event_data = DataTransfer::new(
+            &self.window,
+            Rc::new(RefCell::new(Some(drag_data_store))),
+            can_gc,
+        );
 
         let event = ClipboardEvent::new(
             &self.window,

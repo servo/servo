@@ -79,8 +79,9 @@ impl DataTransfer {
     pub(crate) fn new(
         window: &Window,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
+        can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
-        Self::new_with_proto(window, None, CanGc::note(), data_store)
+        Self::new_with_proto(window, None, can_gc, data_store)
     }
 
     pub(crate) fn data_store(&self) -> Option<Ref<DragDataStore>> {
