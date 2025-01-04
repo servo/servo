@@ -2632,6 +2632,12 @@ impl Document {
             "Complete before DOMContentLoaded?"
         );
 
+        // We only want a tracing event for DOMContentLoaded for actual pages and iframes,
+        // not when a script is just parsing a fragment.
+        if self.has_browsing_context() {
+            #[cfg(feature = "tracing")]
+            tracing::info!(name: "DOMContentLoaded", servo_profiling = true, url = self.url().to_string());
+        }
         update_with_current_instant(&self.dom_content_loaded_event_start);
 
         // Step 4.1.
@@ -2791,6 +2797,10 @@ impl Document {
             return;
         }
         if self.tti_window.borrow().needs_check() {
+            // TODO(delan): include this in Perfetto traces. May require support for backdating
+            // events, unless we include all candidates and filter them in perf-analysis-tools.
+            // Not a high priority, since TTI is now considered to be an outdated metric:
+            // <https://developer.chrome.com/docs/lighthouse/performance/interactive/>
             self.get_interactive_metrics().maybe_set_tti(
                 self,
                 InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start()),

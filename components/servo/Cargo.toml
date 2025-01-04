@@ -24,7 +24,7 @@ no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
-tracing = ["dep:tracing", "compositing/tracing", "constellation/tracing", "fonts/tracing", "layout_thread_2013?/tracing", "layout_thread_2020/tracing", "profile_traits/tracing", "script/tracing"]
+tracing = ["dep:tracing", "compositing/tracing", "constellation/tracing", "fonts/tracing", "layout_thread_2013?/tracing", "layout_thread_2020/tracing", "metrics/tracing", "profile_traits/tracing", "script/tracing"]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
@@ -70,6 +70,7 @@ layout_thread_2013 = { path = "../layout_thread", optional = true }
 layout_thread_2020 = { path = "../layout_thread_2020" }
 log = { workspace = true }
 media = { path = "../media" }
+metrics = { path = "../metrics" }
 mozangle = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
