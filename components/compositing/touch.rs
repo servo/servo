@@ -236,7 +236,11 @@ impl TouchHandler {
             Flinging { .. } => {
                 unreachable!("On touchup received, but already flinging.")
             },
-            WaitingForScript | DefaultPrevented | MultiTouch => {
+            WaitingForScript => {
+                self.state = Nothing;
+                TouchAction::Click
+            },
+            DefaultPrevented | MultiTouch => {
                 if self.active_touch_points.is_empty() {
                     self.state = Nothing;
                 }
