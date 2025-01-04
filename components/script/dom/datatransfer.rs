@@ -76,14 +76,14 @@ impl DataTransfer {
         )
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
     ) -> DomRoot<DataTransfer> {
         Self::new_with_proto(window, None, CanGc::note(), data_store)
     }
 
-    pub fn data_store(&self) -> Option<Ref<DragDataStore>> {
+    pub(crate) fn data_store(&self) -> Option<Ref<DragDataStore>> {
         Ref::filter_map(self.data_store.borrow(), |data_store| data_store.as_ref()).ok()
     }
 }

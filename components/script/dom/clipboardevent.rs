@@ -25,14 +25,14 @@ pub struct ClipboardEvent {
 }
 
 impl ClipboardEvent {
-    pub fn new_inherited() -> ClipboardEvent {
+    fn new_inherited() -> ClipboardEvent {
         ClipboardEvent {
             event: Event::new_inherited(),
             clipboard_data: MutNullableDom::new(None),
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         type_: DOMString,
@@ -53,11 +53,11 @@ impl ClipboardEvent {
         ev
     }
 
-    pub fn set_clipboard_data(&self, clipboard_data: Option<&DataTransfer>) {
+    pub(crate) fn set_clipboard_data(&self, clipboard_data: Option<&DataTransfer>) {
         self.clipboard_data.set(clipboard_data);
     }
 
-    pub fn get_clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
+    pub(crate) fn get_clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
         self.clipboard_data.get()
     }
 }
