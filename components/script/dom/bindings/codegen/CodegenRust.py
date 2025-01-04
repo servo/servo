@@ -920,41 +920,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         return handleOptional(templateBody, declType, handleDefault("None"))
 
-    if type.isReadableStream():
-        assert not isEnforceRange and not isClamp
-
-        if failureCode is None:
-            unwrapFailureCode = '''throw_type_error(*cx, "This object is not \
-                    an instance of ReadableStream.");\n'''
-        else:
-            unwrapFailureCode = failureCode
-
-        templateBody = fill(
-            """
-            {
-                use crate::realms::{AlreadyInRealm, InRealm};
-                use crate::dom::readablestream::ReadableStream;
-                let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-                match ReadableStream::from_js(cx, $${val}.get().to_object(), InRealm::Already(&in_realm_proof)) {
-                    Ok(val) => val,
-                    Err(()) => {
-                    $*{failureCode}
-                    }
-                }
-
-            }
-            """,
-            failureCode=f"{unwrapFailureCode}\n",
-        )
-
-        templateBody = wrapObjectTemplate(templateBody, "None",
-                                          isDefinitelyObject, type, failureCode)
-
-        declType = CGGeneric("DomRoot<dom::readablestream::ReadableStream>")
-
-        return handleOptional(templateBody, declType,
-                              handleDefault("None"))
-
     elif type.isSpiderMonkeyInterface():
         raise TypeError("Can't handle SpiderMonkey interface arguments other than typed arrays yet")
 
@@ -5061,9 +5026,6 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isObject():
         name = type.name
         typeName = "Heap<*mut JSObject>"
-    elif type.isReadableStream():
-        name = type.name
-        typeName = "DomRoot<ReadableStream>"
     elif is_typed_array(type):
         name = type.name
         typeName = f"typedarray::Heap{name}"

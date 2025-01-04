@@ -4,7 +4,6 @@ patch < debug.patch
 patch < callback-location.patch
 patch < union-typedef.patch
 patch < inline.patch
-patch < readable-stream.patch
 patch < like-as-iterable.patch
 patch < builtin-array.patch
 
