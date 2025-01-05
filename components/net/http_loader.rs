@@ -733,11 +733,12 @@ pub async fn http_fetch(
 ) -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
-    // Step 1
-    let mut response: Option<Response> = None;
+    // Step 1 Let request be fetchParams’s request.
+    // couldn't assign request to a variable due to mutable borrowing issues when calling
 
     // Step 2
     // nothing to do, since actual_response is a function on response
+    let mut response: Option<Response> = None;
 
     // Step 3
     if fetch_params.request.service_workers_mode == ServiceWorkersMode::All {
@@ -940,7 +941,9 @@ pub async fn http_redirect_fetch(
 ) -> Response {
     let mut redirect_end_timer = RedirectEndTimer(Some(context.timing.clone()));
 
-    // Step 1
+    // Step 1: Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
+
     assert!(response.return_internal);
 
     let location_url = response.actual_response().location_url.clone();
@@ -993,7 +996,6 @@ pub async fn http_redirect_fetch(
             ResourceTimeValue::RedirectStart,
         )); // updates start_time only if redirect_start is nonzero (implying TAO)
 
-    let request = &mut fetch_params.request;
     // Step 7: If request’s redirect count is 20, then return a network error.
     if request.redirect_count >= 20 {
         return Response::network_error(NetworkError::Internal("Too many redirects".into()));

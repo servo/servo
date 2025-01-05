@@ -30,8 +30,7 @@ fn assert_parse(
         .pipeline_id(None)
         .build();
 
-    let mut fetch_params = FetchParams::new(request);
-    let response = fetch(&mut fetch_params, None);
+    let response = fetch(&mut request, None);
 
     match data {
         Some(data) => {

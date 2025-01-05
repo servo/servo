@@ -712,8 +712,7 @@ impl CoreResourceManager {
         };
 
         let request = request_builder.build();
-        let mut fetch_params = crate::fetch::fetch_params::FetchParams::new(request);
-        let url = fetch_params.request.current_url();
+        let url = request.current_url();
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,
         // regardless if the URL is revoked after token acquisition.
@@ -748,15 +747,15 @@ impl CoreResourceManager {
                 filemanager: Arc::new(Mutex::new(filemanager)),
                 file_token,
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
-                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
-                    fetch_params.request.timing_type(),
-                ))),
+                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 protocols,
             };
 
             match res_init_ {
                 Some(res_init) => {
                     let response = Response::from_init(res_init, timing_type);
+
+                    let mut fetch_params = crate::fetch::fetch_params::FetchParams::new(request);
                     http_redirect_fetch(
                         &mut fetch_params,
                         &mut CorsCache::default(),
@@ -769,7 +768,7 @@ impl CoreResourceManager {
                     .await;
                 },
                 None => {
-                    fetch(&mut fetch_params, &mut sender, &context).await;
+                    fetch(request, &mut sender, &context).await;
                 },
             };
 

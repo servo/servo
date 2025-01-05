@@ -99,7 +99,7 @@ impl CancellationListener {
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub async fn fetch(fetch_params: &mut FetchParams, target: Target<'_>, context: &FetchContext) {
+pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) {
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
     {
@@ -107,19 +107,22 @@ pub async fn fetch(fetch_params: &mut FetchParams, target: Target<'_>, context: 
         timing_guard.set_attribute(ResourceAttribute::FetchStart);
         timing_guard.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
     }
-    fetch_with_cors_cache(fetch_params, &mut CorsCache::default(), target, context).await;
+    fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
 }
 
-/// Continuation of fetch from step 9.
+/// Continuation of fetch from step 8.
 ///
 /// <https://fetch.spec.whatwg.org#concept-fetch>
 pub async fn fetch_with_cors_cache(
-    fetch_params: &mut FetchParams,
+    request: Request,
     cache: &mut CorsCache,
     target: Target<'_>,
     context: &FetchContext,
 ) {
+    // Step 8: Let fetchParams be a new fetch params whose request is request
+    let mut fetch_params = FetchParams::new(request);
     let request = &mut fetch_params.request;
+
     // Step 9: If request’s window is "client", then set request’s window to request’s client, if
     // request’s client’s global object is a Window object; otherwise "no-window".
     if request.window == Window::Client {
@@ -172,7 +175,7 @@ pub async fn fetch_with_cors_cache(
     }
 
     // Step 17: Run main fetch given fetchParams.
-    main_fetch(fetch_params, cache, false, target, &mut None, context).await;
+    main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await;
 
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec
@@ -216,18 +219,23 @@ pub async fn main_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    // Step 1.
+    // Step 1: Let request be fetchParam's request.
+    // couldn't assign request to a variable due to mutable borrowing issues when calling
+    // fetch_scheme and http_fetch
+    let request = &mut fetch_params.request;
+
+    // Step 2: Let response be null.
     let mut response = None;
 
     // Servo internal: return a crash error when a crash error page is needed
-    if let Some(ref details) = fetch_params.request.crash {
+    if let Some(ref details) = request.crash {
         response = Some(Response::network_error(NetworkError::Crash(
             details.clone(),
         )));
     }
 
-    // Step 2.
-    if fetch_params.request.local_urls_only &&
+    // Step 3: If request’s local-URLs-only flag is set and request’s current URL is not local, then set response to a network error.
+    if request.local_urls_only &&
         !matches!(
             fetch_params.request.current_url().scheme(),
             "about" | "blob" | "data" | "filesystem"
@@ -716,6 +724,9 @@ async fn scheme_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
+    // Step 1: If fetchParams is canceled, then return the appropriate network error for fetchParams.
+
+    // Step 2: Let request be fetchParams’s request. 
     let request = &mut fetch_params.request;
     let url = request.current_url();
 

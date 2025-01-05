@@ -202,7 +202,7 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
 }
 
-fn fetch(request: &mut FetchParams, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
     fetch_with_context(request, &mut new_fetch_context(dc, None, None))
 }
 

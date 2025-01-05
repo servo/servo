@@ -6,9 +6,12 @@ use std::sync::{Arc, Mutex};
 
 use net_traits::request::Request;
 
+/// https://fetch.spec.whatwg.org/#fetch-params
 #[derive(Clone)]
 pub struct FetchParams {
+    /// https://fetch.spec.whatwg.org/#concept-request
     pub request: Request,
+    /// https://fetch.spec.whatwg.org/#fetch-controller
     pub controller: Arc<Mutex<FetchController>>,
 }
 
@@ -21,11 +24,14 @@ impl FetchParams {
     }
 }
 
+/// https://fetch.spec.whatwg.org/#fetch-controller
 #[derive(Clone, Debug, Default)]
 pub struct FetchController {
+    /// https://fetch.spec.whatwg.org/#fetch-controller-state
     pub state: FetchControllerState,
 }
 
+/// https://fetch.spec.whatwg.org/#fetch-controller-state
 #[derive(Clone, Copy, Debug, Default)]
 pub enum FetchControllerState {
     #[default]
