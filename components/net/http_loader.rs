@@ -734,14 +734,14 @@ pub async fn http_fetch(
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
     // Step 1 Let request be fetchParams’s request.
-    // couldn't assign request to a variable due to mutable borrowing issues when calling
+    let request = &mut fetch_params.request;
 
     // Step 2
     // nothing to do, since actual_response is a function on response
     let mut response: Option<Response> = None;
 
     // Step 3
-    if fetch_params.request.service_workers_mode == ServiceWorkersMode::All {
+    if request.service_workers_mode == ServiceWorkersMode::All {
         // TODO: Substep 1
         // Set response to the result of invoking handle fetch for request.
 
@@ -755,11 +755,11 @@ pub async fn http_fetch(
 
             // Subsubstep 3
             if (res.response_type == ResponseType::Opaque &&
-                fetch_params.request.mode != RequestMode::NoCors) ||
+                request.mode != RequestMode::NoCors) ||
                 (res.response_type == ResponseType::OpaqueRedirect &&
-                    fetch_params.request.redirect_mode != RedirectMode::Manual) ||
+                    request.redirect_mode != RedirectMode::Manual) ||
                 (res.url_list.len() > 1 &&
-                    fetch_params.request.redirect_mode != RedirectMode::Follow) ||
+                    request.redirect_mode != RedirectMode::Follow) ||
                 res.is_network_error()
             {
                 return Response::network_error(NetworkError::Internal("Request failed".into()));
@@ -775,20 +775,20 @@ pub async fn http_fetch(
         // Substep 1
         if cors_preflight_flag {
             let method_cache_match =
-                cache.match_method(&fetch_params.request, fetch_params.request.method.clone());
+                cache.match_method(request, request.method.clone());
 
             let method_mismatch = !method_cache_match &&
-                (!is_cors_safelisted_method(&fetch_params.request.method) ||
-                    fetch_params.request.use_cors_preflight);
-            let header_mismatch = fetch_params.request.headers.iter().any(|(name, value)| {
-                !cache.match_header(&fetch_params.request, name) &&
+                (!is_cors_safelisted_method(&request.method) ||
+                    request.use_cors_preflight);
+            let header_mismatch = request.headers.iter().any(|(name, value)| {
+                !cache.match_header(request, name) &&
                     !is_cors_safelisted_request_header(&name, &value)
             });
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
                 let preflight_result =
-                    cors_preflight_fetch(&fetch_params.request, cache, context).await;
+                    cors_preflight_fetch(request, cache, context).await;
                 // Sub-substep 2
                 if let Some(e) = preflight_result.get_network_error() {
                     return Response::network_error(e.clone());
@@ -797,8 +797,8 @@ pub async fn http_fetch(
         }
 
         // Substep 2
-        if fetch_params.request.redirect_mode == RedirectMode::Follow {
-            fetch_params.request.service_workers_mode = ServiceWorkersMode::None;
+        if request.redirect_mode == RedirectMode::Follow {
+            request.service_workers_mode = ServiceWorkersMode::None;
         }
 
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
@@ -811,7 +811,7 @@ pub async fn http_fetch(
             .set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
-            &mut fetch_params.request,
+            request,
             authentication_fetch_flag,
             cors_flag,
             done_chan,
@@ -820,7 +820,7 @@ pub async fn http_fetch(
         .await;
 
         // Substep 4
-        if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
+        if cors_flag && cors_check(request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::Internal("CORS check failed".into()));
         }
 
@@ -862,14 +862,14 @@ pub async fn http_fetch(
         // Substep 4.
         if let Some(Ok(ref mut location)) = location {
             if location.fragment().is_none() {
-                let current_url = fetch_params.request.current_url();
+                let current_url = request.current_url();
                 location.set_fragment(current_url.fragment());
             }
         }
         response.actual_response_mut().location_url = location;
 
         // Substep 5.
-        response = match fetch_params.request.redirect_mode {
+        response = match request.redirect_mode {
             RedirectMode::Error => {
                 Response::network_error(NetworkError::Internal("Redirect mode error".into()))
             },
