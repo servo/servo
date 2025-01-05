@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.csswg.org/css-grid/">
+<meta name="assert" content="Grid goes through layout when image src changes">
+<style>
+div {
+  display: grid;
+}
+img {
+  width: 100px;
+  height: 100%;
+}
+</style>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div>
+<img src="">
+</div>
+</body>
+<script>
+document.body.offsetHeight;
+document.querySelector("img").src = "grid-items/support/100x100-green.png";
+</script>
+</html>

@@ -1,3 +1,5 @@
+import pytest
+
 from tests.classic.perform_actions.support.refine import get_events
 
 PAGE_CONTENT = """
@@ -55,11 +57,15 @@ def test_pointer(session, inline, mouse_chain):
         .pointer_down(button=0) \
         .pointer_up(button=0) \
         .pause(1000) \
-        .pointer_move(x=200, y=200) \
+        .pointer_move(x=300, y=200) \
         .perform()
 
     assert session.url == inline(PAGE_CONTENT)
 
     events = get_events(session)
     assert len(events) == 1
-    assert events[0] == [200, 200]
+
+    assert events[0] == [
+        pytest.approx(300, abs=1.0),
+        pytest.approx(200, abs=1.0)
+    ]

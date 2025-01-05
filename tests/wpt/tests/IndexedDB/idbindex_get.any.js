@@ -21,7 +21,7 @@ async_test(t => {
   };
 
   open_rq.onsuccess = function(e) {
-    const rq = db.transaction("store", "readonly", { durability: 'relaxed' })
+    const rq = db.transaction("store", "readonly")
       .objectStore("store")
       .index("index")
       .get(record.indexedProperty);
@@ -52,7 +52,7 @@ async_test(t => {
   };
 
   open_rq.onsuccess = function(e) {
-    const rq = db.transaction("test", "readonly", { durability: 'relaxed' })
+    const rq = db.transaction("test", "readonly")
       .objectStore("test")
       .index("index")
       .get("data");
@@ -96,7 +96,7 @@ async_test(t => {
   };
 
   open_rq.onsuccess = function(e) {
-    const rq = db.transaction("store", "readonly", { durability: 'relaxed' })
+    const rq = db.transaction("store", "readonly")
       .objectStore("store")
       .index("index")
       .get(IDBKeyRange.bound('data4', 'data7'));
@@ -159,7 +159,7 @@ async_test(t => {
 
   open_rq.onsuccess = function(e) {
     db = e.target.result;
-    const tx = db.transaction('store', 'readonly', { durability: 'relaxed' });
+    const tx = db.transaction('store', 'readonly');
     const index = tx.objectStore('store').index('index');
     tx.abort();
 

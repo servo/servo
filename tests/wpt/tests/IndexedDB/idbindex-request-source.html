@@ -22,7 +22,7 @@
     store.createIndex('index', 'kp');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     const index = tx.objectStore('store').index('index');
     assert_equals(func(index).source, index,
                   `${func}.source should be the index itself`);

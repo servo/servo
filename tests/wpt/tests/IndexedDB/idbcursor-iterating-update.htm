@@ -31,7 +31,7 @@ functionsThatShouldNotAffectIteration.forEach((func) => indexeddb_test(
     objStoreValues.forEach((value) => objStore.add(value));
   },
   (t, db) => {
-    const txn = db.transaction('items', 'readwrite', {durability: 'relaxed'});
+    const txn = db.transaction('items', 'readwrite');
     const objStore = txn.objectStore('items');
     const nameIndex = objStore.index('name');
 

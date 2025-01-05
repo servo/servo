@@ -47,7 +47,7 @@
       const index = store.createIndex('i', 'keyPath');
     },
     (t, db) => {
-      const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
+      const tx = db.transaction('s', 'readonly');
       const store = tx.objectStore('s');
       const index = store.index('i');
 

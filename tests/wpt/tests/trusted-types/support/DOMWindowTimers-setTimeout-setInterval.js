@@ -1,5 +1,4 @@
-// `globalThis.toString()` is of the form "[Object <someName>]".
-const globalThisStr = globalThis.toString().split(" ")[1].slice(0, -1);
+const globalThisStr = getGlobalThisStr();
 
 async_test(t => {
   globalThis.timeoutTrustedTest = t;

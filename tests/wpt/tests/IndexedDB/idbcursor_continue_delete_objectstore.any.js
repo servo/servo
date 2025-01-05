@@ -54,7 +54,7 @@ async_test(t => {
 
 
   function CursorDeleteRecord(e) {
-    let txn = db.transaction('test', 'readwrite', {durability: 'relaxed'});
+    let txn = db.transaction('test', 'readwrite');
     let object_store = txn.objectStore('test');
     let cursor_rq = object_store.openCursor();
     let iteration = 0;
@@ -87,7 +87,7 @@ async_test(t => {
 
 
   function VerifyRecordWasDeleted(e) {
-    let cursor_rq = db.transaction('test', 'readonly', {durability: 'relaxed'})
+    let cursor_rq = db.transaction('test', 'readonly')
                         .objectStore('test')
                         .openCursor();
 

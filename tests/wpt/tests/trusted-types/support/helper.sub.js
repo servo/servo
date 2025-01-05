@@ -165,3 +165,8 @@ function assert_element_accepts_value_set_ns(tag, attribute, value, expected,
   let attr_node = elem.getAttributeNodeNS(attributeNamespace, attribute);
   assert_equals(attr_node.value + "", expected);
 }
+
+function getGlobalThisStr() {
+  // `globalThis.toString()` is of the form "[Object <someName>]".
+  return globalThis.toString().split(" ")[1].slice(0, -1);
+}

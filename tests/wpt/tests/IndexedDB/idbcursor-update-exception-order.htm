@@ -13,7 +13,7 @@ indexeddb_test(
     s.put('value', 'key');
   },
   (t, db) => {
-    const s = db.transaction('s', 'readonly', {durability: 'relaxed'}).objectStore('s');
+    const s = db.transaction('s', 'readonly').objectStore('s');
     const r = s.openCursor();
     r.onsuccess = t.step_func(() => {
       r.onsuccess = null;
@@ -36,7 +36,7 @@ indexeddb_test(
     s.put('value', 'key');
   },
   (t, db) => {
-    const s = db.transaction('s', 'readonly', {durability: 'relaxed'}).objectStore('s');
+    const s = db.transaction('s', 'readonly').objectStore('s');
     const r = s.openCursor();
     r.onsuccess = t.step_func(() => {
       r.onsuccess = null;
@@ -58,7 +58,7 @@ indexeddb_test(
     s.put('value', 'key');
   },
   (t, db) => {
-    const s = db.transaction('s', 'readonly', {durability: 'relaxed'}).objectStore('s');
+    const s = db.transaction('s', 'readonly').objectStore('s');
     const r = s.openKeyCursor();
     r.onsuccess = t.step_func(() => {
       r.onsuccess = null;
@@ -79,7 +79,7 @@ indexeddb_test(
     s.put({id: 123, data: 'value'});
   },
   (t, db) => {
-    const s = db.transaction('s', 'readwrite', {durability: 'relaxed'}).objectStore('s');
+    const s = db.transaction('s', 'readwrite').objectStore('s');
     const r = s.openCursor();
     r.onsuccess = t.step_func(() => {
       r.onsuccess = null;

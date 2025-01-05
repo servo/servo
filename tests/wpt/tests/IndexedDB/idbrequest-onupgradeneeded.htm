@@ -122,7 +122,7 @@ function upgradeneeded_test(upgrade_func, success_func, error_func, description)
       db.createObjectStore('store');
       request.transaction.oncomplete = t.step_func(function() {
         order.push('Upgrade transaction complete');
-        var txn = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+        var txn = db.transaction('store', 'readwrite');
         var store = txn.objectStore('store');
         store.put('value', 'key');
         txn.oncomplete = t.step_func(function() {

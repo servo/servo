@@ -31,7 +31,7 @@ async_test(t => {
     assert_equals(db.version, 1);
     assert_equals(db.objectStoreNames.length, 1);
     assert_throws_dom('InvalidStateError', function() {
-      db.transaction('os', 'readonly', {durability: 'relaxed'});
+      db.transaction('os', 'readonly');
     });
 
     t.done();

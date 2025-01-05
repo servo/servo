@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: Dynamic stylesheet sets correct animations</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions/#setup-transition-pseudo-elements-algorithm">
+
+<style>
+:root { view-transition-name: none; }
+#target {
+    view-transition-name: target;
+    background: red;
+    width: 100px;
+    height: 100px;
+}
+html::view-transition-group(*) {
+    animation-timing-function: steps(2, start);
+    animation-play-state: paused;
+}
+html::view-transition-old(*),
+html::view-transition-new(*) {
+    animation-play-state: paused;
+}
+</style>
+
+<div id="target"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async () => {
+    let vt = document.startViewTransition(() => {
+        target.style.backgroundColor = "green";
+    });
+
+    await vt.ready;
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-group(target)").animationName,
+        "-ua-view-transition-group-anim-target",
+        "Animation on group when there are 2 snapshots"
+    );
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-old(target)").animationName,
+        "-ua-view-transition-fade-out, -ua-mix-blend-mode-plus-lighter",
+        "Two animations when there are 2 snapshots"
+    );
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-new(target)").animationName,
+        "-ua-view-transition-fade-in, -ua-mix-blend-mode-plus-lighter",
+        "Two animations when there are 2 snapshots"
+    );
+    await vt.skipTransition();
+}, "Both old and new snapshots");
+
+promise_test(async () => {
+    let vt = await document.startViewTransition(() => {
+        target.remove();
+    });
+
+    await vt.ready;
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-group(target)").animationName,
+        "none",
+        "No animation on group when one snapshot is missing"
+    );
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-old(target)").animationName,
+        "-ua-view-transition-fade-out",
+        "Only one animation for old snapshot when new snapshot is missing"
+    );
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-new(target)").animationName,
+        "none",
+        "No animation since the snapshot is not generated"
+    );
+
+    await vt.skipTransition();
+}, "Only old snapshot");
+
+promise_test(async () => {
+    let vt = await document.startViewTransition(() => {
+        const div = document.createElement("div");
+        div.id = "target";
+        document.body.append(div);
+    });
+
+    await vt.ready;
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-group(target)").animationName,
+        "none",
+        "No animation on group when one snapshot is missing"
+    );
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-old(target)").animationName,
+        "none",
+        "No animation since the snapshot is not generated"
+    );
+
+    assert_equals(
+        getComputedStyle(document.documentElement, "::view-transition-new(target)").animationName,
+        "-ua-view-transition-fade-in",
+        "Only one animation for new snapshot when old snapshot is missing"
+    );
+    await vt.skipTransition();
+}, "Only new snapshot");
+</script>
+
+</body>
+</html>

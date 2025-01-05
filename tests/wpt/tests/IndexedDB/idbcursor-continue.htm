@@ -30,7 +30,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly").objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       if (!e.target.result) {
@@ -57,7 +57,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index").openCursor();
+    var rq = db.transaction("test", "readonly").objectStore("test").index("index").openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
       if (!e.target.result) {
@@ -102,7 +102,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index")
+    var rq = db.transaction("test", "readonly").objectStore("test").index("index")
                .openCursor();
 
     rq.onsuccess = t.step_func(function(e) {
@@ -137,7 +137,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index")
+    var rq = db.transaction("test", "readonly").objectStore("test").index("index")
                .openCursor(IDBKeyRange.lowerBound("cupcake", true));
 
     rq.onsuccess = t.step_func(function(e) {
@@ -177,7 +177,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index")
+    var rq = db.transaction("test", "readonly").objectStore("test").index("index")
                .openCursor("pancake");
 
     rq.onsuccess = t.step_func(function(e) {
@@ -210,7 +210,7 @@ indexeddb_test(
   upgrade_func,
   function(t, db) {
     var count = 0;
-    var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index")
+    var rq = db.transaction("test", "readonly").objectStore("test").index("index")
                .openCursor("pie");
 
     rq.onsuccess = t.step_func(function(e) {

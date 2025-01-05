@@ -14,7 +14,7 @@ indexeddb_test(
     db.createObjectStore('store');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const request = tx.objectStore('store').get(0);
     tx.abort();
     request.onsuccess = t.unreached_func('request should not succeed');

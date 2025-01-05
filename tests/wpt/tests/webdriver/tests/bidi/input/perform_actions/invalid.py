@@ -377,9 +377,16 @@ async def test_params_key_action_value_invalid_type(perform_actions,
 
 @pytest.mark.parametrize(
     "value",
-    ["fa", "\u0BA8\u0BBFb", "\u0BA8\u0BBF\u0BA8", "\u1100\u1161\u11A8c"],
+    [
+        "fa",  # 2 symbols.
+        "\U0001F604a",  # "😄a" a codepoint with a symbol.
+        "\u0BA8\u0BBFa",  # "நிa" a grapheme with a symbol.
+        "\u1100\u1161\u11A8a",  # "각a" a grapheme with a symbol.
+        "\u2764\ufe0fa",  # "❤️a" a grapheme with a symbol.
+        "\U0001F604\U0001F60D",  # "😄😍" 2 graphemes.
+    ],
 )
-async def test_params_key_action_value_invalid_multiple_codepoints(
+async def test_params_key_action_value_invalid_multiple_graphemes(
         perform_actions, value):
     actions = [
         create_key_action("keyDown", {"value": value}),

@@ -21,7 +21,7 @@
     };
 
     open_rq.onsuccess = function(e) {
-        var objStore = db.transaction("test", "readonly", {durability: 'relaxed'})
+        var objStore = db.transaction("test", "readonly")
                    .objectStore("test");
 
         assert_equals(objStore.indexNames[0], "index", "indexNames (second)");

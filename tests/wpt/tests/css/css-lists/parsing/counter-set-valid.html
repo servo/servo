@@ -15,6 +15,9 @@ test_valid_value('counter-set', 'none');
 test_valid_value('counter-set', 'chapter', 'chapter 0');
 test_valid_value('counter-set', 'section -1');
 test_valid_value('counter-set', 'first -1 second third 99', 'first -1 second 0 third 99');
+test_valid_value('counter-set', 'section calc(1)');
+test_valid_value('counter-set', 'section calc(-2.5)');
+test_valid_value('counter-set', 'section calc(10 + (5 * sign(2cqw - 10px)))');
 </script>
 </body>
 </html>

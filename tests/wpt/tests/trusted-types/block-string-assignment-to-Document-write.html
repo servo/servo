@@ -119,7 +119,13 @@
   }, "`document.writeln(null)` throws");
 
   let default_policy = trustedTypes.createPolicy('default',
-          { createHTML: (html) => {
+          { createHTML: (html, type, sink) => {
+              if (html === "assertSinkEqualsDocumentWrite") {
+                assert_equals(sink, "Document write");
+              } else if (html === "assertSinkEqualsDocumentWriteLn") {
+                assert_equals(sink, "Document writeln");
+              }
+
               return html.replace("Hi", "Quack")
                       .replace("transformed", "a duck")
                       .replace("defghi", "zxcvbn")
@@ -148,6 +154,11 @@
     assert_equals(document.body.innerText, "abczxcvbnjkl");
   }, "`document.write(string, TrustedHTML)` observes default policy");
 
+  test(t => {
+    document.body.innerText = '';
+    document.write("assertSinkEqualsDocumentWrite");
+  }, "`document.write` passes the correct sink string to the default policy");
+
   // Default policy works. (Now for writeln.)
   test(t => {
     document.body.innerText = '';
@@ -170,4 +181,9 @@
     document.writeln(a, b);
     assert_equals(document.body.innerText, "abczxcvbnjkl");
   }, "`document.writeln(string, TrustedHTML)` observes default policy");
+
+  test(t => {
+    document.body.innerText = '';
+    document.writeln("assertSinkEqualsDocumentWriteLn");
+  }, "`document.writeln` passes the correct sink string to the default policy");
 </script>

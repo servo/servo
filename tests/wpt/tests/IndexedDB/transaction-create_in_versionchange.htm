@@ -17,14 +17,14 @@
             .add("versionchange1", 1)
             .addEventListener("success", log("versionchange_add.success"))
 
-        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readonly", {durability: 'relaxed'}) })
+        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readonly") })
 
         e.target.transaction
             .objectStore("store")
             .count(2)
             .addEventListener("success", log("versionchange_count.success"))
 
-        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readwrite", {durability: 'relaxed'}) })
+        assert_throws_dom('InvalidStateError', function() { db.transaction("store", "readwrite") })
 
         open_rq.transaction
             .objectStore("store")
@@ -34,7 +34,7 @@
         open_rq.transaction.oncomplete = function(e) {
             log("versionchange_txn.complete")(e)
 
-            db.transaction("store", "readonly", {durability: 'relaxed'})
+            db.transaction("store", "readonly")
                 .objectStore("store")
                 .count()
                 .addEventListener("success", log("complete_count.success"))
@@ -44,7 +44,7 @@
     open_rq.onsuccess = function(e) {
         log("open_rq.success")(e)
 
-        var txn = db.transaction("store", "readwrite", {durability: 'relaxed'})
+        var txn = db.transaction("store", "readwrite")
         txn.objectStore("store")
             .put("woo", 1)
             .addEventListener("success", log("complete2_get.success"))

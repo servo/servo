@@ -14,7 +14,7 @@ function fire_error_event_test(func, description) {
         db.createObjectStore('s');
       },
       (t, db) => {
-        const tx = db.transaction('s', 'readwrite', {durability: 'relaxed'});
+        const tx = db.transaction('s', 'readwrite');
         tx.oncomplete = t.unreached_func('transaction should abort');
         const store = tx.objectStore('s');
         store.put(0, 0);

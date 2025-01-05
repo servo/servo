@@ -14,7 +14,7 @@ indexeddb_test(
                   'Attribute should yield the same object each time');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     assert_equals(tx.db, tx.db,
                   'Attribute should yield the same object each time');
     t.done();

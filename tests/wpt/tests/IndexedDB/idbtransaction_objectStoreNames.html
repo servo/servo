@@ -81,7 +81,7 @@ indexeddb_test(function(t, db, tx) {
 }());
 
 with_stores_test(['s1', 's2'], function(t, db) {
-    assert_array_equals(db.transaction('s1', 'readonly', {durability: 'relaxed'}).objectStoreNames, ['s1'],
+    assert_array_equals(db.transaction('s1', 'readonly').objectStoreNames, ['s1'],
         'transaction should have one store in scope');
     assert_array_equals(db.transaction(['s1', 's2']).objectStoreNames,
         ['s1', 's2'],

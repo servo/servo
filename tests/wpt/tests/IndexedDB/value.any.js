@@ -12,7 +12,7 @@ function setOnUpgradeNeeded(t, predicate, _instanceof, value) {
     store.add(value, 1);
 
     e.target.onsuccess = t.step_func(e => {
-      const transaction = db.transaction("store", "readonly", { durability: "relaxed" });
+      const transaction = db.transaction("store", "readonly");
       const objectStore = transaction.objectStore("store");
       objectStore.get(1).onsuccess = t.step_func(e => {
         if (predicate) {

@@ -47,7 +47,7 @@ promise_test(testCase => {
             'IDBDatabase.objectStoreNames should not reflect the rename ' +
             'after the versionchange transaction is aborted');
 
-        const transaction = database.transaction('books', 'readonly', {durability: 'relaxed'});
+        const transaction = database.transaction('books', 'readonly');
         bookStore2 = transaction.objectStore('books');
         return checkStoreContents(
             testCase, bookStore2,

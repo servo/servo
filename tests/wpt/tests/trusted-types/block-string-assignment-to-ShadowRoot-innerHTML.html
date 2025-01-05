@@ -55,7 +55,12 @@
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
     t.add_cleanup(cleanup);
-    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS });
+    let p = window.trustedTypes.createPolicy("default", {
+      createHTML: (value, type, sink) => {
+        assert_equals(sink, "ShadowRoot innerHTML");
+        return createHTMLJS(value);
+      }
+    });
 
     let d = document.createElement('div');
     let s = d.attachShadow({mode: 'open'});

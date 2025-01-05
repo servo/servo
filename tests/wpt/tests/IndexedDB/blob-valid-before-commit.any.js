@@ -14,7 +14,7 @@ indexeddb_test(
       const blobB = new Blob([blobBContent], {"type" : "text/plain"});
       const value = { a0: blobA, a1: blobA, b0: blobB };
 
-      const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+      const tx = db.transaction('store', 'readwrite');
       const store = tx.objectStore('store');
 
       store.put(value, key);

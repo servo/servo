@@ -35,7 +35,7 @@ async_test(t => {
 
   open_rq.onsuccess = t.step_func(e => {
     db = e.target.result;
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const index = tx.objectStore('store').index('index');
     tx.abort();
 

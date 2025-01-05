@@ -28,7 +28,7 @@ promise_test(testCase => {
     return createDatabase(testCase, (database, transaction) => {
         createBooksStore(testCase, database);
     }).then(database => {
-        const transaction = database.transaction('books', 'readonly', {durability: 'relaxed'});
+        const transaction = database.transaction('books', 'readonly');
         const store = transaction.objectStore('books');
         assert_throws_dom('InvalidStateError', () => store.name = 'renamed_books');
         database.close();
@@ -39,7 +39,7 @@ promise_test(testCase => {
     return createDatabase(testCase, (database, transaction) => {
         createBooksStore(testCase, database);
     }).then(database => {
-        const transaction = database.transaction('books', 'readwrite', {durability: 'relaxed'});
+        const transaction = database.transaction('books', 'readwrite');
         const store = transaction.objectStore('books');
 
         assert_throws_dom('InvalidStateError', () => store.name = 'renamed_books');
@@ -76,7 +76,7 @@ promise_test(testCase => {
             database.objectStoreNames, ['books', 'not_books'],
             'Committing a transaction with a failed store rename attempt ' +
             "should not change the store's IDBDatabase.objectStoreNames");
-        const transaction = database.transaction('books', 'readonly', {durability: 'relaxed'});
+        const transaction = database.transaction('books', 'readonly');
         const store = transaction.objectStore('books');
         return checkStoreContents(
             testCase, store,
@@ -109,7 +109,7 @@ promise_test(testCase => {
             database.objectStoreNames, ['books'],
             'Committing a transaction with a failed store rename attempt ' +
             "should not change the store's IDBDatabase.objectStoreNames");
-        const transaction = database.transaction('books', 'readonly', {durability: 'relaxed'});
+        const transaction = database.transaction('books', 'readonly');
         const store = transaction.objectStore('books');
         return checkStoreContents(
             testCase, store,

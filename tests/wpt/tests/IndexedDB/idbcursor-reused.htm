@@ -23,7 +23,7 @@
         open_rq.onsuccess = function(e) {
             var cursor
             var count = 0
-            var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").openCursor()
+            var rq = db.transaction("test", "readonly").objectStore("test").openCursor()
 
             rq.onsuccess = this.step_func(function(e)
             {

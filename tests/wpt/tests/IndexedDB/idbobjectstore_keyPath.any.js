@@ -6,7 +6,7 @@ indexeddb_test(
     db.createObjectStore('store', {keyPath: ['a', 'b']});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const store = tx.objectStore('store');
     assert_equals(typeof store.keyPath, 'object', 'keyPath is an object');
     assert_true(Array.isArray(store.keyPath), 'keyPath is an array');
@@ -15,7 +15,7 @@ indexeddb_test(
       store.keyPath, store.keyPath,
       'Same object instance is returned each time keyPath is inspected');
 
-    const tx2 = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx2 = db.transaction('store', 'readonly');
     const store2 = tx2.objectStore('store');
 
     assert_not_equals(

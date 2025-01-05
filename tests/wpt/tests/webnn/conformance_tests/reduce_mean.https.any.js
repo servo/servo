@@ -620,6 +620,521 @@ const reduceMeanTests = [
         }
       }
     }
+  },
+
+  // float16 tests
+  {
+    'name': 'reduceMean float16 0D constant tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [95.875],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [95.875], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 0D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [95.875],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [95.875], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'reduceMean float16 1D constant tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 1D tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 1D tensor all negative default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            -37.15625,   -44.5,      -6.125,         -6.3203125, -76.5625,
+            -4.13671875, -20.765625, -38.75,         -36.8125,   -26.28125,
+            -12.5703125, -55.28125,  -20.703125,     -34.1875,   -45.375,
+            -35,         -67.8125,   -0.74365234375, -21.984375, -61.3125,
+            -58.59375,   -76,        -23.921875,     -22.9375
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [-34.75], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'reduceMean float16 1D tensor all positive integers default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            42, 24, 44, 38, 82, 93, 64, 40, 48, 78, 81, 59,
+            45, 18, 3,  77, 60, 19, 66, 8,  21, 19, 62, 71
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [48.40625], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'reduceMean float16 1D tensor all negative integers default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            -73, -8,  -55, -73, -61, -54, -5,  -39, -66, -53, -57, -39,
+            -62, -98, -36, -1,  -75, -8,  -71, -72, -67, -16, -21, -31
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': [-47.53125],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 3D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 4D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 5D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 3D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [{'input': 'reduceMeanInput'}, {'options': {'axes': [2]}}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': [45.46875, 49.65625, 50.9375, 44.75, 27.78125, 23.265625],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 4D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments':
+            [{'input': 'reduceMeanInput'}, {'options': {'axes': [0, 2]}}],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': [54.84375, 40.25, 22.0625, 48.59375, 51.34375, 24.796875],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 3D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [
+          {'input': 'reduceMeanInput'}, {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 3D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [
+          {'input': 'reduceMeanInput'}, {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': [40.3125],
+          'descriptor': {shape: [1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 4D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [
+          {'input': 'reduceMeanInput'}, {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput':
+            {'data': [40.3125], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceMean float16 4D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [
+          {'input': 'reduceMeanInput'}, {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': [40.3125],
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceMean float16 4D tensor options.axes with options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [
+          {'input': 'reduceMeanInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': [52.28125, 45.09375, 47.625, 16.203125],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceMean float16 4D tensor options.axes with options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceMeanInput': {
+          'data': [
+            95.875,   75.6875,     1.5419921875, 8.7890625,  70.0625,
+            13.78125, 20,          94.8125,      25.828125,  94.125,
+            67.75,    16.09375,    92.1875,      11.5703125, 52.71875,
+            22.46875, 3.662109375, 20.203125,    58.5625,    28.671875,
+            42.125,   21.640625,   14.1640625,   15.125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceMean',
+        'arguments': [
+          {'input': 'reduceMeanInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': true}}
+        ],
+        'outputs': 'reduceMeanOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMeanOutput': {
+          'data': [52.28125, 45.09375, 47.625, 16.203125],
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'float16'}
+        }
+      }
+    }
   }
 ];
 

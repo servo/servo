@@ -640,6 +640,584 @@ const reduceSumSquareTests = [
         }
       }
     }
+  },
+
+  // float16 tests
+  {
+    'name': 'reduceSumSquare float16 0D constant tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [52.5625],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput':
+            {'data': [2762], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 0D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [52.5625],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments':
+            [{'input': 'reduceSumSquareInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput':
+            {'data': [2762], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'reduceSumSquare float16 1D constant tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 1D tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 1D tensor all negative default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            -1.646484375,    -1.2998046875,    -0.57763671875,
+            -0.5869140625,   -1.740234375,     -0.2020263671875,
+            -1.28125,        -1.92578125,      -0.63671875,
+            -0.5068359375,   -1.9462890625,    -1.5078125,
+            -1.212890625,    -0.6669921875,    -1.1337890625,
+            -0.450439453125, -0.7978515625,    -0.2196044921875,
+            -0.221923828125, -0.1463623046875, -0.75537109375,
+            -1.0830078125,   -1.3740234375,    -0.059600830078125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [28.015625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceSumSquare float16 1D tensor all positive integers default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            2, 4, 2, 6, 3, 9, 1, 2, 1, 4, 7, 6,
+            3, 1, 3, 1, 6, 5, 1, 4, 4, 3, 8, 3
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput':
+            {'data': [453], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'reduceSumSquare float16 1D tensor all negative integers default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            -10, -6, -9, -8, -3, -4, -4, -2, -3, -2, -4, -5,
+            -2,  -2, -3, -3, -1, -6, -1, -3, -9, -8, -5, -2
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput':
+            {'data': [627], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 1D tensor with empty axes',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput':
+            {'data': [2, 3], 'descriptor': {shape: [2], dataType: 'float16'}}
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments':
+            [{'input': 'reduceSumSquareInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput':
+            {'data': [4, 9], 'descriptor': {shape: [2], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 3D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 4D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 5D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [{'input': 'reduceSumSquareInput'}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 3D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments':
+            [{'input': 'reduceSumSquareInput'}, {'options': {'axes': [2]}}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [
+            4.94140625, 4.30859375, 1.4765625, 3.458984375, 11.359375,
+            4.97265625
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 4D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments':
+            [{'input': 'reduceSumSquareInput'}, {'options': {'axes': [0, 2]}}],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [
+            3.72265625, 5.4453125, 5.75, 5.00390625, 8.6796875, 1.9130859375
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 3D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [
+          {'input': 'reduceSumSquareInput'},
+          {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 3D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [
+          {'input': 'reduceSumSquareInput'},
+          {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 4D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [
+          {'input': 'reduceSumSquareInput'},
+          {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSumSquare float16 4D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [
+          {'input': 'reduceSumSquareInput'},
+          {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [30.515625],
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceSumSquare float16 4D tensor options.axes with options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [
+          {'input': 'reduceSumSquareInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [8.828125, 1.8974609375, 9.625, 10.1640625],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceSumSquare float16 4D tensor options.axes with options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceSumSquareInput': {
+          'data': [
+            1.3935546875,  1.20703125,      1.18359375,   0.3759765625,
+            0.69677734375, 0.75244140625,   1.068359375,  1.455078125,
+            0.87890625,    0.2149658203125, 0.7998046875, 0.135986328125,
+            1.099609375,   0.77685546875,   1.1025390625, 0.65625,
+            1.703125,      1.6025390625,    1.5185546875, 1.892578125,
+            0.8408203125,  1.2294921875,    1.529296875,  0.64404296875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSumSquare',
+        'arguments': [
+          {'input': 'reduceSumSquareInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': true}}
+        ],
+        'outputs': 'reduceSumSquareOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumSquareOutput': {
+          'data': [8.828125, 1.8974609375, 9.625, 10.1640625],
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'float16'}
+        }
+      }
+    }
   }
 ];
 

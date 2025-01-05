@@ -14,13 +14,13 @@ indexeddb_test(
     const blobB = new Blob([blobBContent], {"type" : "text/plain"});
     value = { a0: blobA, a1: blobA, b0: blobB };
 
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     var store = tx.objectStore('store');
 
     store.put(value, key);
     value = null;
 
-    const trans = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const trans = db.transaction('store', 'readonly');
     store = trans.objectStore('store');
     const request = store.get(key);
 
@@ -28,7 +28,7 @@ indexeddb_test(
       const record = request.result;
 
       trans.oncomplete = t.step_func(function() {
-        const trans = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+        const trans = db.transaction('store', 'readwrite');
         store = trans.objectStore('store');
         const request = store.delete(key);
 

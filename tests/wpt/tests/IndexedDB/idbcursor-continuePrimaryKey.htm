@@ -99,7 +99,7 @@ indexeddb_test(
 
         const testCase = testCases.shift();
 
-        const txn = db.transaction('store', 'readonly', {durability: 'relaxed'});
+        const txn = db.transaction('store', 'readonly');
         txn.oncomplete = t.step_func(verifyContinueCalls);
 
         const request = txn.objectStore('store').index('index').openCursor();

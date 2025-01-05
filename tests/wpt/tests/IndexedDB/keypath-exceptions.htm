@@ -12,7 +12,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'a.b.c'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     assert_throws_dom('DataError', () => {
       tx.objectStore('store').put({a: {b: "foo"}});
     }, 'Put should throw if key can not be inserted at key path location.');
@@ -242,7 +242,7 @@ indexeddb_test(
     store.createIndex('index', 'index0');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
 
     const array = [];
     array[99] = 1;

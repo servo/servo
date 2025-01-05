@@ -49,7 +49,7 @@ cursor_source_test(
   document.title + ' - IDBObjectStore',
   "my_objectstore",
   "[object IDBObjectStore]",
-  function(db) { return db.transaction("my_objectstore", "readonly", {durability: 'relaxed'})
+  function(db) { return db.transaction("my_objectstore", "readonly")
                           .objectStore("my_objectstore")
                           .openCursor(); }
 );
@@ -58,7 +58,7 @@ cursor_source_test(
   document.title + ' - IDBIndex',
   "my_index",
   "[object IDBIndex]",
-  function(db) { return db.transaction("my_objectstore", "readonly", {durability: 'relaxed'})
+  function(db) { return db.transaction("my_objectstore", "readonly")
                           .objectStore("my_objectstore")
                           .index("my_index")
                           .openCursor(); }
