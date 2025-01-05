@@ -564,14 +564,13 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 };
                 let total_bytes = bytes.len();
                 let global = self.global();
-                ReadableStream::new_from_bytes(&global, bytes, can_gc)
-                    .ok()
-                    .map(|stream| ExtractedBody {
-                        stream,
-                        total_bytes: Some(total_bytes),
-                        content_type: Some(DOMString::from(content_type)),
-                        source: BodySource::Object,
-                    })
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
+                Some(ExtractedBody {
+                    stream,
+                    total_bytes: Some(total_bytes),
+                    content_type: Some(DOMString::from(content_type)),
+                    source: BodySource::Object,
+                })
             },
             Some(DocumentOrXMLHttpRequestBodyInit::Blob(ref b)) => {
                 let extracted_body = b
@@ -602,27 +601,25 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                ReadableStream::new_from_bytes(&global, bytes, can_gc)
-                    .ok()
-                    .map(|stream| ExtractedBody {
-                        stream,
-                        total_bytes: Some(total_bytes),
-                        content_type: None,
-                        source: BodySource::Object,
-                    })
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
+                Some(ExtractedBody {
+                    stream,
+                    total_bytes: Some(total_bytes),
+                    content_type: None,
+                    source: BodySource::Object,
+                })
             },
             Some(DocumentOrXMLHttpRequestBodyInit::ArrayBufferView(ref typedarray)) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                ReadableStream::new_from_bytes(&global, bytes, can_gc)
-                    .ok()
-                    .map(|stream| ExtractedBody {
-                        stream,
-                        total_bytes: Some(total_bytes),
-                        content_type: None,
-                        source: BodySource::Object,
-                    })
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
+                Some(ExtractedBody {
+                    stream,
+                    total_bytes: Some(total_bytes),
+                    content_type: None,
+                    source: BodySource::Object,
+                })
             },
             None => None,
         };
