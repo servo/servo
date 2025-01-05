@@ -30,7 +30,7 @@ promise_test(async testCase => {
       testCase, 'db-isolation-test', database => {
         database.createObjectStore('s');
       });
-  const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
+  const tx = db.transaction('s', 'readonly');
   var request = tx.objectStore('s').get(0);
   request.onsuccess = testCase.step_func_done();
   request.onerror = testCase.unreached_func("There should be no errors.");

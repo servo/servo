@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scroll-container">
+<link rel="match" href="incremental-scroll-002-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+div div { height: 15px; font-size: 10px; }
+</style>
+<div id="target" style="background: white; overflow: scroll; width: 500px; height: 500px">
+</div>
+<script>
+for (var i = 0; i < 400; i++) {
+  var div = document.createElement("div");
+  div.textContent = i;
+  target.appendChild(div);
+}
+
+function scroll() {
+  var lastScrollTop = target.scrollTop;
+  target.scrollTop += 300;
+  if (target.scrollTop > lastScrollTop) {
+    waitForAtLeastOneFrame().then(scroll);
+  } else {
+    takeScreenshot();
+  }
+}
+
+waitForAtLeastOneFrame().then(scroll);
+</script>

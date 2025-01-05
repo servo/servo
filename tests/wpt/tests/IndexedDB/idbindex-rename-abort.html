@@ -41,7 +41,7 @@ promise_test(testCase => {
         const request = indexedDB.open(dbName, 1);
         return promiseForRequest(testCase, request);
     }).then(database => {
-        const transaction = database.transaction('books', 'readonly', {durability: 'relaxed'});
+        const transaction = database.transaction('books', 'readonly');
         const store = transaction.objectStore('books');
         assert_array_equals(
             store.indexNames, ['by_author', 'by_title'],
@@ -96,7 +96,7 @@ promise_test(testCase => {
         const request = indexedDB.open(dbName, 1);
         return promiseForRequest(testCase, request);
     }).then(database => {
-        const transaction = database.transaction('not_books', 'readonly', {durability: 'relaxed'});
+        const transaction = database.transaction('not_books', 'readonly');
         const store = transaction.objectStore('not_books');
         assert_array_equals(
             store.indexNames, ['not_by_author', 'not_by_title'],

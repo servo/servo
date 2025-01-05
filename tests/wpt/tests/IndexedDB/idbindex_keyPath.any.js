@@ -7,7 +7,7 @@ indexeddb_test(
     store.createIndex('index', ['a', 'b']);
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const store = tx.objectStore('store');
     const index = store.index('index');
     assert_equals(typeof index.keyPath, 'object', 'keyPath is an object');
@@ -17,7 +17,7 @@ indexeddb_test(
       index.keyPath, index.keyPath,
       'Same object instance is returned each time keyPath is inspected');
 
-    const tx2 = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx2 = db.transaction('store', 'readonly');
     const store2 = tx2.objectStore('store');
     const index2 = store2.index('index');
 
@@ -37,7 +37,7 @@ indexeddb_test(
     store.add({a: 1, b: 2, c: 3})
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const store = tx.objectStore('store');
     const index = store.index('index');
     const cursorReq = index.openCursor();
@@ -59,7 +59,7 @@ indexeddb_test(
     store.add({a: 1, b: 2, c: 3})
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const store = tx.objectStore('store');
     const index = store.index('index');
     const cursorReq = index.openCursor();

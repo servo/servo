@@ -21,7 +21,7 @@ async_test(t => {
   };
 
   function verifyOverloads() {
-    trans = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    trans = db.transaction('store', 'readonly');
     store = trans.objectStore('store');
     index = store.index('index');
 

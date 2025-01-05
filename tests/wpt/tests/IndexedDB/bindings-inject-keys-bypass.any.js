@@ -16,7 +16,7 @@ promise_test(async t => {
   });
   t.add_cleanup(() => { delete Object.prototype['10']; });
 
-  const tx = db.transaction('store', 'readwrite', { durability: 'relaxed' });
+  const tx = db.transaction('store', 'readwrite');
   const result = await promiseForRequest(t, tx.objectStore('store').put(
     'value', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'key']));
 

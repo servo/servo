@@ -17,11 +17,11 @@ indexeddb_test(
                   'transaction1 should have executed at least one request');
     }));
 
-    const transaction1 = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const transaction1 = db.transaction('store', 'readonly');
     transaction1.onabort = t.unreached_func('transaction1 should not abort');
     transaction1.oncomplete = t.step_func(onTransactionComplete);
 
-    const transaction2 = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const transaction2 = db.transaction('store', 'readonly');
     transaction2.onabort = t.unreached_func('transaction2 should not abort');
     transaction2.oncomplete = t.step_func(onTransactionComplete);
 

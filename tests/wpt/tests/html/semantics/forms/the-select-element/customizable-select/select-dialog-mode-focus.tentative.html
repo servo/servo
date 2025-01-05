@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<link rel="help" href="http://crbug.com/374908738">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  select,
+  select::picker(select) {
+    appearance: base-select;
+  }
+</style>
+<select id="target">
+  <div></div>
+  <span></span>
+  <a id="interactive1" href="https://www.example.com/">Interactive element</a>
+  <option id="option1">Tiger</option>
+</select>
+<script>
+const Enter = '\uE007';
+const Space = ' ';
+const Tab = '\uE004';
+
+promise_test(async (t) => {
+  assert_false(
+    target.matches(':open'),
+    'The select should initially be closed.'
+  );
+
+  target.focus();
+  assert_equals(
+    document.activeElement,
+    target,
+    'The select should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Space);
+  assert_equals(
+    document.activeElement,
+    interactive1,
+    'The anchor should be focused.'
+  );
+  await test_driver.send_keys(document.activeElement, Space);
+}, 'In dialog mode the first focusable element should get focus.');
+
+</script>
+

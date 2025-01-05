@@ -19,7 +19,7 @@ open_rq.onupgradeneeded = function(e) {
 
 open_rq.onsuccess = function(e) {
     var db = e.target.result
-    var objStore = db.transaction('instancetest', 'readonly', {durability: 'relaxed'}).objectStore('instancetest')
+    var objStore = db.transaction('instancetest', 'readonly').objectStore('instancetest')
 
     assert_true(objStore instanceof IDBObjectStore, 'instanceof IDBObjectStore')
     t.done()

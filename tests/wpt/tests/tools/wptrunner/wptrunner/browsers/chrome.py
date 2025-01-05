@@ -206,6 +206,11 @@ def update_properties():
     return (["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]})
 
 class ChromeBrowser(WebDriverBrowser):
+
+    # Chrome browser's default startup timeout is 60 seconds. Use 65 seconds here
+    # to allow error message be displayed if that happens.
+    init_timeout: float = 65
+
     def __init__(self,
                  logger: StructuredLogger,
                  leak_check: bool = False,

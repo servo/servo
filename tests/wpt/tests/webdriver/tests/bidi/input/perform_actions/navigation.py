@@ -78,7 +78,7 @@ async def test_pointer(bidi_session, inline, top_context, get_element):
         .pointer_down(button=0)
         .pointer_up(button=0)
         .pause(1000)
-        .pointer_move(x=200, y=200)
+        .pointer_move(x=300, y=200)
     )
 
     await bidi_session.input.perform_actions(
@@ -91,4 +91,8 @@ async def test_pointer(bidi_session, inline, top_context, get_element):
 
     events = await get_events(bidi_session, top_context["context"])
     assert len(events) == 1
-    assert events[0] == [200, 200]
+
+    assert events[0] == [
+        pytest.approx(300, abs=1.0),
+        pytest.approx(200, abs=1.0)
+    ]

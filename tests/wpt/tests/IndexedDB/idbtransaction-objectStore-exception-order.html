@@ -12,7 +12,7 @@ indexeddb_test(
     const store = db.createObjectStore('s');
   },
   (t, db) => {
-    const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('s', 'readonly');
     tx.oncomplete = t.step_func(() => {
         assert_throws_dom('InvalidStateError', () => { tx.objectStore('nope'); },
                           '"finished" check (InvalidStateError) should precede ' +

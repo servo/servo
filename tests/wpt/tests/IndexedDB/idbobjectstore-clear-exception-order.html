@@ -32,7 +32,7 @@ indexeddb_test(
     const store = db.createObjectStore('s');
   },
   (t, db) => {
-    const tx = db.transaction('s', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('s', 'readonly');
     const store = tx.objectStore('s');
 
     setTimeout(t.step_func(() => {

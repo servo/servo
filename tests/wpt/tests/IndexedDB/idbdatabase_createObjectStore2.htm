@@ -21,7 +21,7 @@ open_rq.onupgradeneeded = function(e) {
 
 open_rq.onsuccess = function(e) {
     var db = e.target.result
-    var objStore = db.transaction('prop', 'readonly', {durability: 'relaxed'}).objectStore('prop')
+    var objStore = db.transaction('prop', 'readonly').objectStore('prop')
 
     assert_equals(objStore.name, "prop", "object store name")
     assert_equals(objStore.keyPath, "mykeypath", "key path")

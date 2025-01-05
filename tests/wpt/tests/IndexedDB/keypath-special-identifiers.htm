@@ -46,7 +46,7 @@
     },
     (t, db) => {
       const key = testcase.instance[testcase.property];
-      const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+      const tx = db.transaction('store', 'readwrite');
       tx.objectStore('store').put(testcase.instance);
       const request = tx.objectStore('store').get(key);
       request.onerror = t.unreached_func('request should not fail');

@@ -26,6 +26,13 @@ test_valid_value('font-size-adjust', 'cap-height from-font');
 test_valid_value('font-size-adjust', 'ch-width from-font');
 test_valid_value('font-size-adjust', 'ic-width from-font');
 test_valid_value('font-size-adjust', 'ic-height from-font');
+
+test_valid_value('font-size-adjust', 'calc(0.5)');
+test_valid_value('font-size-adjust', 'ex-height calc(0.5)', 'calc(0.5)');  // default basis 'ex' omitted from serialization
+test_valid_value('font-size-adjust', 'cap-height calc(0.5)');
+test_valid_value('font-size-adjust', 'cap-height calc(0.5 + 1)', 'cap-height calc(1.5)');
+test_valid_value('font-size-adjust', 'cap-height calc(-0.5)', 'cap-height calc(-0.5)');
+test_valid_value('font-size-adjust', 'cap-height calc(10 + (sign(20cqw - 10px) * 5))', 'cap-height calc(10 + (5 * sign(20cqw - 10px)))');
 </script>
 </body>
 </html>

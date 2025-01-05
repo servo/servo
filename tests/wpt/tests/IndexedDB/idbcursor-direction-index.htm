@@ -34,7 +34,7 @@ cases.forEach(function(testcase) {
     },
     function(t, db) {
       var count = 0;
-      var rq = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("idx").openCursor(undefined, dir);
+      var rq = db.transaction("test", "readonly").objectStore("test").index("idx").openCursor(undefined, dir);
       rq.onsuccess = t.step_func(function(e) {
         var cursor = e.target.result;
         if (!cursor) {

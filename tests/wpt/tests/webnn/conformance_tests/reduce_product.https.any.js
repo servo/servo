@@ -535,6 +535,484 @@ const reduceProductTests = [
         }
       }
     }
+  },
+
+  // float16 tests
+  {
+    'name': 'reduceProduct float16 0D constant tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [-68.75],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [{'input': 'reduceProductInput'}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput':
+            {'data': [-68.75], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 0D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [-68.75],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments':
+            [{'input': 'reduceProductInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput':
+            {'data': [-68.75], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 1D constant tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [{'input': 'reduceProductInput'}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 1D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [{'input': 'reduceProductInput'}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [{'input': 'reduceProductInput'}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 3D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [{'input': 'reduceProductInput'}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 4D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [{'input': 'reduceProductInput'}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 5D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [{'input': 'reduceProductInput'}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 3D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments':
+            [{'input': 'reduceProductInput'}, {'options': {'axes': [2]}}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [
+            -0.3759765625, -4.9140625, -0.332763671875, -3.849609375,
+            -0.53759765625, 0.0980224609375
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 4D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments':
+            [{'input': 'reduceProductInput'}, {'options': {'axes': [0, 2]}}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [
+            1.2744140625, 1.6640625, -1.1962890625, -1.95703125,
+            -0.0312042236328125, 0.80615234375
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 3D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [
+          {'input': 'reduceProductInput'},
+          {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 3D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [
+          {'input': 'reduceProductInput'}, {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 4D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [
+          {'input': 'reduceProductInput'},
+          {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceProduct float16 4D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [
+          {'input': 'reduceProductInput'}, {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-0.1248779296875],
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceProduct float16 4D tensor options.axes with options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [
+          {'input': 'reduceProductInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [1.666015625, -0.369384765625, 3.64453125, 0.0556640625],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceProduct float16 4D tensor options.axes with options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [
+            1.578125,      0.8291015625,  0.81640625,      -0.35205078125,
+            -1.390625,     -1.892578125,  -1.466796875,    1.2734375,
+            -0.8349609375, -1.912109375,  0.5244140625,    -0.3974609375,
+            -1.90625,      1.4794921875,  1.134765625,     1.203125,
+            -0.9755859375, 0.68212890625, -0.6015625,      -1.3427734375,
+            -1.41015625,   1.16015625,    0.0347900390625, -1.72265625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments': [
+          {'input': 'reduceProductInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': true}}
+        ],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [1.666015625, -0.369384765625, 3.64453125, 0.0556640625],
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'float16'}
+        }
+      }
+    }
   }
 ];
 

@@ -71,13 +71,13 @@ async def test_key_backspace(bidi_session, top_context, setup_key_test):
 @pytest.mark.parametrize(
     "value",
     [
-        ("\U0001F604"),
-        ("\U0001F60D"),
-        ("\u0BA8\u0BBF"),
-        ("\u1100\u1161\u11A8"),
+        "\U0001F604",  # "😄" (\ud83d\ude04), a single surrogate codepoint.
+        "\u0BA8\u0BBF",  # "நி" (\u0BA8\u0BBF), a grapheme containing several chars.
+        "\u1100\u1161\u11A8",  # "각" (\u1100\u1161\u11A8), a grapheme containing several chars.
+        "\u2764\ufe0f",  # "❤️" (\u2764\ufe0f), a grapheme containing several codepoints.
     ],
 )
-async def test_key_codepoint(
+async def test_key_grapheme(
     bidi_session, top_context, setup_key_test, value
 ):
     # Not using send_keys() because we always want to treat value as

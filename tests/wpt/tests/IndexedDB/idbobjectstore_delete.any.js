@@ -18,8 +18,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function(e) {
-        const delete_rq = db.transaction("test", "readwrite",
-        { durability: 'relaxed' })
+        const delete_rq = db.transaction("test", "readwrite")
                           .objectStore("test")
                           .delete(record.key);
 
@@ -31,8 +30,7 @@ async_test(t => {
     };
 
     function VerifyRecordRemoved() {
-        const rq = db.transaction("test", "readonly",
-        { durability: 'relaxed' })
+        const rq = db.transaction("test", "readonly")
                    .objectStore("test")
                    .get(record.key);
 
@@ -72,8 +70,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function(e) {
-        const delete_rq = db.transaction("test", "readwrite",
-        { durability: 'relaxed' })
+        const delete_rq = db.transaction("test", "readwrite")
                           .objectStore("test")
                           .delete(record.test.obj.key);
 
@@ -85,8 +82,7 @@ async_test(t => {
     };
 
     function VerifyRecordRemoved() {
-        const rq = db.transaction("test", "readonly",
-        { durability: 'relaxed' })
+        const rq = db.transaction("test", "readonly")
                    .objectStore("test")
                    .get(record.test.obj.key);
 
@@ -111,8 +107,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function(e) {
-        const delete_rq = db.transaction("test", "readwrite",
-        { durability: 'relaxed' })
+        const delete_rq = db.transaction("test", "readwrite")
                           .objectStore("test")
                           .delete(key);
 
@@ -124,8 +119,7 @@ async_test(t => {
     };
 
     function VerifyRecordRemoved() {
-        const rq = db.transaction("test", "readonly",
-        { durability: 'relaxed' })
+        const rq = db.transaction("test", "readonly")
                    .objectStore("test")
                    .get(key);
 
@@ -149,8 +143,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function (e) {
-        const os = db.transaction("store", "readwrite",
-        { durability: 'relaxed' })
+        const os = db.transaction("store", "readwrite")
                    .objectStore("store");
 
         os.delete(IDBKeyRange.bound(3, 6));
@@ -176,8 +169,7 @@ async_test(function(t) {
     };
 
     open_rq.onsuccess = function(event) {
-        const txn = db.transaction("store", "readonly",
-        { durability: 'relaxed' });
+        const txn = db.transaction("store", "readonly");
         const ostore = txn.objectStore("store");
         t.step(function() {
             assert_throws_dom("ReadOnlyError", function() {

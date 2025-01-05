@@ -136,7 +136,18 @@
 
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
-    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS });
+    const kAssertSinkIsElementInsertAdjacentHTML =
+      "assertSinkIsElementInsertAdjacentHTML";
+
+    let p = window.trustedTypes.createPolicy("default", { createHTML:
+      (s, _, sink) => {
+        if (s == kAssertSinkIsElementInsertAdjacentHTML) {
+          assert_equals(sink, "Element insertAdjacentHTML");
+        }
+
+        return createHTMLJS(s);
+      }
+    });
 
     var d = document.createElement('div');
     container.appendChild(d);
@@ -158,6 +169,8 @@
     d.insertAdjacentHTML('afterend', INPUTS.HTML);
     assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
     assert_equals(d.nextSibling.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('afterend', kAssertSinkIsElementInsertAdjacentHTML);
 
     while (container.firstChild)
       container.firstChild.remove();

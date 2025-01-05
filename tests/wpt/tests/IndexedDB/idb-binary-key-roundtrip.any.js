@@ -19,7 +19,7 @@ function assert_buffer_equals(a, b, message) {
 
 // Verifies that a JavaScript value round-trips through IndexedDB as a key.
 function check_key_roundtrip_and_done(t, db, key, key_buffer) {
-  const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+  const tx = db.transaction('store', 'readwrite');
   const store = tx.objectStore('store');
 
   // Verify put with key

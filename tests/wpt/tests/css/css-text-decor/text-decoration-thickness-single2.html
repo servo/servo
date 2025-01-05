@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<title>Test case for text-decoration-thickness</title>
+<meta name="assert" content="thick underline should show on short inline content">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="mismatch" href="reference/text-decoration-thickness-single2-notref.html">
+<style>
+div {
+    text-decoration: underline;
+    font: 20px/1 Monospace;
+    color: transparent;
+    text-decoration-thickness: 20px;
+    text-decoration-color: green;
+}
+</style>
+<body>
+    <p>Test passes if the short inline content has a thick green underline.</p>
+    <div>X</div>
+</body>
+</html>

@@ -33,7 +33,7 @@ function composite_blob_test({ blobCount, blobSize, name }) {
         db.createObjectStore("blobs");
       });
 
-      const write_tx = db.transaction("blobs", "readwrite", {durability: "relaxed"});
+      const write_tx = db.transaction("blobs", "readwrite");
       let store = write_tx.objectStore("blobs");
       store.put(memBlobs, key);
       // Make the blobs eligible for GC which is most realistic and most likely
@@ -42,7 +42,7 @@ function composite_blob_test({ blobCount, blobSize, name }) {
 
       await promiseForTransaction(testCase, write_tx);
 
-      const read_tx = db.transaction("blobs", "readonly", {durability: "relaxed"});
+      const read_tx = db.transaction("blobs", "readonly");
       store = read_tx.objectStore("blobs");
       const read_req = store.get(key);
 

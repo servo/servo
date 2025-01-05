@@ -13,7 +13,7 @@ indexeddb_test(
     store.createIndex('index', 'key_path');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const store = tx.objectStore('store');
     tx.abort();
     assert_throws_dom('InvalidStateError', () => store.index('index'),

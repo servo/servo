@@ -13,7 +13,7 @@ function store_test(func, name) {
       }
     },
     function(t, db) {
-      var tx = db.transaction("store", "readonly", {durability: 'relaxed'});
+      var tx = db.transaction("store", "readonly");
       var store = tx.objectStore("store");
       func(t, db, tx, store);
     }, name);

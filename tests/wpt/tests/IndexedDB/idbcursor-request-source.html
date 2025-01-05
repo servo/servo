@@ -15,7 +15,7 @@
     db.createObjectStore('store', {autoIncrement: true});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
     store.put('value');
     store.openCursor().onsuccess = t.step_func(e => {

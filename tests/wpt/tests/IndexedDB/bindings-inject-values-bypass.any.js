@@ -12,7 +12,7 @@ promise_test(async t => {
   Object.prototype.a = {b: {c: 'on proto'}};
   t.add_cleanup(() => { delete Object.prototype.a; });
 
-  const tx = db.transaction('store', 'readwrite', {durability: "relaxed"});
+  const tx = db.transaction('store', 'readwrite');
   tx.objectStore('store').put({});
   const result = await promiseForRequest(t, tx.objectStore('store').get(1));
 
@@ -40,7 +40,7 @@ promise_test(async t => {
   });
   t.add_cleanup(() => { delete Object.prototype['id']; });
 
-  const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+  const tx = db.transaction('store', 'readwrite');
   tx.objectStore('store').put({});
   const result = await promiseForRequest(t, tx.objectStore('store').get(1));
 

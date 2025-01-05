@@ -20,7 +20,7 @@ async_test(t => {
 
   open_rq.onsuccess = function(e) {
     let count = 0;
-    let cursor_rq = db.transaction('test', 'readonly', {durability: 'relaxed'})
+    let cursor_rq = db.transaction('test', 'readonly')
                         .objectStore('test')
                         .index('index')
                         .openCursor();

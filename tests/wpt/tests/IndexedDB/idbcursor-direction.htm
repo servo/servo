@@ -29,7 +29,7 @@
 
         open_rq.onsuccess = t.step_func(function(e) {
             var cursor_rq, count = 0;
-            var os = db.transaction("test", "readonly", {durability: 'relaxed'})
+            var os = db.transaction("test", "readonly")
                        .objectStore("test");
             if (dir)
                 cursor_rq = os.openCursor(undefined, dir);
@@ -48,7 +48,7 @@
                     t.done();
             });
 
-            var cursor_rq2 = db.transaction("test", "readonly", {durability: 'relaxed'})
+            var cursor_rq2 = db.transaction("test", "readonly")
                               .objectStore("test")
                               .openCursor(undefined, constant);
 

@@ -613,6 +613,502 @@ const reduceSumTests = [
         }
       }
     }
+  },
+
+  // float16 tests
+  {
+    'name': 'reduceSum float16 0D constant tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [69.625],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [69.625], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 0D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [69.625],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [69.625], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 1D constant tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 1D tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 1D tensor all negative default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            -51.78125,   -34.46875, -40.96875,   -83.375,  -67.6875,
+            -18.703125,  -20.28125, -20.125,     -83.625,  -23.65625,
+            -10.2109375, -36.21875, -76.25,      -9.09375, -53.875,
+            -67.5,       -71.125,   -82.0625,    -96.3125, -68.4375,
+            -26.109375,  -68,       -4.83203125, -48.90625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [-1164], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 1D tensor all positive integers default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            56, 90, 67, 33, 20, 58, 22, 15, 86, 79, 59, 99,
+            16, 95, 67, 11, 60, 89, 50, 57, 77, 89, 10, 2
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1307], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 1D tensor all negative integers default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            -55, -36, -74, -17, -67, -95, -3,  -67, -95, -13, -45, -9,
+            -33, -98, -86, -11, -70, -44, -31, -68, -79, -24, -60, -36
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [-1216], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 3D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 4D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 5D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 3D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}, {'options': {'axes': [2]}}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [210.5, 104.5625, 226.25, 239, 260.5, 273.25],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 4D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments':
+            [{'input': 'reduceSumInput'}, {'options': {'axes': [0, 2]}}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [179.625, 260.5, 219.375, 246.875, 157.5, 250.125],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 3D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [
+          {'input': 'reduceSumInput'}, {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 3D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [
+          {'input': 'reduceSumInput'}, {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [1314],
+          'descriptor': {shape: [1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 4D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [
+          {'input': 'reduceSumInput'}, {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput':
+            {'data': [1314], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'reduceSum float16 4D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [
+          {'input': 'reduceSumInput'}, {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [1314],
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceSum float16 4D tensor options.axes with options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [
+          {'input': 'reduceSumInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [355.25, 186, 362.25, 410.25],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceSum float16 4D tensor options.axes with options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [
+            69.625,   99.1875,  32.78125, 8.8828125, 16.09375, 11.8046875,
+            32.65625, 44,       77,       79.8125,   45,       24.390625,
+            57.5,     57.59375, 80.25,    43.65625,  87.5,     94.5,
+            35.53125, 42.84375, 88.5625,  98.875,    25.625,   60.1875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [
+          {'input': 'reduceSumInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': true}}
+        ],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [355.25, 186, 362.25, 410.25],
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'float16'}
+        }
+      }
+    }
   }
 ];
 

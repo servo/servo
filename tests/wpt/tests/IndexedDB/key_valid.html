@@ -26,12 +26,12 @@
             assert_true(store2.add({ x: 'v', keypath: key }) instanceof IDBRequest);
         };
         open_rq.onsuccess = function(e) {
-            var rq = db.transaction("store", "readonly", {durability: 'relaxed'})
+            var rq = db.transaction("store", "readonly")
                        .objectStore("store")
                        .get(key)
             rq.onsuccess = t.step_func(function(e) {
                 assert_equals(e.target.result, 'value')
-                var rq = db.transaction("store2", "readonly", {durability: 'relaxed'})
+                var rq = db.transaction("store2", "readonly")
                            .objectStore("store2")
                            .get(['v', key])
                 rq.onsuccess = t.step_func(function(e) {

@@ -16,7 +16,7 @@ indexeddb_test(
 
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     const store = tx.objectStore('store');
     const index = store.index('index');
     assert_equals(index.objectStore, index.objectStore,

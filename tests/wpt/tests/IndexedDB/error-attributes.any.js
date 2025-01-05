@@ -9,7 +9,7 @@ indexeddb_test(
       db.createObjectStore('store');
     },
     function(t, db) {
-      let tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+      let tx = db.transaction('store', 'readwrite');
       let store = tx.objectStore('store');
       let r1 = store.add('value', 'key');
       r1.onerror = t.unreached_func('first add should succeed');

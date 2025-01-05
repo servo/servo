@@ -15,7 +15,7 @@ indexeddb_test(
             objStore.add("data2", 2);
   },
   function(t, db, tx) {
-            var idx = db.transaction("test", "readonly", {durability: 'relaxed'}).objectStore("test").index("index");
+            var idx = db.transaction("test", "readonly").objectStore("test").index("index");
 
             assert_throws_dom("DataError",
                 function() { idx.openCursor({ lower: "a" }); });

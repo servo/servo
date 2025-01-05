@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>text-box on non-root inline box does not affect layout bounds only the box's size.</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<style>
+@import "support/TestMetricsFont.css";
+
+div {
+  font-family: MetricsTestFont;
+  font-size: 12px;
+}
+.aqua {
+  background-color: aqua;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.aqua')">
+<div>
+  <span class=aqua style="text-box: ex alphabetic;" data-offset-y=16 data-expected-height=2>ApÉx</span>
+  <span class=aqua style="text-box: trim-start cap alphabetic; data-offset-y=14 data-expected-height=10">ApÉx</span>
+  <span class=aqua style="text-box: trim-end text alphabetic;" data-offset-y=8 data-expected-height=10>ApÉx</span>
+</div>
+<div class=aqua data-expected-height=18>
+  <span style="font-size: 18px; text-box: ex alphabetic;">ApÉx</span>
+</div>
+</body>

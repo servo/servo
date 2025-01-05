@@ -86,7 +86,7 @@ for (const testCase of testCases) {
             });
 
             open_rq.onsuccess = t.step_func(() => {
-                const index = db.transaction("store", "readonly", {durability: 'relaxed'}).objectStore("store").index("index");
+                const index = db.transaction("store", "readonly").objectStore("store").index("index");
                 const rq = method.call(index, ...testCase.arguments);
                 rq.onsuccess = t.step_func_done(e => {
                     testCase.validateResult(e);

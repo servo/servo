@@ -28,7 +28,7 @@ function getkey_test(func, name) {
 }
 
 getkey_test((t, db) => {
-  const tx = db.transaction('basic', 'readonly', {durability: 'relaxed'});
+  const tx = db.transaction('basic', 'readonly');
   const store = tx.objectStore('basic');
   assert_throws_js(TypeError, () => store.getKey());
   assert_throws_dom('DataError', () => store.getKey(null));

@@ -16,7 +16,7 @@ function recursive_value(desc, value) {
           .add(value, 1);
 
         e.target.onsuccess = t.step_func(function(e) {
-            db.transaction('store', 'readonly', {durability: 'relaxed'})
+            db.transaction('store', 'readonly')
               .objectStore('store')
               .get(1)
               .onsuccess = t.step_func(function(e)

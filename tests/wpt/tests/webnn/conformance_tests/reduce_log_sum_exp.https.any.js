@@ -627,6 +627,569 @@ const reduceLogSumExpTests = [
         }
       }
     }
+  },
+
+  // float16 tests
+  {
+    'name': 'reduceLogSumExp float16 0D constant tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [0.79736328125],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [0.79736328125],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 0D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [0.79736328125],
+          'descriptor': {shape: [], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments':
+            [{'input': 'reduceLogSumExpInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [0.79736328125],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceLogSumExp float16 1D constant tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 1D tensor all positive default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 1D tensor all negative default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            -4.02734375,   -9.4453125,    -3.119140625,
+            -5.9453125,    -0.3701171875, -4.3984375,
+            -6.60546875,   -5.53515625,   -7.36328125,
+            -1.9990234375, -9.09375,      -8.6953125,
+            -8.4140625,    -1.0107421875, -9.8125,
+            -9.7265625,    -9.15625,      -0.0016984939575195312,
+            -9.9609375,    -5.9921875,    -6.1796875,
+            -1.2333984375, -0.4423828125, -6.98828125
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [1.1669921875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceLogSumExp float16 1D tensor all positive integers default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            1, 5, 7, 5, 7, 5, 4, 2, 1, 5, 8, 2,
+            4, 1, 4, 5, 4, 8, 6, 2, 7, 7, 8, 5
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput':
+            {'data': [9.609375], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name':
+        'reduceLogSumExp float16 1D tensor all negative integers default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            -6, -3, -5,  -1,  -9, -5, -1, -2, -10, -1, -5, -7,
+            -7, -3, -10, -10, -8, -6, -2, -6, -1,  -9, -5, -2
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [0.7001953125],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 3D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 4D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 5D tensor default options',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [{'input': 'reduceLogSumExpInput'}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 3D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments':
+            [{'input': 'reduceLogSumExpInput'}, {'options': {'axes': [2]}}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [
+            8.5546875, 3.986328125, 5.52734375, 9.078125, 6.99609375, 9.7578125
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 4D tensor options.axes',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments':
+            [{'input': 'reduceLogSumExpInput'}, {'options': {'axes': [0, 2]}}],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data':
+              [4.671875, 9.078125, 8.5390625, 9.265625, 6.44921875, 8.9140625],
+          'descriptor': {shape: [2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 3D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 3D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 4D tensor options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'keepDimensions': false}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'reduceLogSumExp float16 4D tensor options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'keepDimensions': true}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [10.390625],
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceLogSumExp float16 4D tensor options.axes with options.keepDimensions=false',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [8.5703125, 5.5, 9.75, 9.203125],
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceLogSumExp float16 4D tensor options.axes with options.keepDimensions=true',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [
+            0.79736328125,    5.046875,       8.5234375,    1.40625,
+            0.11883544921875, 0.285888671875, 1.9326171875, 3.794921875,
+            2.603515625,      4.9375,         4.5703125,    0.78662109375,
+            0.210205078125,   9.0625,         4.1015625,    4.59765625,
+            0.2548828125,     1.1591796875,   6.8046875,    5.234375,
+            8.9140625,        9.1640625,      5.71875,      0.325439453125
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'axes': [1, 3], 'keepDimensions': true}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [8.5703125, 5.5, 9.75, 9.203125],
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'float16'}
+        }
+      }
+    }
   }
 ];
 

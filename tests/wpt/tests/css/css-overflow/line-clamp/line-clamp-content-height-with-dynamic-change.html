@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Overflow: appending to a box with -webkit-line-clamp</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-dynamic-001-ref.html">
+<style>
+#container {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 20px;
+  font-family: Monospace;
+  overflow: hidden;
+}
+</style>
+<body>
+  <div id="container">first line<br>second line<br>PASS if this is not visible<br></div>
+<script>
+  document.body.offsetTop;
+  let span = document.createElement('span');
+  span.textContent = "PASS if this is not visible";
+  container.appendChild(span);
+</script>
+</body>

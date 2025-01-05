@@ -12,7 +12,7 @@ indexeddb_test(
     db.createObjectStore('store');
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readonly', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readonly');
     tx.abort();
     assert_throws_dom('InvalidStateError', () => tx.objectStore('store'),
                       'objectStore() should throw if transaction is finished');
