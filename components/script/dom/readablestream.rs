@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::ptr::{self, NonNull};
+use std::ptr::{self};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -239,15 +239,15 @@ impl ReadableStream {
         global: &GlobalScope,
         bytes: Vec<u8>,
         can_gc: CanGc,
-    ) -> DomRoot<ReadableStream> {
+    ) -> Fallible<DomRoot<ReadableStream>> {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
             UnderlyingSourceType::Memory(bytes.len()),
             can_gc,
-        );
+        )?;
         stream.enqueue_native(bytes);
         stream.controller_close_native();
-        stream
+        Ok(stream)
     }
 
     /// Build a stream backed by a Rust underlying source.
@@ -257,7 +257,7 @@ impl ReadableStream {
         global: &GlobalScope,
         source: UnderlyingSourceType,
         can_gc: CanGc,
-    ) -> DomRoot<ReadableStream> {
+    ) -> Fallible<DomRoot<ReadableStream>> {
         assert!(source.is_native());
         let stream = ReadableStream::new_with_proto(
             global,
@@ -272,10 +272,8 @@ impl ReadableStream {
             extract_size_algorithm(&QueuingStrategy::empty()),
             can_gc,
         );
-        controller
-            .setup(stream.clone(), can_gc)
-            .expect("Setup of controller with external underlying source cannot fail");
-        stream
+        controller.setup(stream.clone(), can_gc)?;
+        Ok(stream)
     }
 
     /// Call into the release steps of the controller,
@@ -323,13 +321,6 @@ impl ReadableStream {
         }
     }
 
-    /// Get a pointer to the underlying JS object.
-    /// TODO: remove,
-    /// by using at call point the `ReadableStream` directly instead of a JSObject.
-    pub fn get_js_stream(&self) -> NonNull<JSObject> {
-        NonNull::new(*self.reflector().get_jsobject())
-            .expect("Couldn't get a non-null pointer to JS stream object.")
-    }
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
     pub fn enqueue_native(&self, bytes: Vec<u8>) {

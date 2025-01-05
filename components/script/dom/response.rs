@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper_serde::Serde;
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use net_traits::http_status::HttpStatus;
 use servo_url::ServoUrl;
@@ -32,7 +30,7 @@ use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, StreamConsumer};
+use crate::script_runtime::{CanGc, StreamConsumer};
 
 #[dom_struct]
 pub struct Response {
@@ -59,7 +57,8 @@ impl Response {
             global,
             UnderlyingSourceType::FetchResponse,
             can_gc,
-        );
+        )
+        .expect("Failed to create ReadableStream with external underlying source");
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
@@ -212,7 +211,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         } else {
             // Reset FetchResponse to an in-memory stream with empty byte sequence here for
             // no-init-body case
-            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc);
+            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc)?;
             r.body_stream.set(Some(&*stream));
         }
 
@@ -359,8 +358,8 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
-    fn GetBody(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
-        self.body().map(|stream| stream.get_js_stream())
+    fn GetBody(&self) -> Option<DomRoot<ReadableStream>> {
+        self.body()
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text

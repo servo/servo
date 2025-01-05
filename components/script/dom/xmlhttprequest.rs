@@ -564,7 +564,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 };
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc);
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -601,7 +601,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc);
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -613,7 +613,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc);
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),

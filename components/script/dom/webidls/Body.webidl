@@ -7,7 +7,7 @@
 [Exposed=(Window,Worker)]
 interface mixin Body {
   readonly attribute boolean bodyUsed;
-  readonly attribute object? body;
+  readonly attribute ReadableStream? body;
 
   [NewObject] Promise<ArrayBuffer> arrayBuffer();
   [NewObject] Promise<Blob> blob();

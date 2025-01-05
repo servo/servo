@@ -1909,12 +1909,15 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub fn get_blob_stream(&self, blob_id: &BlobId, can_gc: CanGc) -> DomRoot<ReadableStream> {
+    pub fn get_blob_stream(
+        &self,
+        blob_id: &BlobId,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<ReadableStream>> {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                let stream = ReadableStream::new_from_bytes(self, bytes, can_gc);
-                return stream;
+                return ReadableStream::new_from_bytes(self, bytes, can_gc);
             },
             BlobResult::File(id, size) => (id, size),
         };
@@ -1923,7 +1926,7 @@ impl GlobalScope {
             self,
             UnderlyingSourceType::Blob(size),
             can_gc,
-        );
+        )?;
 
         let recv = self.send_msg(file_id);
 
@@ -1942,7 +1945,7 @@ impl GlobalScope {
             }),
         );
 
-        stream
+        Ok(stream)
     }
 
     pub fn read_file_async(&self, id: Uuid, promise: Rc<Promise>, callback: FileListenerCallback) {

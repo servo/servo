@@ -4,13 +4,11 @@
 
 use std::collections::HashMap;
 use std::num::NonZeroU32;
-use std::ptr::NonNull;
 use std::rc::Rc;
 
 use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use net_traits::filemanager_thread::RelativePos;
 use script_traits::serializable::BlobImpl;
@@ -30,7 +28,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/FileAPI/#blob
 #[dom_struct]
@@ -86,7 +84,7 @@ impl Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub fn get_stream(&self, can_gc: CanGc) -> DomRoot<ReadableStream> {
+    pub fn get_stream(&self, can_gc: CanGc) -> Fallible<DomRoot<ReadableStream>> {
         self.global().get_blob_stream(&self.blob_id, can_gc)
     }
 }
@@ -226,8 +224,8 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     // <https://w3c.github.io/FileAPI/#blob-get-stream>
-    fn Stream(&self, _cx: JSContext, can_gc: CanGc) -> NonNull<JSObject> {
-        self.get_stream(can_gc).get_js_stream()
+    fn Stream(&self, can_gc: CanGc) -> Fallible<DomRoot<ReadableStream>> {
+        self.get_stream(can_gc)
     }
 
     // https://w3c.github.io/FileAPI/#slice-method-algo
