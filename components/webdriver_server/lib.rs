@@ -50,7 +50,7 @@ use webdriver::actions::{
     ActionSequence, PointerDownAction, PointerMoveAction, PointerOrigin, PointerType,
     PointerUpAction,
 };
-use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
+use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
     ActionsParameters, AddCookieParameters, GetParameters, JavascriptCommandParameters,
     LocatorParameters, NewSessionParameters, NewWindowParameters, SendKeysParameters,
@@ -477,12 +477,7 @@ impl Handler {
         parameters: &NewSessionParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let mut servo_capabilities = ServoCapabilities::new();
-        let processed_capabilities = match parameters {
-            NewSessionParameters::Legacy(_) => Some(Capabilities::new()),
-            NewSessionParameters::Spec(capabilities) => {
-                capabilities.match_browser(&mut servo_capabilities)?
-            },
-        };
+        let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
 
         if self.session.is_none() {
             match processed_capabilities {
@@ -979,14 +974,14 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
-            None => {
+            FrameId::Top => {
                 let session = self.session_mut()?;
                 session.browsing_context_id =
                     BrowsingContextId::from(session.top_level_browsing_context_id);
                 return Ok(WebDriverResponse::Void);
             },
-            Some(FrameId::Short(ref x)) => WebDriverFrameId::Short(*x),
-            Some(FrameId::Element(ref x)) => WebDriverFrameId::Element(x.to_string()),
+            FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
+            FrameId::Element(ref x) => WebDriverFrameId::Element(x.to_string()),
         };
 
         self.switch_to_frame(frame_id)
