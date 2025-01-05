@@ -148,7 +148,7 @@ unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 uuid = { version = "1.11.0", features = ["v4"] }
-webdriver = "0.49.0"
+webdriver = "0.51.0"
 webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
