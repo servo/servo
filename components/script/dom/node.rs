@@ -300,7 +300,10 @@ impl Node {
                 }
                 debug_assert!(node.containing_shadow_root().is_some());
             }
-            node.set_flag(NodeFlags::IS_IN_A_DOCUMENT_TREE, parent_is_in_a_document_tree);
+            node.set_flag(
+                NodeFlags::IS_IN_A_DOCUMENT_TREE,
+                parent_is_in_a_document_tree,
+            );
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
 
@@ -1845,7 +1848,10 @@ impl Node {
 
     #[allow(crown::unrooted_must_root)]
     pub fn new_document_node() -> Node {
-        Node::new_(NodeFlags::IS_IN_A_DOCUMENT_TREE | NodeFlags::IS_CONNECTED, None)
+        Node::new_(
+            NodeFlags::IS_IN_A_DOCUMENT_TREE | NodeFlags::IS_CONNECTED,
+            None,
+        )
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -3604,7 +3610,7 @@ pub struct UnbindContext<'a> {
     pub tree_is_in_a_document_tree: bool,
 
     /// Whether the tree's root is a shadow root
-    pub tree_is_in_a_shadow_tree: bool
+    pub tree_is_in_a_shadow_tree: bool,
 }
 
 impl<'a> UnbindContext<'a> {
