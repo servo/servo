@@ -599,7 +599,14 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#navigation-request>
     pub fn is_navigation_request(&self) -> bool {
-        self.destination == Destination::Document
+        matches!(
+            self.destination,
+            Destination::Document |
+                Destination::Embed |
+                Destination::Frame |
+                Destination::IFrame |
+                Destination::Object
+        )
     }
 
     /// <https://fetch.spec.whatwg.org/#subresource-request>
