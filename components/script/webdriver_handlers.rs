@@ -331,7 +331,7 @@ pub fn handle_execute_script(
             let result = unsafe {
                 let cx = window.get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                let global = window.upcast::<GlobalScope>();
+                let global = window.as_global_scope();
                 global.evaluate_js_on_global_with_result(
                     &eval,
                     rval.handle_mut(),
@@ -339,7 +339,7 @@ pub fn handle_execute_script(
                     global.api_base_url(),
                     can_gc,
                 );
-                jsval_to_webdriver(*cx, window.upcast::<GlobalScope>(), rval.handle())
+                jsval_to_webdriver(*cx, global, rval.handle())
             };
 
             reply.send(result).unwrap();
@@ -363,12 +363,13 @@ pub fn handle_execute_async_script(
             let cx = window.get_cx();
             window.set_webdriver_script_chan(Some(reply));
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            let global = window.upcast::<GlobalScope>();
-            global.evaluate_js_on_global_with_result(
+
+            let global_scope = window.as_global_scope();
+            global_scope.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
-                ScriptFetchOptions::default_classic_script(global),
-                global.api_base_url(),
+                ScriptFetchOptions::default_classic_script(global_scope),
+                global_scope.api_base_url(),
                 can_gc,
             );
         },
@@ -792,7 +793,7 @@ pub fn handle_get_cookies(
                     let (sender, receiver) = ipc::channel().unwrap();
                     let _ = document
                         .window()
-                        .upcast::<GlobalScope>()
+                        .as_global_scope()
                         .resource_threads()
                         .send(GetCookiesDataForUrl(url, sender, NonHTTP));
                     receiver.recv().unwrap()
@@ -819,7 +820,7 @@ pub fn handle_get_cookie(
                     let (sender, receiver) = ipc::channel().unwrap();
                     let _ = document
                         .window()
-                        .upcast::<GlobalScope>()
+                        .as_global_scope()
                         .resource_threads()
                         .send(GetCookiesDataForUrl(url, sender, NonHTTP));
                     let cookies = receiver.recv().unwrap();
@@ -864,7 +865,7 @@ pub fn handle_add_cookie(
             (false, Some(ref domain)) if url.host_str().map(|x| x == domain).unwrap_or(false) => {
                 let _ = document
                     .window()
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .resource_threads()
                     .send(SetCookieForUrl(url, Serde(cookie), method));
                 Ok(())
@@ -872,7 +873,7 @@ pub fn handle_add_cookie(
             (false, None) => {
                 let _ = document
                     .window()
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .resource_threads()
                     .send(SetCookieForUrl(url, Serde(cookie), method));
                 Ok(())
@@ -896,7 +897,7 @@ pub fn handle_delete_cookies(
     let url = document.url();
     document
         .window()
-        .upcast::<GlobalScope>()
+        .as_global_scope()
         .resource_threads()
         .send(DeleteCookies(url))
         .unwrap();

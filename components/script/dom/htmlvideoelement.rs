@@ -125,7 +125,7 @@ impl HTMLVideoElement {
         let sent_resize = if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             None
         } else {
-            self.owner_window()
+            self.owner_global()
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(self.upcast(), atom!("resize"));

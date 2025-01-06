@@ -91,7 +91,6 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
         type_: DOMString,
         init: &BluetoothAdvertisingEventInit,
     ) -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
-        let global = window.upcast::<GlobalScope>();
         let name = init.name.clone();
         let appearance = init.appearance;
         let txPower = init.txPower;
@@ -99,7 +98,7 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(BluetoothAdvertisingEvent::new(
-            global,
+            window.as_global_scope(),
             proto,
             Atom::from(type_),
             bubbles,

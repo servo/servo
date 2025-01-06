@@ -696,7 +696,7 @@ impl Document {
         // But it's now Step 4 in https://html.spec.whatwg.org/multipage/#reactivate-a-document
         // TODO: See #32687 for more information.
         let document = Trusted::new(self);
-        self.window()
+        self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(fire_pageshow_event: move || {
@@ -1166,10 +1166,9 @@ impl Document {
                 self.window.pipeline_id(),
                 title.clone(),
             ));
-            let global = self.window.upcast::<GlobalScope>();
-            if let Some(chan) = global.devtools_chan() {
+            if let Some(chan) = self.window.as_global_scope().devtools_chan() {
                 let _ = chan.send(ScriptToDevtoolsControlMsg::TitleChanged(
-                    global.pipeline_id(),
+                    self.window.pipeline_id(),
                     title,
                 ));
             }
@@ -2127,7 +2126,11 @@ impl Document {
     ) {
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
-            task_source: self.window().task_manager().networking_task_source().into(),
+            task_source: self
+                .owner_global()
+                .task_manager()
+                .networking_task_source()
+                .into(),
         }
         .into_callback();
         self.loader_mut()
@@ -2142,7 +2145,11 @@ impl Document {
     ) {
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
-            task_source: self.window().task_manager().networking_task_source().into(),
+            task_source: self
+                .owner_global()
+                .task_manager()
+                .networking_task_source()
+                .into(),
         }
         .into_callback();
         self.loader_mut()
@@ -2326,7 +2333,7 @@ impl Document {
             }
         }
 
-        let global_scope = self.window.upcast::<GlobalScope>();
+        let global_scope = self.window.as_global_scope();
         // Step 10, 14
         // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
         if !self.salvageable.get() {
@@ -2370,7 +2377,7 @@ impl Document {
         // Step 7.
         debug!("Document loads are complete.");
         let document = Trusted::new(self);
-        self.window()
+        self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(fire_load_event: move || {
@@ -2413,7 +2420,7 @@ impl Document {
         // Step 8.
         let document = Trusted::new(self);
         if document.root().browsing_context().is_some() {
-            self.window()
+            self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
                 .queue(task!(fire_pageshow_event: move || {
@@ -2464,7 +2471,7 @@ impl Document {
         // TODO: fully implement "completely loaded".
         let document = Trusted::new(self);
         if document.root().browsing_context().is_some() {
-            self.window()
+            self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
                 .queue(task!(completely_loaded: move || {
@@ -2475,7 +2482,7 @@ impl Document {
                         time
                     }) = &*document.declarative_refresh.borrow() {
                         // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
-                        document.window.upcast::<GlobalScope>().schedule_callback(
+                        document.window.as_global_scope().schedule_callback(
                             OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                                 window: DomRoot::from_ref(document.window()),
                                 url: url.clone(),
@@ -2632,7 +2639,7 @@ impl Document {
 
         // Step 4.1.
         let document = Trusted::new(self);
-        self.window()
+        self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(
@@ -2672,9 +2679,8 @@ impl Document {
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
         self.deferred_scripts.clear();
-        let global_scope = self.window.upcast::<GlobalScope>();
         let loads_cancelled = self.loader.borrow_mut().cancel_all_loads();
-        let event_sources_canceled = global_scope.close_event_sources();
+        let event_sources_canceled = self.window.as_global_scope().close_event_sources();
         if loads_cancelled || event_sources_canceled {
             // If any loads were canceled.
             self.salvageable.set(false);
@@ -2684,7 +2690,7 @@ impl Document {
         // Note: the spec says to discard any tasks queued for fetch.
         // This cancels all tasks on the networking task source, which might be too broad.
         // See https://github.com/whatwg/html/issues/3837
-        self.window()
+        self.owner_global()
             .task_manager()
             .cancel_pending_tasks_for_source(TaskSourceName::Networking);
 
@@ -3013,12 +3019,13 @@ impl Document {
 
     /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
     pub(crate) fn deliver_resize_loop_error_notification(&self, can_gc: CanGc) {
-        let global_scope = self.window.upcast::<GlobalScope>();
         let error_info: ErrorInfo = crate::dom::bindings::error::ErrorInfo {
             message: "ResizeObserver loop completed with undelivered notifications.".to_string(),
             ..Default::default()
         };
-        global_scope.report_an_error(error_info, HandleValue::null(), can_gc);
+        self.window
+            .as_global_scope()
+            .report_an_error(error_info, HandleValue::null(), can_gc);
     }
 
     pub(crate) fn status_code(&self) -> Option<u16> {
@@ -4102,7 +4109,7 @@ impl Document {
 
         // > 3. Perform a microtask checkpoint.
         self.window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .perform_a_microtask_checkpoint(can_gc);
 
         // Steps 4 through 7 occur inside `send_pending_events().`
@@ -5003,7 +5010,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let (tx, rx) = profile_ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .resource_threads()
             .send(GetCookiesForUrl(url, tx, NonHTTP));
         let cookies = rx.recv().unwrap();
@@ -5028,7 +5035,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .resource_threads()
             .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
         Ok(())
@@ -5347,11 +5354,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // document.close() methods, and that the tokenizer will wait for an explicit call to
         // document.close() before emitting an end-of-file token). The encoding confidence is
         // irrelevant.
-        let resource_threads = self
-            .window
-            .upcast::<GlobalScope>()
-            .resource_threads()
-            .clone();
+        let resource_threads = self.window.as_global_scope().resource_threads().clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
         ServoParser::parse_html_script_input(self, self.url());
@@ -5648,11 +5651,7 @@ impl AnimationFrameCallback {
         match *self {
             AnimationFrameCallback::DevtoolsFramerateTick { ref actor_name } => {
                 let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name.clone(), now);
-                let devtools_sender = document
-                    .window()
-                    .upcast::<GlobalScope>()
-                    .devtools_chan()
-                    .unwrap();
+                let devtools_sender = document.window().as_global_scope().devtools_chan().unwrap();
                 devtools_sender.send(msg).unwrap();
             },
             AnimationFrameCallback::FrameRequestCallback { ref callback } => {

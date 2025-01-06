@@ -55,7 +55,6 @@ use crate::dom::comment::Comment;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
@@ -366,7 +365,7 @@ impl ServoParser {
         let profiler_chan = self
             .document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .time_profiler_chan()
             .clone();
         let profiler_metadata = TimerMetadata {
@@ -564,7 +563,7 @@ impl ServoParser {
         let profiler_chan = self
             .document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .time_profiler_chan()
             .clone();
         let profiler_metadata = TimerMetadata {
@@ -637,7 +636,7 @@ impl ServoParser {
             if is_execution_stack_empty() {
                 self.document
                     .window()
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .perform_a_microtask_checkpoint(can_gc);
             }
 
@@ -1401,7 +1400,7 @@ fn create_element_for_token(
         if is_execution_stack_empty() {
             document
                 .window()
-                .upcast::<GlobalScope>()
+                .as_global_scope()
                 .perform_a_microtask_checkpoint(can_gc);
         }
         // Step 6.3

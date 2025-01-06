@@ -78,7 +78,7 @@ impl History {
         let msg = ScriptMsg::TraverseHistory(direction);
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .send(msg);
         Ok(())
@@ -109,7 +109,7 @@ impl History {
                 let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .resource_threads()
                     .send(CoreResourceMsg::GetHistoryState(state_id, tx));
                 rx.recv().unwrap()
@@ -124,9 +124,10 @@ impl History {
                     ports: None,
                     blobs: None,
                 };
-                let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
-                if structuredclone::read(global_scope, data, state.handle_mut()).is_err() {
+                if structuredclone::read(self.window.as_global_scope(), data, state.handle_mut())
+                    .is_err()
+                {
                     warn!("Error reading structuredclone data");
                 }
                 self.state.set(state.get());
@@ -167,7 +168,7 @@ impl History {
     pub fn remove_states(&self, states: Vec<HistoryStateId>) {
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .resource_threads()
             .send(CoreResourceMsg::RemoveHistoryStates(states));
     }
@@ -240,7 +241,7 @@ impl History {
                 let msg = ScriptMsg::PushHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .script_to_constellation_chan()
                     .send(msg);
                 state_id
@@ -257,14 +258,14 @@ impl History {
                 let msg = ScriptMsg::ReplaceHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .script_to_constellation_chan()
                     .send(msg);
                 state_id
             },
         };
 
-        let _ = self.window.upcast::<GlobalScope>().resource_threads().send(
+        let _ = self.window.as_global_scope().resource_threads().send(
             CoreResourceMsg::SetHistoryState(state_id, serialized_data.serialized.clone()),
         );
 
@@ -275,9 +276,14 @@ impl History {
         document.set_url(new_url);
 
         // Step 11
-        let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(*cx) let mut state = UndefinedValue());
-        if structuredclone::read(global_scope, serialized_data, state.handle_mut()).is_err() {
+        if structuredclone::read(
+            self.window.as_global_scope(),
+            serialized_data,
+            state.handle_mut(),
+        )
+        .is_err()
+        {
             warn!("Error reading structuredclone data");
         }
 
@@ -311,7 +317,7 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         let msg = ScriptMsg::JointSessionHistoryLength(sender);
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .send(msg);
         Ok(recv.recv().unwrap())

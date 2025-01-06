@@ -286,7 +286,7 @@ impl HTMLInputElement {
     ) -> HTMLInputElement {
         let chan = document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .clone();
         HTMLInputElement {
@@ -1843,7 +1843,7 @@ impl HTMLInputElement {
     fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>, can_gc: CanGc) {
         let window = self.owner_window();
         let origin = get_blob_origin(&window.get_url());
-        let resource_threads = window.upcast::<GlobalScope>().resource_threads();
+        let resource_threads = window.as_global_scope().resource_threads();
 
         let mut files: Vec<DomRoot<File>> = vec![];
         let mut error = None;
@@ -2576,7 +2576,7 @@ impl VirtualMethods for HTMLInputElement {
             self.input_type().is_textual_or_password()
         {
             if event.IsTrusted() {
-                self.owner_window()
+                self.owner_global()
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(

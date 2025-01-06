@@ -881,8 +881,9 @@ impl HTMLImageElement {
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data_sync_steps(&self, can_gc: CanGc) {
         let document = self.owner_document();
-        let window = document.window();
-        let task_source = window.task_manager().dom_manipulation_task_source();
+        let global = self.owner_global();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.dom_manipulation_task_source();
         let this = Trusted::new(self);
         let (src, pixel_density) = match self.select_image_source() {
             // Step 8
@@ -1014,8 +1015,10 @@ impl HTMLImageElement {
                     let this = Trusted::new(self);
                     let src = src.0;
 
-                    window.task_manager().dom_manipulation_task_source().queue(
-                        task!(image_load_event: move || {
+                    self.owner_global()
+                        .task_manager()
+                        .dom_manipulation_task_source()
+                        .queue(task!(image_load_event: move || {
                             let this = this.root();
                             {
                                 let mut current_request =
@@ -1025,8 +1028,7 @@ impl HTMLImageElement {
                             }
                             // TODO: restart animation, if set.
                             this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
-                        }),
-                    );
+                        }));
                     return;
                 }
             }
@@ -1062,7 +1064,7 @@ impl HTMLImageElement {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
             let task_source = elem
-                .owner_window()
+                .owner_global()
                 .task_manager()
                 .networking_task_source()
                 .to_sendable();
@@ -1240,9 +1242,8 @@ impl HTMLImageElement {
         selected_pixel_density: f64,
     ) {
         let this = Trusted::new(self);
-        let window = self.owner_window();
         let src = src.0;
-        window.task_manager().dom_manipulation_task_source().queue(
+        self.owner_global().task_manager().dom_manipulation_task_source().queue(
             task!(image_load_event: move || {
                 let this = this.root();
                 let relevant_mutation = this.generation.get() != generation;

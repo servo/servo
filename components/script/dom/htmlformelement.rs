@@ -57,7 +57,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::formdataevent::FormDataEvent;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlcollection::CollectionFilter;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
@@ -856,9 +855,9 @@ impl HTMLFormElement {
             LoadOrigin::Script(doc.origin().immutable().clone()),
             action_components,
             None,
-            target_window.upcast::<GlobalScope>().get_referrer(),
+            target_window.as_global_scope().get_referrer(),
             target_document.get_referrer_policy(),
-            Some(target_window.upcast::<GlobalScope>().is_secure_context()),
+            Some(target_window.as_global_scope().is_secure_context()),
         );
 
         // Step 22
@@ -1009,12 +1008,11 @@ impl HTMLFormElement {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
                 Referrer::NoReferrer
             },
-            _ => target.upcast::<GlobalScope>().get_referrer(),
+            _ => target.as_global_scope().get_referrer(),
         };
 
         let referrer_policy = target.Document().get_referrer_policy();
-        let pipeline_id = target.upcast::<GlobalScope>().pipeline_id();
-        load_data.creator_pipeline_id = Some(pipeline_id);
+        load_data.creator_pipeline_id = Some(target.pipeline_id());
         load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
 
@@ -1037,6 +1035,7 @@ impl HTMLFormElement {
 
         // Step 3.
         target
+            .global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task)

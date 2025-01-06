@@ -102,7 +102,6 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     fn Close(&self, return_value: Option<DOMString>) {
         let element = self.upcast::<Element>();
         let target = self.upcast::<EventTarget>();
-        let win = self.owner_window();
 
         // Step 1 & 2
         if element
@@ -120,7 +119,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         // TODO: Step 4 implement pending dialog stack removal
 
         // Step 5
-        win.task_manager()
+        self.owner_global()
+            .task_manager()
             .dom_manipulation_task_source()
             .queue_simple_event(target, atom!("close"));
     }

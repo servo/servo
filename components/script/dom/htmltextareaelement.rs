@@ -27,7 +27,6 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -143,7 +142,7 @@ impl HTMLTextAreaElement {
     ) -> HTMLTextAreaElement {
         let chan = document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .clone();
         HTMLTextAreaElement {
@@ -650,7 +649,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
-                self.owner_window()
+                self.owner_global()
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
