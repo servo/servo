@@ -5100,8 +5100,14 @@ name = "ohos-sys"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a786868a20866e5682c6666ebd84435563d7ff2d6088576d958c1bb7475e460"
+
+[[package]]
+name = "ohos-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f905129e72c6ddd7b60578eb3385cc7c138daaa69fe237c91c2df9065e720be4"
 dependencies = [
- "xcomponent-sys",
+ "xcomponent-sys 0.2.0",
 ]
 
 [[package]]
@@ -5110,7 +5116,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f861dc51ec885943dc9fcb757c26b1e934cc307daf79e025a0bf68a4875fc4a8"
 dependencies = [
- "ohos-sys",
+ "ohos-sys 0.4.0",
 ]
 
 [[package]]
@@ -6613,7 +6619,7 @@ dependencies = [
  "nix",
  "ohos-ime",
  "ohos-ime-sys",
- "ohos-sys",
+ "ohos-sys 0.5.0",
  "ohos-vsync",
  "raw-window-handle",
  "serde_json",
@@ -6632,7 +6638,7 @@ dependencies = [
  "windows-sys 0.59.0",
  "winit",
  "winres",
- "xcomponent-sys",
+ "xcomponent-sys 0.1.1",
 ]
 
 [[package]]
@@ -8930,6 +8936,12 @@ checksum = "663e26cce4f574daf506a01f4e5cfedd5355c60afebc30daeeeea95f38f6b600"
 dependencies = [
  "keyboard-types",
 ]
+
+[[package]]
+name = "xcomponent-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5614071fe8188485b9e9494da95a579331de83faa528095cd3182867116f5d58"
 
 [[package]]
 name = "xcursor"
