@@ -18,7 +18,7 @@ use js::jsapi::{
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
-use js::rust::jsapi_wrapped::{ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::jsapi_wrapped::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
@@ -2917,12 +2917,41 @@ fn round_halves_positive(n: f64) -> f64 {
 // https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression
 fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandleObject) -> bool {
     // First check if pattern compiles...
-    if new_js_regex(cx, pattern_str, out_regex) {
+    if check_js_regex_syntax(cx, pattern_str) {
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
         new_js_regex(cx, &pattern_str, out_regex)
     } else {
         false
+    }
+}
+
+#[allow(unsafe_code)]
+/// Check if the pattern by itself is valid first, and not that it only becomes
+/// valid once we add ^(?: and )$.
+fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
+    let pattern: Vec<u16> = pattern.encode_utf16().collect();
+    unsafe {
+        rooted!(in(*cx) let mut exception = UndefinedValue());
+
+        let valid = CheckRegExpSyntax(
+            *cx,
+            pattern.as_ptr(),
+            pattern.len(),
+            RegExpFlags {
+                flags_: RegExpFlag_Unicode,
+            },
+            &mut exception.handle_mut(),
+        );
+
+        if !valid {
+            JS_ClearPendingException(*cx);
+            return false;
+        }
+
+        // TODO(cybai): report `exception` to devtools
+        // exception will be `undefined` if the regex is valid
+        exception.is_undefined()
     }
 }
 
