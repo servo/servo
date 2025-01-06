@@ -134,7 +134,10 @@ impl Notification {
 
         let mut actions: Vec<NotificationAction> = Vec::new();
         let max_actions = Notification::MaxActions(global);
-        for action in &options.actions[0..max_actions as usize] {
+        for (idx, action) in options.actions.iter().enumerate() {
+            if idx >= max_actions as usize {
+                break;
+            }
             actions.push(NotificationAction {
                 action: action.action.clone(), // Spec is using `name`, however in WebIDL it use `action`.
                 title: action.title.clone(),
