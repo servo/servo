@@ -7,7 +7,9 @@ use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
+use image::codecs::webp::WebPEncoder;
 use image::{ColorType, ImageEncoder};
 use ipc_channel::ipc::IpcSharedMemory;
 #[cfg(feature = "webgpu")]
@@ -397,8 +399,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     fn ToDataURL(
         &self,
         _context: JSContext,
-        _mime_type: Option<DOMString>,
-        _quality: HandleValue,
+        mime_type: Option<DOMString>,
+        quality: HandleValue,
     ) -> Fallible<USVString> {
         // Step 1.
         if !self.origin_is_clean() {
@@ -436,17 +438,75 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             },
         };
 
-        // FIXME: Only handle image/png for now.
-        let mut url = "data:image/png;base64,".to_owned();
+        enum ImageType {
+            Png,
+            Jpeg,
+            Webp,
+        }
+
+        // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
+        // User agents must support PNG ("image/png"). User agents may support other types.
+        // If the user agent does not support the requested type, then it must create the file using the PNG format.
+        // Anything different than image/jpeg is thus treated as PNG.
+        let (image_type, url) = match mime_type {
+            Some(mime) => {
+                let mime = mime.to_string().to_lowercase();
+                if mime == "image/jpeg" {
+                    (ImageType::Jpeg, "data:image/jpeg;base64,")
+                } else if mime == "image/webp" {
+                    (ImageType::Webp, "data:image/webp;base64,")
+                } else {
+                    (ImageType::Png, "data:image/png;base64,")
+                }
+            },
+            _ => (ImageType::Png, "data:image/png;base64,"),
+        };
+
+        let mut url = url.to_owned();
+
         let mut encoder = base64::write::EncoderStringWriter::from_consumer(
             &mut url,
             &base64::engine::general_purpose::STANDARD,
         );
-        // FIXME(nox): https://github.com/image-rs/image-png/issues/86
-        // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-        PngEncoder::new(&mut encoder)
-            .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
-            .unwrap();
+
+        match image_type {
+            ImageType::Png => {
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
+                PngEncoder::new(&mut encoder)
+                    .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
+                    .unwrap();
+            },
+            ImageType::Jpeg => {
+                let jpeg_encoder = if quality.is_number() {
+                    let quality = quality.to_number();
+                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
+                    // expects it to be in [1..100]
+                    if (0.0..=1.0).contains(&quality) {
+                        JpegEncoder::new_with_quality(
+                            &mut encoder,
+                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
+                        )
+                    } else {
+                        JpegEncoder::new(&mut encoder)
+                    }
+                } else {
+                    JpegEncoder::new(&mut encoder)
+                };
+
+                jpeg_encoder
+                    .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
+                    .unwrap();
+            },
+
+            ImageType::Webp => {
+                // No quality support because of https://github.com/image-rs/image/issues/1984
+                WebPEncoder::new_lossless(&mut encoder)
+                    .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
+                    .unwrap();
+            },
+        }
+
         encoder.into_inner();
         Ok(USVString(url))
     }
