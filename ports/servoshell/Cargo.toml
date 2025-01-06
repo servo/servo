@@ -37,7 +37,7 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webdriver", "webxr", "webgpu"]
+default = ["egui", "max_log_level", "webdriver", "webxr", "webgpu"]
 egui = ["dep:egui", "dep:egui_glow", "dep:egui-winit"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]

@@ -6,6 +6,7 @@
 
 pub(crate) mod app;
 pub(crate) mod cli;
+#[cfg(feature = "egui")]
 mod egui_glue;
 mod embedder;
 pub(crate) mod events_loop;
@@ -13,6 +14,7 @@ pub mod geometry;
 mod headed_window;
 mod headless_window;
 mod keyutils;
+#[cfg(feature = "egui")]
 mod minibrowser;
 mod protocols;
 mod tracing;

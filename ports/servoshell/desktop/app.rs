@@ -10,7 +10,7 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use log::{info, trace};
+use log::trace;
 use raw_window_handle::HasDisplayHandle;
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
@@ -31,6 +31,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
 use super::events_loop::{EventsLoop, WakerEvent};
+#[cfg(feature = "egui")]
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
@@ -45,6 +46,7 @@ pub struct App {
     event_queue: Vec<EmbedderEvent>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
+    #[cfg(feature = "egui")]
     minibrowser: Option<Minibrowser>,
     user_agent: Option<String>,
     waker: Box<dyn EventLoopWaker>,
@@ -90,6 +92,7 @@ impl App {
             servo: None,
             suspended: Cell::new(false),
             windows: HashMap::new(),
+            #[cfg(feature = "egui")]
             minibrowser: None,
             user_agent,
             waker: events_loop.create_event_loop_waker(),
@@ -146,6 +149,7 @@ impl App {
 
         // Create window's context
         self.webviews = Some(WebViewManager::new(window.clone()));
+        #[cfg(feature = "egui")]
         if window.winit_window().is_some() {
             self.minibrowser = Some(Minibrowser::new(
                 &rendering_context,
@@ -154,6 +158,7 @@ impl App {
             ));
         }
 
+        #[cfg(feature = "egui")]
         if let Some(ref mut minibrowser) = self.minibrowser {
             // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
             minibrowser.update(
@@ -164,6 +169,8 @@ impl App {
             );
             window.set_toolbar_height(minibrowser.toolbar_height);
         }
+        #[cfg(not(feature = "egui"))]
+        window.set_toolbar_height(euclid::Length::new(0.));
 
         self.windows.insert(window.id(), window);
 
@@ -192,11 +199,14 @@ impl App {
         // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(self.waker.clone(), xr_discovery));
 
+        #[cfg(feature = "egui")]
         let composite_target = if self.minibrowser.is_some() {
             CompositeTarget::Fbo
         } else {
             CompositeTarget::Window
         };
+        #[cfg(not(feature = "egui"))]
+        let composite_target = CompositeTarget::Window;
         let mut servo = Servo::new(
             rendering_context,
             embedder,
@@ -301,12 +311,14 @@ impl App {
             PumpResult::Shutdown => {
                 event_loop.exit();
                 self.servo.take().unwrap().deinit();
+                #[cfg(feature = "egui")]
                 if let Some(ref mut minibrowser) = self.minibrowser {
                     minibrowser.context.destroy();
                 }
             },
             PumpResult::Continue { update, present } => {
                 if update {
+                    #[cfg(feature = "egui")]
                     if let Some(ref mut minibrowser) = self.minibrowser {
                         let webviews = self.webviews.as_mut().unwrap();
                         if minibrowser.update_webview_data(webviews) {
@@ -329,6 +341,7 @@ impl App {
                         // If we had resized any of the viewports in response to this, we would need to
                         // call Servo::repaint_synchronously. At the moment we don’t, so there won’t be
                         // any paint scheduled, and calling it would hang the compositor forever.
+                        #[cfg(feature = "egui")]
                         if let Some(ref mut minibrowser) = self.minibrowser {
                             minibrowser.update(
                                 window.winit_window().unwrap(),
@@ -380,6 +393,7 @@ impl App {
             PumpResult::Shutdown => {
                 exit = true;
                 self.servo.take().unwrap().deinit();
+                #[cfg(feature = "egui")]
                 if let Some(ref mut minibrowser) = self.minibrowser {
                     minibrowser.context.destroy();
                 }
@@ -441,6 +455,7 @@ impl ApplicationHandler<WakerEvent> for App {
 
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
+            #[cfg(feature = "egui")]
             if let Some(ref mut minibrowser) = self.minibrowser {
                 minibrowser.update(
                     window.winit_window().unwrap(),
@@ -455,8 +470,8 @@ impl ApplicationHandler<WakerEvent> for App {
         }
 
         // Handle the event
-        let mut consumed = false;
-        if let Some(ref mut minibrowser) = self.minibrowser {
+        #[cfg(feature = "egui")]
+        let consumed = if let Some(ref mut minibrowser) = self.minibrowser {
             match event {
                 WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                     // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
@@ -465,9 +480,10 @@ impl ApplicationHandler<WakerEvent> for App {
                     let desired_scale_factor = window.hidpi_factor().get();
                     let effective_egui_zoom_factor = desired_scale_factor / scale_factor as f32;
 
-                    info!(
+                    log::info!(
                         "window scale factor changed to {}, setting egui zoom factor to {}",
-                        scale_factor, effective_egui_zoom_factor
+                        scale_factor,
+                        effective_egui_zoom_factor
                     );
 
                     minibrowser
@@ -478,6 +494,7 @@ impl ApplicationHandler<WakerEvent> for App {
                     // Request a winit redraw event, so we can recomposite, update and paint
                     // the minibrowser, and present the new frame.
                     window.winit_window().unwrap().request_redraw();
+                    false
                 },
                 ref event => {
                     let response =
@@ -499,10 +516,14 @@ impl ApplicationHandler<WakerEvent> for App {
 
                     // TODO how do we handle the tab key? (see doc for consumed)
                     // Note that servo doesn’t yet support tabbing through links and inputs
-                    consumed = response.consumed;
+                    response.consumed
                 },
             }
-        }
+        } else {
+            false
+        };
+        #[cfg(not(feature = "egui"))]
+        let consumed = false;
         if !consumed {
             if event == winit::event::WindowEvent::RedrawRequested {
                 self.event_queue.push(EmbedderEvent::Idle);
@@ -521,6 +542,7 @@ impl ApplicationHandler<WakerEvent> for App {
         }
 
         // Consume and handle any events from the Minibrowser.
+        #[cfg(feature = "egui")]
         if let Some(ref minibrowser) = self.minibrowser {
             let webviews = &mut self.webviews.as_mut().unwrap();
             let app_event_queue = &mut self.event_queue;
@@ -562,6 +584,7 @@ impl ApplicationHandler<WakerEvent> for App {
         }
 
         // Consume and handle any events from the Minibrowser.
+        #[cfg(feature = "egui")]
         if let Some(ref minibrowser) = self.minibrowser {
             let webviews = &mut self.webviews.as_mut().unwrap();
             let app_event_queue = &mut self.event_queue;

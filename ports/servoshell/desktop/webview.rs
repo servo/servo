@@ -161,6 +161,7 @@ where
         self.focused_webview_id
     }
 
+    #[cfg(feature = "egui")]
     pub fn current_url_string(&self) -> Option<String> {
         match self.focused_webview() {
             Some(webview) => webview.url.as_ref().map(|url| url.to_string()),
@@ -182,6 +183,7 @@ where
         }
     }
 
+    #[cfg(feature = "egui")]
     pub fn status_text(&self) -> Option<String> {
         self.status_text.clone()
     }
