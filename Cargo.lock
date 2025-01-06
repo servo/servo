@@ -3014,9 +3014,9 @@ dependencies = [
 
 [[package]]
 name = "hitrace-sys"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "315f4e893d1caac3a97b9e6cbcf211a7012c6615cd688e4430f0cd5712ac3a3f"
+checksum = "cb23d4ffe860346dcfc4486c61e3336e2c08c33801795f15762378ce72c1cf22"
 
 [[package]]
 name = "html5ever"
