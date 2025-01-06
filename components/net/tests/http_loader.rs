@@ -171,6 +171,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderName::from_static("sec-fetch-user"),
         HeaderValue::from_static("?1"),
     );
+    headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
 
     *expected_headers.lock().unwrap() = Some(headers.clone());
 
@@ -325,6 +326,7 @@ fn test_request_and_response_data_with_network_messages() {
         HeaderName::from_static("sec-fetch-user"),
         HeaderValue::from_static("?1"),
     );
+    headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
 
     let httprequest = DevtoolsHttpRequest {
         url: url,

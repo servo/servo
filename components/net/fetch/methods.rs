@@ -14,9 +14,9 @@ use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName};
-use http::{Method, StatusCode};
+use http::{HeaderValue, Method, StatusCode};
 use ipc_channel::ipc;
-use log::warn;
+use log::{debug, warn};
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
@@ -251,8 +251,20 @@ pub async fn main_fetch(
     // Step 3.
     // TODO: handle request abort.
 
-    // Step 4.
-    // TODO: handle upgrade to a potentially secure URL.
+    // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
+    if should_upgrade_request_to_potentially_trustworty(request, context) {
+        if let Some(new_scheme) = match request.current_url().scheme() {
+            "http" => Some("https"),
+            "ws" => Some("wss"),
+            _ => None,
+        } {
+            request
+                .current_url_mut()
+                .as_mut_url()
+                .set_scheme(new_scheme)
+                .unwrap();
+        }
+    }
 
     // Step 5.
     if should_be_blocked_due_to_bad_port(&request.current_url()) {
@@ -880,4 +892,58 @@ fn is_bad_port(port: u16) -> bool {
     ];
 
     BAD_PORTS.binary_search(&port).is_ok()
+}
+
+// TODO : Investigate and need to revisit again
+pub fn is_form_submission_request(request: &Request) -> bool {
+    let content_type = request.headers.typed_get::<ContentType>();
+    content_type.is_some_and(|ct| {
+        let mime: Mime = ct.into();
+        mime.type_() == mime::APPLICATION && mime.subtype() == mime::WWW_FORM_URLENCODED
+    })
+}
+
+/// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request>
+fn should_upgrade_request_to_potentially_trustworty(
+    request: &mut Request,
+    context: &FetchContext,
+) -> bool {
+    // Step 1. If request is a navigation request,
+    if request.is_navigation_request() {
+        // Append a header named Upgrade-Insecure-Requests with a value of 1 to
+        // request’s header list if any of the following criteria are met:
+        // * request’s URL is not a potentially trustworthy URL
+        // * request’s URL's host is not a preloadable HSTS host
+        if !request.current_url().is_origin_trustworthy() ||
+            !context
+                .state
+                .hsts_list
+                .read()
+                .unwrap()
+                .is_host_secure(request.current_url().host_str().unwrap())
+        {
+            debug!("Appending the Upgrade-Insecure-Requests header to request’s header list");
+            request
+                .headers
+                .insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
+        }
+
+        // Step 2.1 If request is a form submission, skip the remaining substeps, and continue upgrading request.
+        if is_form_submission_request(request) {
+            return true;
+        }
+
+        // Step 2.2
+        // TODO If request’s client's target browsing context is a nested browsing context
+
+        // Step 2.4
+        // TODO : check for insecure navigation set after its implemention
+
+        // Step 2.5 Return without further modifying request
+        return false;
+    }
+
+    // Step 4
+    // TODO : add check for insecure requests for client
+    false
 }
