@@ -1683,6 +1683,7 @@ impl<'a> TableLayout<'a> {
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
             depends_on_block_constraints,
+            detailed_layout_info: None,
         };
 
         table_layout

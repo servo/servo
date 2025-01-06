@@ -5,10 +5,13 @@ mod layout;
 mod stylo_taffy;
 use std::fmt;
 
+use app_units::Au;
+use itertools::Itertools;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::TextDecorationLine;
+use style_traits::ToCss;
 use stylo_taffy::TaffyStyloStyle;
 
 use crate::cell::ArcRefCell;
@@ -115,5 +118,32 @@ impl TaffyItemBox {
             style,
             taffy_level_box: inner,
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TaffyDetailedGridInfo {
+    inner: Box<taffy::DetailedGridInfo>,
+}
+
+impl TaffyDetailedGridInfo {
+    // Convert column sizes from Taffy to Au's CSS string
+    pub fn template_columns_as_css_string(&self) -> String {
+        self.inner
+            .columns
+            .sizes
+            .iter()
+            .map(|size| Au::from_f32_px(*size).to_css_string())
+            .join(" ")
+    }
+
+    // Convert column sizes from Taffy to Au's CSS string
+    pub fn template_rows_as_css_string(&self) -> String {
+        self.inner
+            .rows
+            .sizes
+            .iter()
+            .map(|size| Au::from_f32_px(*size).to_css_string())
+            .join(" ")
     }
 }

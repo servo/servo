@@ -36,7 +36,9 @@ use style::values::generics::font::LineHeight;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
-use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag};
+use crate::fragment_tree::{
+    BoxFragment, DetailedLayoutInfo, Fragment, FragmentFlags, FragmentTree, Tag,
+};
 use crate::geom::{PhysicalRect, PhysicalVec};
 
 pub fn process_content_box_request(
@@ -184,7 +186,7 @@ pub fn process_resolved_style_request<'dom>(
                 return None;
             }
 
-            let (content_rect, margins, padding) = match fragment {
+            let (content_rect, margins, padding, detailed_layout_info) = match fragment {
                 Fragment::Box(ref box_fragment) | Fragment::Float(ref box_fragment) => {
                     if style.get_box().position != Position::Static {
                         let resolved_insets = || {
@@ -207,14 +209,35 @@ pub fn process_resolved_style_request<'dom>(
                     let content_rect = box_fragment.content_rect;
                     let margins = box_fragment.margin;
                     let padding = box_fragment.padding;
-                    (content_rect, margins, padding)
+                    let detailed_layout_info = box_fragment.detailed_layout_info.clone();
+                    (content_rect, margins, padding, detailed_layout_info)
                 },
                 Fragment::Positioning(positioning_fragment) => {
                     let content_rect = positioning_fragment.rect;
-                    (content_rect, SideOffsets2D::zero(), SideOffsets2D::zero())
+                    (
+                        content_rect,
+                        SideOffsets2D::zero(),
+                        SideOffsets2D::zero(),
+                        None,
+                    )
                 },
                 _ => return None,
             };
+
+            match detailed_layout_info {
+                Some(DetailedLayoutInfo::Grid(grid)) if display == Display::Grid => {
+                    match longhand_id {
+                        LonghandId::GridTemplateRows => {
+                            return Some(grid.template_rows_as_css_string())
+                        },
+                        LonghandId::GridTemplateColumns => {
+                            return Some(grid.template_columns_as_css_string())
+                        },
+                        _ => {},
+                    }
+                },
+                _ => {},
+            }
 
             // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
             // > If the property applies to the element or pseudo-element and the resolved value of the

@@ -10,16 +10,20 @@ use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
 use style::Zero;
 use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
-use taffy::{AvailableSpace, MaybeMath, RequestedAxis, RunMode};
+use taffy::{
+    AvailableSpace, DetailedLayoutInfo as TaffyNativeLayoutInfo, MaybeMath, RequestedAxis, RunMode,
+};
 
-use super::{TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle};
+use super::{
+    TaffyContainer, TaffyDetailedGridInfo, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle,
+};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
     IndependentLayout,
 };
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, DetailedLayoutInfo, Fragment};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
     SizeConstraint, Sizes,
@@ -64,6 +68,7 @@ struct TaffyContainerContext<'a> {
     positioning_context: &'a mut PositioningContext,
     content_box_size_override: &'a ContainingBlock<'a>,
     style: &'a ComputedValues,
+    detailed_layout_info: TaffyNativeLayoutInfo,
 }
 
 struct ChildIter(std::ops::Range<usize>);
@@ -314,6 +319,14 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
         let child = (*self.source_child_nodes[id]).borrow();
         TaffyStyloStyle(AtomicRef::map(child, |c| &*c.style))
     }
+
+    fn set_detailed_grid_info(
+        &mut self,
+        _node_id: taffy::NodeId,
+        detailed_layout_info: taffy::DetailedGridInfo,
+    ) {
+        self.detailed_layout_info = TaffyNativeLayoutInfo::Grid(Box::new(detailed_layout_info));
+    }
 }
 
 impl ComputeInlineContentSizes for TaffyContainer {
@@ -355,6 +368,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
             content_box_size_override: containing_block,
             style,
             source_child_nodes: &self.children,
+            detailed_layout_info: TaffyNativeLayoutInfo::None,
         };
 
         let (max_content_output, min_content_output) = match style.clone_display().inside() {
@@ -408,6 +422,7 @@ impl TaffyContainer {
             content_box_size_override,
             style: content_box_size_override.style,
             source_child_nodes: &self.children,
+            detailed_layout_info: TaffyNativeLayoutInfo::None,
         };
 
         fn auto_or_to_option<T>(input: GenericLengthPercentageOrAuto<T>) -> Option<T> {
@@ -593,6 +608,14 @@ impl TaffyContainer {
             })
             .collect();
 
+        let mut detailed_layout_info = None;
+        if let TaffyNativeLayoutInfo::Grid(info) = container_ctx.detailed_layout_info {
+            detailed_layout_info =
+                Some(DetailedLayoutInfo::Grid(Box::new(TaffyDetailedGridInfo {
+                    inner: info,
+                })));
+        }
+
         IndependentLayout {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
@@ -604,6 +627,8 @@ impl TaffyContainer {
             // "true" is a safe default as it will prevent Servo from performing optimizations based
             // on the assumption that the node's size does not depend on block constraints.
             depends_on_block_constraints: true,
+
+            detailed_layout_info,
         }
     }
 }

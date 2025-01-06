@@ -20,6 +20,7 @@ use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
+use crate::taffy::TaffyDetailedGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
 pub(crate) enum BackgroundMode {
@@ -37,6 +38,11 @@ pub(crate) enum BackgroundMode {
 pub(crate) struct ExtraBackground {
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum DetailedLayoutInfo {
+    Grid(Box<TaffyDetailedGridInfo>),
 }
 
 #[derive(Serialize)]
@@ -80,6 +86,10 @@ pub(crate) struct BoxFragment {
 
     #[serde(skip_serializing)]
     pub background_mode: BackgroundMode,
+
+    /// Additional information of from layout that could be used by Javascripts and devtools.
+    #[serde(skip_serializing)]
+    pub detailed_layout_info: Option<DetailedLayoutInfo>,
 }
 
 impl BoxFragment {
@@ -114,6 +124,7 @@ impl BoxFragment {
             scrollable_overflow_from_children,
             resolved_sticky_insets: None,
             background_mode: BackgroundMode::Normal,
+            detailed_layout_info: None,
         }
     }
 
@@ -164,6 +175,11 @@ impl BoxFragment {
 
     pub fn set_does_not_paint_background(&mut self) {
         self.background_mode = BackgroundMode::None;
+    }
+
+    pub fn with_detailed_layout_info(mut self, info: Option<DetailedLayoutInfo>) -> Self {
+        self.detailed_layout_info = info;
+        self
     }
 
     pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {

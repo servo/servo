@@ -976,6 +976,7 @@ impl FlexContainer {
             content_inline_size_for_table: None,
             baselines,
             depends_on_block_constraints,
+            detailed_layout_info: None,
         }
     }
 
