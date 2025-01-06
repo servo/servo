@@ -178,7 +178,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         // step 2: Check options.actions must be empty
-        if options.actions.len() > 0 {
+        if !options.actions.is_empty() {
             return Err(Error::Type("Actions must be empty.".to_string()));
         }
 
@@ -224,7 +224,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#maximum-number-of-actions>
     fn MaxActions(_global: &GlobalScope) -> u32 {
         // TODO: determine the maximum number of actions
-        return 2;
+        2
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-title>
     fn Title(&self) -> DOMString {
