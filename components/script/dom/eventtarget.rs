@@ -788,7 +788,7 @@ impl EventTarget {
     }
 
     /// <https://dom.spec.whatwg.org/#get-the-parent>
-    pub fn get_the_parent(&self, event: &Event) -> Option<DomRoot<EventTarget>> {
+    pub(crate) fn get_the_parent(&self, event: &Event) -> Option<DomRoot<EventTarget>> {
         if let Some(document) = self.downcast::<Document>() {
             if event.type_() == atom!("load") || !document.has_browsing_context() {
                 return None;
@@ -816,7 +816,7 @@ impl EventTarget {
     // FIXME: This algorithm operates on "objects", which may not be event targets.
     // All our current use-cases only work on event targets, but this might change in the future
     /// <https://dom.spec.whatwg.org/#retarget>
-    pub fn retarget(&self, b: &Self) -> DomRoot<EventTarget> {
+    pub(crate) fn retarget(&self, b: &Self) -> DomRoot<EventTarget> {
         // To retarget an object A against an object B, repeat these steps until they return an object:
         let mut a = DomRoot::from_ref(self);
         loop {

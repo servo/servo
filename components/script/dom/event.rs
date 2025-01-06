@@ -117,7 +117,7 @@ pub struct EventPathSegment {
 }
 
 impl Event {
-    pub fn new_inherited() -> Event {
+    pub(crate) fn new_inherited() -> Event {
         Event {
             reflector_: Reflector::new(),
             current_target: Default::default(),
@@ -138,11 +138,11 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Event> {
         Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
-    pub fn new_uninitialized_with_proto(
+    pub(crate) fn new_uninitialized_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -150,7 +150,7 @@ impl Event {
         reflect_dom_object_with_proto(Box::new(Event::new_inherited()), global, proto, can_gc)
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,
@@ -175,7 +175,7 @@ impl Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-initevent>
     /// and <https://dom.spec.whatwg.org/#concept-event-initialize>
-    pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
+    pub(crate) fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
         // https://dom.spec.whatwg.org/#dom-event-initevent
         if self.dispatch.get() {
             return;
@@ -206,13 +206,13 @@ impl Event {
         self.cancelable.set(cancelable);
     }
 
-    pub fn set_target(&self, target_: Option<&EventTarget>) {
+    pub(crate) fn set_target(&self, target_: Option<&EventTarget>) {
         self.target.set(target_);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-path-append>
     #[allow(crown::unrooted_must_root)]
-    pub fn append_to_path(
+    pub(crate) fn append_to_path(
         &self,
         invocation_target: &EventTarget,
         shadow_adjusted_target: Option<&EventTarget>,
@@ -258,7 +258,7 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-dispatch>
-    pub fn dispatch(
+    pub(crate) fn dispatch(
         &self,
         target: &EventTarget,
         legacy_target_override: bool,
@@ -580,7 +580,7 @@ impl Event {
         self.status()
     }
 
-    pub fn status(&self) -> EventStatus {
+    pub(crate) fn status(&self) -> EventStatus {
         if self.DefaultPrevented() {
             EventStatus::Canceled
         } else {
@@ -589,36 +589,36 @@ impl Event {
     }
 
     #[inline]
-    pub fn dispatching(&self) -> bool {
+    pub(crate) fn dispatching(&self) -> bool {
         self.dispatch.get()
     }
 
     #[inline]
-    pub fn initialized(&self) -> bool {
+    pub(crate) fn initialized(&self) -> bool {
         self.initialized.get()
     }
 
     #[inline]
-    pub fn type_(&self) -> Atom {
+    pub(crate) fn type_(&self) -> Atom {
         self.type_.borrow().clone()
     }
 
     #[inline]
-    pub fn mark_as_handled(&self) {
+    pub(crate) fn mark_as_handled(&self) {
         self.canceled.set(EventDefault::Handled);
     }
 
     #[inline]
-    pub fn get_cancel_state(&self) -> EventDefault {
+    pub(crate) fn get_cancel_state(&self) -> EventDefault {
         self.canceled.get()
     }
 
-    pub fn set_trusted(&self, trusted: bool) {
+    pub(crate) fn set_trusted(&self, trusted: bool) {
         self.is_trusted.set(trusted);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
-    pub fn fire(&self, target: &EventTarget, can_gc: CanGc) -> EventStatus {
+    pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> EventStatus {
         self.set_trusted(true);
         target.dispatch_event(self, can_gc)
     }
