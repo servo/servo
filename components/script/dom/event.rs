@@ -352,13 +352,13 @@ impl Event {
 
                 // Step 5.9.6 If parent is a Window object, or parent is a node and target’s root is a
                 // shadow-including inclusive ancestor of parent:
-                let root_is_shadow_inclusive_ancestor =
-                    parent.downcast::<Node>().is_some_and(|parent| {
-                        target.downcast::<Node>().is_some_and(|target| {
-                            target
-                                .GetRootNode(&GetRootNodeOptions::empty())
-                                .is_shadow_including_inclusive_ancestor_of(parent)
-                        })
+                let root_is_shadow_inclusive_ancestor = parent
+                    .downcast::<Node>()
+                    .zip(target.downcast::<Node>())
+                    .is_some_and(|(parent, target)| {
+                        target
+                            .GetRootNode(&GetRootNodeOptions::empty())
+                            .is_shadow_including_inclusive_ancestor_of(parent)
                     });
                 if parent.is::<Window>() || root_is_shadow_inclusive_ancestor {
                     // Step 5.9.6.1 If isActivationEvent is true, event’s bubbles attribute is true, activationTarget
