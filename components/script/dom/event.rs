@@ -431,7 +431,7 @@ impl Event {
                 .borrow()
                 .iter()
                 .rev()
-                .find(|segment| segment.shadow_adjusted_target.is_none())
+                .find(|segment| segment.shadow_adjusted_target.is_some())
                 // This is "clearTargetsStruct"
                 .is_some_and(|clear_targets| {
                     clear_targets
