@@ -3602,6 +3602,9 @@ pub struct UnbindContext<'a> {
     ///
     /// <https://dom.spec.whatwg.org/#in-a-document-tree>
     pub tree_is_in_a_document_tree: bool,
+
+    /// Whether the tree's root is a shadow root
+    pub tree_is_in_a_shadow_tree: bool
 }
 
 impl<'a> UnbindContext<'a> {
@@ -3619,6 +3622,7 @@ impl<'a> UnbindContext<'a> {
             next_sibling,
             tree_connected: parent.is_connected(),
             tree_is_in_a_document_tree: parent.is_in_a_document_tree(),
+            tree_is_in_a_shadow_tree: parent.is_in_a_shadow_tree(),
         }
     }
 

@@ -545,7 +545,7 @@ impl Element {
         let bind_context = BindContext {
             tree_connected: self.upcast::<Node>().is_connected(),
             tree_is_in_a_document_tree: self.upcast::<Node>().is_in_a_document_tree(),
-            tree_is_in_a_shadow_tree: self.upcast::<Node>().is_in_a_shadow_tree(),
+            tree_is_in_a_shadow_tree: true,
         };
         shadow_root.bind_to_tree(&bind_context);
 
@@ -3513,7 +3513,7 @@ impl VirtualMethods for Element {
                 });
 
                 let containing_shadow_root = self.containing_shadow_root();
-                if node.is_connected() {
+                if node.is_in_a_document_tree() || node.is_in_a_shadow_tree() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
                         AttributeMutation::Set(old_value) => {
@@ -3653,7 +3653,7 @@ impl VirtualMethods for Element {
             f.unbind_form_control_from_tree();
         }
 
-        if !context.tree_connected {
+        if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
             return;
         }
 
