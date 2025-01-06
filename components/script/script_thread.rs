@@ -47,7 +47,7 @@ use devtools_traits::{
 };
 use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
-use fonts::SystemFontServiceProxy;
+use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
 use hyper_serde::Serde;
@@ -3141,6 +3141,12 @@ impl ScriptThread {
             incomplete.navigation_start,
         );
 
+        let font_context = Arc::new(FontContext::new(
+            self.system_font_service.clone(),
+            self.compositor_api.clone(),
+            self.resource_threads.clone(),
+        ));
+
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
             url: final_url.clone(),
@@ -3148,8 +3154,7 @@ impl ScriptThread {
             constellation_chan: self.senders.layout_to_constellation_ipc_sender.clone(),
             script_chan: self.senders.constellation_sender.clone(),
             image_cache: self.image_cache.clone(),
-            system_font_service: self.system_font_service.clone(),
-            resource_threads: self.resource_threads.clone(),
+            font_context: font_context.clone(),
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
             paint_time_metrics,
@@ -3161,6 +3166,7 @@ impl ScriptThread {
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
             self.layout_factory.create(layout_config),
+            font_context,
             self.senders.image_cache_sender.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),

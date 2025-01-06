@@ -28,6 +28,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
@@ -207,6 +208,11 @@ pub struct Window {
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
+    /// A [`FontContext`] which is used to store and match against fonts for this `Window` and to
+    /// trigger the download of web fonts.
+    #[no_trace]
+    #[conditional_malloc_size_of]
+    font_context: Arc<FontContext>,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -1943,9 +1949,8 @@ impl Window {
     /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
     /// only exceptions are script queries and scroll requests.
     pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
-        // Fetch the pending web fonts before layout, in case a font loads during
-        // the layout.
-        let pending_web_fonts = self.layout.borrow().waiting_for_web_fonts_to_load();
+        // Count the pending web fonts before layout, in case a font loads during the layout.
+        let waiting_for_web_fonts_to_load = self.font_context.web_fonts_still_loading() != 0;
 
         self.Document().ensure_safe_to_run_script_or_layout();
 
@@ -1989,7 +1994,7 @@ impl Window {
         // Thus, we are queueing promise resolution here. This reflow should have been triggered by
         // a "rendering opportunity" in `ScriptThread::handle_web_font_loaded, which should also
         // make sure a microtask checkpoint happens, triggering the promise callback.
-        if !pending_web_fonts && is_ready_state_complete {
+        if !waiting_for_web_fonts_to_load && is_ready_state_complete {
             font_face_set.fulfill_ready_promise_if_needed();
         }
 
@@ -2018,7 +2023,7 @@ impl Window {
                 is_ready_state_complete &&
                 !reftest_wait &&
                 !pending_images &&
-                !pending_web_fonts
+                !waiting_for_web_fonts_to_load
             {
                 debug!(
                     "{:?}: Sending DocumentState::Idle to Constellation",
@@ -2676,6 +2681,7 @@ impl Window {
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
         layout: Box<dyn Layout>,
+        font_context: Arc<FontContext>,
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
@@ -2739,6 +2745,7 @@ impl Window {
             ),
             script_chan,
             layout: RefCell::new(layout),
+            font_context,
             image_cache_chan,
             image_cache,
             navigator: Default::default(),

@@ -23,7 +23,6 @@ use euclid::{Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fonts::{
     get_and_reset_text_shaping_performance_counter, FontContext, FontContextWebFontMethods,
-    SystemFontServiceProxy,
 };
 use fonts_traits::WebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
@@ -51,7 +50,6 @@ use log::{debug, error, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
-use net_traits::ResourceThreads;
 use parking_lot::RwLock;
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::{
@@ -203,8 +201,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.is_iframe,
             config.script_chan,
             config.image_cache,
-            config.resource_threads,
-            config.system_font_service,
+            config.font_context,
             config.time_profiler_chan,
             config.compositor_api,
             config.paint_time_metrics,
@@ -226,10 +223,6 @@ impl Drop for LayoutThread {
 impl Layout for LayoutThread {
     fn device(&self) -> &Device {
         self.stylist.device()
-    }
-
-    fn waiting_for_web_fonts_to_load(&self) -> bool {
-        self.font_context.web_fonts_still_loading() != 0
     }
 
     fn current_epoch(&self) -> Epoch {
@@ -517,8 +510,7 @@ impl LayoutThread {
         is_iframe: bool,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
-        resource_threads: ResourceThreads,
-        system_font_service: Arc<SystemFontServiceProxy>,
+        font_context: Arc<FontContext>,
         time_profiler_chan: profile_time::ProfilerChan,
         compositor_api: CrossProcessCompositorApi,
         paint_time_metrics: PaintTimeMetrics,
@@ -535,11 +527,6 @@ impl LayoutThread {
             keyword_info: KeywordInfo::medium(),
         };
 
-        let font_context = Arc::new(FontContext::new(
-            system_font_service,
-            compositor_api.clone(),
-            resource_threads,
-        ));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
