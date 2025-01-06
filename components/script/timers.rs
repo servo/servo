@@ -34,7 +34,7 @@ use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct OneshotTimerHandle(i32);
@@ -285,7 +285,11 @@ impl OneshotTimers {
 
         let callback = TimerListener {
             context: Trusted::new(&*self.global_scope),
-            task_source: self.global_scope.task_manager().timer_task_source(),
+            task_source: self
+                .global_scope
+                .task_manager()
+                .timer_task_source()
+                .to_sendable(),
         }
         .into_callback();
 
@@ -584,7 +588,7 @@ impl JsTimerTask {
 /// A wrapper between timer events coming in over IPC, and the event-loop.
 #[derive(Clone)]
 struct TimerListener {
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
     context: Trusted<GlobalScope>,
 }
 
@@ -595,7 +599,7 @@ impl TimerListener {
         let context = self.context.clone();
         // Step 18, queue a task,
         // https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-        let _ = self.task_source.queue(task!(timer_event: move || {
+        self.task_source.queue(task!(timer_event: move || {
                 let global = context.root();
                 let TimerEvent(source, id) = event;
                 match source {

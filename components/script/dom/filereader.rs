@@ -502,27 +502,22 @@ impl FileReader {
 
         let filereader = Trusted::new(self);
         let global = self.global();
-        let task_source = global.task_manager().file_reading_task_source();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.file_reading_task_source();
 
         // Queue tasks as appropriate.
-        task_source
-            .queue(FileReadingTask::ProcessRead(filereader.clone(), gen_id))
-            .unwrap();
+        task_source.queue(FileReadingTask::ProcessRead(filereader.clone(), gen_id));
 
         if !blob_contents.is_empty() {
-            task_source
-                .queue(FileReadingTask::ProcessReadData(filereader.clone(), gen_id))
-                .unwrap();
+            task_source.queue(FileReadingTask::ProcessReadData(filereader.clone(), gen_id));
         }
 
-        task_source
-            .queue(FileReadingTask::ProcessReadEOF(
-                filereader,
-                gen_id,
-                load_data,
-                blob_contents,
-            ))
-            .unwrap();
+        task_source.queue(FileReadingTask::ProcessReadEOF(
+            filereader,
+            gen_id,
+            load_data,
+            blob_contents,
+        ));
 
         Ok(())
     }

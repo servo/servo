@@ -891,8 +891,7 @@ impl HTMLImageElement {
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
                 self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
                 // Step 9.
-                // FIXME(nox): Why are errors silenced here?
-                let _ = task_source.queue(task!(image_null_source_error: move || {
+                task_source.queue(task!(image_null_source_error: move || {
                     let this = this.root();
                     {
                         let mut current_request =
@@ -924,8 +923,7 @@ impl HTMLImageElement {
                 self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
                 // Step 12.1-12.5.
                 let src = src.0;
-                // FIXME(nox): Why are errors silenced here?
-                let _ = task_source.queue(task!(image_selected_source_error: move || {
+                task_source.queue(task!(image_selected_source_error: move || {
                     let this = this.root();
                     {
                         let mut current_request =
@@ -1016,7 +1014,7 @@ impl HTMLImageElement {
                     let this = Trusted::new(self);
                     let src = src.0;
 
-                    let _ = window.task_manager().dom_manipulation_task_source().queue(
+                    window.task_manager().dom_manipulation_task_source().queue(
                         task!(image_load_event: move || {
                             let this = this.root();
                             {
@@ -1063,7 +1061,11 @@ impl HTMLImageElement {
         ) -> IpcSender<PendingImageResponse> {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
-            let task_source = elem.owner_window().task_manager().networking_task_source();
+            let task_source = elem
+                .owner_window()
+                .task_manager()
+                .networking_task_source()
+                .to_sendable();
             let generation = elem.generation.get();
 
             ROUTER.add_typed_route(
@@ -1075,7 +1077,7 @@ impl HTMLImageElement {
                     let element = trusted_node.clone();
                     let image: PendingImageResponse = message.unwrap();
                     let selected_source_clone = selected_source.clone();
-                    let _ = task_source.queue(
+                    task_source.queue(
                         task!(process_image_response_for_environment_change: move || {
                             let element = element.root();
                             // Ignore any image response for a previous request that has been discarded.
@@ -1240,7 +1242,7 @@ impl HTMLImageElement {
         let this = Trusted::new(self);
         let window = self.owner_window();
         let src = src.0;
-        let _ = window.task_manager().dom_manipulation_task_source().queue(
+        window.task_manager().dom_manipulation_task_source().queue(
             task!(image_load_event: move || {
                 let this = this.root();
                 let relevant_mutation = this.generation.get() != generation;

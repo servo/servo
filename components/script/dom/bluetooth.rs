@@ -244,7 +244,11 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
     receiver: &T,
 ) -> IpcSender<BluetoothResponseResult> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let task_source = receiver.global().task_manager().networking_task_source();
+    let task_source = receiver
+        .global()
+        .task_manager()
+        .networking_task_source()
+        .to_sendable();
     let context = Arc::new(Mutex::new(BluetoothContext {
         promise: Some(TrustedPromise::new(promise.clone())),
         receiver: Trusted::new(receiver),
@@ -272,10 +276,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
                 action: message.unwrap(),
             };
 
-            let result = task_source.queue_unconditionally(task);
-            if let Err(err) = result {
-                warn!("failed to deliver network data: {:?}", err);
-            }
+            task_source.queue_unconditionally(task);
         }),
     );
     action_sender

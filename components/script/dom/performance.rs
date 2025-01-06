@@ -238,16 +238,14 @@ impl Performance {
 
             if !self.pending_notification_observers_task.get() {
                 self.pending_notification_observers_task.set(true);
-                let task_source = self
-                    .global()
-                    .task_manager()
-                    .performance_timeline_task_source();
                 let global = &self.global();
                 let owner = Trusted::new(&*global.performance());
-                let task = task!(notify_performance_observers: move || {
-                    owner.root().notify_observers();
-                });
-                let _ = task_source.queue(task);
+                self.global()
+                    .task_manager()
+                    .performance_timeline_task_source()
+                    .queue(task!(notify_performance_observers: move || {
+                        owner.root().notify_observers();
+                    }));
             }
         }
         let mut observers = self.observers.borrow_mut();
@@ -324,17 +322,15 @@ impl Performance {
         // Step 6.
         // Queue a new notification task.
         self.pending_notification_observers_task.set(true);
-        let task_source = self
-            .global()
-            .task_manager()
-            .performance_timeline_task_source();
 
         let global = &self.global();
         let owner = Trusted::new(&*global.performance());
-        let task = task!(notify_performance_observers: move || {
-            owner.root().notify_observers();
-        });
-        let _ = task_source.queue(task);
+        self.global()
+            .task_manager()
+            .performance_timeline_task_source()
+            .queue(task!(notify_performance_observers: move || {
+                owner.root().notify_observers();
+            }));
 
         Some(entry_last_index)
     }

@@ -229,14 +229,13 @@ impl BaseAudioContext {
     }
 
     pub fn resume(&self) {
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
         match self.audio_context_impl.lock().unwrap().resume() {
             Ok(()) => {
                 self.take_pending_resume_promises(Ok(()));
-                let _ = task_source.queue(
+                self.global().task_manager().dom_manipulation_task_source().queue(
                     task!(resume_success: move || {
                         let this = this.root();
                         this.fulfill_in_flight_resume_promises(|| {
@@ -255,9 +254,12 @@ impl BaseAudioContext {
                 self.take_pending_resume_promises(Err(Error::Type(
                     "Something went wrong".to_owned(),
                 )));
-                let _ = task_source.queue(task!(resume_error: move || {
-                    this.root().fulfill_in_flight_resume_promises(|| {})
-                }));
+                self.global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(resume_error: move || {
+                        this.root().fulfill_in_flight_resume_promises(|| {})
+                    }));
             },
         }
     }
@@ -501,7 +503,11 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             let channels = Arc::new(Mutex::new(HashMap::new()));
             let this = Trusted::new(self);
             let this_ = this.clone();
-            let task_source = self.global().task_manager().dom_manipulation_task_source();
+            let task_source = self
+                .global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .to_sendable();
             let task_source_clone = task_source.clone();
             let callbacks = AudioDecoderCallbacks::new()
                 .ready(move |channel_count| {
@@ -523,7 +529,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     decoded_audio[channel].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
-                    let _ = task_source.queue(task!(audio_decode_eos: move || {
+                    task_source.queue(task!(audio_decode_eos: move || {
                         let this = this.root();
                         let decoded_audio = decoded_audio__.lock().unwrap();
                         let length = if decoded_audio.len() >= 1 {
@@ -548,7 +554,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     }));
                 })
                 .error(move |error| {
-                    let _ = task_source_clone.queue(task!(audio_decode_eos: move || {
+                    task_source_clone.queue(task!(audio_decode_eos: move || {
                         let this = this_.root();
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid));

@@ -76,8 +76,7 @@ impl WebGLSync {
                 self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task)
-                    .unwrap();
+                    .queue(task);
             },
             _ => {},
         }
@@ -111,8 +110,7 @@ impl WebGLSync {
                 self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task)
-                    .unwrap();
+                    .queue(task);
             },
             _ => {},
         }

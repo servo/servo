@@ -1040,7 +1040,6 @@ impl HTMLFormElement {
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task)
-            .unwrap();
     }
 
     /// Interactively validate the constraints of form elements

@@ -62,31 +62,32 @@ impl TextTrackList {
         if self.find(track).is_none() {
             self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
 
-            let this = Trusted::new(self);
-            let task_source = self.global().task_manager().media_element_task_source();
-
             let Some(idx) = self.find(track) else {
                 return;
             };
 
-            let _ = task_source.queue(task!(track_event_queue: move || {
-                let this = this.root();
+            let this = Trusted::new(self);
+            self.global()
+                .task_manager()
+                .media_element_task_source()
+                .queue(task!(track_event_queue: move || {
+                    let this = this.root();
 
-                if let Some(track) = this.item(idx) {
-                    let event = TrackEvent::new(
-                        &this.global(),
-                        atom!("addtrack"),
-                        false,
-                        false,
-                        &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
-                            DomRoot::from_ref(&track)
-                        )),
-                        CanGc::note()
-                    );
+                    if let Some(track) = this.item(idx) {
+                        let event = TrackEvent::new(
+                            &this.global(),
+                            atom!("addtrack"),
+                            false,
+                            false,
+                            &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
+                                DomRoot::from_ref(&track)
+                            )),
+                            CanGc::note()
+                        );
 
-                    event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
-                }
-            }));
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
+                    }
+                }));
             track.add_track_list(self);
         }
     }

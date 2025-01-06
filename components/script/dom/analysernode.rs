@@ -110,14 +110,17 @@ impl AnalyserNode {
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
         let object = reflect_dom_object_with_proto(Box::new(node), window, proto, can_gc);
-        let task_source = window.task_manager().dom_manipulation_task_source();
+        let task_source = window
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         let this = Trusted::new(&*object);
 
         ROUTER.add_typed_route(
             recv,
             Box::new(move |block| {
                 let this = this.clone();
-                let _ = task_source.queue(task!(append_analysis_block: move || {
+                task_source.queue(task!(append_analysis_block: move || {
                     let this = this.root();
                     this.push_block(block.unwrap())
                 }));

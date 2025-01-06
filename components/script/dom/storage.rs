@@ -208,10 +208,8 @@ impl Storage {
     ) {
         let global = self.global();
         let this = Trusted::new(self);
-        global
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue(task!(send_storage_notification: move || {
+        global.task_manager().dom_manipulation_task_source().queue(
+            task!(send_storage_notification: move || {
                 let this = this.root();
                 let global = this.global();
                 let event = StorageEvent::new(
@@ -227,7 +225,7 @@ impl Storage {
                     CanGc::note()
                 );
                 event.upcast::<Event>().fire(global.upcast(), CanGc::note());
-            }))
-            .unwrap();
+            }),
+        );
     }
 }

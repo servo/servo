@@ -174,8 +174,7 @@ impl WebGLQuery {
             self.global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task)
-                .unwrap();
+                .queue(task);
         }
 
         match pname {

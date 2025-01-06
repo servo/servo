@@ -40,7 +40,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -70,27 +70,25 @@ mod close_code {
 
 fn close_the_websocket_connection(
     address: Trusted<WebSocket>,
-    task_source: &TaskSource,
+    task_source: &SendableTaskSource,
     code: Option<u16>,
     reason: String,
 ) {
-    let close_task = CloseTask {
+    task_source.queue(CloseTask {
         address,
         failed: false,
         code,
         reason: Some(reason),
-    };
-    let _ = task_source.queue(close_task);
+    });
 }
 
-fn fail_the_websocket_connection(address: Trusted<WebSocket>, task_source: &TaskSource) {
-    let close_task = CloseTask {
+fn fail_the_websocket_connection(address: Trusted<WebSocket>, task_source: &SendableTaskSource) {
+    task_source.queue(CloseTask {
         address,
         failed: true,
         code: Some(close_code::ABNORMAL),
         reason: None,
-    };
-    let _ = task_source.queue(close_task);
+    });
 }
 
 #[dom_struct]
@@ -162,8 +160,7 @@ impl WebSocket {
             self.clearing_buffer.set(true);
 
             // TODO(mrobinson): Should this task be cancellable?
-            let _ = self
-                .global()
+            self.global()
                 .task_manager()
                 .websocket_task_source()
                 .queue_unconditionally(BufferedAmountTask { address });
@@ -270,7 +267,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(request, channels));
 
-        let task_source = global.task_manager().websocket_task_source();
+        let task_source = global.task_manager().websocket_task_source().to_sendable();
         ROUTER.add_typed_route(
             dom_event_receiver.to_ipc_receiver(),
             Box::new(move |message| match message.unwrap() {
@@ -279,14 +276,14 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                         address: address.clone(),
                         protocol_in_use,
                     };
-                    let _ = task_source.queue(open_thread);
+                    task_source.queue(open_thread);
                 },
                 WebSocketNetworkEvent::MessageReceived(message) => {
                     let message_thread = MessageReceivedTask {
                         address: address.clone(),
                         message,
                     };
-                    let _ = task_source.queue(message_thread);
+                    task_source.queue(message_thread);
                 },
                 WebSocketNetworkEvent::Fail => {
                     fail_the_websocket_connection(address.clone(), &task_source);
@@ -426,9 +423,14 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 will abort connecting the websocket*/
                 self.ready_state.set(WebSocketRequestState::Closing);
 
-                let address = Trusted::new(self);
-                let task_source = self.global().task_manager().websocket_task_source();
-                fail_the_websocket_connection(address, &task_source);
+                fail_the_websocket_connection(
+                    Trusted::new(self),
+                    &self
+                        .global()
+                        .task_manager()
+                        .websocket_task_source()
+                        .to_sendable(),
+                );
             },
             WebSocketRequestState::Open => {
                 self.ready_state.set(WebSocketRequestState::Closing);

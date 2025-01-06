@@ -548,8 +548,7 @@ impl HTMLMediaElement {
             // Step 2.3.
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
-            let _ = self
-                .owner_window()
+            self.owner_window()
                 .task_manager()
                 .media_element_task_source()
                 .queue(task!(internal_pause_steps: move || {
@@ -595,9 +594,7 @@ impl HTMLMediaElement {
         // Step 2.
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = self
-            .owner_window()
+        self.owner_window()
             .task_manager()
             .media_element_task_source()
             .queue(task!(notify_about_playing: move || {
@@ -632,10 +629,9 @@ impl HTMLMediaElement {
             return;
         }
 
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
+        let owner_window = self.owner_window();
+        let task_manager = owner_window.task_manager();
+        let task_source = task_manager.media_element_task_source();
 
         // Step 1.
         match (old_ready_state, ready_state) {
@@ -648,8 +644,7 @@ impl HTMLMediaElement {
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
                     let this = Trusted::new(self);
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = task_source.queue(task!(media_reached_current_data: move || {
+                    task_source.queue(task!(media_reached_current_data: move || {
                         let this = this.root();
                         this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
                         this.delay_load_event(false, CanGc::note());
@@ -942,13 +937,11 @@ impl HTMLMediaElement {
 
                     // Step 4.remote.1.3.
                     let this = Trusted::new(self);
-                    window
-                        .task_manager()
-                        .media_element_task_source()
-                        .queue(task!(set_media_delay_load_event_flag_to_false: move || {
+                    window.task_manager().media_element_task_source().queue(
+                        task!(set_media_delay_load_event_flag_to_false: move || {
                             this.root().delay_load_event(false, CanGc::note());
-                        }))
-                        .unwrap();
+                        }),
+                    );
 
                     // Steps 4.remote.1.4.
                     // FIXME(nox): Somehow we should wait for the task from previous
@@ -1004,9 +997,7 @@ impl HTMLMediaElement {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
         self.take_pending_play_promises(Err(Error::NotSupported));
-        // FIXME(nox): Why are errors silenced here?
-        let _ = self
-            .owner_window()
+        self.owner_window()
             .task_manager()
             .media_element_task_source()
             .queue(task!(dedicated_media_source_failure_steps: move || {
@@ -1105,10 +1096,9 @@ impl HTMLMediaElement {
             self.fulfill_in_flight_play_promises(|| ());
         }
 
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
+        let window = self.owner_window();
+        let task_manager = window.task_manager();
+        let task_source = task_manager.media_element_task_source();
 
         // Step 5.
         let network_state = self.network_state.get();
@@ -1314,14 +1304,16 @@ impl HTMLMediaElement {
         self.time_marches_on();
 
         // Step 16.
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
-        task_source.queue_simple_event(self.upcast(), atom!("timeupdate"));
+        let window = self.owner_window();
+        let task_manager = window.task_manager();
+        task_manager
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("timeupdate"));
 
         // Step 17.
-        task_source.queue_simple_event(self.upcast(), atom!("seeked"));
+        task_manager
+            .media_element_task_source()
+            .queue_simple_event(self.upcast(), atom!("seeked"));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
@@ -1386,18 +1378,19 @@ impl HTMLMediaElement {
         *self.player.borrow_mut() = Some(player);
 
         let trusted_node = Trusted::new(self);
-        let task_source = window.task_manager().media_element_task_source();
+        let task_source = window
+            .task_manager()
+            .media_element_task_source()
+            .to_sendable();
         ROUTER.add_typed_route(
             action_receiver,
             Box::new(move |message| {
                 let event = message.unwrap();
                 trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
-                if let Err(err) = task_source.queue(task!(handle_player_event: move || {
+                task_source.queue(task!(handle_player_event: move || {
                     this.root().handle_player_event(&event, CanGc::note());
-                })) {
-                    warn!("Could not queue player event handler task {:?}", err);
-                }
+                }));
             }),
         );
 
@@ -1424,13 +1417,16 @@ impl HTMLMediaElement {
 
         if let Some(image_receiver) = image_receiver {
             let trusted_node = Trusted::new(self);
-            let task_source = window.task_manager().media_element_task_source();
+            let task_source = window
+                .task_manager()
+                .media_element_task_source()
+                .to_sendable();
             ROUTER.add_typed_route(
                 image_receiver.to_ipc_receiver(),
                 Box::new(move |message| {
                     let msg = message.unwrap();
                     let this = trusted_node.clone();
-                    if let Err(err) = task_source.queue(task!(handle_glplayer_message: move || {
+                    task_source.queue(task!(handle_glplayer_message: move || {
                         trace!("GLPlayer message {:?}", msg);
                         let video_renderer = this.root().video_renderer.clone();
 
@@ -1454,9 +1450,7 @@ impl HTMLMediaElement {
                             },
                             _ => (),
                         }
-                    })) {
-                        warn!("Could not queue GL player message handler task {:?}", err);
-                    }
+                    }));
                 }),
             );
         }
@@ -1506,7 +1500,7 @@ impl HTMLMediaElement {
                                 // Step 3.
                                 let this = Trusted::new(self);
 
-                                let _ = self.owner_window().task_manager().media_element_task_source().queue(
+                                self.owner_window().task_manager().media_element_task_source().queue(
                                     task!(reaches_the_end_steps: move || {
                                         let this = this.root();
                                         // Step 3.1.
@@ -2216,10 +2210,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         let state = self.ready_state.get();
 
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
+        let owner_window = self.owner_window();
+        let task_manager = owner_window.task_manager();
+        let task_source = task_manager.media_element_task_source();
         if self.Paused() {
             // Step 6.1.
             self.paused.set(false);
@@ -2249,18 +2242,16 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             self.take_pending_play_promises(Ok(()));
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
-            task_source
-                .queue(task!(resolve_pending_play_promises: move || {
-                    let this = this.root();
-                    if generation_id != this.generation_id.get() {
-                        return;
-                    }
+            task_source.queue(task!(resolve_pending_play_promises: move || {
+                let this = this.root();
+                if generation_id != this.generation_id.get() {
+                    return;
+                }
 
-                    this.fulfill_in_flight_play_promises(|| {
-                        this.play_media();
-                    });
-                }))
-                .unwrap();
+                this.fulfill_in_flight_play_promises(|| {
+                    this.play_media();
+                });
+            }));
         }
 
         // Step 8.

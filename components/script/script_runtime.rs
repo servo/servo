@@ -85,7 +85,7 @@ use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskBox;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
@@ -400,7 +400,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 
                     event.upcast::<Event>().fire(&target, CanGc::note());
                 })
-            ).unwrap();
+            );
             },
         };
     })
@@ -454,8 +454,7 @@ unsafe extern "C" fn content_security_policy_allows(
                 global
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task)
-                    .unwrap();
+                    .queue(task);
             }
         }
     });
@@ -529,7 +528,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                         }
                     }
                 })
-            ).unwrap();
+            );
         }
     }
 }
@@ -539,11 +538,11 @@ pub struct Runtime {
     rt: RustRuntime,
     pub microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
-    networking_task_src: Option<Box<TaskSource>>,
+    networking_task_src: Option<Box<SendableTaskSource>>,
 }
 
 impl Runtime {
-    /// Create a new runtime, optionally with the given [`TaskSource`] for networking.
+    /// Create a new runtime, optionally with the given [`SendableTaskSource`] for networking.
     ///
     /// # Safety
     ///
@@ -553,11 +552,11 @@ impl Runtime {
     ///
     /// This, like many calls to SpiderMoney API, is unsafe.
     #[allow(unsafe_code)]
-    pub(crate) fn new(networking_task_source: Option<TaskSource>) -> Runtime {
+    pub(crate) fn new(networking_task_source: Option<SendableTaskSource>) -> Runtime {
         unsafe { Self::new_with_parent(None, networking_task_source) }
     }
 
-    /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`TaskSource`]
+    /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`SendableTaskSource`]
     /// for networking.
     ///
     /// # Safety
@@ -572,7 +571,7 @@ impl Runtime {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn new_with_parent(
         parent: Option<ParentRuntime>,
-        networking_task_source: Option<TaskSource>,
+        networking_task_source: Option<SendableTaskSource>,
     ) -> Runtime {
         LiveDOMReferences::initialize();
         let (cx, runtime) = if let Some(parent) = parent {
@@ -620,7 +619,7 @@ impl Runtime {
             closure: *mut c_void,
             dispatchable: *mut JSRunnable,
         ) -> bool {
-            let networking_task_src: &TaskSource = &*(closure as *mut TaskSource);
+            let networking_task_src: &SendableTaskSource = &*(closure as *mut SendableTaskSource);
             let runnable = Runnable(dispatchable);
             let task = task!(dispatch_to_event_loop_message: move || {
                 if let Some(cx) = RustRuntime::get() {
@@ -628,7 +627,8 @@ impl Runtime {
                 }
             });
 
-            networking_task_src.queue_unconditionally(task).is_ok()
+            networking_task_src.queue_unconditionally(task);
+            true
         }
 
         let mut networking_task_src_ptr = std::ptr::null_mut();

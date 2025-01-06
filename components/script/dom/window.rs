@@ -816,8 +816,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task)
-                    .expect("Queuing window_close_browsing_context task to work");
+                    .queue(task);
             }
         }
     }
@@ -2335,8 +2334,7 @@ impl Window {
                         CanGc::note());
                     event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
                 });
-                let _ = self
-                    .task_manager()
+                self.task_manager()
                     .dom_manipulation_task_source()
                     .queue(task);
                 doc.set_url(load_data.url.clone());
@@ -2946,8 +2944,7 @@ impl Window {
             }
         });
         // TODO(#12718): Use the "posted message task source".
-        let _ = self
-            .task_manager()
+        self.task_manager()
             .dom_manipulation_task_source()
             .queue(task);
     }

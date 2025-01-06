@@ -138,7 +138,7 @@ use crate::script_runtime::{
 use crate::script_thread::{with_script_thread, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task_manager::TaskManager;
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
 };
@@ -376,13 +376,13 @@ pub struct GlobalScope {
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
 struct MessageListener {
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
     context: Trusted<GlobalScope>,
 }
 
 /// A wrapper for broadcasts coming in over IPC, and the event-loop.
 struct BroadcastListener {
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
     context: Trusted<GlobalScope>,
 }
 
@@ -394,7 +394,7 @@ struct FileListener {
     /// - Some(Empty) => Some(Receiving) => None
     /// - Some(Empty) => None
     state: Option<FileListenerState>,
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
 }
 
 enum FileListenerTarget {
@@ -507,8 +507,7 @@ impl BroadcastListener {
         // This however seems to be hard to avoid in the light of the IPC.
         // One can imagine queueing tasks directly,
         // for channels that would be in the same script-thread.
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(broadcast_message_event: move || {
                 let global = context.root();
                 // Step 10 of https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage,
@@ -526,7 +525,7 @@ impl MessageListener {
         match msg {
             MessagePortMsg::CompleteTransfer(ports) => {
                 let context = self.context.clone();
-                let _ = self.task_source.queue(
+                self.task_source.queue(
                     task!(process_complete_transfer: move || {
                         let global = context.root();
 
@@ -561,22 +560,21 @@ impl MessageListener {
             },
             MessagePortMsg::CompletePendingTransfer(port_id, buffer) => {
                 let context = self.context.clone();
-                let _ = self.task_source.queue(task!(complete_pending: move || {
+                self.task_source.queue(task!(complete_pending: move || {
                     let global = context.root();
                     global.complete_port_transfer(port_id, buffer);
                 }));
             },
             MessagePortMsg::NewTask(port_id, task) => {
                 let context = self.context.clone();
-                let _ = self.task_source.queue(task!(process_new_task: move || {
+                self.task_source.queue(task!(process_new_task: move || {
                     let global = context.root();
                     global.route_task_to_port(port_id, task, CanGc::note());
                 }));
             },
             MessagePortMsg::RemoveMessagePort(port_id) => {
                 let context = self.context.clone();
-                let _ = self
-                    .task_source
+                self.task_source
                     .queue(task!(process_remove_message_port: move || {
                         let global = context.root();
                         global.note_entangled_port_removed(&port_id);
@@ -615,7 +613,7 @@ impl FileListener {
                             let stream = trusted.root();
                             stream_handle_incoming(&stream, Ok(blob_buf.bytes));
                         });
-                        let _ = self.task_source.queue(task);
+                        self.task_source.queue(task);
 
                         Vec::with_capacity(0)
                     } else {
@@ -638,7 +636,7 @@ impl FileListener {
                             stream_handle_incoming(&stream, Ok(bytes_in));
                         });
 
-                        let _ = self.task_source.queue(task);
+                        self.task_source.queue(task);
                     } else {
                         bytes.append(&mut bytes_in);
                     };
@@ -658,7 +656,7 @@ impl FileListener {
                             callback(promise, Ok(bytes));
                         });
 
-                        let _ = self.task_source.queue(task);
+                        self.task_source.queue(task);
                     },
                     FileListenerTarget::Stream(trusted_stream) => {
                         let trusted = trusted_stream.clone();
@@ -668,7 +666,7 @@ impl FileListener {
                             stream_handle_eof(&stream);
                         });
 
-                        let _ = self.task_source.queue(task);
+                        self.task_source.queue(task);
                     },
                 },
                 _ => {
@@ -682,14 +680,14 @@ impl FileListener {
 
                     match target {
                         FileListenerTarget::Promise(trusted_promise, callback) => {
-                            let _ = self.task_source.queue(task!(reject_promise: move || {
+                            self.task_source.queue(task!(reject_promise: move || {
                                 let promise = trusted_promise.root();
                                 let _ac = enter_realm(&*promise.global());
                                 callback(promise, error);
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
-                            let _ = self.task_source.queue(task!(error_stream: move || {
+                            self.task_source.queue(task!(error_stream: move || {
                                 let stream = trusted_stream.root();
                                 stream_handle_incoming(&stream, error);
                             }));
@@ -1018,7 +1016,7 @@ impl GlobalScope {
                 for task in message_buffer {
                     let port_id = *port_id;
                     let this = Trusted::new(self);
-                    let _ = self.task_manager().port_message_queue().queue(
+                    self.task_manager().port_message_queue().queue(
                         task!(process_pending_port_messages: move || {
                             let target_global = this.root();
                             target_global.route_task_to_port(port_id, task, CanGc::note());
@@ -1071,15 +1069,14 @@ impl GlobalScope {
             if let Some(entangled_id) = entangled_port {
                 // Step 7
                 let this = Trusted::new(self);
-                let _ =
-                    self.task_manager()
-                        .port_message_queue()
-                        .queue(task!(post_message: move || {
-                            let global = this.root();
-                            // Note: we do this in a task, as this will ensure the global and constellation
-                            // are aware of any transfer that might still take place in the current task.
-                            global.route_task_to_port(entangled_id, task, CanGc::note());
-                        }));
+                self.task_manager()
+                    .port_message_queue()
+                    .queue(task!(post_message: move || {
+                        let global = this.root();
+                        // Note: we do this in a task, as this will ensure the global and constellation
+                        // are aware of any transfer that might still take place in the current task.
+                        global.route_task_to_port(entangled_id, task, CanGc::note());
+                    }));
             }
         } else {
             warn!("post_messageport_msg called on a global not managing any ports.");
@@ -1168,7 +1165,7 @@ impl GlobalScope {
                         // to fire the message event
                         let channel = Trusted::new(&*channel);
                         let global = Trusted::new(self);
-                        let _ = self.task_manager().dom_manipulation_task_source().queue(
+                        self.task_manager().dom_manipulation_task_source().queue(
                             task!(process_pending_port_messages: move || {
                                 let destination = channel.root();
                                 let global = global.root();
@@ -1361,7 +1358,7 @@ impl GlobalScope {
                 ipc::channel().expect("ipc channel failure");
             let context = Trusted::new(self);
             let listener = BroadcastListener {
-                task_source: self.task_manager().dom_manipulation_task_source(),
+                task_source: self.task_manager().dom_manipulation_task_source().into(),
                 context,
             };
             ROUTER.add_typed_route(
@@ -1409,7 +1406,7 @@ impl GlobalScope {
                 ipc::channel().expect("ipc channel failure");
             let context = Trusted::new(self);
             let listener = MessageListener {
-                task_source: self.task_manager().port_message_queue(),
+                task_source: self.task_manager().port_message_queue().into(),
                 context,
             };
             ROUTER.add_typed_route(
@@ -1447,7 +1444,7 @@ impl GlobalScope {
                 // Queue a task to complete the transfer,
                 // unless the port is re-transferred in the current task.
                 let this = Trusted::new(self);
-                let _ = self.task_manager().port_message_queue().queue(
+                self.task_manager().port_message_queue().queue(
                     task!(process_pending_port_messages: move || {
                         let target_global = this.root();
                         target_global.maybe_add_pending_ports();
@@ -1935,7 +1932,7 @@ impl GlobalScope {
             state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
                 trusted_stream,
             ))),
-            task_source: self.task_manager().file_reading_task_source(),
+            task_source: self.task_manager().file_reading_task_source().into(),
         };
 
         ROUTER.add_typed_route(
@@ -1957,7 +1954,7 @@ impl GlobalScope {
                 trusted_promise,
                 callback,
             ))),
-            task_source: self.task_manager().file_reading_task_source(),
+            task_source: self.task_manager().file_reading_task_source().into(),
         };
 
         ROUTER.add_typed_route(
@@ -2691,8 +2688,7 @@ impl GlobalScope {
                 );
                 self.task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task)
-                    .unwrap();
+                    .queue(task);
             }
         }
 
@@ -3081,8 +3077,7 @@ impl GlobalScope {
                     );
                     navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
                 }
-            }))
-            .expect("Failed to queue gamepad connected task.");
+            }));
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
@@ -3101,8 +3096,7 @@ impl GlobalScope {
                         }
                     }
                 }
-            }))
-            .expect("Failed to queue gamepad disconnected task.");
+            }));
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
@@ -3141,16 +3135,14 @@ impl GlobalScope {
                                                     let gamepad = new_gamepad.root();
                                                     gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
                                                 })
-                                            )
-                                            .expect("Failed to queue update gamepad connect task.");
+                                            );
                                         }
                                 });
                             }
                         }
                     }
                 })
-            )
-            .expect("Failed to queue update gamepad state task.");
+            );
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {
@@ -3218,7 +3210,7 @@ impl GlobalScope {
         &self,
         request_builder: RequestBuilder,
         context: Arc<Mutex<Listener>>,
-        task_source: TaskSource,
+        task_source: SendableTaskSource,
         cancellation_sender: Option<ipc::IpcReceiver<()>>,
     ) {
         let network_listener = NetworkListener {

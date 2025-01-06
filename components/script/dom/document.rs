@@ -724,7 +724,6 @@ impl Document {
                 event.set_trusted(true);
                 window.dispatch_event_with_target_override(event, CanGc::note());
             }))
-            .unwrap();
     }
 
     pub fn origin(&self) -> &MutableOrigin {
@@ -2128,7 +2127,7 @@ impl Document {
     ) {
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
-            task_source: self.window().task_manager().networking_task_source(),
+            task_source: self.window().task_manager().networking_task_source().into(),
         }
         .into_callback();
         self.loader_mut()
@@ -2143,7 +2142,7 @@ impl Document {
     ) {
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
-            task_source: self.window().task_manager().networking_task_source(),
+            task_source: self.window().task_manager().networking_task_source().into(),
         }
         .into_callback();
         self.loader_mut()
@@ -2409,8 +2408,7 @@ impl Document {
                 if let Some(fragment) = document.url().fragment() {
                     document.check_and_scroll_fragment(fragment, CanGc::note());
                 }
-            }))
-            .unwrap();
+            }));
 
         // Step 8.
         let document = Trusted::new(self);
@@ -2439,8 +2437,7 @@ impl Document {
                     event.set_trusted(true);
 
                     window.dispatch_event_with_target_override(event, CanGc::note());
-                }))
-                .unwrap();
+                }));
         }
 
         // Step 9.
@@ -2489,8 +2486,7 @@ impl Document {
                     // Note: this will, among others, result in the "iframe-load-event-steps" being run.
                     // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
                     document.notify_constellation_load();
-                }))
-                .unwrap();
+                }));
         }
     }
 
@@ -2645,8 +2641,7 @@ impl Document {
                 document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
                 update_with_current_instant(&document.dom_content_loaded_event_end);
                 })
-            )
-            .unwrap();
+            );
 
         // html parsing has finished - set dom content loaded
         self.interactive_time

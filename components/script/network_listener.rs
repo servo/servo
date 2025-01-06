@@ -17,13 +17,13 @@ use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
 /// a target thread, where they are invoked on the provided context object.
 pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<Listener>>,
-    pub task_source: TaskSource,
+    pub task_source: SendableTaskSource,
 }
 
 pub trait ResourceTimingListener {
@@ -74,14 +74,10 @@ pub fn submit_timing_data(
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
-        let result = self.task_source.queue(ListenerTask {
+        self.task_source.queue(ListenerTask {
             context: self.context.clone(),
             action,
         });
-
-        if let Err(err) = result {
-            warn!("failed to deliver network data: {:?}", err);
-        }
     }
 }
 
