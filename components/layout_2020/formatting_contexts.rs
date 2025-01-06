@@ -215,6 +215,7 @@ impl IndependentFormattingContext {
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
+            self.is_replaced(),
             is_table,
             true, /* establishes_containing_block */
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
