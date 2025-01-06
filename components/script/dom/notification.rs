@@ -212,9 +212,13 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         todo!()
     }
 
+    // <https://notifications.spec.whatwg.org/#dom-notification-onclick>
     event_handler!(click, GetOnclick, SetOnclick);
+    // <https://notifications.spec.whatwg.org/#dom-notification-onshow>
     event_handler!(show, GetOnshow, SetOnshow);
+    // <https://notifications.spec.whatwg.org/#dom-notification-onerror>
     event_handler!(error, GetOnerror, SetOnerror);
+    // <https://notifications.spec.whatwg.org/#dom-notification-onclose>
     event_handler!(close, GetOnclose, SetOnclose);
 
     /// <https://notifications.spec.whatwg.org/#maximum-number-of-actions>
