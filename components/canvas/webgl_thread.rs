@@ -1388,6 +1388,22 @@ impl WebGLImpl {
             WebGLCommand::BindTexture(target, id) => unsafe {
                 gl.bind_texture(target, id.map(WebGLTextureId::glow))
             },
+            WebGLCommand::BlitFrameBuffer(
+                src_x0,
+                src_y0,
+                src_x1,
+                src_y1,
+                dst_x0,
+                dst_y0,
+                dst_x1,
+                dst_y1,
+                mask,
+                filter,
+            ) => unsafe {
+                gl.blit_framebuffer(
+                    src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter,
+                );
+            },
             WebGLCommand::Uniform1f(uniform_id, v) => unsafe {
                 gl.uniform_1_f32(native_uniform_location(uniform_id).as_ref(), v)
             },
