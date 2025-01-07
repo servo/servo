@@ -6,6 +6,7 @@
 
 [Exposed=*] // [Transferable] - See Bug 1562065
 interface WritableStream {
+  [Throws]
   constructor(optional object underlyingSink, optional QueuingStrategy strategy = {});
 
   readonly attribute boolean locked;
