@@ -61,6 +61,7 @@ pub fn init(
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
     crate::init_tracing();
+    crate::init_crypto();
     resources::set(Box::new(ResourceReaderInstance::new()));
 
     if let Some(prefs) = init_opts.prefs {

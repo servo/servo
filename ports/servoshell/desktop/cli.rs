@@ -16,6 +16,7 @@ use crate::panic_hook;
 pub fn main() {
     crate::crash_handler::install();
     crate::init_tracing();
+    crate::init_crypto();
     crate::resources::init();
 
     // Parse the command line options and store them globally

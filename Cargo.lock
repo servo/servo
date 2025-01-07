@@ -6815,6 +6815,7 @@ dependencies = [
  "ohos-sys",
  "ohos-vsync",
  "raw-window-handle",
+ "rustls",
  "serde_json",
  "servo_allocator",
  "shellwords",

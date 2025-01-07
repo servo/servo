@@ -43,6 +43,7 @@ pub fn init(
 ) -> Result<ServoGlue, &'static str> {
     info!("Entered simpleservo init function");
     crate::init_tracing();
+    crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
     let mut args = vec!["servoshell".to_string()];

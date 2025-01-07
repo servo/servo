@@ -147,6 +147,8 @@ fn receive_credential_prompt_msgs(
 }
 
 fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     let override_manager = net::connector::CertificateErrorOverrideManager::new();
     HttpState {
         hsts_list: RwLock::new(net::hsts::HstsList::default()),
