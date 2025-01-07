@@ -63,6 +63,7 @@ pub struct Notification {
 }
 
 impl Notification {
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
