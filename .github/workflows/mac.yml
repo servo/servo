@@ -53,11 +53,16 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
+  MOZJS_ATTESTATION: force
 
 jobs:
   build:
     name: MacOS Build
     runs-on: macos-13
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     steps:
       # XProtect can cause random failures if it decides that the DMG we create
       # during the packaging phase is malware.
@@ -115,6 +120,12 @@ jobs:
           name: cargo-timings-macos
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+      - name: Generate mach package artifact attestation
+        if: ${{ inputs.upload }}
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: 'mac'
+          subject-path: 'target/${{ inputs.profile }}/servo-tech-demo.dmg'
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
