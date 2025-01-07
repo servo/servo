@@ -11,8 +11,8 @@ interface Notification : EventTarget {
   [GetterThrows]
   static readonly attribute NotificationPermission permission;
 
-  [NewObject]
-  static Promise<NotificationPermission> requestPermission(optional NotificationPermissionCallback permissionCallback);
+  [Exposed=Window]
+  static Promise<NotificationPermission> requestPermission(optional NotificationPermissionCallback deprecatedCallback);
 
   static readonly attribute unsigned long maxActions;
 
@@ -47,14 +47,14 @@ interface Notification : EventTarget {
 
   readonly attribute boolean renotify;
 
-  [Constant, Pref="dom.webnotifications.requireinteraction.enabled"]
+  [Constant]
   readonly attribute boolean requireInteraction;
 
-  [Constant, Pref="dom.webnotifications.silent.enabled"]
-  readonly attribute boolean silent;
+  [Constant]
+  readonly attribute boolean? silent;
 
   // TODO: Vibration API is not implemented yet.
-  // [Cached, Frozen, Pure, Pref="dom.webnotifications.vibrate.enabled"]
+  // [Cached, Frozen, Pure]
   // readonly attribute /*FrozenArray<<unsigned long>*/any vibrate;
 
   [Constant]

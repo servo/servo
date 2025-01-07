@@ -49,7 +49,7 @@ pub struct Notification {
     icon: Option<USVString>,
     badge: Option<USVString>,
     lang: DOMString,
-    silent: bool,
+    silent: Option<bool>,
     tag: DOMString,
     #[no_trace] // ImmutableOrigin is not traceable
     origin: ImmutableOrigin,
@@ -129,8 +129,7 @@ impl Notification {
         // let vibrate = options.vibrate;
 
         let renotify = options.renotify;
-        let silent = options.silent.unwrap_or(false);
-
+        let silent = options.silent;
         let require_interaction = options.requireInteraction;
 
         let mut actions: Vec<NotificationAction> = Vec::new();
@@ -273,7 +272,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         self.renotify
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-silent>
-    fn Silent(&self) -> bool {
+    fn GetSilent(&self) -> Option<bool> {
         self.silent
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-requireinteraction>
