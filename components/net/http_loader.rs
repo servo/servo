@@ -754,12 +754,10 @@ pub async fn http_fetch(
             // nothing to do, since actual_response is a function on response
 
             // Subsubstep 3
-            if (res.response_type == ResponseType::Opaque &&
-                request.mode != RequestMode::NoCors) ||
+            if (res.response_type == ResponseType::Opaque && request.mode != RequestMode::NoCors) ||
                 (res.response_type == ResponseType::OpaqueRedirect &&
                     request.redirect_mode != RedirectMode::Manual) ||
-                (res.url_list.len() > 1 &&
-                    request.redirect_mode != RedirectMode::Follow) ||
+                (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow) ||
                 res.is_network_error()
             {
                 return Response::network_error(NetworkError::Internal("Request failed".into()));
@@ -774,12 +772,10 @@ pub async fn http_fetch(
     if response.is_none() {
         // Substep 1
         if cors_preflight_flag {
-            let method_cache_match =
-                cache.match_method(request, request.method.clone());
+            let method_cache_match = cache.match_method(request, request.method.clone());
 
             let method_mismatch = !method_cache_match &&
-                (!is_cors_safelisted_method(&request.method) ||
-                    request.use_cors_preflight);
+                (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|(name, value)| {
                 !cache.match_header(request, name) &&
                     !is_cors_safelisted_request_header(&name, &value)
@@ -787,8 +783,7 @@ pub async fn http_fetch(
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result =
-                    cors_preflight_fetch(request, cache, context).await;
+                let preflight_result = cors_preflight_fetch(request, cache, context).await;
                 // Sub-substep 2
                 if let Some(e) = preflight_result.get_network_error() {
                     return Response::network_error(e.clone());

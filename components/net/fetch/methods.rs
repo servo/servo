@@ -220,8 +220,6 @@ pub async fn main_fetch(
     context: &FetchContext,
 ) -> Response {
     // Step 1: Let request be fetchParam's request.
-    // couldn't assign request to a variable due to mutable borrowing issues when calling
-    // fetch_scheme and http_fetch
     let request = &mut fetch_params.request;
 
     // Step 2: Let response be null.
@@ -234,7 +232,8 @@ pub async fn main_fetch(
         )));
     }
 
-    // Step 3: If request’s local-URLs-only flag is set and request’s current URL is not local, then set response to a network error.
+    // Step 3: If request’s local-URLs-only flag is set and request’s
+    // current URL is not local, then set response to a network error.
     if request.local_urls_only &&
         !matches!(
             request.current_url().scheme(),
@@ -257,9 +256,7 @@ pub async fn main_fetch(
     };
 
     // Step 2.4.
-    if should_request_be_blocked_by_csp(request, &policy_container) ==
-        csp::CheckResult::Blocked
-    {
+    if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),
@@ -287,8 +284,7 @@ pub async fn main_fetch(
         request.referrer_policy = policy_container.get_referrer_policy();
     }
 
-    let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer)
-    {
+    let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
         Referrer::NoReferrer => None,
         Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {
             request.headers.remove(header::REFERER);
@@ -299,8 +295,7 @@ pub async fn main_fetch(
             )
         },
     };
-    request.referrer =
-        referrer_url.map_or(Referrer::NoReferrer, Referrer::ReferrerUrl);
+    request.referrer = referrer_url.map_or(Referrer::NoReferrer, Referrer::ReferrerUrl);
 
     // Step 9.
     // TODO: handle FTP URLs.
@@ -462,15 +457,9 @@ pub async fn main_fetch(
         // Tests for steps 17 and 18, before step 15 for borrowing concerns.
         let response_is_network_error = response.is_network_error();
         let should_replace_with_nosniff_error = !response_is_network_error &&
-            should_be_blocked_due_to_nosniff(
-                request.destination,
-                &response.headers,
-            );
+            should_be_blocked_due_to_nosniff(request.destination, &response.headers);
         let should_replace_with_mime_type_error = !response_is_network_error &&
-            should_be_blocked_due_to_mime_type(
-                request.destination,
-                &response.headers,
-            );
+            should_be_blocked_due_to_mime_type(request.destination, &response.headers);
 
         // Step 15.
         let mut network_error_response = response
@@ -485,9 +474,7 @@ pub async fn main_fetch(
 
         // Step 16.
         if internal_response.url_list.is_empty() {
-            internal_response
-                .url_list
-                .clone_from(&request.url_list)
+            internal_response.url_list.clone_from(&request.url_list)
         }
 
         // Step 17.
@@ -534,26 +521,25 @@ pub async fn main_fetch(
 
     // Step 19.
     let mut response_loaded = false;
-    let mut response =
-        if !response.is_network_error() && !request.integrity_metadata.is_empty() {
-            // Step 19.1.
-            wait_for_response(request, &mut response, target, done_chan).await;
-            response_loaded = true;
+    let mut response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
+        // Step 19.1.
+        wait_for_response(request, &mut response, target, done_chan).await;
+        response_loaded = true;
 
-            // Step 19.2.
-            let integrity_metadata = &request.integrity_metadata;
-            if response.termination_reason.is_none() &&
-                !is_response_integrity_valid(integrity_metadata, &response)
-            {
-                Response::network_error(NetworkError::Internal(
-                    "Subresource integrity validation failed".into(),
-                ))
-            } else {
-                response
-            }
+        // Step 19.2.
+        let integrity_metadata = &request.integrity_metadata;
+        if response.termination_reason.is_none() &&
+            !is_response_integrity_valid(integrity_metadata, &response)
+        {
+            Response::network_error(NetworkError::Internal(
+                "Subresource integrity validation failed".into(),
+            ))
         } else {
             response
-        };
+        }
+    } else {
+        response
+    };
 
     // Step 20.
     if request.synchronous {
@@ -729,7 +715,7 @@ async fn scheme_fetch(
 ) -> Response {
     // Step 1: If fetchParams is canceled, then return the appropriate network error for fetchParams.
 
-    // Step 2: Let request be fetchParams’s request. 
+    // Step 2: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
     let url = request.current_url();
 

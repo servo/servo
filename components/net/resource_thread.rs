@@ -47,6 +47,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
@@ -755,7 +756,7 @@ impl CoreResourceManager {
                 Some(res_init) => {
                     let response = Response::from_init(res_init, timing_type);
 
-                    let mut fetch_params = crate::fetch::fetch_params::FetchParams::new(request);
+                    let mut fetch_params = FetchParams::new(request);
                     http_redirect_fetch(
                         &mut fetch_params,
                         &mut CorsCache::default(),

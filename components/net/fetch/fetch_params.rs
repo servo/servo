@@ -13,8 +13,6 @@ pub struct FetchParams {
 
 impl FetchParams {
     pub fn new(request: Request) -> FetchParams {
-        FetchParams {
-            request,
-        }
+        FetchParams { request }
     }
 }
