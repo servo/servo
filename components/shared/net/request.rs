@@ -479,8 +479,6 @@ pub struct Request {
     pub method: Method,
     /// <https://fetch.spec.whatwg.org/#local-urls-only-flag>
     pub local_urls_only: bool,
-    /// <https://fetch.spec.whatwg.org/#sandboxed-storage-area-urls-flag>
-    pub sandboxed_storage_area_urls: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
@@ -553,7 +551,6 @@ impl Request {
             id,
             method: Method::GET,
             local_urls_only: false,
-            sandboxed_storage_area_urls: false,
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
