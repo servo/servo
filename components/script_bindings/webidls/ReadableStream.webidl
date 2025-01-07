@@ -20,11 +20,11 @@ interface _ReadableStream {
   [Throws]
   ReadableStreamReader getReader(optional ReadableStreamGetReaderOptions options = {});
 
-  // [Throws]
-  // ReadableStream pipeThrough(ReadableWritablePair transform, optional StreamPipeOptions options = {});
+  [Throws]
+  ReadableStream pipeThrough(ReadableWritablePair transform, optional StreamPipeOptions options = {});
 
-  // [NewObject]
-  // Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
+  [NewObject]
+  Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
 
   [Throws]
   sequence<ReadableStream> tee();
@@ -45,6 +45,7 @@ dictionary ReadableStreamGetReaderOptions {
 dictionary ReadableStreamIteratorOptions {
   boolean preventCancel = false;
 };
+*/
 
 dictionary ReadableWritablePair {
   required ReadableStream readable;
@@ -55,6 +56,5 @@ dictionary StreamPipeOptions {
   boolean preventClose = false;
   boolean preventAbort = false;
   boolean preventCancel = false;
-  AbortSignal signal;
+  // AbortSignal signal;
 };
-*/
