@@ -28,6 +28,7 @@ use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
+use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -218,7 +219,9 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             can_gc,
         ) {
             Some(e) => {
-                let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
+                let retargeted_node = self
+                    .upcast::<EventTarget>()
+                    .retarget(e.upcast::<EventTarget>());
                 retargeted_node.downcast::<Element>().map(DomRoot::from_ref)
             },
             None => None,
@@ -240,7 +243,9 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             .elements_from_point(x, y, None, self.document.has_browsing_context(), can_gc)
             .iter()
         {
-            let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
+            let retargeted_node = self
+                .upcast::<EventTarget>()
+                .retarget(e.upcast::<EventTarget>());
             if let Some(element) = retargeted_node.downcast::<Element>().map(DomRoot::from_ref) {
                 elements.push(element);
             }

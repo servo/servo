@@ -24,7 +24,6 @@ use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 
-use super::bindings::trace::HashMapTracedValues;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
@@ -38,6 +37,9 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::{
     AddEventListenerOptions, EventListenerOptions, EventTargetMethods,
 };
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     AddEventListenerOptionsOrBoolean, EventListenerOptionsOrBoolean, EventOrString,
@@ -47,12 +49,15 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::node::NodeTraits;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -779,6 +784,67 @@ impl EventTarget {
             if let Some(position) = entry.iter().position(|e| *e == old_entry) {
                 entry.remove(position);
             }
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#get-the-parent>
+    pub(crate) fn get_the_parent(&self, event: &Event) -> Option<DomRoot<EventTarget>> {
+        if let Some(document) = self.downcast::<Document>() {
+            if event.type_() == atom!("load") || !document.has_browsing_context() {
+                return None;
+            } else {
+                return Some(DomRoot::from_ref(document.window().upcast::<EventTarget>()));
+            }
+        }
+
+        if self.downcast::<ShadowRoot>().is_some() {
+            // FIXME: Handle event composed flag here
+            // We currently assume that events are never composed (so events may never
+            // cross a shadow boundary)
+            return None;
+        }
+
+        if let Some(node) = self.downcast::<Node>() {
+            // FIXME: Handle slottables here
+            let parent = node.GetParentNode()?;
+            return Some(DomRoot::from_ref(parent.upcast::<EventTarget>()));
+        }
+
+        None
+    }
+
+    // FIXME: This algorithm operates on "objects", which may not be event targets.
+    // All our current use-cases only work on event targets, but this might change in the future
+    /// <https://dom.spec.whatwg.org/#retarget>
+    pub(crate) fn retarget(&self, b: &Self) -> DomRoot<EventTarget> {
+        // To retarget an object A against an object B, repeat these steps until they return an object:
+        let mut a = DomRoot::from_ref(self);
+        loop {
+            // Step 1. If one of the following is true
+            // * A is not a node
+            // * A’s root is not a shadow root
+            // * B is a node and A’s root is a shadow-including inclusive ancestor of B
+            let Some(a_node) = a.downcast::<Node>() else {
+                return a;
+            };
+            let a_root = a_node.GetRootNode(&GetRootNodeOptions::empty());
+            if !a_root.is::<ShadowRoot>() {
+                return a;
+            }
+            if let Some(b_node) = b.downcast::<Node>() {
+                if a_root.is_shadow_including_inclusive_ancestor_of(b_node) {
+                    return a;
+                }
+            }
+
+            // Step 2. Set A to A’s root’s host.
+            a = DomRoot::from_ref(
+                a_root
+                    .downcast::<ShadowRoot>()
+                    .unwrap()
+                    .Host()
+                    .upcast::<EventTarget>(),
+            );
         }
     }
 }

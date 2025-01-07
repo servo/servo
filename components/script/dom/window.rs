@@ -1601,12 +1601,15 @@ impl Window {
         window_named_properties::create(cx, proto, object)
     }
 
-    pub(crate) fn set_current_event(&self, event: Option<&Event>) -> Option<DomRoot<Event>> {
-        let current = self
-            .current_event
+    pub(crate) fn current_event(&self) -> Option<DomRoot<Event>> {
+        self.current_event
             .borrow()
             .as_ref()
-            .map(|e| DomRoot::from_ref(&**e));
+            .map(|e| DomRoot::from_ref(&**e))
+    }
+
+    pub(crate) fn set_current_event(&self, event: Option<&Event>) -> Option<DomRoot<Event>> {
+        let current = self.current_event();
         *self.current_event.borrow_mut() = event.map(Dom::from_ref);
         current
     }

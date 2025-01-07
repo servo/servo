@@ -612,6 +612,7 @@ impl Node {
         self.flags.get().contains(NodeFlags::IS_IN_A_DOCUMENT_TREE)
     }
 
+    /// Return true iff node's root is a shadow-root.
     pub fn is_in_a_shadow_tree(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
     }
@@ -1278,27 +1279,6 @@ impl Node {
             node.get_cssom_stylesheet()
         } else {
             None
-        }
-    }
-
-    /// <https://dom.spec.whatwg.org/#retarget>
-    pub fn retarget(&self, b: &Node) -> DomRoot<Node> {
-        let mut a = DomRoot::from_ref(self);
-        loop {
-            // Step 1.
-            let a_root = a.GetRootNode(&GetRootNodeOptions::empty());
-            if !a_root.is::<ShadowRoot>() || a_root.is_shadow_including_inclusive_ancestor_of(b) {
-                return DomRoot::from_ref(&a);
-            }
-
-            // Step 2.
-            a = DomRoot::from_ref(
-                a_root
-                    .downcast::<ShadowRoot>()
-                    .unwrap()
-                    .Host()
-                    .upcast::<Node>(),
-            );
         }
     }
 
