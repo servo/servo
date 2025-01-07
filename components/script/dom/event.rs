@@ -226,7 +226,7 @@ impl Event {
         // then set invocationTargetInShadowTree to true.
         if invocation_target
             .downcast::<Node>()
-            .is_some_and(Node::is_in_shadow_tree)
+            .is_some_and(Node::is_in_a_shadow_tree)
         {
             invocation_target_in_shadow_tree = true;
         }
@@ -438,12 +438,12 @@ impl Event {
                         .shadow_adjusted_target
                         .as_ref()
                         .and_then(|target| target.downcast::<Node>())
-                        .is_some_and(Node::is_in_shadow_tree) ||
+                        .is_some_and(Node::is_in_a_shadow_tree) ||
                         clear_targets
                             .related_target
                             .as_ref()
                             .and_then(|target| target.downcast::<Node>())
-                            .is_some_and(Node::is_in_shadow_tree)
+                            .is_some_and(Node::is_in_a_shadow_tree)
                 });
 
             // Step 5.12 If activationTarget is non-null and activationTarget has legacy-pre-activation behavior,
