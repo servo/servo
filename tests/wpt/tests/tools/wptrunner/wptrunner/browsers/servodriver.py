@@ -87,7 +87,7 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         args = [
             "--hard-fail",
             "--webdriver=%s" % port,
-            "about:blank",
+            "data:,",
         ]
 
         ca_cert_path = server_config.ssl_config["ca_cert_path"]
