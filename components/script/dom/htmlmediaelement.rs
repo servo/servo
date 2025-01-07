@@ -898,15 +898,12 @@ impl HTMLMediaElement {
         if let Some(ref mut current_fetch_context) = *current_fetch_context {
             current_fetch_context.cancel(CancelReason::Overridden);
         }
-        let (fetch_context, cancel_receiver) = HTMLMediaElementFetchContext::new();
-        *current_fetch_context = Some(fetch_context);
+
+        *current_fetch_context = Some(HTMLMediaElementFetchContext::new(request.id));
         let listener =
             HTMLMediaElementFetchListener::new(self, url.clone(), offset.unwrap_or(0), seek_lock);
 
-        // TODO: If this is supposed to to be a "fetch" as defined in the specification
-        // this should probably be integrated into the Document's list of cancellable fetches.
-        self.owner_document()
-            .fetch_background(request, listener, Some(cancel_receiver));
+        self.owner_document().fetch_background(request, listener);
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
@@ -2598,17 +2595,12 @@ pub(crate) struct HTMLMediaElementFetchContext {
 }
 
 impl HTMLMediaElementFetchContext {
-    fn new() -> (HTMLMediaElementFetchContext, ipc::IpcReceiver<()>) {
-        let mut fetch_canceller = FetchCanceller::new();
-        let cancel_receiver = fetch_canceller.initialize();
-        (
-            HTMLMediaElementFetchContext {
-                cancel_reason: None,
-                is_seekable: false,
-                fetch_canceller,
-            },
-            cancel_receiver,
-        )
+    fn new(request_id: RequestId) -> HTMLMediaElementFetchContext {
+        HTMLMediaElementFetchContext {
+            cancel_reason: None,
+            is_seekable: false,
+            fetch_canceller: FetchCanceller::new(request_id),
+        }
     }
 
     fn is_seekable(&self) -> bool {

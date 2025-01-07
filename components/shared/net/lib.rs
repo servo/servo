@@ -464,10 +464,7 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseMsg(
-        IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    ResponseMsg(IpcSender<FetchResponseMsg>),
     WebSocket {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
@@ -480,13 +477,9 @@ pub enum FetchChannels {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestBuilder, FetchChannels),
+    Cancel(Vec<RequestId>),
     /// Initiate a fetch in response to processing a redirection
-    FetchRedirect(
-        RequestBuilder,
-        ResponseInit,
-        IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    FetchRedirect(RequestBuilder, ResponseInit, IpcSender<FetchResponseMsg>),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
@@ -522,10 +515,10 @@ pub enum CoreResourceMsg {
 // FIXME: https://github.com/servo/servo/issues/34591
 #[expect(clippy::large_enum_variant)]
 enum ToFetchThreadMessage {
+    Cancel(Vec<RequestId>),
     StartFetch(
         /* request_builder */ RequestBuilder,
         /* response_init */ Option<ResponseInit>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
         /* callback  */ BoxedFetchCallback,
     ),
     FetchResponse(FetchResponseMsg),
@@ -584,12 +577,7 @@ impl FetchThread {
     fn run(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
-                ToFetchThreadMessage::StartFetch(
-                    request_builder,
-                    response_init,
-                    canceller,
-                    callback,
-                ) => {
+                ToFetchThreadMessage::StartFetch(request_builder, response_init, callback) => {
                     self.active_fetches.insert(request_builder.id, callback);
 
                     // Only redirects have a `response_init` field.
@@ -598,11 +586,10 @@ impl FetchThread {
                             request_builder,
                             response_init,
                             self.to_fetch_sender.clone(),
-                            canceller,
                         ),
                         None => CoreResourceMsg::Fetch(
                             request_builder,
-                            FetchChannels::ResponseMsg(self.to_fetch_sender.clone(), canceller),
+                            FetchChannels::ResponseMsg(self.to_fetch_sender.clone()),
                         ),
                     };
 
@@ -623,6 +610,14 @@ impl FetchThread {
                         self.active_fetches.remove(&request_id);
                     }
                 },
+                ToFetchThreadMessage::Cancel(request_ids) => {
+                    // Errors are ignored here, because Servo sends many cancellation requests when shutting down.
+                    // At this point the networking task might be shut down completely, so just ignore errors
+                    // during this time.
+                    let _ = self
+                        .core_resource_thread
+                        .send(CoreResourceMsg::Cancel(request_ids));
+                },
             }
         }
     }
@@ -635,7 +630,6 @@ pub fn fetch_async(
     core_resource_thread: &CoreResourceThread,
     request: RequestBuilder,
     response_init: Option<ResponseInit>,
-    canceller: Option<IpcReceiver<()>>,
     callback: BoxedFetchCallback,
 ) {
     let _ = FETCH_THREAD
@@ -643,9 +637,17 @@ pub fn fetch_async(
         .send(ToFetchThreadMessage::StartFetch(
             request,
             response_init,
-            canceller,
             callback,
         ));
+}
+
+/// Instruct the resource thread to cancel an existing request. Does nothing if the
+/// request has already completed or has not been fetched yet.
+pub fn cancel_async_fetch(request_ids: Vec<RequestId>) {
+    let _ = FETCH_THREAD
+        .get()
+        .expect("Tried to cancel request in process that hasn't started one.")
+        .send(ToFetchThreadMessage::Cancel(request_ids));
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

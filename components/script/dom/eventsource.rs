@@ -602,12 +602,12 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 listener.notify_fetch(message.unwrap());
             }),
         );
-        let cancel_receiver = ev.canceller.borrow_mut().initialize();
+        *ev.canceller.borrow_mut() = FetchCanceller::new(request.id);
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+                FetchChannels::ResponseMsg(action_sender),
             ))
             .unwrap();
         // Step 13
@@ -681,7 +681,7 @@ impl EventSourceTimeoutCallback {
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(self.action_sender, None),
+                FetchChannels::ResponseMsg(self.action_sender),
             ))
             .unwrap();
     }

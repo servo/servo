@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{io, mem, str};
 
@@ -15,7 +15,7 @@ use devtools_traits::DevtoolsControlMsg;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName};
 use http::{Method, StatusCode};
-use ipc_channel::ipc::{self, IpcReceiver};
+use ipc_channel::ipc;
 use log::warn;
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
@@ -59,37 +59,23 @@ pub struct FetchContext {
     pub devtools_chan: Option<Arc<Mutex<Sender<DevtoolsControlMsg>>>>,
     pub filemanager: Arc<Mutex<FileManager>>,
     pub file_token: FileTokenCheck,
-    pub cancellation_listener: Arc<Mutex<CancellationListener>>,
+    pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
 }
 
+#[derive(Default)]
 pub struct CancellationListener {
-    cancel_chan: Option<IpcReceiver<()>>,
-    cancelled: bool,
+    cancelled: AtomicBool,
 }
 
 impl CancellationListener {
-    pub fn new(cancel_chan: Option<IpcReceiver<()>>) -> Self {
-        Self {
-            cancel_chan,
-            cancelled: false,
-        }
+    pub(crate) fn cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::Relaxed)
     }
 
-    pub fn cancelled(&mut self) -> bool {
-        if let Some(ref cancel_chan) = self.cancel_chan {
-            if self.cancelled {
-                true
-            } else if cancel_chan.try_recv().is_ok() {
-                self.cancelled = true;
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
+    pub(crate) fn cancel(&self) {
+        self.cancelled.store(true, Ordering::Relaxed)
     }
 }
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;

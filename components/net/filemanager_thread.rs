@@ -128,7 +128,7 @@ impl FileManager {
     pub fn fetch_file(
         &self,
         done_sender: &mut TokioSender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         id: Uuid,
         file_token: &FileTokenCheck,
         origin: FileOrigin,
@@ -211,7 +211,7 @@ impl FileManager {
         done_sender: &mut TokioSender<Data>,
         mut reader: BufReader<File>,
         res_body: ServoArc<Mutex<ResponseBody>>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         range: RelativePos,
     ) {
         let done_sender = done_sender.clone();
@@ -220,7 +220,7 @@ impl FileManager {
             .map(|pool| {
                 pool.spawn(move || {
                     loop {
-                        if cancellation_listener.lock().unwrap().cancelled() {
+                        if cancellation_listener.cancelled() {
                             *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
                             let _ = done_sender.send(Data::Cancelled);
                             return;
@@ -282,7 +282,7 @@ impl FileManager {
     fn fetch_blob_buf(
         &self,
         done_sender: &mut TokioSender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         id: &Uuid,
         file_token: &FileTokenCheck,
         origin_in: &FileOrigin,

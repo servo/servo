@@ -54,8 +54,6 @@ pub(crate) struct HTMLVideoElement {
     video_height: Cell<Option<u32>>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
-    /// Poster frame fetch request canceller.
-    poster_frame_canceller: DomRefCell<FetchCanceller>,
     /// Load event blocker. Will block the load event while the poster frame
     /// is being fetched.
     load_blocker: DomRefCell<Option<LoadBlocker>>,
@@ -78,7 +76,6 @@ impl HTMLVideoElement {
             video_width: Cell::new(None),
             video_height: Cell::new(None),
             generation_id: Cell::new(0),
-            poster_frame_canceller: DomRefCell::new(Default::default()),
             load_blocker: Default::default(),
             last_frame: Default::default(),
             sent_resize: Cell::new(None),
@@ -162,7 +159,6 @@ impl HTMLVideoElement {
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn fetch_poster_frame(&self, poster_url: &str, can_gc: CanGc) {
         // Step 1.
-        let cancel_receiver = self.poster_frame_canceller.borrow_mut().initialize();
         self.generation_id.set(self.generation_id.get() + 1);
 
         // Step 2.
@@ -199,20 +195,14 @@ impl HTMLVideoElement {
                 self.process_image_response(ImageResponse::Loaded(image, url), can_gc);
             },
             ImageCacheResult::ReadyForRequest(id) => {
-                self.do_fetch_poster_frame(poster_url, id, cancel_receiver, can_gc)
+                self.do_fetch_poster_frame(poster_url, id, can_gc);
             },
             _ => (),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn do_fetch_poster_frame(
-        &self,
-        poster_url: ServoUrl,
-        id: PendingImageId,
-        cancel_receiver: ipc::IpcReceiver<()>,
-        can_gc: CanGc,
-    ) {
+    fn do_fetch_poster_frame(&self, poster_url: ServoUrl, id: PendingImageId, can_gc: CanGc) {
         // Continuation of step 4.
         let document = self.owner_document();
         let request = RequestBuilder::new(poster_url.clone(), document.global().get_referrer())
@@ -235,12 +225,8 @@ impl HTMLVideoElement {
             LoadType::Image(poster_url.clone()),
         ));
 
-        let context = PosterFrameFetchContext::new(self, poster_url, id);
-
-        // TODO: If this is supposed to to be a "fetch" as defined in the specification
-        // this should probably be integrated into the Document's list of cancellable fetches.
-        self.owner_document()
-            .fetch_background(request, context, Some(cancel_receiver));
+        let context = PosterFrameFetchContext::new(self, poster_url, id, request.id);
+        self.owner_document().fetch_background(request, context);
     }
 }
 
@@ -338,11 +324,16 @@ struct PosterFrameFetchContext {
     resource_timing: ResourceFetchTiming,
     /// Url for the resource
     url: ServoUrl,
+    /// A [`FetchCanceller`] for this request.
+    fetch_canceller: FetchCanceller,
 }
 
 impl FetchResponseListener for PosterFrameFetchContext {
     fn process_request_body(&mut self, _: RequestId) {}
-    fn process_request_eof(&mut self, _: RequestId) {}
+
+    fn process_request_eof(&mut self, _: RequestId) {
+        self.fetch_canceller.ignore()
+    }
 
     fn process_response(
         &mut self,
@@ -365,11 +356,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
         if !status_is_ok {
             self.cancelled = true;
-            self.elem
-                .root()
-                .poster_frame_canceller
-                .borrow_mut()
-                .cancel();
+            self.fetch_canceller.cancel();
         }
     }
 
@@ -433,7 +420,12 @@ impl PreInvoke for PosterFrameFetchContext {
 }
 
 impl PosterFrameFetchContext {
-    fn new(elem: &HTMLVideoElement, url: ServoUrl, id: PendingImageId) -> PosterFrameFetchContext {
+    fn new(
+        elem: &HTMLVideoElement,
+        url: ServoUrl,
+        id: PendingImageId,
+        request_id: RequestId,
+    ) -> PosterFrameFetchContext {
         let window = elem.owner_window();
         PosterFrameFetchContext {
             image_cache: window.image_cache(),
@@ -442,6 +434,7 @@ impl PosterFrameFetchContext {
             cancelled: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
+            fetch_canceller: FetchCanceller::new(request_id),
         }
     }
 }

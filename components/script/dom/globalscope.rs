@@ -3242,13 +3242,12 @@ impl GlobalScope {
         request_builder: RequestBuilder,
         context: Arc<Mutex<Listener>>,
         task_source: SendableTaskSource,
-        cancellation_sender: Option<ipc::IpcReceiver<()>>,
     ) {
         let network_listener = NetworkListener {
             context,
             task_source,
         };
-        self.fetch_with_network_listener(request_builder, network_listener, cancellation_sender);
+        self.fetch_with_network_listener(request_builder, network_listener);
     }
 
     pub(crate) fn fetch_with_network_listener<
@@ -3257,13 +3256,11 @@ impl GlobalScope {
         &self,
         request_builder: RequestBuilder,
         network_listener: NetworkListener<Listener>,
-        cancellation_receiver: Option<ipc::IpcReceiver<()>>,
     ) {
         fetch_async(
             &self.core_resource_thread(),
             request_builder,
             None,
-            cancellation_receiver,
             network_listener.into_callback(),
         );
     }
