@@ -193,7 +193,9 @@ pub struct NodeFlags(u16);
 bitflags! {
     impl NodeFlags: u16 {
         /// Specifies whether this node is in a document.
-        const IS_IN_DOC = 1 << 0;
+        ///
+        /// <https://dom.spec.whatwg.org/#in-a-document-tree>
+        const IS_IN_A_DOCUMENT_TREE = 1 << 0;
 
         /// Specifies whether this node needs style recalc on next reflow.
         const HAS_DIRTY_DESCENDANTS = 1 << 1;
@@ -225,6 +227,8 @@ bitflags! {
         const IS_IN_SHADOW_TREE = 1 << 9;
 
         /// Specifies whether this node's shadow-including root is a document.
+        ///
+        /// <https://dom.spec.whatwg.org/#connected>
         const IS_CONNECTED = 1 << 10;
 
         /// Whether this node has a weird parser insertion mode. i.e whether setting innerHTML
@@ -285,8 +289,8 @@ impl Node {
         new_child.parent_node.set(Some(self));
         self.children_count.set(self.children_count.get() + 1);
 
-        let parent_in_doc = self.is_in_doc();
-        let parent_in_shadow_tree = self.is_in_shadow_tree();
+        let parent_is_in_a_document_tree = self.is_in_a_document_tree();
+        let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
@@ -296,14 +300,19 @@ impl Node {
                 }
                 debug_assert!(node.containing_shadow_root().is_some());
             }
-            node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
+            node.set_flag(
+                NodeFlags::IS_IN_A_DOCUMENT_TREE,
+                parent_is_in_a_document_tree,
+            );
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
+
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
             vtable_for(&node).bind_to_tree(&BindContext {
                 tree_connected: parent_is_connected,
-                tree_in_doc: parent_in_doc,
+                tree_is_in_a_document_tree: parent_is_in_a_document_tree,
+                tree_is_in_a_shadow_tree: parent_in_shadow_tree,
             });
         }
     }
@@ -317,7 +326,7 @@ impl Node {
     /// Clean up flags and unbind from tree.
     pub fn complete_remove_subtree(root: &Node, context: &UnbindContext) {
         // Flags that reset when a node is disconnected
-        const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_DOC
+        const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
             .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
             .union(NodeFlags::HAS_SNAPSHOT)
@@ -597,11 +606,12 @@ impl Node {
         format!("{:?}", self.type_id())
     }
 
-    pub fn is_in_doc(&self) -> bool {
-        self.flags.get().contains(NodeFlags::IS_IN_DOC)
+    /// <https://dom.spec.whatwg.org/#in-a-document-tree>
+    pub fn is_in_a_document_tree(&self) -> bool {
+        self.flags.get().contains(NodeFlags::IS_IN_A_DOCUMENT_TREE)
     }
 
-    pub fn is_in_shadow_tree(&self) -> bool {
+    pub fn is_in_a_shadow_tree(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
     }
 
@@ -615,13 +625,9 @@ impl Node {
         self.set_flag(NodeFlags::HAS_WEIRD_PARSER_INSERTION_MODE, true)
     }
 
+    /// <https://dom.spec.whatwg.org/#connected>
     pub fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
-    }
-
-    /// Return true iff the node's root is a Document or a ShadowRoot
-    pub fn is_connected_to_tree(&self) -> bool {
-        self.is_connected() || self.is_in_shadow_tree()
     }
 
     /// Returns the type ID of this node.
@@ -1842,7 +1848,10 @@ impl Node {
 
     #[allow(crown::unrooted_must_root)]
     pub fn new_document_node() -> Node {
-        Node::new_(NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED, None)
+        Node::new_(
+            NodeFlags::IS_IN_A_DOCUMENT_TREE | NodeFlags::IS_CONNECTED,
+            None,
+        )
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -2679,7 +2688,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             };
         }
 
-        if self.is_in_doc() {
+        if self.is_in_a_document_tree() {
             DomRoot::from_ref(self.owner_doc().upcast::<Node>())
         } else {
             self.inclusive_ancestors(ShadowIncluding::No)
@@ -3558,9 +3567,24 @@ impl<'a> ChildrenMutation<'a> {
 /// The context of the binding to tree of a node.
 pub struct BindContext {
     /// Whether the tree is connected.
+    ///
+    /// <https://dom.spec.whatwg.org/#connected>
     pub tree_connected: bool,
-    /// Whether the tree is in the document.
-    pub tree_in_doc: bool,
+
+    /// Whether the tree's root is a document.
+    ///
+    /// <https://dom.spec.whatwg.org/#in-a-document-tree>
+    pub tree_is_in_a_document_tree: bool,
+
+    /// Whether the tree's root is a shadow root
+    pub tree_is_in_a_shadow_tree: bool,
+}
+
+impl BindContext {
+    /// Return true iff the tree is inside either a document- or a shadow tree.
+    pub fn is_in_tree(&self) -> bool {
+        self.tree_is_in_a_document_tree || self.tree_is_in_a_shadow_tree
+    }
 }
 
 /// The context of the unbinding from a tree of a node when one of its
@@ -3574,12 +3598,19 @@ pub struct UnbindContext<'a> {
     prev_sibling: Option<&'a Node>,
     /// The next sibling of the inclusive ancestor that was removed.
     pub next_sibling: Option<&'a Node>,
+
     /// Whether the tree is connected.
     ///
-    /// A tree is connected iff it's root is a Document or a ShadowRoot.
+    /// <https://dom.spec.whatwg.org/#connected>
     pub tree_connected: bool,
-    /// Whether the tree is in doc.
-    pub tree_in_doc: bool,
+
+    /// Whether the tree's root is a document.
+    ///
+    /// <https://dom.spec.whatwg.org/#in-a-document-tree>
+    pub tree_is_in_a_document_tree: bool,
+
+    /// Whether the tree's root is a shadow root
+    pub tree_is_in_a_shadow_tree: bool,
 }
 
 impl<'a> UnbindContext<'a> {
@@ -3595,8 +3626,9 @@ impl<'a> UnbindContext<'a> {
             parent,
             prev_sibling,
             next_sibling,
-            tree_connected: parent.is_connected_to_tree(),
-            tree_in_doc: parent.is_in_doc(),
+            tree_connected: parent.is_connected(),
+            tree_is_in_a_document_tree: parent.is_in_a_document_tree(),
+            tree_is_in_a_shadow_tree: parent.is_in_a_shadow_tree(),
         }
     }
 

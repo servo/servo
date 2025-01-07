@@ -57,7 +57,7 @@ impl HTMLTitleElement {
 
     fn notify_title_changed(&self) {
         let node = self.upcast::<Node>();
-        if node.is_in_doc() {
+        if node.is_in_a_document_tree() {
             node.owner_doc().title_changed();
         }
     }
@@ -97,7 +97,7 @@ impl VirtualMethods for HTMLTitleElement {
             s.bind_to_tree(context);
         }
         let node = self.upcast::<Node>();
-        if context.tree_in_doc {
+        if context.tree_is_in_a_document_tree {
             node.owner_doc().title_changed();
         }
     }

@@ -126,11 +126,11 @@ impl VirtualMethods for HTMLBaseElement {
 
     fn bind_to_tree(&self, context: &BindContext) {
         self.super_type().unwrap().bind_to_tree(context);
-        self.bind_unbind(context.tree_in_doc);
+        self.bind_unbind(context.tree_is_in_a_document_tree);
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
-        self.bind_unbind(context.tree_in_doc);
+        self.bind_unbind(context.tree_is_in_a_document_tree);
     }
 }

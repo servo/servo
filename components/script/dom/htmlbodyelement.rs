@@ -146,7 +146,7 @@ impl VirtualMethods for HTMLBodyElement {
             s.bind_to_tree(context);
         }
 
-        if !context.tree_in_doc {
+        if !context.tree_is_in_a_document_tree {
             return;
         }
 
