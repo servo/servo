@@ -2112,7 +2112,7 @@ impl Window {
         let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
         let event = ScriptMsg::SetLayoutEpoch(epoch, sender);
         self.send_to_constellation(event);
-        receiver.recv().unwrap();
+        let _ = receiver.recv();
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
