@@ -4,6 +4,7 @@
 
 use core::cell::RefCell;
 use core::sync::atomic::Ordering;
+use std::cell::Ref;
 use std::collections::HashMap;
 
 use base::id::PipelineId;
@@ -64,13 +65,16 @@ impl TaskCancellers {
 macro_rules! task_source_functions {
     ($self:ident, $task_source:ident, $task_source_name:ident) => {
         pub(crate) fn $task_source(&$self) -> TaskSource {
-            $self.task_source_for_task_source_name(TaskSourceName::$task_source_name)
+            TaskSource {
+                task_manager: $self,
+                name: TaskSourceName::$task_source_name,
+            }
         }
     };
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct TaskManager {
+pub(crate) struct TaskManager {
     #[ignore_malloc_size_of = "We need to push the measurement of this down into the ScriptChan trait"]
     sender: RefCell<Option<Box<dyn ScriptChan + Send>>>,
     #[no_trace]
@@ -97,22 +101,16 @@ impl TaskManager {
         }
     }
 
-    fn task_source_for_task_source_name(&self, name: TaskSourceName) -> TaskSource {
-        let Some(sender) = self
-            .sender
-            .borrow()
-            .as_ref()
-            .map(|sender| sender.as_boxed())
-        else {
-            unreachable!("Tried to enqueue task for DedicatedWorker while not handling a message.")
-        };
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
+    }
 
-        TaskSource {
-            sender,
-            pipeline_id: self.pipeline_id,
-            name,
-            canceller: self.cancellers.get(name),
-        }
+    pub(crate) fn sender(&self) -> Ref<Option<Box<dyn ScriptChan + Send + 'static>>> {
+        self.sender.borrow()
+    }
+
+    pub(crate) fn canceller(&self, name: TaskSourceName) -> TaskCanceller {
+        self.cancellers.get(name)
     }
 
     /// Update the sender for this [`TaskSource`]. This is used by dedicated workers, which only have a

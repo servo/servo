@@ -98,8 +98,7 @@ impl Selection {
                     this.task_queued.set(false);
                     this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::note());
                 })
-            )
-            .expect("Couldn't queue selectionchange task!");
+            );
         self.task_queued.set(true);
     }
 

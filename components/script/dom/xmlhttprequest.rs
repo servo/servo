@@ -73,7 +73,7 @@ use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -294,7 +294,7 @@ impl XMLHttpRequest {
 
     fn initiate_async_xhr(
         context: Arc<Mutex<XHRContext>>,
-        task_source: TaskSource,
+        task_source: SendableTaskSource,
         global: &GlobalScope,
         init: RequestBuilder,
         cancellation_chan: ipc::IpcReceiver<()>,
@@ -1562,7 +1562,7 @@ impl XMLHttpRequest {
         let (task_source, script_port) = if self.sync.get() {
             let (sender, receiver) = global.new_script_pair();
             (
-                TaskSource {
+                SendableTaskSource {
                     sender,
                     pipeline_id: global.pipeline_id(),
                     name: TaskSourceName::Networking,
@@ -1571,7 +1571,10 @@ impl XMLHttpRequest {
                 Some(receiver),
             )
         } else {
-            (global.task_manager().networking_task_source(), None)
+            (
+                global.task_manager().networking_task_source().to_sendable(),
+                None,
+            )
         };
 
         let cancel_receiver = self.canceller.borrow_mut().initialize();

@@ -71,9 +71,13 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         }
 
         let this = Trusted::new(self);
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
+        let task_source = self
+            .global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         let callback = OnEndedCallback::new(move || {
-            let _ = task_source.queue(task!(ended: move || {
+            task_source.queue(task!(ended: move || {
                 let this = this.root();
                 this.global().task_manager().dom_manipulation_task_source().queue_simple_event(
                     this.upcast(),

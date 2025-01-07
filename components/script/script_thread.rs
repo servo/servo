@@ -153,7 +153,7 @@ use crate::script_runtime::{
     ThreadSafeJSContext,
 };
 use crate::task_queue::TaskQueue;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::{devtools, webdriver_handlers};
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
@@ -692,8 +692,7 @@ impl ScriptThread {
                 global
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task)
-                    .expect("Enqueing navigate js task on the DOM manipulation task source failed");
+                    .queue(task);
             } else {
                 if let Some(ref sender) = script_thread.senders.devtools_server_sender {
                     let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
@@ -902,7 +901,7 @@ impl ScriptThread {
 
         let (self_sender, self_receiver) = unbounded();
         let self_sender = MainThreadScriptChan(self_sender.clone());
-        let runtime = Runtime::new(Some(TaskSource {
+        let runtime = Runtime::new(Some(SendableTaskSource {
             sender: self_sender.as_boxed(),
             pipeline_id: state.id,
             name: TaskSourceName::Networking,
@@ -1410,9 +1409,11 @@ impl ScriptThread {
         // This task is empty because any new IPC messages in the ScriptThread trigger a
         // rendering update when animations are not running.
         let _realm = enter_realm(&*document);
-        let rendering_task_source = document.window().task_manager().rendering_task_source();
-        let _ =
-            rendering_task_source.queue_unconditionally(task!(update_the_rendering: move || { }));
+        document
+            .window()
+            .task_manager()
+            .rendering_task_source()
+            .queue_unconditionally(task!(update_the_rendering: move || { }));
     }
 
     /// Handle incoming messages from other tasks and the task queue.

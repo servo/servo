@@ -59,7 +59,7 @@ use crate::script_runtime::{
     ThreadSafeJSContext,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -378,7 +378,7 @@ impl DedicatedWorkerGlobalScope {
                     .origin(origin);
 
                 let runtime = unsafe {
-                    let task_source = TaskSource {
+                    let task_source = SendableTaskSource {
                         sender: Box::new(WorkerThreadWorkerChan {
                             sender: own_sender.clone(),
                             worker: worker.clone(),

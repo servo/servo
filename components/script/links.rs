@@ -434,7 +434,6 @@ pub fn follow_hyperlink(
         target_window
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task)
-            .unwrap();
+            .queue(task);
     };
 }

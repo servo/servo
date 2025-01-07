@@ -162,13 +162,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
         let key_alg = key.algorithm();
         let valid_usage = key.usages().contains(&KeyUsage::Encrypt);
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(encrypt: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -217,13 +216,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
         let key_alg = key.algorithm();
         let valid_usage = key.usages().contains(&KeyUsage::Decrypt);
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(decrypt: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -283,48 +281,50 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 4.
 
         // Step 6. Return promise and perform the remaining steps in parallel.
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
 
-        let _ = task_source.queue(task!(sign: move || {
-            // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
-            // with the returned error and then terminate the algorithm.
-            let promise = trusted_promise.root();
-            let key = trusted_key.root();
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(sign: move || {
+                // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
+                // with the returned error and then terminate the algorithm.
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
 
-            // Step 8. If the name member of normalizedAlgorithm is not equal to the name attribute of the
-            // [[algorithm]] internal slot of key then throw an InvalidAccessError.
-            if normalized_algorithm.name() != key.algorithm() {
-                promise.reject_error(Error::InvalidAccess);
-                return;
-            }
-
-            // Step 9. If the [[usages]] internal slot of key does not contain an entry that is "sign",
-            // then throw an InvalidAccessError.
-            if !key.usages().contains(&KeyUsage::Sign) {
-                promise.reject_error(Error::InvalidAccess);
-                return;
-            }
-
-            // Step 10.  Let result be the result of performing the sign operation specified by normalizedAlgorithm
-            // using key and algorithm and with data as message.
-            let cx = GlobalScope::get_cx();
-            let result = match normalized_algorithm.sign(cx, &key, &data) {
-                Ok(signature) => signature,
-                Err(e) => {
-                    promise.reject_error(e);
+                // Step 8. If the name member of normalizedAlgorithm is not equal to the name attribute of the
+                // [[algorithm]] internal slot of key then throw an InvalidAccessError.
+                if normalized_algorithm.name() != key.algorithm() {
+                    promise.reject_error(Error::InvalidAccess);
                     return;
                 }
-            };
 
-            rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
-                .expect("failed to create buffer source for exported key.");
+                // Step 9. If the [[usages]] internal slot of key does not contain an entry that is "sign",
+                // then throw an InvalidAccessError.
+                if !key.usages().contains(&KeyUsage::Sign) {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
 
-            // Step 9. Resolve promise with result.
-            promise.resolve_native(&*array_buffer_ptr);
-        }));
+                // Step 10.  Let result be the result of performing the sign operation specified by normalizedAlgorithm
+                // using key and algorithm and with data as message.
+                let cx = GlobalScope::get_cx();
+                let result = match normalized_algorithm.sign(cx, &key, &data) {
+                    Ok(signature) => signature,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
+                    .expect("failed to create buffer source for exported key.");
+
+                // Step 9. Resolve promise with result.
+                promise.resolve_native(&*array_buffer_ptr);
+            }));
 
         promise
     }
@@ -373,44 +373,46 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 6.
 
         // Step 7. Return promise and perform the remaining steps in parallel.
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
 
-        let _ = task_source.queue(task!(sign: move || {
-            // Step 8. If the following steps or referenced procedures say to throw an error, reject promise
-            // with the returned error and then terminate the algorithm.
-            let promise = trusted_promise.root();
-            let key = trusted_key.root();
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(sign: move || {
+                // Step 8. If the following steps or referenced procedures say to throw an error, reject promise
+                // with the returned error and then terminate the algorithm.
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
 
-            // Step 9. If the name member of normalizedAlgorithm is not equal to the name attribute of the
-            // [[algorithm]] internal slot of key then throw an InvalidAccessError.
-            if normalized_algorithm.name() != key.algorithm() {
-                promise.reject_error(Error::InvalidAccess);
-                return;
-            }
-
-            // Step 10. If the [[usages]] internal slot of key does not contain an entry that is "verify",
-            // then throw an InvalidAccessError.
-            if !key.usages().contains(&KeyUsage::Verify) {
-                promise.reject_error(Error::InvalidAccess);
-                return;
-            }
-
-            // Step 1. Let result be the result of performing the verify operation specified by normalizedAlgorithm
-            // using key, algorithm and signature and with data as message.
-            let cx = GlobalScope::get_cx();
-            let result = match normalized_algorithm.verify(cx, &key, &data, &signature) {
-                Ok(result) => result,
-                Err(e) => {
-                    promise.reject_error(e);
+                // Step 9. If the name member of normalizedAlgorithm is not equal to the name attribute of the
+                // [[algorithm]] internal slot of key then throw an InvalidAccessError.
+                if normalized_algorithm.name() != key.algorithm() {
+                    promise.reject_error(Error::InvalidAccess);
                     return;
                 }
-            };
 
-            // Step 9. Resolve promise with result.
-            promise.resolve_native(&result);
-        }));
+                // Step 10. If the [[usages]] internal slot of key does not contain an entry that is "verify",
+                // then throw an InvalidAccessError.
+                if !key.usages().contains(&KeyUsage::Verify) {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 1. Let result be the result of performing the verify operation specified by normalizedAlgorithm
+                // using key, algorithm and signature and with data as message.
+                let cx = GlobalScope::get_cx();
+                let result = match normalized_algorithm.verify(cx, &key, &data, &signature) {
+                    Ok(result) => result,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                // Step 9. Resolve promise with result.
+                promise.resolve_native(&result);
+            }));
 
         promise
     }
@@ -449,10 +451,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 4.
 
         // Step 6. Return promise and perform the remaining steps in parallel.
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
 
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(generate_key: move || {
                 // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
                 // with the returned error and then terminate the algorithm.
@@ -501,19 +502,21 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             },
         };
 
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue(task!(generate_key: move || {
-            let subtle = this.root();
-            let promise = trusted_promise.root();
-            let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable);
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(generate_key: move || {
+                let subtle = this.root();
+                let promise = trusted_promise.root();
+                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable);
 
-            match key {
-                Ok(key) => promise.resolve_native(&key),
-                Err(e) => promise.reject_error(e),
-            }
-        }));
+                match key {
+                    Ok(key) => promise.resolve_native(&key),
+                    Err(e) => promise.reject_error(e),
+                }
+            }));
 
         promise
     }
@@ -573,11 +576,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We created the promise earlier, after Step 1.
 
         // Step 9. Return promise and perform the remaining steps in parallel.
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_base_key = Trusted::new(base_key);
         let this = Trusted::new(self);
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(derive_key: move || {
                 // Step 10. If the following steps or referenced procedures say to throw an error, reject promise
                 // with the returned error and then terminate the algorithm.
@@ -677,44 +679,46 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 3.
 
         // Step 5. Return promise and perform the remaining steps in parallel.
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_base_key = Trusted::new(base_key);
 
-        let _ = task_source.queue(task!(import_key: move || {
-            // Step 6. If the following steps or referenced procedures say to throw an error,
-            // reject promise with the returned error and then terminate the algorithm.
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(import_key: move || {
+                // Step 6. If the following steps or referenced procedures say to throw an error,
+                // reject promise with the returned error and then terminate the algorithm.
 
-            // TODO Step 7. If the name member of normalizedAlgorithm is not equal to the name attribute
-            // of the [[algorithm]] internal slot of baseKey then throw an InvalidAccessError.
-            let promise = trusted_promise.root();
-            let base_key = trusted_base_key.root();
+                // TODO Step 7. If the name member of normalizedAlgorithm is not equal to the name attribute
+                // of the [[algorithm]] internal slot of baseKey then throw an InvalidAccessError.
+                let promise = trusted_promise.root();
+                let base_key = trusted_base_key.root();
 
-            // Step 8. If the [[usages]] internal slot of baseKey does not contain an entry that
-            // is "deriveBits", then throw an InvalidAccessError.
-            if !base_key.usages().contains(&KeyUsage::DeriveBits) {
-                promise.reject_error(Error::InvalidAccess);
-                return;
-            }
-
-            // Step 9. Let result be the result of creating an ArrayBuffer containing the result of performing the
-            // derive bits operation specified by normalizedAlgorithm using baseKey, algorithm and length.
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-            let result = match normalized_algorithm.derive_bits(&base_key, length) {
-                Ok(derived_bits) => derived_bits,
-                Err(e) => {
-                    promise.reject_error(e);
+                // Step 8. If the [[usages]] internal slot of baseKey does not contain an entry that
+                // is "deriveBits", then throw an InvalidAccessError.
+                if !base_key.usages().contains(&KeyUsage::DeriveBits) {
+                    promise.reject_error(Error::InvalidAccess);
                     return;
                 }
-            };
 
-            create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
-                .expect("failed to create buffer source for derived bits.");
+                // Step 9. Let result be the result of creating an ArrayBuffer containing the result of performing the
+                // derive bits operation specified by normalizedAlgorithm using baseKey, algorithm and length.
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                let result = match normalized_algorithm.derive_bits(&base_key, length) {
+                    Ok(derived_bits) => derived_bits,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
 
-            // Step 10. Resolve promise with result.
-            promise.resolve_native(&*array_buffer_ptr);
-        }));
+                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
+                    .expect("failed to create buffer source for derived bits.");
+
+                // Step 10. Resolve promise with result.
+                promise.resolve_native(&*array_buffer_ptr);
+            }));
 
         promise
     }
@@ -766,10 +770,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             },
         };
 
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(import_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -794,11 +797,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(key);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(export_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -861,12 +863,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             },
         };
 
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(key);
         let trusted_wrapping_key = Trusted::new(wrapping_key);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(wrap_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -999,11 +1000,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 },
             };
 
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(unwrapping_key);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(unwrap_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();

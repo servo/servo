@@ -65,7 +65,7 @@ use crate::script_module::{
     fetch_external_module_script, fetch_inline_module_script, ModuleOwner, ScriptFetchOptions,
 };
 use crate::script_runtime::CanGc;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::unminify::{unminify_js, ScriptSource};
 use crate::HasParent;
 

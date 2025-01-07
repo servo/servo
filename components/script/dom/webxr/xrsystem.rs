@@ -118,7 +118,10 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         let promise = Promise::new(&self.global(), can_gc);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let global = self.global();
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
         ROUTER.add_typed_route(
             receiver.to_ipc_receiver(),
@@ -137,9 +140,9 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     return;
                 };
                 if let Ok(()) = message {
-                    let _ = task_source.queue(trusted.resolve_task(true));
+                    task_source.queue(trusted.resolve_task(true));
                 } else {
-                    let _ = task_source.queue(trusted.resolve_task(false));
+                    task_source.queue(trusted.resolve_task(false));
                 };
             }),
         );
@@ -234,7 +237,10 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
 
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let this = Trusted::new(self);
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let (frame_sender, frame_receiver) = ipc_crate::channel().unwrap();
         let mut frame_receiver = Some(frame_receiver);
@@ -251,7 +257,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     error!("requestSession callback given incorrect payload");
                     return;
                 };
-                let _ = task_source.queue(task!(request_session: move || {
+                task_source.queue(task!(request_session: move || {
                     this.root().session_obtained(message, trusted.root(), mode, frame_receiver);
                 }));
             }),
@@ -316,7 +322,6 @@ impl XRSystem {
                     xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::note());
                     ScriptThread::set_user_interacting(interacting);
                 })
-            )
-            .unwrap();
+            );
     }
 }

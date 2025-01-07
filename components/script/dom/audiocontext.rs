@@ -157,13 +157,12 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         }
 
         // Steps 4 and 5.
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().suspend() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
-                let _ = task_source.queue(
+                self.global().task_manager().dom_manipulation_task_source().queue(
                     task!(suspend_ok: move || {
                         let base_context = base_context.root();
                         let context = context.root();
@@ -182,10 +181,13 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
             Err(_) => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
-                let _ = task_source.queue(task!(suspend_error: move || {
-                    let promise = trusted_promise.root();
-                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                }));
+                self.global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(suspend_error: move || {
+                        let promise = trusted_promise.root();
+                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                    }));
             },
         };
 
@@ -211,13 +213,12 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         }
 
         // Steps 4 and 5.
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().close() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
-                let _ = task_source.queue(
+                self.global().task_manager().dom_manipulation_task_source().queue(
                     task!(suspend_ok: move || {
                         let base_context = base_context.root();
                         let context = context.root();
@@ -236,10 +237,13 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
             Err(_) => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
-                let _ = task_source.queue(task!(suspend_error: move || {
-                    let promise = trusted_promise.root();
-                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                }));
+                self.global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(suspend_error: move || {
+                        let promise = trusted_promise.root();
+                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                    }));
             },
         };
 

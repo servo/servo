@@ -84,8 +84,7 @@ impl VirtualMethods for HTMLDetailsElement {
 
             let window = self.owner_window();
             let this = Trusted::new(self);
-            // FIXME(nox): Why are errors silenced here?
-            let _ = window.task_manager().dom_manipulation_task_source().queue(
+            window.task_manager().dom_manipulation_task_source().queue(
                 task!(details_notification_task_steps: move || {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {

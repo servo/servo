@@ -40,7 +40,7 @@ use crate::dom::readablestream::{get_read_promise_bytes, get_read_promise_done, 
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 
 /// The Dom object, or ReadableStream, that is the source of a body.
 /// <https://fetch.spec.whatwg.org/#concept-body-source>
@@ -70,7 +70,7 @@ enum StopReading {
 #[derive(Clone)]
 struct TransmitBodyConnectHandler {
     stream: Trusted<ReadableStream>,
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
     control_sender: IpcSender<BodyChunkRequest>,
     in_memory: Option<Vec<u8>>,
@@ -81,7 +81,7 @@ struct TransmitBodyConnectHandler {
 impl TransmitBodyConnectHandler {
     pub fn new(
         stream: Trusted<ReadableStream>,
-        task_source: TaskSource,
+        task_source: SendableTaskSource,
         control_sender: IpcSender<BodyChunkRequest>,
         in_memory: Option<Vec<u8>>,
         source: BodySource,
@@ -174,8 +174,7 @@ impl TransmitBodyConnectHandler {
         // If we're using an actual ReadableStream, acquire a reader for it.
         if self.source == BodySource::Null {
             let stream = self.stream.clone();
-            let _ = self
-                .task_source
+            self.task_source
                 .queue(task!(start_reading_request_body_stream: move || {
                     // Step 1, Let body be request’s body.
                     let rooted_stream = stream.root();
@@ -231,7 +230,7 @@ impl TransmitBodyConnectHandler {
             return;
         }
 
-        let _ = self.task_source.queue(
+        self.task_source.queue(
             task!(setup_native_body_promise_handler: move || {
                 let rooted_stream = stream.root();
                 let global = rooted_stream.global();
@@ -384,7 +383,7 @@ impl ExtractedBody {
 
         let mut body_handler = TransmitBodyConnectHandler::new(
             trusted_stream,
-            task_source,
+            task_source.into(),
             chunk_request_sender.clone(),
             in_memory,
             source,

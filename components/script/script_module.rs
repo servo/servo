@@ -1769,7 +1769,7 @@ fn fetch_single_module_script(
 
     let network_listener = NetworkListener {
         context,
-        task_source: global.task_manager().networking_task_source(),
+        task_source: global.task_manager().networking_task_source().to_sendable(),
     };
     match document {
         Some(document) => {

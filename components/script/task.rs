@@ -75,42 +75,31 @@ pub struct TaskCanceller {
 
 impl TaskCanceller {
     /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller` says so.
-    pub(crate) fn wrap_task<T>(&self, task: T) -> impl TaskOnce
-    where
-        T: TaskOnce,
-    {
+    pub(crate) fn wrap_task(&self, task: impl TaskOnce) -> impl TaskOnce {
         CancellableTask {
-            cancelled: self.cancelled.clone(),
+            canceller: self.clone(),
             inner: task,
         }
+    }
+
+    pub(crate) fn cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::SeqCst)
     }
 }
 
 /// A task that can be cancelled by toggling a shared flag.
 pub struct CancellableTask<T: TaskOnce> {
-    cancelled: Arc<AtomicBool>,
+    canceller: TaskCanceller,
     inner: T,
 }
 
-impl<T> CancellableTask<T>
-where
-    T: TaskOnce,
-{
-    fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::SeqCst)
-    }
-}
-
-impl<T> TaskOnce for CancellableTask<T>
-where
-    T: TaskOnce,
-{
+impl<T: TaskOnce> TaskOnce for CancellableTask<T> {
     fn name(&self) -> &'static str {
         self.inner.name()
     }
 
     fn run_once(self) {
-        if !self.is_cancelled() {
+        if !self.canceller.cancelled() {
             self.inner.run_once()
         }
     }

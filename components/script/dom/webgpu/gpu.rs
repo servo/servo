@@ -71,7 +71,8 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
     let task_source = receiver
         .global()
         .task_manager()
-        .dom_manipulation_task_source();
+        .dom_manipulation_task_source()
+        .to_sendable();
     let mut trusted: Option<TrustedPromise> = Some(TrustedPromise::new(promise.clone()));
     let trusted_receiver = Trusted::new(receiver);
     ROUTER.add_typed_route(
@@ -88,12 +89,9 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
                 trusted,
                 receiver: trusted_receiver.clone(),
             };
-            let result = task_source.queue(task!(process_webgpu_task: move|| {
+            task_source.queue(task!(process_webgpu_task: move|| {
                 context.response(message.unwrap(), CanGc::note());
             }));
-            if let Err(err) = result {
-                error!("Failed to queue GPU listener-task: {:?}", err);
-            }
         }),
     );
     action_sender

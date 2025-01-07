@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt;
-use std::result::Result;
 
 use base::id::PipelineId;
 use malloc_size_of_derive::MallocSizeOf;
@@ -14,6 +13,7 @@ use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTas
 use crate::dom::eventtarget::EventTarget;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
+use crate::task_manager::TaskManager;
 
 /// The names of all task sources, used to differentiate TaskCancellers. Note: When adding a task
 /// source, update this enum. Note: The HistoryTraversalTaskSource is not part of this, because it
@@ -82,46 +82,40 @@ impl TaskSourceName {
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct TaskSource {
-    #[ignore_malloc_size_of = "Need to push MallocSizeOf down into the ScriptChan trait implementations"]
-    pub sender: Box<dyn ScriptChan + Send + 'static>,
-    #[no_trace]
-    pub pipeline_id: PipelineId,
+pub(crate) struct TaskSource<'task_manager> {
+    pub task_manager: &'task_manager TaskManager,
     pub name: TaskSourceName,
-    pub canceller: TaskCanceller,
 }
 
-impl TaskSource {
-    pub(crate) fn queue<T>(&self, task: T) -> Result<(), ()>
-    where
-        T: TaskOnce + 'static,
-    {
-        let msg = CommonScriptMsg::Task(
-            self.name.into(),
-            Box::new(self.canceller.wrap_task(task)),
-            Some(self.pipeline_id),
-            self.name,
-        );
-        self.sender.send(msg).map_err(|_| ())
+impl TaskSource<'_> {
+    /// Queue a task with the default canceller for this [`TaskSource`].
+    pub(crate) fn queue(&self, task: impl TaskOnce + 'static) {
+        let canceller = self.task_manager.canceller(self.name);
+        if canceller.cancelled() {
+            return;
+        }
+
+        self.queue_unconditionally(canceller.wrap_task(task))
     }
 
     /// This queues a task that will not be cancelled when its associated global scope gets destroyed.
-    pub(crate) fn queue_unconditionally<T>(&self, task: T) -> Result<(), ()>
-    where
-        T: TaskOnce + 'static,
-    {
-        self.sender.send(CommonScriptMsg::Task(
-            self.name.into(),
-            Box::new(task),
-            Some(self.pipeline_id),
-            self.name,
-        ))
+    pub(crate) fn queue_unconditionally(&self, task: impl TaskOnce + 'static) {
+        let sender = self.task_manager.sender();
+        sender
+            .as_ref()
+            .expect("Tried to enqueue task for DedicatedWorker while not handling a message.")
+            .send(CommonScriptMsg::Task(
+                self.name.into(),
+                Box::new(task),
+                Some(self.task_manager.pipeline_id()),
+                self.name,
+            ))
+            .expect("Tried to send a task on a task queue after shutdown.");
     }
 
     pub(crate) fn queue_simple_event(&self, target: &EventTarget, name: Atom) {
         let target = Trusted::new(target);
-        let _ = self.queue(SimpleEventTask { target, name });
+        self.queue(SimpleEventTask { target, name });
     }
 
     pub(crate) fn queue_event(
@@ -132,16 +126,75 @@ impl TaskSource {
         cancelable: EventCancelable,
     ) {
         let target = Trusted::new(target);
-        let _ = self.queue(EventTask {
+        self.queue(EventTask {
             target,
             name,
             bubbles,
             cancelable,
         });
     }
+
+    /// Convert this [`TaskSource`] into a [`SendableTaskSource`] suitable for sending
+    /// to different threads.
+    pub(crate) fn to_sendable(&self) -> SendableTaskSource {
+        let sender = self.task_manager.sender();
+        let sender = sender
+            .as_ref()
+            .expect("Tried to enqueue task for DedicatedWorker while not handling a message.")
+            .as_boxed();
+        SendableTaskSource {
+            sender,
+            pipeline_id: self.task_manager.pipeline_id(),
+            name: self.name,
+            canceller: self.task_manager.canceller(self.name),
+        }
+    }
 }
 
-impl Clone for TaskSource {
+impl<'task_manager> From<TaskSource<'task_manager>> for SendableTaskSource {
+    fn from(task_source: TaskSource<'task_manager>) -> Self {
+        task_source.to_sendable()
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct SendableTaskSource {
+    #[ignore_malloc_size_of = "Need to push MallocSizeOf down into the ScriptChan trait implementations"]
+    pub sender: Box<dyn ScriptChan + Send + 'static>,
+    #[no_trace]
+    pub pipeline_id: PipelineId,
+    pub name: TaskSourceName,
+    pub canceller: TaskCanceller,
+}
+
+impl SendableTaskSource {
+    pub(crate) fn queue(&self, task: impl TaskOnce + 'static) {
+        if !self.canceller.cancelled() {
+            self.queue_unconditionally(self.canceller.wrap_task(task))
+        }
+    }
+
+    /// This queues a task that will not be cancelled when its associated global scope gets destroyed.
+    pub(crate) fn queue_unconditionally(&self, task: impl TaskOnce + 'static) {
+        if self
+            .sender
+            .send(CommonScriptMsg::Task(
+                self.name.into(),
+                Box::new(task),
+                Some(self.pipeline_id),
+                self.name,
+            ))
+            .is_err()
+        {
+            warn!(
+                "Could not queue non-main-thread task {:?}. Likely tried to queue during shutdown.",
+                self.name
+            );
+        }
+    }
+}
+
+impl Clone for SendableTaskSource {
     fn clone(&self) -> Self {
         Self {
             sender: self.sender.as_boxed(),
@@ -152,7 +205,7 @@ impl Clone for TaskSource {
     }
 }
 
-impl fmt::Debug for TaskSource {
+impl fmt::Debug for SendableTaskSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}(...)", self.name)
     }
