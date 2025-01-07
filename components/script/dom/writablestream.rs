@@ -12,6 +12,7 @@ use js::rust::{
 };
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
+use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::UnderlyingSink;
 use crate::dom::bindings::codegen::Bindings::WritableStreamBinding::WritableStreamMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{
