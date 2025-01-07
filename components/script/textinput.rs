@@ -13,10 +13,16 @@ use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::clipboard_provider::ClipboardProvider;
+use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
+use crate::dom::event::Event;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::node::NodeTraits;
+use crate::dom::types::ClipboardEvent;
 use crate::drag_data_store::{DragDataStore, Kind};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -1112,27 +1118,67 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.edit_point.index = byte_offset;
     }
 
-    pub fn copy_contents(&mut self) {
-        if let Some(text) = self.get_selection_text() {
-            self.clipboard_provider.set_clipboard_contents(text);
+    pub(crate) fn handle_text_clipboard_action(
+        &mut self,
+        event: &ClipboardEvent,
+        owning_node: &impl NodeTraits,
+        can_gc: CanGc,
+    ) -> bool {
+        let e = event.upcast::<Event>();
+
+        // Step 3
+        match e.Type().str() {
+            "copy" => {
+                // Step 3.1 Copy the selected contents, if any, to the clipboard
+                if let Some(text) = self.get_selection_text() {
+                    self.clipboard_provider.set_clipboard_contents(text);
+                }
+
+                // Step 3.2 Fire a clipboard event named clipboardchange
+                owning_node
+                    .owner_document()
+                    .fire_clipboardchange_event(can_gc);
+            },
+            "cut" => {
+                // Step 3.1 If there is a selection in an editable context where cutting is enabled, then
+                if let Some(text) = self.get_selection_text() {
+                    // Step 3.1.1 Copy the selected contents, if any, to the clipboard
+                    self.clipboard_provider.set_clipboard_contents(text);
+
+                    // Step 3.1.2 Remove the contents of the selection from the document and collapse the selection.
+                    self.delete_char(Direction::Backward);
+
+                    // Step 3.1.3 Fire a clipboard event named clipboardchange
+                    owning_node
+                        .owner_document()
+                        .fire_clipboardchange_event(can_gc);
+
+                    // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
+                } else {
+                    // Step 3.2 Else, if there is no selection or the context is not editable, then
+                    return false;
+                }
+            },
+            "paste" => {
+                // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
+                if let Some(data) = event.get_clipboard_data() {
+                    let drag_data_store = data.data_store().expect("This shouldn't fail");
+                    self.paste_contents(&drag_data_store);
+                }
+                // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
+                // Step 3.2 Else return false.
+            },
+            _ => (),
         }
+
+        //Step 5
+        true
     }
 
-    pub fn cut_contents(&mut self) -> bool {
-        if let Some(text) = self.get_selection_text() {
-            self.clipboard_provider.set_clipboard_contents(text);
-            self.delete_char(Direction::Backward);
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn paste_contents(&mut self, drag_data_store: &DragDataStore) {
+    fn paste_contents(&mut self, drag_data_store: &DragDataStore) {
         for item in drag_data_store.iter_item_list() {
-            match item {
-                Kind::Text(string) => self.insert_string(string.data()),
-                Kind::File(_) => (),
+            if let Kind::Text(string) = item {
+                self.insert_string(string.data());
             }
         }
     }

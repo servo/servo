@@ -1447,8 +1447,73 @@ impl Document {
         event.fire(target, can_gc);
     }
 
+    /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
+    pub fn handle_clipboard_action(&self, action: ClipboardEventType, can_gc: CanGc) -> bool {
+        // The script_triggered flag is set if the action runs because of a script, e.g. document.execCommand()
+        let script_triggered = false;
+
+        // The script_may_access_clipboard flag is set
+        // if action is paste and the script thread is allowed to read from clipboard or
+        // if action is copy or cut and the script thread is allowed to modify the clipboard
+        let script_may_access_clipboard = false;
+
+        // Step 1 If the script-triggered flag is set and the script-may-access-clipboard flag is unset
+        if script_triggered && !script_may_access_clipboard {
+            return false;
+        }
+
+        // Step 2 Fire a clipboard event
+        let event = ClipboardEvent::new(
+            &self.window,
+            None,
+            DOMString::from(action.as_str()),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            None,
+            can_gc,
+        );
+        self.fire_clipboard_event(&event, action, can_gc);
+
+        let e = event.upcast::<Event>();
+        // Step 4 If the event was canceled, then
+        if e.DefaultPrevented() {
+            match e.Type().str() {
+                "copy" => {
+                    // Step 4.1 Call the write content to the clipboard algorithm,
+                    // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
+                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                        let drag_data_store =
+                            clipboard_data.data_store().expect("This shouldn't fail");
+                        self.write_content_to_the_clipboard(&drag_data_store);
+                    }
+                },
+                "cut" => {
+                    // Step 4.1 Call the write content to the clipboard algorithm,
+                    // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
+                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                        let drag_data_store =
+                            clipboard_data.data_store().expect("This shouldn't fail");
+                        self.write_content_to_the_clipboard(&drag_data_store);
+                    }
+
+                    // Step 4.2 Fire a clipboard event named clipboardchange
+                    self.fire_clipboardchange_event(can_gc);
+                },
+                "paste" => return false,
+                _ => (),
+            }
+        }
+        //Step 5
+        true
+    }
+
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
-    pub fn fire_clipboard_event(&self, event: ClipboardEventType, can_gc: CanGc) {
+    pub(crate) fn fire_clipboard_event(
+        &self,
+        event: &ClipboardEvent,
+        action: ClipboardEventType,
+        can_gc: CanGc,
+    ) {
         // Step 1 Let clear_was_called be false
         // Step 2 Let types_to_clear an empty list
         let mut drag_data_store = DragDataStore::new();
@@ -1470,7 +1535,7 @@ impl Document {
         // Step 6.2 else TODO require Selection see https://github.com/w3c/clipboard-apis/issues/70
 
         // Step 7
-        match event {
+        match action {
             ClipboardEventType::Copy | ClipboardEventType::Cut => {
                 // Step 7.2.1
                 drag_data_store.set_mode(Mode::ReadWrite);
@@ -1506,15 +1571,6 @@ impl Document {
             can_gc,
         );
 
-        let event = ClipboardEvent::new(
-            &self.window,
-            None,
-            DOMString::from(event.as_str()),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            None,
-            CanGc::note(),
-        );
         // Step 8
         event.set_clipboard_data(Some(&clipboard_event_data));
         let event = event.upcast::<Event>();
@@ -1522,7 +1578,20 @@ impl Document {
         event.set_trusted(trusted);
         // Step 10 Set event’s composed to true.
         // Step 11
-        event.dispatch(target, false, CanGc::note());
+        event.dispatch(target, false, can_gc);
+    }
+
+    pub(crate) fn fire_clipboardchange_event(&self, can_gc: CanGc) {
+        let clipboardchange_event = ClipboardEvent::new(
+            &self.window,
+            None,
+            DOMString::from("clipboardchange"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            None,
+            can_gc,
+        );
+        self.fire_clipboard_event(&clipboardchange_event, ClipboardEventType::Change, can_gc);
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>

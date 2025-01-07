@@ -1143,7 +1143,7 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::ClipboardEvent(clipboard_action) => {
-                    document.fire_clipboard_event(clipboard_action, can_gc);
+                    document.handle_clipboard_action(clipboard_action, can_gc);
                 },
             }
         }
