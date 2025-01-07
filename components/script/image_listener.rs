@@ -27,7 +27,7 @@ pub fn generate_cache_listener_for_element<
     let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
     let task_source = elem
-        .owner_window()
+        .owner_global()
         .task_manager()
         .networking_task_source()
         .to_sendable();

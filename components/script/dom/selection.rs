@@ -17,7 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::script_runtime::CanGc;
 
@@ -89,7 +89,7 @@ impl Selection {
         }
         let this = Trusted::new(self);
         self.document
-            .window()
+            .owner_global()
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117
             .queue(

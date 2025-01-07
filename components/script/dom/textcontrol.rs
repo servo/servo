@@ -301,7 +301,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Step 6
         if textinput.selection_state() != original_selection_state {
             self.element
-                .owner_window()
+                .owner_global()
                 .task_manager()
                 .user_interaction_task_source()
                 .queue_event(

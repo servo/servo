@@ -512,12 +512,12 @@ impl WindowProxy {
             let referrer = if noreferrer {
                 Referrer::NoReferrer
             } else {
-                target_window.upcast::<GlobalScope>().get_referrer()
+                target_window.as_global_scope().get_referrer()
             };
             // Step 14.5
             let referrer_policy = target_document.get_referrer_policy();
-            let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
-            let secure = target_window.upcast::<GlobalScope>().is_secure_context();
+            let pipeline_id = target_window.pipeline_id();
+            let secure = target_window.as_global_scope().is_secure_context();
             let load_data = LoadData::new(
                 LoadOrigin::Script(existing_document.origin().immutable().clone()),
                 url,
@@ -675,17 +675,17 @@ impl WindowProxy {
     }
 
     pub fn set_currently_active(&self, window: &Window) {
-        let globalscope = window.upcast::<GlobalScope>();
-        let dest_pipeline_id = globalscope.pipeline_id();
         if let Some(pipeline_id) = self.currently_active() {
-            if pipeline_id == dest_pipeline_id {
+            if pipeline_id == window.pipeline_id() {
                 return debug!(
                     "Attempt to set the currently active window to the currently active window."
                 );
             }
         }
-        self.set_window(globalscope, WindowProxyHandler::proxy_handler());
-        self.currently_active.set(Some(globalscope.pipeline_id()));
+
+        let global_scope = window.as_global_scope();
+        self.set_window(global_scope, WindowProxyHandler::proxy_handler());
+        self.currently_active.set(Some(global_scope.pipeline_id()));
     }
 
     pub fn unset_currently_active(&self) {
@@ -867,14 +867,13 @@ unsafe fn GetSubframeWindowProxy(
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
-            let _ = win
-                .upcast::<GlobalScope>()
-                .script_to_constellation_chan()
-                .send(ScriptMsg::GetChildBrowsingContextId(
+            let _ = win.as_global_scope().script_to_constellation_chan().send(
+                ScriptMsg::GetChildBrowsingContextId(
                     browsing_context_id,
                     index as usize,
                     result_sender,
-                ));
+                ),
+            );
             return result_receiver
                 .recv()
                 .ok()

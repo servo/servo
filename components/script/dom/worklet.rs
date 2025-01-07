@@ -145,17 +145,16 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
 
         // Steps 6-12 in parallel.
         let pending_tasks_struct = PendingTasksStruct::new();
-        let global = self.window.upcast::<GlobalScope>();
 
         self.droppable_field
             .thread_pool
             .get_or_init(ScriptThread::worklet_thread_pool)
             .fetch_and_invoke_a_worklet_script(
-                global.pipeline_id(),
+                self.window.pipeline_id(),
                 self.droppable_field.worklet_id,
                 self.global_type,
                 self.window.origin().immutable().clone(),
-                global.api_base_url(),
+                self.window.as_global_scope().api_base_url(),
                 module_url_record,
                 options.credentials,
                 pending_tasks_struct,

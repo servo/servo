@@ -571,13 +571,15 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
     #[allow(unsafe_code)]
     fn WhenDefined(&self, name: DOMString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let global_scope = self.window.upcast::<GlobalScope>();
         let name = LocalName::from(&*name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new_in_current_realm(comp, can_gc);
-            promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
+            promise.reject_native(&DOMException::new(
+                self.window.as_global_scope(),
+                DOMErrorName::SyntaxError,
+            ));
             return promise;
         }
 
@@ -733,7 +735,7 @@ impl CustomElementDefinition {
         // https://html.spec.whatwg.org/multipage/#clean-up-after-running-script
         if is_execution_stack_empty() {
             window
-                .upcast::<GlobalScope>()
+                .as_global_scope()
                 .perform_a_microtask_checkpoint(can_gc);
         }
 
@@ -925,7 +927,7 @@ fn run_upgrade_constructor(
         // https://html.spec.whatwg.org/multipage/#clean-up-after-running-script
         if is_execution_stack_empty() {
             window
-                .upcast::<GlobalScope>()
+                .as_global_scope()
                 .perform_a_microtask_checkpoint(can_gc);
         }
 

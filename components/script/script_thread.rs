@@ -671,7 +671,7 @@ impl ScriptThread {
                     None => return,
                     Some(window) => window,
                 };
-                let global = window.upcast::<GlobalScope>();
+                let global = window.as_global_scope();
                 let trusted_global = Trusted::new(global);
                 let sender = script_thread
                     .senders
@@ -1033,7 +1033,7 @@ impl ScriptThread {
         let docs = self.documents.borrow();
         for (_, document) in docs.iter() {
             document
-                .window()
+                .owner_global()
                 .task_manager()
                 .cancel_all_tasks_and_ignore_future_tasks();
         }
@@ -1218,8 +1218,7 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::GamepadEvent(gamepad_event) => {
-                    let global = window.upcast::<GlobalScope>();
-                    global.handle_gamepad_event(gamepad_event);
+                    window.as_global_scope().handle_gamepad_event(gamepad_event);
                 },
             }
         }
@@ -1410,7 +1409,7 @@ impl ScriptThread {
         // rendering update when animations are not running.
         let _realm = enter_realm(&*document);
         document
-            .window()
+            .owner_global()
             .task_manager()
             .rendering_task_source()
             .queue_unconditionally(task!(update_the_rendering: move || { }));
@@ -2098,7 +2097,7 @@ impl ScriptThread {
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
                 Some(window) => {
-                    let global = window.upcast::<GlobalScope>();
+                    let global = window.as_global_scope();
                     let _aes = AutoEntryScript::new(global);
                     devtools::handle_evaluate_js(global, s, reply, can_gc)
                 },
@@ -3697,11 +3696,8 @@ impl ScriptThread {
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let entry = PerformancePaintTiming::new(
-                window.upcast::<GlobalScope>(),
-                metric_type,
-                metric_value,
-            );
+            let entry =
+                PerformancePaintTiming::new(window.as_global_scope(), metric_type, metric_value);
             window
                 .Performance()
                 .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);

@@ -20,7 +20,7 @@ use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::node::NodeTraits;
-use crate::dom::types::{Element, GlobalScope};
+use crate::dom::types::Element;
 use crate::script_runtime::CanGc;
 
 bitflags::bitflags! {
@@ -412,12 +412,12 @@ pub fn follow_hyperlink(
         let referrer = if relations.contains(LinkRelations::NO_REFERRER) {
             Referrer::NoReferrer
         } else {
-            target_window.upcast::<GlobalScope>().get_referrer()
+            target_window.as_global_scope().get_referrer()
         };
 
         // Step 14
-        let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
-        let secure = target_window.upcast::<GlobalScope>().is_secure_context();
+        let pipeline_id = target_window.as_global_scope().pipeline_id();
+        let secure = target_window.as_global_scope().is_secure_context();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
@@ -431,7 +431,8 @@ pub fn follow_hyperlink(
             debug!("following hyperlink to {}", load_data.url);
             target.root().load_url(history_handling, false, load_data, CanGc::note());
         });
-        target_window
+        target_document
+            .owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task);

@@ -45,6 +45,7 @@ use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 use xml5ever::serialize as xml_serialize;
 
+use super::globalscope::GlobalScope;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
@@ -3346,6 +3347,10 @@ pub(crate) trait NodeTraits {
     /// differ from the [`Document`] that the node was created in if it was adopted by a
     /// different [`Document`] (the owner).
     fn owner_window(&self) -> DomRoot<Window>;
+    /// Get the [`GlobalScope`] of the [`Document`] that owns this node. Note that this may
+    /// differ from the [`GlobalScope`] that the node was created in if it was adopted by a
+    /// different [`Document`] (the owner).
+    fn owner_global(&self) -> DomRoot<GlobalScope>;
     /// If this [`Node`] is contained in a [`ShadowRoot`] return it, otherwise `None`.
     fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>>;
     /// Get the stylesheet owner for this node: either the [`Document`] or the [`ShadowRoot`]
@@ -3361,6 +3366,10 @@ impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
 
     fn owner_window(&self) -> DomRoot<Window> {
         DomRoot::from_ref(self.owner_document().window())
+    }
+
+    fn owner_global(&self) -> DomRoot<GlobalScope> {
+        DomRoot::from_ref(self.owner_window().upcast())
     }
 
     fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {

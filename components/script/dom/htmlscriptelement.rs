@@ -474,7 +474,7 @@ impl FetchResponseListener for ClassicContext {
                 script_kind: self.kind,
                 final_url,
                 url: self.url.clone(),
-                task_source: global.task_manager().dom_manipulation_task_source(),
+                task_source: elem.owner_global().task_manager().dom_manipulation_task_source(),
                 script_text: source_string,
                 fetch_options: self.fetch_options.clone(),
             });
@@ -997,16 +997,17 @@ impl HTMLScriptElement {
             self.line_number as u32
         };
         rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-        let global = window.upcast::<GlobalScope>();
-        global.evaluate_script_on_global_with_result(
-            &script.code,
-            script.url.as_str(),
-            rval.handle_mut(),
-            line_number,
-            script.fetch_options.clone(),
-            script.url.clone(),
-            can_gc,
-        );
+        window
+            .as_global_scope()
+            .evaluate_script_on_global_with_result(
+                &script.code,
+                script.url.as_str(),
+                rval.handle_mut(),
+                line_number,
+                script.fetch_options.clone(),
+                script.url.clone(),
+                can_gc,
+            );
     }
 
     #[allow(unsafe_code)]
@@ -1021,7 +1022,7 @@ impl HTMLScriptElement {
 
         // Step 4
         let window = self.owner_window();
-        let global = window.upcast::<GlobalScope>();
+        let global = window.as_global_scope();
         let _aes = AutoEntryScript::new(global);
 
         let tree = if script.external {
@@ -1065,7 +1066,7 @@ impl HTMLScriptElement {
     }
 
     pub fn queue_error_event(&self) {
-        self.owner_window()
+        self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue_simple_event(self.upcast(), atom!("error"));

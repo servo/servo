@@ -100,7 +100,9 @@ pub trait DomObject: JSTraceable + 'static {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
 
-    /// Returns the global scope of the realm that the DomObject was created in.
+    /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
+    /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
+    /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
     fn global(&self) -> DomRoot<GlobalScope>
     where
         Self: Sized,

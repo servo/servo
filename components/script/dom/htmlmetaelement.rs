@@ -23,7 +23,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{DeclarativeRefresh, Document};
 use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::location::NavigationType;
@@ -207,7 +206,7 @@ impl HTMLMetaElement {
         if document.completely_loaded() {
             // TODO: handle active sandboxing flag
             let window = self.owner_window();
-            window.upcast::<GlobalScope>().schedule_callback(
+            window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: window.clone(),
                     url: url_record,

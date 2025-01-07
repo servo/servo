@@ -89,9 +89,8 @@ impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
         type_: DOMString,
         init: &MediaQueryListEventInit,
     ) -> Fallible<DomRoot<MediaQueryListEvent>> {
-        let global = window.upcast::<GlobalScope>();
         Ok(MediaQueryListEvent::new_with_proto(
-            global,
+            window.as_global_scope(),
             proto,
             Atom::from(type_),
             init.parent.bubbles,

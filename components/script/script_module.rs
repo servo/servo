@@ -942,7 +942,7 @@ pub(crate) enum ModuleOwner {
 }
 
 impl ModuleOwner {
-    pub fn global(&self) -> DomRoot<GlobalScope> {
+    pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
             ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
             ModuleOwner::Window(script) => (*script.root()).global(),

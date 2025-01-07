@@ -133,7 +133,7 @@ impl HTMLStyleElement {
 
         // No subresource loads were triggered, queue load event
         if self.pending_loads.get() == 0 {
-            self.owner_window()
+            self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
                 .queue_simple_event(self.upcast(), atom!("load"));

@@ -155,7 +155,6 @@ use crate::microtask::MicrotaskQueue;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext, Runtime, ScriptChan, ScriptPort};
 use crate::script_thread::ScriptThread;
-use crate::task_manager::TaskManager;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::jsval_to_webdriver;
@@ -384,6 +383,10 @@ pub struct Window {
 }
 
 impl Window {
+    pub(crate) fn as_global_scope(&self) -> &GlobalScope {
+        self.upcast::<GlobalScope>()
+    }
+
     pub fn layout(&self) -> Ref<Box<dyn Layout>> {
         self.layout.borrow()
     }
@@ -402,13 +405,14 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn clear_js_runtime_for_script_deallocation(&self) {
-        self.upcast::<GlobalScope>()
+        self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             self.window_proxy.set(None);
             self.current_state.set(WindowState::Zombie);
-            self.task_manager()
+            self.as_global_scope()
+                .task_manager()
                 .cancel_all_tasks_and_ignore_future_tasks();
         }
     }
@@ -424,7 +428,8 @@ impl Window {
         // Step 4 of https://html.spec.whatwg.org/multipage/#discard-a-document
         // Other steps performed when the `PipelineExit` message
         // is handled by the ScriptThread.
-        self.task_manager()
+        self.as_global_scope()
+            .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
     }
 
@@ -561,10 +566,6 @@ impl Window {
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
     pub fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) -> EventStatus {
         event.dispatch(self.upcast(), true, can_gc)
-    }
-
-    pub(crate) fn task_manager(&self) -> &TaskManager {
-        self.upcast::<GlobalScope>().task_manager()
     }
 }
 
@@ -819,7 +820,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                         window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
                     }
                 });
-                self.global()
+                self.as_global_scope()
                     .task_manager()
                     .dom_manipulation_task_source()
                     .queue(task);
@@ -864,7 +865,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.upcast::<GlobalScope>().crypto()
+        self.as_global_scope().crypto()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
@@ -908,7 +909,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
             StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
+        self.as_global_scope().set_timeout_or_interval(
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
@@ -918,8 +919,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.upcast::<GlobalScope>()
-            .clear_timeout_or_interval(handle);
+        self.as_global_scope().clear_timeout_or_interval(handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -934,7 +934,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             StringOrFunction::String(i) => TimerCallback::StringTimerCallback(i),
             StringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
-        self.upcast::<GlobalScope>().set_timeout_or_interval(
+        self.as_global_scope().set_timeout_or_interval(
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
@@ -949,8 +949,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-queuemicrotask
     fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        self.upcast::<GlobalScope>()
-            .queue_function_as_microtask(callback);
+        self.as_global_scope().queue_function_as_microtask(callback);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-createimagebitmap
@@ -961,7 +960,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let p = self
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .create_image_bitmap(image, options, can_gc);
         p
     }
@@ -1011,10 +1010,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self) -> DomRoot<Performance> {
-        self.performance.or_init(|| {
-            let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start.get())
-        })
+        self.performance
+            .or_init(|| Performance::new(self.as_global_scope(), self.navigation_start.get()))
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -1415,7 +1412,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     fn IsSecureContext(&self) -> bool {
-        self.upcast::<GlobalScope>().is_secure_context()
+        self.as_global_scope().is_secure_context()
     }
 
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
@@ -1587,7 +1584,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: RootedTraceableBox<StructuredSerializeOptions>,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
-        self.upcast::<GlobalScope>()
+        self.as_global_scope()
             .structured_clone(cx, value, options, retval)
     }
 }
@@ -1652,7 +1649,7 @@ impl Window {
     }
 
     pub fn clear_js_runtime(&self) {
-        self.upcast::<GlobalScope>()
+        self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
 
         // Clean up any active promises
@@ -1681,7 +1678,7 @@ impl Window {
         // If this is the currently active pipeline,
         // nullify the window_proxy.
         if let Some(proxy) = self.window_proxy.get() {
-            let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+            let pipeline_id = self.pipeline_id();
             if let Some(currently_active) = proxy.currently_active() {
                 if currently_active == pipeline_id {
                     self.window_proxy.set(None);
@@ -1692,7 +1689,8 @@ impl Window {
         if let Some(performance) = self.performance.get() {
             performance.clear_and_disable_performance_entry_buffer();
         }
-        self.task_manager()
+        self.as_global_scope()
+            .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
     }
 
@@ -1733,7 +1731,7 @@ impl Window {
         self.perform_a_scroll(
             x,
             y,
-            self.upcast::<GlobalScope>().pipeline_id().root_scroll_id(),
+            self.pipeline_id().root_scroll_id(),
             behavior,
             None,
             can_gc,
@@ -1791,10 +1789,9 @@ impl Window {
     /// layout animation clock.
     #[allow(unsafe_code)]
     pub fn advance_animation_clock(&self, delta_ms: i32) {
-        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         self.Document()
             .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
-        ScriptThread::handle_tick_all_animations_for_testing(pipeline_id);
+        ScriptThread::handle_tick_all_animations_for_testing(self.pipeline_id());
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This method will wait for
@@ -1818,7 +1815,7 @@ impl Window {
         // layouts (for queries and scrolling) are not blocked, as they do not display
         // anything and script excpects the layout to be up-to-date after they run.
         let layout_blocked = self.layout_blocker.get().layout_blocked();
-        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+        let pipeline_id = self.pipeline_id();
         if reflow_goal == ReflowGoal::UpdateTheRendering && layout_blocked {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
             return false;
@@ -2339,7 +2336,8 @@ impl Window {
                         CanGc::note());
                     event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
                 });
-                self.task_manager()
+                self.as_global_scope()
+                    .task_manager()
                     .dom_manipulation_task_source()
                     .queue(task);
                 doc.set_url(load_data.url.clone());
@@ -2347,9 +2345,8 @@ impl Window {
             }
         }
 
-        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-
         // Step 4 and 5
+        let pipeline_id = self.pipeline_id();
         let window_proxy = self.window_proxy();
         if let Some(active) = window_proxy.currently_active() {
             if pipeline_id == active && doc.is_prompting_or_unloading() {
@@ -2476,7 +2473,7 @@ impl Window {
 
     pub fn suspend(&self) {
         // Suspend timer events.
-        self.upcast::<GlobalScope>().suspend();
+        self.as_global_scope().suspend();
 
         // Set the window proxy to be a cross-origin window.
         if self.window_proxy().currently_active() == Some(self.global().pipeline_id()) {
@@ -2492,7 +2489,7 @@ impl Window {
 
     pub fn resume(&self) {
         // Resume timer events.
-        self.upcast::<GlobalScope>().resume();
+        self.as_global_scope().resume();
 
         // Set the window proxy to be this object.
         self.window_proxy().set_currently_active(self);
@@ -2620,9 +2617,9 @@ impl Window {
     pub fn set_throttled(&self, throttled: bool) {
         self.throttled.set(throttled);
         if throttled {
-            self.upcast::<GlobalScope>().slow_down_timers();
+            self.as_global_scope().slow_down_timers();
         } else {
-            self.upcast::<GlobalScope>().speed_up_timers();
+            self.as_global_scope().speed_up_timers();
         }
     }
 
@@ -2647,7 +2644,7 @@ impl Window {
     }
 
     pub fn send_to_constellation(&self, msg: ScriptMsg) {
-        self.upcast::<GlobalScope>()
+        self.as_global_scope()
             .script_to_constellation_chan()
             .send(msg)
             .unwrap();
@@ -2807,8 +2804,8 @@ impl Window {
         Box::new(self.script_chan.clone())
     }
 
-    pub fn pipeline_id(&self) -> PipelineId {
-        self.upcast::<GlobalScope>().pipeline_id()
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.as_global_scope().pipeline_id()
     }
 
     /// Create a new cached instance of the given value.
@@ -2951,7 +2948,8 @@ impl Window {
             }
         });
         // TODO(#12718): Use the "posted message task source".
-        self.task_manager()
+        self.as_global_scope()
+            .task_manager()
             .dom_manipulation_task_source()
             .queue(task);
     }

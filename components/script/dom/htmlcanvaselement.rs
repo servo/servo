@@ -42,7 +42,6 @@ use crate::dom::canvasrenderingcontext2d::{
 };
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
-use crate::dom::globalscope::GlobalScope;
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
@@ -197,9 +196,10 @@ impl HTMLCanvasElement {
                 _ => None,
             };
         }
+
         let window = self.owner_window();
         let size = self.get_size();
-        let context = CanvasRenderingContext2D::new(window.upcast::<GlobalScope>(), self, size);
+        let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size);
         *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -271,16 +271,15 @@ impl HTMLCanvasElement {
             };
         }
         let (sender, receiver) = ipcchan::channel().unwrap();
-        let _ = self
-            .global()
+        let global_scope = self.owner_global();
+        let _ = global_scope
             .script_to_constellation_chan()
             .send(ScriptMsg::GetWebGPUChan(sender));
         receiver
             .recv()
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
-                let window = self.owner_window();
-                let context = GPUCanvasContext::new(window.upcast::<GlobalScope>(), self, channel);
+                let context = GPUCanvasContext::new(&global_scope, self, channel);
                 *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
                 context
             })

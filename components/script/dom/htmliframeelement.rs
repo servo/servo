@@ -185,9 +185,8 @@ impl HTMLIFrameElement {
         let new_pipeline_id = PipelineId::new();
         self.pending_pipeline_id.set(Some(new_pipeline_id));
 
-        let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
-            parent_pipeline_id: global_scope.pipeline_id(),
+            parent_pipeline_id: window.pipeline_id(),
             browsing_context_id,
             top_level_browsing_context_id,
             new_pipeline_id,
@@ -214,13 +213,14 @@ impl HTMLIFrameElement {
                     sandbox: sandboxed,
                     window_size,
                 };
-                global_scope
+                window
+                    .as_global_scope()
                     .script_to_constellation_chan()
                     .send(ScriptMsg::ScriptNewIFrame(load_info))
                     .unwrap();
 
                 let new_layout_info = NewLayoutInfo {
-                    parent_info: Some(global_scope.pipeline_id()),
+                    parent_info: Some(window.pipeline_id()),
                     new_pipeline_id,
                     browsing_context_id,
                     top_level_browsing_context_id,
@@ -240,7 +240,8 @@ impl HTMLIFrameElement {
                     sandbox: sandboxed,
                     window_size,
                 };
-                global_scope
+                window
+                    .as_global_scope()
                     .script_to_constellation_chan()
                     .send(ScriptMsg::ScriptLoadedURLInIFrame(load_info))
                     .unwrap();
@@ -258,14 +259,14 @@ impl HTMLIFrameElement {
             let url = ServoUrl::parse("about:srcdoc").unwrap();
             let document = self.owner_document();
             let window = self.owner_window();
-            let pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
+            let pipeline_id = Some(window.pipeline_id());
             let mut load_data = LoadData::new(
                 LoadOrigin::Script(document.origin().immutable().clone()),
                 url,
                 pipeline_id,
-                window.upcast::<GlobalScope>().get_referrer(),
+                window.as_global_scope().get_referrer(),
                 document.get_referrer_policy(),
-                Some(window.upcast::<GlobalScope>().is_secure_context()),
+                Some(window.as_global_scope().is_secure_context()),
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -344,7 +345,7 @@ impl HTMLIFrameElement {
         }
 
         let creator_pipeline_id = if url.as_str() == "about:blank" {
-            Some(window.upcast::<GlobalScope>().pipeline_id())
+            Some(window.pipeline_id())
         } else {
             None
         };
@@ -353,9 +354,9 @@ impl HTMLIFrameElement {
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             creator_pipeline_id,
-            window.upcast::<GlobalScope>().get_referrer(),
+            window.as_global_scope().get_referrer(),
             referrer_policy,
-            Some(window.upcast::<GlobalScope>().is_secure_context()),
+            Some(window.as_global_scope().is_secure_context()),
         );
 
         let pipeline_id = self.pipeline_id();
@@ -392,14 +393,14 @@ impl HTMLIFrameElement {
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = self.owner_document();
         let window = self.owner_window();
-        let pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
+        let pipeline_id = Some(window.pipeline_id());
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             pipeline_id,
-            window.upcast::<GlobalScope>().get_referrer(),
+            window.as_global_scope().get_referrer(),
             document.get_referrer_policy(),
-            Some(window.upcast::<GlobalScope>().is_secure_context()),
+            Some(window.as_global_scope().is_secure_context()),
         );
         let browsing_context_id = BrowsingContextId::new();
         let top_level_browsing_context_id = window.window_proxy().top_level_browsing_context_id();
@@ -777,7 +778,7 @@ impl VirtualMethods for HTMLIFrameElement {
 
         let msg = ScriptMsg::RemoveIFrame(browsing_context_id, sender);
         window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .send(msg)
             .unwrap();
