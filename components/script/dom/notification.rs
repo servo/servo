@@ -204,10 +204,16 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         Ok(notification)
     }
 
-    /// <https://notifications.spec.whatwg.org/#dom-notification-permission>
-    fn GetPermission(_global: &GlobalScope) -> Fallible<NotificationPermission> {
-        todo!()
+    /// <https://notifications.spec.whatwg.org/#get-the-notifications-permission-state>
+    fn GetPermission(global: &GlobalScope) -> Fallible<NotificationPermission> {
+        let state = get_descriptor_permission_state(PermissionName::Notifications, Some(global));
+        match state {
+            PermissionState::Granted => Ok(NotificationPermission::Granted),
+            PermissionState::Denied => Ok(NotificationPermission::Denied),
+            PermissionState::Prompt => Ok(NotificationPermission::Default),
+        }
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
     fn RequestPermission(
         _global: &GlobalScope,
