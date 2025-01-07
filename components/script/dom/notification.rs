@@ -8,11 +8,13 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
+use num_traits::ToPrimitive;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use super::bindings::codegen::Bindings::NotificationBinding::{
     NotificationAction, NotificationOptions,
 };
+use super::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use super::bindings::reflector::reflect_dom_object_with_proto;
 use super::bindings::str::USVString;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
@@ -55,6 +57,7 @@ pub struct Notification {
     origin: ImmutableOrigin,
     // TODO: vibrate not implemented yet
     // vibrate: Option<UnionTypes::UnsignedLongOrUnsignedLongSequence>,
+    timestamp: u64,
     renotify: bool,
     require_interaction: bool,
     #[ignore_malloc_size_of = "NotificationAction"] // malloc not implement for NotificationAction
@@ -72,8 +75,16 @@ impl Notification {
         options: RootedTraceableBox<NotificationOptions>,
         origin: Option<ImmutableOrigin>,
         base_url: Option<ServoUrl>,
+        fallback_timestamp: u64,
     ) -> Fallible<DomRoot<Self>> {
-        let notification = Notification::new_inherited(global, title, options, origin, base_url)?;
+        let notification = Notification::new_inherited(
+            global,
+            title,
+            options,
+            origin,
+            base_url,
+            fallback_timestamp,
+        )?;
         Ok(reflect_dom_object_with_proto(
             Box::new(notification),
             global,
@@ -89,6 +100,7 @@ impl Notification {
         options: RootedTraceableBox<NotificationOptions>,
         origin: Option<ImmutableOrigin>,
         base_url: Option<ServoUrl>,
+        fallback_timestamp: u64,
     ) -> Fallible<Self> {
         if options.silent.is_some() && options.vibrate.is_some() {
             return Err(Error::Type(
@@ -127,7 +139,7 @@ impl Notification {
 
         // TODO: vibrate not implemented yet
         // let vibrate = options.vibrate;
-
+        let timestamp = options.timestamp.unwrap_or(fallback_timestamp);
         let renotify = options.renotify;
         let silent = options.silent;
         let require_interaction = options.requireInteraction;
@@ -157,6 +169,7 @@ impl Notification {
             lang,
             silent,
             origin,
+            timestamp,
             renotify,
             tag,
             require_interaction,
@@ -187,7 +200,17 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
         // step 3: Create a notification with a settings object
         // https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object
-        let notification = Notification::new(global, proto, can_gc, title, options, None, None)?;
+        let fallback_timestamp = global.performance().Now().to_u64().unwrap();
+        let notification = Notification::new(
+            global,
+            proto,
+            can_gc,
+            title,
+            options,
+            None,
+            None,
+            fallback_timestamp,
+        )?;
 
         // step 5.1: Check permission
         let state = get_descriptor_permission_state(PermissionName::Notifications, Some(global));
@@ -301,6 +324,14 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
     fn Actions(&self, cx: SafeJSContext, retval: MutableHandleValue) {
         to_frozen_array(self.actions.as_slice(), cx, retval);
+    }
+    /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
+    fn Vibrate(&self, _cx: SafeJSContext, _retval: MutableHandleValue) {
+        todo!()
+    }
+    /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
+    fn Timestamp(&self) -> u64 {
+        self.timestamp
     }
     /// <https://notifications.spec.whatwg.org/#close-steps>
     // TODO: close persistent notification

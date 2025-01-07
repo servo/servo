@@ -53,9 +53,10 @@ interface Notification : EventTarget {
   [Constant]
   readonly attribute boolean? silent;
 
-  // TODO: Vibration API is not implemented yet.
   // [Cached, Frozen, Pure]
-  // readonly attribute /*FrozenArray<<unsigned long>*/any vibrate;
+  readonly attribute /*FrozenArray<<unsigned long>*/any vibrate;
+
+  readonly attribute EpochTimeStamp timestamp;
 
   [Constant]
   readonly attribute any data;
@@ -66,7 +67,8 @@ interface Notification : EventTarget {
   undefined close();
 };
 
-// TODO: Vibration API is not implemented yet.
+// <https://w3c.github.io/hr-time/#dom-epochtimestamp>
+typedef unsigned long long EpochTimeStamp;
 typedef (unsigned long or sequence<unsigned long>) VibratePattern;
 
 dictionary NotificationOptions {
@@ -77,10 +79,8 @@ dictionary NotificationOptions {
   USVString image;
   USVString icon;
   USVString badge;
-  // TODO: Vibration API is not implemented yet.
   VibratePattern vibrate;
-  // TODO: EpochTimeStamp is not implemented yet.
-  // EpochTimeStamp timestamp;
+  EpochTimeStamp timestamp;
   boolean renotify = false;
   boolean? silent = null;
   boolean requireInteraction = false;
