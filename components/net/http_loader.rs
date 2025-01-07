@@ -737,7 +737,7 @@ pub async fn http_fetch(
     let request = &mut fetch_params.request;
 
     // Step 2
-    // nothing to do, since actual_response is a function on response
+    // Let response and internalResponse be null.
     let mut response: Option<Response> = None;
 
     // Step 3
