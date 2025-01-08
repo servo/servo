@@ -3230,6 +3230,7 @@ impl GlobalScope {
         fetch_async(
             &self.core_resource_thread(),
             request_builder,
+            None,
             cancellation_receiver,
             network_listener.into_callback(),
         );

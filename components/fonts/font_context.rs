@@ -661,6 +661,7 @@ impl RemoteWebFontDownloader {
             &core_resource_thread_clone,
             request,
             None,
+            None,
             Box::new(move |response_message| {
                 match downloader.handle_web_font_fetch_message(response_message) {
                     DownloaderResponseResult::InProcess => {},

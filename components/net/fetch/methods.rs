@@ -28,8 +28,8 @@ use net_traits::request::{
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
-    FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, ResourceTimingType,
+    set_default_accept_language, FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute,
+    ResourceFetchTiming, ResourceTimeValue, ResourceTimingType,
 };
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
@@ -40,10 +40,7 @@ use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as T
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
-use crate::http_loader::{
-    determine_requests_referrer, http_fetch, set_default_accept, set_default_accept_language,
-    HttpState,
-};
+use crate::http_loader::{determine_requests_referrer, http_fetch, set_default_accept, HttpState};
 use crate::protocols::ProtocolRegistry;
 use crate::subresource_integrity::is_response_integrity_valid;
 

@@ -150,7 +150,6 @@ mod from_script {
                 },
                 Self::ScheduleBroadcast(..) => target!("ScheduleBroadcast"),
                 Self::ForwardToEmbedder(msg) => msg.log_target(),
-                Self::InitiateNavigateRequest(..) => target!("InitiateNavigateRequest"),
                 Self::BroadcastStorageEvent(..) => target!("BroadcastStorageEvent"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),

@@ -48,6 +48,7 @@ mod mem;
 #[allow(unsafe_code)]
 pub mod messaging;
 mod microtask;
+mod navigation;
 mod network_listener;
 mod realms;
 mod script_module;

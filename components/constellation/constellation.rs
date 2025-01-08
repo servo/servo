@@ -129,9 +129,9 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use log::{debug, error, info, trace, warn};
 use media::{GLPlayerThreads, WindowGLContext};
 use net_traits::pub_domains::reg_host;
-use net_traits::request::{Referrer, RequestBuilder};
+use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, FetchResponseMsg, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
@@ -166,7 +166,6 @@ use crate::browsingcontext::{
     NewBrowsingContextInfo,
 };
 use crate::event_loop::EventLoop;
-use crate::network_listener::NetworkListener;
 use crate::pipeline::{InitialPipelineState, Pipeline};
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
@@ -316,12 +315,6 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to receive messages from layout.
     /// This is the constellation's view of `layout_sender`.
     layout_receiver: Receiver<Result<FromLayoutMsg, IpcError>>,
-
-    /// A channel for network listener to send messages to the constellation.
-    network_listener_sender: Sender<(PipelineId, FetchResponseMsg)>,
-
-    /// A channel for the constellation to receive messages from network listener.
-    network_listener_receiver: Receiver<(PipelineId, FetchResponseMsg)>,
 
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
@@ -685,8 +678,6 @@ where
                         layout_ipc_receiver,
                     );
 
-                let (network_listener_sender, network_listener_receiver) = unbounded();
-
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
                         swmanager_ipc_receiver,
@@ -715,8 +706,6 @@ where
                     compositor_receiver,
                     layout_factory,
                     layout_receiver,
-                    network_listener_sender,
-                    network_listener_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
@@ -1156,15 +1145,12 @@ where
     )]
     fn handle_request(&mut self) {
         #[derive(Debug)]
-        // FIXME: https://github.com/servo/servo/issues/34591
-        #[expect(clippy::large_enum_variant)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
             Script((PipelineId, FromScriptMsg)),
             BackgroundHangMonitor(HangMonitorAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
         }
         // Get one incoming request.
@@ -1198,11 +1184,6 @@ where
                 recv(self.layout_receiver) -> msg => {
                     msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout)
                 }
-                recv(self.network_listener_receiver) -> msg => {
-                    Ok(Request::NetworkListener(
-                        msg.expect("Unexpected network listener channel panic in constellation")
-                    ))
-                }
                 recv(self.swmanager_receiver) -> msg => {
                     msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
                 }
@@ -1227,9 +1208,6 @@ where
             },
             Request::Layout(message) => {
                 self.handle_request_from_layout(message);
-            },
-            Request::NetworkListener(message) => {
-                self.handle_request_from_network_listener(message);
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
@@ -1260,26 +1238,6 @@ where
                 // via the embedder?
                 warn!("Component hang alert: {:?}", hang);
             },
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {
-        let (id, message_) = message;
-        let result = match self.pipelines.get(&id) {
-            Some(pipeline) => {
-                let msg = ConstellationControlMsg::NavigationResponse(id, message_);
-                pipeline.event_loop.send(msg)
-            },
-            None => {
-                return warn!("{}: Got fetch data after closure!", id);
-            },
-        };
-        if let Err(e) = result {
-            self.handle_send_error(id, e);
         }
     }
 
@@ -1614,10 +1572,6 @@ where
             },
             FromScriptMsg::DiscardTopLevelBrowsingContext => {
                 self.handle_close_top_level_browsing_context(source_top_ctx_id);
-            },
-
-            FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
-                self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
             },
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
@@ -3200,26 +3154,6 @@ where
         if let Err(e) = result {
             self.handle_send_error(parent_pipeline_id, e);
         }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_navigate_request(
-        &self,
-        id: PipelineId,
-        request_builder: RequestBuilder,
-        cancel_chan: IpcReceiver<()>,
-    ) {
-        let listener = NetworkListener::new(
-            request_builder,
-            id,
-            self.public_resource_threads.clone(),
-            self.network_listener_sender.clone(),
-        );
-
-        listener.initiate_fetch(Some(cancel_chan));
     }
 
     // The script thread associated with pipeline_id has loaded a URL in an
