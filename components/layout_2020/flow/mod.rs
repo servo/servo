@@ -143,7 +143,6 @@ impl BlockLevelBox {
             return false;
         }
 
-        // FIXME: For BlockLevelBox::Independent, this should take floats into account.
         let available_inline_size =
             containing_block.size.inline - pbm.padding_border_sums.inline - margin.inline_sum();
         let available_block_size = containing_block.size.block.non_auto().map(|block_size| {
