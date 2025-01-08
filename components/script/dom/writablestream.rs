@@ -178,7 +178,18 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
         let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
 
-        // TODO: Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink
+        // Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink
+        let controller = WritableStreamDefaultController::new(
+            global,
+            &underlying_sink_dict,
+            high_water_mark,
+            size_algorithm,
+            can_gc,
+        );
+        
+        // Note: this must be done before `setup`,
+        // otherwise `thisOb` is null in the start callback.
+        controller.set_underlying_sink_this_object(underlying_sink_obj.handle());
 
         Ok(stream)
     }
