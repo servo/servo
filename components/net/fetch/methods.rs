@@ -409,7 +409,7 @@ pub async fn main_fetch(
         return response;
     }
 
-    // shadow the mutable request because without this I get an error related to double mutable borrow
+    // reborrow request to avoid double mutable borrow
     let request = &mut fetch_params.request;
 
     // Step 14.
