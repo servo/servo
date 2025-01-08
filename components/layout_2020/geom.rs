@@ -899,18 +899,6 @@ impl Sizes {
         }
     }
 
-    #[inline]
-    pub(crate) fn depends_on_available_space(&self) -> bool {
-        // TODO: this logic could be refined further, since even if some of the 3 sizes
-        // depends on the available space, the resulting size might not. For example,
-        // `min-width: 200px; width: 100px; max-width: stretch`.
-        matches!(
-            self.preferred,
-            Size::Initial | Size::Stretch | Size::FitContent
-        ) || matches!(self.min, Size::Stretch | Size::FitContent) ||
-            matches!(self.max, Size::Stretch | Size::FitContent)
-    }
-
     /// Resolves the three sizes into a single numerical value.
     #[inline]
     pub(crate) fn resolve(
