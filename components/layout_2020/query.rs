@@ -35,6 +35,7 @@ use style::traversal::resolve_style;
 use style::values::computed::Float;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::DisplayInside;
+use style::values::specified::GenericGridTemplateComponent;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
@@ -300,7 +301,6 @@ fn resolve_grid_template(
             .map(|size| Au::from_f32_px(*size).to_css_string())
             .join(" ")
     }
-    pub(crate) use style::values::specified::GenericGridTemplateComponent;
 
     let (track_info, specified_value) = match longhand_id {
         LonghandId::GridTemplateRows => (&grid_info.rows, &style.get_position().grid_template_rows),
