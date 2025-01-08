@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
@@ -276,10 +277,8 @@ pub(crate) trait ComputedValuesExt {
         writing_mode: WritingMode,
         containing_block_inline_size: Au,
     ) -> PaddingBorderMargin;
-    fn padding(
-        &self,
-        containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage>;
+    fn padding(&self, containing_block_writing_mode: WritingMode)
+        -> LogicalSides<LengthPercentage>;
     fn border_style(&self, containing_block_writing_mode: WritingMode)
         -> LogicalSides<BorderStyle>;
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
@@ -579,14 +578,21 @@ impl ComputedValuesExt for ComputedValues {
     fn padding(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage> {
-        let padding = self.get_padding();
+    ) -> LogicalSides<LengthPercentage> {
+        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
+            self.get_inherited_table().border_collapse == BorderCollapse::Collapse
+        {
+            // https://drafts.csswg.org/css-tables/#collapsed-style-overrides
+            // > The padding of the table-root is ignored (as if it was set to 0px).
+            return LogicalSides::zero();
+        }
+        let padding = self.get_padding().clone();
         LogicalSides::from_physical(
             &PhysicalSides::new(
-                &padding.padding_top.0,
-                &padding.padding_right.0,
-                &padding.padding_bottom.0,
-                &padding.padding_left.0,
+                padding.padding_top.0,
+                padding.padding_right.0,
+                padding.padding_bottom.0,
+                padding.padding_left.0,
             ),
             containing_block_writing_mode,
         )

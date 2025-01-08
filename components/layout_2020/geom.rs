@@ -343,7 +343,7 @@ impl<T: Copy> LogicalSides<T> {
     }
 }
 
-impl LogicalSides<&'_ LengthPercentage> {
+impl LogicalSides<LengthPercentage> {
     pub fn percentages_relative_to(&self, basis: Au) -> LogicalSides<Au> {
         self.map(|value| value.to_used_value(basis))
     }
