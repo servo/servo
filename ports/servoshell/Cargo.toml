@@ -65,6 +65,7 @@ getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
 mime_guess = { workspace = true }
 url = { workspace = true }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
