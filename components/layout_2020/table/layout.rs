@@ -753,11 +753,11 @@ impl<'a> TableLayout<'a> {
             .fold(ContentSizes::zero(), |result, measure| {
                 result + measure.content_sizes
             });
-
-        // TODO: GRIDMAX should never be smaller than GRIDMIN!
-        grid_min_max
-            .max_content
-            .max_assign(grid_min_max.min_content);
+        assert!(
+            grid_min_max.min_content <= grid_min_max.max_content,
+            "GRIDMAX should never be smaller than GRIDMIN {:?}",
+            grid_min_max
+        );
 
         let inline_border_spacing = self.table.total_border_spacing().inline;
         grid_min_max.min_content += inline_border_spacing;
