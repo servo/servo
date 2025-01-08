@@ -2,87 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crossbeam_channel::{select, Receiver, Sender};
+use crossbeam_channel::{select, Receiver};
 use devtools_traits::DevtoolScriptControlMsg;
 
-use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::dedicatedworkerglobalscope::{AutoWorkerReset, DedicatedWorkerScriptMsg};
+use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_realm;
-use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptChan, ScriptPort};
+use crate::script_runtime::CanGc;
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
-
-/// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
-/// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
-/// Worker object will remain alive.
-#[derive(Clone, JSTraceable)]
-pub struct SendableWorkerScriptChan {
-    #[no_trace]
-    pub sender: Sender<DedicatedWorkerScriptMsg>,
-    pub worker: TrustedWorkerAddress,
-}
-
-impl ScriptChan for SendableWorkerScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let msg = DedicatedWorkerScriptMsg::CommonWorker(
-            self.worker.clone(),
-            WorkerScriptMsg::Common(msg),
-        );
-        self.sender.send(msg).map_err(|_| ())
-    }
-
-    fn as_boxed(&self) -> Box<dyn ScriptChan> {
-        Box::new(SendableWorkerScriptChan {
-            sender: self.sender.clone(),
-            worker: self.worker.clone(),
-        })
-    }
-}
-
-/// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
-/// worker event loop messages. While this SendableWorkerScriptChan is alive, the associated
-/// Worker object will remain alive.
-#[derive(Clone, JSTraceable)]
-pub struct WorkerThreadWorkerChan {
-    #[no_trace]
-    pub sender: Sender<DedicatedWorkerScriptMsg>,
-    pub worker: TrustedWorkerAddress,
-}
-
-impl ScriptChan for WorkerThreadWorkerChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let msg = DedicatedWorkerScriptMsg::CommonWorker(
-            self.worker.clone(),
-            WorkerScriptMsg::Common(msg),
-        );
-        self.sender.send(msg).map_err(|_| ())
-    }
-
-    fn as_boxed(&self) -> Box<dyn ScriptChan> {
-        Box::new(WorkerThreadWorkerChan {
-            sender: self.sender.clone(),
-            worker: self.worker.clone(),
-        })
-    }
-}
-
-impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        let common_msg = match self.recv() {
-            Ok(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
-            Err(_) => return Err(()),
-            Ok(DedicatedWorkerScriptMsg::WakeUp) => panic!("unexpected worker event message!"),
-        };
-        match common_msg {
-            WorkerScriptMsg::Common(script_msg) => Ok(script_msg),
-            WorkerScriptMsg::DOMMessage { .. } => panic!("unexpected worker event message!"),
-        }
-    }
-}
 
 pub trait WorkerEventLoopMethods {
     type WorkerMsg: QueuedTaskConversion + Send;

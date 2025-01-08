@@ -33,6 +33,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -44,10 +45,9 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ThreadSafeJSContext,
-};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -128,28 +128,6 @@ pub enum MixedMessage {
     Timer,
 }
 
-#[derive(Clone, JSTraceable)]
-pub struct ServiceWorkerChan {
-    #[no_trace]
-    pub sender: Sender<ServiceWorkerScriptMsg>,
-}
-
-impl ScriptChan for ServiceWorkerChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.sender
-            .send(ServiceWorkerScriptMsg::CommonWorker(
-                WorkerScriptMsg::Common(msg),
-            ))
-            .map_err(|_| ())
-    }
-
-    fn as_boxed(&self) -> Box<dyn ScriptChan> {
-        Box::new(ServiceWorkerChan {
-            sender: self.sender.clone(),
-        })
-    }
-}
-
 #[dom_struct]
 pub struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
@@ -158,8 +136,6 @@ pub struct ServiceWorkerGlobalScope {
     #[no_trace]
     task_queue: TaskQueue<ServiceWorkerScriptMsg>,
 
-    #[ignore_malloc_size_of = "Defined in std"]
-    #[no_trace]
     own_sender: Sender<ServiceWorkerScriptMsg>,
 
     /// A port on which a single "time-out" message can be received,
@@ -485,10 +461,8 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
-    pub(crate) fn event_loop_sender(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(ServiceWorkerChan {
-            sender: self.own_sender.clone(),
-        })
+    pub(crate) fn event_loop_sender(&self) -> ScriptEventLoopSender {
+        ScriptEventLoopSender::ServiceWorker(self.own_sender.clone())
     }
 
     fn dispatch_activate(&self, can_gc: CanGc) {

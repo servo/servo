@@ -21,6 +21,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
 use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
@@ -40,8 +41,6 @@ pub struct WorkletGlobalScope {
     #[no_trace]
     base_url: ServoUrl,
     /// Sender back to the script thread
-    #[ignore_malloc_size_of = "channels are hard"]
-    #[no_trace]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Worklet task executor
     executor: WorkletExecutor,

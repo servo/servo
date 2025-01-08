@@ -27,9 +27,7 @@ use style::thread_state::{self, ThreadState};
 
 use crate::devtools;
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
-use crate::dom::abstractworkerglobalscope::{
-    run_worker_event_loop, SendableWorkerScriptChan, WorkerEventLoopMethods, WorkerThreadWorkerChan,
-};
+use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -41,7 +39,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -52,12 +50,10 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
-    ThreadSafeJSContext,
-};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 
@@ -182,14 +178,12 @@ pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<DedicatedWorkerScriptMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    #[no_trace]
     own_sender: Sender<DedicatedWorkerScriptMsg>,
     #[ignore_malloc_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
-    parent_sender: Box<dyn ScriptChan>,
+    parent_event_loop_sender: ScriptEventLoopSender,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
@@ -250,7 +244,7 @@ impl DedicatedWorkerGlobalScope {
         worker_url: ServoUrl,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
-        parent_sender: Box<dyn ScriptChan + Send>,
+        parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
@@ -273,7 +267,7 @@ impl DedicatedWorkerGlobalScope {
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
-            parent_sender,
+            parent_event_loop_sender,
             worker: DomRefCell::new(None),
             image_cache,
             browsing_context,
@@ -282,14 +276,14 @@ impl DedicatedWorkerGlobalScope {
     }
 
     #[allow(unsafe_code, clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
-        parent_sender: Box<dyn ScriptChan + Send>,
+        parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
@@ -306,7 +300,7 @@ impl DedicatedWorkerGlobalScope {
             worker_url,
             from_devtools_receiver,
             runtime,
-            parent_sender,
+            parent_event_loop_sender,
             own_sender,
             receiver,
             closing,
@@ -321,12 +315,12 @@ impl DedicatedWorkerGlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[allow(unsafe_code, clippy::too_many_arguments)]
-    pub fn run_worker_scope(
+    pub(crate) fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
         from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
-        parent_sender: Box<dyn ScriptChan + Send>,
+        parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         worker_load_origin: WorkerScriptLoadOrigin,
@@ -379,10 +373,10 @@ impl DedicatedWorkerGlobalScope {
 
                 let runtime = unsafe {
                     let task_source = SendableTaskSource {
-                        sender: Box::new(WorkerThreadWorkerChan {
+                        sender: ScriptEventLoopSender::DedicatedWorker {
                             sender: own_sender.clone(),
-                            worker: worker.clone(),
-                        }),
+                            main_thread_worker: worker.clone(),
+                        },
                         pipeline_id,
                         name: TaskSourceName::Networking,
                         canceller: Default::default(),
@@ -417,7 +411,7 @@ impl DedicatedWorkerGlobalScope {
                     worker_url,
                     devtools_mpsc_port,
                     runtime,
-                    parent_sender.as_boxed(),
+                    parent_event_loop_sender.clone(),
                     own_sender,
                     receiver,
                     closing,
@@ -442,7 +436,7 @@ impl DedicatedWorkerGlobalScope {
                 ) {
                     Err(_) => {
                         println!("error loading script {}", serialized_worker_url);
-                        parent_sender
+                        parent_event_loop_sender
                             .send(CommonScriptMsg::Task(
                                 WorkerEvent,
                                 Box::new(SimpleWorkerErrorHandler::new(worker)),
@@ -491,7 +485,7 @@ impl DedicatedWorkerGlobalScope {
                             }
                         },
                         reporter_name,
-                        parent_sender,
+                        parent_event_loop_sender,
                         CommonScriptMsg::CollectReports,
                     );
 
@@ -526,21 +520,23 @@ impl DedicatedWorkerGlobalScope {
         self.image_cache.clone()
     }
 
-    pub(crate) fn event_loop_sender(&self) -> Option<Box<dyn ScriptChan + Send>> {
-        let worker = self.worker.borrow().clone()?;
-        Some(Box::new(WorkerThreadWorkerChan {
+    pub(crate) fn event_loop_sender(&self) -> Option<ScriptEventLoopSender> {
+        Some(ScriptEventLoopSender::DedicatedWorker {
             sender: self.own_sender.clone(),
-            worker,
-        }))
+            main_thread_worker: self.worker.borrow().clone()?,
+        })
     }
 
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
-        let (tx, rx) = unbounded();
-        let chan = Box::new(SendableWorkerScriptChan {
-            sender: tx,
-            worker: self.worker.borrow().as_ref().unwrap().clone(),
-        });
-        (chan, Box::new(rx))
+    pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
+        let (sender, receiver) = unbounded();
+        let main_thread_worker = self.worker.borrow().as_ref().unwrap().clone();
+        (
+            ScriptEventLoopSender::DedicatedWorker {
+                sender,
+                main_thread_worker,
+            },
+            ScriptEventLoopReceiver::DedicatedWorker(receiver),
+        )
     }
 
     fn handle_script_event(&self, msg: WorkerScriptMsg, can_gc: CanGc) {
@@ -626,7 +622,7 @@ impl DedicatedWorkerGlobalScope {
                 global.report_an_error(error_info, HandleValue::null(), CanGc::note());
             }
         }));
-        self.parent_sender
+        self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
                 WorkerEvent,
                 task,
@@ -650,7 +646,7 @@ impl DedicatedWorkerGlobalScope {
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data, CanGc::note());
         }));
-        self.parent_sender
+        self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
                 WorkerEvent,
                 task,

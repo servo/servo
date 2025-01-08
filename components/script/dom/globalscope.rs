@@ -128,13 +128,12 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
-use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort, ThreadSafeJSContext,
-};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{with_script_thread, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task_manager::TaskManager;
@@ -2480,7 +2479,7 @@ impl GlobalScope {
     /// A sender to the event loop of this global scope. This either sends to the Worker event loop
     /// or the ScriptThread event loop in the case of a `Window`. This can be `None` for dedicated
     /// workers that are not currently handling a message.
-    pub(crate) fn event_loop_sender(&self) -> Option<Box<dyn ScriptChan + Send>> {
+    pub(crate) fn event_loop_sender(&self) -> Option<ScriptEventLoopSender> {
         if let Some(window) = self.downcast::<Window>() {
             Some(window.event_loop_sender())
         } else if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
@@ -2825,7 +2824,7 @@ impl GlobalScope {
     /// Create a new sender/receiver pair that can be used to implement an on-demand
     /// event loop. Used for implementing web APIs that require blocking semantics
     /// without resorting to nested event loops.
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
+    pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
         if let Some(window) = self.downcast::<Window>() {
             return window.new_script_pair();
         }

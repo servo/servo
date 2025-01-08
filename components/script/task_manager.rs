@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 use base::id::PipelineId;
 
-use crate::script_runtime::ScriptChan;
+use crate::messaging::ScriptEventLoopSender;
 use crate::task::TaskCanceller;
 use crate::task_source::{TaskSource, TaskSourceName};
 
@@ -75,8 +75,7 @@ macro_rules! task_source_functions {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct TaskManager {
-    #[ignore_malloc_size_of = "We need to push the measurement of this down into the ScriptChan trait"]
-    sender: RefCell<Option<Box<dyn ScriptChan + Send>>>,
+    sender: RefCell<Option<ScriptEventLoopSender>>,
     #[no_trace]
     pipeline_id: PipelineId,
     cancellers: TaskCancellers,
@@ -84,7 +83,7 @@ pub(crate) struct TaskManager {
 
 impl TaskManager {
     pub(crate) fn new(
-        sender: Option<Box<dyn ScriptChan + Send>>,
+        sender: Option<ScriptEventLoopSender>,
         pipeline_id: PipelineId,
         shared_canceller: Option<TaskCanceller>,
     ) -> Self {
@@ -105,7 +104,7 @@ impl TaskManager {
         self.pipeline_id
     }
 
-    pub(crate) fn sender(&self) -> Ref<Option<Box<dyn ScriptChan + Send + 'static>>> {
+    pub(crate) fn sender(&self) -> Ref<Option<ScriptEventLoopSender>> {
         self.sender.borrow()
     }
 
@@ -116,7 +115,7 @@ impl TaskManager {
     /// Update the sender for this [`TaskSource`]. This is used by dedicated workers, which only have a
     /// sender while handling messages (as their sender prevents the main thread Worker object from being
     /// garbage collected).
-    pub(crate) fn set_sender(&self, sender: Option<Box<dyn ScriptChan + Send>>) {
+    pub(crate) fn set_sender(&self, sender: Option<ScriptEventLoopSender>) {
         *self.sender.borrow_mut() = sender;
     }
 
