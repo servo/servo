@@ -213,7 +213,7 @@ pub fn process_resolved_style_request<'dom>(
                     let content_rect = box_fragment.content_rect;
                     let margins = box_fragment.margin;
                     let padding = box_fragment.padding;
-                    let detailed_layout_info = box_fragment.detailed_layout_info.clone();
+                    let detailed_layout_info = &box_fragment.detailed_layout_info;
                     (content_rect, margins, padding, detailed_layout_info)
                 },
                 Fragment::Positioning(positioning_fragment) => {
@@ -222,7 +222,7 @@ pub fn process_resolved_style_request<'dom>(
                         content_rect,
                         SideOffsets2D::zero(),
                         SideOffsets2D::zero(),
-                        None,
+                        &None,
                     )
                 },
                 _ => return None,
@@ -235,7 +235,7 @@ pub fn process_resolved_style_request<'dom>(
             // > When an element generates a grid container box...
             if display.inside() == DisplayInside::Grid {
                 if let Some(DetailedLayoutInfo::Grid(info)) = detailed_layout_info {
-                    if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
+                    if let Some(value) = resolve_grid_template(info, style, longhand_id) {
                         return Some(value);
                     }
                 }
@@ -290,16 +290,23 @@ fn resolve_grid_template(
     longhand_id: LonghandId,
 ) -> Option<String> {
     // https://drafts.csswg.org/css-grid/#resolved-track-list-standalone
-    fn serialize_standalone_track_list(track_sizes: &[f32]) -> String {
-        // > - Every track listed individually, whether implicitly or explicitly created,
-        //     without using the repeat() notation.
-        // > - Every track size given as a length in pixels, regardless of sizing function.
-        // > - Adjacent line names collapsed into a single bracketed set.
-        // TODO: implement line names
-        track_sizes
-            .iter()
-            .map(|size| Au::from_f32_px(*size).to_css_string())
-            .join(" ")
+    fn serialize_standalone_track_list(track_sizes: &[Au]) -> Option<String> {
+        match track_sizes.is_empty() {
+            // No explicit and implicit tracklist, the used value is therefore "none",
+            // which is the same as computed value.
+            true => None,
+            // > - Every track listed individually, whether implicitly or explicitly created,
+            //     without using the repeat() notation.
+            // > - Every track size given as a length in pixels, regardless of sizing function.
+            // > - Adjacent line names collapsed into a single bracketed set.
+            // TODO: implement line names
+            false => {
+                Some(track_sizes
+                    .iter()
+                    .map(|size| size.to_css_string())
+                    .join(" "))
+            },
+        }
     }
 
     let (track_info, specified_value) = match longhand_id {
@@ -315,8 +322,8 @@ fn resolve_grid_template(
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
         // > When an element generates a grid container box, the resolved value of its grid-template-rows or
         // > grid-template-columns property in a standalone axis is the used value, serialized with:
-        GenericGridTemplateComponent::TrackList(_) => {
-            Some(serialize_standalone_track_list(&track_info.sizes))
+        GenericGridTemplateComponent::None | GenericGridTemplateComponent::TrackList(_) | GenericGridTemplateComponent::Masonry => {
+            serialize_standalone_track_list(&track_info.sizes)
         },
 
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
@@ -327,7 +334,6 @@ fn resolve_grid_template(
         // > adopted from the parent grid), without using the repeat() notation.
         // TODO: implement subgrid and masonry
         GenericGridTemplateComponent::Subgrid(_) => None,
-        _ => None,
     }
 }
 

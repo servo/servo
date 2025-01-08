@@ -5,6 +5,7 @@ mod layout;
 mod stylo_taffy;
 use std::fmt;
 
+use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -128,10 +129,20 @@ impl TaffyDetailedGridInfo {
     fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo) -> Self {
         Self {
             rows: TaffyDetailedGridTrackInfo {
-                sizes: grid_info.rows.sizes,
+                sizes: grid_info
+                    .rows
+                    .sizes
+                    .iter()
+                    .map(|size| Au::from_f32_px(*size))
+                    .collect(),
             },
             columns: TaffyDetailedGridTrackInfo {
-                sizes: grid_info.columns.sizes,
+                sizes: grid_info
+                    .columns
+                    .sizes
+                    .iter()
+                    .map(|size| Au::from_f32_px(*size))
+                    .collect(),
             },
         }
     }
@@ -139,5 +150,5 @@ impl TaffyDetailedGridInfo {
 
 #[derive(Clone, Debug)]
 pub(crate) struct TaffyDetailedGridTrackInfo {
-    pub sizes: Vec<f32>,
+    pub sizes: Vec<Au>,
 }
