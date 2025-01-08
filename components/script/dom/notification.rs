@@ -66,7 +66,7 @@ pub struct Notification {
 }
 
 impl Notification {
-    #[allow(crown::unrooted_must_root)]
+    #[allow(crown::unrooted_must_root, clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
