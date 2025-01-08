@@ -8,6 +8,7 @@ use std::sync::Arc;
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D, Vector2D};
+use itertools::Itertools;
 use log::warn;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -33,6 +34,7 @@ use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::computed::Float;
 use style::values::generics::font::LineHeight;
+use style::values::specified::box_::DisplayInside;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
@@ -40,6 +42,7 @@ use crate::fragment_tree::{
     BoxFragment, DetailedLayoutInfo, Fragment, FragmentFlags, FragmentTree, Tag,
 };
 use crate::geom::{PhysicalRect, PhysicalVec};
+use crate::taffy::TaffyDetailedGridInfo;
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -224,19 +227,17 @@ pub fn process_resolved_style_request<'dom>(
                 _ => return None,
             };
 
-            match detailed_layout_info {
-                Some(DetailedLayoutInfo::Grid(grid)) if display == Display::Grid => {
-                    match longhand_id {
-                        LonghandId::GridTemplateRows => {
-                            return Some(grid.template_rows_as_css_string())
-                        },
-                        LonghandId::GridTemplateColumns => {
-                            return Some(grid.template_columns_as_css_string())
-                        },
-                        _ => {},
+            // https://drafts.csswg.org/css-grid/#resolved-track-list
+            // > The grid-template-rows and grid-template-columns properties are
+            // > resolved value special case properties.
+            //
+            // > When an element generates a grid container box...
+            if display.inside() == DisplayInside::Grid {
+                if let Some(DetailedLayoutInfo::Grid(info)) = detailed_layout_info {
+                    if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
+                        return Some(value);
                     }
-                },
-                _ => {},
+                }
             }
 
             // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
@@ -279,6 +280,54 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
         Fragment::Image(_) |
         Fragment::IFrame(_) => true,
         Fragment::Text(_) => false,
+    }
+}
+
+fn resolve_grid_template(
+    grid_info: &TaffyDetailedGridInfo,
+    style: &ComputedValues,
+    longhand_id: LonghandId,
+) -> Option<String> {
+    // https://drafts.csswg.org/css-grid/#resolved-track-list-standalone
+    fn serialize_standalone_track_list(track_sizes: &[f32]) -> String {
+        // > - Every track listed individually, whether implicitly or explicitly created,
+        //     without using the repeat() notation.
+        // > - Every track size given as a length in pixels, regardless of sizing function.
+        // > - Adjacent line names collapsed into a single bracketed set.
+        // TODO: implement line names
+        track_sizes
+            .iter()
+            .map(|size| Au::from_f32_px(*size).to_css_string())
+            .join(" ")
+    }
+    pub(crate) use style::values::specified::GenericGridTemplateComponent;
+
+    let (track_info, specified_value) = match longhand_id {
+        LonghandId::GridTemplateRows => (&grid_info.rows, &style.get_position().grid_template_rows),
+        LonghandId::GridTemplateColumns => (
+            &grid_info.columns,
+            &style.get_position().grid_template_columns,
+        ),
+        _ => return None,
+    };
+
+    match specified_value {
+        // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
+        // > When an element generates a grid container box, the resolved value of its grid-template-rows or
+        // > grid-template-columns property in a standalone axis is the used value, serialized with:
+        GenericGridTemplateComponent::TrackList(_) => {
+            Some(serialize_standalone_track_list(&track_info.sizes))
+        },
+
+        // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
+        // > When an element generates a grid container box that is a subgrid, the resolved value of the
+        // > grid-template-rows and grid-template-columns properties represents the used number of columns,
+        // > serialized as the subgrid keyword followed by a list representing each of its lines as a
+        // > line name set of all the line’s names explicitly defined on the subgrid (not including those
+        // > adopted from the parent grid), without using the repeat() notation.
+        // TODO: implement subgrid and masonry
+        GenericGridTemplateComponent::Subgrid(_) => None,
+        _ => None,
     }
 }
 

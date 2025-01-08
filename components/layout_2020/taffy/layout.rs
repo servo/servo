@@ -69,6 +69,7 @@ struct TaffyContainerContext<'a> {
     content_box_size_override: &'a ContainingBlock<'a>,
     style: &'a ComputedValues,
     detailed_layout_info: TaffyNativeLayoutInfo,
+    child_detailed_layout_infos: Vec<Option<DetailedLayoutInfo>>,
 }
 
 struct ChildIter(std::ops::Range<usize>);
@@ -269,6 +270,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         };
 
                         child.child_fragments = layout.fragments;
+                        self.child_detailed_layout_infos[usize::from(node_id)] =
+                            layout.detailed_layout_info;
 
                         let block_size = layout.content_block_size.to_f32_px();
 
@@ -369,6 +372,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
             style,
             source_child_nodes: &self.children,
             detailed_layout_info: TaffyNativeLayoutInfo::None,
+            child_detailed_layout_infos: vec![None; self.children.len()],
         };
 
         let (max_content_output, min_content_output) = match style.clone_display().inside() {
@@ -423,6 +427,7 @@ impl TaffyContainer {
             style: content_box_size_override.style,
             source_child_nodes: &self.children,
             detailed_layout_info: TaffyNativeLayoutInfo::None,
+            child_detailed_layout_infos: vec![None; self.children.len()],
         };
 
         fn auto_or_to_option<T>(input: GenericLengthPercentageOrAuto<T>) -> Option<T> {
@@ -475,7 +480,8 @@ impl TaffyContainer {
             .children
             .iter()
             .map(|child| (**child).borrow_mut())
-            .map(|mut child| {
+            .enumerate()
+            .map(|(child_id, mut child)| {
                 fn rect_to_logical_sides<T>(rect: taffy::Rect<T>) -> LogicalSides<T> {
                     LogicalSides {
                         inline_start: rect.left,
@@ -537,6 +543,8 @@ impl TaffyContainer {
                     .map(Au::from_f32_px),
                 );
 
+                let detailed_info = container_ctx.child_detailed_layout_infos[child_id].clone();
+
                 match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
                         let fragment = Fragment::Box(
@@ -554,7 +562,8 @@ impl TaffyContainer {
                             .with_baselines(Baselines {
                                 first: output.first_baselines.y.map(Au::from_f32_px),
                                 last: None,
-                            }),
+                            })
+                            .with_detailed_layout_info(detailed_info),
                         );
 
                         child
@@ -610,10 +619,9 @@ impl TaffyContainer {
 
         let mut detailed_layout_info = None;
         if let TaffyNativeLayoutInfo::Grid(info) = container_ctx.detailed_layout_info {
-            detailed_layout_info =
-                Some(DetailedLayoutInfo::Grid(Box::new(TaffyDetailedGridInfo {
-                    inner: info,
-                })));
+            detailed_layout_info = Some(DetailedLayoutInfo::Grid(Box::new(
+                TaffyDetailedGridInfo::from_detailed_grid_layout(*info),
+            )));
         }
 
         IndependentLayout {
