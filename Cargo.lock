@@ -230,6 +230,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arkui-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "283c4ba7ec4317108737fadc5ed469ef1084e54607b74504ea71fb9516b4ca00"
+
+[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5203,9 +5209,6 @@ name = "ohos-sys"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a786868a20866e5682c6666ebd84435563d7ff2d6088576d958c1bb7475e460"
-dependencies = [
- "xcomponent-sys",
-]
 
 [[package]]
 name = "ohos-vsync"
@@ -6716,7 +6719,6 @@ dependencies = [
  "nix",
  "ohos-ime",
  "ohos-ime-sys",
- "ohos-sys",
  "ohos-vsync",
  "raw-window-handle",
  "rustls",
@@ -9018,10 +9020,11 @@ dependencies = [
 
 [[package]]
 name = "xcomponent-sys"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "663e26cce4f574daf506a01f4e5cfedd5355c60afebc30daeeeea95f38f6b600"
+checksum = "5614071fe8188485b9e9494da95a579331de83faa528095cd3182867116f5d58"
 dependencies = [
+ "arkui-sys",
  "keyboard-types",
 ]
 

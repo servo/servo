@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use log::{debug, error, info};
-use ohos_sys::xcomponent::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
@@ -24,6 +23,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_traits::RenderingContext;
 use servo::{self, Servo};
 use surfman::{Connection, SurfaceType};
+use xcomponent_sys::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
 
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::resources::ResourceReaderInstance;
