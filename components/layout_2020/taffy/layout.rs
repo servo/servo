@@ -596,9 +596,7 @@ impl TaffyContainer {
         IndependentLayout {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
-            content_inline_size_for_table: Some(
-                Au::from_f32_px(output.size.width) - pbm.padding_border_sums.inline,
-            ),
+            content_inline_size_for_table: None,
             baselines: Baselines::default(),
 
             // TODO: determine this accurately
