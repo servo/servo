@@ -18,7 +18,6 @@ use async_tungstenite::tokio::{client_async_tls_with_connector_and_config, Conne
 use async_tungstenite::WebSocketStream;
 use base64::Engine;
 use futures::future::TryFutureExt;
-use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
