@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use core::fmt;
 use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
 use base::id::PipelineId;
 use bluetooth_traits::BluetoothRequest;
-use crossbeam_channel::{select, Receiver, Sender};
+use crossbeam_channel::{select, Receiver, SendError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
 use net_traits::image_cache::PendingImageResponse;
-use profile_traits::mem::{self as profile_mem, OpaqueSender};
+use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use script_traits::{ConstellationControlMsg, LayoutMsg, Painter, ScriptMsg};
 use servo_atoms::Atom;
@@ -20,9 +21,13 @@ use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
 
-use crate::dom::serviceworker::TrustedServiceWorkerAddress;
+use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
+use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use crate::script_runtime::ScriptThreadEventCategory;
+use crate::task::TaskBox;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -124,6 +129,106 @@ pub(crate) enum MainThreadScriptMsg {
     WakeUp,
 }
 
+/// Common messages used to control the event loops in both the script and the worker
+pub enum CommonScriptMsg {
+    /// Requests that the script thread measure its memory usage. The results are sent back via the
+    /// supplied channel.
+    CollectReports(ReportsChan),
+    /// Generic message that encapsulates event handling.
+    Task(
+        ScriptThreadEventCategory,
+        Box<dyn TaskBox>,
+        Option<PipelineId>,
+        TaskSourceName,
+    ),
+}
+
+impl fmt::Debug for CommonScriptMsg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
+            CommonScriptMsg::Task(ref category, ref task, _, _) => {
+                f.debug_tuple("Task").field(category).field(task).finish()
+            },
+        }
+    }
+}
+
+/// A wrapper around various types of `Sender`s that send messages back to the event loop
+/// of a script context event loop. This will either target the main `ScriptThread` event
+/// loop or that of a worker.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) enum ScriptEventLoopSender {
+    /// A sender that sends to the main `ScriptThread` event loop.
+    MainThread(Sender<MainThreadScriptMsg>),
+    /// A sender that sends to a `ServiceWorker` event loop.
+    ServiceWorker(Sender<ServiceWorkerScriptMsg>),
+    /// A sender that sends to a dedicated worker (such as a generic Web Worker) event loop.
+    /// Note that this sender keeps the main thread Worker DOM object alive as long as it or
+    /// or any message it sends is not dropped.
+    DedicatedWorker {
+        sender: Sender<DedicatedWorkerScriptMsg>,
+        main_thread_worker: TrustedWorkerAddress,
+    },
+}
+
+impl ScriptEventLoopSender {
+    /// Send a message to the event loop, which might be a main thread event loop or a worker event loop.
+    pub(crate) fn send(&self, message: CommonScriptMsg) -> Result<(), SendError<()>> {
+        match self {
+            Self::MainThread(sender) => sender
+                .send(MainThreadScriptMsg::Common(message))
+                .map_err(|_| SendError(())),
+            Self::ServiceWorker(sender) => sender
+                .send(ServiceWorkerScriptMsg::CommonWorker(
+                    WorkerScriptMsg::Common(message),
+                ))
+                .map_err(|_| SendError(())),
+            Self::DedicatedWorker {
+                sender,
+                main_thread_worker,
+            } => {
+                let common_message = WorkerScriptMsg::Common(message);
+                sender
+                    .send(DedicatedWorkerScriptMsg::CommonWorker(
+                        main_thread_worker.clone(),
+                        common_message,
+                    ))
+                    .map_err(|_| SendError(()))
+            },
+        }
+    }
+}
+
+/// A wrapper around various types of `Receiver`s that receive event loop messages. Used for
+/// synchronous DOM APIs that need to abstract over multiple kinds of event loops (worker/main
+/// thread) with different Receiver interfaces.
+pub(crate) enum ScriptEventLoopReceiver {
+    /// A receiver that receives messages to the main `ScriptThread` event loop.
+    MainThread(Receiver<MainThreadScriptMsg>),
+    /// A receiver that receives messages to dedicated workers (such as a generic Web Worker) event loop.
+    DedicatedWorker(Receiver<DedicatedWorkerScriptMsg>),
+}
+
+impl ScriptEventLoopReceiver {
+    pub(crate) fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        match self {
+            Self::MainThread(receiver) => match receiver.recv() {
+                Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
+                Ok(_) => panic!("unexpected main thread event message!"),
+                Err(_) => Err(()),
+            },
+            Self::DedicatedWorker(receiver) => match receiver.recv() {
+                Ok(DedicatedWorkerScriptMsg::CommonWorker(_, WorkerScriptMsg::Common(message))) => {
+                    Ok(message)
+                },
+                Ok(_) => panic!("unexpected worker event message!"),
+                Err(_) => Err(()),
+            },
+        }
+    }
+}
+
 impl QueuedTaskConversion for MainThreadScriptMsg {
     fn task_source_name(&self) -> Option<&TaskSourceName> {
         let script_msg = match self {
@@ -182,83 +287,9 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
     }
 }
 
-impl OpaqueSender<CommonScriptMsg> for Box<dyn ScriptChan + Send> {
-    fn send(&self, msg: CommonScriptMsg) {
-        ScriptChan::send(&**self, msg).unwrap();
-    }
-}
-
-impl ScriptPort for Receiver<CommonScriptMsg> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map_err(|_| ())
-    }
-}
-
-impl ScriptPort for Receiver<MainThreadScriptMsg> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv() {
-            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(_) => panic!("unexpected main thread event message!"),
-            Err(_) => Err(()),
-        }
-    }
-}
-
-impl ScriptPort for Receiver<(TrustedWorkerAddress, CommonScriptMsg)> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).map_err(|_| ())
-    }
-}
-
-impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv().map(|(_, msg)| msg) {
-            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(_) => panic!("unexpected main thread event message!"),
-            Err(_) => Err(()),
-        }
-    }
-}
-
-impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).map_err(|_| ())
-    }
-}
-
-/// Encapsulates internal communication of shared messages within the script thread.
-#[derive(Clone, JSTraceable)]
-pub(crate) struct SendableMainThreadScriptChan(#[no_trace] pub Sender<CommonScriptMsg>);
-
-impl ScriptChan for SendableMainThreadScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.0.send(msg).map_err(|_| ())
-    }
-
-    fn as_boxed(&self) -> Box<dyn ScriptChan> {
-        Box::new(SendableMainThreadScriptChan((self.0).clone()))
-    }
-}
-
-/// Encapsulates internal communication of main thread messages within the script thread.
-#[derive(Clone, JSTraceable)]
-pub(crate) struct MainThreadScriptChan(#[no_trace] pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for MainThreadScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.0
-            .send(MainThreadScriptMsg::Common(msg))
-            .map_err(|_| ())
-    }
-
-    fn as_boxed(&self) -> Box<dyn ScriptChan> {
-        Box::new(MainThreadScriptChan((self.0).clone()))
-    }
-}
-
-impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
-    fn send(&self, msg: CommonScriptMsg) {
-        self.send(MainThreadScriptMsg::Common(msg)).unwrap()
+impl OpaqueSender<CommonScriptMsg> for ScriptEventLoopSender {
+    fn send(&self, message: CommonScriptMsg) {
+        self.send(message).unwrap()
     }
 }
 
@@ -266,7 +297,7 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 pub(crate) struct ScriptThreadSenders {
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
-    pub self_sender: MainThreadScriptChan,
+    pub self_sender: Sender<MainThreadScriptMsg>,
 
     /// A handle to the bluetooth thread.
     #[no_trace]

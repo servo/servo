@@ -53,7 +53,10 @@ mod dummy {
 pub use self::dummy::LIVE_REFERENCES;
 
 /// A pointer to a Rust DOM object that needs to be destroyed.
-struct TrustedReference(*const libc::c_void);
+#[derive(MallocSizeOf)]
+struct TrustedReference(
+    #[ignore_malloc_size_of = "This is a shared reference."] *const libc::c_void,
+);
 unsafe impl Send for TrustedReference {}
 
 impl TrustedReference {
@@ -158,10 +161,13 @@ impl TrustedPromise {
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
 #[crown::unrooted_must_root_lint::allow_unrooted_interior]
+#[derive(MallocSizeOf)]
 pub struct Trusted<T: DomObject> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between threads, regardless of T's sendability.
+    #[conditional_malloc_size_of]
     refcount: Arc<TrustedReference>,
+    #[ignore_malloc_size_of = "These are shared by all `Trusted` types."]
     owner_thread: *const LiveDOMReferences,
     phantom: PhantomData<T>,
 }

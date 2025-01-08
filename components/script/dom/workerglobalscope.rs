@@ -56,8 +56,9 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 
@@ -491,7 +492,7 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
+    pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             dedicated.new_script_pair()

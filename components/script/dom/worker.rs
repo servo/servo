@@ -28,7 +28,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
 };
@@ -47,8 +47,6 @@ pub type TrustedWorkerAddress = Trusted<Worker>;
 #[dom_struct]
 pub struct Worker {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "Defined in std"]
-    #[no_trace]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<DedicatedWorkerScriptMsg>,

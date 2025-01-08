@@ -11,7 +11,8 @@ use servo_atoms::Atom;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use crate::dom::eventtarget::EventTarget;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
+use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_manager::TaskManager;
 
@@ -141,7 +142,7 @@ impl TaskSource<'_> {
         let sender = sender
             .as_ref()
             .expect("Tried to enqueue task for DedicatedWorker while not handling a message.")
-            .as_boxed();
+            .clone();
         SendableTaskSource {
             sender,
             pipeline_id: self.task_manager.pipeline_id(),
@@ -159,8 +160,7 @@ impl<'task_manager> From<TaskSource<'task_manager>> for SendableTaskSource {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct SendableTaskSource {
-    #[ignore_malloc_size_of = "Need to push MallocSizeOf down into the ScriptChan trait implementations"]
-    pub sender: Box<dyn ScriptChan + Send + 'static>,
+    pub sender: ScriptEventLoopSender,
     #[no_trace]
     pub pipeline_id: PipelineId,
     pub name: TaskSourceName,
@@ -197,7 +197,7 @@ impl SendableTaskSource {
 impl Clone for SendableTaskSource {
     fn clone(&self) -> Self {
         Self {
-            sender: self.sender.as_boxed(),
+            sender: self.sender.clone(),
             pipeline_id: self.pipeline_id,
             name: self.name,
             canceller: self.canceller.clone(),

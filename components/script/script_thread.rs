@@ -142,15 +142,14 @@ use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::messaging::{
-    MainThreadScriptChan, MainThreadScriptMsg, MixedMessage, ScriptThreadReceivers,
-    ScriptThreadSenders,
+    CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
+    ScriptThreadReceivers, ScriptThreadSenders,
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptThreadEventCategory,
-    ThreadSafeJSContext,
+    CanGc, JSContext, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
 };
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -531,7 +530,7 @@ impl ScriptThreadFactory for ScriptThread {
                             .send(());
                     },
                     reporter_name,
-                    script_thread.senders.self_sender.0.clone(),
+                    ScriptEventLoopSender::MainThread(script_thread.senders.self_sender.clone()),
                     CommonScriptMsg::CollectReports,
                 );
 
@@ -795,7 +794,7 @@ impl ScriptThread {
                 .borrow_mut()
                 .get_or_insert_with(|| {
                     let init = WorkletGlobalScopeInit {
-                        to_script_thread_sender: script_thread.senders.self_sender.0.clone(),
+                        to_script_thread_sender: script_thread.senders.self_sender.clone(),
                         resource_threads: script_thread.resource_threads.clone(),
                         mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
                         time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
@@ -900,9 +899,8 @@ impl ScriptThread {
             opts.output_file.is_some() || opts.exit_after_load || opts.webdriver_port.is_some();
 
         let (self_sender, self_receiver) = unbounded();
-        let self_sender = MainThreadScriptChan(self_sender.clone());
         let runtime = Runtime::new(Some(SendableTaskSource {
-            sender: self_sender.as_boxed(),
+            sender: ScriptEventLoopSender::MainThread(self_sender.clone()),
             pipeline_id: state.id,
             name: TaskSourceName::Networking,
             canceller: Default::default(),
@@ -927,7 +925,7 @@ impl ScriptThread {
             .unwrap_or_else(crossbeam_channel::never);
 
         let (image_cache_sender, image_cache_receiver) = unbounded();
-        let task_queue = TaskQueue::new(self_receiver, self_sender.0.clone());
+        let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 
         let closing = Arc::new(AtomicBool::new(false));
         let background_hang_monitor_exit_signal = BHMExitSignal {

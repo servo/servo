@@ -16,10 +16,9 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use std::{fmt, os, ptr, thread};
+use std::{os, ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
-use base::id::PipelineId;
 use content_security_policy::{CheckResult, PolicyDisposition};
 use js::conversions::jsstr_to_string;
 use js::glue::{
@@ -50,7 +49,7 @@ use js::rust::{
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
-use profile_traits::mem::{Report, ReportKind, ReportsChan};
+use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
 use servo_config::{opts, pref};
@@ -70,7 +69,6 @@ use crate::dom::bindings::refcounted::{
 };
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::trace_roots;
-use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
@@ -84,8 +82,7 @@ use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::security_manager::CSPViolationReporter;
-use crate::task::TaskBox;
-use crate::task_source::{SendableTaskSource, TaskSourceName};
+use crate::task_source::SendableTaskSource;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
@@ -97,40 +94,6 @@ static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
     contentSecurityPolicyAllows: Some(content_security_policy_allows),
     subsumes: Some(principals::subsumes),
 };
-
-/// Common messages used to control the event loops in both the script and the worker
-pub enum CommonScriptMsg {
-    /// Requests that the script thread measure its memory usage. The results are sent back via the
-    /// supplied channel.
-    CollectReports(ReportsChan),
-    /// Generic message that encapsulates event handling.
-    Task(
-        ScriptThreadEventCategory,
-        Box<dyn TaskBox>,
-        Option<PipelineId>,
-        TaskSourceName,
-    ),
-}
-
-impl fmt::Debug for CommonScriptMsg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::Task(ref category, ref task, _, _) => {
-                f.debug_tuple("Task").field(category).field(task).finish()
-            },
-        }
-    }
-}
-
-/// A cloneable interface for communicating with an event loop.
-pub trait ScriptChan: JSTraceable + Send {
-    /// Send a message to the associated event loop.
-    #[allow(clippy::result_unit_err)]
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
-    /// Return a cloned version of this sender in a [`Box`].
-    fn as_boxed(&self) -> Box<dyn ScriptChan>;
-}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ScriptThreadEventCategory {
@@ -251,14 +214,6 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
             ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
         }
     }
-}
-
-/// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM
-/// APIs that need to abstract over multiple kinds of event loops (worker/main thread) with
-/// different Receiver interfaces.
-pub trait ScriptPort {
-    #[allow(clippy::result_unit_err)]
-    fn recv(&self) -> Result<CommonScriptMsg, ()>;
 }
 
 #[allow(unsafe_code)]

@@ -112,7 +112,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
@@ -149,11 +149,11 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{
-    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, SendableMainThreadScriptChan,
+    ImageCacheMsg, MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender,
 };
 use crate::microtask::MicrotaskQueue;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{CanGc, JSContext, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
@@ -202,8 +202,7 @@ impl LayoutBlocker {
 #[dom_struct]
 pub struct Window {
     globalscope: GlobalScope,
-    #[ignore_malloc_size_of = "trait objects are hard"]
-    script_chan: MainThreadScriptChan,
+    script_chan: Sender<MainThreadScriptMsg>,
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
@@ -216,7 +215,6 @@ pub struct Window {
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     image_cache_chan: Sender<ImageCacheMsg>,
     window_proxy: MutNullableDom<WindowProxy>,
@@ -452,16 +450,23 @@ impl Window {
     }
 
     pub(crate) fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
-        &self.script_chan.0
+        &self.script_chan
     }
 
     pub fn parent_info(&self) -> Option<PipelineId> {
         self.parent_info
     }
 
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
-        let (tx, rx) = unbounded();
-        (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
+    pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
+        let (sender, receiver) = unbounded();
+        (
+            ScriptEventLoopSender::MainThread(sender),
+            ScriptEventLoopReceiver::MainThread(receiver),
+        )
+    }
+
+    pub(crate) fn event_loop_sender(&self) -> ScriptEventLoopSender {
+        ScriptEventLoopSender::MainThread(self.script_chan.clone())
     }
 
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {
@@ -2677,7 +2682,7 @@ impl Window {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         runtime: Rc<Runtime>,
-        script_chan: MainThreadScriptChan,
+        script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
         image_cache_chan: Sender<ImageCacheMsg>,
@@ -2801,10 +2806,6 @@ impl Window {
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
-    }
-
-    pub(crate) fn event_loop_sender(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(self.script_chan.clone())
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {

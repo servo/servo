@@ -49,9 +49,9 @@ use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
 };
 use crate::fetch::load_whole_resource;
-use crate::messaging::MainThreadScriptMsg;
+use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::realms::InRealm;
-use crate::script_runtime::{CanGc, CommonScriptMsg, Runtime, ScriptThreadEventCategory};
+use crate::script_runtime::{CanGc, Runtime, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
@@ -768,7 +768,6 @@ impl WorkletThread {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct WorkletExecutor {
     worklet_id: WorkletId,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     primary_sender: Sender<WorkletData>,
 }

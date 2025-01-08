@@ -7,7 +7,7 @@ use servo_url::ImmutableOrigin;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::script_runtime::CommonScriptMsg;
+use crate::messaging::CommonScriptMsg;
 
 /// Messages used to control the worker event loops
 pub enum WorkerScriptMsg {

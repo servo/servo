@@ -37,6 +37,7 @@ use std::hash::{BuildHasher, Hash};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 
+use crossbeam_channel::Sender;
 use indexmap::IndexMap;
 /// A trait to allow tracing (only) DOM objects.
 pub use js::gc::Traceable as JSTraceable;
@@ -105,6 +106,10 @@ unsafe impl<T: JSTraceable> CustomTraceable for OnceCell<T> {
             value.trace(tracer)
         }
     }
+}
+
+unsafe impl<T> CustomTraceable for Sender<T> {
+    unsafe fn trace(&self, _: *mut JSTracer) {}
 }
 
 /// Wrapper type for nop traceble
