@@ -139,7 +139,7 @@ tikv-jemallocator = "0.6.0"
 time_03 = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
 to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-12-04" }
 tokio = "1"
-tokio-rustls = "0.26"
+tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
 tower-service = "0.3"
 tracing = "0.1.41"
 tracing-perfetto = "0.1.5"
