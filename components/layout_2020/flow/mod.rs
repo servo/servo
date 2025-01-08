@@ -5,7 +5,7 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use inline::InlineFormattingContext;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
@@ -1239,11 +1239,18 @@ impl IndependentNonReplacedContents {
 
         // The final inline size can depend on the available space, which depends on where
         // we are placing the box, since floats reduce the available space.
-        if !content_box_sizes.inline.depends_on_available_space() {
+        // Here we assume that `compute_inline_size()` is a monotonically increasing function
+        // with respect to the available space. Therefore, if we get the same result for 0
+        // and for MAX_AU, it means that the function is constant.
+        // TODO: `compute_inline_size()` may not be monotonic with `calc-size()`. For example,
+        // `calc-size(stretch, (1px / (size + 1px) + sign(size)) * 1px)` would result in 1px
+        // both when the available space is zero and infinity, but it's not constant.
+        let inline_size_with_no_available_space = compute_inline_size(Au::zero());
+        if inline_size_with_no_available_space == compute_inline_size(MAX_AU) {
             // If the inline size doesn't depend on the available inline space, we can just
             // compute it with an available inline space of zero. Then, after layout we can
             // compute the block size, and finally place among floats.
-            let inline_size = compute_inline_size(Au::zero());
+            let inline_size = inline_size_with_no_available_space;
             layout = self.layout(
                 layout_context,
                 positioning_context,
@@ -1286,7 +1293,7 @@ impl IndependentNonReplacedContents {
                 // For the lower bound of the inline size, simply assume no available space.
                 // TODO: this won't work for things like `calc-size(stretch, 100px - size)`,
                 // which should result in a bigger size when the available space gets smaller.
-                inline: compute_inline_size(Au::zero()),
+                inline: inline_size_with_no_available_space,
                 block: match tentative_block_size {
                     // If we were able to resolve the preferred and maximum block sizes,
                     // use the tentative block size (it takes the 3 sizes into account).
