@@ -73,6 +73,9 @@ pub(crate) struct Event {
     /// <https://dom.spec.whatwg.org/#dom-event-bubbles>
     bubbles: Cell<bool>,
 
+    /// <https://dom.spec.whatwg.org/#dom-event-composed>
+    composed: Cell<bool>,
+
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     is_trusted: Cell<bool>,
 
@@ -129,6 +132,7 @@ impl Event {
             stop_immediate_propagation: Cell::new(false),
             cancelable: Cell::new(false),
             bubbles: Cell::new(false),
+            composed: Cell::new(false),
             is_trusted: Cell::new(false),
             dispatch: Cell::new(false),
             initialized: Cell::new(false),
@@ -169,6 +173,8 @@ impl Event {
         can_gc: CanGc,
     ) -> DomRoot<Event> {
         let event = Event::new_uninitialized_with_proto(global, proto, can_gc);
+
+        // NOTE: The spec doesn't tell us to call init event here, it just happens to do what we need.
         event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
     }
@@ -622,10 +628,41 @@ impl Event {
         self.set_trusted(true);
         target.dispatch_event(self, can_gc)
     }
+
+    /// <https://dom.spec.whatwg.org/#inner-event-creation-steps>
+    fn inner_creation_steps(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        init: &EventBinding::EventInit,
+        can_gc: CanGc,
+    ) -> DomRoot<Event> {
+        // Step 1. Let event be the result of creating a new object using eventInterface.
+        // If realm is non-null, then use that realm; otherwise, use the default behavior defined in Web IDL.
+        let event = Event::new_uninitialized_with_proto(global, proto, can_gc);
+
+        // Step 2. Set event’s initialized flag.
+        event.initialized.set(true);
+
+        // Step 3. Initialize event’s timeStamp attribute to the relative high resolution
+        // coarse time given time and event’s relevant global object.
+        // NOTE: This is done inside Event::new_inherited
+
+        // Step 3. For each member → value in dictionary, if event has an attribute whose
+        // identifier is member, then initialize that attribute to value.#
+        event.bubbles.set(init.bubbles);
+        event.cancelable.set(init.cancelable);
+        event.composed.set(init.composed);
+
+        // Step 5. Run the event constructing steps with event and dictionary.
+        // NOTE: Event construction steps may be defined by subclasses
+
+        // Step 6. Return event.
+        event
+    }
 }
 
 impl EventMethods<crate::DomTypeHolder> for Event {
-    /// <https://dom.spec.whatwg.org/#dom-event-event>
+    /// <https://dom.spec.whatwg.org/#concept-event-constructor>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -633,16 +670,14 @@ impl EventMethods<crate::DomTypeHolder> for Event {
         type_: DOMString,
         init: &EventBinding::EventInit,
     ) -> Fallible<DomRoot<Event>> {
-        let bubbles = EventBubbles::from(init.bubbles);
-        let cancelable = EventCancelable::from(init.cancelable);
-        Ok(Event::new_with_proto(
-            global,
-            proto,
-            Atom::from(type_),
-            bubbles,
-            cancelable,
-            can_gc,
-        ))
+        // Step 1. Let event be the result of running the inner event creation steps with this interface, null, now, and eventInitDict.
+        let event = Event::inner_creation_steps(global, proto, init, can_gc);
+
+        // Step 2. Initialize event’s type attribute to type.
+        *event.type_.borrow_mut() = Atom::from(type_);
+
+        // Step 3. Return event.
+        Ok(event)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-eventphase>
@@ -803,6 +838,11 @@ impl EventMethods<crate::DomTypeHolder> for Event {
     /// <https://dom.spec.whatwg.org/#dom-event-defaultprevented>
     fn DefaultPrevented(&self) -> bool {
         self.canceled.get() == EventDefault::Prevented
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-event-composed>
+    fn Composed(&self) -> bool {
+        self.composed.get()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-preventdefault>
