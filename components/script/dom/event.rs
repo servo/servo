@@ -659,6 +659,33 @@ impl Event {
         // Step 6. Return event.
         event
     }
+
+    /// Implements the logic behind the [get the parent](https://dom.spec.whatwg.org/#get-the-parent)
+    /// algorithm for shadow roots.
+    pub(crate) fn should_pass_shadow_boundary(&self, shadow_root: &ShadowRoot) -> bool {
+        debug_assert!(self.dispatching());
+
+        // > A shadow root’s get the parent algorithm, given an event, returns null if event’s composed flag
+        // > is unset and shadow root is the root of event’s path’s first struct’s invocation target;
+        // > otherwise shadow root’s host.
+        if self.Composed() {
+            return true;
+        }
+
+        let path = self.path.borrow();
+        let first_invocation_target = &path
+            .first()
+            .expect("Event path is empty despite event currently being dispatched")
+            .invocation_target
+            .as_rooted();
+
+        // The spec doesn't tell us what should happen if the invocation target is not a node
+        let Some(target_node) = first_invocation_target.downcast::<Node>() else {
+            return false;
+        };
+
+        &*target_node.GetRootNode(&GetRootNodeOptions::empty()) != shadow_root.upcast::<Node>()
+    }
 }
 
 impl EventMethods<crate::DomTypeHolder> for Event {
@@ -670,7 +697,8 @@ impl EventMethods<crate::DomTypeHolder> for Event {
         type_: DOMString,
         init: &EventBinding::EventInit,
     ) -> Fallible<DomRoot<Event>> {
-        // Step 1. Let event be the result of running the inner event creation steps with this interface, null, now, and eventInitDict.
+        // Step 1. Let event be the result of running the inner event creation steps with
+        // this interface, null, now, and eventInitDict.
         let event = Event::inner_creation_steps(global, proto, init, can_gc);
 
         // Step 2. Initialize event’s type attribute to type.
