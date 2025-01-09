@@ -8208,7 +8208,6 @@ class GlobalGenRoots():
             "crate::dom::bindings::codegen",
             "crate::script_runtime::JSContext",
             "js::rust::HandleObject",
-            "phf",
         ]
         imports = CGList([CGGeneric(f"use {mod};") for mod in mods], "\n")
 

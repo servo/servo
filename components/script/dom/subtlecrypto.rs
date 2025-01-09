@@ -21,7 +21,6 @@ use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
 use ring::{digest, hkdf, hmac, pbkdf2};
-use serde_json;
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;

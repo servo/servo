@@ -24,7 +24,6 @@ use net_traits::{
 };
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use utf8;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
