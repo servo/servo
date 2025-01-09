@@ -892,12 +892,12 @@ unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_
     if !THREAD_ACTIVE.with(|t| t.get()) {
         return;
     }
-    debug!("starting custom root handler");
+    trace!("starting custom root handler");
     trace_thread(tr);
     trace_roots(tr);
     trace_refcounted_objects(tr);
     settings_stack::trace(tr);
-    debug!("done custom root handler");
+    trace!("done custom root handler");
 }
 
 #[allow(unsafe_code)]
