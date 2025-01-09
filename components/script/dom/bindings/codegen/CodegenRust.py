@@ -6628,8 +6628,9 @@ class CGInterfaceTrait(CGThing):
             methods.append(CGGeneric("fn Length(&self) -> u32;\n"))
 
         if methods:
+            name = descriptor.interface.identifier.name
             self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
-                                    pre=f"pub(crate) trait {descriptor.interface.identifier.name}Methods<D: DomTypes> {{\n",
+                                    pre=f"pub(crate) trait {name}Methods<D: DomTypes> {{\n",
                                     post="}")
         else:
             self.cgRoot = CGGeneric("")
