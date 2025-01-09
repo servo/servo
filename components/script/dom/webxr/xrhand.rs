@@ -120,7 +120,11 @@ impl XRHand {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, source: &XRInputSource, support: Hand<()>) -> DomRoot<XRHand> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        source: &XRInputSource,
+        support: Hand<()>,
+    ) -> DomRoot<XRHand> {
         let id = source.id();
         let session = source.session();
         let spaces = support.map(|field, joint| {

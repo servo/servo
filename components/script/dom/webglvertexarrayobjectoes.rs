@@ -28,7 +28,10 @@ impl WebGLVertexArrayObjectOES {
         }
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: Option<WebGLVertexArrayId>,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLVertexArrayObjectOES::new_inherited(context, id)),
             &*context.global(),

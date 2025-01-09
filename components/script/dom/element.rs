@@ -1314,7 +1314,9 @@ impl Element {
         self.rare_data().as_ref()?.name_attribute.clone()
     }
 
-    pub(crate) fn style_attribute(&self) -> &DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
+    pub(crate) fn style_attribute(
+        &self,
+    ) -> &DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
 
@@ -1716,7 +1718,12 @@ impl Element {
             })
     }
 
-    pub(crate) fn set_atomic_attribute(&self, local_name: &LocalName, value: DOMString, can_gc: CanGc) {
+    pub(crate) fn set_atomic_attribute(
+        &self,
+        local_name: &LocalName,
+        value: DOMString,
+        can_gc: CanGc,
+    ) {
         assert!(*local_name == local_name.to_ascii_lowercase());
         let value = AttrValue::from_atomic(value.into());
         self.set_attribute(local_name, value, can_gc);
@@ -1756,7 +1763,12 @@ impl Element {
             .unwrap_or_else(|_| USVString(value.to_owned()))
     }
 
-    pub(crate) fn set_url_attribute(&self, local_name: &LocalName, value: USVString, can_gc: CanGc) {
+    pub(crate) fn set_url_attribute(
+        &self,
+        local_name: &LocalName,
+        value: USVString,
+        can_gc: CanGc,
+    ) {
         assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value.to_string()), can_gc);
     }
@@ -1768,7 +1780,12 @@ impl Element {
         }
     }
 
-    pub(crate) fn set_string_attribute(&self, local_name: &LocalName, value: DOMString, can_gc: CanGc) {
+    pub(crate) fn set_string_attribute(
+        &self,
+        local_name: &LocalName,
+        value: DOMString,
+        can_gc: CanGc,
+    ) {
         assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value.into()), can_gc);
     }
@@ -1807,7 +1824,12 @@ impl Element {
             .unwrap_or_default()
     }
 
-    pub(crate) fn set_tokenlist_attribute(&self, local_name: &LocalName, value: DOMString, can_gc: CanGc) {
+    pub(crate) fn set_tokenlist_attribute(
+        &self,
+        local_name: &LocalName,
+        value: DOMString,
+        can_gc: CanGc,
+    ) {
         assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(
             local_name,
@@ -4517,7 +4539,11 @@ pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMStr
     None
 }
 
-pub(crate) fn set_cross_origin_attribute(element: &Element, value: Option<DOMString>, can_gc: CanGc) {
+pub(crate) fn set_cross_origin_attribute(
+    element: &Element,
+    value: Option<DOMString>,
+    can_gc: CanGc,
+) {
     match value {
         Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val, can_gc),
         None => {

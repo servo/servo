@@ -61,7 +61,9 @@ pub(crate) mod size_of {
 }
 
 pub(crate) mod srcset {
-    pub(crate) use crate::dom::htmlimageelement::{parse_a_srcset_attribute, Descriptor, ImageSource};
+    pub(crate) use crate::dom::htmlimageelement::{
+        parse_a_srcset_attribute, Descriptor, ImageSource,
+    };
 }
 
 pub(crate) mod timeranges {

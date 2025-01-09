@@ -95,7 +95,11 @@ impl WebGLSync {
         }
     }
 
-    pub(crate) fn get_sync_status(&self, pname: u32, context: &WebGLRenderingContext) -> Option<u32> {
+    pub(crate) fn get_sync_status(
+        &self,
+        pname: u32,
+        context: &WebGLRenderingContext,
+    ) -> Option<u32> {
         match self.sync_status.get() {
             Some(constants::UNSIGNALED) | None => {
                 let this = Trusted::new(self);

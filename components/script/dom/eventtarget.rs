@@ -628,7 +628,11 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn set_error_event_handler<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>) {
+    pub(crate) fn set_error_event_handler<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    ) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
@@ -705,7 +709,11 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_bubbling_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_bubbling_cancelable_event(
+        &self,
+        name: Atom,
+        can_gc: CanGc,
+    ) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::Bubbles,

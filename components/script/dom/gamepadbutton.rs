@@ -31,7 +31,11 @@ impl GamepadButton {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, pressed: bool, touched: bool) -> DomRoot<GamepadButton> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        pressed: bool,
+        touched: bool,
+    ) -> DomRoot<GamepadButton> {
         reflect_dom_object(
             Box::new(GamepadButton::new_inherited(pressed, touched)),
             global,

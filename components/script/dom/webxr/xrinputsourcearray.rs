@@ -39,7 +39,12 @@ impl XRInputSourceArray {
         )
     }
 
-    pub(crate) fn add_input_sources(&self, session: &XRSession, inputs: &[InputSource], can_gc: CanGc) {
+    pub(crate) fn add_input_sources(
+        &self,
+        session: &XRSession,
+        inputs: &[InputSource],
+        can_gc: CanGc,
+    ) {
         let global = self.global();
 
         let mut added = vec![];

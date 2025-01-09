@@ -54,7 +54,10 @@ pub(crate) enum RulesSource {
 
 impl CSSRuleList {
     #[allow(crown::unrooted_must_root)]
-    pub(crate) fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
+    pub(crate) fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        rules: RulesSource,
+    ) -> CSSRuleList {
         let guard = parent_stylesheet.shared_lock().read();
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => rules

@@ -75,8 +75,7 @@ use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
-use script::ServiceWorkerManager;
-use script::JSEngineSetup;
+use script::{JSEngineSetup, ServiceWorkerManager};
 use script_layout_interface::LayoutFactory;
 use script_traits::{ScriptToConstellationChan, WindowSizeData};
 use servo_config::{opts, pref, prefs};
@@ -1132,10 +1131,7 @@ fn create_constellation(
 
     let layout_factory: Arc<dyn LayoutFactory> = get_layout_factory(opts::get().legacy_layout);
 
-    Constellation::<
-        script::ScriptThread,
-        script::ServiceWorkerManager,
-    >::start(
+    Constellation::<script::ScriptThread, script::ServiceWorkerManager>::start(
         initial_state,
         layout_factory,
         initial_window_size,

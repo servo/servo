@@ -84,7 +84,11 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 
 /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
 #[allow(unsafe_code)]
-pub(crate) unsafe fn count_queuing_strategy_size(_cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+pub(crate) unsafe fn count_queuing_strategy_size(
+    _cx: *mut JSContext,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
     let args = CallArgs::from_vp(vp, argc);
     // Step 1.1. Return 1.
     args.rval().set(Int32Value(1));
@@ -95,7 +99,10 @@ pub(crate) unsafe fn count_queuing_strategy_size(_cx: *mut JSContext, argc: u32,
 /// If the high water mark is not set, return the default value.
 ///
 /// <https://streams.spec.whatwg.org/#validate-and-normalize-high-water-mark>
-pub(crate) fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> Result<f64, Error> {
+pub(crate) fn extract_high_water_mark(
+    strategy: &QueuingStrategy,
+    default_hwm: f64,
+) -> Result<f64, Error> {
     if strategy.highWaterMark.is_none() {
         return Ok(default_hwm);
     }

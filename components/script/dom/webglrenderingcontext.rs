@@ -5068,7 +5068,11 @@ impl WebGLMessageSender {
         self.sender.context_id()
     }
 
-    pub(crate) fn send(&self, msg: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
+    pub(crate) fn send(
+        &self,
+        msg: WebGLCommand,
+        backtrace: WebGLCommandBacktrace,
+    ) -> WebGLSendResult {
         self.sender.send(msg, backtrace)
     }
 

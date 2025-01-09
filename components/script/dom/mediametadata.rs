@@ -37,7 +37,11 @@ impl MediaMetadata {
         }
     }
 
-    pub(crate) fn new(global: &Window, init: &MediaMetadataInit, can_gc: CanGc) -> DomRoot<MediaMetadata> {
+    pub(crate) fn new(
+        global: &Window,
+        init: &MediaMetadataInit,
+        can_gc: CanGc,
+    ) -> DomRoot<MediaMetadata> {
         Self::new_with_proto(global, None, init, can_gc)
     }
 

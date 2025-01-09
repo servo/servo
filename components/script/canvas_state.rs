@@ -1080,7 +1080,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    pub(crate) fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString, can_gc: CanGc) {
+    pub(crate) fn set_font(
+        &self,
+        canvas: Option<&HTMLCanvasElement>,
+        value: DOMString,
+        can_gc: CanGc,
+    ) {
         let canvas = match canvas {
             Some(element) => element,
             None => return, // offscreen canvas doesn't have a placeholder canvas
@@ -1645,7 +1650,15 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto
-    pub(crate) fn bezier_curve_to(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
+    pub(crate) fn bezier_curve_to(
+        &self,
+        cp1x: f64,
+        cp1y: f64,
+        cp2x: f64,
+        cp2y: f64,
+        x: f64,
+        y: f64,
+    ) {
         if !(cp1x.is_finite() &&
             cp1y.is_finite() &&
             cp2x.is_finite() &&
@@ -1663,7 +1676,15 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
-    pub(crate) fn arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
+    pub(crate) fn arc(
+        &self,
+        x: f64,
+        y: f64,
+        r: f64,
+        start: f64,
+        end: f64,
+        ccw: bool,
+    ) -> ErrorResult {
         if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
             return Ok(());
         }

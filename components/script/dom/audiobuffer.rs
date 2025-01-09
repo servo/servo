@@ -60,7 +60,11 @@ pub(crate) struct AudioBuffer {
 
 impl AudioBuffer {
     #[allow(crown::unrooted_must_root)]
-    pub(crate) fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
+    pub(crate) fn new_inherited(
+        number_of_channels: u32,
+        length: u32,
+        sample_rate: f32,
+    ) -> AudioBuffer {
         let vec = (0..number_of_channels)
             .map(|_| HeapBufferSource::default())
             .collect();

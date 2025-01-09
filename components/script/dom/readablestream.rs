@@ -934,7 +934,10 @@ pub(crate) fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> R
 
 #[allow(unsafe_code)]
 /// Get the `value` property of an object that a read promise resolved to.
-pub(crate) fn get_read_promise_bytes(cx: SafeJSContext, v: &SafeHandleValue) -> Result<Vec<u8>, Error> {
+pub(crate) fn get_read_promise_bytes(
+    cx: SafeJSContext,
+    v: &SafeHandleValue,
+) -> Result<Vec<u8>, Error> {
     if !v.is_object() {
         return Err(Error::Type(
             "Unknown format for for bytes read.".to_string(),

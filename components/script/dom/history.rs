@@ -87,7 +87,12 @@ impl History {
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
     #[allow(unsafe_code)]
-    pub(crate) fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl, can_gc: CanGc) {
+    pub(crate) fn activate_state(
+        &self,
+        state_id: Option<HistoryStateId>,
+        url: ServoUrl,
+        can_gc: CanGc,
+    ) {
         // Steps 5
         let document = self.window.Document();
         let old_url = document.url().clone();

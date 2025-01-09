@@ -500,7 +500,11 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub(crate) fn get_active_uniforms(&self, indices: Vec<u32>, pname: u32) -> WebGLResult<Vec<i32>> {
+    pub(crate) fn get_active_uniforms(
+        &self,
+        indices: Vec<u32>,
+        pname: u32,
+    ) -> WebGLResult<Vec<i32>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -575,7 +579,11 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub(crate) fn bind_uniform_block(&self, block_index: u32, block_binding: u32) -> WebGLResult<()> {
+    pub(crate) fn bind_uniform_block(
+        &self,
+        block_index: u32,
+        block_binding: u32,
+    ) -> WebGLResult<()> {
         if block_index as usize >= self.active_uniform_blocks.borrow().len() {
             return Err(WebGLError::InvalidValue);
         }

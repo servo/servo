@@ -1200,7 +1200,12 @@ impl GlobalScope {
     }
 
     /// Route the task to be handled by the relevant port.
-    pub(crate) fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask, can_gc: CanGc) {
+    pub(crate) fn route_task_to_port(
+        &self,
+        port_id: MessagePortId,
+        task: PortMessageTask,
+        can_gc: CanGc,
+    ) {
         let should_dispatch = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1396,7 +1401,11 @@ impl GlobalScope {
     }
 
     /// Start tracking a message-port
-    pub(crate) fn track_message_port(&self, dom_port: &MessagePort, port_impl: Option<MessagePortImpl>) {
+    pub(crate) fn track_message_port(
+        &self,
+        dom_port: &MessagePort,
+        port_impl: Option<MessagePortImpl>,
+    ) {
         let mut current_state = self.message_port_state.borrow_mut();
 
         if let MessagePortState::UnManaged = &*current_state {
@@ -1944,7 +1953,12 @@ impl GlobalScope {
         Ok(stream)
     }
 
-    pub(crate) fn read_file_async(&self, id: Uuid, promise: Rc<Promise>, callback: FileListenerCallback) {
+    pub(crate) fn read_file_async(
+        &self,
+        id: Uuid,
+        promise: Rc<Promise>,
+        callback: FileListenerCallback,
+    ) {
         let recv = self.send_msg(id);
 
         let trusted_promise = TrustedPromise::new(promise);
@@ -2039,7 +2053,10 @@ impl GlobalScope {
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
     #[allow(unsafe_code)]
-    pub(crate) fn from_reflector<T: DomObject>(reflector: &T, _realm: &AlreadyInRealm) -> DomRoot<Self> {
+    pub(crate) fn from_reflector<T: DomObject>(
+        reflector: &T,
+        _realm: &AlreadyInRealm,
+    ) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
@@ -2131,7 +2148,9 @@ impl GlobalScope {
         self.module_map.borrow_mut().insert(url, Rc::new(module));
     }
 
-    pub(crate) fn get_module_map(&self) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
+    pub(crate) fn get_module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
         &self.module_map
     }
 
@@ -2903,7 +2922,11 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
-    pub(crate) fn supported_performance_entry_types(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+    pub(crate) fn supported_performance_entry_types(
+        &self,
+        cx: SafeJSContext,
+        retval: MutableHandleValue,
+    ) {
         self.frozen_supported_performance_entry_types.get_or_init(
             || {
                 VALID_ENTRY_TYPES
@@ -2984,7 +3007,12 @@ impl GlobalScope {
     }
 
     #[cfg(feature = "webgpu")]
-    pub(crate) fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
+    pub(crate) fn gpu_device_lost(
+        &self,
+        device: WebGPUDevice,
+        reason: DeviceLostReason,
+        msg: String,
+    ) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
             DeviceLostReason::Destroyed => GPUDeviceLostReason::Destroyed,
@@ -3099,7 +3127,11 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    pub(crate) fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+    pub(crate) fn receive_new_gamepad_button_or_axis(
+        &self,
+        index: usize,
+        update_type: GamepadUpdateType,
+    ) {
         let this = Trusted::new(self);
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>

@@ -200,7 +200,10 @@ pub(crate) fn set_property_descriptor(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#isplatformobjectsameorigin-(-o-)>
-pub(crate) unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+pub(crate) unsafe fn is_platform_object_same_origin(
+    cx: SafeJSContext,
+    obj: RawHandleObject,
+) -> bool {
     let subject_realm = get_context_realm(*cx);
     let obj_realm = GetObjectRealmOrNull(*obj);
     assert!(!obj_realm.is_null());
@@ -236,7 +239,11 @@ pub(crate) unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawH
 /// What this function does corresponds to the operations in
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
-pub(crate) unsafe fn report_cross_origin_denial(cx: SafeJSContext, id: RawHandleId, access: &str) -> bool {
+pub(crate) unsafe fn report_cross_origin_denial(
+    cx: SafeJSContext,
+    id: RawHandleId,
+    access: &str,
+) -> bool {
     debug!(
         "permission denied to {} property {} on cross-origin object",
         access,

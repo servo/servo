@@ -708,7 +708,12 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
 }
 
 impl HTMLElement {
-    pub(crate) fn set_custom_attr(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn set_custom_attr(
+        &self,
+        name: DOMString,
+        value: DOMString,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         if name
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')

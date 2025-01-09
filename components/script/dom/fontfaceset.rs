@@ -31,7 +31,11 @@ impl FontFaceSet {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(FontFaceSet::new_inherited(global, can_gc)),
             global,

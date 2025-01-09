@@ -505,7 +505,10 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub(crate) fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>) {
+    pub(crate) fn set_scroll_offsets(
+        &self,
+        offsets: HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>,
+    ) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
@@ -569,7 +572,11 @@ impl Window {
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub(crate) fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) -> EventStatus {
+    pub(crate) fn dispatch_event_with_target_override(
+        &self,
+        event: &Event,
+        can_gc: CanGc,
+    ) -> EventStatus {
         event.dispatch(self.upcast(), true, can_gc)
     }
 }
@@ -2167,7 +2174,11 @@ impl Window {
 
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
-    pub(crate) fn scrolling_area_query(&self, node: Option<&Node>, can_gc: CanGc) -> UntypedRect<i32> {
+    pub(crate) fn scrolling_area_query(
+        &self,
+        node: Option<&Node>,
+        can_gc: CanGc,
+    ) -> UntypedRect<i32> {
         let opaque = node.map(|node| node.to_opaque());
         if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
             return Rect::zero();

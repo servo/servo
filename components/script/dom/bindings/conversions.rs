@@ -548,7 +548,10 @@ where
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleObject`.
-pub(crate) fn root_from_handleobject<T>(obj: HandleObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+pub(crate) fn root_from_handleobject<T>(
+    obj: HandleObject,
+    cx: *mut JSContext,
+) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {

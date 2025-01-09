@@ -261,7 +261,10 @@ pub(crate) struct CallSetup {
 impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(crown::unrooted_must_root)]
-    pub(crate) fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
+    pub(crate) fn new<T: CallbackContainer>(
+        callback: &T,
+        handling: ExceptionHandling,
+    ) -> CallSetup {
         let global = unsafe { GlobalScope::from_object(callback.callback()) };
         if let Some(window) = global.downcast::<Window>() {
             window.Document().ensure_safe_to_run_script_or_layout();

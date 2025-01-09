@@ -349,7 +349,11 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     #[allow(unsafe_code)]
-    pub(crate) fn setup(&self, stream: DomRoot<ReadableStream>, can_gc: CanGc) -> Result<(), Error> {
+    pub(crate) fn setup(
+        &self,
+        stream: DomRoot<ReadableStream>,
+        can_gc: CanGc,
+    ) -> Result<(), Error> {
         // Assert: stream.[[controller]] is undefined
         stream.assert_no_controller();
 
@@ -526,7 +530,11 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
     #[allow(unsafe_code)]
-    pub(crate) fn perform_cancel_steps(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn perform_cancel_steps(
+        &self,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // Perform ! ResetQueue(this).
         self.queue.borrow_mut().reset();
 

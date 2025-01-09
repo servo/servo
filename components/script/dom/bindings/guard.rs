@@ -28,7 +28,12 @@ impl<T: Clone + Copy> Guard<T> {
     /// Expose the value if the conditions are satisfied.
     ///
     /// The passed handle is the object on which the value may be exposed.
-    pub(crate) fn expose(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> Option<T> {
+    pub(crate) fn expose(
+        &self,
+        cx: JSContext,
+        obj: HandleObject,
+        global: HandleObject,
+    ) -> Option<T> {
         let mut exposed_on_global = false;
         let conditions_satisfied = self.conditions.iter().all(|c| match c {
             Condition::Satisfied => {
@@ -73,7 +78,12 @@ fn is_secure_context(cx: JSContext) -> bool {
 }
 
 impl Condition {
-    pub(crate) fn is_satisfied(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> bool {
+    pub(crate) fn is_satisfied(
+        &self,
+        cx: JSContext,
+        obj: HandleObject,
+        global: HandleObject,
+    ) -> bool {
         match *self {
             Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),

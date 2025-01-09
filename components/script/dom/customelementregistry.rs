@@ -781,7 +781,11 @@ impl CustomElementDefinition {
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 #[allow(unsafe_code)]
-pub(crate) fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element, can_gc: CanGc) {
+pub(crate) fn upgrade_element(
+    definition: Rc<CustomElementDefinition>,
+    element: &Element,
+    can_gc: CanGc,
+) {
     // Step 1
     let state = element.get_custom_element_state();
     if state != CustomElementState::Undefined && state != CustomElementState::Uncustomized {

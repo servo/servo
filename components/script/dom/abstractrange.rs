@@ -143,7 +143,12 @@ impl PartialEq for BoundaryPoint {
 }
 
 /// <https://dom.spec.whatwg.org/#concept-range-bp-position>
-pub(crate) fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Option<Ordering> {
+pub(crate) fn bp_position(
+    a_node: &Node,
+    a_offset: u32,
+    b_node: &Node,
+    b_offset: u32,
+) -> Option<Ordering> {
     if std::ptr::eq(a_node, b_node) {
         // Step 1.
         return Some(a_offset.cmp(&b_offset));

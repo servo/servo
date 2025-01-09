@@ -1012,7 +1012,12 @@ impl HTMLScriptElement {
 
     #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
-    pub(crate) fn run_a_module_script(&self, script: &ScriptOrigin, _rethrow_errors: bool, can_gc: CanGc) {
+    pub(crate) fn run_a_module_script(
+        &self,
+        script: &ScriptOrigin,
+        _rethrow_errors: bool,
+        can_gc: CanGc,
+    ) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();

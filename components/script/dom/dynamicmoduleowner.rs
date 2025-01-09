@@ -41,7 +41,11 @@ impl DynamicModuleOwner {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub(crate) fn new(global: &GlobalScope, promise: Rc<Promise>, id: DynamicModuleId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        promise: Rc<Promise>,
+        id: DynamicModuleId,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(DynamicModuleOwner::new_inherited(promise, id)),
             global,

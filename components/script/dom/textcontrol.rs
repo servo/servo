@@ -133,7 +133,12 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
-    pub(crate) fn set_dom_range(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+    pub(crate) fn set_dom_range(
+        &self,
+        start: u32,
+        end: u32,
+        direction: Option<DOMString>,
+    ) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);

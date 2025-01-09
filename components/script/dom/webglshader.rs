@@ -64,7 +64,10 @@ impl WebGLShader {
         }
     }
 
-    pub(crate) fn maybe_new(context: &WebGLRenderingContext, shader_type: u32) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        context: &WebGLRenderingContext,
+        shader_type: u32,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateShader(shader_type, sender));
         receiver

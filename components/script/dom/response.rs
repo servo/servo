@@ -398,7 +398,11 @@ impl Response {
         self.set_response_members_by_type(new_response_type, can_gc);
     }
 
-    pub(crate) fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc: CanGc) {
+    pub(crate) fn set_headers(
+        &self,
+        option_hyper_headers: Option<Serde<HyperHeaders>>,
+        can_gc: CanGc,
+    ) {
         self.Headers(can_gc)
             .set_headers(match option_hyper_headers {
                 Some(hyper_headers) => hyper_headers.into_inner(),

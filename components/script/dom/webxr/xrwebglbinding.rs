@@ -38,7 +38,10 @@ pub(crate) struct XRWebGLBinding {
 }
 
 impl XRWebGLBinding {
-    pub(crate) fn new_inherited(session: &XRSession, context: &WebGLRenderingContext) -> XRWebGLBinding {
+    pub(crate) fn new_inherited(
+        session: &XRSession,
+        context: &WebGLRenderingContext,
+    ) -> XRWebGLBinding {
         XRWebGLBinding {
             reflector: Reflector::new(),
             session: Dom::from_ref(session),

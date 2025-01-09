@@ -234,7 +234,9 @@ impl WebGLFramebuffer {
         self.size.get()
     }
 
-    pub(crate) fn get_attachment_formats(&self) -> WebGLResult<(Option<u32>, Option<u32>, Option<u32>)> {
+    pub(crate) fn get_attachment_formats(
+        &self,
+    ) -> WebGLResult<(Option<u32>, Option<u32>, Option<u32>)> {
         if self.check_status() != constants::FRAMEBUFFER_COMPLETE {
             return Err(WebGLError::InvalidFramebufferOperation);
         }
@@ -550,7 +552,11 @@ impl WebGLFramebuffer {
         CompleteForRendering::Complete
     }
 
-    pub(crate) fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer>) -> WebGLResult<()> {
+    pub(crate) fn renderbuffer(
+        &self,
+        attachment: u32,
+        rb: Option<&WebGLRenderbuffer>,
+    ) -> WebGLResult<()> {
         // Opaque framebuffers cannot have their attachments changed
         // https://immersive-web.github.io/webxr/#opaque-framebuffer
         self.validate_transparent()?;

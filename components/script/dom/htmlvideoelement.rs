@@ -136,7 +136,9 @@ impl HTMLVideoElement {
         sent_resize
     }
 
-    pub(crate) fn get_current_frame_data(&self) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
+    pub(crate) fn get_current_frame_data(
+        &self,
+    ) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
         let frame = self.htmlmediaelement.get_current_frame();
         if frame.is_some() {
             *self.last_frame.borrow_mut() = frame;

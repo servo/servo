@@ -1012,7 +1012,10 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    pub(crate) fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
+    pub(crate) fn query_selector(
+        &self,
+        selectors: DOMString,
+    ) -> Fallible<Option<DomRoot<Element>>> {
         // Step 1.
         let doc = self.owner_doc();
         match SelectorParser::parse_author_origin_no_namespace(
@@ -1046,7 +1049,10 @@ impl Node {
     /// Get an iterator over all nodes which match a set of selectors
     /// Be careful not to do anything which may manipulate the DOM tree
     /// whilst iterating, otherwise the iterator may be invalidated.
-    pub(crate) fn query_selector_iter(&self, selectors: DOMString) -> Fallible<QuerySelectorIterator> {
+    pub(crate) fn query_selector_iter(
+        &self,
+        selectors: DOMString,
+    ) -> Fallible<QuerySelectorIterator> {
         // Step 1.
         let url = self.owner_doc().url();
         match SelectorParser::parse_author_origin_no_namespace(
@@ -2012,7 +2018,11 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-pre-insert>
-    pub(crate) fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
+    pub(crate) fn pre_insert(
+        node: &Node,
+        parent: &Node,
+        child: Option<&Node>,
+    ) -> Fallible<DomRoot<Node>> {
         // Step 1.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
 
@@ -2490,7 +2500,9 @@ impl Node {
         Node::collect_text_contents(self.traverse_preorder(ShadowIncluding::No))
     }
 
-    pub(crate) fn collect_text_contents<T: Iterator<Item = DomRoot<Node>>>(iterator: T) -> DOMString {
+    pub(crate) fn collect_text_contents<T: Iterator<Item = DomRoot<Node>>>(
+        iterator: T,
+    ) -> DOMString {
         let mut content = String::new();
         for node in iterator {
             if let Some(text) = node.downcast::<Text>() {
@@ -2540,7 +2552,9 @@ impl Node {
     /// Callers should ensure they pass an UntrustedNodeAddress that points to a valid [`JSObject`]
     /// in memory that represents a [`Node`].
     #[allow(unsafe_code)]
-    pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> &'static Self {
+    pub(crate) unsafe fn from_untrusted_node_address(
+        candidate: UntrustedNodeAddress,
+    ) -> &'static Self {
         // https://github.com/servo/servo/issues/6383
         let candidate = candidate.0 as usize;
         let object = candidate as *mut JSObject;
@@ -2550,7 +2564,10 @@ impl Node {
         &*(conversions::private_from_object(object) as *const Self)
     }
 
-    pub(crate) fn html_serialize(&self, traversal_scope: html_serialize::TraversalScope) -> DOMString {
+    pub(crate) fn html_serialize(
+        &self,
+        traversal_scope: html_serialize::TraversalScope,
+    ) -> DOMString {
         let mut writer = vec![];
         html_serialize::serialize(
             &mut writer,
@@ -2566,7 +2583,10 @@ impl Node {
         DOMString::from(String::from_utf8(writer).unwrap())
     }
 
-    pub(crate) fn xml_serialize(&self, traversal_scope: xml_serialize::TraversalScope) -> DOMString {
+    pub(crate) fn xml_serialize(
+        &self,
+        traversal_scope: xml_serialize::TraversalScope,
+    ) -> DOMString {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,

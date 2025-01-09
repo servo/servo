@@ -40,7 +40,11 @@ impl ImageBitmap {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn new(global: &GlobalScope, width: u32, height: u32) -> Fallible<DomRoot<ImageBitmap>> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        width: u32,
+        height: u32,
+    ) -> Fallible<DomRoot<ImageBitmap>> {
         //assigning to a variable the return object of new_inherited
         let imagebitmap = Box::new(ImageBitmap::new_inherited(width, height));
 

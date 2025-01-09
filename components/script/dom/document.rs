@@ -910,7 +910,11 @@ impl Document {
         );
     }
 
-    pub(crate) fn register_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
+    pub(crate) fn register_form_id_listener<T: ?Sized + FormControl>(
+        &self,
+        id: DOMString,
+        listener: &T,
+    ) {
         let mut map = self.form_id_listener_map.borrow_mut();
         let listener = listener.to_element();
         let set = map.entry(Atom::from(id)).or_default();
@@ -1941,7 +1945,12 @@ impl Document {
         }
     }
 
-    pub(crate) fn set_body_attribute(&self, local_name: &LocalName, value: DOMString, can_gc: CanGc) {
+    pub(crate) fn set_body_attribute(
+        &self,
+        local_name: &LocalName,
+        value: DOMString,
+        can_gc: CanGc,
+    ) {
         if let Some(ref body) = self
             .GetBody()
             .and_then(DomRoot::downcast::<HTMLBodyElement>)
@@ -2578,7 +2587,11 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#the-end> step 5.
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step> 22.c.
-    pub(crate) fn asap_in_order_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
+    pub(crate) fn asap_in_order_script_loaded(
+        &self,
+        element: &HTMLScriptElement,
+        result: ScriptResult,
+    ) {
         self.asap_in_order_scripts_list.loaded(element, result);
         while let Some((element, result)) = self
             .asap_in_order_scripts_list
@@ -3548,7 +3561,11 @@ impl Document {
         self.count_node_list(|n| Document::is_element_in_get_by_name(n, name))
     }
 
-    pub(crate) fn nth_element_by_name(&self, index: u32, name: &DOMString) -> Option<DomRoot<Node>> {
+    pub(crate) fn nth_element_by_name(
+        &self,
+        index: u32,
+        name: &DOMString,
+    ) -> Option<DomRoot<Node>> {
         if name.is_empty() {
             return None;
         }
@@ -3621,7 +3638,10 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
-    pub(crate) fn appropriate_template_contents_owner_document(&self, can_gc: CanGc) -> DomRoot<Document> {
+    pub(crate) fn appropriate_template_contents_owner_document(
+        &self,
+        can_gc: CanGc,
+    ) -> DomRoot<Document> {
         self.appropriate_template_contents_owner_document
             .or_init(|| {
                 let doctype = if self.is_html_document {

@@ -37,7 +37,10 @@ pub(crate) struct FakeXRInputController {
 }
 
 impl FakeXRInputController {
-    pub(crate) fn new_inherited(sender: IpcSender<MockDeviceMsg>, id: InputId) -> FakeXRInputController {
+    pub(crate) fn new_inherited(
+        sender: IpcSender<MockDeviceMsg>,
+        id: InputId,
+    ) -> FakeXRInputController {
         FakeXRInputController {
             reflector: Reflector::new(),
             sender,

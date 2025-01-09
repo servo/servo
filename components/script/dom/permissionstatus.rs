@@ -33,7 +33,10 @@ impl PermissionStatus {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, query: &PermissionDescriptor) -> DomRoot<PermissionStatus> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        query: &PermissionDescriptor,
+    ) -> DomRoot<PermissionStatus> {
         reflect_dom_object(
             Box::new(PermissionStatus::new_inherited(query.name)),
             global,

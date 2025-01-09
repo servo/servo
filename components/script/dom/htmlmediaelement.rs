@@ -436,7 +436,11 @@ pub(crate) enum ReadyState {
 }
 
 impl HTMLMediaElement {
-    pub(crate) fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
+    pub(crate) fn new_inherited(
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> Self {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
@@ -1976,7 +1980,11 @@ impl HTMLMediaElement {
     /// selected by the servo-media Player instance. However, in some cases, like
     /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
     /// renderer.
-    pub(crate) fn set_audio_renderer(&self, audio_renderer: Arc<Mutex<dyn AudioRenderer>>, can_gc: CanGc) {
+    pub(crate) fn set_audio_renderer(
+        &self,
+        audio_renderer: Arc<Mutex<dyn AudioRenderer>>,
+        can_gc: CanGc,
+    ) {
         *self.audio_renderer.borrow_mut() = Some(audio_renderer);
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {

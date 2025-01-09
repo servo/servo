@@ -167,7 +167,10 @@ impl ReadableStreamDefaultReader {
         )
     }
 
-    pub(crate) fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamDefaultReader {
+    pub(crate) fn new_inherited(
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),

@@ -1205,7 +1205,13 @@ impl WeakRangeVec {
 
     /// Used for steps 7.3-4. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    pub(crate) fn move_to_text_child_at(&self, node: &Node, offset: u32, child: &Node, new_offset: u32) {
+    pub(crate) fn move_to_text_child_at(
+        &self,
+        node: &Node,
+        offset: u32,
+        child: &Node,
+        new_offset: u32,
+    ) {
         unsafe {
             let child_ranges = &mut *child.ranges().cell.get();
 
@@ -1265,7 +1271,12 @@ impl WeakRangeVec {
 
     /// Used for steps 7.2-3. when splitting a text node.
     /// <https://dom.spec.whatwg.org/#concept-text-split>
-    pub(crate) fn move_to_following_text_sibling_above(&self, node: &Node, offset: u32, sibling: &Node) {
+    pub(crate) fn move_to_following_text_sibling_above(
+        &self,
+        node: &Node,
+        offset: u32,
+        sibling: &Node,
+    ) {
         unsafe {
             let sibling_ranges = &mut *sibling.ranges().cell.get();
 

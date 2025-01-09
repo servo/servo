@@ -227,7 +227,11 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub(crate) fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
+    pub(crate) fn process_read_data(
+        filereader: TrustedFileReader,
+        gen_id: GenerationId,
+        can_gc: CanGc,
+    ) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(

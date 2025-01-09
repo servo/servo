@@ -861,7 +861,10 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn enqueue_upgrade_reaction(element: &Element, definition: Rc<CustomElementDefinition>) {
+    pub(crate) fn enqueue_upgrade_reaction(
+        element: &Element,
+        definition: Rc<CustomElementDefinition>,
+    ) {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack

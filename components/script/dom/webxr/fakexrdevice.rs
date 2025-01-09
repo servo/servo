@@ -56,7 +56,10 @@ impl FakeXRDevice {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, sender: IpcSender<MockDeviceMsg>) -> DomRoot<FakeXRDevice> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        sender: IpcSender<MockDeviceMsg>,
+    ) -> DomRoot<FakeXRDevice> {
         reflect_dom_object(
             Box::new(FakeXRDevice::new_inherited(sender)),
             global,
