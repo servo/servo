@@ -176,7 +176,7 @@ pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R)
 /// or else the garbage collector may end up collecting objects that are still reachable.
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     with_script_thread(|script_thread| {
-        debug!("tracing fields of ScriptThread");
+        trace!("tracing fields of ScriptThread");
         script_thread.trace(tr);
     })
 }

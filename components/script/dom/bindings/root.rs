@@ -299,7 +299,7 @@ impl RootCollection {
 
 /// SM Callback that traces the rooted reflectors
 pub unsafe fn trace_roots(tracer: *mut JSTracer) {
-    debug!("tracing stack roots");
+    trace!("tracing stack roots");
     STACK_ROOTS.with(|collection| {
         let collection = &*(*collection.get().unwrap()).roots.get();
         for root in collection {
