@@ -119,16 +119,17 @@ impl TaffyItemBox {
     }
 }
 
+/// Details from Taffy grid layout that will be stored
 #[derive(Clone, Debug)]
-pub(crate) struct TaffyDetailedGridInfo {
-    pub rows: TaffyDetailedGridTrackInfo,
-    pub columns: TaffyDetailedGridTrackInfo,
+pub(crate) struct DetailedTaffyGridInfo {
+    pub rows: DetailedTaffyGridTrackInfo,
+    pub columns: DetailedTaffyGridTrackInfo,
 }
 
-impl TaffyDetailedGridInfo {
+impl DetailedTaffyGridInfo {
     fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo) -> Self {
         Self {
-            rows: TaffyDetailedGridTrackInfo {
+            rows: DetailedTaffyGridTrackInfo {
                 sizes: grid_info
                     .rows
                     .sizes
@@ -136,7 +137,7 @@ impl TaffyDetailedGridInfo {
                     .map(|size| Au::from_f32_px(*size))
                     .collect(),
             },
-            columns: TaffyDetailedGridTrackInfo {
+            columns: DetailedTaffyGridTrackInfo {
                 sizes: grid_info
                     .columns
                     .sizes
@@ -149,6 +150,6 @@ impl TaffyDetailedGridInfo {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct TaffyDetailedGridTrackInfo {
-    pub sizes: Vec<Au>,
+pub(crate) struct DetailedTaffyGridTrackInfo {
+    pub sizes: Box<[Au]>,
 }

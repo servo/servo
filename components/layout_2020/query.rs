@@ -43,7 +43,7 @@ use crate::fragment_tree::{
     BoxFragment, DetailedLayoutInfo, Fragment, FragmentFlags, FragmentTree, Tag,
 };
 use crate::geom::{PhysicalRect, PhysicalVec};
-use crate::taffy::TaffyDetailedGridInfo;
+use crate::taffy::DetailedTaffyGridInfo;
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -285,16 +285,18 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
 }
 
 fn resolve_grid_template(
-    grid_info: &TaffyDetailedGridInfo,
+    grid_info: &DetailedTaffyGridInfo,
     style: &ComputedValues,
     longhand_id: LonghandId,
 ) -> Option<String> {
     // https://drafts.csswg.org/css-grid/#resolved-track-list-standalone
-    fn serialize_standalone_track_list(track_sizes: &[Au]) -> Option<String> {
+    fn serialize_standalone_non_subgrid_track_list(track_sizes: &[Au]) -> Option<String> {
         match track_sizes.is_empty() {
-            // No explicit and implicit tracklist, the used value is therefore "none",
-            // which is the same as computed value.
+            // Standalone non subgrid grids with empty track lists should compute to `none`.
+            // As of current standard, this behaviour should only invoked by `none` computed value,
+            // therefore we can fallback into computed value resolving.
             true => None,
+            // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
             // > - Every track listed individually, whether implicitly or explicitly created,
             //     without using the repeat() notation.
             // > - Every track size given as a length in pixels, regardless of sizing function.
@@ -309,7 +311,7 @@ fn resolve_grid_template(
         }
     }
 
-    let (track_info, specified_value) = match longhand_id {
+    let (track_info, computed_value) = match longhand_id {
         LonghandId::GridTemplateRows => (&grid_info.rows, &style.get_position().grid_template_rows),
         LonghandId::GridTemplateColumns => (
             &grid_info.columns,
@@ -318,13 +320,13 @@ fn resolve_grid_template(
         _ => return None,
     };
 
-    match specified_value {
+    match computed_value {
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
         // > When an element generates a grid container box, the resolved value of its grid-template-rows or
         // > grid-template-columns property in a standalone axis is the used value, serialized with:
         GenericGridTemplateComponent::None |
         GenericGridTemplateComponent::TrackList(_) |
-        GenericGridTemplateComponent::Masonry => serialize_standalone_track_list(&track_info.sizes),
+        GenericGridTemplateComponent::Masonry => serialize_standalone_non_subgrid_track_list(&track_info.sizes),
 
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
         // > When an element generates a grid container box that is a subgrid, the resolved value of the
@@ -332,7 +334,7 @@ fn resolve_grid_template(
         // > serialized as the subgrid keyword followed by a list representing each of its lines as a
         // > line name set of all the line’s names explicitly defined on the subgrid (not including those
         // > adopted from the parent grid), without using the repeat() notation.
-        // TODO: implement subgrid and masonry
+        // TODO: implement subgrid
         GenericGridTemplateComponent::Subgrid(_) => None,
     }
 }

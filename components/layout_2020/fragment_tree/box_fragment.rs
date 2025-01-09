@@ -20,7 +20,7 @@ use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
-use crate::taffy::TaffyDetailedGridInfo;
+use crate::taffy::DetailedTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
 pub(crate) enum BackgroundMode {
@@ -42,7 +42,7 @@ pub(crate) struct ExtraBackground {
 
 #[derive(Clone, Debug)]
 pub(crate) enum DetailedLayoutInfo {
-    Grid(Box<TaffyDetailedGridInfo>),
+    Grid(Box<DetailedTaffyGridInfo>),
 }
 
 #[derive(Serialize)]
