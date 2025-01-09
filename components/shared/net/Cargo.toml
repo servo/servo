@@ -23,7 +23,7 @@ headers = { workspace = true }
 http = { workspace = true }
 hyper = { workspace = true }
 hyper_serde = { workspace = true }
-hyper-util = { workspace = true, features = ["client-legacy"] }
+hyper-util = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
