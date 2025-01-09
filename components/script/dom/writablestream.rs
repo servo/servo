@@ -134,6 +134,42 @@ impl WritableStream {
             can_gc,
         )
     }
+
+    /// Used as part of
+    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
+    pub(crate) fn assert_no_controller(&self) {
+        assert!(self.controller.get().is_none());
+    }
+
+    /// Used as part of
+    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
+    pub(crate) fn set_default_controller(&self, controller: &WritableStreamDefaultController) {
+        self.controller.set(Some(controller));
+    }
+
+    pub(crate) fn is_writable(&self) -> bool {
+        matches!(self.state.get(), WritableStreamState::Writable)
+    }
+
+    pub(crate) fn is_erroring(&self) -> bool {
+        matches!(self.state.get(), WritableStreamState::Erroring)
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-close-queued-or-in-flight>
+    pub(crate) fn close_queued_or_in_flight(&self) -> bool {
+        let close_requested = self.close_request.borrow().is_some();
+        let in_flight_close_requested = self.in_flight_close_request.borrow().is_some();
+
+        close_requested || in_flight_close_requested
+    }
+
+    pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
+        self.writer.get()
+    }
+
+    pub(crate) fn set_backpressure(&self, backpressure: bool) {
+        self.backpressure.set(backpressure);
+    }
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
@@ -186,7 +222,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
             size_algorithm,
             can_gc,
         );
-        
+
         // Note: this must be done before `setup`,
         // otherwise `thisOb` is null in the start callback.
         controller.set_underlying_sink_this_object(underlying_sink_obj.handle());

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -23,10 +24,26 @@ use crate::dom::promise::Promise;
 use crate::dom::writablestream::WritableStream;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
-/// <https://streams.spec.whatwg.org/#ws-class>
+/// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter>
 #[dom_struct]
 pub struct WritableStreamDefaultWriter {
     reflector_: Reflector,
+
+    #[ignore_malloc_size_of = "Rc is hard"]
+    ready_promise: RefCell<Option<Rc<Promise>>>,
+}
+
+impl WritableStreamDefaultWriter {
+    pub(crate) fn set_ready_promise(&self, promise: Rc<Promise>) {
+        *self.ready_promise.borrow_mut() = Some(promise);
+    }
+
+    pub(crate) fn resolve_ready_promise(&self) {
+        let Some(promise) = &*self.ready_promise.borrow() else {
+            unreachable!("Promise should have been set.");
+        };
+        promise.resolve_native(&());
+    }
 }
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {

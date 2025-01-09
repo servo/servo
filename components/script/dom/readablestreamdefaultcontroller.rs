@@ -186,7 +186,7 @@ pub(crate) struct QueueWithSizes {
     #[ignore_malloc_size_of = "EnqueuedValue::Js"]
     queue: VecDeque<EnqueuedValue>,
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queuetotalsize>
-    total_size: f64,
+    pub(crate) total_size: f64,
 }
 
 impl QueueWithSizes {
