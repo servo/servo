@@ -32,7 +32,7 @@ use crate::links::{follow_hyperlink, LinkRelations};
 use crate::script_runtime::CanGc;
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum Area {
+pub enum Area {
     Circle {
         left: f32,
         top: f32,
@@ -47,7 +47,7 @@ pub(crate) enum Area {
     },
 }
 
-pub(crate) enum Shape {
+pub enum Shape {
     Circle,
     Rectangle,
     Polygon,
@@ -56,7 +56,7 @@ pub(crate) enum Shape {
 // https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-list-of-floating-point-numbers
 // https://html.spec.whatwg.org/multipage/#image-map-processing-model
 impl Area {
-    pub(crate) fn parse(coord: &str, target: Shape) -> Option<Area> {
+    pub fn parse(coord: &str, target: Shape) -> Option<Area> {
         let points_count = match target {
             Shape::Circle => 3,
             Shape::Rectangle => 4,
@@ -184,7 +184,7 @@ impl Area {
         }
     }
 
-    pub(crate) fn hit_test(&self, p: &Point2D<f32>) -> bool {
+    pub fn hit_test(&self, p: &Point2D<f32>) -> bool {
         match *self {
             Area::Circle { left, top, radius } => {
                 (p.x - left) * (p.x - left) + (p.y - top) * (p.y - top) - radius * radius <= 0.0

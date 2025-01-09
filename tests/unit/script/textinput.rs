@@ -8,10 +8,9 @@
 // except according to those terms.
 
 use keyboard_types::{Key, Modifiers};
-use script::clipboard_provider::ClipboardProvider;
 use script::test::DOMString;
-use script::textinput::{
-    Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF16CodeUnits,
+use script::test::textinput::{
+    ClipboardProvider, Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF16CodeUnits,
     UTF8Bytes,
 };
 

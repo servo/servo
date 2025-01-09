@@ -63,10 +63,9 @@ mod stylesheet_set;
 mod task_manager;
 mod task_queue;
 mod task_source;
-#[cfg(test)]
-pub(crate) mod test;
+pub mod test;
 #[allow(dead_code)]
-pub(crate) mod textinput;
+pub mod textinput;
 mod timers;
 mod unpremultiplytable;
 mod webdriver_handlers;

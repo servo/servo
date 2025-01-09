@@ -118,15 +118,15 @@ impl SourceSet {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct ImageSource {
-    pub(crate) url: String,
-    pub(crate) descriptor: Descriptor,
+pub struct ImageSource {
+    pub url: String,
+    pub descriptor: Descriptor,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Descriptor {
-    pub(crate) width: Option<u32>,
-    pub(crate) density: Option<f64>,
+pub struct Descriptor {
+    pub width: Option<u32>,
+    pub density: Option<f64>,
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -1924,7 +1924,7 @@ pub(crate) fn collect_sequence_characters(
 
 /// Parse an `srcset` attribute:
 /// <https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute>.
-pub(crate) fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
+pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
     // > 1. Let input be the value passed to this algorithm.
     // > 2. Let position be a pointer into input, initially pointing at the start of the string.
     let mut current_index = 0;

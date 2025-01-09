@@ -3,19 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // For compile-fail tests only.
-pub(crate) use crate::dom::bindings::cell::DomRefCell;
-pub(crate) use crate::dom::bindings::refcounted::TrustedPromise;
-pub(crate) use crate::dom::bindings::root::Dom;
-pub(crate) use crate::dom::bindings::str::{ByteString, DOMString};
-pub(crate) use crate::dom::headers::normalize_value;
-pub(crate) use crate::dom::node::Node;
+//pub use crate::dom::bindings::cell::DomRefCell;
+pub use crate::dom::bindings::refcounted::TrustedPromise;
+//pub use crate::dom::bindings::root::Dom;
+pub use crate::dom::bindings::str::{ByteString, DOMString};
+pub use crate::dom::headers::normalize_value;
+//pub use crate::dom::node::Node;
 
-pub(crate) mod area {
-    pub(crate) use crate::dom::htmlareaelement::{Area, Shape};
+pub mod area {
+    pub use crate::dom::htmlareaelement::{Area, Shape};
 }
 
 #[allow(non_snake_case)]
-pub(crate) mod size_of {
+pub mod size_of {
     use std::mem::size_of;
 
     use crate::dom::characterdata::CharacterData;
@@ -27,45 +27,50 @@ pub(crate) mod size_of {
     use crate::dom::node::Node;
     use crate::dom::text::Text;
 
-    pub(crate) fn CharacterData() -> usize {
+    pub fn CharacterData() -> usize {
         size_of::<CharacterData>()
     }
 
-    pub(crate) fn Element() -> usize {
+    pub fn Element() -> usize {
         size_of::<Element>()
     }
 
-    pub(crate) fn EventTarget() -> usize {
+    pub fn EventTarget() -> usize {
         size_of::<EventTarget>()
     }
 
-    pub(crate) fn HTMLDivElement() -> usize {
+    pub fn HTMLDivElement() -> usize {
         size_of::<HTMLDivElement>()
     }
 
-    pub(crate) fn HTMLElement() -> usize {
+    pub fn HTMLElement() -> usize {
         size_of::<HTMLElement>()
     }
 
-    pub(crate) fn HTMLSpanElement() -> usize {
+    pub fn HTMLSpanElement() -> usize {
         size_of::<HTMLSpanElement>()
     }
 
-    pub(crate) fn Node() -> usize {
+    pub fn Node() -> usize {
         size_of::<Node>()
     }
 
-    pub(crate) fn Text() -> usize {
+    pub fn Text() -> usize {
         size_of::<Text>()
     }
 }
 
-pub(crate) mod srcset {
-    pub(crate) use crate::dom::htmlimageelement::{
+pub mod srcset {
+    pub use crate::dom::htmlimageelement::{
         parse_a_srcset_attribute, Descriptor, ImageSource,
     };
 }
 
-pub(crate) mod timeranges {
-    pub(crate) use crate::dom::timeranges::TimeRangesContainer;
+pub mod timeranges {
+    pub use crate::dom::timeranges::TimeRangesContainer;
+}
+
+pub mod textinput {
+    pub use crate::clipboard_provider::ClipboardProvider;
+    pub use crate::textinput::{Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF16CodeUnits, UTF8Bytes};
 }

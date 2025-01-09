@@ -21,11 +21,11 @@ use time_03::{Date, Month, OffsetDateTime, Time, Weekday};
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
-pub(crate) struct ByteString(Vec<u8>);
+pub struct ByteString(Vec<u8>);
 
 impl ByteString {
     /// Creates a new `ByteString`.
-    pub(crate) fn new(value: Vec<u8>) -> ByteString {
+    pub fn new(value: Vec<u8>) -> ByteString {
         ByteString(value)
     }
 
@@ -191,7 +191,7 @@ pub(crate) fn is_token(s: &[u8]) -> bool {
 /// This type is currently `!Send`, in order to help with an independent
 /// experiment to store `JSString`s rather than Rust `String`s.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub(crate) struct DOMString(String, PhantomData<*const ()>);
+pub struct DOMString(String, PhantomData<*const ()>);
 
 impl DOMString {
     /// Creates a new `DOMString`.

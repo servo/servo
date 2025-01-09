@@ -115,7 +115,7 @@ use crate::script_thread::ScriptThread;
 
 /// An HTML node.
 #[dom_struct]
-pub(crate) struct Node {
+pub struct Node {
     /// The JavaScript reflector for this node.
     eventtarget: EventTarget,
 

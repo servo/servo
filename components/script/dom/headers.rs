@@ -481,7 +481,7 @@ fn validate_name(name: ByteString) -> Fallible<String> {
 
 // Removes trailing and leading HTTP whitespace bytes.
 // https://fetch.spec.whatwg.org/#concept-header-value-normalize
-pub(crate) fn normalize_value(value: ByteString) -> ByteString {
+pub fn normalize_value(value: ByteString) -> ByteString {
     match (
         index_of_first_non_whitespace(&value),
         index_of_last_non_whitespace(&value),

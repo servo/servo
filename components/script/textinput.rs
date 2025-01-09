@@ -18,27 +18,27 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
 
 #[derive(Clone, Copy, PartialEq)]
-pub(crate) enum Selection {
+pub enum Selection {
     Selected,
     NotSelected,
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub(crate) enum SelectionDirection {
+pub enum SelectionDirection {
     Forward,
     Backward,
     None,
 }
 
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub(crate) struct UTF8Bytes(pub(crate) usize);
+pub struct UTF8Bytes(pub usize);
 
 impl UTF8Bytes {
-    pub(crate) fn zero() -> UTF8Bytes {
+    pub fn zero() -> UTF8Bytes {
         UTF8Bytes(0)
     }
 
-    pub(crate) fn one() -> UTF8Bytes {
+    pub fn one() -> UTF8Bytes {
         UTF8Bytes(1)
     }
 
@@ -79,14 +79,14 @@ impl StrExt for str {
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
-pub(crate) struct UTF16CodeUnits(pub(crate) usize);
+pub struct UTF16CodeUnits(pub usize);
 
 impl UTF16CodeUnits {
-    pub(crate) fn zero() -> UTF16CodeUnits {
+    pub fn zero() -> UTF16CodeUnits {
         UTF16CodeUnits(0)
     }
 
-    pub(crate) fn one() -> UTF16CodeUnits {
+    pub fn one() -> UTF16CodeUnits {
         UTF16CodeUnits(1)
     }
 
@@ -134,11 +134,11 @@ impl From<SelectionDirection> for DOMString {
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
-pub(crate) struct TextPoint {
+pub struct TextPoint {
     /// 0-based line number
-    pub(crate) line: usize,
+    pub line: usize,
     /// 0-based column number in bytes
-    pub(crate) index: UTF8Bytes,
+    pub index: UTF8Bytes,
 }
 
 impl TextPoint {
@@ -162,7 +162,7 @@ pub(crate) struct SelectionState {
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct TextInput<T: ClipboardProvider> {
+pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
 
@@ -191,7 +191,7 @@ pub(crate) struct TextInput<T: ClipboardProvider> {
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
-pub(crate) enum KeyReaction {
+pub enum KeyReaction {
     TriggerDefaultAction,
     DispatchInput,
     RedrawSelection,
@@ -209,14 +209,14 @@ impl Default for TextPoint {
 
 /// Control whether this control should allow multiple lines.
 #[derive(Eq, PartialEq)]
-pub(crate) enum Lines {
+pub enum Lines {
     Single,
     Multiple,
 }
 
 /// The direction in which to delete a character.
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) enum Direction {
+pub enum Direction {
     Forward,
     Backward,
 }
@@ -256,7 +256,7 @@ fn len_of_first_n_code_units(text: &str, n: UTF16CodeUnits) -> UTF8Bytes {
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub(crate) fn new(
+    pub fn new(
         lines: Lines,
         initial: DOMString,
         clipboard_provider: T,
@@ -279,21 +279,21 @@ impl<T: ClipboardProvider> TextInput<T> {
         i
     }
 
-    pub(crate) fn edit_point(&self) -> TextPoint {
+    pub fn edit_point(&self) -> TextPoint {
         self.edit_point
     }
 
-    pub(crate) fn selection_origin(&self) -> Option<TextPoint> {
+    pub fn selection_origin(&self) -> Option<TextPoint> {
         self.selection_origin
     }
 
     /// The selection origin, or the edit point if there is no selection. Note that the selection
     /// origin may be after the edit point, in the case of a backward selection.
-    pub(crate) fn selection_origin_or_edit_point(&self) -> TextPoint {
+    pub fn selection_origin_or_edit_point(&self) -> TextPoint {
         self.selection_origin.unwrap_or(self.edit_point)
     }
 
-    pub(crate) fn selection_direction(&self) -> SelectionDirection {
+    pub fn selection_direction(&self) -> SelectionDirection {
         self.selection_direction
     }
 
@@ -311,7 +311,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Remove a character at the current editing point
-    pub(crate) fn delete_char(&mut self, dir: Direction) {
+    pub fn delete_char(&mut self, dir: Direction) {
         if self.selection_origin.is_none() || self.selection_origin == Some(self.edit_point) {
             self.adjust_horizontal_by_one(dir, Selection::Selected);
         }
@@ -319,12 +319,12 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Insert a character at the current editing point
-    pub(crate) fn insert_char(&mut self, ch: char) {
+    pub fn insert_char(&mut self, ch: char) {
         self.insert_string(ch.to_string());
     }
 
     /// Insert a string at the current editing point
-    pub(crate) fn insert_string<S: Into<String>>(&mut self, s: S) {
+    pub fn insert_string<S: Into<String>>(&mut self, s: S) {
         if self.selection_origin.is_none() {
             self.selection_origin = Some(self.edit_point);
         }
@@ -333,7 +333,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// The start of the selection (or the edit point, if there is no selection). Always less than
     /// or equal to selection_end(), regardless of the selection direction.
-    pub(crate) fn selection_start(&self) -> TextPoint {
+    pub fn selection_start(&self) -> TextPoint {
         match self.selection_direction {
             SelectionDirection::None | SelectionDirection::Forward => {
                 self.selection_origin_or_edit_point()
@@ -343,13 +343,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The byte offset of the selection_start()
-    pub(crate) fn selection_start_offset(&self) -> UTF8Bytes {
+    pub fn selection_start_offset(&self) -> UTF8Bytes {
         self.text_point_to_offset(&self.selection_start())
     }
 
     /// The end of the selection (or the edit point, if there is no selection). Always greater
     /// than or equal to selection_start(), regardless of the selection direction.
-    pub(crate) fn selection_end(&self) -> TextPoint {
+    pub fn selection_end(&self) -> TextPoint {
         match self.selection_direction {
             SelectionDirection::None | SelectionDirection::Forward => self.edit_point,
             SelectionDirection::Backward => self.selection_origin_or_edit_point(),
@@ -357,7 +357,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The byte offset of the selection_end()
-    pub(crate) fn selection_end_offset(&self) -> UTF8Bytes {
+    pub fn selection_end_offset(&self) -> UTF8Bytes {
         self.text_point_to_offset(&self.selection_end())
     }
 
@@ -369,7 +369,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Returns a tuple of (start, end) giving the bounds of the current selection. start is always
     /// less than or equal to end.
-    pub(crate) fn sorted_selection_bounds(&self) -> (TextPoint, TextPoint) {
+    pub fn sorted_selection_bounds(&self) -> (TextPoint, TextPoint) {
         (self.selection_start(), self.selection_end())
     }
 
@@ -452,7 +452,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         acc
     }
 
-    pub(crate) fn replace_selection(&mut self, insert: DOMString) {
+    pub fn replace_selection(&mut self, insert: DOMString) {
         if !self.has_selection() {
             return;
         }
@@ -512,13 +512,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Return the length in bytes of the current line under the editing point.
-    pub(crate) fn current_line_length(&self) -> UTF8Bytes {
+    pub fn current_line_length(&self) -> UTF8Bytes {
         self.lines[self.edit_point.line].len_utf8()
     }
 
     /// Adjust the editing point position by a given number of lines. The resulting column is
     /// as close to the original column position as possible.
-    pub(crate) fn adjust_vertical(&mut self, adjust: isize, select: Selection) {
+    pub fn adjust_vertical(&mut self, adjust: isize, select: Selection) {
         if !self.multiline {
             return;
         }
@@ -582,7 +582,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Adjust the editing point position by a given number of bytes. If the adjustment
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
-    pub(crate) fn adjust_horizontal(
+    pub fn adjust_horizontal(
         &mut self,
         adjust: UTF8Bytes,
         direction: Direction,
@@ -597,7 +597,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Adjust the editing point position by exactly one grapheme cluster. If the edit point
     /// is at the beginning of the line and the direction is "Backward" or the edit point is at
     /// the end of the line and the direction is "Forward", a vertical adjustment is made
-    pub(crate) fn adjust_horizontal_by_one(&mut self, direction: Direction, select: Selection) {
+    pub fn adjust_horizontal_by_one(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
@@ -699,7 +699,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Deal with a newline input.
-    pub(crate) fn handle_return(&mut self) -> KeyReaction {
+    pub fn handle_return(&mut self) -> KeyReaction {
         if !self.multiline {
             KeyReaction::TriggerDefaultAction
         } else {
@@ -709,7 +709,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Select all text in the input control.
-    pub(crate) fn select_all(&mut self) {
+    pub fn select_all(&mut self) {
         self.selection_origin = Some(TextPoint {
             line: 0,
             index: UTF8Bytes::zero(),
@@ -722,7 +722,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Remove the current selection.
-    pub(crate) fn clear_selection(&mut self) {
+    pub fn clear_selection(&mut self) {
         self.selection_origin = None;
         self.selection_direction = SelectionDirection::None;
     }
@@ -733,7 +733,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.adjust_horizontal_to_limit(direction, Selection::NotSelected);
     }
 
-    pub(crate) fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
+    pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
@@ -799,7 +799,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.adjust_horizontal(shift_increment, direction, select);
     }
 
-    pub(crate) fn adjust_horizontal_to_line_end(
+    pub fn adjust_horizontal_to_line_end(
         &mut self,
         direction: Direction,
         select: Selection,
@@ -843,7 +843,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     // This function exists for easy unit testing.
     // To test Mac OS shortcuts on other systems a flag is passed.
-    pub(crate) fn handle_keydown_aux(
+    pub fn handle_keydown_aux(
         &mut self,
         key: Key,
         mut mods: Modifiers,
@@ -1017,7 +1017,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
-    pub(crate) fn get_content(&self) -> DOMString {
+    pub fn get_content(&self) -> DOMString {
         let mut content = "".to_owned();
         for (i, line) in self.lines.iter().enumerate() {
             content.push_str(line);
@@ -1036,7 +1036,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
-    pub(crate) fn set_content(&mut self, content: DOMString) {
+    pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
             content
@@ -1097,7 +1097,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         TextPoint { line, index }
     }
 
-    pub(crate) fn set_selection_range(
+    pub fn set_selection_range(
         &mut self,
         start: u32,
         end: u32,
@@ -1130,7 +1130,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Set the edit point index position based off of a given grapheme cluster offset
-    pub(crate) fn set_edit_point_index(&mut self, index: usize) {
+    pub fn set_edit_point_index(&mut self, index: usize) {
         let byte_offset = self.lines[self.edit_point.line]
             .graphemes(true)
             .take(index)

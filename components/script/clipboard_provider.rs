@@ -6,7 +6,7 @@ use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::channel;
 use script_traits::{ScriptMsg, ScriptToConstellationChan};
 
-pub(crate) trait ClipboardProvider {
+pub trait ClipboardProvider {
     // blocking method to get the clipboard contents
     fn clipboard_contents(&mut self) -> String;
     // blocking method to set the clipboard contents

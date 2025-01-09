@@ -52,18 +52,18 @@ impl fmt::Debug for TimeRange {
 }
 
 #[derive(Debug)]
-pub(crate) enum TimeRangesError {
+pub enum TimeRangesError {
     EndOlderThanStart,
     OutOfRange,
 }
 
 #[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf)]
-pub(crate) struct TimeRangesContainer {
+pub struct TimeRangesContainer {
     ranges: Vec<TimeRange>,
 }
 
 impl TimeRangesContainer {
-    pub(crate) fn len(&self) -> u32 {
+    pub fn len(&self) -> u32 {
         self.ranges.len() as u32
     }
 
@@ -71,21 +71,21 @@ impl TimeRangesContainer {
         self.ranges.is_empty()
     }
 
-    pub(crate) fn start(&self, index: u32) -> Result<f64, TimeRangesError> {
+    pub fn start(&self, index: u32) -> Result<f64, TimeRangesError> {
         self.ranges
             .get(index as usize)
             .map(|r| r.start)
             .ok_or(TimeRangesError::OutOfRange)
     }
 
-    pub(crate) fn end(&self, index: u32) -> Result<f64, TimeRangesError> {
+    pub fn end(&self, index: u32) -> Result<f64, TimeRangesError> {
         self.ranges
             .get(index as usize)
             .map(|r| r.end)
             .ok_or(TimeRangesError::OutOfRange)
     }
 
-    pub(crate) fn add(&mut self, start: f64, end: f64) -> Result<(), TimeRangesError> {
+    pub fn add(&mut self, start: f64, end: f64) -> Result<(), TimeRangesError> {
         if start > end {
             return Err(TimeRangesError::EndOlderThanStart);
         }

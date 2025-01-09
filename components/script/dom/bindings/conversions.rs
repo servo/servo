@@ -183,7 +183,7 @@ impl ToJSValConvertible for USVString {
 
 /// Behavior for stringification of `JSVal`s.
 #[derive(Clone, PartialEq)]
-pub(crate) enum StringificationBehavior {
+pub enum StringificationBehavior {
     /// Convert `null` to the string `"null"`.
     Default,
     /// Convert `null` to the empty string.
