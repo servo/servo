@@ -9,14 +9,16 @@ use js::rust::{HandleObject, MutableHandleValue};
 use num_traits::ToPrimitive;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
+use super::permissionstatus::PermissionStatus;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
     NotificationAction, NotificationDirection, NotificationMethods, NotificationOptions,
     NotificationPermission, NotificationPermissionCallback,
 };
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatus_Binding::PermissionStatusMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
-    PermissionName, PermissionState,
+    PermissionDescriptor, PermissionName, PermissionState,
 };
 use crate::dom::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use crate::dom::bindings::error::Error;
@@ -29,7 +31,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::permissions::get_descriptor_permission_state;
+use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm, Permissions};
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -281,16 +283,11 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         // FIXME: not sure what CanGC should provide here
         let promise = Promise::new(global, CanGc::note());
 
-        // TODO: Step 3: Run these steps in parallel:
+        // TODO: Step 3: Run these steps in parallel: add promise handler to resolve permission result
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
-        // TODO: here should be "request" permission instead of "query" permission, but we don't have
-        // a proper implementation for "request" permission.
-        let notification_permission =
-            match get_descriptor_permission_state(PermissionName::Notifications, Some(global)) {
-                PermissionState::Granted => NotificationPermission::Granted,
-                PermissionState::Denied => NotificationPermission::Denied,
-                PermissionState::Prompt => NotificationPermission::Default,
-            };
+        // TODO: not sure `request_notification_permission` is requesting correctly,
+        //       also the implementation of permission request is synchronous, so we can't actually run in parallel
+        let notification_permission = request_notification_permission(global);
         // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
         // Step 3.2.1: If deprecatedCallback is given,
         //             then invoke deprecatedCallback with « permissionState » and "report".
@@ -424,4 +421,23 @@ fn validate_and_normalize_vibration_pattern(
 
     // Step 6: Return pattern.
     pattern
+}
+
+fn request_notification_permission(global: &GlobalScope) -> NotificationPermission {
+    let cx = GlobalScope::get_cx();
+    let promise = &Promise::new(global, CanGc::note());
+    let descriptor = PermissionDescriptor {
+        name: PermissionName::Notifications,
+    };
+    let status = PermissionStatus::new(global, &descriptor);
+
+    // The implementation of `request_notification_permission` seemed to be synchronous
+    Permissions::permission_request(cx, &promise, &descriptor, &status);
+
+    match status.State() {
+        PermissionState::Granted => NotificationPermission::Granted,
+        PermissionState::Denied => NotificationPermission::Denied,
+        // Should only receive "Granted" or "Denied" from the permission request
+        PermissionState::Prompt => NotificationPermission::Default,
+    }
 }
