@@ -49,7 +49,9 @@ mod mem;
 pub(crate) mod messaging;
 mod microtask;
 mod network_listener;
+#[allow(dead_code)]
 mod realms;
+#[allow(dead_code)]
 mod script_module;
 pub(crate) mod script_runtime;
 #[allow(unsafe_code)]
@@ -63,6 +65,7 @@ mod task_queue;
 mod task_source;
 #[cfg(test)]
 pub(crate) mod test;
+#[allow(dead_code)]
 pub(crate) mod textinput;
 mod timers;
 mod unpremultiplytable;

@@ -210,6 +210,7 @@ pub(crate) mod types {
 }
 
 pub(crate) mod abortcontroller;
+#[allow(dead_code)]
 pub(crate) mod abstractrange;
 pub(crate) mod abstractworker;
 pub(crate) mod abstractworkerglobalscope;
@@ -246,6 +247,7 @@ pub(crate) mod broadcastchannel;
 pub(crate) mod bytelengthqueuingstrategy;
 pub(crate) mod canvasgradient;
 pub(crate) mod canvaspattern;
+#[allow(dead_code)]
 pub(crate) mod canvasrenderingcontext2d;
 pub(crate) mod cdatasection;
 pub(crate) mod channelmergernode;
@@ -289,6 +291,7 @@ pub(crate) mod defaultteereadrequest;
 pub(crate) mod defaultteeunderlyingsource;
 pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
+#[allow(dead_code)]
 pub(crate) mod document;
 pub(crate) mod documentfragment;
 pub(crate) mod documentorshadowroot;
@@ -308,6 +311,7 @@ pub(crate) mod domstringlist;
 pub(crate) mod domstringmap;
 pub(crate) mod domtokenlist;
 pub(crate) mod dynamicmoduleowner;
+#[allow(dead_code)]
 pub(crate) mod element;
 pub(crate) mod elementinternals;
 pub(crate) mod errorevent;
@@ -331,6 +335,7 @@ pub(crate) mod gamepadbuttonlist;
 pub(crate) mod gamepadevent;
 pub(crate) mod gamepadhapticactuator;
 pub(crate) mod gamepadpose;
+#[allow(dead_code)]
 pub(crate) mod globalscope;
 pub(crate) mod hashchangeevent;
 pub(crate) mod headers;
@@ -342,6 +347,7 @@ pub(crate) mod htmlbaseelement;
 pub(crate) mod htmlbodyelement;
 pub(crate) mod htmlbrelement;
 pub(crate) mod htmlbuttonelement;
+#[allow(dead_code)]
 pub(crate) mod htmlcanvaselement;
 pub(crate) mod htmlcollection;
 pub(crate) mod htmldataelement;
@@ -388,6 +394,7 @@ pub(crate) mod htmlpictureelement;
 pub(crate) mod htmlpreelement;
 pub(crate) mod htmlprogresselement;
 pub(crate) mod htmlquoteelement;
+#[allow(dead_code)]
 pub(crate) mod htmlscriptelement;
 pub(crate) mod htmlselectelement;
 pub(crate) mod htmlsourceelement;
@@ -432,6 +439,7 @@ pub(crate) mod mediastreamtrack;
 pub(crate) mod mediastreamtrackaudiosourcenode;
 pub(crate) mod messagechannel;
 pub(crate) mod messageevent;
+#[allow(dead_code)]
 pub(crate) mod messageport;
 pub(crate) mod mimetype;
 pub(crate) mod mimetypearray;
@@ -442,8 +450,10 @@ pub(crate) mod namednodemap;
 pub(crate) mod navigationpreloadmanager;
 pub(crate) mod navigator;
 pub(crate) mod navigatorinfo;
+#[allow(dead_code)]
 pub(crate) mod node;
 pub(crate) mod nodeiterator;
+#[allow(dead_code)]
 pub(crate) mod nodelist;
 pub(crate) mod offlineaudiocompletionevent;
 pub(crate) mod offlineaudiocontext;
@@ -456,11 +466,13 @@ pub(crate) mod paintsize;
 pub(crate) mod paintworkletglobalscope;
 pub(crate) mod pannernode;
 pub(crate) mod performance;
+#[allow(dead_code)]
 pub(crate) mod performanceentry;
 pub(crate) mod performancemark;
 pub(crate) mod performancemeasure;
 pub(crate) mod performancenavigation;
 pub(crate) mod performancenavigationtiming;
+#[allow(dead_code)]
 pub(crate) mod performanceobserver;
 pub(crate) mod performanceobserverentrylist;
 pub(crate) mod performancepainttiming;
@@ -469,16 +481,19 @@ pub(crate) mod permissions;
 pub(crate) mod permissionstatus;
 pub(crate) mod plugin;
 pub(crate) mod pluginarray;
+#[allow(dead_code)]
 pub(crate) mod pointerevent;
 pub(crate) mod popstateevent;
 pub(crate) mod processinginstruction;
 pub(crate) mod progressevent;
+#[allow(dead_code)]
 pub(crate) mod promise;
 pub(crate) mod promisenativehandler;
 pub(crate) mod promiserejectionevent;
 pub(crate) mod radionodelist;
 pub(crate) mod range;
 pub(crate) mod raredata;
+#[allow(dead_code)]
 pub(crate) mod readablebytestreamcontroller;
 pub(crate) mod readablestream;
 pub(crate) mod readablestreambyobreader;
@@ -504,10 +519,13 @@ pub(crate) mod rtctrackevent;
 pub(crate) mod screen;
 pub(crate) mod securitypolicyviolationevent;
 pub(crate) mod selection;
+#[allow(dead_code)]
 pub(crate) mod serviceworker;
 pub(crate) mod serviceworkercontainer;
 pub(crate) mod serviceworkerglobalscope;
+#[allow(dead_code)]
 pub(crate) mod serviceworkerregistration;
+#[allow(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
 pub(crate) mod staticrange;
@@ -541,6 +559,7 @@ pub(crate) mod texttrack;
 pub(crate) mod texttrackcue;
 pub(crate) mod texttrackcuelist;
 pub(crate) mod texttracklist;
+#[allow(dead_code)]
 pub(crate) mod timeranges;
 pub(crate) mod touch;
 pub(crate) mod touchevent;
@@ -599,9 +618,12 @@ pub(crate) mod gpucanvascontext;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) use gpucanvascontext::GPUCanvasContext;
 pub(crate) mod wheelevent;
+#[allow(dead_code)]
 pub(crate) mod window;
+#[allow(dead_code)]
 pub(crate) mod windowproxy;
 pub(crate) mod worker;
+#[allow(dead_code)]
 pub(crate) mod workerglobalscope;
 pub(crate) mod workerlocation;
 pub(crate) mod workernavigator;

@@ -30,6 +30,7 @@ pub(crate) mod xrreferencespace;
 pub(crate) mod xrreferencespaceevent;
 pub(crate) mod xrrenderstate;
 pub(crate) mod xrrigidtransform;
+#[allow(dead_code)]
 pub(crate) mod xrsession;
 pub(crate) mod xrsessionevent;
 pub(crate) mod xrspace;

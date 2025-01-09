@@ -11,9 +11,12 @@ pub(crate) use parser::{parse as parse_impl, Expr};
 use super::dom::node::Node;
 
 mod context;
+#[allow(dead_code)]
 mod eval;
 mod eval_function;
+#[allow(dead_code)]
 mod eval_value;
+#[allow(dead_code)]
 mod parser;
 
 /// The failure modes of executing an XPath.
