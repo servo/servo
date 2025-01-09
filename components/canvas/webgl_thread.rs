@@ -296,15 +296,7 @@ impl WebGLThread {
         while let Ok(msg) = self.receiver.recv() {
             let exit = self.handle_msg(msg, &webgl_chan);
             if exit {
-                // Call remove_context functions in order to correctly delete WebRender image keys.
-                let context_ids: Vec<WebGLContextId> = self.contexts.keys().copied().collect();
-                for id in context_ids {
-                    self.remove_webgl_context(id);
-                }
-
-                // Block on shutting-down WebRender.
-                self.webrender_api.shut_down(true);
-                return;
+                break;
             }
         }
     }
@@ -388,6 +380,14 @@ impl WebGLThread {
                 self.handle_swap_buffers(swap_ids, sender, sent_time);
             },
             WebGLMsg::Exit(sender) => {
+                // Call remove_context functions in order to correctly delete WebRender image keys.
+                let context_ids: Vec<WebGLContextId> = self.contexts.keys().copied().collect();
+                for id in context_ids {
+                    self.remove_webgl_context(id);
+                }
+
+                // Block on shutting-down WebRender.
+                self.webrender_api.shut_down(true);
                 if let Err(e) = sender.send(()) {
                     warn!("Failed to send response to WebGLMsg::Exit ({e})");
                 }
