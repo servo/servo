@@ -2101,14 +2101,14 @@ impl<'a> TableLayout<'a> {
         //
         // This rectangle is an offset between the row fragment and the other table
         // part rectangle (row group, column, column group). Everything between them
-        // is laid out in a left-to-right fashion, but respecting the veritcality of
+        // is laid out in a left-to-right fashion, but respecting the verticality of
         // the writing mode. This is why below, only the axes are flipped, but the
         // rectangle is not flipped for RTL.
         let make_relative_to_row_start = |mut rect: LogicalRect<Au>| {
             rect.start_corner -= row_fragment_layout.rect.start_corner;
-            let writing_mode = row_fragment_layout.containing_block.style.writing_mode;
+            let writing_mode = self.table.style.writing_mode;
             PhysicalRect::new(
-                if !writing_mode.is_vertical() {
+                if writing_mode.is_horizontal() {
                     PhysicalPoint::new(rect.start_corner.inline, rect.start_corner.block)
                 } else {
                     PhysicalPoint::new(rect.start_corner.block, rect.start_corner.inline)
