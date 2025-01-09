@@ -2281,7 +2281,7 @@ class CGTemplatedType(CGWrapper):
 
 class CGNamespace(CGWrapper):
     def __init__(self, namespace, child, public=False):
-        pub = "pub " if public else ""
+        pub = "pub(crate) " if public else ""
         pre = f"{pub}mod {namespace} {{\n"
         post = f"}} // mod {namespace}"
         CGWrapper.__init__(self, child, pre=pre, post=post)
@@ -2737,7 +2737,7 @@ def DomTypeHolder(descriptors, descriptorProvider, dictionaries, callbacks, type
     elements = [
         CGGeneric(
             "#[derive(JSTraceable, MallocSizeOf, PartialEq)]\n"
-            "pub struct DomTypeHolder;\n"
+            "pub(crate) struct DomTypeHolder;\n"
             "impl crate::DomTypes for DomTypeHolder {\n"
         ),
     ]
@@ -4882,7 +4882,7 @@ class CGEnum(CGThing):
         decl = f"""
 #[repr(usize)]
 #[derive({derives})]
-pub enum {ident} {{
+pub(crate) enum {ident} {{
     {enums}
 }}
 """
@@ -4900,12 +4900,12 @@ use js::rust::HandleValue;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
 
-pub const pairs: &[(&str, super::{ident})] = &[
+pub(crate) const pairs: &[(&str, super::{ident})] = &[
     {pairs},
 ];
 
 impl super::{ident} {{
-    pub fn as_str(&self) -> &'static str {{
+    pub(crate) fn as_str(&self) -> &'static str {{
         pairs[*self as usize].0
     }}
 }}
@@ -4994,7 +4994,7 @@ class CGConstant(CGThing):
         elif tag == IDLType.Tags.double:
             const_type = "f64"
 
-        return f"pub const {name}: {const_type} = {value};\n"
+        return f"pub(crate) const {name}: {const_type} = {value};\n"
 
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
@@ -5093,7 +5093,7 @@ class CGUnionStruct(CGThing):
         derives = ["JSTraceable"] + self.derives
         return f"""
 #[derive({", ".join(derives)})]
-pub enum {self.type} {{
+pub(crate) enum {self.type} {{
 {joinedEnumValues}
 }}
 
@@ -5468,7 +5468,7 @@ class ClassConstructor(ClassItem):
         body = f' {{\n{body}}}'
 
         return f"""
-pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{cgClass.getNameString()}>{body}
+pub(crate) unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{cgClass.getNameString()}>{body}
 """
 
     def define(self, cgClass):
@@ -5560,7 +5560,7 @@ class CGClass(CGThing):
         myself = ''
         if self.decorators != '':
             myself += f'{self.decorators}\n'
-        myself += f'{self.indent}pub struct {self.name}{specialization}'
+        myself += f'{self.indent}pub(crate) struct {self.name}{specialization}'
         result += myself
 
         assert len(self.bases) == 1  # XXjdm Can we support multiple inheritance?
@@ -5568,7 +5568,7 @@ class CGClass(CGThing):
         result += ' {\n'
 
         if self.bases:
-            self.members = [ClassMember("parent", self.bases[0].name, "pub")] + self.members
+            self.members = [ClassMember("parent", self.bases[0].name, "pub(crate)")] + self.members
 
         result += CGIndenter(CGGeneric(self.extradeclarations),
                              len(self.indent)).define()
@@ -6973,7 +6973,7 @@ class CGNonNamespacedEnum(CGThing):
 
         # Build the enum body.
         joinedEntries = ',\n'.join(entries)
-        enumstr = f"{comment}pub enum {enumName} {{\n{joinedEntries}\n}}\n"
+        enumstr = f"{comment}pub(crate) enum {enumName} {{\n{joinedEntries}\n}}\n"
         if repr:
             enumstr = f"#[repr({repr})]\n{enumstr}"
         if deriving:
@@ -7026,10 +7026,10 @@ class CGDictionary(CGThing):
             typeName = f"{self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}"
             if type_needs_tracing(d.parent):
                 typeName = f"RootedTraceableBox<{typeName}>"
-            inheritance = f"    pub parent: {typeName},\n"
+            inheritance = f"    pub(crate) parent: {typeName},\n"
         else:
             inheritance = ""
-        memberDecls = [f"    pub {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
+        memberDecls = [f"    pub(crate) {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
                        for m in self.memberInfo]
 
         derive = ["JSTraceable"] + self.derives
@@ -7070,7 +7070,7 @@ class CGDictionary(CGThing):
         return (
             f"#[derive({', '.join(derive)})]\n"
             f"{mustRoot}"
-            f"pub struct {self.makeClassName(d)} {{\n"
+            f"pub(crate) struct {self.makeClassName(d)} {{\n"
             f"{inheritance}"
             f"{joinedMemberDecls}\n"
             "}\n"
@@ -7143,7 +7143,7 @@ class CGDictionary(CGThing):
         return (
             f"impl {selfName} {{\n"
             f"{CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define()}\n"
-            "    pub fn new(cx: SafeJSContext, val: HandleValue) \n"
+            "    pub(crate) fn new(cx: SafeJSContext, val: HandleValue) \n"
             f"                      -> Result<ConversionResult<{actualType}>, ()> {{\n"
             f"        {unsafe_if_necessary} {{\n"
             "            let object = if val.get().is_null_or_undefined() {\n"
@@ -7247,7 +7247,7 @@ class CGDictionary(CGThing):
         parentTemplate = "parent: %s::%s::empty(),\n"
         fieldTemplate = "%s: %s,\n"
         functionTemplate = (
-            "pub fn empty() -> Self {\n"
+            "pub(crate) fn empty() -> Self {\n"
             "    Self {\n"
             "%s"
             "    }\n"
@@ -7257,7 +7257,7 @@ class CGDictionary(CGThing):
             parentTemplate = "dictionary.parent = %s::%s::empty();\n"
             fieldTemplate = "dictionary.%s = %s;\n"
             functionTemplate = (
-                "pub fn empty() -> RootedTraceableBox<Self> {\n"
+                "pub(crate) fn empty() -> RootedTraceableBox<Self> {\n"
                 "    let mut dictionary = RootedTraceableBox::new(Self::default());\n"
                 "%s"
                 "    dictionary\n"
@@ -7342,14 +7342,14 @@ class CGRegisterProxyHandlers(CGThing):
     def __init__(self, config):
         descriptors = config.getDescriptors(proxy=True)
         body = "".join(
-            f"    pub static {desc.name}: std::sync::atomic::AtomicPtr<libc::c_void> =\n"
+            f"    pub(crate) static {desc.name}: std::sync::atomic::AtomicPtr<libc::c_void> =\n"
             "        std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());\n"
             for desc in descriptors
         )
         self.root = CGList([
             CGGeneric(
                 "#[allow(non_upper_case_globals)]\n"
-                "pub mod proxy_handlers {\n"
+                "pub(crate) mod proxy_handlers {\n"
                 f"{body}}}\n"
             ),
             CGRegisterProxyHandlersMethod(descriptors),
@@ -8221,7 +8221,7 @@ class GlobalGenRoots():
         global_flags = CGWrapper(CGIndenter(CGList([
             CGGeneric(f"const {args[0]} = {args[1]};")
             for args in flags
-        ], "\n")), pre="#[derive(Clone, Copy)]\npub struct Globals: u8 {\n", post="\n}")
+        ], "\n")), pre="#[derive(Clone, Copy)]\npub(crate) struct Globals: u8 {\n", post="\n}")
         globals_ = CGWrapper(CGIndenter(global_flags), pre="bitflags::bitflags! {\n", post="\n}")
 
         phf = CGGeneric("include!(concat!(env!(\"OUT_DIR\"), \"/InterfaceObjectMapPhf.rs\"));")
@@ -8263,8 +8263,8 @@ class GlobalGenRoots():
 
         return CGList([
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
-            CGGeneric(f"pub const PROTO_OR_IFACE_LENGTH: usize = {len(protos) + len(constructors)};\n"),
-            CGGeneric(f"pub const MAX_PROTO_CHAIN_LENGTH: usize = {config.maxProtoChainLength};\n\n"),
+            CGGeneric(f"pub(crate) const PROTO_OR_IFACE_LENGTH: usize = {len(protos) + len(constructors)};\n"),
+            CGGeneric(f"pub(crate) const MAX_PROTO_CHAIN_LENGTH: usize = {config.maxProtoChainLength};\n\n"),
             CGGeneric("#[allow(clippy::enum_variant_names)]"),
             CGNonNamespacedEnum('ID', protos, 0, deriving="PartialEq, Copy, Clone", repr="u16"),
             CGNonNamespacedEnum('Constructor', constructors, len(protos),
@@ -8274,7 +8274,7 @@ class GlobalGenRoots():
                                  indentLevel=4),
                       pre=f"static INTERFACES: [&str; {len(protos)}] = [\n",
                       post="\n];\n\n"),
-            CGGeneric("pub fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
+            CGGeneric("pub(crate) fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
                       "    debug_assert!(proto_id < ID::Last as u16);\n"
                       "    INTERFACES[proto_id as usize]\n"
                       "}\n\n"),
@@ -8314,7 +8314,7 @@ class GlobalGenRoots():
                        | set(leafModule(d) for d in config.getDictionaries()))
         curr = CGList([CGGeneric(
             "#[allow(clippy::derivable_impls)]\n"
-            f"pub mod {name};\n"
+            f"pub(crate) mod {name};\n"
         ) for name in sorted(descriptors)])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
@@ -8361,17 +8361,17 @@ class GlobalGenRoots():
 
         typeIdCode = []
         topTypeVariants = [
-            ("ID used by abstract interfaces.", "pub abstract_: ()"),
-            ("ID used by interfaces that are not castable.", "pub alone: ()"),
+            ("ID used by abstract interfaces.", "pub(crate) abstract_: ()"),
+            ("ID used by interfaces that are not castable.", "pub(crate) alone: ()"),
         ]
         topTypeVariants += [
             (f"ID used by interfaces that derive from {typeName}.",
-             f"pub {typeName.lower()}: {typeName}TypeId")
+             f"pub(crate) {typeName.lower()}: {typeName}TypeId")
             for typeName in topTypes
         ]
         topTypeVariantsAsStrings = [CGGeneric(f"/// {variant[0]}\n{variant[1]},") for variant in topTypeVariants]
         typeIdCode.append(CGWrapper(CGIndenter(CGList(topTypeVariantsAsStrings, "\n"), 4),
-                                    pre="#[derive(Copy)]\npub union TopTypeId {\n",
+                                    pre="#[derive(Copy)]\npub(crate) union TopTypeId {\n",
                                     post="\n}\n\n"))
 
         typeIdCode.append(CGGeneric("""\
@@ -8394,12 +8394,12 @@ impl Clone for TopTypeId {
             variants += [CGGeneric(type_id_variant(derivedName)) for derivedName in derived]
             derives = "Clone, Copy, Debug, PartialEq"
             typeIdCode.append(CGWrapper(CGIndenter(CGList(variants, ",\n"), 4),
-                                        pre=f"#[derive({derives})]\npub enum {base}TypeId {{\n",
+                                        pre=f"#[derive({derives})]\npub(crate) enum {base}TypeId {{\n",
                                         post="\n}\n\n"))
             if base in topTypes:
                 typeIdCode.append(CGGeneric(f"""
 impl {base} {{
-    pub fn type_id(&self) -> &'static {base}TypeId {{
+    pub(crate) fn type_id(&self) -> &'static {base}TypeId {{
         unsafe {{
             &get_dom_class(self.reflector().get_jsobject().get())
                 .unwrap()

@@ -20,20 +20,20 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TextTrackList {
+pub(crate) struct TextTrackList {
     eventtarget: EventTarget,
     dom_tracks: DomRefCell<Vec<Dom<TextTrack>>>,
 }
 
 impl TextTrackList {
-    pub fn new_inherited(tracks: &[&TextTrack]) -> TextTrackList {
+    pub(crate) fn new_inherited(tracks: &[&TextTrack]) -> TextTrackList {
         TextTrackList {
             eventtarget: EventTarget::new_inherited(),
             dom_tracks: DomRefCell::new(tracks.iter().map(|g| Dom::from_ref(&**g)).collect()),
         }
     }
 
-    pub fn new(window: &Window, tracks: &[&TextTrack]) -> DomRoot<TextTrackList> {
+    pub(crate) fn new(window: &Window, tracks: &[&TextTrack]) -> DomRoot<TextTrackList> {
         reflect_dom_object(
             Box::new(TextTrackList::new_inherited(tracks)),
             window,
@@ -41,14 +41,14 @@ impl TextTrackList {
         )
     }
 
-    pub fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {
+    pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {
         self.dom_tracks
             .borrow()
             .get(idx)
             .map(|t| DomRoot::from_ref(&**t))
     }
 
-    pub fn find(&self, track: &TextTrack) -> Option<usize> {
+    pub(crate) fn find(&self, track: &TextTrack) -> Option<usize> {
         self.dom_tracks
             .borrow()
             .iter()
@@ -57,7 +57,7 @@ impl TextTrackList {
             .map(|(i, _)| i)
     }
 
-    pub fn add(&self, track: &TextTrack) {
+    pub(crate) fn add(&self, track: &TextTrack) {
         // Only add a track if it does not exist in the list
         if self.find(track).is_none() {
             self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
@@ -95,7 +95,7 @@ impl TextTrackList {
     // FIXME(#22314, dlrobertson) allow TextTracks to be
     // removed from the TextTrackList.
     #[allow(dead_code)]
-    pub fn remove(&self, idx: usize, can_gc: CanGc) {
+    pub(crate) fn remove(&self, idx: usize, can_gc: CanGc) {
         if let Some(track) = self.dom_tracks.borrow().get(idx) {
             track.remove_track_list();
         }

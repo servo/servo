@@ -53,14 +53,14 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct HTMLElement {
+pub(crate) struct HTMLElement {
     element: Element,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
     dataset: MutNullableDom<DOMStringMap>,
 }
 
 impl HTMLElement {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -68,7 +68,7 @@ impl HTMLElement {
         HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(
+    pub(crate) fn new_inherited_with_state(
         state: ElementState,
         tag_name: LocalName,
         prefix: Option<Prefix>,
@@ -88,7 +88,7 @@ impl HTMLElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -708,7 +708,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
 }
 
 impl HTMLElement {
-    pub fn set_custom_attr(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn set_custom_attr(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
         if name
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
@@ -721,7 +721,7 @@ impl HTMLElement {
             .set_custom_attribute(to_snake_case(name), value, can_gc)
     }
 
-    pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
+    pub(crate) fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
         self.as_element()
@@ -731,14 +731,14 @@ impl HTMLElement {
             })
     }
 
-    pub fn delete_custom_attr(&self, local_name: DOMString) {
+    pub(crate) fn delete_custom_attr(&self, local_name: DOMString) {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
         self.as_element().remove_attribute(&ns!(), &local_name);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-label>
-    pub fn is_labelable_element(&self) -> bool {
+    pub(crate) fn is_labelable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLInputElement => {
@@ -757,7 +757,7 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#form-associated-custom-element>
-    pub fn is_form_associated_custom_element(&self) -> bool {
+    pub(crate) fn is_form_associated_custom_element(&self) -> bool {
         if let Some(definition) = self.as_element().get_custom_element_definition() {
             definition.is_autonomous() && definition.form_associated
         } else {
@@ -766,7 +766,7 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-listed>
-    pub fn is_listed_element(&self) -> bool {
+    pub(crate) fn is_listed_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLButtonElement |
@@ -783,7 +783,7 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-submit>
-    pub fn is_submittable_element(&self) -> bool {
+    pub(crate) fn is_submittable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLButtonElement |
@@ -796,7 +796,7 @@ impl HTMLElement {
         }
     }
 
-    pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
+    pub(crate) fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = self.as_element();
         element
             .attrs()
@@ -810,7 +810,7 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This gets the nth label in tree order.
-    pub fn label_at(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn label_at(&self, index: u32) -> Option<DomRoot<Node>> {
         let element = self.as_element();
 
         // Traverse entire tree for <label> elements that have
@@ -838,7 +838,7 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This counts the labels of the element, to support NodeList::Length
-    pub fn labels_count(&self) -> u32 {
+    pub(crate) fn labels_count(&self) -> u32 {
         // see label_at comments about performance
         let element = self.as_element();
         let root_element = element.root_element();
@@ -856,7 +856,7 @@ impl HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-directionality.
     // returns Some if can infer direction by itself or from child nodes
     // returns None if requires to go up to parent
-    pub fn directionality(&self) -> Option<String> {
+    pub(crate) fn directionality(&self) -> Option<String> {
         let element_direction: &str = &self.Dir();
 
         if element_direction == "ltr" {
@@ -896,7 +896,7 @@ impl HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour
-    pub fn summary_activation_behavior(&self) {
+    pub(crate) fn summary_activation_behavior(&self) {
         // Step 1
         if !self.is_summary_for_its_parent_details() {
             return;

@@ -20,7 +20,7 @@ use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRSessionEvent {
+pub(crate) struct XRSessionEvent {
     event: Event,
     session: Dom<XRSession>,
 }
@@ -34,7 +34,7 @@ impl XRSessionEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

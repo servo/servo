@@ -46,7 +46,7 @@ use crate::textinput::{
 };
 
 #[dom_struct]
-pub struct HTMLTextAreaElement {
+pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
@@ -59,7 +59,7 @@ pub struct HTMLTextAreaElement {
     validity_state: MutNullableDom<ValidityState>,
 }
 
-pub trait LayoutHTMLTextAreaElementHelpers {
+pub(crate) trait LayoutHTMLTextAreaElementHelpers {
     fn value_for_layout(self) -> String;
     fn selection_for_layout(self) -> Option<Range<usize>>;
     fn get_cols(self) -> u32;
@@ -169,7 +169,7 @@ impl HTMLTextAreaElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -186,7 +186,7 @@ impl HTMLTextAreaElement {
         )
     }
 
-    pub fn auto_directionality(&self) -> String {
+    pub(crate) fn auto_directionality(&self) -> String {
         let value: String = self.Value().to_string();
         HTMLInputElement::directionality_from_value(&value)
     }
@@ -445,7 +445,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 }
 
 impl HTMLTextAreaElement {
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
         textinput.set_content(self.DefaultValue());

@@ -91,7 +91,7 @@ impl ResourceTimingListener for LayoutImageContext {
 
 impl PreInvoke for LayoutImageContext {}
 
-pub fn fetch_image_for_layout(
+pub(crate) fn fetch_image_for_layout(
     url: ServoUrl,
     node: &Node,
     id: PendingImageId,

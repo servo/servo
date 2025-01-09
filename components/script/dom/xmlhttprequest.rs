@@ -86,7 +86,7 @@ enum XMLHttpRequestState {
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct GenerationId(u32);
+pub(crate) struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
 /// XHR's response.
@@ -164,7 +164,7 @@ impl PreInvoke for XHRContext {
 }
 
 #[derive(Clone)]
-pub enum XHRProgress {
+pub(crate) enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<HeaderMap>, HttpStatus),
     /// Partial progress (after receiving headers), containing portion of the response
@@ -187,7 +187,7 @@ impl XHRProgress {
 }
 
 #[dom_struct]
-pub struct XMLHttpRequest {
+pub(crate) struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,
     timeout: Cell<Duration>,
@@ -992,7 +992,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 }
 
-pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
+pub(crate) type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState, can_gc: CanGc) {
@@ -1651,14 +1651,14 @@ impl XMLHttpRequest {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct XHRTimeoutCallback {
+pub(crate) struct XHRTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     xhr: Trusted<XMLHttpRequest>,
     generation_id: GenerationId,
 }
 
 impl XHRTimeoutCallback {
-    pub fn invoke(self, can_gc: CanGc) {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
         let xhr = self.xhr.root();
         if xhr.ready_state.get() != XMLHttpRequestState::Done {
             xhr.process_partial_response(
@@ -1679,7 +1679,7 @@ fn serialize_document(doc: &Document) -> Fallible<DOMString> {
 
 /// Returns whether `bs` is a `field-value`, as defined by
 /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
-pub fn is_field_value(slice: &[u8]) -> bool {
+pub(crate) fn is_field_value(slice: &[u8]) -> bool {
     // Classifications of characters necessary for the [CRLF] (SP|HT) rule
     #[derive(PartialEq)]
     #[allow(clippy::upper_case_acronyms)]

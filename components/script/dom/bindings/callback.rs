@@ -31,7 +31,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 /// The exception handling used for a call.
 #[derive(Clone, Copy, PartialEq)]
-pub enum ExceptionHandling {
+pub(crate) enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
     /// Throw any exception to the caller code.
@@ -42,7 +42,7 @@ pub enum ExceptionHandling {
 /// callback interface types.
 #[derive(JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct CallbackObject {
+pub(crate) struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
     permanent_js_root: Heap<JSVal>,
@@ -73,7 +73,7 @@ impl CallbackObject {
         }
     }
 
-    pub fn get(&self) -> *mut JSObject {
+    pub(crate) fn get(&self) -> *mut JSObject {
         self.callback.get()
     }
 
@@ -108,7 +108,7 @@ impl PartialEq for CallbackObject {
 
 /// A trait to be implemented by concrete IDL callback function and
 /// callback interface types.
-pub trait CallbackContainer {
+pub(crate) trait CallbackContainer {
     /// Create a new CallbackContainer object for the given `JSObject`.
     unsafe fn new(cx: JSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
@@ -129,7 +129,7 @@ pub trait CallbackContainer {
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct CallbackFunction {
+pub(crate) struct CallbackFunction {
     object: CallbackObject,
 }
 
@@ -138,20 +138,20 @@ impl CallbackFunction {
     #[allow(crown::unrooted_must_root)]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> CallbackFunction {
+    pub(crate) fn new() -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject::new(),
         }
     }
 
     /// Returns the underlying `CallbackObject`.
-    pub fn callback_holder(&self) -> &CallbackObject {
+    pub(crate) fn callback_holder(&self) -> &CallbackObject {
         &self.object
     }
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
+    pub(crate) unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.object.init(cx, callback);
     }
 }
@@ -159,7 +159,7 @@ impl CallbackFunction {
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct CallbackInterface {
+pub(crate) struct CallbackInterface {
     object: CallbackObject,
 }
 
@@ -167,26 +167,26 @@ impl CallbackInterface {
     /// Create a new CallbackInterface object for the given `JSObject`.
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> CallbackInterface {
+    pub(crate) fn new() -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject::new(),
         }
     }
 
     /// Returns the underlying `CallbackObject`.
-    pub fn callback_holder(&self) -> &CallbackObject {
+    pub(crate) fn callback_holder(&self) -> &CallbackObject {
         &self.object
     }
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
+    pub(crate) unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.object.init(cx, callback);
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
-    pub fn get_callable_property(&self, cx: JSContext, name: &str) -> Fallible<JSVal> {
+    pub(crate) fn get_callable_property(&self, cx: JSContext, name: &str) -> Fallible<JSVal> {
         rooted!(in(*cx) let mut callable = UndefinedValue());
         rooted!(in(*cx) let obj = self.callback_holder().get());
         unsafe {
@@ -206,7 +206,7 @@ impl CallbackInterface {
     }
 }
 
-pub trait ThisReflector {
+pub(crate) trait ThisReflector {
     fn jsobject(&self) -> *mut JSObject;
 }
 
@@ -223,7 +223,7 @@ impl ThisReflector for HandleObject<'_> {
 }
 
 /// Wraps the reflector for `p` into the realm of `cx`.
-pub fn wrap_call_this_object<T: ThisReflector>(
+pub(crate) fn wrap_call_this_object<T: ThisReflector>(
     cx: JSContext,
     p: &T,
     mut rval: MutableHandleObject,
@@ -240,7 +240,7 @@ pub fn wrap_call_this_object<T: ThisReflector>(
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
-pub struct CallSetup {
+pub(crate) struct CallSetup {
     /// The global for reporting exceptions. This is the global object of the
     /// (possibly wrapped) callback object.
     exception_global: DomRoot<GlobalScope>,
@@ -261,7 +261,7 @@ pub struct CallSetup {
 impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(crown::unrooted_must_root)]
-    pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
+    pub(crate) fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = unsafe { GlobalScope::from_object(callback.callback()) };
         if let Some(window) = global.downcast::<Window>() {
             window.Document().ensure_safe_to_run_script_or_layout();
@@ -281,7 +281,7 @@ impl CallSetup {
     }
 
     /// Returns the `JSContext` used for the call.
-    pub fn get_context(&self) -> JSContext {
+    pub(crate) fn get_context(&self) -> JSContext {
         self.cx
     }
 }

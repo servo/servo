@@ -17,7 +17,7 @@ use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLSampler {
+pub(crate) struct WebGLSampler {
     webgl_object: WebGLObject,
     #[no_trace]
     gl_id: WebGLSamplerId,
@@ -25,7 +25,7 @@ pub struct WebGLSampler {
 }
 
 #[derive(Clone, Copy)]
-pub enum WebGLSamplerValue {
+pub(crate) enum WebGLSamplerValue {
     Float(f32),
     GLenum(u32),
 }
@@ -83,7 +83,7 @@ impl WebGLSampler {
         }
     }
 
-    pub fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::GenerateSampler(sender));
         let id = receiver.recv().unwrap();
@@ -95,7 +95,7 @@ impl WebGLSampler {
         )
     }
 
-    pub fn delete(&self, operation_fallibility: Operation) {
+    pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
 
@@ -108,11 +108,11 @@ impl WebGLSampler {
         }
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         !self.marked_for_deletion.get()
     }
 
-    pub fn bind(
+    pub(crate) fn bind(
         &self,
         context: &WebGLRenderingContext,
         unit: u32,
@@ -124,7 +124,7 @@ impl WebGLSampler {
         Ok(())
     }
 
-    pub fn set_parameter(
+    pub(crate) fn set_parameter(
         &self,
         context: &WebGLRenderingContext,
         pname: u32,
@@ -148,7 +148,7 @@ impl WebGLSampler {
         Ok(())
     }
 
-    pub fn get_parameter(
+    pub(crate) fn get_parameter(
         &self,
         context: &WebGLRenderingContext,
         pname: u32,

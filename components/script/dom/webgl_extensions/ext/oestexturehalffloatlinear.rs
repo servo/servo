@@ -12,7 +12,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OESTextureHalfFloatLinear {
+pub(crate) struct OESTextureHalfFloatLinear {
     reflector_: Reflector,
 }
 

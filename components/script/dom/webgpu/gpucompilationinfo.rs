@@ -15,14 +15,14 @@ use crate::dom::types::GPUCompilationMessage;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct GPUCompilationInfo {
+pub(crate) struct GPUCompilationInfo {
     reflector_: Reflector,
     // currently we only get one message from wgpu
     msg: Vec<DomRoot<GPUCompilationMessage>>,
 }
 
 impl GPUCompilationInfo {
-    pub fn new_inherited(msg: Vec<DomRoot<GPUCompilationMessage>>) -> Self {
+    pub(crate) fn new_inherited(msg: Vec<DomRoot<GPUCompilationMessage>>) -> Self {
         Self {
             reflector_: Reflector::new(),
             msg,
@@ -30,7 +30,7 @@ impl GPUCompilationInfo {
     }
 
     #[allow(dead_code)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         msg: Vec<DomRoot<GPUCompilationMessage>>,
         can_gc: CanGc,
@@ -38,7 +38,7 @@ impl GPUCompilationInfo {
         reflect_dom_object_with_proto(Box::new(Self::new_inherited(msg)), global, None, can_gc)
     }
 
-    pub fn from(
+    pub(crate) fn from(
         global: &GlobalScope,
         error: Option<ShaderCompilationInfo>,
         can_gc: CanGc,

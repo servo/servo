@@ -29,40 +29,41 @@ mod animations;
 #[macro_use]
 mod task;
 mod body;
-pub mod clipboard_provider;
-pub mod conversions;
+pub(crate) mod clipboard_provider;
+pub(crate) mod conversions;
 mod devtools;
-pub mod document_loader;
+pub(crate) mod document_loader;
 #[macro_use]
 mod dom;
 mod canvas_state;
-pub mod fetch;
+pub(crate) mod fetch;
 mod image_listener;
 mod init;
 mod layout_image;
 
-pub mod document_collection;
-pub mod iframe_collection;
+pub(crate) mod document_collection;
+pub(crate) mod iframe_collection;
 pub mod layout_dom;
 mod mem;
 #[allow(unsafe_code)]
-pub mod messaging;
+pub(crate) mod messaging;
 mod microtask;
 mod network_listener;
 mod realms;
 mod script_module;
-pub mod script_runtime;
+pub(crate) mod script_runtime;
 #[allow(unsafe_code)]
-pub mod script_thread;
-pub mod security_manager;
-pub mod serviceworker_manager;
+pub(crate) mod script_thread;
+pub(crate) mod security_manager;
+pub(crate) mod serviceworker_manager;
 mod stylesheet_loader;
 mod stylesheet_set;
 mod task_manager;
 mod task_queue;
 mod task_source;
-pub mod test;
-pub mod textinput;
+#[cfg(test)]
+pub(crate) mod test;
+pub(crate) mod textinput;
 mod timers;
 mod unpremultiplytable;
 mod webdriver_handlers;
@@ -76,12 +77,14 @@ mod xpath;
 
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
+pub use script_thread::ScriptThread;
+pub use serviceworker_manager::ServiceWorkerManager;
 
-pub use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-pub use crate::dom::bindings::codegen::DomTypes::DomTypes;
+pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
+pub(crate) use crate::dom::bindings::codegen::DomTypes::DomTypes;
 // These trait exports are public, because they are used in the DOM bindings.
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
-pub use crate::dom::bindings::inheritance::HasParent;
-pub use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
-pub use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
+pub(crate) use crate::dom::bindings::inheritance::HasParent;
+pub(crate) use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+pub(crate) use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};

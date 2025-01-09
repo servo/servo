@@ -32,7 +32,7 @@ use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
-pub struct DOMImplementation {
+pub(crate) struct DOMImplementation {
     reflector_: Reflector,
     document: Dom<Document>,
 }
@@ -45,7 +45,7 @@ impl DOMImplementation {
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<DOMImplementation> {
+    pub(crate) fn new(document: &Document) -> DomRoot<DOMImplementation> {
         let window = document.window();
         reflect_dom_object(
             Box::new(DOMImplementation::new_inherited(document)),

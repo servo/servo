@@ -14,7 +14,7 @@ use crate::dom::nodelist::NodeList;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MutationRecord {
+pub(crate) struct MutationRecord {
     reflector_: Reflector,
     record_type: DOMString,
     target: Dom<Node>,
@@ -29,7 +29,7 @@ pub struct MutationRecord {
 
 impl MutationRecord {
     #[allow(crown::unrooted_must_root)]
-    pub fn attribute_mutated(
+    pub(crate) fn attribute_mutated(
         target: &Node,
         attribute_name: &LocalName,
         attribute_namespace: Option<&Namespace>,
@@ -49,7 +49,7 @@ impl MutationRecord {
         reflect_dom_object(record, &*target.owner_window(), CanGc::note())
     }
 
-    pub fn character_data_mutated(
+    pub(crate) fn character_data_mutated(
         target: &Node,
         old_value: Option<DOMString>,
     ) -> DomRoot<MutationRecord> {
@@ -70,7 +70,7 @@ impl MutationRecord {
         )
     }
 
-    pub fn child_list_mutated(
+    pub(crate) fn child_list_mutated(
         target: &Node,
         added_nodes: Option<&[&Node]>,
         removed_nodes: Option<&[&Node]>,

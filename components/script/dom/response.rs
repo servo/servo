@@ -33,7 +33,7 @@ use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::script_runtime::{CanGc, StreamConsumer};
 
 #[dom_struct]
-pub struct Response {
+pub(crate) struct Response {
     reflector_: Reflector,
     headers_reflector: MutNullableDom<Headers>,
     #[no_trace]
@@ -52,7 +52,7 @@ pub struct Response {
 
 #[allow(non_snake_case)]
 impl Response {
-    pub fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Response {
+    pub(crate) fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Response {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
             UnderlyingSourceType::FetchResponse,
@@ -73,7 +73,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
         Self::new_with_proto(global, None, can_gc)
     }
 
@@ -90,7 +90,7 @@ impl Response {
         )
     }
 
-    pub fn error_stream(&self, error: Error) {
+    pub(crate) fn error_stream(&self, error: Error) {
         if let Some(body) = self.body_stream.get() {
             body.error_native(error);
         }
@@ -393,12 +393,12 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
 }
 
 impl Response {
-    pub fn set_type(&self, new_response_type: DOMResponseType, can_gc: CanGc) {
+    pub(crate) fn set_type(&self, new_response_type: DOMResponseType, can_gc: CanGc) {
         *self.response_type.borrow_mut() = new_response_type;
         self.set_response_members_by_type(new_response_type, can_gc);
     }
 
-    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc: CanGc) {
+    pub(crate) fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc: CanGc) {
         self.Headers(can_gc)
             .set_headers(match option_hyper_headers {
                 Some(hyper_headers) => hyper_headers.into_inner(),
@@ -406,15 +406,15 @@ impl Response {
             });
     }
 
-    pub fn set_status(&self, status: &HttpStatus) {
+    pub(crate) fn set_status(&self, status: &HttpStatus) {
         self.status.borrow_mut().clone_from(status);
     }
 
-    pub fn set_final_url(&self, final_url: ServoUrl) {
+    pub(crate) fn set_final_url(&self, final_url: ServoUrl) {
         *self.url.borrow_mut() = Some(final_url);
     }
 
-    pub fn set_redirected(&self, is_redirected: bool) {
+    pub(crate) fn set_redirected(&self, is_redirected: bool) {
         *self.redirected.borrow_mut() = is_redirected;
     }
 
@@ -441,11 +441,11 @@ impl Response {
         }
     }
 
-    pub fn set_stream_consumer(&self, sc: Option<StreamConsumer>) {
+    pub(crate) fn set_stream_consumer(&self, sc: Option<StreamConsumer>) {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub fn stream_chunk(&self, chunk: Vec<u8>) {
+    pub(crate) fn stream_chunk(&self, chunk: Vec<u8>) {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
@@ -455,7 +455,7 @@ impl Response {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn finish(&self) {
+    pub(crate) fn finish(&self) {
         if let Some(body) = self.body_stream.get() {
             body.controller_close_native();
         }

@@ -14,13 +14,13 @@ use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
 #[dom_struct]
-pub struct ReadableByteStreamController {
+pub(crate) struct ReadableByteStreamController {
     reflector_: Reflector,
     stream: MutNullableDom<ReadableStream>,
 }
 
 impl ReadableByteStreamController {
-    pub fn set_stream(&self, stream: &ReadableStream) {
+    pub(crate) fn set_stream(&self, stream: &ReadableStream) {
         self.stream.set(Some(stream))
     }
 }

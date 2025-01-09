@@ -56,7 +56,7 @@ impl HapticEffectListener {
 
 /// <https://www.w3.org/TR/gamepad/#gamepadhapticactuator-interface>
 #[dom_struct]
-pub struct GamepadHapticActuator {
+pub(crate) struct GamepadHapticActuator {
     reflector_: Reflector,
     gamepad_index: u32,
     /// <https://www.w3.org/TR/gamepad/#dfn-effects>
@@ -98,7 +98,7 @@ impl GamepadHapticActuator {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
@@ -299,7 +299,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 impl GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>
     /// We are in the task queued by the "in-parallel" steps.
-    pub fn handle_haptic_effect_completed(&self, completed_successfully: bool) {
+    pub(crate) fn handle_haptic_effect_completed(&self, completed_successfully: bool) {
         if self.effect_sequence_id.get() != self.sequence_id.get() || !completed_successfully {
             return;
         }
@@ -312,7 +312,7 @@ impl GamepadHapticActuator {
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
     /// We are in the task queued by the "in-parallel" steps.
-    pub fn handle_haptic_effect_stopped(&self, stopped_successfully: bool) {
+    pub(crate) fn handle_haptic_effect_stopped(&self, stopped_successfully: bool) {
         if !stopped_successfully {
             return;
         }
@@ -338,7 +338,7 @@ impl GamepadHapticActuator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#handling-visibility-change>
-    pub fn handle_visibility_change(&self) {
+    pub(crate) fn handle_visibility_change(&self) {
         if self.playing_effect_promise.borrow().is_none() {
             return;
         }

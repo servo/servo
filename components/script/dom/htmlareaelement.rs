@@ -32,7 +32,7 @@ use crate::links::{follow_hyperlink, LinkRelations};
 use crate::script_runtime::CanGc;
 
 #[derive(Debug, PartialEq)]
-pub enum Area {
+pub(crate) enum Area {
     Circle {
         left: f32,
         top: f32,
@@ -47,7 +47,7 @@ pub enum Area {
     },
 }
 
-pub enum Shape {
+pub(crate) enum Shape {
     Circle,
     Rectangle,
     Polygon,
@@ -56,7 +56,7 @@ pub enum Shape {
 // https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-list-of-floating-point-numbers
 // https://html.spec.whatwg.org/multipage/#image-map-processing-model
 impl Area {
-    pub fn parse(coord: &str, target: Shape) -> Option<Area> {
+    pub(crate) fn parse(coord: &str, target: Shape) -> Option<Area> {
         let points_count = match target {
             Shape::Circle => 3,
             Shape::Rectangle => 4,
@@ -184,7 +184,7 @@ impl Area {
         }
     }
 
-    pub fn hit_test(&self, p: &Point2D<f32>) -> bool {
+    pub(crate) fn hit_test(&self, p: &Point2D<f32>) -> bool {
         match *self {
             Area::Circle { left, top, radius } => {
                 (p.x - left) * (p.x - left) + (p.y - top) * (p.y - top) - radius * radius <= 0.0
@@ -205,7 +205,7 @@ impl Area {
         }
     }
 
-    pub fn absolute_coords(&self, p: Point2D<f32>) -> Area {
+    pub(crate) fn absolute_coords(&self, p: Point2D<f32>) -> Area {
         match *self {
             Area::Rectangle {
                 top_left,
@@ -237,7 +237,7 @@ impl Area {
 }
 
 #[dom_struct]
-pub struct HTMLAreaElement {
+pub(crate) struct HTMLAreaElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
 
@@ -259,7 +259,7 @@ impl HTMLAreaElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -274,7 +274,7 @@ impl HTMLAreaElement {
         )
     }
 
-    pub fn get_shape_from_coords(&self) -> Option<Area> {
+    pub(crate) fn get_shape_from_coords(&self) -> Option<Area> {
         let elem = self.upcast::<Element>();
         let shape = elem.get_string_attribute(&"shape".into());
         let shp: Shape = match_ignore_ascii_case! { &shape,

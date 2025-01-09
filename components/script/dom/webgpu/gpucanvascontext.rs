@@ -74,7 +74,7 @@ struct DrawingBuffer {
 }
 
 #[dom_struct]
-pub struct GPUCanvasContext {
+pub(crate) struct GPUCanvasContext {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -140,7 +140,7 @@ impl GPUCanvasContext {
         }
     }
 
-    pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
+    pub(crate) fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
         let document = canvas.owner_document();
         let this = reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(

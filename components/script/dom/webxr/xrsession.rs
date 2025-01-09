@@ -71,7 +71,7 @@ use crate::script_runtime::JSContext;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRSession {
+pub(crate) struct XRSession {
     eventtarget: EventTarget,
     blend_mode: XREnvironmentBlendMode,
     mode: XRSessionMode,
@@ -150,7 +150,7 @@ impl XRSession {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: Session,
         mode: XRSessionMode,
@@ -178,21 +178,21 @@ impl XRSession {
         ret
     }
 
-    pub fn with_session<R, F: FnOnce(&Session) -> R>(&self, with: F) -> R {
+    pub(crate) fn with_session<R, F: FnOnce(&Session) -> R>(&self, with: F) -> R {
         let session = self.session.borrow();
         with(&session)
     }
 
-    pub fn is_ended(&self) -> bool {
+    pub(crate) fn is_ended(&self) -> bool {
         self.ended.get()
     }
 
-    pub fn is_immersive(&self) -> bool {
+    pub(crate) fn is_immersive(&self) -> bool {
         self.mode != XRSessionMode::Inline
     }
 
     // https://immersive-web.github.io/layers/#feature-descriptor-layers
-    pub fn has_layers_feature(&self) -> bool {
+    pub(crate) fn has_layers_feature(&self) -> bool {
         // We do not support creating layers other than projection layers
         // https://github.com/servo/servo/issues/27493
         false
@@ -220,7 +220,7 @@ impl XRSession {
         self.session.borrow_mut().start_render_loop();
     }
 
-    pub fn is_outside_raf(&self) -> bool {
+    pub(crate) fn is_outside_raf(&self) -> bool {
         self.outside_raf.get()
     }
 
@@ -252,7 +252,7 @@ impl XRSession {
     //
     // This enables content that assumes all input sources are accompanied
     // by an inputsourceschange event to work properly. Without
-    pub fn setup_initial_inputs(&self) {
+    pub(crate) fn setup_initial_inputs(&self) {
         let initial_inputs = self.session.borrow().initial_inputs().to_owned();
 
         if initial_inputs.is_empty() {
@@ -519,7 +519,7 @@ impl XRSession {
     }
 
     /// Constructs a View suitable for inline sessions using the inlineVerticalFieldOfView and canvas size
-    pub fn inline_view(&self) -> View<Viewer> {
+    pub(crate) fn inline_view(&self) -> View<Viewer> {
         debug_assert!(!self.is_immersive());
         View {
             // Inline views have no offset
@@ -528,11 +528,11 @@ impl XRSession {
         }
     }
 
-    pub fn session_id(&self) -> SessionId {
+    pub(crate) fn session_id(&self) -> SessionId {
         self.session.borrow().id()
     }
 
-    pub fn dirty_layers(&self) {
+    pub(crate) fn dirty_layers(&self) {
         if let Some(layer) = self.RenderState().GetBaseLayer() {
             layer.context().mark_as_dirty();
         }
@@ -1071,17 +1071,17 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 }
 
 // The pose of an object in native-space. Should never be exposed.
-pub type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
+pub(crate) type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
 // A transform between objects in some API-space
-pub type ApiRigidTransform = RigidTransform3D<f32, ApiSpace, ApiSpace>;
+pub(crate) type ApiRigidTransform = RigidTransform3D<f32, ApiSpace, ApiSpace>;
 
 #[derive(Clone, Copy)]
-pub struct BaseSpace;
+pub(crate) struct BaseSpace;
 
-pub type BaseTransform = RigidTransform3D<f32, webxr_api::Native, BaseSpace>;
+pub(crate) type BaseTransform = RigidTransform3D<f32, webxr_api::Native, BaseSpace>;
 
 #[allow(unsafe_code)]
-pub fn cast_transform<T, U, V, W>(
+pub(crate) fn cast_transform<T, U, V, W>(
     transform: RigidTransform3D<f32, T, U>,
 ) -> RigidTransform3D<f32, V, W> {
     unsafe { mem::transmute(transform) }

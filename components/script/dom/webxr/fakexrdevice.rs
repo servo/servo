@@ -37,7 +37,7 @@ use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FakeXRDevice {
+pub(crate) struct FakeXRDevice {
     reflector: Reflector,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     #[no_trace]
@@ -48,7 +48,7 @@ pub struct FakeXRDevice {
 }
 
 impl FakeXRDevice {
-    pub fn new_inherited(sender: IpcSender<MockDeviceMsg>) -> FakeXRDevice {
+    pub(crate) fn new_inherited(sender: IpcSender<MockDeviceMsg>) -> FakeXRDevice {
         FakeXRDevice {
             reflector: Reflector::new(),
             sender,
@@ -56,7 +56,7 @@ impl FakeXRDevice {
         }
     }
 
-    pub fn new(global: &GlobalScope, sender: IpcSender<MockDeviceMsg>) -> DomRoot<FakeXRDevice> {
+    pub(crate) fn new(global: &GlobalScope, sender: IpcSender<MockDeviceMsg>) -> DomRoot<FakeXRDevice> {
         reflect_dom_object(
             Box::new(FakeXRDevice::new_inherited(sender)),
             global,
@@ -64,12 +64,12 @@ impl FakeXRDevice {
         )
     }
 
-    pub fn disconnect(&self, sender: IpcSender<()>) {
+    pub(crate) fn disconnect(&self, sender: IpcSender<()>) {
         let _ = self.sender.send(MockDeviceMsg::Disconnect(sender));
     }
 }
 
-pub fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
+pub(crate) fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
     if view.projectionMatrix.len() != 16 || view.viewOffset.position.len() != 3 {
         return Err(Error::Type("Incorrectly sized array".into()));
     }
@@ -106,7 +106,7 @@ pub fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
     })
 }
 
-pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
+pub(crate) fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
     match views.len() {
         1 => Ok(MockViewsInit::Mono(view(&views[0])?)),
         2 => {
@@ -121,7 +121,7 @@ pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
     }
 }
 
-pub fn get_origin<T, U>(
+pub(crate) fn get_origin<T, U>(
     origin: &FakeXRRigidTransformInit,
 ) -> Fallible<RigidTransform3D<f32, T, U>> {
     if origin.position.len() != 3 || origin.orientation.len() != 4 {
@@ -142,11 +142,11 @@ pub fn get_origin<T, U>(
     Ok(RigidTransform3D::new(o, p))
 }
 
-pub fn get_point<T>(pt: &DOMPointInit) -> Point3D<f32, T> {
+pub(crate) fn get_point<T>(pt: &DOMPointInit) -> Point3D<f32, T> {
     Point3D::new(pt.x / pt.w, pt.y / pt.w, pt.z / pt.w).cast()
 }
 
-pub fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
+pub(crate) fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
     let regions = world
         .hitTestRegions
         .iter()

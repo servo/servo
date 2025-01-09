@@ -46,22 +46,22 @@ use crate::script_runtime::JSContext as SafeJSContext;
 
 /// The class of a non-callback interface object.
 #[derive(Clone, Copy)]
-pub struct NonCallbackInterfaceObjectClass {
+pub(crate) struct NonCallbackInterfaceObjectClass {
     /// The SpiderMonkey class structure.
-    pub _class: JSClass,
+    pub(crate) _class: JSClass,
     /// The prototype id of that interface, used in the hasInstance hook.
-    pub _proto_id: PrototypeList::ID,
+    pub(crate) _proto_id: PrototypeList::ID,
     /// The prototype depth of that interface, used in the hasInstance hook.
-    pub _proto_depth: u16,
+    pub(crate) _proto_depth: u16,
     /// The string representation of the object.
-    pub representation: &'static [u8],
+    pub(crate) representation: &'static [u8],
 }
 
 unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
-    pub const fn new(
+    pub(crate) const fn new(
         constructor_behavior: &'static InterfaceConstructorBehavior,
         string_rep: &'static [u8],
         proto_id: PrototypeList::ID,
@@ -83,21 +83,21 @@ impl NonCallbackInterfaceObjectClass {
     }
 
     /// cast own reference to `JSClass` reference
-    pub fn as_jsclass(&self) -> &JSClass {
+    pub(crate) fn as_jsclass(&self) -> &JSClass {
         unsafe { &*(self as *const _ as *const JSClass) }
     }
 }
 
 /// A constructor class hook.
-pub type ConstructorClassHook =
+pub(crate) type ConstructorClassHook =
     unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
 
 /// The constructor behavior of a non-callback interface object.
-pub struct InterfaceConstructorBehavior(JSClassOps);
+pub(crate) struct InterfaceConstructorBehavior(JSClassOps);
 
 impl InterfaceConstructorBehavior {
     /// An interface constructor that unconditionally throws a type error.
-    pub const fn throw() -> Self {
+    pub(crate) const fn throw() -> Self {
         InterfaceConstructorBehavior(JSClassOps {
             addProperty: None,
             delProperty: None,
@@ -113,7 +113,7 @@ impl InterfaceConstructorBehavior {
     }
 
     /// An interface constructor that calls a native Rust function.
-    pub const fn call(hook: ConstructorClassHook) -> Self {
+    pub(crate) const fn call(hook: ConstructorClassHook) -> Self {
         InterfaceConstructorBehavior(JSClassOps {
             addProperty: None,
             delProperty: None,
@@ -130,10 +130,10 @@ impl InterfaceConstructorBehavior {
 }
 
 /// A trace hook.
-pub type TraceHook = unsafe extern "C" fn(trc: *mut JSTracer, obj: *mut JSObject);
+pub(crate) type TraceHook = unsafe extern "C" fn(trc: *mut JSTracer, obj: *mut JSObject);
 
 /// Create a global object with the given class.
-pub unsafe fn create_global_object(
+pub(crate) unsafe fn create_global_object(
     cx: SafeJSContext,
     class: &'static JSClass,
     private: *const libc::c_void,
@@ -210,7 +210,7 @@ fn select_compartment(cx: SafeJSContext, options: &mut RealmOptions) {
 }
 
 /// Create and define the interface object of a callback interface.
-pub fn create_callback_interface_object(
+pub(crate) fn create_callback_interface_object(
     cx: SafeJSContext,
     global: HandleObject,
     constants: &[Guard<&[ConstantSpec]>],
@@ -229,7 +229,7 @@ pub fn create_callback_interface_object(
 
 /// Create the interface prototype object of a non-callback interface.
 #[allow(clippy::too_many_arguments)]
-pub fn create_interface_prototype_object(
+pub(crate) fn create_interface_prototype_object(
     cx: SafeJSContext,
     global: HandleObject,
     proto: HandleObject,
@@ -274,7 +274,7 @@ pub fn create_interface_prototype_object(
 
 /// Create and define the interface object of a non-callback interface.
 #[allow(clippy::too_many_arguments)]
-pub fn create_noncallback_interface_object(
+pub(crate) fn create_noncallback_interface_object(
     cx: SafeJSContext,
     global: HandleObject,
     proto: HandleObject,
@@ -317,7 +317,7 @@ pub fn create_noncallback_interface_object(
 }
 
 /// Create and define the named constructors of a non-callback interface.
-pub fn create_named_constructors(
+pub(crate) fn create_named_constructors(
     cx: SafeJSContext,
     global: HandleObject,
     named_constructors: &[(ConstructorClassHook, &CStr, u32)],
@@ -347,7 +347,7 @@ pub fn create_named_constructors(
 
 /// Create a new object with a unique type.
 #[allow(clippy::too_many_arguments)]
-pub fn create_object(
+pub(crate) fn create_object(
     cx: SafeJSContext,
     global: HandleObject,
     proto: HandleObject,
@@ -367,7 +367,7 @@ pub fn create_object(
 }
 
 /// Conditionally define constants on an object.
-pub fn define_guarded_constants(
+pub(crate) fn define_guarded_constants(
     cx: SafeJSContext,
     obj: HandleObject,
     constants: &[Guard<&[ConstantSpec]>],
@@ -381,7 +381,7 @@ pub fn define_guarded_constants(
 }
 
 /// Conditionally define methods on an object.
-pub fn define_guarded_methods(
+pub(crate) fn define_guarded_methods(
     cx: SafeJSContext,
     obj: HandleObject,
     methods: &[Guard<&'static [JSFunctionSpec]>],
@@ -397,7 +397,7 @@ pub fn define_guarded_methods(
 }
 
 /// Conditionally define properties on an object.
-pub fn define_guarded_properties(
+pub(crate) fn define_guarded_properties(
     cx: SafeJSContext,
     obj: HandleObject,
     properties: &[Guard<&'static [JSPropertySpec]>],
@@ -414,7 +414,7 @@ pub fn define_guarded_properties(
 
 /// Returns whether an interface with exposure set given by `globals` should
 /// be exposed in the global object `obj`.
-pub fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
+pub(crate) fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
     unsafe {
         let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ false);
         let dom_class = get_dom_class(unwrapped).unwrap();
@@ -424,7 +424,7 @@ pub fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
 
 /// Define a property with a given name on the global object. Should be called
 /// through the resolve hook.
-pub fn define_on_global_object(
+pub(crate) fn define_on_global_object(
     cx: SafeJSContext,
     global: HandleObject,
     name: &CStr,
@@ -529,7 +529,7 @@ unsafe extern "C" fn non_new_constructor(
     false
 }
 
-pub enum ProtoOrIfaceIndex {
+pub(crate) enum ProtoOrIfaceIndex {
     ID(PrototypeList::ID),
     Constructor(PrototypeList::Constructor),
 }
@@ -543,7 +543,7 @@ impl From<ProtoOrIfaceIndex> for usize {
     }
 }
 
-pub fn get_per_interface_object_handle(
+pub(crate) fn get_per_interface_object_handle(
     cx: SafeJSContext,
     global: HandleObject,
     id: ProtoOrIfaceIndex,
@@ -567,7 +567,7 @@ pub fn get_per_interface_object_handle(
     }
 }
 
-pub fn define_dom_interface(
+pub(crate) fn define_dom_interface(
     cx: SafeJSContext,
     global: HandleObject,
     id: ProtoOrIfaceIndex,
@@ -597,7 +597,7 @@ fn get_proto_id_for_new_target(new_target: HandleObject) -> Option<PrototypeList
     }
 }
 
-pub fn get_desired_proto(
+pub(crate) fn get_desired_proto(
     cx: SafeJSContext,
     args: &CallArgs,
     proto_id: PrototypeList::ID,

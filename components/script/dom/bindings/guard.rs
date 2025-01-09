@@ -14,21 +14,21 @@ use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 
 /// A container with a list of conditions.
-pub struct Guard<T: Clone + Copy> {
+pub(crate) struct Guard<T: Clone + Copy> {
     conditions: &'static [Condition],
     value: T,
 }
 
 impl<T: Clone + Copy> Guard<T> {
     /// Construct a new guarded value.
-    pub const fn new(conditions: &'static [Condition], value: T) -> Self {
+    pub(crate) const fn new(conditions: &'static [Condition], value: T) -> Self {
         Guard { conditions, value }
     }
 
     /// Expose the value if the conditions are satisfied.
     ///
     /// The passed handle is the object on which the value may be exposed.
-    pub fn expose(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> Option<T> {
+    pub(crate) fn expose(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> Option<T> {
         let mut exposed_on_global = false;
         let conditions_satisfied = self.conditions.iter().all(|c| match c {
             Condition::Satisfied => {
@@ -53,7 +53,7 @@ impl<T: Clone + Copy> Guard<T> {
 
 /// A condition to expose things.
 #[derive(Clone, Copy)]
-pub enum Condition {
+pub(crate) enum Condition {
     /// The condition is satisfied if the function returns true.
     Func(fn(JSContext, HandleObject) -> bool),
     /// The condition is satisfied if the preference is set.
@@ -73,7 +73,7 @@ fn is_secure_context(cx: JSContext) -> bool {
 }
 
 impl Condition {
-    pub fn is_satisfied(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> bool {
+    pub(crate) fn is_satisfied(&self, cx: JSContext, obj: HandleObject, global: HandleObject) -> bool {
         match *self {
             Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),

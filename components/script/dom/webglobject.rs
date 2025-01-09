@@ -13,14 +13,14 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 
 #[dom_struct]
-pub struct WebGLObject {
+pub(crate) struct WebGLObject {
     reflector_: Reflector,
     context: Dom<WebGLRenderingContext>,
     label: DomRefCell<USVString>,
 }
 
 impl WebGLObject {
-    pub fn new_inherited(context: &WebGLRenderingContext) -> WebGLObject {
+    pub(crate) fn new_inherited(context: &WebGLRenderingContext) -> WebGLObject {
         WebGLObject {
             reflector_: Reflector::new(),
             context: Dom::from_ref(context),
@@ -28,7 +28,7 @@ impl WebGLObject {
         }
     }
 
-    pub fn context(&self) -> &WebGLRenderingContext {
+    pub(crate) fn context(&self) -> &WebGLRenderingContext {
         &self.context
     }
 }

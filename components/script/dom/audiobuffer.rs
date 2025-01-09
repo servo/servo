@@ -26,8 +26,8 @@ use crate::script_runtime::{CanGc, JSContext};
 
 // Spec mandates at least [8000, 96000], we use [8000, 192000] to match Firefox
 // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
-pub const MIN_SAMPLE_RATE: f32 = 8000.;
-pub const MAX_SAMPLE_RATE: f32 = 192000.;
+pub(crate) const MIN_SAMPLE_RATE: f32 = 8000.;
+pub(crate) const MAX_SAMPLE_RATE: f32 = 192000.;
 
 /// The AudioBuffer keeps its data either in js_channels
 /// or in shared_channels if js_channels buffers are detached.
@@ -38,7 +38,7 @@ pub const MAX_SAMPLE_RATE: f32 = 192000.;
 /// to know in which situations js_channels buffers must be detached.
 ///
 #[dom_struct]
-pub struct AudioBuffer {
+pub(crate) struct AudioBuffer {
     reflector_: Reflector,
     /// Float32Arrays returned by calls to GetChannelData.
     #[ignore_malloc_size_of = "mozjs"]
@@ -60,7 +60,7 @@ pub struct AudioBuffer {
 
 impl AudioBuffer {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
+    pub(crate) fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
         let vec = (0..number_of_channels)
             .map(|_| HeapBufferSource::default())
             .collect();
@@ -75,7 +75,7 @@ impl AudioBuffer {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &Window,
         number_of_channels: u32,
         length: u32,
@@ -172,7 +172,7 @@ impl AudioBuffer {
         Some(result)
     }
 
-    pub fn get_channels(&self) -> Ref<Option<ServoMediaAudioBuffer>> {
+    pub(crate) fn get_channels(&self) -> Ref<Option<ServoMediaAudioBuffer>> {
         if self.shared_channels.borrow().is_none() {
             let channels = self.acquire_contents();
             if channels.is_some() {

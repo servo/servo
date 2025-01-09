@@ -20,7 +20,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
-pub struct WorkerNavigator {
+pub(crate) struct WorkerNavigator {
     reflector_: Reflector,
     permissions: MutNullableDom<Permissions>,
     #[cfg(feature = "webgpu")]
@@ -37,7 +37,7 @@ impl WorkerNavigator {
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
+    pub(crate) fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
         reflect_dom_object(
             Box::new(WorkerNavigator::new_inherited()),
             global,

@@ -22,14 +22,14 @@ use crate::dom::readablestreamdefaultreader::ReadRequest;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum TeeCancelAlgorithm {
+pub(crate) enum TeeCancelAlgorithm {
     Cancel1Algorithm,
     Cancel2Algorithm,
 }
 
 #[dom_struct]
 /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
-pub struct DefaultTeeUnderlyingSource {
+pub(crate) struct DefaultTeeUnderlyingSource {
     reflector_: Reflector,
     reader: Dom<ReadableStreamDefaultReader>,
     stream: Dom<ReadableStream>,
@@ -60,7 +60,7 @@ impl DefaultTeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::redundant_allocation)]
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         reader: &ReadableStreamDefaultReader,
         stream: &ReadableStream,
         reading: Rc<Cell<bool>>,
@@ -96,18 +96,18 @@ impl DefaultTeeUnderlyingSource {
         )
     }
 
-    pub fn set_branch_1(&self, stream: &ReadableStream) {
+    pub(crate) fn set_branch_1(&self, stream: &ReadableStream) {
         self.branch_1.set(Some(stream));
     }
 
-    pub fn set_branch_2(&self, stream: &ReadableStream) {
+    pub(crate) fn set_branch_2(&self, stream: &ReadableStream) {
         self.branch_2.set(Some(stream));
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
     #[allow(crown::unrooted_must_root)]
-    pub fn pull_algorithm(&self, can_gc: CanGc) -> Option<Result<Rc<Promise>, Error>> {
+    pub(crate) fn pull_algorithm(&self, can_gc: CanGc) -> Option<Result<Rc<Promise>, Error>> {
         // If reading is true,
         if self.reading.get() {
             // Set readAgain to true.
@@ -163,7 +163,7 @@ impl DefaultTeeUnderlyingSource {
     /// and
     /// Let cancel2Algorithm be the following steps, taking a reason argument
     #[allow(unsafe_code)]
-    pub fn cancel_algorithm(
+    pub(crate) fn cancel_algorithm(
         &self,
         reason: SafeHandleValue,
         can_gc: CanGc,

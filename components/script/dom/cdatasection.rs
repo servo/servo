@@ -12,7 +12,7 @@ use crate::dom::text::Text;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CDATASection {
+pub(crate) struct CDATASection {
     text: Text,
 }
 
@@ -23,7 +23,7 @@ impl CDATASection {
         }
     }
 
-    pub fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<CDATASection> {
+    pub(crate) fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<CDATASection> {
         Node::reflect_node(
             Box::new(CDATASection::new_inherited(text, document)),
             document,

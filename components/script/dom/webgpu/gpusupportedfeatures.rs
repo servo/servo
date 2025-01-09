@@ -22,7 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUSupportedFeatures {
+pub(crate) struct GPUSupportedFeatures {
     reflector: Reflector,
     // internal storage for features
     #[custom_trace]
@@ -96,7 +96,7 @@ impl GPUSupportedFeatures {
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(
+    pub(crate) fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
@@ -107,7 +107,7 @@ impl GPUSupportedFeatures {
 }
 
 impl GPUSupportedFeatures {
-    pub fn wgpu_features(&self) -> Features {
+    pub(crate) fn wgpu_features(&self) -> Features {
         self.features
     }
 }
@@ -118,7 +118,7 @@ impl GPUSupportedFeaturesMethods<crate::DomTypeHolder> for GPUSupportedFeatures 
     }
 }
 
-pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
+pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
     match feature {
         GPUFeatureName::Depth_clip_control => Some(Features::DEPTH_CLIP_CONTROL),
         GPUFeatureName::Depth32float_stencil8 => Some(Features::DEPTH32FLOAT_STENCIL8),

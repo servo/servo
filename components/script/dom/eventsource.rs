@@ -61,7 +61,7 @@ enum ReadyState {
 }
 
 #[dom_struct]
-pub struct EventSource {
+pub(crate) struct EventSource {
     eventtarget: EventTarget,
     #[no_trace]
     url: ServoUrl,
@@ -482,13 +482,13 @@ impl EventSource {
     }
 
     // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
-    pub fn cancel(&self) {
+    pub(crate) fn cancel(&self) {
         self.canceller.borrow_mut().cancel();
         self.fail_the_connection();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fail-the-connection>
-    pub fn fail_the_connection(&self) {
+    pub(crate) fn fail_the_connection(&self) {
         let global = self.global();
         let event_source = Trusted::new(self);
         global.task_manager().remote_event_task_source().queue(
@@ -502,11 +502,11 @@ impl EventSource {
         );
     }
 
-    pub fn request(&self) -> RequestBuilder {
+    pub(crate) fn request(&self) -> RequestBuilder {
         self.request.borrow().clone().unwrap()
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.url
     }
 }
@@ -649,7 +649,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct EventSourceTimeoutCallback {
+pub(crate) struct EventSourceTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
     #[ignore_malloc_size_of = "Because it is non-owning"]
@@ -659,7 +659,7 @@ pub struct EventSourceTimeoutCallback {
 
 impl EventSourceTimeoutCallback {
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
-    pub fn invoke(self) {
+    pub(crate) fn invoke(self) {
         let event_source = self.event_source.root();
         let global = event_source.global();
         // Step 5.1

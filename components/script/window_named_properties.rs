@@ -234,7 +234,7 @@ static CLASS: JSClass = JSClass {
 };
 
 #[allow(unsafe_code)]
-pub fn create(
+pub(crate) fn create(
     cx: SafeJSContext,
     proto: RustHandleObject,
     mut properties_obj: RustMutableHandleObject,

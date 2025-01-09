@@ -40,7 +40,7 @@ pub(super) fn hardware_concurrency() -> u64 {
 }
 
 #[dom_struct]
-pub struct Navigator {
+pub(crate) struct Navigator {
     reflector_: Reflector,
     bluetooth: MutNullableDom<Bluetooth>,
     plugins: MutNullableDom<PluginArray>,
@@ -79,20 +79,20 @@ impl Navigator {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Navigator> {
+    pub(crate) fn new(window: &Window) -> DomRoot<Navigator> {
         reflect_dom_object(Box::new(Navigator::new_inherited()), window, CanGc::note())
     }
 
     #[cfg(feature = "webxr")]
-    pub fn xr(&self) -> Option<DomRoot<XRSystem>> {
+    pub(crate) fn xr(&self) -> Option<DomRoot<XRSystem>> {
         self.xr.get()
     }
 
-    pub fn get_gamepad(&self, index: usize) -> Option<DomRoot<Gamepad>> {
+    pub(crate) fn get_gamepad(&self, index: usize) -> Option<DomRoot<Gamepad>> {
         self.gamepads.borrow().get(index).and_then(|g| g.get())
     }
 
-    pub fn set_gamepad(&self, index: usize, gamepad: &Gamepad, can_gc: CanGc) {
+    pub(crate) fn set_gamepad(&self, index: usize, gamepad: &Gamepad, can_gc: CanGc) {
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
             gamepad_to_set.set(Some(gamepad));
         }
@@ -104,7 +104,7 @@ impl Navigator {
         }
     }
 
-    pub fn remove_gamepad(&self, index: usize) {
+    pub(crate) fn remove_gamepad(&self, index: usize) {
         if let Some(gamepad_to_remove) = self.gamepads.borrow_mut().get(index) {
             gamepad_to_remove.set(None);
         }
@@ -112,7 +112,7 @@ impl Navigator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
-    pub fn select_gamepad_index(&self) -> u32 {
+    pub(crate) fn select_gamepad_index(&self) -> u32 {
         let mut gamepad_list = self.gamepads.borrow_mut();
         if let Some(index) = gamepad_list.iter().position(|g| g.get().is_none()) {
             index as u32
@@ -134,11 +134,11 @@ impl Navigator {
         }
     }
 
-    pub fn has_gamepad_gesture(&self) -> bool {
+    pub(crate) fn has_gamepad_gesture(&self) -> bool {
         self.has_gamepad_gesture.get()
     }
 
-    pub fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
+    pub(crate) fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
         self.has_gamepad_gesture.set(has_gamepad_gesture);
     }
 }

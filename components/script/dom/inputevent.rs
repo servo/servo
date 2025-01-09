@@ -16,7 +16,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct InputEvent {
+pub(crate) struct InputEvent {
     uievent: UIEvent,
     data: Option<DOMString>,
     is_composing: bool,

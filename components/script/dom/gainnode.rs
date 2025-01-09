@@ -25,14 +25,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GainNode {
+pub(crate) struct GainNode {
     node: AudioNode,
     gain: Dom<AudioParam>,
 }
 
 impl GainNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &GainOptions,
@@ -65,7 +65,7 @@ impl GainNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &GainOptions,

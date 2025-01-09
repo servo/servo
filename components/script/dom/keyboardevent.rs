@@ -23,7 +23,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct KeyboardEvent {
+pub(crate) struct KeyboardEvent {
     uievent: UIEvent,
     key: DomRefCell<DOMString>,
     #[no_trace]
@@ -54,7 +54,7 @@ impl KeyboardEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<KeyboardEvent> {
+    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<KeyboardEvent> {
         Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
@@ -72,7 +72,7 @@ impl KeyboardEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: DOMString,
         can_bubble: bool,
@@ -149,11 +149,11 @@ impl KeyboardEvent {
         ev
     }
 
-    pub fn key(&self) -> Key {
+    pub(crate) fn key(&self) -> Key {
         self.typed_key.borrow().clone()
     }
 
-    pub fn modifiers(&self) -> Modifiers {
+    pub(crate) fn modifiers(&self) -> Modifiers {
         self.modifiers.get()
     }
 }

@@ -28,23 +28,23 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[allow(clippy::upper_case_acronyms)]
-pub struct GPU {
+pub(crate) struct GPU {
     reflector_: Reflector,
 }
 
 impl GPU {
-    pub fn new_inherited() -> GPU {
+    pub(crate) fn new_inherited() -> GPU {
         GPU {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<GPU> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<GPU> {
         reflect_dom_object(Box::new(GPU::new_inherited()), global, CanGc::note())
     }
 }
 
-pub trait AsyncWGPUListener {
+pub(crate) trait AsyncWGPUListener {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc);
 }
 
@@ -63,7 +63,7 @@ impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
     }
 }
 
-pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
+pub(crate) fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
     promise: &Rc<Promise>,
     receiver: &T,
 ) -> IpcSender<WebGPUResponse> {

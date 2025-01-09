@@ -25,7 +25,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUShaderModule {
+pub(crate) struct GPUShaderModule {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -53,7 +53,7 @@ impl GPUShaderModule {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         shader_module: WebGPUShaderModule,
@@ -74,12 +74,12 @@ impl GPUShaderModule {
 }
 
 impl GPUShaderModule {
-    pub fn id(&self) -> WebGPUShaderModule {
+    pub(crate) fn id(&self) -> WebGPUShaderModule {
         self.shader_module
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
         comp: InRealm,

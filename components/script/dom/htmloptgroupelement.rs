@@ -23,7 +23,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLOptGroupElement {
+pub(crate) struct HTMLOptGroupElement {
     htmlelement: HTMLElement,
 }
 
@@ -44,7 +44,7 @@ impl HTMLOptGroupElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

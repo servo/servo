@@ -24,7 +24,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLOutputElement {
+pub(crate) struct HTMLOutputElement {
     htmlelement: HTMLElement,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
@@ -48,7 +48,7 @@ impl HTMLOutputElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -65,7 +65,7 @@ impl HTMLOutputElement {
         )
     }
 
-    pub fn reset(&self, can_gc: CanGc) {
+    pub(crate) fn reset(&self, can_gc: CanGc) {
         Node::string_replace_all(self.DefaultValue(), self.upcast::<Node>(), can_gc);
         *self.default_value_override.borrow_mut() = None;
     }

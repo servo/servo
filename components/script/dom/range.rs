@@ -38,7 +38,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct Range {
+pub(crate) struct Range {
     abstract_range: AbstractRange,
     // A range that belongs to a Selection needs to know about it
     // so selectionchange can fire when the range changes.
@@ -78,7 +78,7 @@ impl Range {
         }
     }
 
-    pub fn new_with_doc(
+    pub(crate) fn new_with_doc(
         document: &Document,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -87,7 +87,7 @@ impl Range {
         Range::new_with_proto(document, proto, root, 0, root, 0, can_gc)
     }
 
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         start_container: &Node,
         start_offset: u32,
@@ -273,14 +273,14 @@ impl Range {
         Ok(Ordering::Equal)
     }
 
-    pub fn associate_selection(&self, selection: &Selection) {
+    pub(crate) fn associate_selection(&self, selection: &Selection) {
         let mut selections = self.associated_selections.borrow_mut();
         if !selections.iter().any(|s| &**s == selection) {
             selections.push(Dom::from_ref(selection));
         }
     }
 
-    pub fn disassociate_selection(&self, selection: &Selection) {
+    pub(crate) fn disassociate_selection(&self, selection: &Selection) {
         self.associated_selections
             .borrow_mut()
             .retain(|s| &**s != selection);
@@ -305,23 +305,23 @@ impl Range {
         self.abstract_range().end()
     }
 
-    pub fn start_container(&self) -> DomRoot<Node> {
+    pub(crate) fn start_container(&self) -> DomRoot<Node> {
         self.abstract_range().StartContainer()
     }
 
-    pub fn start_offset(&self) -> u32 {
+    pub(crate) fn start_offset(&self) -> u32 {
         self.abstract_range().StartOffset()
     }
 
-    pub fn end_container(&self) -> DomRoot<Node> {
+    pub(crate) fn end_container(&self) -> DomRoot<Node> {
         self.abstract_range().EndContainer()
     }
 
-    pub fn end_offset(&self) -> u32 {
+    pub(crate) fn end_offset(&self) -> u32 {
         self.abstract_range().EndOffset()
     }
 
-    pub fn collapsed(&self) -> bool {
+    pub(crate) fn collapsed(&self) -> bool {
         self.abstract_range().Collapsed()
     }
 }
@@ -1107,7 +1107,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 }
 
-pub struct WeakRangeVec {
+pub(crate) struct WeakRangeVec {
     cell: UnsafeCell<WeakRefVec<Range>>,
 }
 
@@ -1122,30 +1122,30 @@ impl Default for WeakRangeVec {
 #[allow(unsafe_code)]
 impl WeakRangeVec {
     /// Create a new vector of weak references.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
     /// Whether that vector of ranges is empty.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         unsafe { (*self.cell.get()).is_empty() }
     }
 
     /// Used for steps 2.1-2. when inserting a node.
     /// <https://dom.spec.whatwg.org/#concept-node-insert>
-    pub fn increase_above(&self, node: &Node, offset: u32, delta: u32) {
+    pub(crate) fn increase_above(&self, node: &Node, offset: u32, delta: u32) {
         self.map_offset_above(node, offset, |offset| offset + delta);
     }
 
     /// Used for steps 4-5. when removing a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub fn decrease_above(&self, node: &Node, offset: u32, delta: u32) {
+    pub(crate) fn decrease_above(&self, node: &Node, offset: u32, delta: u32) {
         self.map_offset_above(node, offset, |offset| offset - delta);
     }
 
     /// Used for steps 2-3. when removing a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub fn drain_to_parent(&self, context: &UnbindContext, child: &Node) {
+    pub(crate) fn drain_to_parent(&self, context: &UnbindContext, child: &Node) {
         if self.is_empty() {
             return;
         }
@@ -1176,7 +1176,7 @@ impl WeakRangeVec {
 
     /// Used for steps 7.1-2. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    pub fn drain_to_preceding_text_sibling(&self, node: &Node, sibling: &Node, length: u32) {
+    pub(crate) fn drain_to_preceding_text_sibling(&self, node: &Node, sibling: &Node, length: u32) {
         if self.is_empty() {
             return;
         }
@@ -1205,7 +1205,7 @@ impl WeakRangeVec {
 
     /// Used for steps 7.3-4. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    pub fn move_to_text_child_at(&self, node: &Node, offset: u32, child: &Node, new_offset: u32) {
+    pub(crate) fn move_to_text_child_at(&self, node: &Node, offset: u32, child: &Node, new_offset: u32) {
         unsafe {
             let child_ranges = &mut *child.ranges().cell.get();
 
@@ -1247,7 +1247,7 @@ impl WeakRangeVec {
 
     /// Used for steps 8-11. when replacing character data.
     /// <https://dom.spec.whatwg.org/#concept-cd-replace>
-    pub fn replace_code_units(
+    pub(crate) fn replace_code_units(
         &self,
         node: &Node,
         offset: u32,
@@ -1265,7 +1265,7 @@ impl WeakRangeVec {
 
     /// Used for steps 7.2-3. when splitting a text node.
     /// <https://dom.spec.whatwg.org/#concept-text-split>
-    pub fn move_to_following_text_sibling_above(&self, node: &Node, offset: u32, sibling: &Node) {
+    pub(crate) fn move_to_following_text_sibling_above(&self, node: &Node, offset: u32, sibling: &Node) {
         unsafe {
             let sibling_ranges = &mut *sibling.ranges().cell.get();
 
@@ -1310,7 +1310,7 @@ impl WeakRangeVec {
 
     /// Used for steps 7.4-5. when splitting a text node.
     /// <https://dom.spec.whatwg.org/#concept-text-split>
-    pub fn increment_at(&self, node: &Node, offset: u32) {
+    pub(crate) fn increment_at(&self, node: &Node, offset: u32) {
         unsafe {
             (*self.cell.get()).update(|entry| {
                 let range = entry.root().unwrap();
@@ -1344,7 +1344,7 @@ impl WeakRangeVec {
         }
     }
 
-    pub fn push(&self, ref_: WeakRef<Range>) {
+    pub(crate) fn push(&self, ref_: WeakRef<Range>) {
         unsafe {
             (*self.cell.get()).push(ref_);
         }

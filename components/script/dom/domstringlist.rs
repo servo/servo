@@ -12,14 +12,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMStringList {
+pub(crate) struct DOMStringList {
     reflector_: Reflector,
     strings: Vec<DOMString>,
 }
 
 impl DOMStringList {
     #[allow(unused)]
-    pub fn new_inherited(strings: Vec<DOMString>) -> DOMStringList {
+    pub(crate) fn new_inherited(strings: Vec<DOMString>) -> DOMStringList {
         DOMStringList {
             reflector_: Reflector::new(),
             strings,
@@ -27,7 +27,7 @@ impl DOMStringList {
     }
 
     #[allow(unused)]
-    pub fn new(window: &Window, strings: Vec<DOMString>) -> DomRoot<DOMStringList> {
+    pub(crate) fn new(window: &Window, strings: Vec<DOMString>) -> DomRoot<DOMStringList> {
         reflect_dom_object(
             Box::new(DOMStringList::new_inherited(strings)),
             window,

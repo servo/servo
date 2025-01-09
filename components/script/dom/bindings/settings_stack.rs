@@ -29,18 +29,18 @@ struct StackEntry {
 }
 
 /// Traces the script settings stack.
-pub unsafe fn trace(tracer: *mut JSTracer) {
+pub(crate) unsafe fn trace(tracer: *mut JSTracer) {
     STACK.with(|stack| {
         stack.borrow().trace(tracer);
     })
 }
 
-pub fn is_execution_stack_empty() -> bool {
+pub(crate) fn is_execution_stack_empty() -> bool {
     STACK.with(|stack| stack.borrow().is_empty())
 }
 
 /// RAII struct that pushes and pops entries from the script settings stack.
-pub struct AutoEntryScript {
+pub(crate) struct AutoEntryScript {
     global: DomRoot<GlobalScope>,
     #[cfg(feature = "tracing")]
     span: tracing::span::EnteredSpan,
@@ -48,7 +48,7 @@ pub struct AutoEntryScript {
 
 impl AutoEntryScript {
     /// <https://html.spec.whatwg.org/multipage/#prepare-to-run-script>
-    pub fn new(global: &GlobalScope) -> Self {
+    pub(crate) fn new(global: &GlobalScope) -> Self {
         STACK.with(|stack| {
             trace!("Prepare to run script with {:p}", global);
             let mut stack = stack.borrow_mut();
@@ -94,7 +94,7 @@ impl Drop for AutoEntryScript {
 /// Returns the ["entry"] global object.
 ///
 /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
-pub fn entry_global() -> DomRoot<GlobalScope> {
+pub(crate) fn entry_global() -> DomRoot<GlobalScope> {
     STACK
         .with(|stack| {
             stack
@@ -108,13 +108,13 @@ pub fn entry_global() -> DomRoot<GlobalScope> {
 }
 
 /// RAII struct that pushes and pops entries from the script settings stack.
-pub struct AutoIncumbentScript {
+pub(crate) struct AutoIncumbentScript {
     global: usize,
 }
 
 impl AutoIncumbentScript {
     /// <https://html.spec.whatwg.org/multipage/#prepare-to-run-a-callback>
-    pub fn new(global: &GlobalScope) -> Self {
+    pub(crate) fn new(global: &GlobalScope) -> Self {
         // Step 2-3.
         unsafe {
             let cx =
@@ -166,7 +166,7 @@ impl Drop for AutoIncumbentScript {
 /// Returns the ["incumbent"] global object.
 ///
 /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
-pub fn incumbent_global() -> Option<DomRoot<GlobalScope>> {
+pub(crate) fn incumbent_global() -> Option<DomRoot<GlobalScope>> {
     // https://html.spec.whatwg.org/multipage/#incumbent-settings-object
 
     // Step 1, 3: See what the JS engine has to say. If we've got a scripted

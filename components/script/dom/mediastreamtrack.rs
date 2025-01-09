@@ -15,7 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaStreamTrack {
+pub(crate) struct MediaStreamTrack {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
     #[no_trace]
@@ -26,7 +26,7 @@ pub struct MediaStreamTrack {
 }
 
 impl MediaStreamTrack {
-    pub fn new_inherited(id: MediaStreamId, ty: MediaStreamType) -> MediaStreamTrack {
+    pub(crate) fn new_inherited(id: MediaStreamId, ty: MediaStreamType) -> MediaStreamTrack {
         MediaStreamTrack {
             eventtarget: EventTarget::new_inherited(),
             id,
@@ -34,7 +34,7 @@ impl MediaStreamTrack {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
@@ -46,11 +46,11 @@ impl MediaStreamTrack {
         )
     }
 
-    pub fn id(&self) -> MediaStreamId {
+    pub(crate) fn id(&self) -> MediaStreamId {
         self.id
     }
 
-    pub fn ty(&self) -> MediaStreamType {
+    pub(crate) fn ty(&self) -> MediaStreamType {
         self.ty
     }
 }

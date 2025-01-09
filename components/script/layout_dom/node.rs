@@ -90,7 +90,7 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 
     /// Returns the interior of this node as a `LayoutDom`.
-    pub fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
+    pub(crate) fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
         self.node
     }
 }

@@ -12,31 +12,31 @@ use crate::script_runtime::CanGc;
 
 /// Non-DOM implementation backing `ResizeObserverSize`.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct ResizeObserverSizeImpl {
+pub(crate) struct ResizeObserverSizeImpl {
     inline_size: f64,
     block_size: f64,
 }
 
 impl ResizeObserverSizeImpl {
-    pub fn new(inline_size: f64, block_size: f64) -> ResizeObserverSizeImpl {
+    pub(crate) fn new(inline_size: f64, block_size: f64) -> ResizeObserverSizeImpl {
         ResizeObserverSizeImpl {
             inline_size,
             block_size,
         }
     }
 
-    pub fn inline_size(&self) -> f64 {
+    pub(crate) fn inline_size(&self) -> f64 {
         self.inline_size
     }
 
-    pub fn block_size(&self) -> f64 {
+    pub(crate) fn block_size(&self) -> f64 {
         self.block_size
     }
 }
 
 /// <https://drafts.csswg.org/resize-observer/#resizeobserversize>
 #[dom_struct]
-pub struct ResizeObserverSize {
+pub(crate) struct ResizeObserverSize {
     reflector_: Reflector,
     size_impl: ResizeObserverSizeImpl,
 }
@@ -49,7 +49,7 @@ impl ResizeObserverSize {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         size_impl: ResizeObserverSizeImpl,
         can_gc: CanGc,

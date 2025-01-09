@@ -24,14 +24,14 @@ use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 #[dom_struct]
-pub struct BluetoothRemoteGATTServer {
+pub(crate) struct BluetoothRemoteGATTServer {
     reflector_: Reflector,
     device: Dom<BluetoothDevice>,
     connected: Cell<bool>,
 }
 
 impl BluetoothRemoteGATTServer {
-    pub fn new_inherited(device: &BluetoothDevice) -> BluetoothRemoteGATTServer {
+    pub(crate) fn new_inherited(device: &BluetoothDevice) -> BluetoothRemoteGATTServer {
         BluetoothRemoteGATTServer {
             reflector_: Reflector::new(),
             device: Dom::from_ref(device),
@@ -39,7 +39,7 @@ impl BluetoothRemoteGATTServer {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         device: &BluetoothDevice,
     ) -> DomRoot<BluetoothRemoteGATTServer> {
@@ -54,7 +54,7 @@ impl BluetoothRemoteGATTServer {
         self.global().as_window().bluetooth_thread()
     }
 
-    pub fn set_connected(&self, connected: bool) {
+    pub(crate) fn set_connected(&self, connected: bool) {
         self.connected.set(connected);
     }
 }

@@ -115,7 +115,7 @@ use crate::script_thread::ScriptThread;
 
 /// An HTML node.
 #[dom_struct]
-pub struct Node {
+pub(crate) struct Node {
     /// The JavaScript reflector for this node.
     eventtarget: EventTarget,
 
@@ -189,7 +189,7 @@ impl fmt::Debug for DomRoot<Node> {
 
 /// Flags for node items
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-pub struct NodeFlags(u16);
+pub(crate) struct NodeFlags(u16);
 
 bitflags! {
     impl NodeFlags: u16 {
@@ -318,14 +318,14 @@ impl Node {
         }
     }
 
-    pub fn clean_up_style_and_layout_data(&self) {
+    pub(crate) fn clean_up_style_and_layout_data(&self) {
         self.owner_doc().cancel_animations_for_node(self);
         self.style_data.borrow_mut().take();
         self.layout_data.borrow_mut().take();
     }
 
     /// Clean up flags and unbind from tree.
-    pub fn complete_remove_subtree(root: &Node, context: &UnbindContext) {
+    pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext) {
         // Flags that reset when a node is disconnected
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
@@ -411,15 +411,15 @@ impl Node {
         Self::complete_remove_subtree(child, &context);
     }
 
-    pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
+    pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
         UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
     }
 
-    pub fn to_opaque(&self) -> OpaqueNode {
+    pub(crate) fn to_opaque(&self) -> OpaqueNode {
         OpaqueNode(self.reflector().get_jsobject().get() as usize)
     }
 
-    pub fn as_custom_element(&self) -> Option<DomRoot<Element>> {
+    pub(crate) fn as_custom_element(&self) -> Option<DomRoot<Element>> {
         self.downcast::<Element>().and_then(|element| {
             if element.get_custom_element_definition().is_some() {
                 Some(DomRoot::from_ref(element))
@@ -430,7 +430,7 @@ impl Node {
     }
 
     /// <https://html.spec.whatg.org/#fire_a_synthetic_mouse_event>
-    pub fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
+    pub(crate) fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
         // Spec says the choice of which global to create
         // the mouse event on is not well-defined,
         // and refers to heycam/webidl#135
@@ -470,7 +470,7 @@ impl Node {
             .dispatch(self.upcast::<EventTarget>(), false, can_gc);
     }
 
-    pub fn parent_directionality(&self) -> String {
+    pub(crate) fn parent_directionality(&self) -> String {
         let mut current = self.GetParentNode();
 
         loop {
@@ -491,7 +491,7 @@ impl Node {
     }
 }
 
-pub struct QuerySelectorIterator {
+pub(crate) struct QuerySelectorIterator {
     selectors: SelectorList<SelectorImpl>,
     iterator: TreeIterator,
 }
@@ -541,7 +541,7 @@ impl Node {
 
     /// Returns true if this node is before `other` in the same connected DOM
     /// tree.
-    pub fn is_before(&self, other: &Node) -> bool {
+    pub(crate) fn is_before(&self, other: &Node) -> bool {
         let cmp = other.CompareDocumentPosition(self);
         if cmp & NodeConstants::DOCUMENT_POSITION_DISCONNECTED != 0 {
             return false;
@@ -552,13 +552,13 @@ impl Node {
 
     /// Return all registered mutation observers for this node. Lazily initialize the
     /// raredata if it does not exist.
-    pub fn registered_mutation_observers_mut(&self) -> RefMut<Vec<RegisteredObserver>> {
+    pub(crate) fn registered_mutation_observers_mut(&self) -> RefMut<Vec<RegisteredObserver>> {
         RefMut::map(self.ensure_rare_data(), |rare_data| {
             &mut rare_data.mutation_observers
         })
     }
 
-    pub fn registered_mutation_observers(&self) -> Option<Ref<Vec<RegisteredObserver>>> {
+    pub(crate) fn registered_mutation_observers(&self) -> Option<Ref<Vec<RegisteredObserver>>> {
         let rare_data: Ref<_> = self.rare_data.borrow();
 
         if rare_data.is_none() {
@@ -570,24 +570,24 @@ impl Node {
     }
 
     /// Add a new mutation observer for a given node.
-    pub fn add_mutation_observer(&self, observer: RegisteredObserver) {
+    pub(crate) fn add_mutation_observer(&self, observer: RegisteredObserver) {
         self.ensure_rare_data().mutation_observers.push(observer);
     }
 
     /// Removes the mutation observer for a given node.
-    pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
+    pub(crate) fn remove_mutation_observer(&self, observer: &MutationObserver) {
         self.ensure_rare_data()
             .mutation_observers
             .retain(|reg_obs| &*reg_obs.observer != observer)
     }
 
     /// Dumps the subtree rooted at this node, for debugging.
-    pub fn dump(&self) {
+    pub(crate) fn dump(&self) {
         self.dump_indent(0);
     }
 
     /// Dumps the node tree, for debugging, with indentation.
-    pub fn dump_indent(&self, indent: u32) {
+    pub(crate) fn dump_indent(&self, indent: u32) {
         let mut s = String::new();
         for _ in 0..indent {
             s.push_str("    ");
@@ -603,37 +603,37 @@ impl Node {
     }
 
     /// Returns a string that describes this node.
-    pub fn debug_str(&self) -> String {
+    pub(crate) fn debug_str(&self) -> String {
         format!("{:?}", self.type_id())
     }
 
     /// <https://dom.spec.whatwg.org/#in-a-document-tree>
-    pub fn is_in_a_document_tree(&self) -> bool {
+    pub(crate) fn is_in_a_document_tree(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_A_DOCUMENT_TREE)
     }
 
     /// Return true iff node's root is a shadow-root.
-    pub fn is_in_a_shadow_tree(&self) -> bool {
+    pub(crate) fn is_in_a_shadow_tree(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
     }
 
-    pub fn has_weird_parser_insertion_mode(&self) -> bool {
+    pub(crate) fn has_weird_parser_insertion_mode(&self) -> bool {
         self.flags
             .get()
             .contains(NodeFlags::HAS_WEIRD_PARSER_INSERTION_MODE)
     }
 
-    pub fn set_weird_parser_insertion_mode(&self) {
+    pub(crate) fn set_weird_parser_insertion_mode(&self) {
         self.set_flag(NodeFlags::HAS_WEIRD_PARSER_INSERTION_MODE, true)
     }
 
     /// <https://dom.spec.whatwg.org/#connected>
-    pub fn is_connected(&self) -> bool {
+    pub(crate) fn is_connected(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
     }
 
     /// Returns the type ID of this node.
-    pub fn type_id(&self) -> NodeTypeId {
+    pub(crate) fn type_id(&self) -> NodeTypeId {
         match *self.eventtarget.type_id() {
             EventTargetTypeId::Node(type_id) => type_id,
             _ => unreachable!(),
@@ -641,7 +641,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-length>
-    pub fn len(&self) -> u32 {
+    pub(crate) fn len(&self) -> u32 {
         match self.type_id() {
             NodeTypeId::DocumentType => 0,
             NodeTypeId::CharacterData(_) => self.downcast::<CharacterData>().unwrap().Length(),
@@ -649,39 +649,39 @@ impl Node {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         // A node is considered empty if its length is 0.
         self.len() == 0
     }
 
     /// <https://dom.spec.whatwg.org/#concept-tree-index>
-    pub fn index(&self) -> u32 {
+    pub(crate) fn index(&self) -> u32 {
         self.preceding_siblings().count() as u32
     }
 
     /// Returns true if this node has a parent.
-    pub fn has_parent(&self) -> bool {
+    pub(crate) fn has_parent(&self) -> bool {
         self.parent_node.get().is_some()
     }
 
-    pub fn children_count(&self) -> u32 {
+    pub(crate) fn children_count(&self) -> u32 {
         self.children_count.get()
     }
 
-    pub fn ranges(&self) -> &WeakRangeVec {
+    pub(crate) fn ranges(&self) -> &WeakRangeVec {
         &self.ranges
     }
 
     #[inline]
-    pub fn is_doctype(&self) -> bool {
+    pub(crate) fn is_doctype(&self) -> bool {
         self.type_id() == NodeTypeId::DocumentType
     }
 
-    pub fn get_flag(&self, flag: NodeFlags) -> bool {
+    pub(crate) fn get_flag(&self, flag: NodeFlags) -> bool {
         self.flags.get().contains(flag)
     }
 
-    pub fn set_flag(&self, flag: NodeFlags, value: bool) {
+    pub(crate) fn set_flag(&self, flag: NodeFlags, value: bool) {
         let mut flags = self.flags.get();
 
         if value {
@@ -694,15 +694,15 @@ impl Node {
     }
 
     // FIXME(emilio): This and the function below should move to Element.
-    pub fn note_dirty_descendants(&self) {
+    pub(crate) fn note_dirty_descendants(&self) {
         self.owner_doc().note_node_with_dirty_descendants(self);
     }
 
-    pub fn has_dirty_descendants(&self) -> bool {
+    pub(crate) fn has_dirty_descendants(&self) -> bool {
         self.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS)
     }
 
-    pub fn rev_version(&self) {
+    pub(crate) fn rev_version(&self) {
         // The new version counter is 1 plus the max of the node's current version counter,
         // its descendants version, and the document's version. Normally, this will just be
         // the document's version, but we do have to deal with the case where the node has moved
@@ -718,7 +718,7 @@ impl Node {
         doc.inclusive_descendants_version.set(version);
     }
 
-    pub fn dirty(&self, damage: NodeDamage) {
+    pub(crate) fn dirty(&self, damage: NodeDamage) {
         self.rev_version();
         if !self.is_connected() {
             return;
@@ -740,30 +740,30 @@ impl Node {
     }
 
     /// The maximum version number of this node's descendants, including itself
-    pub fn inclusive_descendants_version(&self) -> u64 {
+    pub(crate) fn inclusive_descendants_version(&self) -> u64 {
         self.inclusive_descendants_version.get()
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    pub fn traverse_preorder(&self, shadow_including: ShadowIncluding) -> TreeIterator {
+    pub(crate) fn traverse_preorder(&self, shadow_including: ShadowIncluding) -> TreeIterator {
         TreeIterator::new(self, shadow_including)
     }
 
-    pub fn inclusively_following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn inclusively_following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: |n| n.GetNextSibling(),
         }
     }
 
-    pub fn inclusively_preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn inclusively_preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: |n| n.GetPreviousSibling(),
         }
     }
 
-    pub fn common_ancestor(
+    pub(crate) fn common_ancestor(
         &self,
         other: &Node,
         shadow_including: ShadowIncluding,
@@ -775,86 +775,86 @@ impl Node {
         })
     }
 
-    pub fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
+    pub(crate) fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
         self == parent || self.is_ancestor_of(parent)
     }
 
-    pub fn is_ancestor_of(&self, parent: &Node) -> bool {
+    pub(crate) fn is_ancestor_of(&self, parent: &Node) -> bool {
         parent.ancestors().any(|ancestor| &*ancestor == self)
     }
 
-    pub fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
+    pub(crate) fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
         node.inclusive_ancestors(ShadowIncluding::Yes)
             .any(|ancestor| &*ancestor == self)
     }
 
-    pub fn following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetNextSibling(),
             next_node: |n| n.GetNextSibling(),
         }
     }
 
-    pub fn preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetPreviousSibling(),
             next_node: |n| n.GetPreviousSibling(),
         }
     }
 
-    pub fn following_nodes(&self, root: &Node) -> FollowingNodeIterator {
+    pub(crate) fn following_nodes(&self, root: &Node) -> FollowingNodeIterator {
         FollowingNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             root: DomRoot::from_ref(root),
         }
     }
 
-    pub fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
+    pub(crate) fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
         PrecedingNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             root: DomRoot::from_ref(root),
         }
     }
 
-    pub fn descending_last_children(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn descending_last_children(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetLastChild(),
             next_node: |n| n.GetLastChild(),
         }
     }
 
-    pub fn is_parent_of(&self, child: &Node) -> bool {
+    pub(crate) fn is_parent_of(&self, child: &Node) -> bool {
         child
             .parent_node
             .get()
             .is_some_and(|parent| &*parent == self)
     }
 
-    pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
+    pub(crate) fn to_trusted_node_address(&self) -> TrustedNodeAddress {
         TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
     /// Returns the rendered bounding content box if the element is rendered,
     /// and none otherwise.
-    pub fn bounding_content_box(&self, can_gc: CanGc) -> Option<Rect<Au>> {
+    pub(crate) fn bounding_content_box(&self, can_gc: CanGc) -> Option<Rect<Au>> {
         self.owner_window().content_box_query(self, can_gc)
     }
 
-    pub fn bounding_content_box_or_zero(&self, can_gc: CanGc) -> Rect<Au> {
+    pub(crate) fn bounding_content_box_or_zero(&self, can_gc: CanGc) -> Rect<Au> {
         self.bounding_content_box(can_gc).unwrap_or_else(Rect::zero)
     }
 
-    pub fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
+    pub(crate) fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
         self.owner_window().content_boxes_query(self, can_gc)
     }
 
-    pub fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
+    pub(crate) fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
         self.owner_window().client_rect_query(self, can_gc)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
-    pub fn scroll_area(&self, can_gc: CanGc) -> Rect<i32> {
+    pub(crate) fn scroll_area(&self, can_gc: CanGc) -> Rect<i32> {
         // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
 
@@ -893,14 +893,14 @@ impl Node {
         window.scrolling_area_query(Some(self), can_gc)
     }
 
-    pub fn scroll_offset(&self) -> Vector2D<f32> {
+    pub(crate) fn scroll_offset(&self) -> Vector2D<f32> {
         let document = self.owner_doc();
         let window = document.window();
         window.scroll_offset_query(self).to_untyped()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
-    pub fn before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -931,7 +931,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-after>
-    pub fn after(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn after(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -956,7 +956,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    pub fn replace_with(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn replace_with(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let parent = if let Some(parent) = self.GetParentNode() {
             parent
@@ -981,7 +981,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
-    pub fn prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
@@ -991,7 +991,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
-    pub fn append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
@@ -1000,7 +1000,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
-    pub fn replace_children(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn replace_children(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
@@ -1012,7 +1012,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
+    pub(crate) fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         // Step 1.
         let doc = self.owner_doc();
         match SelectorParser::parse_author_origin_no_namespace(
@@ -1046,7 +1046,7 @@ impl Node {
     /// Get an iterator over all nodes which match a set of selectors
     /// Be careful not to do anything which may manipulate the DOM tree
     /// whilst iterating, otherwise the iterator may be invalidated.
-    pub fn query_selector_iter(&self, selectors: DOMString) -> Fallible<QuerySelectorIterator> {
+    pub(crate) fn query_selector_iter(&self, selectors: DOMString) -> Fallible<QuerySelectorIterator> {
         // Step 1.
         let url = self.owner_doc().url();
         match SelectorParser::parse_author_origin_no_namespace(
@@ -1067,13 +1067,13 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     #[allow(unsafe_code)]
-    pub fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
+    pub(crate) fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let window = self.owner_window();
         let iter = self.query_selector_iter(selectors)?;
         Ok(NodeList::new_simple_list(&window, iter))
     }
 
-    pub fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetParentNode(),
             next_node: |n| n.GetParentNode(),
@@ -1081,7 +1081,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
-    pub fn inclusive_ancestors(
+    pub(crate) fn inclusive_ancestors(
         &self,
         shadow_including: ShadowIncluding,
     ) -> impl Iterator<Item = DomRoot<Node>> {
@@ -1098,15 +1098,15 @@ impl Node {
         }
     }
 
-    pub fn owner_doc(&self) -> DomRoot<Document> {
+    pub(crate) fn owner_doc(&self) -> DomRoot<Document> {
         self.owner_doc.get().unwrap()
     }
 
-    pub fn set_owner_doc(&self, document: &Document) {
+    pub(crate) fn set_owner_doc(&self, document: &Document) {
         self.owner_doc.set(Some(document));
     }
 
-    pub fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+    pub(crate) fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
         self.rare_data()
             .as_ref()?
             .containing_shadow_root
@@ -1114,45 +1114,45 @@ impl Node {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub fn set_containing_shadow_root(&self, shadow_root: Option<&ShadowRoot>) {
+    pub(crate) fn set_containing_shadow_root(&self, shadow_root: Option<&ShadowRoot>) {
         self.ensure_rare_data().containing_shadow_root = shadow_root.map(Dom::from_ref);
     }
 
-    pub fn is_in_html_doc(&self) -> bool {
+    pub(crate) fn is_in_html_doc(&self) -> bool {
         self.owner_doc().is_html_document()
     }
 
-    pub fn is_connected_with_browsing_context(&self) -> bool {
+    pub(crate) fn is_connected_with_browsing_context(&self) -> bool {
         self.is_connected() && self.owner_doc().browsing_context().is_some()
     }
 
-    pub fn children(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn children(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetFirstChild(),
             next_node: |n| n.GetNextSibling(),
         }
     }
 
-    pub fn rev_children(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn rev_children(&self) -> impl Iterator<Item = DomRoot<Node>> {
         SimpleNodeIterator {
             current: self.GetLastChild(),
             next_node: |n| n.GetPreviousSibling(),
         }
     }
 
-    pub fn child_elements(&self) -> impl Iterator<Item = DomRoot<Element>> {
+    pub(crate) fn child_elements(&self) -> impl Iterator<Item = DomRoot<Element>> {
         self.children()
             .filter_map(DomRoot::downcast as fn(_) -> _)
             .peekable()
     }
 
-    pub fn remove_self(&self) {
+    pub(crate) fn remove_self(&self) {
         if let Some(ref parent) = self.GetParentNode() {
             Node::remove(self, parent, SuppressObserver::Unsuppressed);
         }
     }
 
-    pub fn unique_id(&self) -> String {
+    pub(crate) fn unique_id(&self) -> String {
         let mut rare_data = self.ensure_rare_data();
 
         if rare_data.unique_id.is_none() {
@@ -1169,7 +1169,7 @@ impl Node {
             .to_string()
     }
 
-    pub fn summarize(&self) -> NodeInfo {
+    pub(crate) fn summarize(&self) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
         NodeInfo {
@@ -1188,7 +1188,7 @@ impl Node {
     }
 
     /// Used by `HTMLTableSectionElement::InsertRow` and `HTMLTableRowElement::InsertCell`
-    pub fn insert_cell_or_row<F, G, I>(
+    pub(crate) fn insert_cell_or_row<F, G, I>(
         &self,
         index: i32,
         get_items: F,
@@ -1229,7 +1229,7 @@ impl Node {
     }
 
     /// Used by `HTMLTableSectionElement::DeleteRow` and `HTMLTableRowElement::DeleteCell`
-    pub fn delete_cell_or_row<F, G>(
+    pub(crate) fn delete_cell_or_row<F, G>(
         &self,
         index: i32,
         get_items: F,
@@ -1262,7 +1262,7 @@ impl Node {
         Ok(())
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
@@ -1272,7 +1272,7 @@ impl Node {
         }
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_cssom_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
@@ -1282,11 +1282,11 @@ impl Node {
         }
     }
 
-    pub fn is_styled(&self) -> bool {
+    pub(crate) fn is_styled(&self) -> bool {
         self.style_data.borrow().is_some()
     }
 
-    pub fn is_display_none(&self) -> bool {
+    pub(crate) fn is_display_none(&self) -> bool {
         self.style_data.borrow().as_ref().map_or(true, |data| {
             data.element_data
                 .borrow()
@@ -1298,7 +1298,7 @@ impl Node {
         })
     }
 
-    pub fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
+    pub(crate) fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
         if !self
             .owner_window()
             .layout_reflow(QueryMsg::StyleQuery, can_gc)
@@ -1328,12 +1328,12 @@ where
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
 #[allow(unsafe_code)]
-pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
+pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
 }
 
 #[allow(unsafe_code)]
-pub trait LayoutNodeHelpers<'dom> {
+pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
 
     fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
@@ -1606,14 +1606,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 // Iteration and traversal
 //
 
-pub struct FollowingNodeIterator {
+pub(crate) struct FollowingNodeIterator {
     current: Option<DomRoot<Node>>,
     root: DomRoot<Node>,
 }
 
 impl FollowingNodeIterator {
     /// Skips iterating the children of the current node
-    pub fn next_skipping_children(&mut self) -> Option<DomRoot<Node>> {
+    pub(crate) fn next_skipping_children(&mut self) -> Option<DomRoot<Node>> {
         let current = self.current.take()?;
         self.next_skipping_children_impl(current)
     }
@@ -1659,7 +1659,7 @@ impl Iterator for FollowingNodeIterator {
     }
 }
 
-pub struct PrecedingNodeIterator {
+pub(crate) struct PrecedingNodeIterator {
     current: Option<DomRoot<Node>>,
     root: DomRoot<Node>,
 }
@@ -1711,12 +1711,12 @@ where
 
 /// Whether a tree traversal should pass shadow tree boundaries.
 #[derive(Clone, Copy, PartialEq)]
-pub enum ShadowIncluding {
+pub(crate) enum ShadowIncluding {
     No,
     Yes,
 }
 
-pub struct TreeIterator {
+pub(crate) struct TreeIterator {
     current: Option<DomRoot<Node>>,
     depth: usize,
     shadow_including: bool,
@@ -1731,7 +1731,7 @@ impl TreeIterator {
         }
     }
 
-    pub fn next_skipping_children(&mut self) -> Option<DomRoot<Node>> {
+    pub(crate) fn next_skipping_children(&mut self) -> Option<DomRoot<Node>> {
         let current = self.current.take()?;
 
         self.next_skipping_children_impl(current)
@@ -1793,7 +1793,7 @@ impl Iterator for TreeIterator {
 
 /// Specifies whether children must be recursively cloned or not.
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-pub enum CloneChildrenFlag {
+pub(crate) enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren,
 }
@@ -1803,14 +1803,14 @@ fn as_uintptr<T>(t: &T) -> uintptr_t {
 }
 
 impl Node {
-    pub fn reflect_node<N>(node: Box<N>, document: &Document, can_gc: CanGc) -> DomRoot<N>
+    pub(crate) fn reflect_node<N>(node: Box<N>, document: &Document, can_gc: CanGc) -> DomRoot<N>
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
         Self::reflect_node_with_proto(node, document, None, can_gc)
     }
 
-    pub fn reflect_node_with_proto<N>(
+    pub(crate) fn reflect_node_with_proto<N>(
         node: Box<N>,
         document: &Document,
         proto: Option<HandleObject>,
@@ -1823,12 +1823,12 @@ impl Node {
         reflect_dom_object_with_proto(node, window, proto, can_gc)
     }
 
-    pub fn new_inherited(doc: &Document) -> Node {
+    pub(crate) fn new_inherited(doc: &Document) -> Node {
         Node::new_(NodeFlags::empty(), Some(doc))
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new_document_node() -> Node {
+    pub(crate) fn new_document_node() -> Node {
         Node::new_(
             NodeFlags::IS_IN_A_DOCUMENT_TREE | NodeFlags::IS_CONNECTED,
             None,
@@ -1858,7 +1858,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt>
-    pub fn adopt(node: &Node, document: &Document) {
+    pub(crate) fn adopt(node: &Node, document: &Document) {
         document.add_script_and_layout_blocker();
 
         // Step 1.
@@ -1894,7 +1894,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity>
-    pub fn ensure_pre_insertion_validity(
+    pub(crate) fn ensure_pre_insertion_validity(
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
@@ -2012,7 +2012,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-pre-insert>
-    pub fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
+    pub(crate) fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
         // Step 1.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
 
@@ -2173,7 +2173,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
-    pub fn replace_all(node: Option<&Node>, parent: &Node) {
+    pub(crate) fn replace_all(node: Option<&Node>, parent: &Node) {
         parent.owner_doc().add_script_and_layout_blocker();
         // Step 1.
         if let Some(node) = node {
@@ -2220,7 +2220,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
-    pub fn string_replace_all(string: DOMString, parent: &Node, can_gc: CanGc) {
+    pub(crate) fn string_replace_all(string: DOMString, parent: &Node, can_gc: CanGc) {
         if string.len() == 0 {
             Node::replace_all(None, parent);
         } else {
@@ -2296,7 +2296,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
-    pub fn clone(
+    pub(crate) fn clone(
         node: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
@@ -2481,16 +2481,16 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#child-text-content>
-    pub fn child_text_content(&self) -> DOMString {
+    pub(crate) fn child_text_content(&self) -> DOMString {
         Node::collect_text_contents(self.children())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#descendant-text-content>
-    pub fn descendant_text_content(&self) -> DOMString {
+    pub(crate) fn descendant_text_content(&self) -> DOMString {
         Node::collect_text_contents(self.traverse_preorder(ShadowIncluding::No))
     }
 
-    pub fn collect_text_contents<T: Iterator<Item = DomRoot<Node>>>(iterator: T) -> DOMString {
+    pub(crate) fn collect_text_contents<T: Iterator<Item = DomRoot<Node>>>(iterator: T) -> DOMString {
         let mut content = String::new();
         for node in iterator {
             if let Some(text) = node.downcast::<Text>() {
@@ -2500,7 +2500,7 @@ impl Node {
         DOMString::from(content)
     }
 
-    pub fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
+    pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!() => None,
             // FIXME(ajeffrey): convert directly from Namespace to DOMString
@@ -2509,7 +2509,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#locate-a-namespace>
-    pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
+    pub(crate) fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
         match node.type_id() {
             NodeTypeId::Element(_) => node.downcast::<Element>().unwrap().locate_namespace(prefix),
             NodeTypeId::Attr => node
@@ -2540,7 +2540,7 @@ impl Node {
     /// Callers should ensure they pass an UntrustedNodeAddress that points to a valid [`JSObject`]
     /// in memory that represents a [`Node`].
     #[allow(unsafe_code)]
-    pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> &'static Self {
+    pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> &'static Self {
         // https://github.com/servo/servo/issues/6383
         let candidate = candidate.0 as usize;
         let object = candidate as *mut JSObject;
@@ -2550,7 +2550,7 @@ impl Node {
         &*(conversions::private_from_object(object) as *const Self)
     }
 
-    pub fn html_serialize(&self, traversal_scope: html_serialize::TraversalScope) -> DOMString {
+    pub(crate) fn html_serialize(&self, traversal_scope: html_serialize::TraversalScope) -> DOMString {
         let mut writer = vec![];
         html_serialize::serialize(
             &mut writer,
@@ -2566,7 +2566,7 @@ impl Node {
         DOMString::from(String::from_utf8(writer).unwrap())
     }
 
-    pub fn xml_serialize(&self, traversal_scope: xml_serialize::TraversalScope) -> DOMString {
+    pub(crate) fn xml_serialize(&self, traversal_scope: xml_serialize::TraversalScope) -> DOMString {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,
@@ -2580,7 +2580,7 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
-    pub fn fragment_serialization_algorithm(&self, require_well_formed: bool) -> DOMString {
+    pub(crate) fn fragment_serialization_algorithm(&self, require_well_formed: bool) -> DOMString {
         // Step 1. Let context document be node's node document.
         let context_document = self.owner_document();
 
@@ -3391,14 +3391,14 @@ impl VirtualMethods for Node {
 
 /// A summary of the changes that happened to a node.
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-pub enum NodeDamage {
+pub(crate) enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,
     /// Other parts of a node changed; attributes, text content, etc.
     OtherNodeDamage,
 }
 
-pub enum ChildrenMutation<'a> {
+pub(crate) enum ChildrenMutation<'a> {
     Append {
         prev: &'a Node,
         added: &'a [&'a Node],
@@ -3479,7 +3479,7 @@ impl<'a> ChildrenMutation<'a> {
     /// Currently only used when this mutation might force us to
     /// restyle later children (see HAS_SLOW_SELECTOR_LATER_SIBLINGS and
     /// Element's implementation of VirtualMethods::children_changed).
-    pub fn next_child(&self) -> Option<&Node> {
+    pub(crate) fn next_child(&self) -> Option<&Node> {
         match *self {
             ChildrenMutation::Append { .. } => None,
             ChildrenMutation::Insert { next, .. } => Some(next),
@@ -3496,7 +3496,7 @@ impl<'a> ChildrenMutation<'a> {
     /// NOTE: This does not check whether the inserted/removed nodes were elements, so in some
     /// cases it will return a false positive.  This doesn't matter for correctness, because at
     /// worst the returned element will be restyled unnecessarily.
-    pub fn modified_edge_element(&self) -> Option<DomRoot<Node>> {
+    pub(crate) fn modified_edge_element(&self) -> Option<DomRoot<Node>> {
         match *self {
             // Add/remove at start of container: Return the first following element.
             ChildrenMutation::Prepend { next, .. } |
@@ -3554,57 +3554,57 @@ impl<'a> ChildrenMutation<'a> {
 }
 
 /// The context of the binding to tree of a node.
-pub struct BindContext {
+pub(crate) struct BindContext {
     /// Whether the tree is connected.
     ///
     /// <https://dom.spec.whatwg.org/#connected>
-    pub tree_connected: bool,
+    pub(crate) tree_connected: bool,
 
     /// Whether the tree's root is a document.
     ///
     /// <https://dom.spec.whatwg.org/#in-a-document-tree>
-    pub tree_is_in_a_document_tree: bool,
+    pub(crate) tree_is_in_a_document_tree: bool,
 
     /// Whether the tree's root is a shadow root
-    pub tree_is_in_a_shadow_tree: bool,
+    pub(crate) tree_is_in_a_shadow_tree: bool,
 }
 
 impl BindContext {
     /// Return true iff the tree is inside either a document- or a shadow tree.
-    pub fn is_in_tree(&self) -> bool {
+    pub(crate) fn is_in_tree(&self) -> bool {
         self.tree_is_in_a_document_tree || self.tree_is_in_a_shadow_tree
     }
 }
 
 /// The context of the unbinding from a tree of a node when one of its
 /// inclusive ancestors is removed.
-pub struct UnbindContext<'a> {
+pub(crate) struct UnbindContext<'a> {
     /// The index of the inclusive ancestor that was removed.
     index: Cell<Option<u32>>,
     /// The parent of the inclusive ancestor that was removed.
-    pub parent: &'a Node,
+    pub(crate) parent: &'a Node,
     /// The previous sibling of the inclusive ancestor that was removed.
     prev_sibling: Option<&'a Node>,
     /// The next sibling of the inclusive ancestor that was removed.
-    pub next_sibling: Option<&'a Node>,
+    pub(crate) next_sibling: Option<&'a Node>,
 
     /// Whether the tree is connected.
     ///
     /// <https://dom.spec.whatwg.org/#connected>
-    pub tree_connected: bool,
+    pub(crate) tree_connected: bool,
 
     /// Whether the tree's root is a document.
     ///
     /// <https://dom.spec.whatwg.org/#in-a-document-tree>
-    pub tree_is_in_a_document_tree: bool,
+    pub(crate) tree_is_in_a_document_tree: bool,
 
     /// Whether the tree's root is a shadow root
-    pub tree_is_in_a_shadow_tree: bool,
+    pub(crate) tree_is_in_a_shadow_tree: bool,
 }
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    pub fn new(
+    pub(crate) fn new(
         parent: &'a Node,
         prev_sibling: Option<&'a Node>,
         next_sibling: Option<&'a Node>,
@@ -3623,7 +3623,7 @@ impl<'a> UnbindContext<'a> {
 
     /// The index of the inclusive ancestor that was removed from the tree.
     #[allow(unsafe_code)]
-    pub fn index(&self) -> u32 {
+    pub(crate) fn index(&self) -> u32 {
         if let Some(index) = self.index.get() {
             return index;
         }
@@ -3634,7 +3634,7 @@ impl<'a> UnbindContext<'a> {
 }
 
 /// A node's unique ID, for devtools.
-pub struct UniqueId {
+pub(crate) struct UniqueId {
     cell: UnsafeCell<Option<Box<Uuid>>>,
 }
 
@@ -3757,7 +3757,7 @@ impl From<ElementTypeId> for LayoutElementType {
 
 /// Helper trait to insert an element into vector whose elements
 /// are maintained in tree order
-pub trait VecPreOrderInsertionHelper<T> {
+pub(crate) trait VecPreOrderInsertionHelper<T> {
     fn insert_pre_order(&mut self, elem: &T, tree_root: &Node);
 }
 

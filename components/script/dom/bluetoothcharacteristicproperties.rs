@@ -12,7 +12,7 @@ use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
 #[dom_struct]
-pub struct BluetoothCharacteristicProperties {
+pub(crate) struct BluetoothCharacteristicProperties {
     reflector_: Reflector,
     broadcast: bool,
     read: bool,
@@ -28,7 +28,7 @@ pub struct BluetoothCharacteristicProperties {
 #[allow(non_snake_case)]
 impl BluetoothCharacteristicProperties {
     #[allow(clippy::too_many_arguments)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         broadcast: bool,
         read: bool,
         write_without_response: bool,
@@ -54,7 +54,7 @@ impl BluetoothCharacteristicProperties {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         broadcast: bool,
         read: bool,

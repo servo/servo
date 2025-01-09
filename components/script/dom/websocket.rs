@@ -54,18 +54,18 @@ enum WebSocketRequestState {
 // Names are from https://github.com/mozilla/gecko-dev/blob/master/netwerk/protocol/websocket/nsIWebSocketChannel.idl
 #[allow(dead_code)]
 mod close_code {
-    pub const NORMAL: u16 = 1000;
-    pub const GOING_AWAY: u16 = 1001;
-    pub const PROTOCOL_ERROR: u16 = 1002;
-    pub const UNSUPPORTED_DATATYPE: u16 = 1003;
-    pub const NO_STATUS: u16 = 1005;
-    pub const ABNORMAL: u16 = 1006;
-    pub const INVALID_PAYLOAD: u16 = 1007;
-    pub const POLICY_VIOLATION: u16 = 1008;
-    pub const TOO_LARGE: u16 = 1009;
-    pub const EXTENSION_MISSING: u16 = 1010;
-    pub const INTERNAL_ERROR: u16 = 1011;
-    pub const TLS_FAILED: u16 = 1015;
+    pub(crate) const NORMAL: u16 = 1000;
+    pub(crate) const GOING_AWAY: u16 = 1001;
+    pub(crate) const PROTOCOL_ERROR: u16 = 1002;
+    pub(crate) const UNSUPPORTED_DATATYPE: u16 = 1003;
+    pub(crate) const NO_STATUS: u16 = 1005;
+    pub(crate) const ABNORMAL: u16 = 1006;
+    pub(crate) const INVALID_PAYLOAD: u16 = 1007;
+    pub(crate) const POLICY_VIOLATION: u16 = 1008;
+    pub(crate) const TOO_LARGE: u16 = 1009;
+    pub(crate) const EXTENSION_MISSING: u16 = 1010;
+    pub(crate) const INTERNAL_ERROR: u16 = 1011;
+    pub(crate) const TLS_FAILED: u16 = 1015;
 }
 
 fn close_the_websocket_connection(
@@ -92,7 +92,7 @@ fn fail_the_websocket_connection(address: Trusted<WebSocket>, task_source: &Send
 }
 
 #[dom_struct]
-pub struct WebSocket {
+pub(crate) struct WebSocket {
     eventtarget: EventTarget,
     #[no_trace]
     url: ServoUrl,
@@ -169,7 +169,7 @@ impl WebSocket {
         Ok(true)
     }
 
-    pub fn origin(&self) -> ImmutableOrigin {
+    pub(crate) fn origin(&self) -> ImmutableOrigin {
         self.url.origin()
     }
 }

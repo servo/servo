@@ -45,7 +45,7 @@ use crate::task_source::SendableTaskSource;
 /// The Dom object, or ReadableStream, that is the source of a body.
 /// <https://fetch.spec.whatwg.org/#concept-body-source>
 #[derive(Clone, PartialEq)]
-pub enum BodySource {
+pub(crate) enum BodySource {
     /// A ReadableStream comes with a null-source.
     Null,
     /// Another Dom object as source,
@@ -79,7 +79,7 @@ struct TransmitBodyConnectHandler {
 }
 
 impl TransmitBodyConnectHandler {
-    pub fn new(
+    pub(crate) fn new(
         stream: Trusted<ReadableStream>,
         task_source: SendableTaskSource,
         control_sender: IpcSender<BodyChunkRequest>,
@@ -99,7 +99,7 @@ impl TransmitBodyConnectHandler {
 
     /// Reset `in_memory_done`, called when a stream is
     /// re-extracted from the source to support a re-direct.
-    pub fn reset_in_memory_done(&mut self) {
+    pub(crate) fn reset_in_memory_done(&mut self) {
         self.in_memory_done = false;
     }
 
@@ -337,11 +337,11 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
 }
 
 /// The result of <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
-pub struct ExtractedBody {
-    pub stream: DomRoot<ReadableStream>,
-    pub source: BodySource,
-    pub total_bytes: Option<usize>,
-    pub content_type: Option<DOMString>,
+pub(crate) struct ExtractedBody {
+    pub(crate) stream: DomRoot<ReadableStream>,
+    pub(crate) source: BodySource,
+    pub(crate) total_bytes: Option<usize>,
+    pub(crate) content_type: Option<DOMString>,
 }
 
 impl ExtractedBody {
@@ -356,7 +356,7 @@ impl ExtractedBody {
     ///
     /// Transmitting a body over fetch, and consuming it in script,
     /// are mutually exclusive operations, since each will lock the stream to a reader.
-    pub fn into_net_request_body(self) -> (RequestBody, DomRoot<ReadableStream>) {
+    pub(crate) fn into_net_request_body(self) -> (RequestBody, DomRoot<ReadableStream>) {
         let ExtractedBody {
             stream,
             total_bytes,
@@ -423,13 +423,13 @@ impl ExtractedBody {
     }
 
     /// Is the data of the stream of this extracted body available in memory?
-    pub fn in_memory(&self) -> bool {
+    pub(crate) fn in_memory(&self) -> bool {
         self.stream.in_memory()
     }
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
-pub trait Extractable {
+pub(crate) trait Extractable {
     fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody>;
 }
 
@@ -570,7 +570,7 @@ impl Extractable for URLSearchParams {
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-pub enum BodyType {
+pub(crate) enum BodyType {
     Blob,
     FormData,
     Json,
@@ -578,7 +578,7 @@ pub enum BodyType {
     ArrayBuffer,
 }
 
-pub enum FetchedData {
+pub(crate) enum FetchedData {
     Text(String),
     Json(RootedTraceableBox<Heap<JSValue>>),
     BlobData(DomRoot<Blob>),
@@ -712,7 +712,7 @@ impl Callback for ConsumeBodyPromiseHandler {
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(crown::unrooted_must_root)]
-pub fn consume_body<T: BodyMixin + DomObject>(
+pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,
     can_gc: CanGc,
@@ -889,7 +889,7 @@ fn run_form_data_algorithm(
 }
 
 #[allow(unsafe_code)]
-pub fn run_array_buffer_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+pub(crate) fn run_array_buffer_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
     let arraybuffer = unsafe {
         ArrayBuffer::create(
@@ -906,7 +906,7 @@ pub fn run_array_buffer_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallibl
 }
 
 /// <https://fetch.spec.whatwg.org/#body>
-pub trait BodyMixin {
+pub(crate) trait BodyMixin {
     /// <https://fetch.spec.whatwg.org/#concept-body-disturbed>
     fn is_disturbed(&self) -> bool;
     /// <https://fetch.spec.whatwg.org/#dom-body-body>

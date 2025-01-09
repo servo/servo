@@ -17,14 +17,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCSessionDescription {
+pub(crate) struct RTCSessionDescription {
     reflector: Reflector,
     ty: RTCSdpType,
     sdp: DOMString,
 }
 
 impl RTCSessionDescription {
-    pub fn new_inherited(ty: RTCSdpType, sdp: DOMString) -> RTCSessionDescription {
+    pub(crate) fn new_inherited(ty: RTCSdpType, sdp: DOMString) -> RTCSessionDescription {
         RTCSessionDescription {
             reflector: Reflector::new(),
             ty,

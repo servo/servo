@@ -36,14 +36,14 @@ use crate::stylesheet_set::StylesheetSetRef;
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]
-pub enum IsUserAgentWidget {
+pub(crate) enum IsUserAgentWidget {
     No,
     Yes,
 }
 
 /// <https://dom.spec.whatwg.org/#interface-shadowroot>
 #[dom_struct]
-pub struct ShadowRoot {
+pub(crate) struct ShadowRoot {
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
@@ -90,7 +90,7 @@ impl ShadowRoot {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         host: &Element,
         document: &Document,
         mode: ShadowRootMode,
@@ -103,7 +103,7 @@ impl ShadowRoot {
         )
     }
 
-    pub fn detach(&self) {
+    pub(crate) fn detach(&self) {
         self.document.unregister_shadow_root(self);
         let node = self.upcast::<Node>();
         node.set_containing_shadow_root(None);
@@ -111,16 +111,16 @@ impl ShadowRoot {
         self.host.set(None);
     }
 
-    pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {
+    pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
         //XXX get retargeted focused element
         None
     }
 
-    pub fn stylesheet_count(&self) -> usize {
+    pub(crate) fn stylesheet_count(&self) -> usize {
         self.author_styles.borrow().stylesheets.len()
     }
 
-    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         let stylesheets = &self.author_styles.borrow().stylesheets;
 
         stylesheets
@@ -131,7 +131,7 @@ impl ShadowRoot {
     /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
     /// correct tree position.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
         let insertion_point = stylesheets
             .iter()
@@ -152,7 +152,7 @@ impl ShadowRoot {
 
     /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+    pub(crate) fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
         DocumentOrShadowRoot::remove_stylesheet(
             owner,
             s,
@@ -160,7 +160,7 @@ impl ShadowRoot {
         )
     }
 
-    pub fn invalidate_stylesheets(&self) {
+    pub(crate) fn invalidate_stylesheets(&self) {
         self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
@@ -171,7 +171,7 @@ impl ShadowRoot {
 
     /// Remove any existing association between the provided id and any elements
     /// in this shadow tree.
-    pub fn unregister_element_id(&self, to_unregister: &Element, id: Atom) {
+    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom) {
         self.document_or_shadow_root.unregister_named_element(
             self.document_fragment.id_map(),
             to_unregister,
@@ -180,7 +180,7 @@ impl ShadowRoot {
     }
 
     /// Associate an element present in this shadow tree with the provided id.
-    pub fn register_element_id(&self, element: &Element, id: Atom) {
+    pub(crate) fn register_element_id(&self, element: &Element, id: Atom) {
         let root = self
             .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::No)
@@ -345,7 +345,7 @@ impl VirtualMethods for ShadowRoot {
 }
 
 #[allow(unsafe_code)]
-pub trait LayoutShadowRootHelpers<'dom> {
+pub(crate) trait LayoutShadowRootHelpers<'dom> {
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
     fn get_style_data_for_layout(self) -> &'dom CascadeData;
     unsafe fn flush_stylesheets<E: TElement>(

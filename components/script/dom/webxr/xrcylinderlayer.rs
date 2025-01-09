@@ -7,6 +7,6 @@ use dom_struct::dom_struct;
 use crate::dom::xrcompositionlayer::XRCompositionLayer;
 
 #[dom_struct]
-pub struct XRCylinderLayer {
+pub(crate) struct XRCylinderLayer {
     composition_layer: XRCompositionLayer,
 }

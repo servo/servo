@@ -19,7 +19,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLTemplateElement {
+pub(crate) struct HTMLTemplateElement {
     htmlelement: HTMLElement,
 
     /// <https://html.spec.whatwg.org/multipage/#template-contents>
@@ -39,7 +39,7 @@ impl HTMLTemplateElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

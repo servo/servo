@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PerformanceNavigation {
+pub(crate) struct PerformanceNavigation {
     reflector_: Reflector,
 }
 
@@ -25,7 +25,7 @@ impl PerformanceNavigation {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<PerformanceNavigation> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<PerformanceNavigation> {
         reflect_dom_object(
             Box::new(PerformanceNavigation::new_inherited()),
             global,

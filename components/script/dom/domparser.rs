@@ -24,7 +24,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMParser {
+pub(crate) struct DOMParser {
     reflector_: Reflector,
     window: Dom<Window>, // XXXjdm Document instead?
 }

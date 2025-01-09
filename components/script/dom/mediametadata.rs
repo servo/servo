@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaMetadata {
+pub(crate) struct MediaMetadata {
     reflector_: Reflector,
     session: MutNullableDom<MediaSession>,
     title: DomRefCell<DOMString>,
@@ -37,7 +37,7 @@ impl MediaMetadata {
         }
     }
 
-    pub fn new(global: &Window, init: &MediaMetadataInit, can_gc: CanGc) -> DomRoot<MediaMetadata> {
+    pub(crate) fn new(global: &Window, init: &MediaMetadataInit, can_gc: CanGc) -> DomRoot<MediaMetadata> {
         Self::new_with_proto(global, None, init, can_gc)
     }
 
@@ -59,7 +59,7 @@ impl MediaMetadata {
         if self.session.get().is_none() {}
     }
 
-    pub fn set_session(&self, session: &MediaSession) {
+    pub(crate) fn set_session(&self, session: &MediaSession) {
         self.session.set(Some(session));
     }
 }

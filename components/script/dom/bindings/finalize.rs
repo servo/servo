@@ -14,7 +14,7 @@ use js::jsval::UndefinedValue;
 use crate::dom::bindings::utils::finalize_global as do_finalize_global;
 use crate::dom::bindings::weakref::{WeakBox, WeakReferenceable, DOM_WEAK_SLOT};
 
-pub unsafe fn finalize_common<T>(this: *const T) {
+pub(crate) unsafe fn finalize_common<T>(this: *const T) {
     if !this.is_null() {
         // The pointer can be null if the object is the unforgeable holder of that interface.
         let _ = Box::from_raw(this as *mut T);
@@ -22,12 +22,12 @@ pub unsafe fn finalize_common<T>(this: *const T) {
     debug!("{} finalize: {:p}", type_name::<T>(), this);
 }
 
-pub unsafe fn finalize_global<T>(obj: *mut JSObject, this: *const T) {
+pub(crate) unsafe fn finalize_global<T>(obj: *mut JSObject, this: *const T) {
     do_finalize_global(obj);
     finalize_common::<T>(this);
 }
 
-pub unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
+pub(crate) unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
     obj: *mut JSObject,
     this: *const T,
 ) {

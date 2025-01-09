@@ -16,7 +16,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRJointSpace {
+pub(crate) struct XRJointSpace {
     xrspace: XRSpace,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
@@ -28,7 +28,7 @@ pub struct XRJointSpace {
 }
 
 impl XRJointSpace {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         input: InputId,
         joint: Joint,
@@ -43,7 +43,7 @@ impl XRJointSpace {
     }
 
     #[allow(unused)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: &XRSession,
         input: InputId,
@@ -57,13 +57,13 @@ impl XRJointSpace {
         )
     }
 
-    pub fn space(&self) -> Space {
+    pub(crate) fn space(&self) -> Space {
         let base = BaseSpace::Joint(self.input, self.joint);
         let offset = RigidTransform3D::identity();
         Space { base, offset }
     }
 
-    pub fn frame<'a>(&self, frame: &'a Frame) -> Option<&'a JointFrame> {
+    pub(crate) fn frame<'a>(&self, frame: &'a Frame) -> Option<&'a JointFrame> {
         frame
             .inputs
             .iter()
@@ -72,7 +72,7 @@ impl XRJointSpace {
             .and_then(|h| h.get(self.joint))
     }
 
-    pub fn get_pose(&self, frame: &Frame) -> Option<ApiPose> {
+    pub(crate) fn get_pose(&self, frame: &Frame) -> Option<ApiPose> {
         self.frame(frame).map(|f| f.pose).map(|t| t.cast_unit())
     }
 }

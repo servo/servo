@@ -34,7 +34,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OfflineAudioContext {
+pub(crate) struct OfflineAudioContext {
     context: BaseAudioContext,
     channel_count: u32,
     length: u32,

@@ -21,7 +21,7 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRRay {
+pub(crate) struct XRRay {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
@@ -48,7 +48,7 @@ impl XRRay {
         reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto, can_gc)
     }
 
-    pub fn ray(&self) -> Ray<ApiSpace> {
+    pub(crate) fn ray(&self) -> Ray<ApiSpace> {
         self.ray
     }
 }

@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 
 /// <https://url.spec.whatwg.org/#interface-urlsearchparams>
 #[dom_struct]
-pub struct URLSearchParams {
+pub(crate) struct URLSearchParams {
     reflector_: Reflector,
     /// <https://url.spec.whatwg.org/#concept-urlsearchparams-list>
     list: DomRefCell<Vec<(String, String)>>,
@@ -38,11 +38,11 @@ impl URLSearchParams {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: Option<&URL>, can_gc: CanGc) -> DomRoot<URLSearchParams> {
+    pub(crate) fn new(global: &GlobalScope, url: Option<&URL>, can_gc: CanGc) -> DomRoot<URLSearchParams> {
         Self::new_with_proto(global, None, url, can_gc)
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: Option<&URL>,
@@ -56,7 +56,7 @@ impl URLSearchParams {
         )
     }
 
-    pub fn set_list(&self, list: Vec<(String, String)>) {
+    pub(crate) fn set_list(&self, list: Vec<(String, String)>) {
         *self.list.borrow_mut() = list;
     }
 }
@@ -211,7 +211,7 @@ impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
 
 impl URLSearchParams {
     /// <https://url.spec.whatwg.org/#concept-urlencoded-serializer>
-    pub fn serialize_utf8(&self) -> String {
+    pub(crate) fn serialize_utf8(&self) -> String {
         let list = self.list.borrow();
         form_urlencoded::Serializer::new(String::new())
             .extend_pairs(&*list)

@@ -28,7 +28,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLTableRowElement {
+pub(crate) struct HTMLTableRowElement {
     htmlelement: HTMLElement,
     cells: MutNullableDom<HTMLCollection>,
 }
@@ -46,7 +46,7 @@ impl HTMLTableRowElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -151,7 +151,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     }
 }
 
-pub trait HTMLTableRowElementLayoutHelpers {
+pub(crate) trait HTMLTableRowElementLayoutHelpers {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_height(self) -> LengthOrPercentageOrAuto;
 }

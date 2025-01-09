@@ -16,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioDestinationNode {
+pub(crate) struct AudioDestinationNode {
     node: AudioNode,
 }
 
@@ -39,7 +39,7 @@ impl AudioDestinationNode {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         context: &BaseAudioContext,
         options: &AudioNodeOptions,

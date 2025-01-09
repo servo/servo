@@ -42,7 +42,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
-pub use js::rust::ThreadSafeJSContext;
+pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::{
     describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
     JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
@@ -96,7 +96,7 @@ static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ScriptThreadEventCategory {
+pub(crate) enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
     DevtoolsMsg,
@@ -418,7 +418,7 @@ unsafe extern "C" fn content_security_policy_allows(
 
 #[allow(unsafe_code, crown::unrooted_must_root)]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
-pub fn notify_about_rejected_promises(global: &GlobalScope) {
+pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
     unsafe {
         // Step 2.
@@ -489,9 +489,9 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
 }
 
 #[derive(JSTraceable)]
-pub struct Runtime {
+pub(crate) struct Runtime {
     rt: RustRuntime,
-    pub microtask_queue: Rc<MicrotaskQueue>,
+    pub(crate) microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
     networking_task_src: Option<Box<SendableTaskSource>>,
 }
@@ -929,7 +929,7 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct JSContext(*mut RawJSContext);
+pub(crate) struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
 impl JSContext {
@@ -1011,30 +1011,30 @@ impl Deref for JSContext {
     }
 }
 
-pub struct StreamConsumer(*mut JSStreamConsumer);
+pub(crate) struct StreamConsumer(*mut JSStreamConsumer);
 
 #[allow(unsafe_code)]
 impl StreamConsumer {
-    pub fn consume_chunk(&self, stream: &[u8]) -> bool {
+    pub(crate) fn consume_chunk(&self, stream: &[u8]) -> bool {
         unsafe {
             let stream_ptr = stream.as_ptr();
             StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len())
         }
     }
 
-    pub fn stream_end(&self) {
+    pub(crate) fn stream_end(&self) {
         unsafe {
             StreamConsumerStreamEnd(self.0);
         }
     }
 
-    pub fn stream_error(&self, error_code: usize) {
+    pub(crate) fn stream_error(&self, error_code: usize) {
         unsafe {
             StreamConsumerStreamError(self.0, error_code);
         }
     }
 
-    pub fn note_response_urls(
+    pub(crate) fn note_response_urls(
         &self,
         maybe_url: Option<String>,
         maybe_source_map_url: Option<String>,
@@ -1150,7 +1150,7 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
     );
 }
 
-pub struct Runnable(*mut JSRunnable);
+pub(crate) struct Runnable(*mut JSRunnable);
 
 #[allow(unsafe_code)]
 unsafe impl Sync for Runnable {}
@@ -1172,12 +1172,12 @@ impl Runnable {
 /// as a function argument and reused when calling other functions whenever possible. Since it
 /// is only meaningful within the current stack frame, it is impossible to move it to a different
 /// thread or into a task that will execute asynchronously.
-pub struct CanGc(std::marker::PhantomData<*mut ()>);
+pub(crate) struct CanGc(std::marker::PhantomData<*mut ()>);
 
 impl CanGc {
     /// Create a new CanGc value, representing that a GC operation is possible within the
     /// current stack frame.
-    pub fn note() -> CanGc {
+    pub(crate) fn note() -> CanGc {
         CanGc(std::marker::PhantomData)
     }
 }

@@ -23,7 +23,7 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUBindGroupLayout {
+pub(crate) struct GPUBindGroupLayout {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -47,7 +47,7 @@ impl GPUBindGroupLayout {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
@@ -66,12 +66,12 @@ impl GPUBindGroupLayout {
 }
 
 impl GPUBindGroupLayout {
-    pub fn id(&self) -> WebGPUBindGroupLayout {
+    pub(crate) fn id(&self) -> WebGPUBindGroupLayout {
         self.bind_group_layout
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBindGroupLayoutDescriptor,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {

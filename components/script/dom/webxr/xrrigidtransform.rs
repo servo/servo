@@ -20,7 +20,7 @@ use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRRigidTransform {
+pub(crate) struct XRRigidTransform {
     reflector_: Reflector,
     position: MutNullableDom<DOMPointReadOnly>,
     orientation: MutNullableDom<DOMPointReadOnly>,
@@ -44,7 +44,7 @@ impl XRRigidTransform {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         transform: ApiRigidTransform,
         can_gc: CanGc,
@@ -66,7 +66,7 @@ impl XRRigidTransform {
         )
     }
 
-    pub fn identity(window: &GlobalScope, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
+    pub(crate) fn identity(window: &GlobalScope, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         let transform = RigidTransform3D::identity();
         XRRigidTransform::new(window, transform, can_gc)
     }
@@ -182,7 +182,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
 
 impl XRRigidTransform {
     /// <https://immersive-web.github.io/webxr/#dom-xrpose-transform>
-    pub fn transform(&self) -> ApiRigidTransform {
+    pub(crate) fn transform(&self) -> ApiRigidTransform {
         self.transform
     }
 }

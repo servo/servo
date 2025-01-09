@@ -20,7 +20,7 @@ use crate::script_runtime::CanGc;
 #[repr(u16)]
 #[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub enum DOMErrorName {
+pub(crate) enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,
     WrongDocumentError = DOMExceptionConstants::WRONG_DOCUMENT_ERR,
@@ -50,7 +50,7 @@ pub enum DOMErrorName {
 }
 
 impl DOMErrorName {
-    pub fn from(s: &DOMString) -> Option<DOMErrorName> {
+    pub(crate) fn from(s: &DOMString) -> Option<DOMErrorName> {
         match s.as_ref() {
             "IndexSizeError" => Some(DOMErrorName::IndexSizeError),
             "HierarchyRequestError" => Some(DOMErrorName::HierarchyRequestError),
@@ -84,7 +84,7 @@ impl DOMErrorName {
 }
 
 #[dom_struct]
-pub struct DOMException {
+pub(crate) struct DOMException {
     reflector_: Reflector,
     message: DOMString,
     name: DOMString,
@@ -137,7 +137,7 @@ impl DOMException {
         )
     }
 
-    pub fn new_inherited(message: DOMString, name: DOMString) -> DOMException {
+    pub(crate) fn new_inherited(message: DOMString, name: DOMString) -> DOMException {
         DOMException {
             reflector_: Reflector::new(),
             message,
@@ -145,7 +145,7 @@ impl DOMException {
         }
     }
 
-    pub fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
+    pub(crate) fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
         let (message, name) = DOMException::get_error_data_by_code(code);
 
         reflect_dom_object(
@@ -156,7 +156,7 @@ impl DOMException {
     }
 
     // not an IDL stringifier, used internally
-    pub fn stringifier(&self) -> DOMString {
+    pub(crate) fn stringifier(&self) -> DOMString {
         DOMString::from(format!("{}: {}", self.name, self.message))
     }
 }

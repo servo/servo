@@ -59,17 +59,17 @@ const INVALID_ENTRY_NAMES: &[&str] = &[
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct PerformanceEntryList {
+pub(crate) struct PerformanceEntryList {
     /// <https://w3c.github.io/performance-timeline/#dfn-performance-entry-buffer>
     entries: DOMPerformanceEntryList,
 }
 
 impl PerformanceEntryList {
-    pub fn new(entries: DOMPerformanceEntryList) -> Self {
+    pub(crate) fn new(entries: DOMPerformanceEntryList) -> Self {
         PerformanceEntryList { entries }
     }
 
-    pub fn get_entries_by_name_and_type(
+    pub(crate) fn get_entries_by_name_and_type(
         &self,
         name: Option<DOMString>,
         entry_type: Option<DOMString>,
@@ -93,7 +93,7 @@ impl PerformanceEntryList {
         res
     }
 
-    pub fn clear_entries_by_name_and_type(
+    pub(crate) fn clear_entries_by_name_and_type(
         &mut self,
         name: Option<DOMString>,
         entry_type: DOMString,
@@ -132,7 +132,7 @@ struct PerformanceObserver {
 }
 
 #[dom_struct]
-pub struct Performance {
+pub(crate) struct Performance {
     eventtarget: EventTarget,
     buffer: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
@@ -165,7 +165,7 @@ impl Performance {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         navigation_start: CrossProcessInstant,
     ) -> DomRoot<Performance> {
@@ -193,7 +193,7 @@ impl Performance {
     /// Clear all buffered performance entries, and disable the buffer.
     /// Called as part of the window's "clear_js_runtime" workflow,
     /// performed when exiting a pipeline.
-    pub fn clear_and_disable_performance_entry_buffer(&self) {
+    pub(crate) fn clear_and_disable_performance_entry_buffer(&self) {
         let mut buffer = self.buffer.borrow_mut();
         buffer.entries.clear();
         self.resource_timing_buffer_size_limit.set(0);
@@ -202,7 +202,7 @@ impl Performance {
     // Add a PerformanceObserver to the list of observers with a set of
     // observed entry types.
 
-    pub fn add_multiple_type_observer(
+    pub(crate) fn add_multiple_type_observer(
         &self,
         observer: &DOMPerformanceObserver,
         entry_types: Vec<DOMString>,
@@ -220,7 +220,7 @@ impl Performance {
         };
     }
 
-    pub fn add_single_type_observer(
+    pub(crate) fn add_single_type_observer(
         &self,
         observer: &DOMPerformanceObserver,
         entry_type: &DOMString,
@@ -267,7 +267,7 @@ impl Performance {
     }
 
     /// Remove a PerformanceObserver from the list of observers.
-    pub fn remove_observer(&self, observer: &DOMPerformanceObserver) {
+    pub(crate) fn remove_observer(&self, observer: &DOMPerformanceObserver) {
         let mut observers = self.observers.borrow_mut();
         let index = match observers.iter().position(|o| &(*o.observer) == observer) {
             Some(p) => p,
@@ -285,7 +285,7 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub fn queue_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> Option<usize> {
+    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> Option<usize> {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
         if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry, can_gc) {
             return None;
@@ -339,7 +339,7 @@ impl Performance {
     ///
     /// Algorithm spec (step 7):
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
-    pub fn notify_observers(&self) {
+    pub(crate) fn notify_observers(&self) {
         // Step 7.1.
         self.pending_notification_observers_task.set(false);
 
@@ -422,7 +422,7 @@ impl Performance {
         false
     }
 
-    pub fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
+    pub(crate) fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
         if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
             *e = DomRoot::from_ref(entry);
         }

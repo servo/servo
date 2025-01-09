@@ -21,7 +21,7 @@ struct TimeRange {
 }
 
 impl TimeRange {
-    pub fn union(&mut self, other: &TimeRange) {
+    pub(crate) fn union(&mut self, other: &TimeRange) {
         self.start = f64::min(self.start, other.start);
         self.end = f64::max(self.end, other.end);
     }
@@ -40,7 +40,7 @@ impl TimeRange {
         other.start == self.end || other.end == self.start
     }
 
-    pub fn is_before(&self, other: &TimeRange) -> bool {
+    pub(crate) fn is_before(&self, other: &TimeRange) -> bool {
         other.start >= self.end
     }
 }
@@ -52,40 +52,40 @@ impl fmt::Debug for TimeRange {
 }
 
 #[derive(Debug)]
-pub enum TimeRangesError {
+pub(crate) enum TimeRangesError {
     EndOlderThanStart,
     OutOfRange,
 }
 
 #[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf)]
-pub struct TimeRangesContainer {
+pub(crate) struct TimeRangesContainer {
     ranges: Vec<TimeRange>,
 }
 
 impl TimeRangesContainer {
-    pub fn len(&self) -> u32 {
+    pub(crate) fn len(&self) -> u32 {
         self.ranges.len() as u32
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.ranges.is_empty()
     }
 
-    pub fn start(&self, index: u32) -> Result<f64, TimeRangesError> {
+    pub(crate) fn start(&self, index: u32) -> Result<f64, TimeRangesError> {
         self.ranges
             .get(index as usize)
             .map(|r| r.start)
             .ok_or(TimeRangesError::OutOfRange)
     }
 
-    pub fn end(&self, index: u32) -> Result<f64, TimeRangesError> {
+    pub(crate) fn end(&self, index: u32) -> Result<f64, TimeRangesError> {
         self.ranges
             .get(index as usize)
             .map(|r| r.end)
             .ok_or(TimeRangesError::OutOfRange)
     }
 
-    pub fn add(&mut self, start: f64, end: f64) -> Result<(), TimeRangesError> {
+    pub(crate) fn add(&mut self, start: f64, end: f64) -> Result<(), TimeRangesError> {
         if start > end {
             return Err(TimeRangesError::EndOlderThanStart);
         }
@@ -126,7 +126,7 @@ impl TimeRangesContainer {
 }
 
 #[dom_struct]
-pub struct TimeRanges {
+pub(crate) struct TimeRanges {
     reflector_: Reflector,
     ranges: TimeRangesContainer,
 }
@@ -139,7 +139,7 @@ impl TimeRanges {
         }
     }
 
-    pub fn new(window: &Window, ranges: TimeRangesContainer) -> DomRoot<TimeRanges> {
+    pub(crate) fn new(window: &Window, ranges: TimeRangesContainer) -> DomRoot<TimeRanges> {
         reflect_dom_object(
             Box::new(TimeRanges::new_inherited(ranges)),
             window,

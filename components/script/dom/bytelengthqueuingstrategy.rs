@@ -22,20 +22,20 @@ use crate::native_fn;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct ByteLengthQueuingStrategy {
+pub(crate) struct ByteLengthQueuingStrategy {
     reflector_: Reflector,
     high_water_mark: f64,
 }
 
 impl ByteLengthQueuingStrategy {
-    pub fn new_inherited(init: f64) -> Self {
+    pub(crate) fn new_inherited(init: f64) -> Self {
         Self {
             reflector_: Reflector::new(),
             high_water_mark: init,
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         init: f64,
@@ -85,7 +85,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 
 /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
 #[allow(unsafe_code)]
-pub unsafe fn byte_length_queuing_strategy_size(
+pub(crate) unsafe fn byte_length_queuing_strategy_size(
     cx: *mut JSContext,
     argc: u32,
     vp: *mut JSVal,

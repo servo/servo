@@ -32,7 +32,7 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaSession {
+pub(crate) struct MediaSession {
     reflector_: Reflector,
     /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
     #[ignore_malloc_size_of = "defined in embedder_traits"]
@@ -61,7 +61,7 @@ impl MediaSession {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<MediaSession> {
+    pub(crate) fn new(window: &Window) -> DomRoot<MediaSession> {
         reflect_dom_object(
             Box::new(MediaSession::new_inherited()),
             window,
@@ -69,11 +69,11 @@ impl MediaSession {
         )
     }
 
-    pub fn register_media_instance(&self, media_instance: &HTMLMediaElement) {
+    pub(crate) fn register_media_instance(&self, media_instance: &HTMLMediaElement) {
         self.media_instance.set(Some(media_instance));
     }
 
-    pub fn handle_action(&self, action: MediaSessionActionType, can_gc: CanGc) {
+    pub(crate) fn handle_action(&self, action: MediaSessionActionType, can_gc: CanGc) {
         debug!("Handle media session action {:?}", action);
 
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
@@ -104,14 +104,14 @@ impl MediaSession {
         }
     }
 
-    pub fn send_event(&self, event: MediaSessionEvent) {
+    pub(crate) fn send_event(&self, event: MediaSessionEvent) {
         let global = self.global();
         let window = global.as_window();
         let pipeline_id = window.pipeline_id();
         window.send_to_constellation(ScriptMsg::MediaSessionEvent(pipeline_id, event));
     }
 
-    pub fn update_title(&self, title: String) {
+    pub(crate) fn update_title(&self, title: String) {
         let mut metadata = self.metadata.borrow_mut();
         if let Some(ref mut metadata) = *metadata {
             // We only update the title with the data provided by the media

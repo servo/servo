@@ -62,7 +62,7 @@ impl CollectionFilter for OptionsFilter {
 }
 
 #[dom_struct]
-pub struct HTMLSelectElement {
+pub(crate) struct HTMLSelectElement {
     htmlelement: HTMLElement,
     options: MutNullableDom<HTMLOptionsCollection>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -93,7 +93,7 @@ impl HTMLSelectElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -114,7 +114,7 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
-    pub fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
+    pub(crate) fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
         self.upcast::<Node>().children().flat_map(|node| {
             if node.is::<HTMLOptionElement>() {
                 let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();
@@ -140,7 +140,7 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         for opt in self.list_of_options() {
             opt.set_selectedness(opt.DefaultSelected());
             opt.set_dirtiness(false);
@@ -149,7 +149,7 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
-    pub fn ask_for_reset(&self) {
+    pub(crate) fn ask_for_reset(&self) {
         if self.Multiple() {
             return;
         }
@@ -177,7 +177,7 @@ impl HTMLSelectElement {
         }
     }
 
-    pub fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
+    pub(crate) fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
         if self.Name().is_empty() {
             return;
         }
@@ -194,7 +194,7 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-pick
-    pub fn pick_option(&self, picked: &HTMLOptionElement) {
+    pub(crate) fn pick_option(&self, picked: &HTMLOptionElement) {
         if !self.Multiple() {
             let picked = picked.upcast();
             for opt in self.list_of_options() {

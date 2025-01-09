@@ -12,7 +12,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TouchList {
+pub(crate) struct TouchList {
     reflector_: Reflector,
     touches: Vec<Dom<Touch>>,
 }
@@ -25,7 +25,7 @@ impl TouchList {
         }
     }
 
-    pub fn new(window: &Window, touches: &[&Touch]) -> DomRoot<TouchList> {
+    pub(crate) fn new(window: &Window, touches: &[&Touch]) -> DomRoot<TouchList> {
         reflect_dom_object(
             Box::new(TouchList::new_inherited(touches)),
             window,

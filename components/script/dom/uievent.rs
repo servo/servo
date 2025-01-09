@@ -27,14 +27,14 @@ use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/uievents/#interface-uievent
 #[dom_struct]
-pub struct UIEvent {
+pub(crate) struct UIEvent {
     event: Event,
     view: MutNullableDom<Window>,
     detail: Cell<i32>,
 }
 
 impl UIEvent {
-    pub fn new_inherited() -> UIEvent {
+    pub(crate) fn new_inherited() -> UIEvent {
         UIEvent {
             event: Event::new_inherited(),
             view: Default::default(),
@@ -42,7 +42,7 @@ impl UIEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<UIEvent> {
+    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<UIEvent> {
         Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
@@ -54,7 +54,7 @@ impl UIEvent {
         reflect_dom_object_with_proto(Box::new(UIEvent::new_inherited()), window, proto, can_gc)
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: DOMString,
         can_bubble: EventBubbles,
@@ -91,7 +91,7 @@ impl UIEvent {
     }
 
     /// <https://w3c.github.io/uievents/#initialize-a-uievent>
-    pub fn initialize_ui_event(
+    pub(crate) fn initialize_ui_event(
         &self,
         type_: DOMString,
         target_: Option<&EventTarget>,
@@ -114,7 +114,7 @@ impl UIEvent {
         self.detail.set(0_i32);
     }
 
-    pub fn set_detail(&self, detail_: i32) {
+    pub(crate) fn set_detail(&self, detail_: i32) {
         self.detail.set(detail_);
     }
 }

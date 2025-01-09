@@ -17,21 +17,21 @@ use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FontFaceSet {
+pub(crate) struct FontFaceSet {
     target: EventTarget,
     #[ignore_malloc_size_of = "Rc"]
     promise: Rc<Promise>,
 }
 
 impl FontFaceSet {
-    pub fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Self {
+    pub(crate) fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Self {
         FontFaceSet {
             target: EventTarget::new_inherited(),
             promise: Promise::new(global, can_gc),
         }
     }
 
-    pub fn new(global: &GlobalScope, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn new(global: &GlobalScope, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(FontFaceSet::new_inherited(global, can_gc)),
             global,
@@ -40,7 +40,7 @@ impl FontFaceSet {
         )
     }
 
-    pub fn fulfill_ready_promise_if_needed(&self) {
+    pub(crate) fn fulfill_ready_promise_if_needed(&self) {
         if !self.promise.is_fulfilled() {
             let _ac = enter_realm(&*self.promise);
             self.promise.resolve_native(self);

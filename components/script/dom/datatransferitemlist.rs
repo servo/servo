@@ -21,7 +21,7 @@ use crate::drag_data_store::{Binary, DragDataStore, Kind, Mode, PlainString};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct DataTransferItemList {
+pub(crate) struct DataTransferItemList {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Rc"]
     #[no_trace]
@@ -39,7 +39,7 @@ impl DataTransferItemList {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
     ) -> DomRoot<DataTransferItemList> {
@@ -50,7 +50,7 @@ impl DataTransferItemList {
         )
     }
 
-    pub fn frozen_types(&self, cx: JSContext, retval: MutableHandleValue) {
+    pub(crate) fn frozen_types(&self, cx: JSContext, retval: MutableHandleValue) {
         self.frozen_types.get_or_init(
             || {
                 self.data_store
@@ -63,7 +63,7 @@ impl DataTransferItemList {
         );
     }
 
-    pub fn invalidate_frozen_types(&self) {
+    pub(crate) fn invalidate_frozen_types(&self) {
         self.frozen_types.clear();
     }
 }

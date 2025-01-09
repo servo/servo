@@ -32,7 +32,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
 /// The MessagePort used in the DOM.
-pub struct MessagePort {
+pub(crate) struct MessagePort {
     eventtarget: EventTarget,
     #[no_trace]
     message_port_id: MessagePortId,
@@ -52,7 +52,7 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
-    pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
+    pub(crate) fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
         let port_id = MessagePortId::new();
         reflect_dom_object(
             Box::new(MessagePort::new_inherited(port_id)),
@@ -80,15 +80,15 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
-    pub fn entangle(&self, other_id: MessagePortId) {
+    pub(crate) fn entangle(&self, other_id: MessagePortId) {
         *self.entangled_port.borrow_mut() = Some(other_id);
     }
 
-    pub fn message_port_id(&self) -> &MessagePortId {
+    pub(crate) fn message_port_id(&self) -> &MessagePortId {
         &self.message_port_id
     }
 
-    pub fn detached(&self) -> bool {
+    pub(crate) fn detached(&self) -> bool {
         self.detached.get()
     }
 

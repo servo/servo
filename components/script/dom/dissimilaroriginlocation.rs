@@ -19,7 +19,7 @@ use crate::script_runtime::CanGc;
 /// still need to function.
 
 #[dom_struct]
-pub struct DissimilarOriginLocation {
+pub(crate) struct DissimilarOriginLocation {
     /// The reflector. Once we have XOWs, this will have a cross-origin
     /// wrapper placed around it.
     reflector: Reflector,
@@ -37,7 +37,7 @@ impl DissimilarOriginLocation {
         }
     }
 
-    pub fn new(window: &DissimilarOriginWindow) -> DomRoot<DissimilarOriginLocation> {
+    pub(crate) fn new(window: &DissimilarOriginWindow) -> DomRoot<DissimilarOriginLocation> {
         reflect_dom_object(
             Box::new(DissimilarOriginLocation::new_inherited(window)),
             window,

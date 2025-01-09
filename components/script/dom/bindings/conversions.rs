@@ -35,7 +35,7 @@
 use std::{char, ffi, ptr, slice};
 
 use js::conversions::latin1_to_string;
-pub use js::conversions::{
+pub(crate) use js::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
 use js::error::throw_type_error;
@@ -70,13 +70,13 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::windowproxy::WindowProxy;
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
-pub trait IDLInterface {
+pub(crate) trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(_: &'static DOMClass) -> bool;
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
-pub trait DerivedFrom<T: Castable>: Castable {}
+pub(crate) trait DerivedFrom<T: Castable>: Castable {}
 
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
@@ -160,7 +160,7 @@ where
 /// integer.
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
-pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
+pub(crate) unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {
         let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
@@ -183,7 +183,7 @@ impl ToJSValConvertible for USVString {
 
 /// Behavior for stringification of `JSVal`s.
 #[derive(Clone, PartialEq)]
-pub enum StringificationBehavior {
+pub(crate) enum StringificationBehavior {
     /// Convert `null` to the string `"null"`.
     Default,
     /// Convert `null` to the empty string.
@@ -221,7 +221,7 @@ impl FromJSValConvertible for DOMString {
 
 /// Convert the given `JSString` to a `DOMString`. Fails if the string does not
 /// contain valid UTF-16.
-pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: ptr::NonNull<JSString>) -> DOMString {
+pub(crate) unsafe fn jsstring_to_str(cx: *mut JSContext, s: ptr::NonNull<JSString>) -> DOMString {
     let latin1 = JS_DeprecatedStringHasLatin1Chars(s.as_ptr());
     DOMString::from_string(if latin1 {
         latin1_to_string(cx, s.as_ptr())
@@ -355,7 +355,7 @@ impl ToJSValConvertible for Reflector {
 }
 
 /// Returns whether `obj` is a DOM object implemented as a proxy.
-pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
+pub(crate) fn is_dom_proxy(obj: *mut JSObject) -> bool {
     use js::glue::IsProxyHandlerFamily;
     unsafe {
         let clasp = get_object_class(obj);
@@ -367,10 +367,10 @@ pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
 /// stored for non-proxy bindings.
 // We use slot 0 for holding the raw object.  This is safe for both
 // globals and non-globals.
-pub const DOM_OBJECT_SLOT: u32 = 0;
+pub(crate) const DOM_OBJECT_SLOT: u32 = 0;
 
 /// Get the private pointer of a DOM object from a given reflector.
-pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
+pub(crate) unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
     let mut value = UndefinedValue();
     if is_dom_object(obj) {
         JS_GetReservedSlot(obj, DOM_OBJECT_SLOT, &mut value);
@@ -386,7 +386,7 @@ pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
 }
 
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
-pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
+pub(crate) unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
     use js::glue::GetProxyHandlerExtra;
 
     use crate::dom::bindings::utils::DOMJSClass;
@@ -478,7 +478,7 @@ unsafe fn private_from_proto_check_static(
 }
 
 /// Get a `*const T` for a DOM object accessible from a `JSObject`.
-pub fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*const T, ()>
+pub(crate) fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -490,7 +490,7 @@ where
 
 /// Get a `*const T` for a DOM object accessible from a `JSObject`, where the DOM object
 /// is guaranteed not to be a wrapper.
-pub fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const T, ()>
+pub(crate) fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -503,7 +503,7 @@ where
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn root_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+pub(crate) fn root_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -516,7 +516,7 @@ where
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn root_from_object_static<T>(obj: *mut JSObject) -> Result<DomRoot<T>, ()>
+pub(crate) fn root_from_object_static<T>(obj: *mut JSObject) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -525,7 +525,7 @@ where
 
 /// Get a `*const T` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
-pub fn native_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<*const T, ()>
+pub(crate) fn native_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -537,7 +537,7 @@ where
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
-pub fn root_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+pub(crate) fn root_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -548,7 +548,7 @@ where
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleObject`.
-pub fn root_from_handleobject<T>(obj: HandleObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+pub(crate) fn root_from_handleobject<T>(obj: HandleObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -564,7 +564,7 @@ impl<T: DomObject> ToJSValConvertible for DomRoot<T> {
 /// Returns whether `value` is an array-like object (Array, FileList,
 /// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
 /// NodeList).
-pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
+pub(crate) unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
     let mut is_array = false;
     assert!(IsArrayObject(cx, value, &mut is_array));
     if is_array {
@@ -596,7 +596,7 @@ pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
 }
 
 /// Get a property from a JS object.
-pub unsafe fn get_property_jsval(
+pub(crate) unsafe fn get_property_jsval(
     cx: *mut JSContext,
     object: HandleObject,
     name: &str,
@@ -622,7 +622,7 @@ pub unsafe fn get_property_jsval(
 }
 
 /// Get a property from a JS object, and convert it to a Rust value.
-pub unsafe fn get_property<T>(
+pub(crate) unsafe fn get_property<T>(
     cx: *mut JSContext,
     object: HandleObject,
     name: &str,
@@ -648,7 +648,7 @@ where
 
 /// Get a `DomRoot<T>` for a WindowProxy accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
-pub unsafe fn windowproxy_from_handlevalue(
+pub(crate) unsafe fn windowproxy_from_handlevalue(
     v: HandleValue,
     _cx: *mut JSContext,
 ) -> Result<DomRoot<WindowProxy>, ()> {

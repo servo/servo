@@ -29,7 +29,7 @@ use crate::dom::webgpu::gpurenderpipeline::GPURenderPipeline;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPURenderBundleEncoder {
+pub(crate) struct GPURenderBundleEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -57,7 +57,7 @@ impl GPURenderBundleEncoder {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         render_bundle_encoder: RenderBundleEncoder,
         device: &GPUDevice,
@@ -79,7 +79,7 @@ impl GPURenderBundleEncoder {
 
 impl GPURenderBundleEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {

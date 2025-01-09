@@ -22,10 +22,10 @@ use super::structuredclone::StructuredCloneTags;
 
 /// An owned reference to Servo's `JSPrincipals` instance.
 #[repr(transparent)]
-pub struct ServoJSPrincipals(NonNull<JSPrincipals>);
+pub(crate) struct ServoJSPrincipals(NonNull<JSPrincipals>);
 
 impl ServoJSPrincipals {
-    pub fn new(origin: &MutableOrigin) -> Self {
+    pub(crate) fn new(origin: &MutableOrigin) -> Self {
         unsafe {
             let private: Box<MutableOrigin> = Box::new(origin.clone());
             let raw = CreateRustJSPrincipals(&PRINCIPALS_CALLBACKS, Box::into_raw(private) as _);
@@ -38,24 +38,24 @@ impl ServoJSPrincipals {
     /// Construct `Self` from a raw `*mut JSPrincipals`, incrementing its
     /// reference count.
     #[inline]
-    pub unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
+    pub(crate) unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
         JS_HoldPrincipals(raw.as_ptr());
         Self(raw)
     }
 
     #[inline]
-    pub unsafe fn origin(&self) -> MutableOrigin {
+    pub(crate) unsafe fn origin(&self) -> MutableOrigin {
         let origin = GetRustJSPrincipalsPrivate(self.0.as_ptr()) as *mut MutableOrigin;
         (*origin).clone()
     }
 
     #[inline]
-    pub fn as_raw_nonnull(&self) -> NonNull<JSPrincipals> {
+    pub(crate) fn as_raw_nonnull(&self) -> NonNull<JSPrincipals> {
         self.0
     }
 
     #[inline]
-    pub fn as_raw(&self) -> *mut JSPrincipals {
+    pub(crate) fn as_raw(&self) -> *mut JSPrincipals {
         self.0.as_ptr()
     }
 }
@@ -78,7 +78,7 @@ impl Drop for ServoJSPrincipals {
 
 /// A borrowed reference to Servo's `JSPrincipals` instance. Does not update the
 /// reference count on creation and deletion.
-pub struct ServoJSPrincipalsRef<'a>(ManuallyDrop<ServoJSPrincipals>, PhantomData<&'a ()>);
+pub(crate) struct ServoJSPrincipalsRef<'a>(ManuallyDrop<ServoJSPrincipals>, PhantomData<&'a ()>);
 
 impl ServoJSPrincipalsRef<'_> {
     /// Construct `Self` from a raw `NonNull<JSPrincipals>`.
@@ -90,7 +90,7 @@ impl ServoJSPrincipalsRef<'_> {
     /// returned `ServoJSPrincipalsRef` object or any clones are not used past
     /// the lifetime of the wrapped object.
     #[inline]
-    pub unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
+    pub(crate) unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
         // Don't use `ServoJSPrincipals::from_raw_nonnull`; we don't want to
         // update the reference count
         Self(ManuallyDrop::new(ServoJSPrincipals(raw)), PhantomData)
@@ -103,7 +103,7 @@ impl ServoJSPrincipalsRef<'_> {
     /// The behavior is undefined if `raw` is null. See also
     /// [`Self::from_raw_nonnull`].
     #[inline]
-    pub unsafe fn from_raw_unchecked(raw: *mut JSPrincipals) -> Self {
+    pub(crate) unsafe fn from_raw_unchecked(raw: *mut JSPrincipals) -> Self {
         Self::from_raw_nonnull(NonNull::new_unchecked(raw))
     }
 }
@@ -125,12 +125,12 @@ impl Deref for ServoJSPrincipalsRef<'_> {
 }
 
 #[allow(unused)]
-pub unsafe extern "C" fn destroy_servo_jsprincipal(principals: *mut JSPrincipals) {
+pub(crate) unsafe extern "C" fn destroy_servo_jsprincipal(principals: *mut JSPrincipals) {
     Box::from_raw(GetRustJSPrincipalsPrivate(principals) as *mut MutableOrigin);
     DestroyRustJSPrincipals(principals);
 }
 
-pub unsafe extern "C" fn write_jsprincipal(
+pub(crate) unsafe extern "C" fn write_jsprincipal(
     principal: *mut JSPrincipals,
     _cx: *mut JSContext,
     writer: *mut JSStructuredCloneWriter,
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn write_jsprincipal(
     true
 }
 
-pub unsafe extern "C" fn read_jsprincipal(
+pub(crate) unsafe extern "C" fn read_jsprincipal(
     _cx: *mut JSContext,
     reader: *mut JSStructuredCloneReader,
     principals: *mut *mut JSPrincipals,
@@ -192,7 +192,7 @@ unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipal
 }
 
 //TODO is same_origin_domain equivalent to subsumes for our purposes
-pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
+pub(crate) unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
     match (NonNull::new(obj), NonNull::new(other)) {
         (Some(obj), Some(other)) => {
             let obj = ServoJSPrincipalsRef::from_raw_nonnull(obj);

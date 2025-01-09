@@ -23,7 +23,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
 #[dom_struct]
-pub struct ReadableStreamBYOBReader {
+pub(crate) struct ReadableStreamBYOBReader {
     reflector_: Reflector,
 }
 

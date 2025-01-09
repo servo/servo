@@ -40,7 +40,7 @@ enum PushOrReplace {
 
 /// <https://html.spec.whatwg.org/multipage/#the-history-interface>
 #[dom_struct]
-pub struct History {
+pub(crate) struct History {
     reflector_: Reflector,
     window: Dom<Window>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -50,7 +50,7 @@ pub struct History {
 }
 
 impl History {
-    pub fn new_inherited(window: &Window) -> History {
+    pub(crate) fn new_inherited(window: &Window) -> History {
         let state = Heap::default();
         state.set(NullValue());
         History {
@@ -61,7 +61,7 @@ impl History {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<History> {
+    pub(crate) fn new(window: &Window) -> DomRoot<History> {
         reflect_dom_object(
             Box::new(History::new_inherited(window)),
             window,
@@ -87,7 +87,7 @@ impl History {
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
     #[allow(unsafe_code)]
-    pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl, can_gc: CanGc) {
+    pub(crate) fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl, can_gc: CanGc) {
         // Steps 5
         let document = self.window.Document();
         let old_url = document.url().clone();
@@ -165,7 +165,7 @@ impl History {
         }
     }
 
-    pub fn remove_states(&self, states: Vec<HistoryStateId>) {
+    pub(crate) fn remove_states(&self, states: Vec<HistoryStateId>) {
         let _ = self
             .window
             .as_global_scope()

@@ -75,7 +75,7 @@ fn substring(s: &str, start_idx: isize, len: Option<isize>) -> String {
 }
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-normalize-space>
-pub fn normalize_space(s: &str) -> String {
+pub(crate) fn normalize_space(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     let mut last_was_whitespace = true; // Handles leading whitespace
 

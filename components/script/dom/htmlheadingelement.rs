@@ -13,7 +13,7 @@ use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum HeadingLevel {
+pub(crate) enum HeadingLevel {
     Heading1,
     Heading2,
     Heading3,
@@ -23,7 +23,7 @@ pub enum HeadingLevel {
 }
 
 #[dom_struct]
-pub struct HTMLHeadingElement {
+pub(crate) struct HTMLHeadingElement {
     htmlelement: HTMLElement,
     level: HeadingLevel,
 }
@@ -42,7 +42,7 @@ impl HTMLHeadingElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSStyleValue {
+pub(crate) struct CSSStyleValue {
     reflector: Reflector,
     value: String,
 }
@@ -27,7 +27,7 @@ impl CSSStyleValue {
         }
     }
 
-    pub fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
+    pub(crate) fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
         reflect_dom_object(
             Box::new(CSSStyleValue::new_inherited(value)),
             global,
@@ -48,7 +48,7 @@ impl CSSStyleValue {
     /// TODO: This should really always be an absolute URL, but we currently
     /// return relative URLs for computed values, so we pass in a base.
     /// <https://github.com/servo/servo/issues/17625>
-    pub fn get_url(&self, base_url: ServoUrl) -> Option<ServoUrl> {
+    pub(crate) fn get_url(&self, base_url: ServoUrl) -> Option<ServoUrl> {
         let mut input = ParserInput::new(&self.value);
         let mut parser = Parser::new(&mut input);
         parser

@@ -23,7 +23,7 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRReferenceSpaceEvent {
+pub(crate) struct XRReferenceSpaceEvent {
     event: Event,
     space: Dom<XRReferenceSpace>,
     transform: Option<Dom<XRRigidTransform>>,
@@ -42,7 +42,7 @@ impl XRReferenceSpaceEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

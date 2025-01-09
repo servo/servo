@@ -75,7 +75,7 @@ use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
-use script::serviceworker_manager::ServiceWorkerManager;
+use script::ServiceWorkerManager;
 use script::JSEngineSetup;
 use script_layout_interface::LayoutFactory;
 use script_traits::{ScriptToConstellationChan, WindowSizeData};
@@ -1133,8 +1133,8 @@ fn create_constellation(
     let layout_factory: Arc<dyn LayoutFactory> = get_layout_factory(opts::get().legacy_layout);
 
     Constellation::<
-        script::script_thread::ScriptThread,
-        script::serviceworker_manager::ServiceWorkerManager,
+        script::ScriptThread,
+        script::ServiceWorkerManager,
     >::start(
         initial_state,
         layout_factory,
@@ -1215,7 +1215,7 @@ pub fn run_content_process(token: String) {
             let layout_factory: Arc<dyn LayoutFactory> =
                 get_layout_factory(opts::get().legacy_layout);
 
-            content.start_all::<script::script_thread::ScriptThread>(
+            content.start_all::<script::ScriptThread>(
                 true,
                 layout_factory,
                 background_hang_monitor_register,

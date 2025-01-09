@@ -16,10 +16,10 @@ use crate::script_runtime::CanGc;
 
 /// An unique id for dynamic module
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub struct DynamicModuleId(#[no_trace] pub Uuid);
+pub(crate) struct DynamicModuleId(#[no_trace] pub(crate) Uuid);
 
 #[dom_struct]
-pub struct DynamicModuleOwner {
+pub(crate) struct DynamicModuleOwner {
     reflector_: Reflector,
 
     #[ignore_malloc_size_of = "Rc"]
@@ -41,7 +41,7 @@ impl DynamicModuleOwner {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(global: &GlobalScope, promise: Rc<Promise>, id: DynamicModuleId) -> DomRoot<Self> {
+    pub(crate) fn new(global: &GlobalScope, promise: Rc<Promise>, id: DynamicModuleId) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(DynamicModuleOwner::new_inherited(promise, id)),
             global,

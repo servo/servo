@@ -12,18 +12,18 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::script_runtime::JSContext;
 
 #[derive(JSTraceable)]
-pub struct CachedFrozenArray {
+pub(crate) struct CachedFrozenArray {
     frozen_value: DomRefCell<Option<Heap<JSVal>>>,
 }
 
 impl CachedFrozenArray {
-    pub fn new() -> CachedFrozenArray {
+    pub(crate) fn new() -> CachedFrozenArray {
         CachedFrozenArray {
             frozen_value: DomRefCell::new(None),
         }
     }
 
-    pub fn get_or_init<F: FnOnce() -> Vec<T>, T: ToJSValConvertible>(
+    pub(crate) fn get_or_init<F: FnOnce() -> Vec<T>, T: ToJSValConvertible>(
         &self,
         f: F,
         cx: JSContext,
@@ -46,7 +46,7 @@ impl CachedFrozenArray {
             .set(retval.get());
     }
 
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
         *self.frozen_value.borrow_mut() = None;
     }
 }

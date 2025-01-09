@@ -20,20 +20,20 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaStream {
+pub(crate) struct MediaStream {
     eventtarget: EventTarget,
     tracks: DomRefCell<Vec<Dom<MediaStreamTrack>>>,
 }
 
 impl MediaStream {
-    pub fn new_inherited() -> MediaStream {
+    pub(crate) fn new_inherited() -> MediaStream {
         MediaStream {
             eventtarget: EventTarget::new_inherited(),
             tracks: DomRefCell::new(vec![]),
         }
     }
 
-    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MediaStream> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MediaStream> {
         Self::new_with_proto(global, None, can_gc)
     }
 
@@ -50,7 +50,7 @@ impl MediaStream {
         )
     }
 
-    pub fn new_single(
+    pub(crate) fn new_single(
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
@@ -62,11 +62,11 @@ impl MediaStream {
         this
     }
 
-    pub fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
+    pub(crate) fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
         Ref::map(self.tracks.borrow(), |tracks| &**tracks)
     }
 
-    pub fn add_track(&self, track: &MediaStreamTrack) {
+    pub(crate) fn add_track(&self, track: &MediaStreamTrack) {
         self.tracks.borrow_mut().push(Dom::from_ref(track))
     }
 }

@@ -53,7 +53,7 @@ use crate::script_thread::ScriptThread;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
 #[derive(Clone, Copy, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum CustomElementState {
+pub(crate) enum CustomElementState {
     Undefined,
     Failed,
     #[default]
@@ -63,7 +63,7 @@ pub enum CustomElementState {
 
 /// <https://html.spec.whatwg.org/multipage/#customelementregistry>
 #[dom_struct]
-pub struct CustomElementRegistry {
+pub(crate) struct CustomElementRegistry {
     reflector_: Reflector,
 
     window: Dom<Window>,
@@ -88,7 +88,7 @@ impl CustomElementRegistry {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
+    pub(crate) fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
         reflect_dom_object(
             Box::new(CustomElementRegistry::new_inherited(window)),
             window,
@@ -98,12 +98,12 @@ impl CustomElementRegistry {
 
     /// Cleans up any active promises
     /// <https://github.com/servo/servo/issues/15318>
-    pub fn teardown(&self) {
+    pub(crate) fn teardown(&self) {
         self.when_defined.borrow_mut().0.clear()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
-    pub fn lookup_definition(
+    pub(crate) fn lookup_definition(
         &self,
         local_name: &LocalName,
         is: Option<&LocalName>,
@@ -120,7 +120,7 @@ impl CustomElementRegistry {
             .cloned()
     }
 
-    pub fn lookup_definition_by_constructor(
+    pub(crate) fn lookup_definition_by_constructor(
         &self,
         constructor: HandleObject,
     ) -> Option<Rc<CustomElementDefinition>> {
@@ -622,7 +622,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct LifecycleCallbacks {
+pub(crate) struct LifecycleCallbacks {
     #[ignore_malloc_size_of = "Rc"]
     connected_callback: Option<Rc<Function>>,
 
@@ -649,34 +649,34 @@ pub struct LifecycleCallbacks {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum ConstructionStackEntry {
+pub(crate) enum ConstructionStackEntry {
     Element(DomRoot<Element>),
     AlreadyConstructedMarker,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#custom-element-definition>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct CustomElementDefinition {
+pub(crate) struct CustomElementDefinition {
     #[no_trace]
-    pub name: LocalName,
+    pub(crate) name: LocalName,
 
     #[no_trace]
-    pub local_name: LocalName,
+    pub(crate) local_name: LocalName,
 
     #[ignore_malloc_size_of = "Rc"]
-    pub constructor: Rc<CustomElementConstructor>,
+    pub(crate) constructor: Rc<CustomElementConstructor>,
 
-    pub observed_attributes: Vec<DOMString>,
+    pub(crate) observed_attributes: Vec<DOMString>,
 
-    pub callbacks: LifecycleCallbacks,
+    pub(crate) callbacks: LifecycleCallbacks,
 
-    pub construction_stack: DomRefCell<Vec<ConstructionStackEntry>>,
+    pub(crate) construction_stack: DomRefCell<Vec<ConstructionStackEntry>>,
 
-    pub form_associated: bool,
+    pub(crate) form_associated: bool,
 
-    pub disable_internals: bool,
+    pub(crate) disable_internals: bool,
 
-    pub disable_shadow: bool,
+    pub(crate) disable_shadow: bool,
 }
 
 impl CustomElementDefinition {
@@ -705,13 +705,13 @@ impl CustomElementDefinition {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#autonomous-custom-element>
-    pub fn is_autonomous(&self) -> bool {
+    pub(crate) fn is_autonomous(&self) -> bool {
         self.name == self.local_name
     }
 
     /// <https://dom.spec.whatwg.org/#concept-create-element> Step 6.1
     #[allow(unsafe_code)]
-    pub fn create_element(
+    pub(crate) fn create_element(
         &self,
         document: &Document,
         prefix: Option<Prefix>,
@@ -781,7 +781,7 @@ impl CustomElementDefinition {
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 #[allow(unsafe_code)]
-pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element, can_gc: CanGc) {
+pub(crate) fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element, can_gc: CanGc) {
     // Step 1
     let state = element.get_custom_element_state();
     if state != CustomElementState::Undefined && state != CustomElementState::Uncustomized {
@@ -954,7 +954,7 @@ fn run_upgrade_constructor(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-try-upgrade>
-pub fn try_upgrade_element(element: &Element) {
+pub(crate) fn try_upgrade_element(element: &Element) {
     // Step 1
     let document = element.owner_document();
     let namespace = element.namespace();
@@ -970,7 +970,7 @@ pub fn try_upgrade_element(element: &Element) {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum CustomElementReaction {
+pub(crate) enum CustomElementReaction {
     Upgrade(#[ignore_malloc_size_of = "Rc"] Rc<CustomElementDefinition>),
     Callback(
         #[ignore_malloc_size_of = "Rc"] Rc<Function>,
@@ -981,7 +981,7 @@ pub enum CustomElementReaction {
 impl CustomElementReaction {
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
     #[allow(unsafe_code)]
-    pub fn invoke(&self, element: &Element, can_gc: CanGc) {
+    pub(crate) fn invoke(&self, element: &Element, can_gc: CanGc) {
         // Step 2.1
         match *self {
             CustomElementReaction::Upgrade(ref definition) => {
@@ -1005,7 +1005,7 @@ impl CustomElementReaction {
     }
 }
 
-pub enum CallbackReaction {
+pub(crate) enum CallbackReaction {
     Connected,
     Disconnected,
     Adopted(DomRoot<Document>, DomRoot<Document>),
@@ -1025,14 +1025,14 @@ enum BackupElementQueueFlag {
 /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct CustomElementReactionStack {
+pub(crate) struct CustomElementReactionStack {
     stack: DomRefCell<Vec<ElementQueue>>,
     backup_queue: ElementQueue,
     processing_backup_element_queue: Cell<BackupElementQueueFlag>,
 }
 
 impl CustomElementReactionStack {
-    pub fn new() -> CustomElementReactionStack {
+    pub(crate) fn new() -> CustomElementReactionStack {
         CustomElementReactionStack {
             stack: DomRefCell::new(Vec::new()),
             backup_queue: ElementQueue::new(),
@@ -1040,11 +1040,11 @@ impl CustomElementReactionStack {
         }
     }
 
-    pub fn push_new_element_queue(&self) {
+    pub(crate) fn push_new_element_queue(&self) {
         self.stack.borrow_mut().push(ElementQueue::new());
     }
 
-    pub fn pop_current_element_queue(&self, can_gc: CanGc) {
+    pub(crate) fn pop_current_element_queue(&self, can_gc: CanGc) {
         rooted_vec!(let mut stack);
         mem::swap(&mut *stack, &mut *self.stack.borrow_mut());
 
@@ -1059,7 +1059,7 @@ impl CustomElementReactionStack {
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
     /// Step 4
-    pub fn invoke_backup_element_queue(&self, can_gc: CanGc) {
+    pub(crate) fn invoke_backup_element_queue(&self, can_gc: CanGc) {
         // Step 4.1
         self.backup_queue.invoke_reactions(can_gc);
 
@@ -1069,7 +1069,7 @@ impl CustomElementReactionStack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
-    pub fn enqueue_element(&self, element: &Element) {
+    pub(crate) fn enqueue_element(&self, element: &Element) {
         if let Some(current_queue) = self.stack.borrow().last() {
             // Step 2
             current_queue.append_element(element);
@@ -1093,7 +1093,7 @@ impl CustomElementReactionStack {
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction>
     #[allow(unsafe_code)]
-    pub fn enqueue_callback_reaction(
+    pub(crate) fn enqueue_callback_reaction(
         &self,
         element: &Element,
         reaction: CallbackReaction,
@@ -1215,7 +1215,7 @@ impl CustomElementReactionStack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-upgrade-reaction>
-    pub fn enqueue_upgrade_reaction(
+    pub(crate) fn enqueue_upgrade_reaction(
         &self,
         element: &Element,
         definition: Rc<CustomElementDefinition>,
@@ -1264,7 +1264,7 @@ impl ElementQueue {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#valid-custom-element-name>
-pub fn is_valid_custom_element_name(name: &str) -> bool {
+pub(crate) fn is_valid_custom_element_name(name: &str) -> bool {
     // Custom elment names must match:
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
 

@@ -17,7 +17,7 @@ use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCRtpSender {
+pub(crate) struct RTCRtpSender {
     reflector_: Reflector,
 }
 

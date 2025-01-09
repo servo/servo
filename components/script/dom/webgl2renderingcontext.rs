@@ -88,7 +88,7 @@ impl IndexedBinding {
 }
 
 #[dom_struct]
-pub struct WebGL2RenderingContext {
+pub(crate) struct WebGL2RenderingContext {
     reflector_: Reflector,
     base: Dom<WebGLRenderingContext>,
     occlusion_query: MutNullableDom<WebGLQuery>,
@@ -185,7 +185,7 @@ impl WebGL2RenderingContext {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         canvas: &HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
@@ -197,7 +197,7 @@ impl WebGL2RenderingContext {
     }
 
     #[allow(unsafe_code)]
-    pub fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
+    pub(crate) fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
         if pref!(dom.webgl2.enabled) {
             return true;
         }
@@ -216,15 +216,15 @@ impl WebGL2RenderingContext {
 static WEBGL2_ORIGINS: &[&str] = &["www.servoexperiments.com"];
 
 impl WebGL2RenderingContext {
-    pub fn recreate(&self, size: Size2D<u32>) {
+    pub(crate) fn recreate(&self, size: Size2D<u32>) {
         self.base.recreate(size)
     }
 
-    pub fn current_vao(&self) -> DomRoot<WebGLVertexArrayObject> {
+    pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObject> {
         self.base.current_vao_webgl2()
     }
 
-    pub fn validate_uniform_block_for_draw(&self) {
+    pub(crate) fn validate_uniform_block_for_draw(&self) {
         let program = match self.base.current_program() {
             Some(program) => program,
             None => return,
@@ -326,7 +326,7 @@ impl WebGL2RenderingContext {
         }
     }
 
-    pub fn base_context(&self) -> DomRoot<WebGLRenderingContext> {
+    pub(crate) fn base_context(&self) -> DomRoot<WebGLRenderingContext> {
         DomRoot::from_ref(&*self.base)
     }
 
@@ -343,7 +343,7 @@ impl WebGL2RenderingContext {
         }
     }
 
-    pub fn buffer_usage(&self, usage: u32) -> WebGLResult<u32> {
+    pub(crate) fn buffer_usage(&self, usage: u32) -> WebGLResult<u32> {
         match usage {
             constants::STATIC_READ |
             constants::DYNAMIC_READ |

@@ -13,12 +13,12 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::node::{Node, NodeTraits};
 use crate::script_runtime::CanGc;
 
-pub trait ImageCacheListener {
+pub(crate) trait ImageCacheListener {
     fn generation_id(&self) -> u32;
     fn process_image_response(&self, response: ImageResponse, can_gc: CanGc);
 }
 
-pub fn generate_cache_listener_for_element<
+pub(crate) fn generate_cache_listener_for_element<
     T: ImageCacheListener + DerivedFrom<Node> + DomObject,
 >(
     elem: &T,

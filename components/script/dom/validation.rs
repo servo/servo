@@ -15,7 +15,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::script_runtime::CanGc;
 
 /// Trait for elements with constraint validation support
-pub trait Validatable {
+pub(crate) trait Validatable {
     fn as_element(&self) -> &Element;
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
@@ -91,7 +91,7 @@ pub trait Validatable {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation>
-pub fn is_barred_by_datalist_ancestor(elem: &Node) -> bool {
+pub(crate) fn is_barred_by_datalist_ancestor(elem: &Node) -> bool {
     elem.upcast::<Node>()
         .ancestors()
         .any(|node| node.is::<HTMLDataListElement>())

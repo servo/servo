@@ -23,7 +23,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRViewerPose {
+pub(crate) struct XRViewerPose {
     pose: XRPose,
     #[ignore_malloc_size_of = "mozjs"]
     views: Heap<JSVal>,
@@ -38,7 +38,7 @@ impl XRViewerPose {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: &XRSession,
         to_base: BaseTransform,

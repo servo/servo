@@ -12,7 +12,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaError {
+pub(crate) struct MediaError {
     reflector_: Reflector,
     code: u16,
 }
@@ -25,7 +25,7 @@ impl MediaError {
         }
     }
 
-    pub fn new(window: &Window, code: u16) -> DomRoot<MediaError> {
+    pub(crate) fn new(window: &Window, code: u16) -> DomRoot<MediaError> {
         reflect_dom_object(
             Box::new(MediaError::new_inherited(code)),
             window,

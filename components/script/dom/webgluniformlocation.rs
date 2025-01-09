@@ -12,7 +12,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLUniformLocation {
+pub(crate) struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
     #[no_trace]
@@ -44,7 +44,7 @@ impl WebGLUniformLocation {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         id: i32,
         context_id: WebGLContextId,
@@ -67,27 +67,27 @@ impl WebGLUniformLocation {
         )
     }
 
-    pub fn id(&self) -> i32 {
+    pub(crate) fn id(&self) -> i32 {
         self.id
     }
 
-    pub fn program_id(&self) -> WebGLProgramId {
+    pub(crate) fn program_id(&self) -> WebGLProgramId {
         self.program_id
     }
 
-    pub fn context_id(&self) -> WebGLContextId {
+    pub(crate) fn context_id(&self) -> WebGLContextId {
         self.context_id
     }
 
-    pub fn link_generation(&self) -> u64 {
+    pub(crate) fn link_generation(&self) -> u64 {
         self.link_generation
     }
 
-    pub fn size(&self) -> Option<i32> {
+    pub(crate) fn size(&self) -> Option<i32> {
         self.size
     }
 
-    pub fn type_(&self) -> u32 {
+    pub(crate) fn type_(&self) -> u32 {
         self.type_
     }
 }

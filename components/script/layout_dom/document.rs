@@ -82,7 +82,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
         }
     }
 
-    pub fn from_layout_js(document: LayoutDom<'ld, Document>) -> Self {
+    pub(crate) fn from_layout_js(document: LayoutDom<'ld, Document>) -> Self {
         ServoLayoutDocument { document }
     }
 }

@@ -44,7 +44,7 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
 
 #[allow(unsafe_code)]
-pub fn handle_evaluate_js(
+pub(crate) fn handle_evaluate_js(
     global: &GlobalScope,
     eval: String,
     reply: IpcSender<EvaluateJSReply>,
@@ -97,7 +97,7 @@ pub fn handle_evaluate_js(
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(
+pub(crate) fn handle_get_root_node(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
@@ -108,7 +108,7 @@ pub fn handle_get_root_node(
     reply.send(info).unwrap();
 }
 
-pub fn handle_get_document_element(
+pub(crate) fn handle_get_document_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
@@ -133,7 +133,7 @@ fn find_node_by_unique_id(
     })
 }
 
-pub fn handle_get_children(
+pub(crate) fn handle_get_children(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -185,7 +185,7 @@ pub fn handle_get_children(
     };
 }
 
-pub fn handle_get_attribute_style(
+pub(crate) fn handle_get_attribute_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -217,7 +217,7 @@ pub fn handle_get_attribute_style(
 }
 
 #[allow(crown::unrooted_must_root)]
-pub fn handle_get_stylesheet_style(
+pub(crate) fn handle_get_stylesheet_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -264,7 +264,7 @@ pub fn handle_get_stylesheet_style(
 }
 
 #[allow(crown::unrooted_must_root)]
-pub fn handle_get_selectors(
+pub(crate) fn handle_get_selectors(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -300,7 +300,7 @@ pub fn handle_get_selectors(
     reply.send(msg).unwrap();
 }
 
-pub fn handle_get_computed_style(
+pub(crate) fn handle_get_computed_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -334,7 +334,7 @@ pub fn handle_get_computed_style(
     reply.send(Some(msg)).unwrap();
 }
 
-pub fn handle_get_layout(
+pub(crate) fn handle_get_layout(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -395,7 +395,7 @@ fn determine_auto_margins(node: &Node, can_gc: CanGc) -> AutoMargins {
     }
 }
 
-pub fn handle_modify_attribute(
+pub(crate) fn handle_modify_attribute(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -435,7 +435,7 @@ pub fn handle_modify_attribute(
     }
 }
 
-pub fn handle_modify_rule(
+pub(crate) fn handle_modify_rule(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -469,11 +469,11 @@ pub fn handle_modify_rule(
     }
 }
 
-pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications: bool) {
+pub(crate) fn handle_wants_live_notifications(global: &GlobalScope, send_notifications: bool) {
     global.set_devtools_wants_updates(send_notifications);
 }
 
-pub fn handle_set_timeline_markers(
+pub(crate) fn handle_set_timeline_markers(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     marker_types: Vec<TimelineMarkerType>,
@@ -485,7 +485,7 @@ pub fn handle_set_timeline_markers(
     }
 }
 
-pub fn handle_drop_timeline_markers(
+pub(crate) fn handle_drop_timeline_markers(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     marker_types: Vec<TimelineMarkerType>,
@@ -495,7 +495,7 @@ pub fn handle_drop_timeline_markers(
     }
 }
 
-pub fn handle_request_animation_frame(
+pub(crate) fn handle_request_animation_frame(
     documents: &DocumentCollection,
     id: PipelineId,
     actor_name: String,
@@ -505,13 +505,13 @@ pub fn handle_request_animation_frame(
     }
 }
 
-pub fn handle_reload(documents: &DocumentCollection, id: PipelineId, can_gc: CanGc) {
+pub(crate) fn handle_reload(documents: &DocumentCollection, id: PipelineId, can_gc: CanGc) {
     if let Some(win) = documents.find_window(id) {
         win.Location().reload_without_origin_check(can_gc);
     }
 }
 
-pub fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
+pub(crate) fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
     let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
         .iter()
         .map(|l| {

@@ -13,7 +13,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WEBGLColorBufferFloat {
+pub(crate) struct WEBGLColorBufferFloat {
     reflector_: Reflector,
 }
 

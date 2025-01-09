@@ -20,13 +20,13 @@ use crate::script_runtime::CanGc;
 ///
 /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-entry>
 #[dom_struct]
-pub struct IntersectionObserverEntry {
+pub(crate) struct IntersectionObserverEntry {
     reflector_: Reflector,
     target: Dom<Element>,
 }
 
 impl IntersectionObserverEntry {
-    pub fn new_inherited(init: &IntersectionObserverEntryInit) -> Self {
+    pub(crate) fn new_inherited(init: &IntersectionObserverEntryInit) -> Self {
         Self {
             reflector_: Reflector::new(),
             target: init.target.as_traced(),

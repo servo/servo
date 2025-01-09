@@ -22,7 +22,7 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUBindGroup {
+pub(crate) struct GPUBindGroup {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -53,7 +53,7 @@ impl GPUBindGroup {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         bind_group: WebGPUBindGroup,
@@ -72,12 +72,12 @@ impl GPUBindGroup {
 }
 
 impl GPUBindGroup {
-    pub fn id(&self) -> &WebGPUBindGroup {
+    pub(crate) fn id(&self) -> &WebGPUBindGroup {
         &self.bind_group
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBindGroupDescriptor,
     ) -> DomRoot<GPUBindGroup> {

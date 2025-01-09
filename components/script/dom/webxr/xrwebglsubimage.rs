@@ -12,7 +12,7 @@ use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::xrsubimage::XRSubImage;
 
 #[dom_struct]
-pub struct XRWebGLSubImage {
+pub(crate) struct XRWebGLSubImage {
     xr_sub_image: XRSubImage,
     color_texture: Dom<WebGLTexture>,
     depth_stencil_texture: Option<Dom<WebGLTexture>>,

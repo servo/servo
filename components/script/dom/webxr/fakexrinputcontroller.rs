@@ -26,7 +26,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FakeXRInputController {
+pub(crate) struct FakeXRInputController {
     reflector: Reflector,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     #[no_trace]
@@ -37,7 +37,7 @@ pub struct FakeXRInputController {
 }
 
 impl FakeXRInputController {
-    pub fn new_inherited(sender: IpcSender<MockDeviceMsg>, id: InputId) -> FakeXRInputController {
+    pub(crate) fn new_inherited(sender: IpcSender<MockDeviceMsg>, id: InputId) -> FakeXRInputController {
         FakeXRInputController {
             reflector: Reflector::new(),
             sender,
@@ -45,7 +45,7 @@ impl FakeXRInputController {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         sender: IpcSender<MockDeviceMsg>,
         id: InputId,
@@ -181,7 +181,7 @@ impl Convert<MockButtonType> for FakeXRButtonType {
 }
 
 /// <https://immersive-web.github.io/webxr-test-api/#parse-supported-buttons>
-pub fn init_to_mock_buttons(buttons: &[FakeXRButtonStateInit]) -> Vec<MockButton> {
+pub(crate) fn init_to_mock_buttons(buttons: &[FakeXRButtonStateInit]) -> Vec<MockButton> {
     let supported: Vec<MockButton> = buttons
         .iter()
         .map(|b| MockButton {

@@ -37,10 +37,10 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub struct OneshotTimerHandle(i32);
+pub(crate) struct OneshotTimerHandle(i32);
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
-pub struct OneshotTimers {
+pub(crate) struct OneshotTimers {
     global_scope: DomRoot<GlobalScope>,
     js_timers: JsTimers,
     next_timer_handle: Cell<OneshotTimerHandle>,
@@ -74,7 +74,7 @@ struct OneshotTimer {
 // A replacement trait would have a method such as
 //     `invoke<T: DomObject>(self: Box<Self>, this: &T, js_timers: &JsTimers);`.
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum OneshotTimerCallback {
+pub(crate) enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
     EventSourceTimeout(EventSourceTimeoutCallback),
     JsTimer(JsTimerTask),
@@ -119,7 +119,7 @@ impl PartialEq for OneshotTimer {
 }
 
 impl OneshotTimers {
-    pub fn new(global_scope: &GlobalScope) -> OneshotTimers {
+    pub(crate) fn new(global_scope: &GlobalScope) -> OneshotTimers {
         OneshotTimers {
             global_scope: DomRoot::from_ref(global_scope),
             js_timers: JsTimers::default(),
@@ -131,7 +131,7 @@ impl OneshotTimers {
         }
     }
 
-    pub fn schedule_callback(
+    pub(crate) fn schedule_callback(
         &self,
         callback: OneshotTimerCallback,
         duration: Duration,
@@ -161,7 +161,7 @@ impl OneshotTimers {
         new_handle
     }
 
-    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
+    pub(crate) fn unschedule_callback(&self, handle: OneshotTimerHandle) {
         let was_next = self.is_next_timer(handle);
 
         self.timers.borrow_mut().retain(|t| t.handle != handle);
@@ -179,7 +179,7 @@ impl OneshotTimers {
         }
     }
 
-    pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, can_gc: CanGc) {
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
             debug!(
@@ -236,17 +236,17 @@ impl OneshotTimers {
         }
     }
 
-    pub fn slow_down(&self) {
+    pub(crate) fn slow_down(&self) {
         let min_duration_ms = pref!(js.timers.minimum_duration) as u64;
         self.js_timers
             .set_min_duration(Duration::from_millis(min_duration_ms));
     }
 
-    pub fn speed_up(&self) {
+    pub(crate) fn speed_up(&self) {
         self.js_timers.remove_min_duration();
     }
 
-    pub fn suspend(&self) {
+    pub(crate) fn suspend(&self) {
         // Suspend is idempotent: do nothing if the timers are already suspended.
         if self.suspended_since.get().is_some() {
             return warn!("Suspending an already suspended timer.");
@@ -257,7 +257,7 @@ impl OneshotTimers {
         self.invalidate_expected_event_id();
     }
 
-    pub fn resume(&self) {
+    pub(crate) fn resume(&self) {
         // Resume is idempotent: do nothing if the timers are already resumed.
         let additional_offset = match self.suspended_since.get() {
             Some(suspended_since) => Instant::now() - suspended_since,
@@ -315,7 +315,7 @@ impl OneshotTimers {
         next_id
     }
 
-    pub fn set_timeout_or_interval(
+    pub(crate) fn set_timeout_or_interval(
         &self,
         global: &GlobalScope,
         callback: TimerCallback,
@@ -334,16 +334,16 @@ impl OneshotTimers {
         )
     }
 
-    pub fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
+    pub(crate) fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
         self.js_timers.clear_timeout_or_interval(global, handle)
     }
 }
 
 #[derive(Clone, Copy, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub struct JsTimerHandle(i32);
+pub(crate) struct JsTimerHandle(i32);
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
-pub struct JsTimers {
+pub(crate) struct JsTimers {
     next_timer_handle: Cell<JsTimerHandle>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-active-timers>
     active_timers: DomRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
@@ -363,7 +363,7 @@ struct JsTimerEntry {
 //      to the function when calling it)
 // TODO: Handle rooting during invocation when movable GC is turned on
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct JsTimerTask {
+pub(crate) struct JsTimerTask {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     handle: JsTimerHandle,
     #[no_trace]
@@ -377,13 +377,13 @@ pub struct JsTimerTask {
 
 // Enum allowing more descriptive values for the is_interval field
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum IsInterval {
+pub(crate) enum IsInterval {
     Interval,
     NonInterval,
 }
 
 #[derive(Clone)]
-pub enum TimerCallback {
+pub(crate) enum TimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(Rc<Function>),
 }
@@ -410,7 +410,7 @@ impl Default for JsTimers {
 
 impl JsTimers {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub fn set_timeout_or_interval(
+    pub(crate) fn set_timeout_or_interval(
         &self,
         global: &GlobalScope,
         callback: TimerCallback,
@@ -472,7 +472,7 @@ impl JsTimers {
         new_handle
     }
 
-    pub fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
+    pub(crate) fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
         let mut active_timers = self.active_timers.borrow_mut();
 
         if let Some(entry) = active_timers.remove(&JsTimerHandle(handle)) {
@@ -480,11 +480,11 @@ impl JsTimers {
         }
     }
 
-    pub fn set_min_duration(&self, duration: Duration) {
+    pub(crate) fn set_min_duration(&self, duration: Duration) {
         self.min_duration.set(Some(duration));
     }
 
-    pub fn remove_min_duration(&self) {
+    pub(crate) fn remove_min_duration(&self) {
         self.min_duration.set(None);
     }
 
@@ -530,7 +530,7 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, can_gc: CanGc) {
+    pub(crate) fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, can_gc: CanGc) {
         // step 4.1 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 

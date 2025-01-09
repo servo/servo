@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothadvertisingevent
 #[dom_struct]
-pub struct BluetoothAdvertisingEvent {
+pub(crate) struct BluetoothAdvertisingEvent {
     event: Event,
     device: Dom<BluetoothDevice>,
     name: Option<DOMString>,
@@ -34,7 +34,7 @@ pub struct BluetoothAdvertisingEvent {
 
 #[allow(non_snake_case)]
 impl BluetoothAdvertisingEvent {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         device: &BluetoothDevice,
         name: Option<DOMString>,
         appearance: Option<u16>,
