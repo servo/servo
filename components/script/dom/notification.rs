@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
@@ -15,6 +13,7 @@ use super::bindings::codegen::Bindings::NotificationBinding::{
     NotificationAction, NotificationOptions,
 };
 use super::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use super::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use super::bindings::reflector::reflect_dom_object_with_proto;
 use super::bindings::str::USVString;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
@@ -27,7 +26,7 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::{Fallible, Rc};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -36,38 +35,59 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::get_descriptor_permission_state;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
-/// <https://notifications.spec.whatwg.org/#api>
+// TODO: Service Worker API (persistent notification)
+// https://notifications.spec.whatwg.org/#service-worker-api
+
+/// <https://notifications.spec.whatwg.org/#notifications>
 #[dom_struct]
 pub struct Notification {
     eventtarget: EventTarget,
+    /// <https://notifications.spec.whatwg.org/#service-worker-registration>
+    serviceworker_registration: Option<Dom<ServiceWorkerRegistration>>,
+    /// <https://notifications.spec.whatwg.org/#concept-title>
     title: DOMString,
+    /// <https://notifications.spec.whatwg.org/#body>
     body: DOMString,
+    /// <https://notifications.spec.whatwg.org/#data>
     #[ignore_malloc_size_of = "mozjs"]
     data: Box<Heap<JSVal>>,
+    /// <https://notifications.spec.whatwg.org/#concept-direction>
     dir: NotificationDirection,
+    /// <https://notifications.spec.whatwg.org/#image-url>
     image: Option<USVString>,
+    /// <https://notifications.spec.whatwg.org/#icon-url>
     icon: Option<USVString>,
+    /// <https://notifications.spec.whatwg.org/#badge-url>
     badge: Option<USVString>,
+    /// <https://notifications.spec.whatwg.org/#concept-language>
     lang: DOMString,
+    /// <https://notifications.spec.whatwg.org/#silent-preference-flag>
     silent: Option<bool>,
+    /// <https://notifications.spec.whatwg.org/#tag>
     tag: DOMString,
+    /// <https://notifications.spec.whatwg.org/#concept-origin>
     #[no_trace] // ImmutableOrigin is not traceable
     origin: ImmutableOrigin,
-    // TODO: vibrate not implemented yet
-    // vibrate: Option<UnionTypes::UnsignedLongOrUnsignedLongSequence>,
+    /// <https://notifications.spec.whatwg.org/#vibration-pattern>
+    vibration_pattern: Vec<u32>,
+    /// <https://notifications.spec.whatwg.org/#timestamp>
     timestamp: u64,
+    /// <https://notifications.spec.whatwg.org/#renotify-preference-flag>
     renotify: bool,
+    /// <https://notifications.spec.whatwg.org/#require-interaction-preference-flag>
     require_interaction: bool,
-    #[ignore_malloc_size_of = "NotificationAction"] // malloc not implement for NotificationAction
+    /// <https://notifications.spec.whatwg.org/#actions>
+    #[ignore_malloc_size_of = "NotificationAction"]
     actions: Vec<NotificationAction>,
-    closed: Cell<bool>,
+    // TODO: image resource, icon resource, and badge resource
 }
 
 impl Notification {
     #[allow(crown::unrooted_must_root, clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -102,16 +122,19 @@ impl Notification {
         base_url: Option<ServoUrl>,
         fallback_timestamp: u64,
     ) -> Fallible<Self> {
+        // If options["silent"] is true and options["vibrate"] exists, then throw a TypeError.
         if options.silent.is_some() && options.vibrate.is_some() {
             return Err(Error::Type(
-                "silent and vibrate can not be set at the same time".to_string(),
+                "Can't specify vibration patterns when setting notification to silent.".to_string(),
             ));
         }
+        // If options["renotify"] is true and options["tag"] is the empty string, then throw a TypeError.
         if options.renotify && options.tag.is_empty() {
             return Err(Error::Type(
-                "tag must be set if renotify is true".to_string(),
+                "tag must be set to renotify as an existing notification.".to_string(),
             ));
         }
+        // Set notification’s data to StructuredSerializeForStorage(options["data"]).
         let data = Heap::boxed(options.data.get());
         let title = title.clone();
         let dir = options.dir;
@@ -120,7 +143,6 @@ impl Notification {
         let origin = origin.unwrap_or(ImmutableOrigin::new_opaque());
         let body = options.body.clone();
         let tag = options.tag.clone();
-
         let image = options.image.as_ref().and_then(|image_url| {
             ServoUrl::parse_with_base(base_url.as_ref(), image_url)
                 .ok()
@@ -136,9 +158,10 @@ impl Notification {
                 .ok()
                 .map(|url| USVString::from(url.to_string()))
         });
-
-        // TODO: vibrate not implemented yet
-        // let vibrate = options.vibrate;
+        let vibration_pattern = match &options.vibrate {
+            Some(pattern) => validate_and_normalize_vibration_pattern(pattern),
+            None => Vec::new(),
+        };
         let timestamp = options.timestamp.unwrap_or(fallback_timestamp);
         let renotify = options.renotify;
         let silent = options.silent;
@@ -159,6 +182,8 @@ impl Notification {
 
         Ok(Self {
             eventtarget: EventTarget::new_inherited(),
+            // A non-persistent notification is a notification whose service worker registration is null.
+            serviceworker_registration: None,
             title,
             body,
             data,
@@ -169,12 +194,12 @@ impl Notification {
             lang,
             silent,
             origin,
+            vibration_pattern,
             timestamp,
             renotify,
             tag,
             require_interaction,
             actions,
-            closed: Cell::new(false),
         })
     }
 }
@@ -190,12 +215,16 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     ) -> Fallible<DomRoot<Notification>> {
         // step 1: Check global is a ServiceWorkerGlobalScope
         if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
-            return Err(Error::Type("Can not call in a service worker.".to_string()));
+            return Err(Error::Type(
+                "Notification constructor cannot be used in ServiceWorkerGlobalScope.".to_string(),
+            ));
         }
 
         // step 2: Check options.actions must be empty
         if !options.actions.is_empty() {
-            return Err(Error::Type("Actions must be empty.".to_string()));
+            return Err(Error::Type(
+                "Actions are only supported for persistent notifications.".to_string(),
+            ));
         }
 
         // step 3: Create a notification with a settings object
@@ -212,36 +241,43 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
             fallback_timestamp,
         )?;
 
-        // step 5.1: Check permission
+        // FIXME: Run step 5.1, 5.2 in parallel
         let state = get_descriptor_permission_state(PermissionName::Notifications, Some(global));
-        if state == PermissionState::Granted {
-            // TODO: step 5.2: Run permission show step
-            todo!()
-        } else {
+        if state != PermissionState::Granted {
+            // step 5.1: If the result of getting the notifications permission state is not "granted",
+            // then queue a task to fire an event named error on this, and abort these steps.
             notification
                 .upcast::<EventTarget>()
                 .fire_event(atom!("error"), CanGc::note());
+            // TODO: abort steps
         }
+        // TODO: step 5.2: Run the notification show steps for notification
+        // https://notifications.spec.whatwg.org/#notification-show-steps
 
         Ok(notification)
     }
 
     /// <https://notifications.spec.whatwg.org/#get-the-notifications-permission-state>
     fn GetPermission(global: &GlobalScope) -> Fallible<NotificationPermission> {
+        // step 1: Let permissionState be the result of getting the current permission state with "notifications".
         let state = get_descriptor_permission_state(PermissionName::Notifications, Some(global));
         match state {
             PermissionState::Granted => Ok(NotificationPermission::Granted),
             PermissionState::Denied => Ok(NotificationPermission::Denied),
+            // step 2: If permissionState is "prompt", then return "default".
             PermissionState::Prompt => Ok(NotificationPermission::Default),
         }
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
     fn RequestPermission(
-        _global: &GlobalScope,
+        global: &GlobalScope,
         _permission_callback: Option<Rc<NotificationPermissionCallback>>,
     ) -> Rc<Promise> {
-        todo!()
+        // TODO: implement RequestPermission, return dummy promise for now
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut rval = js::jsval::UndefinedValue());
+        Promise::new_resolved(global, cx, rval.handle()).unwrap()
     }
 
     // <https://notifications.spec.whatwg.org/#dom-notification-onclick>
@@ -305,20 +341,6 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#dom-notification-data>
     #[allow(unsafe_code)]
     fn Data(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
-        // jason: do we need to use structuredclone here?
-        // unsafe {
-        //     let global = {
-        //         let realm = AlreadyInRealm::assert_for_cx(cx);
-        //         GlobalScope::from_context(*cx, InRealm::already(&realm))
-        //     };
-
-        //     let handle = HandleValue::from_raw(self.data.handle());
-        //     let data = structuredclone::write(cx, handle, None).unwrap();
-
-        //     if structuredclone::read(&global, data, retval).is_err() {
-        //         dbg!("StructuredDeserialize failed");
-        //     }
-        // }
         retval.set(self.data.get());
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
@@ -326,23 +348,57 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         to_frozen_array(self.actions.as_slice(), cx, retval);
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
-    fn Vibrate(&self, _cx: SafeJSContext, _retval: MutableHandleValue) {
-        todo!()
+    fn Vibrate(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+        to_frozen_array(self.vibration_pattern.as_slice(), cx, retval);
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
     fn Timestamp(&self) -> u64 {
         self.timestamp
     }
-    /// <https://notifications.spec.whatwg.org/#close-steps>
-    // TODO: close persistent notification
+    /// <https://notifications.spec.whatwg.org/#handle-close-events>
     fn Close(&self) {
-        if self.closed.get() {
-            return;
-        }
+        // TODO: If notification is a persistent notification and notification was closed by the end user
+        // then fire a service worker notification event named "notificationclose" given notification.
 
+        // If notification is a non-persistent notification
+        // then queue a task to fire an event named close on the Notification object representing notification.
         self.upcast::<EventTarget>()
             .fire_event(atom!("close"), CanGc::note());
-
-        self.closed.set(true);
     }
+}
+
+/// <https://w3c.github.io/vibration/#dfn-validate-and-normalize>
+fn validate_and_normalize_vibration_pattern(
+    pattern: &UnsignedLongOrUnsignedLongSequence,
+) -> Vec<u32> {
+    // Step 1: If pattern is a list, proceed to the next step. Otherwise run the following substeps:
+    let mut pattern: Vec<u32> = match pattern {
+        UnsignedLongOrUnsignedLongSequence::UnsignedLong(value) => {
+            // Step 1.1: Let list be an initially empty list, and add pattern to list.
+            // Step 1.2: Set pattern to list.
+            vec![*value]
+        },
+        UnsignedLongOrUnsignedLongSequence::UnsignedLongSequence(values) => values.clone(),
+    };
+
+    // Step 2: Let max length have the value 10.
+    // Step 3: If the length of pattern is greater than max length, truncate pattern,
+    //         leaving only the first max length entries.
+    pattern.truncate(10);
+
+    // If the length of the pattern is even and not zero then the last entry in the pattern will
+    // have no effect so an implementation can remove it from the pattern at this point.
+    if pattern.len() % 2 == 0 && !pattern.is_empty() {
+        pattern.pop();
+    }
+
+    // Step 4: Let max duration have the value 10000.
+    // Step 5: For each entry in pattern whose value is greater than max duration,
+    //         set the entry's value to max duration.
+    pattern.iter_mut().for_each(|entry| {
+        *entry = 10000.min(*entry);
+    });
+
+    // Step 6: Return pattern.
+    pattern
 }
