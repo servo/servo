@@ -300,12 +300,12 @@ fn resolve_grid_template(
             // > - Every track size given as a length in pixels, regardless of sizing function.
             // > - Adjacent line names collapsed into a single bracketed set.
             // TODO: implement line names
-            false => {
-                Some(track_sizes
+            false => Some(
+                track_sizes
                     .iter()
                     .map(|size| size.to_css_string())
-                    .join(" "))
-            },
+                    .join(" "),
+            ),
         }
     }
 
@@ -322,9 +322,9 @@ fn resolve_grid_template(
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
         // > When an element generates a grid container box, the resolved value of its grid-template-rows or
         // > grid-template-columns property in a standalone axis is the used value, serialized with:
-        GenericGridTemplateComponent::None | GenericGridTemplateComponent::TrackList(_) | GenericGridTemplateComponent::Masonry => {
-            serialize_standalone_track_list(&track_info.sizes)
-        },
+        GenericGridTemplateComponent::None |
+        GenericGridTemplateComponent::TrackList(_) |
+        GenericGridTemplateComponent::Masonry => serialize_standalone_track_list(&track_info.sizes),
 
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
         // > When an element generates a grid container box that is a subgrid, the resolved value of the
