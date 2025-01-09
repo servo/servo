@@ -326,7 +326,9 @@ fn resolve_grid_template(
         // > grid-template-columns property in a standalone axis is the used value, serialized with:
         GenericGridTemplateComponent::None |
         GenericGridTemplateComponent::TrackList(_) |
-        GenericGridTemplateComponent::Masonry => serialize_standalone_non_subgrid_track_list(&track_info.sizes),
+        GenericGridTemplateComponent::Masonry => {
+            serialize_standalone_non_subgrid_track_list(&track_info.sizes)
+        },
 
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
         // > When an element generates a grid container box that is a subgrid, the resolved value of the
