@@ -9,25 +9,22 @@ use js::rust::{HandleObject, MutableHandleValue};
 use num_traits::ToPrimitive;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
-use super::bindings::codegen::Bindings::NotificationBinding::{
-    NotificationAction, NotificationOptions,
-};
-use super::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
-use super::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
-use super::bindings::reflector::reflect_dom_object_with_proto;
-use super::bindings::str::USVString;
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
-    NotificationDirection, NotificationMethods, NotificationPermission,
-    NotificationPermissionCallback,
+    NotificationAction, NotificationDirection, NotificationMethods, NotificationOptions,
+    NotificationPermission, NotificationPermissionCallback,
 };
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
+use crate::dom::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::{Fallible, Rc};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::eventtarget::EventTarget;
@@ -242,10 +239,13 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         )?;
 
         // FIXME: Run step 5.1, 5.2 in parallel
-        let state = get_descriptor_permission_state(PermissionName::Notifications, Some(global));
-        if state != PermissionState::Granted {
-            // step 5.1: If the result of getting the notifications permission state is not "granted",
-            // then queue a task to fire an event named error on this, and abort these steps.
+        // step 5.1: If the result of getting the notifications permission state is not "granted",
+        //           then queue a task to fire an event named error on this, and abort these steps.
+        // TODO: `get_descriptor_permission_state` seems always assume
+        //       we are in non-secure environment and return "Prompt"
+        let permission_state =
+            get_descriptor_permission_state(PermissionName::Notifications, Some(global));
+        if permission_state != PermissionState::Granted {
             notification
                 .upcast::<EventTarget>()
                 .fire_event(atom!("error"), CanGc::note());
@@ -260,8 +260,11 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#get-the-notifications-permission-state>
     fn GetPermission(global: &GlobalScope) -> Fallible<NotificationPermission> {
         // step 1: Let permissionState be the result of getting the current permission state with "notifications".
-        let state = get_descriptor_permission_state(PermissionName::Notifications, Some(global));
-        match state {
+        // TODO: `get_descriptor_permission_state` seems always assume
+        //       we are in non-secure environment and return "Prompt"
+        let permission_state =
+            get_descriptor_permission_state(PermissionName::Notifications, Some(global));
+        match permission_state {
             PermissionState::Granted => Ok(NotificationPermission::Granted),
             PermissionState::Denied => Ok(NotificationPermission::Denied),
             // step 2: If permissionState is "prompt", then return "default".
@@ -272,12 +275,32 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
     fn RequestPermission(
         global: &GlobalScope,
-        _permission_callback: Option<Rc<NotificationPermissionCallback>>,
+        permission_callback: Option<Rc<NotificationPermissionCallback>>,
     ) -> Rc<Promise> {
-        // TODO: implement RequestPermission, return dummy promise for now
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut rval = js::jsval::UndefinedValue());
-        Promise::new_resolved(global, cx, rval.handle()).unwrap()
+        // Step 2: Let promise be a new promise in this’s relevant Realm.
+        // FIXME: not sure what CanGC should provide here
+        let promise = Promise::new(global, CanGc::note());
+
+        // TODO: Step 3: Run these steps in parallel:
+        // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
+        // TODO: here should be "request" permission instead of "query" permission, but we don't have
+        // a proper implementation for "request" permission.
+        let notification_permission =
+            match get_descriptor_permission_state(PermissionName::Notifications, Some(global)) {
+                PermissionState::Granted => NotificationPermission::Granted,
+                PermissionState::Denied => NotificationPermission::Denied,
+                PermissionState::Prompt => NotificationPermission::Default,
+            };
+        // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
+        // Step 3.2.1: If deprecatedCallback is given,
+        //             then invoke deprecatedCallback with « permissionState » and "report".
+        if let Some(permission_callback) = permission_callback {
+            let _ = permission_callback.Call__(notification_permission, ExceptionHandling::Report);
+        }
+        // Step 3.2.2: Resolve promise with permissionState.
+        promise.resolve_native(&notification_permission);
+
+        promise
     }
 
     // <https://notifications.spec.whatwg.org/#dom-notification-onclick>
