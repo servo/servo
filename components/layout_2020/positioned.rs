@@ -465,6 +465,7 @@ impl HoistedAbsolutelyPositionedBox {
             ..
         } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
+        let is_table = context.is_table();
 
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment
@@ -496,6 +497,7 @@ impl HoistedAbsolutelyPositionedBox {
             alignment: inline_alignment,
             flip_anchor: shared_fragment.original_parent_writing_mode.is_bidi_ltr() !=
                 containing_block_writing_mode.is_bidi_ltr(),
+            is_table,
         };
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
@@ -519,6 +521,7 @@ impl HoistedAbsolutelyPositionedBox {
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Block),
             alignment: block_alignment,
             flip_anchor: false,
+            is_table,
         };
 
         if let IndependentFormattingContextContents::Replaced(replaced) = &context.contents {
@@ -747,6 +750,7 @@ struct AbsoluteAxisSolver<'a> {
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
     flip_anchor: bool,
+    is_table: bool,
 }
 
 impl AbsoluteAxisSolver<'_> {
@@ -825,7 +829,8 @@ impl AbsoluteAxisSolver<'_> {
                 self.computed_margin_start.auto_is(Au::zero) -
                 self.computed_margin_end.auto_is(Au::zero);
             let initial_behavior = match self.alignment.value() {
-                AlignFlags::STRETCH | AlignFlags::NORMAL | AlignFlags::AUTO => Size::Stretch,
+                AlignFlags::NORMAL | AlignFlags::AUTO if !self.is_table => Size::Stretch,
+                AlignFlags::STRETCH => Size::Stretch,
                 _ => Size::FitContent,
             };
             let size = solve_size(initial_behavior, stretch_size);

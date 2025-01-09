@@ -842,6 +842,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         containing_block,
         style,
         get_inline_content_sizes,
+        false, /* is_table */
     );
     let ResolvedMargins {
         margin,
@@ -1083,6 +1084,7 @@ impl IndependentNonReplacedContents {
             containing_block,
             &base.style,
             get_inline_content_sizes,
+            self.is_table(),
         );
 
         let layout = self.layout(
@@ -1219,9 +1221,15 @@ impl IndependentNonReplacedContents {
                 .sizes
         };
 
+        // TODO: the automatic inline size should take `justify-self` into account.
+        let automatic_inline_size = if self.is_table() {
+            Size::FitContent
+        } else {
+            Size::Stretch
+        };
         let compute_inline_size = |stretch_size| {
             content_box_sizes.inline.resolve(
-                Size::Stretch,
+                automatic_inline_size,
                 Au::zero(),
                 stretch_size,
                 get_inline_content_sizes,
@@ -1613,6 +1621,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
     style: &'a Arc<ComputedValues>,
     get_inline_content_sizes: impl FnOnce(&ConstraintSpace) -> ContentSizes,
+    is_table: bool,
 ) -> ContainingBlockPaddingAndBorder<'a> {
     if matches!(style.pseudo(), Some(PseudoElement::ServoAnonymousBox)) {
         // <https://drafts.csswg.org/css2/#anonymous-block-level>
@@ -1672,8 +1681,14 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         ))
     };
+    // TODO: the automatic inline size should take `justify-self` into account.
+    let automatic_inline_size = if is_table {
+        Size::FitContent
+    } else {
+        Size::Stretch
+    };
     let inline_size = content_box_sizes.inline.resolve(
-        Size::Stretch,
+        automatic_inline_size,
         Au::zero(),
         available_inline_size,
         get_inline_content_sizes,

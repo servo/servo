@@ -803,36 +803,12 @@ impl<'a> TableLayout<'a> {
         let style = &self.table.style;
         self.pbm = style.padding_border_margin(containing_block_for_table);
 
+        // These diverge a little from the specification, but should be roughtly equivalent
+        // to what the spec calls "resolved-table-width" and "used width of a table".
         // https://drafts.csswg.org/css-tables/#resolved-table-width
-        // * If inline-size computes to 'auto', this is the stretch-fit size
-        //   (https://drafts.csswg.org/css-sizing-3/#stretch-fit-size).
-        // * Otherwise, it's the resulting length (with percentages resolved).
-        // In both cases, it's clamped between min-inline-size and max-inline-size.
-        // This diverges a little from the specification.
-        let resolved_table_width = containing_block_for_children.size.inline;
-
         // https://drafts.csswg.org/css-tables/#used-width-of-table
-        // * If table-root has a computed value for inline-size different than auto:
-        //   use the maximum of the resolved table width, GRIDMIN and CAPMIN.
-        // * If auto: use the resolved_table_width, clamped between GRIDMIN and GRIDMAX,
-        //   but at least as big as min-inline-size and CAPMIN.
-        // This diverges a little from the specification, but should be equivalent
-        // (other than using the stretch-fit size instead of the containing block width).
-        let used_width_of_table = match style
-            .content_box_size_deprecated(containing_block_for_table, &self.pbm)
-            .inline
-        {
-            LengthPercentage(_) => resolved_table_width.max(grid_min_max.min_content),
-            Auto => {
-                let min_width: Au = style
-                    .content_min_box_size_deprecated(containing_block_for_table, &self.pbm)
-                    .inline
-                    .auto_is(Au::zero);
-                resolved_table_width
-                    .clamp(grid_min_max.min_content, grid_min_max.max_content)
-                    .max(min_width)
-            },
-        };
+        let resolved_table_width = containing_block_for_children.size.inline;
+        let used_width_of_table = resolved_table_width.max(grid_min_max.min_content);
 
         // Padding and border should apply to the table grid, but they are properties of the
         // parent element (the table wrapper). In order to account for this, we subtract the
