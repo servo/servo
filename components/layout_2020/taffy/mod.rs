@@ -5,6 +5,7 @@ mod layout;
 mod stylo_taffy;
 use std::fmt;
 
+use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -116,4 +117,39 @@ impl TaffyItemBox {
             taffy_level_box: inner,
         }
     }
+}
+
+/// Details from Taffy grid layout that will be stored
+#[derive(Clone, Debug)]
+pub(crate) struct DetailedTaffyGridInfo {
+    pub rows: DetailedTaffyGridTrackInfo,
+    pub columns: DetailedTaffyGridTrackInfo,
+}
+
+impl DetailedTaffyGridInfo {
+    fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo) -> Self {
+        Self {
+            rows: DetailedTaffyGridTrackInfo {
+                sizes: grid_info
+                    .rows
+                    .sizes
+                    .iter()
+                    .map(|size| Au::from_f32_px(*size))
+                    .collect(),
+            },
+            columns: DetailedTaffyGridTrackInfo {
+                sizes: grid_info
+                    .columns
+                    .sizes
+                    .iter()
+                    .map(|size| Au::from_f32_px(*size))
+                    .collect(),
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct DetailedTaffyGridTrackInfo {
+    pub sizes: Box<[Au]>,
 }

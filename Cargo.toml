@@ -132,7 +132,7 @@ style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/s
 surfman = { git = "https://github.com/servo/surfman", rev = "300789ddbda45c89e9165c31118bf1c4c07f89f6", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.7", default-features = false, features = ["std", "serde", "grid"] }
+taffy = { version = "0.7.2", default-features = false, features = ["std", "serde", "grid", "detailed_layout_info"] }
 thin-vec = "0.2.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
